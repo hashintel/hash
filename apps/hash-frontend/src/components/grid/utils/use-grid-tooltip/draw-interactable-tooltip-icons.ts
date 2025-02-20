@@ -39,12 +39,9 @@ export const drawInteractableTooltipIcons = (
      */
     const reversedIndex = tooltips.length - i - 1;
 
-    const tooltipX =
-      rect.x +
-      rect.width -
-      iconSize -
-      cellMargin -
-      reversedIndex * (iconGap + iconSize);
+    const rightOffset = cellMargin - reversedIndex * (iconGap + iconSize);
+
+    const tooltipX = rect.x + rect.width - iconSize - rightOffset;
 
     const yCenter = getYCenter(args);
 
@@ -59,11 +56,9 @@ export const drawInteractableTooltipIcons = (
       1,
     );
 
-    const actualTooltipX = tooltipX - rect.x;
-
     const interactable = InteractableManager.createCellInteractable(args, {
       id: `tooltip-${i}`,
-      pos: {
+      posRelativeToVisibleGridArea: {
         left: tooltipX,
         right: tooltipX + iconSize,
         top: yCenter - iconSize / 2,
@@ -71,8 +66,16 @@ export const drawInteractableTooltipIcons = (
       },
       onMouseEnter: () =>
         showTooltip({
-          text: tooltip.text,
-          iconX: actualTooltipX + iconSize / 2,
+          content: tooltip.text,
+          horizontalAlign: "center",
+          interactablePosRelativeToCell: {
+            right: rightOffset,
+            top: yCenter - rect.y - iconSize / 2,
+          },
+          interactableSize: {
+            width: iconSize,
+            height: iconSize,
+          },
           colIndex: col,
           rowIndex: row,
         }),

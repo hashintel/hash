@@ -2,7 +2,11 @@ import { useMutation } from "@apollo/client";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import { Box, Container, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
 import type { FunctionComponent } from "react";
@@ -21,10 +25,14 @@ import { CalendarIcon } from "../../../shared/icons/calendar-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { isEntityPageEntity } from "../../../shared/is-of-type";
 import { Button, Link } from "../../../shared/ui";
-import { isItemEntityType } from "./util";
+import { isItemType } from "./util";
 
 type ArchivedItemBannerProps = {
-  item: Entity | EntityTypeWithMetadata;
+  item:
+    | Entity
+    | EntityTypeWithMetadata
+    | DataTypeWithMetadata
+    | PropertyTypeWithMetadata;
   onUnarchived: () => void;
 };
 
@@ -43,7 +51,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
 
   const { unarchivePage } = useArchivePage();
 
-  const isEntityType = isItemEntityType(item);
+  const isEntityType = isItemType(item);
   const isPage = !isEntityType && isEntityPageEntity(item);
 
   const handleUnarchive = useCallback(async () => {

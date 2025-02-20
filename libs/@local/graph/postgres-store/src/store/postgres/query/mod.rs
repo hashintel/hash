@@ -19,6 +19,7 @@ use core::{
     fmt::{self, Display, Formatter},
 };
 
+use error_stack::Report;
 use hash_graph_store::{
     entity::{EntityQueryCursor, EntityQuerySorting},
     filter::{ParameterConversionError, QueryRecord},
@@ -26,11 +27,11 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 use hash_graph_types::knowledge::entity::Entity;
-use serde_json::Value;
 use tokio_postgres::Row;
+use type_system::Value;
 
 pub use self::{
-    compile::SelectCompiler,
+    compile::{SelectCompiler, SelectCompilerError},
     condition::{Condition, EqualityOperator},
     expression::{
         Constant, Expression, Function, JoinExpression, OrderByExpression, SelectExpression,
@@ -105,7 +106,7 @@ pub trait PostgresSorting<'s, R: QueryRecord>:
         compiler: &mut SelectCompiler<'p, 'q, R>,
         parameters: Option<&'p Self::CompilationParameters>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Self::Indices
+    ) -> Result<Self::Indices, Report<SelectCompilerError>>
     where
         's: 'q;
 }
@@ -137,7 +138,7 @@ where
         compiler: &mut SelectCompiler<'p, 'q, Entity>,
         _: Option<&'p Self::CompilationParameters>,
         _: &QueryTemporalAxes,
-    ) -> Self::Indices
+    ) -> Result<Self::Indices, Report<SelectCompilerError>>
     where
         's: 'q,
     {
@@ -158,7 +159,8 @@ where
                 })
                 .collect()
         } else {
-            self.paths
+            Ok(self
+                .paths
                 .iter()
                 .map(|sorting_record| {
                     compiler.add_distinct_selection_with_ordering(
@@ -167,7 +169,7 @@ where
                         Some((sorting_record.ordering, sorting_record.nulls)),
                     )
                 })
-                .collect()
+                .collect())
         }
     }
 }

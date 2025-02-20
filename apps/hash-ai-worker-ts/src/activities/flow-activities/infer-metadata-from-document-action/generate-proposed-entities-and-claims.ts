@@ -13,6 +13,7 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
+  systemDataTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -22,6 +23,7 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/claim";
 import type {
   InstitutionProperties,
+  NamePropertyValueWithMetadata,
   PersonProperties,
   TextDataTypeMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -31,7 +33,7 @@ import { Context } from "@temporalio/activity";
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import { logProgress } from "../../shared/log-progress.js";
-import type { DocumentMetadata } from "./get-llm-analysis-of-doc.js";
+import type { DocumentData } from "./get-llm-analysis-of-doc.js";
 
 const createClaim = async ({
   claimText,
@@ -109,10 +111,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   propertyProvenance,
 }: {
   aiAssistantAccountId: AccountId;
-  documentMetadata: Pick<
-    DocumentMetadata,
-    "authors" | "publicationVenue" | "publishedBy"
-  >;
+  documentMetadata: Pick<DocumentData, "authors">;
   documentEntityId: EntityId;
   documentTitle: string;
   provenance: EnforcedEntityEditionProvenance;
@@ -121,8 +120,6 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   const {
     authors,
     /** @todo H-3619: Infer info on publisher and venue, and link to docs */
-    publicationVenue: _publicationVenue,
-    publishedBy: _publishedBy,
   } = documentMetadata;
 
   const { createEntitiesAsDraft, webId, userAuthentication } =
@@ -137,7 +134,8 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   const nameOnlyPropertyMetadata: PropertyMetadataObject = {
     value: {
       [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: {
-        metadata: textDataTypeMetadata,
+        metadata:
+          textDataTypeMetadata satisfies NamePropertyValueWithMetadata["metadata"],
       },
     },
   };
@@ -147,19 +145,41 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   const institutionEntityIdByName: Record<string, EntityId> = {};
 
   for (const author of authors ?? []) {
-    const { name: authorName, affiliatedWith } = author;
+    const { name: authorName, email, affiliatedWith } = author;
 
     const entityUuid = generateUuid() as EntityUuid;
+
+    const authorPropertyMetadata = JSON.parse(
+      JSON.stringify(nameOnlyPropertyMetadata),
+    ) as typeof nameOnlyPropertyMetadata;
 
     const authorProperties: PersonProperties = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
         authorName,
     };
 
+    if (email) {
+      authorProperties["https://hash.ai/@hash/types/property-type/email/"] = [
+        email,
+      ];
+      authorPropertyMetadata.value[systemDataTypes.email.dataTypeBaseUrl] = {
+        value: [
+          {
+            metadata: {
+              dataTypeId: systemDataTypes.email.dataTypeId,
+              provenance: propertyProvenance,
+            },
+          },
+        ],
+      };
+    }
+
     const authorEntityId = entityIdFromComponents(webId, entityUuid);
 
     /**
-     * Create a claim about the person having authored the document
+     * Create a claim about the person having authored the document (person is the subject)
+     *
+     * The link to this claim will be created in persist-entity-action
      */
     const authorToDocClaim = await createClaim({
       claimText: `${authorName} authored ${documentTitle}`,
@@ -174,9 +194,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     });
 
     /**
-     * Link the authorship claim to the document entity
-     *
-     * @todo H-3152 update persist-entity to handle updates to existing entities, and let claim link creation happen there
+     * Create the link between the existing document entity and the claim (document is the object)
      */
     await LinkEntity.create<HasObject>(
       graphApiClient,
@@ -207,19 +225,20 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       entityTypeIds: [systemEntityTypes.person.entityTypeId],
       localEntityId: authorEntityId,
       properties: authorProperties,
-      propertyMetadata: nameOnlyPropertyMetadata,
+      propertyMetadata: authorPropertyMetadata,
       provenance,
     };
 
     proposedEntities.push(authorProposedEntity);
 
-    /**
-     * Propose the link between the document and the author entity
-     */
     const emptyClaims: ProposedEntity["claims"] = {
       isObjectOf: [],
       isSubjectOf: [],
     };
+
+    /**
+     * Propose the authoredBy link between the document and the author entity
+     */
     proposedEntities.push({
       claims: emptyClaims,
       entityTypeIds: [systemLinkEntityTypes.authoredBy.linkEntityTypeId],
@@ -252,7 +271,6 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
 
         /**
          * Create a claim about the person being affiliated with the institution.
-         * This will be linked to the institution entity in the persist-entity step
          */
         const authorToInstitutionClaim = await createClaim({
           claimText: `${authorName} is affiliated with ${affiliateName}`,
@@ -265,6 +283,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
           subjectText: authorName,
           userActorId: userAuthentication.actorId,
         });
+
         authorProposedEntity.claims.isSubjectOf.push(
           authorToInstitutionClaim.entityId,
         );
@@ -285,7 +304,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       }
 
       /**
-       * Create the link between the person and the institution entity
+       * Propose the link between the person and the institution entity
        */
       proposedEntities.push({
         claims: emptyClaims,

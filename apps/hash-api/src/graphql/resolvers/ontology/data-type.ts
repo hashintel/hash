@@ -1,5 +1,9 @@
+import type { DataTypeWithMetadata } from "@blockprotocol/graph";
+import type { OntologyTemporalMetadata } from "@local/hash-graph-client/dist/api.d";
+import type { DataTypeConversionsMap } from "@local/hash-isomorphic-utils/data-types";
 import {
   currentTimeInstantTemporalAxes,
+  defaultDataTypeAuthorizationRelationships,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -7,14 +11,29 @@ import {
   mapGraphApiSubgraphToSubgraph,
   serializeSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { UserPermissionsOnDataType } from "@local/hash-isomorphic-utils/types";
 import type {
   DataTypeRootType,
   SerializedSubgraph,
 } from "@local/hash-subgraph";
 
-import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
+import {
+  archiveDataType,
+  checkPermissionsOnDataType,
+  createDataType,
+  getDataTypeConversionTargets,
+  getDataTypeSubgraphById,
+  unarchiveDataType,
+  updateDataType,
+} from "../../../graph/ontology/primitive/data-type";
 import type {
+  MutationArchiveDataTypeArgs,
+  MutationCreateDataTypeArgs,
+  MutationUnarchiveDataTypeArgs,
+  MutationUpdateDataTypeArgs,
+  QueryCheckUserPermissionsOnDataTypeArgs,
   QueryGetDataTypeArgs,
+  QueryGetDataTypeConversionTargetsArgs,
   QueryQueryDataTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
@@ -28,19 +47,26 @@ export const queryDataTypes: ResolverFn<
   QueryQueryDataTypesArgs
 > = async (
   _,
-  { constrainsValuesOn, includeArchived },
+  { constrainsValuesOn, filter, includeArchived, inheritsFrom, latestOnly },
   { dataSources, authentication },
 ) => {
   const { graphApi } = dataSources;
 
+  const latestOnlyFilter = {
+    equal: [{ path: ["version"] }, { parameter: "latest" }],
+  };
+
   const { data: response } = await graphApi.getDataTypeSubgraph(
     authentication.actorId,
     {
-      filter: {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
-      },
+      filter: latestOnly
+        ? filter
+          ? { all: [filter, latestOnlyFilter] }
+          : latestOnlyFilter
+        : (filter ?? { all: [] }),
       graphResolveDepths: {
         ...zeroedGraphResolveDepths,
+        inheritsFrom,
         constrainsValuesOn,
       },
       temporalAxes: includeArchived
@@ -86,4 +112,95 @@ export const getDataType: ResolverFn<
           : currentTimeInstantTemporalAxes,
       },
     ),
+  );
+
+export const getDataTypeConversionTargetsResolver: ResolverFn<
+  Promise<DataTypeConversionsMap>,
+  Record<string, never>,
+  GraphQLContext,
+  QueryGetDataTypeConversionTargetsArgs
+> = async (_, { dataTypeIds }, graphQLContext) => {
+  return await getDataTypeConversionTargets(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    { dataTypeIds },
+  );
+};
+
+export const createDataTypeResolver: ResolverFn<
+  Promise<DataTypeWithMetadata>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  MutationCreateDataTypeArgs
+> = async (_, params, { dataSources, authentication, provenance }) => {
+  const { ownedById, dataType } = params;
+
+  const createdDataType = await createDataType(
+    {
+      ...dataSources,
+      provenance,
+    },
+    authentication,
+    {
+      ownedById,
+      schema: dataType,
+      relationships: defaultDataTypeAuthorizationRelationships,
+      conversions: {},
+    },
+  );
+
+  return createdDataType;
+};
+
+export const updateDataTypeResolver: ResolverFn<
+  Promise<DataTypeWithMetadata>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  MutationUpdateDataTypeArgs
+> = async (_, params, graphQLContext) =>
+  updateDataType(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    {
+      dataTypeId: params.dataTypeId,
+      schema: params.dataType,
+      relationships: defaultDataTypeAuthorizationRelationships,
+      conversions: {},
+    },
+  );
+
+export const archiveDataTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  MutationArchiveDataTypeArgs
+> = async (_, params, graphQLContext) =>
+  archiveDataType(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    params,
+  );
+
+export const unarchiveDataTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  MutationUnarchiveDataTypeArgs
+> = async (_, params, graphQLContext) =>
+  unarchiveDataType(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    params,
+  );
+
+export const checkUserPermissionsOnDataTypeResolver: ResolverFn<
+  Promise<UserPermissionsOnDataType>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  QueryCheckUserPermissionsOnDataTypeArgs
+> = async (_, params, { dataSources, authentication, provenance }) =>
+  checkPermissionsOnDataType(
+    { ...dataSources, provenance },
+    authentication,
+    params,
   );

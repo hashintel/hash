@@ -1,5 +1,8 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "include": ["scripts"],
-  "exclude": ["scripts/create-block/**/*.d.ts"]
+  "exclude": ["scripts/create-block/**/*.d.ts"],
+  "compilerOptions": {
+    "lib": ["ESNext"]
+  }
 }

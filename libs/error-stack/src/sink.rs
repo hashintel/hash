@@ -58,7 +58,7 @@ impl Bomb {
         ))
     }
 
-    fn defuse(&mut self) {
+    const fn defuse(&mut self) {
         self.0 = BombState::Defused;
     }
 }

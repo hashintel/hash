@@ -42,6 +42,7 @@ import {
   addEntityViewerResolver,
   archiveEntitiesResolver,
   archiveEntityResolver,
+  countEntitiesResolver,
   createEntityResolver,
   getEntityAuthorizationRelationshipsResolver,
   getEntityResolver,
@@ -79,7 +80,16 @@ import { meResolver } from "./knowledge/user/me";
 import { submitEarlyAccessFormResolver } from "./knowledge/user/submit-early-access-form";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
-import { getDataType, queryDataTypes } from "./ontology/data-type";
+import {
+  archiveDataTypeResolver,
+  checkUserPermissionsOnDataTypeResolver,
+  createDataTypeResolver,
+  getDataType,
+  getDataTypeConversionTargetsResolver,
+  queryDataTypes,
+  unarchiveDataTypeResolver,
+  updateDataTypeResolver,
+} from "./ontology/data-type";
 import {
   archiveEntityTypeResolver,
   checkUserPermissionsOnEntityTypeResolver,
@@ -89,6 +99,7 @@ import {
   queryEntityTypesResolver,
   unarchiveEntityTypeResolver,
   updateEntityTypeResolver,
+  updateEntityTypesResolver,
 } from "./ontology/entity-type";
 import {
   archivePropertyTypeResolver,
@@ -117,6 +128,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     // Ontology
     queryDataTypes,
     getDataType,
+    getDataTypeConversionTargets: getDataTypeConversionTargetsResolver,
     queryPropertyTypes: queryPropertyTypesResolver,
     getPropertyType: getPropertyTypeResolver,
     queryEntityTypes: queryEntityTypesResolver,
@@ -134,6 +146,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(
       getEntityAuthorizationRelationshipsResolver,
     ),
+    countEntities: countEntitiesResolver,
     getEntitySubgraph: getEntitySubgraphResolver,
     hashInstanceSettings: hashInstanceSettingsResolver,
     // Integration
@@ -143,6 +156,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     checkUserPermissionsOnEntity: (_, { metadata }, context, info) =>
       checkUserPermissionsOnEntity({ metadata }, _, context, info),
     checkUserPermissionsOnEntityType: checkUserPermissionsOnEntityTypeResolver,
+    checkUserPermissionsOnDataType: checkUserPermissionsOnDataTypeResolver,
     hasAccessToHash: loggedInMiddleware(hasAccessToHashResolver),
     // Generation
     generateInverse: loggedInMiddleware(generateInverseResolver),
@@ -171,8 +185,13 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     unarchivePropertyType: loggedInAndSignedUpMiddleware(
       unarchivePropertyTypeResolver,
     ),
+    createDataType: loggedInAndSignedUpMiddleware(createDataTypeResolver),
+    updateDataType: loggedInAndSignedUpMiddleware(updateDataTypeResolver),
+    archiveDataType: loggedInAndSignedUpMiddleware(archiveDataTypeResolver),
+    unarchiveDataType: loggedInAndSignedUpMiddleware(unarchiveDataTypeResolver),
     createEntityType: loggedInAndSignedUpMiddleware(createEntityTypeResolver),
     updateEntityType: loggedInAndSignedUpMiddleware(updateEntityTypeResolver),
+    updateEntityTypes: loggedInAndSignedUpMiddleware(updateEntityTypesResolver),
     archiveEntityType: loggedInAndSignedUpMiddleware(archiveEntityTypeResolver),
     unarchiveEntityType: loggedInAndSignedUpMiddleware(
       unarchiveEntityTypeResolver,

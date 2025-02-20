@@ -49,7 +49,9 @@ export const logLlmServerError = (log: LlmServerErrorLog) => {
   }
 };
 
-export const logLlmRequest = (log: LlmLog) => {
+export const logLlmRequest = (
+  log: LlmLog & { transformedRequest?: Record<string, unknown> },
+) => {
   const orderedLog = {
     requestId: log.requestId,
     finalized: log.finalized,
@@ -58,8 +60,9 @@ export const logLlmRequest = (log: LlmLog) => {
     stepId: log.stepId,
     secondsTaken: log.secondsTaken,
     response: log.response,
+    transformedRequest: log.transformedRequest,
     request: log.request,
-    detailedFields: ["response", "request"],
+    detailedFields: ["response", "request", "transformedRequest"],
   };
 
   if (log.response.status === "ok") {

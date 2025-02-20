@@ -63,14 +63,26 @@ export const getEntitySubgraphQuery = gql`
     getEntitySubgraph(request: $request) {
       closedMultiEntityTypes
       count
+      cursor
+      createdByIds
+      editionCreatedByIds
       definitions
       userPermissionsOnEntities @include(if: $includePermissions)
       subgraph {
         ...SubgraphFields
       }
+      typeIds
+      typeTitles
+      webIds
     }
   }
   ${subgraphFieldsFragment}
+`;
+
+export const countEntitiesQuery = gql`
+  query countEntities($request: CountEntitiesParams!) {
+    countEntities(request: $request)
+  }
 `;
 
 export const updateEntityMutation = gql`

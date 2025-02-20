@@ -1,6 +1,6 @@
 use hql_cst::r#type::{Type, TypeKind};
 use winnow::{
-    PResult, Parser as _, Stateful,
+    ModalResult, Parser as _, Stateful,
     combinator::{alt, delimited, preceded, repeat},
     error::ParserError,
     stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
@@ -29,7 +29,7 @@ use crate::span::Span;
 /// ```
 pub(crate) fn parse_type<'arena, 'spans, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
-) -> PResult<Type<'arena>, Error>
+) -> ModalResult<Type<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -43,7 +43,7 @@ where
 
 fn parse_primary<'arena, 'spans, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
-) -> PResult<Type<'arena>, Error>
+) -> ModalResult<Type<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -76,7 +76,7 @@ where
 
 fn parse_enclosed<'arena, 'spans, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
-) -> PResult<Type<'arena>, Error>
+) -> ModalResult<Type<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -90,7 +90,7 @@ where
 
 fn parse_union<'arena, 'spans, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
-) -> PResult<Type<'arena>, Error>
+) -> ModalResult<Type<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -134,7 +134,7 @@ where
 
 fn parse_intersection<'arena, 'spans, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
-) -> PResult<Type<'arena>, Error>
+) -> ModalResult<Type<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -182,7 +182,7 @@ mod test {
     use hql_span::storage::SpanStorage;
     use insta::assert_snapshot;
     use winnow::{
-        Located, Parser as _, Stateful,
+        LocatingSlice, Parser as _, Stateful,
         error::{ContextError, ErrMode, ParseError},
     };
 
@@ -197,12 +197,12 @@ mod test {
     ) -> Result<
         Type<'arena>,
         ParseError<
-            Stateful<Located<&'input str>, ParseState<'arena, 'spans>>,
+            Stateful<LocatingSlice<&'input str>, ParseState<'arena, 'spans>>,
             ErrMode<ContextError>,
         >,
     > {
         let state = Stateful {
-            input: Located::new(value),
+            input: LocatingSlice::new(value),
             state,
         };
 

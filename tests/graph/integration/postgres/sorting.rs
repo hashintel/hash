@@ -75,28 +75,31 @@ async fn test_root_sorting<A: AuthorizationApi>(
             type_ids: _,
             type_titles: _,
         } = api
-            .get_entity_subgraph(api.account_id, GetEntitySubgraphParams {
-                filter: Filter::All(Vec::new()),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            .get_entity_subgraph(
+                api.account_id,
+                GetEntitySubgraphParams {
+                    filter: Filter::All(Vec::new()),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    sorting: EntityQuerySorting {
+                        paths: sorting_paths.clone(),
+                        cursor: Option::take(&mut cursor),
+                    },
+                    limit: Some(chunk_size),
+                    conversions: Vec::new(),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    include_count: true,
+                    include_entity_types: None,
+                    include_drafts: false,
+                    include_web_ids: false,
+                    include_created_by_ids: false,
+                    include_edition_created_by_ids: false,
+                    include_type_ids: false,
+                    include_type_titles: false,
                 },
-                sorting: EntityQuerySorting {
-                    paths: sorting_paths.clone(),
-                    cursor: Option::take(&mut cursor),
-                },
-                limit: Some(chunk_size),
-                conversions: Vec::new(),
-                graph_resolve_depths: GraphResolveDepths::default(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-            })
+            )
             .await
             .expect("could not get entity");
         let new_entities = subgraph
@@ -192,19 +195,22 @@ async fn insert<A: AuthorizationApi>(
     for (idx, (entity, type_id)) in entities_properties.into_iter().enumerate() {
         let properties: PropertyObject =
             serde_json::from_str(entity).expect("could not parse entity");
-        api.create_entity(api.account_id, CreateEntityParams {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-            entity_uuid: Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
-            decision_time: None,
-            entity_type_ids: HashSet::from([type_id.clone()]),
-            properties: PropertyWithMetadataObject::from_parts(properties.clone(), None)
-                .expect("could not create property with metadata object"),
-            confidence: None,
-            link_data: None,
-            draft: false,
-            relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        api.create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
+                decision_time: None,
+                entity_type_ids: HashSet::from([type_id.clone()]),
+                properties: PropertyWithMetadataObject::from_parts(properties.clone(), None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
     }

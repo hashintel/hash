@@ -1,7 +1,9 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   ClosedEntityType as GraphApiClosedEntityType,
   ClosedMultiEntityType as GraphApiClosedMultiEntityType,
+  DataTypeConversionTargets as GraphApiDataTypeConversionTargets,
   DataTypeWithMetadata as GraphApiDataTypeWithMetadata,
   Entity as GraphApiEntity,
   EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
@@ -42,6 +44,7 @@ import {
   isEntityVertex,
 } from "@local/hash-subgraph";
 
+import type { DataTypeConversionTargets } from "./data-types.js";
 import { systemEntityTypes, systemPropertyTypes } from "./ontology-type-ids.js";
 
 const restrictedPropertyBaseUrls: string[] = [
@@ -239,3 +242,14 @@ export const mapGraphApiPropertyTypesToPropertyTypes = (
 export const mapGraphApiDataTypesToDataTypes = (
   entityTypes: GraphApiDataTypeWithMetadata[],
 ) => entityTypes as DataTypeWithMetadata[];
+
+export const mapGraphApiDataTypeConversions = (
+  conversions: Record<
+    string,
+    Record<string, GraphApiDataTypeConversionTargets>
+  >,
+) =>
+  conversions as Record<
+    VersionedUrl,
+    Record<VersionedUrl, DataTypeConversionTargets>
+  >;

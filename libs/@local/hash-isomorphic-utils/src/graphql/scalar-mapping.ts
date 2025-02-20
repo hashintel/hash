@@ -16,7 +16,9 @@ export const scalars = {
 
   DataTypeWithMetadata: "@local/hash-graph-types/ontology#DataTypeWithMetadata",
   ConstructDataTypeParams:
-    "@local/hash-isomorphic-utils/data-types#ConstructDataTypeParams",
+    "@local/hash-graph-types/ontology#ConstructDataTypeParams",
+  DataTypeConversionsMap:
+    "@local/hash-isomorphic-utils/data-types#DataTypeConversionsMap",
 
   ClosedMultiEntityType:
     "@local/hash-graph-types/ontology#ClosedMultiEntityType",
@@ -28,6 +30,7 @@ export const scalars = {
     "@local/hash-graph-types/ontology#EntityTypeWithMetadata",
   ConstructEntityTypeParams:
     "@local/hash-isomorphic-utils/types#ConstructEntityTypeParams",
+
   PropertyTypeWithMetadata:
     "@local/hash-graph-types/ontology#PropertyTypeWithMetadata",
   ConstructPropertyTypeParams:
@@ -39,6 +42,7 @@ export const scalars = {
   EntityRelationAndSubject: "@local/hash-subgraph#EntityRelationAndSubject",
   EntityValidationReport:
     "@local/hash-graph-types/validation#EntityValidationReport",
+  CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",
   GetEntitySubgraphRequest:
     "@local/hash-isomorphic-utils/types#GetEntitySubgraphRequest",
   EntityTemporalVersioningMetadata:
@@ -52,6 +56,11 @@ export const scalars = {
   DiffEntityResult: "@local/hash-graph-client#DiffEntityResult",
   ValidateEntityParamsComponents:
     "@local/hash-graph-client#ValidateEntityParamsComponents",
+  EntityQueryCursor: "@local/hash-graph-client#EntityQueryCursor",
+  CreatedByIdsMap: "@local/hash-graph-sdk/entity#CreatedByIdsMap",
+  TypeIdsMap: "@local/hash-graph-sdk/entity#TypeIdsMap",
+  TypeTitlesMap: "@local/hash-graph-sdk/entity#TypeTitlesMap",
+  WebIdsMap: "@local/hash-graph-sdk/entity#WebIdsMap",
 
   Filter: "@local/hash-graph-client#Filter",
 
@@ -63,6 +72,8 @@ export const scalars = {
   UserPermissions: "@local/hash-isomorphic-utils/types#UserPermissions",
   UserPermissionsOnEntityType:
     "@local/hash-isomorphic-utils/types#UserPermissionsOnEntityType",
+  UserPermissionsOnDataType:
+    "@local/hash-isomorphic-utils/types#UserPermissionsOnDataType",
   ProspectiveUserProperties:
     "@local/hash-isomorphic-utils/system-types/prospectiveuser#ProspectiveUserProperties",
 

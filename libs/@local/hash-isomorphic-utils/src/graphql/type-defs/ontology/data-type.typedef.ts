@@ -1,9 +1,11 @@
 import { gql } from "apollo-server-express";
 
 export const dataTypeTypedef = gql`
-  # scalar DataType
-  # scalar ConstructDataTypeParams
-  # scalar DataTypeWithMetadata
+  scalar ConstructDataTypeParams
+  scalar DataTypeWithMetadata
+
+  scalar DataTypeConversionsMap
+  scalar UserPermissionsOnDataType
 
   extend type Query {
     """
@@ -11,7 +13,10 @@ export const dataTypeTypedef = gql`
     """
     queryDataTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+      filter: Filter
+      inheritsFrom: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
+      latestOnly: Boolean = true
     ): Subgraph!
 
     """
@@ -22,14 +27,24 @@ export const dataTypeTypedef = gql`
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
     ): Subgraph!
+
+    getDataTypeConversionTargets(
+      dataTypeIds: [VersionedUrl!]!
+    ): DataTypeConversionsMap!
+
+    """
+    Check the requesting user's permissions on a data type
+    """
+    checkUserPermissionsOnDataType(
+      dataTypeId: VersionedUrl!
+    ): UserPermissionsOnDataType!
   }
 
-  # The following mutations should not be exposed until user defined data types
-  # have been described and specified as an RFC.
-  # extend type Mutation {
-  #   createDataType(accountId: AccountId!, dataType: ConstructDataTypeParams!): Subgraph!
-  #   updateDataType(accountId: AccountId!, dataType: ConstructDataTypeParams!): Subgraph!
-  #   archiveDataType(propertyTypeId: VersionedUrl!): OntologyTemporalMetadata!
-  #   unarchiveDataType(propertyTypeId: VersionedUrl!): OntologyTemporalMetadata!
-  # }
+
+  extend type Mutation {
+    createDataType(ownedById: OwnedById!, dataType: ConstructDataTypeParams!): DataTypeWithMetadata!
+    updateDataType(dataTypeId: VersionedUrl!, dataType: ConstructDataTypeParams!): DataTypeWithMetadata!
+    archiveDataType(dataTypeId: VersionedUrl!): OntologyTemporalMetadata!
+    unarchiveDataType(dataTypeId: VersionedUrl!): OntologyTemporalMetadata!
+  }
 `;

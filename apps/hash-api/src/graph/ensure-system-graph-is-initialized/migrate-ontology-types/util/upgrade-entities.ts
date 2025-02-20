@@ -26,7 +26,6 @@ import {
   componentsFromVersionedUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
-import isEqual from "lodash/isEqual";
 
 import type { ImpureGraphContext } from "../../../context-types";
 import {
@@ -157,7 +156,10 @@ export const upgradeWebEntities = async ({
 
         let updateAuthentication = webBotAuthentication;
 
-        const temporaryEntityTypePermissionsGranted: VersionedUrl[] = [];
+        const temporaryEntityTypePermissionsGranted: Record<
+          VersionedUrl,
+          AccountId
+        > = {};
 
         /**
          * Determine the actor that should update the entity.
@@ -189,45 +191,51 @@ export const upgradeWebEntities = async ({
              */
             actorId: entity.metadata.provenance.createdById,
           };
+        }
 
-          for (const entityTypeId of [currentEntityTypeId, newEntityTypeId]) {
-            /**
-             * We may need to temporarily grant the machine account ID the ability
-             * to instantiate entities of both the old and new entityTypeId,
-             * because an actor cannot update or remove an entity type without being able to instantiate it.
-             */
-            const relationships = await context.graphApi
-              .getEntityTypeAuthorizationRelationships(
-                systemAccountId,
-                entityTypeId,
-              )
-              .then(({ data }) => data);
+        /**
+         * We may need to temporarily grant the actor the ability to instantiate entities of both the old and new entityTypeId,
+         * because an actor cannot remove or add an entity type without being able to instantiate it.
+         * Some entity types have their instantiator restricted, e.g. User, Org, so that they can only be created in special circumstances.
+         * If the actor being used here doesn't already have permission we'll grant it and then remove it after the update.
+         */
+        for (const entityTypeId of [currentEntityTypeId, newEntityTypeId]) {
+          const relationships = await context.graphApi
+            .getEntityTypeAuthorizationRelationships(
+              systemAccountId,
+              entityTypeId,
+            )
+            .then(({ data }) => data);
 
-            const relationAndSubject = {
-              subject: {
-                kind: "account",
-                subjectId: entity.metadata.provenance.createdById,
-              },
-              relation: "instantiator",
-            } as const;
+          const relationAndSubject = {
+            subject: {
+              kind: "account",
+              subjectId: updateAuthentication.actorId,
+            },
+            relation: "instantiator",
+          } as const;
 
-            if (
-              !relationships.find((relationship) =>
-                isEqual(relationship, relationAndSubject),
-              )
-            ) {
-              await context.graphApi.modifyEntityTypeAuthorizationRelationships(
-                systemAccountId,
-                [
-                  {
-                    operation: "create",
-                    resource: entityTypeId,
-                    relationAndSubject,
-                  },
-                ],
-              );
-              temporaryEntityTypePermissionsGranted.push(entityTypeId);
-            }
+          if (
+            !relationships.find(
+              ({ subject, relation }) =>
+                relation === "instantiator" &&
+                ((subject.kind === "account" &&
+                  subject.subjectId === updateAuthentication.actorId) ||
+                  subject.kind === "public"),
+            )
+          ) {
+            await context.graphApi.modifyEntityTypeAuthorizationRelationships(
+              systemAccountId,
+              [
+                {
+                  operation: "create",
+                  resource: entityTypeId,
+                  relationAndSubject,
+                },
+              ],
+            );
+            temporaryEntityTypePermissionsGranted[entityTypeId] =
+              updateAuthentication.actorId;
           }
         }
 
@@ -256,7 +264,9 @@ export const upgradeWebEntities = async ({
               : undefined,
           });
         } finally {
-          for (const entityTypeId of temporaryEntityTypePermissionsGranted) {
+          for (const [entityTypeId, actorId] of Object.entries(
+            temporaryEntityTypePermissionsGranted,
+          )) {
             /**
              * If we updated a machine entity and granted its actor ID a
              * new permission, we need to remove the temporary permission.
@@ -270,7 +280,7 @@ export const upgradeWebEntities = async ({
                   relationAndSubject: {
                     subject: {
                       kind: "account",
-                      subjectId: entity.metadata.provenance.createdById,
+                      subjectId: actorId,
                     },
                     relation: "instantiator",
                   },

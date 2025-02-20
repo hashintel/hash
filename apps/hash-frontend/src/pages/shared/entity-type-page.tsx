@@ -1,7 +1,11 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
+import {
+  atLeastOne,
+  extractVersion,
+  mustHaveAtLeastOne,
+} from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { EntityOrTypeIcon, OntologyChip } from "@hashintel/design-system";
+import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
   EntityTypeFormProvider,
@@ -9,10 +13,9 @@ import {
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type { AccountId } from "@local/hash-graph-types/account";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { generateLinkMapWithConsistentSelfReferences } from "@local/hash-isomorphic-utils/ontology-types";
+import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import type { Theme } from "@mui/material";
 import { Box, Container, Typography } from "@mui/material";
@@ -21,15 +24,12 @@ import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { PageErrorState } from "../../components/page-error-state";
-import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
-import { useEntityTypeEntitiesContextValue } from "../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useIsSpecialEntityType } from "../../shared/entity-types-context/hooks";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../shared/is-archived";
 import { isHrefExternal } from "../../shared/is-href-external";
 import { useUserPermissionsOnEntityType } from "../../shared/use-user-permissions-on-entity-type";
-import { ArchiveMenuItem } from "../[shortname]/shared/archive-menu-item";
+import { ArchiveMenuItem } from "../@/[shortname]/shared/archive-menu-item";
 import { ConvertTypeMenuItem } from "./entity-type-page/convert-type-menu-item";
 import { DefinitionTab } from "./entity-type-page/definition-tab";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
@@ -40,27 +40,33 @@ import { EntityTypeContext } from "./entity-type-page/shared/entity-type-context
 import { EntityTypeHeader } from "./entity-type-page/shared/entity-type-header";
 import { useCurrentTab } from "./entity-type-page/shared/tabs";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
+import { UpgradeDependentsModal } from "./entity-type-page/upgrade-dependents-modal";
+import {
+  type EntityTypeDependent,
+  useGetEntityTypeDependents,
+} from "./entity-type-page/use-entity-type-dependents";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
+import { NotFound } from "./not-found";
+import {
+  TypeDefinitionContainer,
+  typeHeaderContainerStyles,
+} from "./shared/type-editor-styling";
 import { TopContextBar } from "./top-context-bar";
 
 type EntityTypeProps = {
-  accountId?: AccountId | null;
+  ownedById?: OwnedById | null;
   draftEntityType?: EntityTypeWithMetadata | null;
   entityTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
 };
 
 export const EntityTypePage = ({
-  accountId,
+  ownedById,
   draftEntityType,
   entityTypeBaseUrl,
   requestedVersion,
 }: EntityTypeProps) => {
   const router = useRouter();
-
-  const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue({
-    entityTypeBaseUrl,
-  });
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { allOf: [], properties: [], links: [], inverse: {} },
@@ -77,13 +83,13 @@ export const EntityTypePage = ({
     remoteEntityType,
     latestVersion,
     remotePropertyTypes,
-    updateEntityType,
+    updateEntityTypes,
     publishDraft,
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
     entityTypeBaseUrl ?? null,
     requestedVersion,
-    accountId ?? null,
+    ownedById ?? null,
     (fetchedEntityType) => {
       // Load the initial form data after the entity type has been fetched
       reset({
@@ -111,12 +117,51 @@ export const EntityTypePage = ({
     [entityType, remotePropertyTypes],
   );
 
-  const isDirty = formMethods.formState.isDirty;
+  const isDirty = Object.keys(formMethods.formState.dirtyFields).length > 0;
   const isDraft = !!draftEntityType;
 
   const { userPermissions } = useUserPermissionsOnEntityType(
     entityType?.schema.$id,
   );
+
+  const [entityTypeDependents, setEntityTypeDependents] = useState<
+    Record<BaseUrl, EntityTypeDependent>
+  >({});
+
+  const [dependentsExcludedFromUpgrade, setDependentsExcludedFromUpgrade] =
+    useState<BaseUrl[]>([]);
+
+  const { upgradableDependencies, entityTypesToUpgrade } = useMemo(
+    () => ({
+      upgradableDependencies: Object.values(entityTypeDependents).filter(
+        (dependent) =>
+          dependent.noFurtherTraversalBecause !== "external-web" &&
+          dependent.noFurtherTraversalBecause !== "external-type-host",
+      ),
+      entityTypesToUpgrade: Object.values(entityTypeDependents).filter(
+        (dependent) => !dependent.noFurtherTraversalBecause,
+      ),
+    }),
+    [entityTypeDependents],
+  );
+
+  const [showDependencyUpgradeModal, setShowDependencyUpgradeModal] =
+    useState(false);
+
+  const { getEntityTypeDependents, loading } = useGetEntityTypeDependents();
+
+  useEffect(() => {
+    if (!entityType) {
+      return;
+    }
+
+    void getEntityTypeDependents({
+      entityTypeId: entityType.schema.$id,
+      excludeBaseUrls: dependentsExcludedFromUpgrade,
+    }).then((dependents) => {
+      setEntityTypeDependents(dependents);
+    });
+  }, [getEntityTypeDependents, entityType, dependentsExcludedFromUpgrade]);
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!isDirty && !isDraft) {
@@ -139,6 +184,19 @@ export const EntityTypePage = ({
       });
       reset(data);
     } else {
+      if (!remoteEntityType) {
+        throw new Error(
+          "Cannot update entity type without existing entityType schema",
+        );
+      }
+
+      if (upgradableDependencies.length && !showDependencyUpgradeModal) {
+        setShowDependencyUpgradeModal(true);
+        return;
+      }
+
+      setShowDependencyUpgradeModal(false);
+
       const currentEntityTypeId = entityType?.schema.$id;
       if (!currentEntityTypeId) {
         throw new Error(
@@ -147,24 +205,25 @@ export const EntityTypePage = ({
       }
 
       /**
-       * If an entity type refers to itself as a link destination, e.g. a Company may have a Parent which is a Company,
-       * we want the version specified as the link target in the schema to be the same as the version of the entity type.
-       * This rewriting of the schema ensures that by looking for self references and giving them the expected next version.
-       * If we don't do this, creating a new version of Company means the new version will have a link to the previous version.
+       * Rewrite schemas of the type and any types dependent on it that the user has choosen to upgrade,
+       * so that they all refer to the latest versions (after the update has been applied).
+       * Types may refer to each other, or reference themselves – via inheritance (allOf), as link types, or as link destinations
        */
-      const schemaWithConsistentSelfReferences = {
-        ...entityTypeSchema,
-        links: generateLinkMapWithConsistentSelfReferences(
-          entityTypeSchema,
-          currentEntityTypeId,
-        ),
-      };
+      const [{ $id: _, ...rootType }, ...dependents] = mustHaveAtLeastOne(
+        rewriteSchemasToNextVersion([
+          {
+            ...remoteEntityType.schema,
+            ...entityTypeSchema,
+          },
+          ...entityTypesToUpgrade.map((dependent) => dependent.entityType),
+        ]),
+      );
 
-      const res = await updateEntityType(schemaWithConsistentSelfReferences);
+      const res = await updateEntityTypes(rootType, dependents);
 
-      if (!res.errors?.length && res.data) {
+      if (!res.errors?.length && res.data?.updateEntityTypes[0]) {
         void router.push(
-          generateLinkParameters(res.data.updateEntityType.schema.$id).href,
+          generateLinkParameters(res.data.updateEntityTypes[0].schema.$id).href,
         );
       } else {
         throw new Error("Could not publish changes");
@@ -203,7 +262,14 @@ export const EntityTypePage = ({
         </Container>
       );
     } else {
-      return <PageErrorState />;
+      return (
+        <NotFound
+          resourceLabel={{
+            label: "entity type",
+            withArticle: "an entity type",
+          }}
+        />
+      );
     }
   }
 
@@ -216,16 +282,47 @@ export const EntityTypePage = ({
     : extractVersion(entityType.schema.$id);
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
+    if (upgradableDependencies.length && !showDependencyUpgradeModal) {
+      setShowDependencyUpgradeModal(true);
+      return;
+    }
+
+    if (!remoteEntityType) {
+      throw new Error(
+        "Cannot update entity type without existing entityType schema",
+      );
+    }
+
+    setShowDependencyUpgradeModal(false);
+
     const { schema } = getEntityTypeFromFormData(data);
 
-    const res = await updateEntityType({
-      ...schema,
-      allOf: [{ $ref: linkEntityTypeUrl }, ...(schema.allOf ?? [])],
-    });
+    /**
+     * Rewrite schemas of the type and any types dependent on it that the user has choosen to upgrade,
+     * so that they all refer to the latest versions (after the update has been applied).
+     * Types may refer to each other, or reference themselves – via inheritance (allOf), as link types, or as link destinations
+     */
+    const [rootType, ...dependents] = mustHaveAtLeastOne(
+      rewriteSchemasToNextVersion([
+        {
+          ...remoteEntityType.schema,
+          ...schema,
+        },
+        ...entityTypesToUpgrade.map((dependent) => dependent.entityType),
+      ]),
+    );
 
-    if (!res.errors?.length && res.data) {
+    const res = await updateEntityTypes(
+      {
+        ...rootType,
+        allOf: [{ $ref: linkEntityTypeUrl }, ...(rootType.allOf ?? [])],
+      },
+      dependents,
+    );
+
+    if (!res.errors?.length && res.data?.updateEntityTypes[0]) {
       void router.push(
-        generateLinkParameters(res.data.updateEntityType.schema.$id).href,
+        generateLinkParameters(res.data.updateEntityTypes[0].schema.$id).href,
       );
     } else {
       throw new Error("Could not publish changes");
@@ -241,140 +338,139 @@ export const EntityTypePage = ({
   return (
     <>
       <NextSeo title={`${entityType.schema.title} | Entity Type`} />
+      <UpgradeDependentsModal
+        dependents={entityTypeDependents}
+        excludedDependencies={dependentsExcludedFromUpgrade}
+        loading={loading}
+        open={showDependencyUpgradeModal}
+        onCancel={() => {
+          setShowDependencyUpgradeModal(false);
+        }}
+        onConfirm={() => {
+          void handleSubmit();
+        }}
+        setDependenciesToExclude={(excludedDependencies) => {
+          setDependentsExcludedFromUpgrade(excludedDependencies);
+        }}
+        upgradingEntityType={entityType.schema}
+      />
       <EntityTypeFormProvider {...formMethods}>
         <EntityTypeContext.Provider value={entityType.schema}>
-          <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-            <Box display="contents" component="form" onSubmit={handleSubmit}>
-              <TopContextBar
-                actionMenuItems={[
-                  ...(remoteEntityType && !isTypeArchived(remoteEntityType)
-                    ? [
-                        <ArchiveMenuItem
-                          key={entityType.schema.$id}
-                          item={remoteEntityType}
-                        />,
-                      ]
-                    : []),
-                  ...(!isReadonly && !isDraft && !isLink
-                    ? [
-                        <ConvertTypeMenuItem
-                          key={entityType.schema.$id}
-                          convertToLinkType={convertToLinkType}
-                          disabled={isDirty}
-                          typeTitle={entityType.schema.title}
-                        />,
-                      ]
-                    : []),
-                ]}
-                defaultCrumbIcon={null}
-                item={remoteEntityType ?? undefined}
-                crumbs={[
-                  {
-                    href: "/types",
-                    title: "Types",
-                    id: "types",
-                  },
-                  {
-                    href: "/types/entity-type",
-                    title: `${isLink ? "Link" : "Entity"} Types`,
-                    id: "entity-types",
-                  },
-                  {
-                    title: entityType.schema.title,
-                    href: "#",
-                    id: entityType.schema.$id,
-                    icon: (
-                      <EntityOrTypeIcon
-                        entity={null}
-                        fill={({ palette }) => palette.blue[70]}
-                        fontSize={24}
-                        icon={icon}
-                        isLink={isLink}
-                      />
-                    ),
-                  },
-                ]}
-                scrollToTop={() => {}}
-                sx={{ bgcolor: "white" }}
+          <Box display="contents" component="form" onSubmit={handleSubmit}>
+            <TopContextBar
+              actionMenuItems={[
+                ...(remoteEntityType && !isTypeArchived(remoteEntityType)
+                  ? [
+                      <ArchiveMenuItem
+                        key={entityType.schema.$id}
+                        item={remoteEntityType}
+                      />,
+                    ]
+                  : []),
+                ...(!isReadonly && !isDraft && !isLink
+                  ? [
+                      <ConvertTypeMenuItem
+                        key={entityType.schema.$id}
+                        convertToLinkType={convertToLinkType}
+                        disabled={isDirty}
+                        typeTitle={entityType.schema.title}
+                      />,
+                    ]
+                  : []),
+              ]}
+              defaultCrumbIcon={null}
+              item={remoteEntityType ?? undefined}
+              crumbs={[
+                {
+                  href: "/types",
+                  title: "Types",
+                  id: "types",
+                },
+                {
+                  href: "/types/entity-type",
+                  title: `${isLink ? "Link" : "Entity"} Types`,
+                  id: "entity-types",
+                },
+                {
+                  title: entityType.schema.title,
+                  href: "#",
+                  id: entityType.schema.$id,
+                  icon: (
+                    <EntityOrTypeIcon
+                      entity={null}
+                      fill={({ palette }) => palette.blue[70]}
+                      fontSize={24}
+                      icon={icon}
+                      isLink={isLink}
+                    />
+                  ),
+                },
+              ]}
+              scrollToTop={() => {}}
+              sx={{ bgcolor: "white" }}
+            />
+
+            {!isReadonly && (
+              <EditBarTypeEditor
+                currentVersion={currentVersion}
+                discardButtonProps={
+                  // @todo confirmation of discard when draft
+                  isDraft
+                    ? {
+                        href: `/new/types/entity-type`,
+                      }
+                    : {
+                        onClick() {
+                          reset();
+                        },
+                      }
+                }
+                key={entityType.schema.$id} // reset edit bar state when the entity type changes
               />
+            )}
 
-              {!isReadonly && (
-                <EditBarTypeEditor
+            <Box ref={titleWrapperRef} sx={typeHeaderContainerStyles}>
+              <Container>
+                <EntityTypeHeader
                   currentVersion={currentVersion}
-                  discardButtonProps={
-                    // @todo confirmation of discard when draft
-                    isDraft
-                      ? {
-                          href: `/new/types/entity-type`,
-                        }
-                      : {
-                          onClick() {
-                            reset();
-                          },
-                        }
-                  }
-                  key={entityType.schema.$id} // reset edit bar state when the entity type changes
+                  entityTypeSchema={entityType.schema}
+                  hideOpenInNew
+                  isDraft={isDraft}
+                  isLink={isLink}
+                  isReadonly={isReadonly}
+                  latestVersion={latestVersion}
                 />
-              )}
 
-              <Box
-                ref={titleWrapperRef}
-                sx={{
-                  borderBottom: 1,
-                  borderColor: "gray.20",
-                  pt: 3.75,
-                  backgroundColor: "white",
-                }}
-              >
-                <Container>
-                  <EntityTypeHeader
-                    isDraft={isDraft}
-                    ontologyChip={
-                      <OntologyChip
-                        domain={new URL(entityType.schema.$id).hostname}
-                        path={new URL(entityType.schema.$id).pathname.replace(
-                          /\d+$/,
-                          currentVersion.toString(),
-                        )}
-                      />
-                    }
-                    entityTypeSchema={entityType.schema}
-                    isLink={isLink}
-                    isReadonly={isReadonly}
-                    latestVersion={latestVersion}
-                  />
-
-                  <EntityTypeTabs
-                    canCreateEntity={userPermissions.instantiate}
-                    isDraft={isDraft}
-                    isFile={isFile}
-                    isImage={isImage}
-                  />
-                </Container>
-              </Box>
-
-              <Box py={5}>
-                <Container>
-                  {currentTab === "definition" ? (
-                    entityTypeAndPropertyTypes ? (
-                      <DefinitionTab
-                        entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
-                        onNavigateToType={onNavigateToType}
-                        ownedById={accountId as OwnedById | null}
-                        readonly={isReadonly}
-                      />
-                    ) : (
-                      "Loading..."
-                    )
-                  ) : null}
-                  {currentTab === "entities" ? <EntitiesTab /> : null}
-                  {isFile && currentTab === "upload" ? (
-                    <FileUploadsTab isImage={isImage} />
-                  ) : null}
-                </Container>
-              </Box>
+                <EntityTypeTabs
+                  canCreateEntity={userPermissions.instantiate}
+                  isDraft={isDraft}
+                  isFile={isFile}
+                  isImage={isImage}
+                />
+              </Container>
             </Box>
-          </EntityTypeEntitiesContext.Provider>
+
+            <TypeDefinitionContainer>
+              {currentTab === "definition" ? (
+                entityTypeAndPropertyTypes ? (
+                  <DefinitionTab
+                    entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
+                    onNavigateToType={onNavigateToType}
+                    ownedById={ownedById ?? null}
+                    readonly={isReadonly}
+                  />
+                ) : (
+                  "Loading..."
+                )
+              ) : null}
+              {currentTab === "entities" && entityTypeBaseUrl ? (
+                <EntitiesTab entityTypeBaseUrl={entityTypeBaseUrl} />
+              ) : null}
+              {isFile && currentTab === "upload" ? (
+                <FileUploadsTab isImage={isImage} />
+              ) : null}
+            </TypeDefinitionContainer>
+          </Box>
         </EntityTypeContext.Provider>
       </EntityTypeFormProvider>
 

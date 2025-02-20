@@ -15,11 +15,11 @@ import {
 import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
-import { Buffer } from "../wire-protocol/index.js";
 import {
   type RequestId,
   Request as WireRequest,
 } from "../wire-protocol/models/request/index.js";
+import { MutableBuffer } from "../binary/index.js";
 import {
   type Response as WireResponse,
   ResponseFlags,
@@ -164,152 +164,154 @@ const makeSink = (connection: ConnectionImpl) =>
     }).pipe(Effect.annotateLogs({ id: response.header.requestId })),
   );
 
-const wrapDrop = (
+const wrapDrop = Effect.fn("wrapDrop")(function* (
   connection: ConnectionImpl,
   id: RequestId.RequestId,
   drop: Deferred.Deferred<void>,
-) =>
-  Effect.gen(function* () {
-    const transaction = MutableHashMap.get(connection.transactions, id);
+) {
+  const transaction = MutableHashMap.get(connection.transactions, id);
 
-    if (Option.isNone(transaction)) {
-      yield* Effect.logWarning("transaction has been dropped multiple times");
+  if (Option.isNone(transaction)) {
+    yield* Effect.logWarning("transaction has been dropped multiple times");
 
-      return;
-    }
+    return;
+  }
 
-    MutableHashMap.remove(connection.transactions, id);
-    yield* transaction.value.queue.shutdown;
+  MutableHashMap.remove(connection.transactions, id);
+  yield* transaction.value.queue.shutdown;
 
-    // call user defined drop function
-    const dropImpl = yield* Deferred.poll(drop);
+  // call user defined drop function
+  const dropImpl = yield* Deferred.poll(drop);
 
-    if (Option.isSome(dropImpl)) {
-      yield* dropImpl.value;
-    }
-  });
+  if (Option.isSome(dropImpl)) {
+    yield* dropImpl.value;
+  }
+});
 
-const task = (connection: ConnectionImpl) =>
-  Effect.gen(function* () {
-    const sink = makeSink(connection);
+const task = Effect.fn("task")(function* (connection: ConnectionImpl) {
+  const sink = makeSink(connection);
 
-    // We don't need to monitor if the connection itself closes as that simply means that our stream would end.
-    yield* Stream.run(connection.duplex.read, sink);
-  });
+  // We don't need to monitor if the connection itself closes as that simply means that our stream would end.
+  yield* Stream.run(connection.duplex.read, sink);
+});
 
 /** @internal */
-export const makeUnchecked = (
+export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
   transport: internalTransport.Transport,
   config: ConnectionConfig,
   peer: Transport.Address,
-) =>
-  Effect.gen(function* () {
-    const connection = yield* internalTransport.connect(transport, peer);
+) {
+  const connection = yield* internalTransport.connect(transport, peer);
 
-    const stream = yield* Effect.acquireRelease(
-      Effect.tryPromise({
-        try: (abort) => {
-          return connection.newStream("/harpc/1.0.0", {
-            signal: abort,
-            maxOutboundStreams: config.maxOutboundStreams,
-            runOnLimitedConnection: config.runOnLimitedConnection,
-          });
-        },
+  const stream = yield* Effect.acquireRelease(
+    Effect.tryPromise({
+      try: (abort) => {
+        return connection.newStream("/harpc/1.0.0", {
+          signal: abort,
+          maxOutboundStreams: config.maxOutboundStreams,
+          runOnLimitedConnection: config.runOnLimitedConnection,
+        });
+      },
+      catch: (cause) => new Transport.TransportError({ cause }),
+    }),
+    (_) => Effect.promise((abort) => _.close({ signal: abort })),
+  );
+
+  const readStream = pipe(
+    Stream.fromAsyncIterable(
+      stream.source,
+      (cause) => new Transport.TransportError({ cause }),
+    ),
+    Stream.mapConcat((list) => list),
+    // cast needed as uint8arraylist doesn't support Uint8Array<ArrayBuffer> yet
+    Stream.map((array) =>
+      // take the underlying buffer and slice it to the correct view
+      (array.buffer as ArrayBuffer).slice(
+        array.byteOffset,
+        array.byteOffset + array.byteLength,
+      ),
+    ),
+    ResponseFromBytesStream.make,
+  );
+
+  const writeSink = pipe(
+    Sink.forEachChunk((chunk: Chunk.Chunk<Uint8Array>) =>
+      Effect.try({
+        try: () => stream.sink(chunk),
         catch: (cause) => new Transport.TransportError({ cause }),
       }),
-      (_) => Effect.promise((abort) => _.close({ signal: abort })),
-    );
+    ),
+    Sink.mapInputEffect((request: WireRequest.Request) =>
+      Effect.gen(function* () {
+        // in the future we might be able to re-use the allocated buffer (we would likely still need to copy the contents tho)
+        const buffer = MutableBuffer.makeWrite();
 
-    const readStream = pipe(
-      Stream.fromAsyncIterable(
-        stream.source,
-        (cause) => new Transport.TransportError({ cause }),
-      ),
-      Stream.mapConcat((list) => list),
-      // cast needed as uint8arraylist doesn't support Uint8Array<ArrayBuffer> yet
-      Stream.map((array) => array.buffer as ArrayBuffer),
-      ResponseFromBytesStream.make,
-    );
+        yield* WireRequest.encode(buffer, request);
 
-    const writeSink = pipe(
-      Sink.forEachChunk((chunk: Chunk.Chunk<Uint8Array>) =>
-        Effect.try({
-          try: () => stream.sink(chunk),
-          catch: (cause) => new Transport.TransportError({ cause }),
-        }),
-      ),
-      Sink.mapInputEffect((request: WireRequest.Request) =>
-        Effect.gen(function* () {
-          const buffer = yield* Buffer.makeWrite();
+        const array = MutableBuffer.take(buffer);
 
-          yield* WireRequest.encode(buffer, request);
+        return new Uint8Array(array);
+      }),
+    ),
+  );
 
-          const array = yield* Buffer.take(buffer);
+  const duplex = { read: readStream, write: writeSink } as ConnectionDuplex;
 
-          return new Uint8Array(array);
-        }),
-      ),
-    );
-
-    const duplex = { read: readStream, write: writeSink } as ConnectionDuplex;
-
-    const self: ConnectionImpl = createProto(ConnectionProto, {
-      transactions: MutableHashMap.empty<
-        RequestId.RequestId,
-        TransactionContext
-      >(),
-      duplex,
-      config,
-    });
-
-    // TODO: we might want to observe the task, for that we would need to have a partial connection that we then patch
-    yield* Effect.fork(task(self));
-
-    return self as Connection;
+  const self: ConnectionImpl = createProto(ConnectionProto, {
+    transactions: MutableHashMap.empty<
+      RequestId.RequestId,
+      TransactionContext
+    >(),
+    duplex,
+    config,
   });
+
+  // TODO: we might want to observe the task, for that we would need to have a partial connection that we then patch
+  yield* Effect.fork(task(self));
+
+  return self as Connection;
+});
 
 // these bounds are stricter than required, as we have no way to inform the remote about a failure in the underlying stream,
 // see: https://linear.app/hash/issue/H-3748/request-interruption
-export const send: {
+export const send = Function.dual<
   <R>(
     request: Request.Request<never, R>,
-  ): (
+  ) => (
     self: Connection,
-  ) => Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>>;
+  ) => Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>>,
   <R>(
     self: Connection,
     request: Request.Request<never, R>,
-  ): Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>>;
-} = Function.dual(
+  ) => Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>>
+>(
   2,
-  <R>(
-    self: ConnectionImpl,
-    request: Request.Request<never, R>,
-  ): Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>> =>
-    Effect.gen(function* () {
-      // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- it's indeed correct here
-      const deferredDrop = yield* Deferred.make<void>();
-      const drop = wrapDrop(self, request.id, deferredDrop);
+  Effect.fn("send")(function* (self, request) {
+    const impl = self as ConnectionImpl;
 
-      const queue = yield* Queue.bounded<WireResponse.Response>(
-        self.config.responseBufferSize ?? 16,
-      );
+    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- it's indeed correct here
+    const deferredDrop = yield* Deferred.make<void>();
+    const drop = wrapDrop(impl, request.id, deferredDrop);
 
-      const transactionContext: TransactionContext = {
-        queue,
-        drop,
-      };
+    const queue = yield* Queue.bounded<WireResponse.Response>(
+      impl.config.responseBufferSize ?? 16,
+    );
 
-      MutableHashMap.set(self.transactions, request.id, transactionContext);
+    const transactionContext: TransactionContext = {
+      queue,
+      drop,
+    };
 
-      yield* Effect.fork(
-        pipe(
-          request, //
-          Request.encode(),
-          Stream.run(self.duplex.write),
-        ),
-      );
+    MutableHashMap.set(impl.transactions, request.id, transactionContext);
 
-      return Transaction.makeUnchecked(request.id, queue, deferredDrop);
-    }),
+    yield* Effect.fork(
+      pipe(
+        request, //
+        Request.encode(),
+        Stream.run(impl.duplex.write),
+      ),
+    );
+
+    return Transaction.makeUnchecked(request.id, queue, deferredDrop);
+  }),
 );

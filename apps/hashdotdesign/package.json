@@ -9,7 +9,7 @@
     "storybook": "storybook dev -p 6006"
   },
   "devDependencies": {
-    "@babel/preset-env": "7.26.0",
+    "@babel/preset-env": "7.26.9",
     "@babel/preset-typescript": "7.26.0",
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
@@ -22,8 +22,8 @@
     "@storybook/react": "7.6.20",
     "@storybook/react-webpack5": "7.6.20",
     "@storybook/testing-library": "0.2.2",
-    "@types/react": "19.0.1",
-    "@types/react-dom": "19.0.2",
+    "@types/react": "19.0.10",
+    "@types/react-dom": "19.0.4",
     "storybook": "7.6.20"
   },
   "peerDependencies": {

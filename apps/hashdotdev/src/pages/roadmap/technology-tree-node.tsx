@@ -80,8 +80,9 @@ export const TechnologyTreeNode: FunctionComponent<{
               {useCaseNames.length > 1
                 ? useCaseNames
                     .slice(0, -1)
-                    .map((item) => (
-                      <Fragment key={item?.toString()}>{item}, </Fragment>
+                    .map((item, index) => (
+                      // eslint-disable-next-line react/no-array-index-key
+                      <Fragment key={index}>{item}, </Fragment>
                     ))
                     .concat(
                       <Fragment key="last">

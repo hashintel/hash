@@ -28,9 +28,8 @@ use alloc::collections::BTreeSet;
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 
-use crate::{schema::data_type::constraint::ValueConstraints, url::VersionedUrl};
+use crate::{Value, schema::data_type::constraint::ValueConstraints, url::VersionedUrl};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -75,15 +74,15 @@ impl ValueLabel {
     }
 }
 
-impl From<&JsonValue> for JsonSchemaValueType {
-    fn from(value: &JsonValue) -> Self {
+impl From<&Value> for JsonSchemaValueType {
+    fn from(value: &Value) -> Self {
         match value {
-            JsonValue::Null => Self::Null,
-            JsonValue::Bool(_) => Self::Boolean,
-            JsonValue::Number(_) => Self::Number,
-            JsonValue::String(_) => Self::String,
-            JsonValue::Array(_) => Self::Array,
-            JsonValue::Object(_) => Self::Object,
+            Value::Null => Self::Null,
+            Value::Bool(_) => Self::Boolean,
+            Value::Number(_) => Self::Number,
+            Value::String(_) => Self::String,
+            Value::Array(_) => Self::Array,
+            Value::Object(_) => Self::Object,
         }
     }
 }
@@ -113,8 +112,8 @@ pub struct ValueSchemaMetadata {
 
 mod raw {
     use alloc::collections::BTreeSet;
-    use std::collections::HashSet;
 
+    use hash_codec::numeric::Real;
     use serde::{Deserialize, Serialize};
 
     use super::{DataTypeSchemaTag, DataTypeTag, ValueSchemaMetadata};
@@ -176,21 +175,13 @@ mod raw {
             #[serde(flatten)]
             constraints: NumberConstraints,
         },
-        NumberConst {
-            r#type: NumberTypeTag,
-            #[serde(flatten)]
-            base: DataTypeBase,
-            #[serde(flatten)]
-            metadata: ValueSchemaMetadata,
-            r#const: f64,
-        },
         NumberEnum {
             r#type: NumberTypeTag,
             #[serde(flatten)]
             base: DataTypeBase,
             #[serde(flatten)]
             metadata: ValueSchemaMetadata,
-            r#enum: Vec<f64>,
+            r#enum: Vec<Real>,
         },
         String {
             r#type: StringTypeTag,
@@ -201,21 +192,13 @@ mod raw {
             #[serde(flatten)]
             constraints: StringConstraints,
         },
-        StringConst {
-            r#type: StringTypeTag,
-            #[serde(flatten)]
-            base: DataTypeBase,
-            #[serde(flatten)]
-            metadata: ValueSchemaMetadata,
-            r#const: String,
-        },
         StringEnum {
             r#type: StringTypeTag,
             #[serde(flatten)]
             base: DataTypeBase,
             #[serde(flatten)]
             metadata: ValueSchemaMetadata,
-            r#enum: HashSet<String>,
+            r#enum: Vec<String>,
         },
         Object {
             r#type: ObjectTypeTag,
@@ -314,18 +297,6 @@ mod raw {
                         NumberSchema::Constrained(constraints),
                     )),
                 ),
-                DataType::NumberConst {
-                    r#type: _,
-                    base,
-                    metadata,
-                    r#const,
-                } => (
-                    base,
-                    metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Number(NumberSchema::Const {
-                        r#const,
-                    })),
-                ),
                 DataType::NumberEnum {
                     r#type: _,
                     base,
@@ -349,18 +320,6 @@ mod raw {
                     ValueConstraints::Typed(SingleValueConstraints::String(
                         StringSchema::Constrained(constraints),
                     )),
-                ),
-                DataType::StringConst {
-                    r#type: _,
-                    base,
-                    metadata,
-                    r#const,
-                } => (
-                    base,
-                    metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::String(StringSchema::Const {
-                        r#const,
-                    })),
                 ),
                 DataType::StringEnum {
                     r#type: _,

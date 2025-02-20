@@ -144,6 +144,16 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
     name: `flattenedCustomExpectedValueList.${expectedValueId}.data.itemIds`,
   });
 
+  const selectedDataTypeIds = Object.values(flattenedExpectedValues)
+    .filter(
+      (expectedValue) =>
+        itemIds.includes(expectedValue.id) &&
+        expectedValue.data &&
+        expectedValue.data.typeId !== "array" &&
+        expectedValue.data.typeId !== "object",
+    )
+    .map((item) => item.data?.typeId as VersionedUrl);
+
   const {
     dataTypes,
     // getExpectedValueDisplay
@@ -265,10 +275,15 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
         ))}
 
         <DataTypeSelector
+          allowSelectingAbstractTypes
           handleScroll={false}
           hideHint
           dataTypes={dataTypeOptions}
           onSelect={(dataTypeId) => {
+            if (selectedDataTypeIds.includes(dataTypeId)) {
+              return;
+            }
+
             const defaultData = getDefaultExpectedValue(dataTypeId);
 
             const childId = uniqueId();
@@ -286,6 +301,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
               [...itemIds, childId],
             );
           }}
+          selectedDataTypeIds={selectedDataTypeIds}
         />
 
         {/* @todo H-3794: restore ability to create complex types, support them in entity editor */}

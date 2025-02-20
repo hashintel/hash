@@ -17,11 +17,11 @@ impl Counter {
         self.0
     }
 
-    pub(crate) fn increment(&mut self) {
+    pub(crate) const fn increment(&mut self) {
         self.0 += 1;
     }
 
-    pub(crate) fn decrement(&mut self) {
+    pub(crate) const fn decrement(&mut self) {
         self.0 -= 1;
     }
 }
@@ -32,7 +32,7 @@ pub(crate) struct Inner<T> {
 }
 
 impl<T> Inner<T> {
-    pub(crate) fn new(extra: T) -> Self {
+    pub(crate) const fn new(extra: T) -> Self {
         Self {
             storage: Storage::new(),
             extra,
@@ -45,7 +45,7 @@ impl<T> Inner<T> {
         &self.storage
     }
 
-    pub(crate) fn storage_mut(&mut self) -> &mut Storage {
+    pub(crate) const fn storage_mut(&mut self) -> &mut Storage {
         &mut self.storage
     }
 
@@ -53,7 +53,7 @@ impl<T> Inner<T> {
         &self.extra
     }
 
-    pub(crate) fn extra_mut(&mut self) -> &mut T {
+    pub(crate) const fn extra_mut(&mut self) -> &mut T {
         &mut self.extra
     }
 }
@@ -73,7 +73,7 @@ $vis struct HookContext<T> {
 }
 
 impl HookContext<()> {
-    pub(crate) fn new(extra: $extra) -> Self {
+    pub(crate) const fn new(extra: $extra) -> Self {
         Self {
             inner: $crate::hook::context::Inner::new(extra),
             _marker: core::marker::PhantomData,
@@ -86,15 +86,15 @@ impl<T> HookContext<T> {
         &self.inner
     }
 
-    pub(crate) fn inner_mut(&mut self) -> &mut $crate::hook::context::Inner<$extra> {
+    pub(crate) const fn inner_mut(&mut self) -> &mut $crate::hook::context::Inner<$extra> {
         &mut self.inner
     }
 
-    fn storage(&self) -> &$crate::hook::context::Storage {
+    const fn storage(&self) -> &$crate::hook::context::Storage {
         self.inner().storage()
     }
 
-    fn storage_mut(&mut self) -> &mut $crate::hook::context::Storage {
+    const fn storage_mut(&mut self) -> &mut $crate::hook::context::Storage {
         self.inner_mut().storage_mut()
     }
 }

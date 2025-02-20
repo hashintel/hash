@@ -12,6 +12,7 @@ import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type {
+  DataTypeRelationAndSubject,
   EntityRelationAndSubject,
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,
@@ -380,9 +381,25 @@ export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndS
     },
   ];
 
+export const defaultDataTypeAuthorizationRelationships: DataTypeRelationAndSubject[] =
+  [
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "updateFromWeb",
+      },
+    },
+    {
+      relation: "viewer",
+      subject: {
+        kind: "public",
+      },
+    },
+  ];
+
 export const notificationTypesToIgnore = [
   systemEntityTypes.notification.entityTypeId,
-  systemEntityTypes.graphChangeNotification.entityTypeId,
 ];
 
 export const usageRecordTypesToIgnore = [
@@ -393,25 +410,20 @@ export const usageRecordTypesToIgnore = [
   systemLinkEntityTypes.incurredIn.linkEntityTypeId,
 ];
 
-const pageNotificationTypesToIgnore = [
-  systemEntityTypes.mentionNotification.entityTypeId,
-  systemEntityTypes.commentNotification.entityTypeId,
+const pageTypesToIgnore = [
   systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
 ];
 
 export const noisySystemTypeIds = [
   ...notificationTypesToIgnore,
   ...usageRecordTypesToIgnore,
-  ...pageNotificationTypesToIgnore,
+  ...pageTypesToIgnore,
 ] as const;
 
 export type NoisySystemTypeId = (typeof noisySystemTypeIds)[number];
 
 export const ignoreNoisySystemTypesFilter: Filter = {
   all: noisySystemTypeIds.map((versionedUrl) => ({
-    notEqual: [
-      { path: ["type(inheritanceDepth = 0)", "versionedUrl"] },
-      { parameter: versionedUrl },
-    ],
+    notEqual: [{ path: ["type", "versionedUrl"] }, { parameter: versionedUrl }],
   })),
 };

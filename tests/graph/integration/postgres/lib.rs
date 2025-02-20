@@ -23,6 +23,7 @@ mod property_metadata;
 mod property_type;
 mod sorting;
 
+use alloc::borrow::Cow;
 use std::collections::HashMap;
 
 use error_stack::Report;
@@ -48,6 +49,7 @@ use hash_graph_store::{
     account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
+        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
         GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
         GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
@@ -86,6 +88,7 @@ use hash_graph_types::{
     owned_by_id::OwnedById,
 };
 use hash_tracing::logging::env_filter;
+use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::schema::{DataType, EntityType, PropertyType};
 use uuid::Uuid;
@@ -222,10 +225,13 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .await
             .expect("could not insert account id");
         store
-            .insert_web_id(account_id, InsertWebIdParams {
-                owned_by_id: OwnedById::new(account_id.into_uuid()),
-                owner: WebOwnerSubject::Account { id: account_id },
-            })
+            .insert_web_id(
+                account_id,
+                InsertWebIdParams {
+                    owned_by_id: OwnedById::new(account_id.into_uuid()),
+                    owner: WebOwnerSubject::Account { id: account_id },
+                },
+            )
             .await
             .expect("could not create web id");
 
@@ -322,11 +328,14 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_data_types(actor_id, CountDataTypesParams {
-                filter: params.filter.clone(),
-                temporal_axes: params.temporal_axes.clone(),
-                include_drafts: params.include_drafts,
-            })
+            .count_data_types(
+                actor_id,
+                CountDataTypesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                },
+            )
             .await?;
 
         let mut response = self.store.get_data_types(actor_id, params).await?;
@@ -354,11 +363,14 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_data_types(actor_id, CountDataTypesParams {
-                filter: params.filter.clone(),
-                temporal_axes: params.temporal_axes.clone(),
-                include_drafts: params.include_drafts,
-            })
+            .count_data_types(
+                actor_id,
+                CountDataTypesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                },
+            )
             .await?;
 
         let mut response = self.store.get_data_type_subgraph(actor_id, params).await?;
@@ -376,15 +388,16 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         Ok(response)
     }
 
-    async fn update_data_type<R>(
+    async fn update_data_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        params: UpdateDataTypesParams<R>,
-    ) -> Result<DataTypeMetadata, Report<UpdateError>>
+        params: P,
+    ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
+        P: IntoIterator<Item = UpdateDataTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
-        self.store.update_data_type(actor_id, params).await
+        self.store.update_data_types(actor_id, params).await
     }
 
     async fn archive_data_type(
@@ -410,6 +423,16 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
     ) -> Result<(), Report<UpdateError>> {
         self.store
             .update_data_type_embeddings(actor_id, params)
+            .await
+    }
+
+    async fn get_data_type_conversion_targets(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypeConversionTargetsParams,
+    ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
+        self.store
+            .get_data_type_conversion_targets(actor_id, params)
             .await
     }
 
@@ -449,11 +472,14 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_property_types(actor_id, CountPropertyTypesParams {
-                filter: params.filter.clone(),
-                temporal_axes: params.temporal_axes.clone(),
-                include_drafts: params.include_drafts,
-            })
+            .count_property_types(
+                actor_id,
+                CountPropertyTypesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                },
+            )
             .await?;
 
         let mut response = self.store.get_property_types(actor_id, params).await?;
@@ -482,11 +508,14 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_property_types(actor_id, CountPropertyTypesParams {
-                filter: params.filter.clone(),
-                temporal_axes: params.temporal_axes.clone(),
-                include_drafts: params.include_drafts,
-            })
+            .count_property_types(
+                actor_id,
+                CountPropertyTypesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                },
+            )
             .await?;
 
         let mut response = self
@@ -509,15 +538,16 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         Ok(response)
     }
 
-    async fn update_property_type<R>(
+    async fn update_property_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        params: UpdatePropertyTypesParams<R>,
-    ) -> Result<PropertyTypeMetadata, Report<UpdateError>>
+        params: P,
+    ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
+        P: IntoIterator<Item = UpdatePropertyTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
-        self.store.update_property_type(actor_id, params).await
+        self.store.update_property_types(actor_id, params).await
     }
 
     async fn archive_property_type(
@@ -578,11 +608,14 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_entity_types(actor_id, CountEntityTypesParams {
-                filter: params.filter.clone(),
-                temporal_axes: params.temporal_axes.clone(),
-                include_drafts: params.include_drafts,
-            })
+            .count_entity_types(
+                actor_id,
+                CountEntityTypesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                },
+            )
             .await?;
 
         let mut response = self.store.get_entity_types(actor_id, params).await?;
@@ -620,11 +653,14 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_entity_types(actor_id, CountEntityTypesParams {
-                filter: params.filter.clone(),
-                temporal_axes: params.temporal_axes.clone(),
-                include_drafts: params.include_drafts,
-            })
+            .count_entity_types(
+                actor_id,
+                CountEntityTypesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                },
+            )
             .await?;
 
         let mut response = self
@@ -646,15 +682,16 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         Ok(response)
     }
 
-    async fn update_entity_type<R>(
+    async fn update_entity_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        params: UpdateEntityTypesParams<R>,
-    ) -> Result<EntityTypeMetadata, Report<UpdateError>>
+        params: P,
+    ) -> Result<Vec<EntityTypeMetadata>, Report<UpdateError>>
     where
+        P: IntoIterator<Item = UpdateEntityTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
-        self.store.update_entity_type(actor_id, params).await
+        self.store.update_entity_types(actor_id, params).await
     }
 
     async fn archive_entity_type(
@@ -724,11 +761,14 @@ where
         params.include_count = true;
 
         let count = self
-            .count_entities(actor_id, CountEntitiesParams {
-                filter: params.filter.clone(),
-                temporal_axes: params.temporal_axes.clone(),
-                include_drafts: params.include_drafts,
-            })
+            .count_entities(
+                actor_id,
+                CountEntitiesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                },
+            )
             .await?;
 
         let mut response = self.store.get_entities(actor_id, params).await?;
@@ -756,11 +796,14 @@ where
         params.include_count = true;
 
         let count = self
-            .count_entities(actor_id, CountEntitiesParams {
-                filter: params.filter.clone(),
-                temporal_axes: params.temporal_axes.clone(),
-                include_drafts: params.include_drafts,
-            })
+            .count_entities(
+                actor_id,
+                CountEntitiesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                },
+            )
             .await?;
         let mut response = self.store.get_entity_subgraph(actor_id, params).await?;
 
@@ -821,4 +864,68 @@ where
 #[tokio::test]
 async fn can_connect() {
     DatabaseTestWrapper::new().await;
+}
+
+fn assert_equal_entities(lhs: &Entity, rhs: &Entity) {
+    use pretty_assertions::assert_eq;
+
+    // It's possible that the time differs by less than a millisecond. If so, we copy the time from
+    // the right-hand side to the left-hand side.
+    let mut cloned = Cow::Borrowed(lhs);
+    let lhs_metadata = &lhs.metadata.provenance.inferred;
+    let rhs_metadata = &rhs.metadata.provenance.inferred;
+
+    if (lhs_metadata.created_at_decision_time - rhs_metadata.created_at_decision_time).abs()
+        < Duration::milliseconds(1)
+    {
+        cloned
+            .to_mut()
+            .metadata
+            .provenance
+            .inferred
+            .created_at_decision_time = rhs_metadata.created_at_decision_time;
+    }
+
+    if (lhs_metadata.created_at_transaction_time - rhs_metadata.created_at_transaction_time).abs()
+        < Duration::milliseconds(1)
+    {
+        cloned
+            .to_mut()
+            .metadata
+            .provenance
+            .inferred
+            .created_at_transaction_time = rhs_metadata.created_at_transaction_time;
+    }
+
+    if let Some((lhs_time, rhs_time)) = lhs_metadata
+        .first_non_draft_created_at_decision_time
+        .zip(rhs_metadata.first_non_draft_created_at_decision_time)
+    {
+        if (lhs_time - rhs_time).abs() < Duration::milliseconds(1) {
+            cloned
+                .to_mut()
+                .metadata
+                .provenance
+                .inferred
+                .first_non_draft_created_at_decision_time =
+                rhs_metadata.first_non_draft_created_at_decision_time;
+        }
+    }
+
+    if let Some((lhs_time, rhs_time)) = lhs_metadata
+        .first_non_draft_created_at_transaction_time
+        .zip(rhs_metadata.first_non_draft_created_at_transaction_time)
+    {
+        if (lhs_time - rhs_time).abs() < Duration::milliseconds(1) {
+            cloned
+                .to_mut()
+                .metadata
+                .provenance
+                .inferred
+                .first_non_draft_created_at_transaction_time =
+                rhs_metadata.first_non_draft_created_at_transaction_time;
+        }
+    }
+
+    assert_eq!(*cloned, *rhs);
 }

@@ -8,6 +8,7 @@ const { defineConfig } = require(`@yarnpkg/types`);
 
 const enforcedDevDependencies = {
   prettier: { commands: ["prettier"], ident: "prettier" },
+  biome: { commands: ["biome"], ident: "@biomejs/biome" },
   waitOn: { commands: ["wait-on"], ident: "wait-on" },
   rimraf: { commands: ["rimraf"], ident: "rimraf" },
   eslint: { commands: ["eslint"], ident: "eslint" },
@@ -92,7 +93,7 @@ function enforceProtocols({ Yarn }) {
 
     if (workspaceDependency) {
       // turbo doesn't support the `workspace:` protocol when rewriting lockfiles, leading to inconsistent lockfiles
-      dependency.update(workspaceDependency.pkg.version);
+      dependency.update(workspaceDependency.manifest.version);
     }
 
     if (dependency.range.startsWith("file:")) {
@@ -191,6 +192,7 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
 
     const dependsOn = {
       prettier: false,
+      biome: false,
       waitOn: false,
       rimraf: false,
       eslint: false,
@@ -216,6 +218,11 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
 
     for (const [key, value] of Object.entries(dependsOn)) {
       if (!value) {
+        if (!dependencies[key]) {
+          // dependency does not exist, so doesn't need to be enforced, as it doesn't exist
+          continue;
+        }
+
         workspace.unset(`devDependencies.${dependencies[key].ident}`);
         continue;
       }

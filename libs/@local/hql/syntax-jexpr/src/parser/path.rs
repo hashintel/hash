@@ -1,6 +1,6 @@
 use hql_cst::expr::path::Path;
 use winnow::{
-    Parser, Stateful,
+    ModalParser, Parser as _, Stateful,
     combinator::trace,
     error::ParserError,
     stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
@@ -22,7 +22,7 @@ use crate::span::Span;
 /// ```
 pub(crate) fn parse_path<'arena, 'span, Input, Error>(
     restriction: ParseRestriction,
-) -> impl Parser<Stateful<Input, ParseState<'arena, 'span>>, Path<'arena>, Error>
+) -> impl ModalParser<Stateful<Input, ParseState<'arena, 'span>>, Path<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -57,12 +57,15 @@ mod test {
     use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{
-        Located, Parser as _, Stateful,
+        LocatingSlice, Parser as _, Stateful,
         error::{ContextError, ErrMode, ParseError},
     };
 
     use super::{Path, parse_path};
-    use crate::parser::{string::ParseState, symbol::ParseRestriction};
+    use crate::{
+        error::test::ParseErrorDebug,
+        parser::{string::ParseState, symbol::ParseRestriction},
+    };
 
     #[track_caller]
     #[expect(clippy::type_complexity, reason = "test code")]
@@ -72,12 +75,12 @@ mod test {
     ) -> Result<
         Path<'arena>,
         ParseError<
-            Stateful<Located<&'input str>, ParseState<'arena, 'spans>>,
+            Stateful<LocatingSlice<&'input str>, ParseState<'arena, 'spans>>,
             ErrMode<ContextError>,
         >,
     > {
         let input = Stateful {
-            input: Located::new(input),
+            input: LocatingSlice::new(input),
             state,
         };
 
@@ -92,9 +95,13 @@ mod test {
     fn parse_err<'arena, 'spans, 'input>(
         state: ParseState<'arena, 'spans>,
         input: &'input str,
-    ) -> ParseError<Stateful<Located<&'input str>, ParseState<'arena, 'spans>>, ErrMode<ContextError>>
-    {
-        parse(state, input).expect_err("should be invalid path")
+    ) -> ParseErrorDebug<
+        Stateful<LocatingSlice<&'input str>, ParseState<'arena, 'spans>>,
+        ErrMode<ContextError>,
+    > {
+        parse(state, input)
+            .map_err(ParseErrorDebug)
+            .expect_err("should be invalid path")
     }
 
     macro_rules! setup {

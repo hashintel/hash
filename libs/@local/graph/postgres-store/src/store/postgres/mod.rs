@@ -169,9 +169,10 @@ where
         match on_conflict {
             ConflictBehavior::Fail => {
                 self.as_client()
-                    .query("INSERT INTO base_urls (base_url) VALUES ($1);", &[
-                        &base_url.as_str(),
-                    ])
+                    .query(
+                        "INSERT INTO base_urls (base_url) VALUES ($1);",
+                        &[&base_url.as_str()],
+                    )
                     .await
                     .map_err(Report::new)
                     .map_err(|report| match report.current_context().code() {
@@ -267,11 +268,14 @@ where
             }
         };
         self.as_client()
-            .query_opt(query, &[
-                &OntologyTypeUuid::from_url(ontology_id),
-                &ontology_id.base_url.as_str(),
-                &ontology_id.version,
-            ])
+            .query_opt(
+                query,
+                &[
+                    &OntologyTypeUuid::from_url(ontology_id),
+                    &ontology_id.base_url.as_str(),
+                    &ontology_id.version,
+                ],
+            )
             .await
             .map_err(Report::new)
             .map_err(|report| match report.current_context().code() {
@@ -888,9 +892,10 @@ where
                         .await?;
                     self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
-                    Ok(Some((ontology_id, OntologyTemporalMetadata {
-                        transaction_time,
-                    })))
+                    Ok(Some((
+                        ontology_id,
+                        OntologyTemporalMetadata { transaction_time },
+                    )))
                 } else {
                     Ok(None)
                 }
@@ -909,9 +914,10 @@ where
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
-                    Ok(Some((ontology_id, OntologyTemporalMetadata {
-                        transaction_time,
-                    })))
+                    Ok(Some((
+                        ontology_id,
+                        OntologyTemporalMetadata { transaction_time },
+                    )))
                 } else {
                     Ok(None)
                 }
@@ -1000,9 +1006,11 @@ where
             .await
             .change_context(UpdateError)?;
 
-        Ok((ontology_id, owned_by_id, OntologyTemporalMetadata {
-            transaction_time,
-        }))
+        Ok((
+            ontology_id,
+            owned_by_id,
+            OntologyTemporalMetadata { transaction_time },
+        ))
     }
 
     /// # Errors
@@ -1028,9 +1036,10 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         params: InsertAccountIdParams,
     ) -> Result<(), Report<AccountInsertionError>> {
         self.as_client()
-            .query("INSERT INTO accounts (account_id) VALUES ($1);", &[
-                &params.account_id
-            ])
+            .query(
+                "INSERT INTO accounts (account_id) VALUES ($1);",
+                &[&params.account_id],
+            )
             .await
             .change_context(AccountInsertionError)
             .attach_printable(params.account_id)?;
@@ -1110,9 +1119,10 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
 
         transaction
             .as_client()
-            .query("INSERT INTO webs (web_id) VALUES ($1);", &[
-                &params.owned_by_id
-            ])
+            .query(
+                "INSERT INTO webs (web_id) VALUES ($1);",
+                &[&params.owned_by_id],
+            )
             .await
             .change_context(WebInsertionError)
             .attach_printable(params.owned_by_id)?;

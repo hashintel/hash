@@ -30,6 +30,10 @@ pub enum Table {
     PropertyTypes,
     PropertyTypeEmbeddings,
     EntityTypes,
+    FirstTitleForEntity,
+    LastTitleForEntity,
+    FirstLabelForEntity,
+    LastLabelForEntity,
     EntityTypeEmbeddings,
     EntityIds,
     EntityDrafts,
@@ -326,6 +330,10 @@ impl Table {
             Self::PropertyTypes => "property_types",
             Self::PropertyTypeEmbeddings => "property_type_embeddings",
             Self::EntityTypes => "entity_types",
+            Self::FirstTitleForEntity => "first_type_title_for_entity",
+            Self::LastTitleForEntity => "last_type_title_for_entity",
+            Self::FirstLabelForEntity => "first_label_for_entity",
+            Self::LastLabelForEntity => "last_label_for_entity",
             Self::EntityTypeEmbeddings => "entity_type_embeddings",
             Self::EntityIds => "entity_ids",
             Self::EntityDrafts => "entity_drafts",
@@ -717,6 +725,62 @@ impl DatabaseColumn for EntityTypes {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LabelForEntity {
+    EditionId,
+    Label,
+}
+
+impl DatabaseColumn for LabelForEntity {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::EditionId => ParameterType::Uuid,
+            Self::Label => ParameterType::Text,
+        }
+    }
+
+    fn nullable(self) -> bool {
+        match self {
+            Self::EditionId | Self::Label => false,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::EditionId => "entity_edition_id",
+            Self::Label => "label_property",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum TypeTitleForEntity {
+    EditionId,
+    Title,
+}
+
+impl DatabaseColumn for TypeTitleForEntity {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::EditionId => ParameterType::Uuid,
+            Self::Title => ParameterType::Text,
+        }
+    }
+
+    fn nullable(self) -> bool {
+        match self {
+            Self::EditionId | Self::Title => false,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::EditionId => "entity_edition_id",
+            Self::Title => "title",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EntityIds {
     WebId,
     EntityUuid,
@@ -806,9 +870,9 @@ impl DatabaseColumn for DataTypeEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::F64,
+            Self::Distance => ParameterType::Decimal,
         }
     }
 
@@ -837,7 +901,7 @@ impl DatabaseColumn for DataTypeInheritsFrom {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::SourceDataTypeOntologyId | Self::TargetDataTypeOntologyId => ParameterType::Uuid,
-            Self::Depth => ParameterType::I32,
+            Self::Depth => ParameterType::Integer,
         }
     }
 
@@ -866,9 +930,9 @@ impl DatabaseColumn for PropertyTypeEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::F64,
+            Self::Distance => ParameterType::Decimal,
         }
     }
 
@@ -898,9 +962,9 @@ impl DatabaseColumn for EntityTypeEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::F64,
+            Self::Distance => ParameterType::Decimal,
         }
     }
 
@@ -933,12 +997,12 @@ impl DatabaseColumn for EntityEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::WebId | Self::EntityUuid => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::Property => ParameterType::BaseUrl,
             Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
                 ParameterType::Timestamp
             }
-            Self::Distance => ParameterType::F64,
+            Self::Distance => ParameterType::Decimal,
         }
     }
 
@@ -983,7 +1047,7 @@ impl DatabaseColumn for EntityEditions {
             Self::EditionId => ParameterType::Uuid,
             Self::Properties | Self::Provenance | Self::PropertyMetadata => ParameterType::Any,
             Self::Archived => ParameterType::Boolean,
-            Self::Confidence => ParameterType::F64,
+            Self::Confidence => ParameterType::Decimal,
         }
     }
 
@@ -1017,7 +1081,7 @@ impl DatabaseColumn for EntityIsOfType {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::EntityEditionId | Self::EntityTypeOntologyId => ParameterType::Uuid,
-            Self::InheritanceDepth => ParameterType::I32,
+            Self::InheritanceDepth => ParameterType::Integer,
         }
     }
 
@@ -1080,7 +1144,7 @@ impl DatabaseColumn for EntityHasLeftEntity {
                 ParameterType::Uuid
             }
             Self::Provenance => ParameterType::Any,
-            Self::Confidence => ParameterType::F64,
+            Self::Confidence => ParameterType::Decimal,
         }
     }
 
@@ -1120,7 +1184,7 @@ impl DatabaseColumn for EntityHasRightEntity {
                 ParameterType::Uuid
             }
             Self::Provenance => ParameterType::Any,
-            Self::Confidence => ParameterType::F64,
+            Self::Confidence => ParameterType::Decimal,
         }
     }
 
@@ -1212,7 +1276,7 @@ impl DatabaseColumn for EntityTypeConstrainsPropertiesOn {
             Self::SourceEntityTypeOntologyId | Self::TargetPropertyTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::I32,
+            Self::InheritanceDepth => ParameterType::Integer,
         }
     }
 
@@ -1242,7 +1306,7 @@ impl DatabaseColumn for EntityTypeInheritsFrom {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::Depth => ParameterType::I32,
+            Self::Depth => ParameterType::Integer,
         }
     }
 
@@ -1272,7 +1336,7 @@ impl DatabaseColumn for EntityTypeConstrainsLinksOn {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::I32,
+            Self::InheritanceDepth => ParameterType::Integer,
         }
     }
 
@@ -1302,7 +1366,7 @@ impl DatabaseColumn for EntityTypeConstrainsLinkDestinationsOn {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::I32,
+            Self::InheritanceDepth => ParameterType::Integer,
         }
     }
 
@@ -1341,6 +1405,10 @@ pub enum Column {
     EntityIds(EntityIds),
     EntityTemporalMetadata(EntityTemporalMetadata),
     EntityEditions(EntityEditions),
+    FirstLabelForEntity(LabelForEntity),
+    LastLabelForEntity(LabelForEntity),
+    FirstTitleForEntity(TypeTitleForEntity),
+    LastTitleForEntity(TypeTitleForEntity),
     EntityEmbeddings(EntityEmbeddings),
     PropertyTypeConstrainsValuesOn(PropertyTypeConstrainsValuesOn),
     PropertyTypeConstrainsPropertiesOn(PropertyTypeConstrainsPropertiesOn),
@@ -1523,6 +1591,10 @@ impl Column {
             Self::EntityIds(_) => Table::EntityIds,
             Self::EntityTemporalMetadata(_) => Table::EntityTemporalMetadata,
             Self::EntityEditions(_) => Table::EntityEditions,
+            Self::FirstLabelForEntity(_) => Table::FirstLabelForEntity,
+            Self::LastLabelForEntity(_) => Table::LastLabelForEntity,
+            Self::FirstTitleForEntity(_) => Table::FirstTitleForEntity,
+            Self::LastTitleForEntity(_) => Table::LastTitleForEntity,
             Self::EntityEmbeddings(_) => Table::EntityEmbeddings,
             Self::DataTypeInheritsFrom(_, inheritance_depth) => {
                 Table::Reference(ReferenceTable::DataTypeInheritsFrom { inheritance_depth })
@@ -1598,6 +1670,12 @@ impl DatabaseColumn for Column {
             Self::EntityIds(column) => column.parameter_type(),
             Self::EntityTemporalMetadata(column) => column.parameter_type(),
             Self::EntityEditions(column) => column.parameter_type(),
+            Self::FirstLabelForEntity(column) | Self::LastLabelForEntity(column) => {
+                column.parameter_type()
+            }
+            Self::FirstTitleForEntity(column) | Self::LastTitleForEntity(column) => {
+                column.parameter_type()
+            }
             Self::EntityEmbeddings(column) => column.parameter_type(),
             Self::PropertyTypeConstrainsValuesOn(column) => column.parameter_type(),
             Self::PropertyTypeConstrainsPropertiesOn(column) => column.parameter_type(),
@@ -1631,6 +1709,12 @@ impl DatabaseColumn for Column {
             Self::EntityIds(column) => column.nullable(),
             Self::EntityTemporalMetadata(column) => column.nullable(),
             Self::EntityEditions(column) => column.nullable(),
+            Self::FirstLabelForEntity(column) | Self::LastLabelForEntity(column) => {
+                column.nullable()
+            }
+            Self::FirstTitleForEntity(column) | Self::LastTitleForEntity(column) => {
+                column.nullable()
+            }
             Self::EntityEmbeddings(column) => column.nullable(),
             Self::PropertyTypeConstrainsValuesOn(column) => column.nullable(),
             Self::PropertyTypeConstrainsPropertiesOn(column) => column.nullable(),
@@ -1664,6 +1748,8 @@ impl DatabaseColumn for Column {
             Self::EntityIds(column) => column.as_str(),
             Self::EntityTemporalMetadata(column) => column.as_str(),
             Self::EntityEditions(column) => column.as_str(),
+            Self::FirstLabelForEntity(column) | Self::LastLabelForEntity(column) => column.as_str(),
+            Self::FirstTitleForEntity(column) | Self::LastTitleForEntity(column) => column.as_str(),
             Self::EntityEmbeddings(column) => column.as_str(),
             Self::PropertyTypeConstrainsValuesOn(column) => column.as_str(),
             Self::PropertyTypeConstrainsPropertiesOn(column) => column.as_str(),
@@ -1765,6 +1851,10 @@ pub enum Relation {
     EntityIsOfTypes,
     EntityIds,
     EntityEditions,
+    FirstTitleForEntity,
+    LastTitleForEntity,
+    FirstLabelForEntity,
+    LastLabelForEntity,
     PropertyTypeEmbeddings,
     EntityTypeEmbeddings,
     EntityEmbeddings,
@@ -1945,6 +2035,34 @@ impl Relation {
                 join: Column::EntityEditions(EntityEditions::EditionId),
                 join_type: JoinType::Inner,
             }),
+            Self::FirstTitleForEntity => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                    join: Column::FirstTitleForEntity(TypeTitleForEntity::EditionId),
+                    join_type: JoinType::Inner,
+                })
+            }
+            Self::LastTitleForEntity => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                    join: Column::LastTitleForEntity(TypeTitleForEntity::EditionId),
+                    join_type: JoinType::Inner,
+                })
+            }
+            Self::FirstLabelForEntity => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                    join: Column::FirstLabelForEntity(LabelForEntity::EditionId),
+                    join_type: JoinType::LeftOuter,
+                })
+            }
+            Self::LastLabelForEntity => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                    join: Column::LastLabelForEntity(LabelForEntity::EditionId),
+                    join_type: JoinType::LeftOuter,
+                })
+            }
             Self::EntityEmbeddings => ForeignKeyJoin::from_reference(ForeignKeyReference::Double {
                 on: [
                     Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),

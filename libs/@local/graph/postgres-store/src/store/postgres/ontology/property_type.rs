@@ -1,4 +1,4 @@
-use core::iter::once;
+use core::iter;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
@@ -111,11 +111,14 @@ where
         #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
         let count = if params.include_count {
             Some(
-                self.count_property_types(actor_id, CountPropertyTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                })
+                self.count_property_types(
+                    actor_id,
+                    CountPropertyTypesParams {
+                        filter: params.filter.clone(),
+                        temporal_axes: params.temporal_axes.clone(),
+                        include_drafts: params.include_drafts,
+                    },
+                )
                 .await?,
             )
         } else {
@@ -297,7 +300,7 @@ where
                         )
                     }),
                 );
-            };
+            }
         }
 
         self.traverse_data_types(
@@ -403,10 +406,13 @@ where
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.insert((property_type_id, PropertyTypeRelationAndSubject::Owner {
-                    subject: PropertyTypeOwnerSubject::Web { id: *owned_by_id },
-                    level: 0,
-                }));
+                relationships.insert((
+                    property_type_id,
+                    PropertyTypeRelationAndSubject::Owner {
+                        subject: PropertyTypeOwnerSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
             }
 
             relationships.extend(
@@ -661,94 +667,128 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn update_property_type<R>(
+    async fn update_property_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        params: UpdatePropertyTypesParams<R>,
-    ) -> Result<PropertyTypeMetadata, Report<UpdateError>>
+        params: P,
+    ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
+        P: IntoIterator<Item = UpdatePropertyTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
-        let property_type_validator = PropertyTypeValidator;
-
-        let old_ontology_id = PropertyTypeUuid::from_url(&VersionedUrl {
-            base_url: params.schema.id.base_url.clone(),
-            version: OntologyTypeVersion::new(
-                params
-                    .schema
-                    .id
-                    .version
-                    .inner()
-                    .checked_sub(1)
-                    .ok_or(UpdateError)
-                    .attach_printable(
-                        "The version of the data type is already at the lowest possible value",
-                    )?,
-            ),
-        });
-        self.authorization_api
-            .check_property_type_permission(
-                actor_id,
-                PropertyTypePermission::Update,
-                old_ontology_id,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(UpdateError)?
-            .assert_permission()
-            .change_context(UpdateError)
-            .attach_printable(old_ontology_id.into_uuid())?;
-
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let provenance = OntologyProvenance {
-            edition: OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
-                archived_by_id: None,
-                user_defined: params.provenance,
-            },
-        };
+        let mut relationships = HashSet::new();
 
-        let schema = property_type_validator
-            .validate_ref(&params.schema)
-            .change_context(UpdateError)?;
-        let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update_owned_ontology_id(&schema.id, &provenance.edition)
-            .await?;
-        transaction
-            .insert_property_type_with_id(ontology_id, schema)
-            .await
-            .change_context(UpdateError)?;
+        let mut updated_property_type_metadata = Vec::new();
+        let mut inserted_property_types = Vec::new();
+        let mut inserted_ontology_ids = Vec::new();
 
-        transaction
-            .insert_property_type_references(&params.schema, ontology_id)
-            .await
-            .change_context(UpdateError)
-            .attach_printable_lazy(|| {
-                format!(
-                    "could not insert references for property type: {}",
-                    params.schema.id
+        let property_type_validator = PropertyTypeValidator;
+
+        for parameters in params {
+            let provenance = OntologyProvenance {
+                edition: OntologyEditionProvenance {
+                    created_by_id: EditionCreatedById::new(actor_id),
+                    archived_by_id: None,
+                    user_defined: parameters.provenance,
+                },
+            };
+
+            let old_ontology_id = PropertyTypeUuid::from_url(&VersionedUrl {
+                base_url: parameters.schema.id.base_url.clone(),
+                version: OntologyTypeVersion::new(
+                    parameters
+                        .schema
+                        .id
+                        .version
+                        .inner()
+                        .checked_sub(1)
+                        .ok_or(UpdateError)
+                        .attach_printable(
+                            "The version of the property type is already at the lowest possible \
+                             value",
+                        )?,
+                ),
+            });
+            let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
+            let property_type_id = PropertyTypeUuid::from_url(&parameters.schema.id);
+
+            transaction
+                .authorization_api
+                .check_property_type_permission(
+                    actor_id,
+                    PropertyTypePermission::Update,
+                    old_ontology_id,
+                    Consistency::FullyConsistent,
                 )
-            })
-            .attach_lazy(|| params.schema.clone())?;
+                .await
+                .change_context(UpdateError)?
+                .assert_permission()
+                .change_context(UpdateError)?;
 
-        let property_type_id = PropertyTypeUuid::from(ontology_id);
-        let relationships = params
-            .relationships
+            let (ontology_id, owned_by_id, temporal_versioning) = transaction
+                .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
+                .await?;
+
+            relationships.extend(
+                iter::once(PropertyTypeRelationAndSubject::Owner {
+                    subject: PropertyTypeOwnerSubject::Web { id: owned_by_id },
+                    level: 0,
+                })
+                .chain(parameters.relationships)
+                .map(|relation_and_subject| (property_type_id, relation_and_subject)),
+            );
+
+            transaction
+                .insert_property_type_with_id(
+                    ontology_id,
+                    property_type_validator
+                        .validate_ref(&parameters.schema)
+                        .change_context(UpdateError)?,
+                )
+                .await
+                .change_context(UpdateError)?;
+            let metadata = PropertyTypeMetadata {
+                record_id,
+                classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                temporal_versioning,
+                provenance,
+            };
+
+            inserted_ontology_ids.push(ontology_id);
+            inserted_property_types.push(PropertyTypeWithMetadata {
+                schema: parameters.schema,
+                metadata: metadata.clone(),
+            });
+            updated_property_type_metadata.push(metadata);
+        }
+
+        for (ontology_id, property_type) in inserted_ontology_ids
             .into_iter()
-            .chain(once(PropertyTypeRelationAndSubject::Owner {
-                subject: PropertyTypeOwnerSubject::Web { id: owned_by_id },
-                level: 0,
-            }))
-            .collect::<Vec<_>>();
+            .zip(&inserted_property_types)
+        {
+            transaction
+                .insert_property_type_references(&property_type.schema, ontology_id)
+                .await
+                .change_context(InsertionError)
+                .attach_printable_lazy(|| {
+                    format!(
+                        "could not insert references for property type: {}",
+                        &property_type.schema.id
+                    )
+                })
+                .attach_lazy(|| property_type.schema.clone())
+                .change_context(UpdateError)?;
+        }
 
         transaction
             .authorization_api
             .modify_property_type_relations(relationships.clone().into_iter().map(
-                |relation_and_subject| {
+                |(resource, relation_and_subject)| {
                     (
                         ModifyRelationshipOperation::Create,
-                        property_type_id,
+                        resource,
                         relation_and_subject,
                     )
                 },
@@ -756,48 +796,39 @@ where
             .await
             .change_context(UpdateError)?;
 
-        if let Err(error) = transaction.commit().await.change_context(UpdateError) {
+        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
             let mut error = error.expand();
 
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_property_type_relations(relationships.into_iter().map(
-                    |relation_and_subject| {
+                    |(resource, relation_and_subject)| {
                         (
                             ModifyRelationshipOperation::Delete,
-                            property_type_id,
+                            resource,
                             relation_and_subject,
                         )
                     },
                 ))
                 .await
-                .change_context(UpdateError)
+                .change_context(InsertionError)
             {
                 error.push(auth_error);
             }
 
             Err(error.change_context(UpdateError))
         } else {
-            let metadata = PropertyTypeMetadata {
-                record_id: OntologyTypeRecordId::from(params.schema.id.clone()),
-                classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
-                temporal_versioning,
-                provenance,
-            };
-
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_property_type_embeddings_workflow(actor_id, &[
-                        PropertyTypeWithMetadata {
-                            schema: params.schema,
-                            metadata: metadata.clone(),
-                        },
-                    ])
+                    .start_update_property_type_embeddings_workflow(
+                        actor_id,
+                        &inserted_property_types,
+                    )
                     .await
                     .change_context(UpdateError)?;
             }
 
-            Ok(metadata)
+            Ok(updated_property_type_metadata)
         }
     }
 
@@ -817,11 +848,14 @@ where
         actor_id: AccountId,
         params: UnarchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        self.unarchive_ontology_type(&params.property_type_id, &OntologyEditionProvenance {
-            created_by_id: EditionCreatedById::new(actor_id),
-            archived_by_id: None,
-            user_defined: params.provenance,
-        })
+        self.unarchive_ontology_type(
+            &params.property_type_id,
+            &OntologyEditionProvenance {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+                user_defined: params.provenance,
+            },
+        )
         .await
     }
 

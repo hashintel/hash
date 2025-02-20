@@ -134,7 +134,7 @@ const UseCases: FunctionComponent = () => (
           /** @todo: make clickable when docs pages exist for each item */
           // <Link key={name} href={href}>
           <Box
-            key={name?.toString()}
+            key={id}
             sx={{
               display: "flex",
               flexDirection: "column",

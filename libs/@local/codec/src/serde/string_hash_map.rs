@@ -15,7 +15,7 @@
 //!
 //! #[derive(Debug, PartialEq, Serialize, Deserialize)]
 //! struct MyStruct {
-//!     #[serde(with = "codec::serde::string_hash_map")]
+//!     #[serde(with = "hash_codec::serde::string_hash_map")]
 //!     map: HashMap<u32, String>,
 //! }
 //!

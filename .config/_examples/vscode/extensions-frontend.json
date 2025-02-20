@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "Codecov.codecov",
+    "davidanson.vscode-markdownlint",
+    "dbaeumer.vscode-eslint",
+    "GraphQL.vscode-graphql",
+    "GraphQL.vscode-graphql-syntax",
+    "hashicorp.terraform",
+    "ms-playwright.playwright",
+    "ms-vscode.vscode-typescript-next",
+    "vitest.explorer",
+    "biomejs.biome"
+  ]
+}

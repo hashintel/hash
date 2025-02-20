@@ -29,8 +29,6 @@ import { useCallback, useMemo } from "react";
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
 import { useHashInstance } from "../components/hooks/use-hash-instance";
-import { EntityTypeEntitiesContext } from "../shared/entity-type-entities-context";
-import { useEntityTypeEntitiesContextValue } from "../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { generateLinkParameters } from "../shared/generate-link-parameters";
@@ -72,11 +70,14 @@ export const CreateButtons: FunctionComponent<{
     ownedById: activeWorkspaceOwnedById,
   });
 
-  const isFileEntityType = useMemo(
+  const { isFile, isLink } = useMemo(
     () =>
       entityType
-        ? isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isFile
-        : false,
+        ? (isSpecialEntityTypeLookup?.[entityType.schema.$id] ?? {
+            isFile: false,
+            isLink: entityType.schema.$id === linkEntityTypeUrl,
+          })
+        : { isFile: false, isLink: false },
     [isSpecialEntityTypeLookup, entityType],
   );
 
@@ -95,7 +96,7 @@ export const CreateButtons: FunctionComponent<{
        * user to the upload tab of the entity type page instead of the
        * entity editor.
        */
-      entityType && isFileEntityType
+      entityType && isFile
         ? `${generateLinkParameters(entityType.schema.$id).href}?tab=upload`
         : `/new/entity${
             entityType
@@ -103,7 +104,7 @@ export const CreateButtons: FunctionComponent<{
               : ""
           }`,
     );
-  }, [entityType, isFileEntityType, router]);
+  }, [entityType, isFile, router]);
 
   const isViewAllPagesPage = useMemo(() => {
     return entityType?.schema.$id === systemEntityTypes.page.entityTypeId;
@@ -118,6 +119,10 @@ export const CreateButtons: FunctionComponent<{
   }, [entityType]);
 
   const enabledFeatureFlags = useEnabledFeatureFlags();
+
+  if (isLink) {
+    return null;
+  }
 
   return isViewAllPagesPage ||
     isViewAllDocumentsPage ||
@@ -157,9 +162,9 @@ export const CreateButtons: FunctionComponent<{
       variant="tertiary_quiet"
       endIcon={<PlusRegularIcon />}
     >
-      {isFileEntityType ? "Add" : "Create"} new{" "}
+      {isFile ? "Add" : "Create"} new{" "}
       {entityType?.schema.title.toLowerCase() ?? "entity"}
-      {isFileEntityType ? "(s)" : ""}
+      {isFile ? "(s)" : ""}
     </CreateButton>
   );
 };
@@ -209,11 +214,6 @@ const EntitiesPage: NextPageWithLayout = () => {
     [latestEntityTypes, entityTypeId, entityTypeBaseUrl],
   );
 
-  const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue({
-    entityTypeBaseUrl,
-    entityTypeId,
-  });
-
   const { userPermissions, loading: userPermissionsLoading } =
     useUserPermissionsOnEntityType(entityType?.schema.$id);
 
@@ -226,8 +226,6 @@ const EntitiesPage: NextPageWithLayout = () => {
       : // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
         entityType.schema.titlePlural || pluralize(entityType.schema.title)
     : "Entities";
-
-  const { entities, loading } = entityTypeEntitiesValue;
 
   const displayCreateEntityButton = useMemo(() => {
     if (userPermissionsLoading) {
@@ -275,6 +273,7 @@ const EntitiesPage: NextPageWithLayout = () => {
               /**
                * @todo H-3363 use closed schema to take account of indirectly inherited link status
                */
+              entityType.schema.$id === linkEntityTypeUrl ||
               !!entityType.schema.allOf?.some(
                 (allOf) => allOf.$ref === linkEntityTypeUrl,
               )
@@ -320,6 +319,7 @@ const EntitiesPage: NextPageWithLayout = () => {
                     /**
                      * @todo H-3363 use closed schema to take account of indirectly inherited link status
                      */
+                    entityType?.schema.$id === linkEntityTypeUrl ||
                     !!entityType?.schema.allOf?.some(
                       (allOf) => allOf.$ref === linkEntityTypeUrl,
                     )
@@ -347,14 +347,7 @@ const EntitiesPage: NextPageWithLayout = () => {
           </Stack>
           <Box display="flex" justifyContent="space-between">
             <Tabs value="all">
-              <TabLink
-                href="/"
-                value="all"
-                active
-                label={`All ${pageTitle}`}
-                count={entities?.length}
-                loading={loading}
-              />
+              <TabLink href="/" value="all" active label={`All ${pageTitle}`} />
             </Tabs>
             <Fade in={displayCreateEntityButton}>
               <Box>
@@ -365,11 +358,11 @@ const EntitiesPage: NextPageWithLayout = () => {
         </Container>
       </Box>
       <Container sx={{ maxWidth, py: 5 }}>
-        <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-          <EntitiesVisualizer
-            hideColumns={entityTypeId ? ["entityTypes"] : []}
-          />
-        </EntityTypeEntitiesContext.Provider>
+        <EntitiesVisualizer
+          entityTypeBaseUrl={entityTypeBaseUrl}
+          entityTypeId={entityTypeId}
+          hideColumns={entityTypeId ? ["entityTypes"] : []}
+        />
       </Container>
     </>
   );

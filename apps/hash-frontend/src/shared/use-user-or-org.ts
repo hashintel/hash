@@ -92,9 +92,7 @@ export const useUserOrOrg = (
           ...zeroedGraphResolveDepths,
           ...params.graphResolveDepths,
         },
-        temporalAxes: params.temporalAxes
-          ? params.temporalAxes
-          : currentTimeInstantTemporalAxes,
+        temporalAxes: params.temporalAxes ?? currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
     },

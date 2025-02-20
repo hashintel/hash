@@ -1,7 +1,6 @@
 use core::str::FromStr as _;
 use std::{collections::HashSet, sync::LazyLock};
 
-use serde_json::Value as JsonValue;
 use thiserror::Error;
 
 use crate::{
@@ -12,15 +11,6 @@ use crate::{
 
 #[derive(Debug, Error)]
 pub enum ValidateDataTypeError {
-    #[error("Enum values are not compatible with `const` value")]
-    EnumValuesNotCompatibleWithConst {
-        const_value: JsonValue,
-        enum_values: Vec<JsonValue>,
-    },
-    #[error("Missing data type `{data_type_id}`")]
-    MissingDataType { data_type_id: VersionedUrl },
-    #[error("Cyclic data type reference detected for type `{data_type_id}`")]
-    CyclicDataTypeReference { data_type_id: VersionedUrl },
     #[error("A data type requires a parent specified in `allOf`")]
     MissingParent,
     #[error("Only primitive data types can inherit from the value data type")]

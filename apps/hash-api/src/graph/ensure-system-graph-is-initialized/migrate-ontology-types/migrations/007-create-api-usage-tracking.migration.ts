@@ -287,12 +287,6 @@ const migrate: MigrationFunction = async ({
     /** @see https://openai.com/pricing */
     {
       serviceName: "OpenAI",
-      featureName: "gpt-4-1106-preview",
-      inputUnitCost: 0.00001, // price per input token
-      outputUnitCost: 0.00003, // price per output token
-    },
-    {
-      serviceName: "OpenAI",
       featureName: "gpt-4",
       inputUnitCost: 0.00003,
       outputUnitCost: 0.00006,
@@ -317,21 +311,15 @@ const migrate: MigrationFunction = async ({
     },
     {
       serviceName: "OpenAI",
-      featureName: "gpt-4o",
-      inputUnitCost: 0.000005,
-      outputUnitCost: 0.000015,
-    },
-    {
-      serviceName: "OpenAI",
-      featureName: "gpt-4o-2024-05-13",
-      inputUnitCost: 0.000005,
-      outputUnitCost: 0.000015,
-    },
-    {
-      serviceName: "OpenAI",
       featureName: "gpt-4o-2024-08-06",
       inputUnitCost: 0.0000025,
       outputUnitCost: 0.00001,
+    },
+    {
+      serviceName: "OpenAI",
+      featureName: "gpt-4o-mini-2024-07-18",
+      inputUnitCost: 0.00000015,
+      outputUnitCost: 0.00000016,
     },
     /** @see https://www.anthropic.com/api */
     {
@@ -339,12 +327,6 @@ const migrate: MigrationFunction = async ({
       featureName: "claude-3-opus-20240229",
       inputUnitCost: 0.000015,
       outputUnitCost: 0.000075,
-    },
-    {
-      serviceName: "Anthropic",
-      featureName: "claude-3-sonnet-20240229",
-      inputUnitCost: 0.000003,
-      outputUnitCost: 0.000015,
     },
     {
       serviceName: "Anthropic",
@@ -359,22 +341,10 @@ const migrate: MigrationFunction = async ({
       outputUnitCost: 0.00000125,
     },
     {
-      serviceName: "Anthropic",
-      featureName: "claude-2.1",
-      inputUnitCost: 0.000008,
-      outputUnitCost: 0.000024,
-    },
-    {
-      serviceName: "Anthropic",
-      featureName: "claude-2.0",
-      inputUnitCost: 0.000008,
-      outputUnitCost: 0.000024,
-    },
-    {
-      serviceName: "Anthropic",
-      featureName: "claude-instant-1.2",
-      inputUnitCost: 0.0000008,
-      outputUnitCost: 0.0000024,
+      serviceName: "Google AI",
+      featureName: "gemini-1.5-pro-002",
+      inputUnitCost: 0.00000125,
+      outputUnitCost: 0.000005,
     },
   ];
 

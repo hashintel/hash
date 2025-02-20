@@ -590,6 +590,7 @@ impl Instruction {
         reason = "the match arms are the same intentionally, this makes it more clean which \
                   variant emits which and also keeps it nicely formatted."
     )]
+    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     fn prepare(&self) -> PreparedInstruction {
         match self {
             Self::Value { value, style } => PreparedInstruction::Content(value, style),
@@ -809,7 +810,7 @@ impl Opaque {
         Self(0)
     }
 
-    fn increase(&mut self) {
+    const fn increase(&mut self) {
         self.0 += 1;
     }
 

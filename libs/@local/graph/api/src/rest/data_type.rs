@@ -15,7 +15,8 @@ use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, DataTypeViewerSubject,
+        DataTypeEditorSubject, DataTypeOwnerSubject, DataTypePermission,
+        DataTypeRelationAndSubject, DataTypeSetting, DataTypeSettingSubject, DataTypeViewerSubject,
     },
     zanzibar::Consistency,
 };
@@ -25,9 +26,11 @@ use hash_graph_postgres_store::{
 };
 use hash_graph_store::{
     data_type::{
-        ArchiveDataTypeParams, CreateDataTypeParams, DataTypeQueryToken, DataTypeStore as _,
-        GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
-        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+        ArchiveDataTypeParams, CreateDataTypeParams, DataTypeConversionTargets, DataTypeQueryToken,
+        DataTypeStore as _, GetDataTypeConversionTargetsParams,
+        GetDataTypeConversionTargetsResponse, GetDataTypeSubgraphParams, GetDataTypesParams,
+        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        UpdateDataTypesParams,
     },
     entity_type::ClosedDataTypeDefinition,
     pool::StorePool,
@@ -74,7 +77,9 @@ use crate::rest::{
         load_external_data_type,
         get_data_types,
         get_data_type_subgraph,
+        get_data_type_conversion_targets,
         update_data_type,
+        update_data_types,
         update_data_type_embeddings,
         archive_data_type,
         unarchive_data_type,
@@ -82,8 +87,11 @@ use crate::rest::{
     components(
         schemas(
             DataTypeWithMetadata,
+            DataTypeSetting,
 
+            DataTypeSettingSubject,
             DataTypeOwnerSubject,
+            DataTypeEditorSubject,
             DataTypeViewerSubject,
             DataTypePermission,
             DataTypeRelationAndSubject,
@@ -98,6 +106,9 @@ use crate::rest::{
             GetDataTypesResponse,
             GetDataTypeSubgraphParams,
             GetDataTypeSubgraphResponse,
+            GetDataTypeConversionTargetsParams,
+            GetDataTypeConversionTargetsResponse,
+            DataTypeConversionTargets,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
             ClosedDataTypeDefinition,
@@ -133,6 +144,7 @@ impl RoutedResource for DataTypeResource {
                     "/",
                     post(create_data_type::<S, A>).put(update_data_type::<S, A>),
                 )
+                .route("/bulk", put(update_data_types::<S, A>))
                 .route(
                     "/relationships",
                     post(modify_data_type_authorization_relationships::<A>),
@@ -153,7 +165,11 @@ impl RoutedResource for DataTypeResource {
                     "/query",
                     Router::new()
                         .route("/", post(get_data_types::<S, A>))
-                        .route("/subgraph", post(get_data_type_subgraph::<S, A>)),
+                        .route("/subgraph", post(get_data_type_subgraph::<S, A>))
+                        .route(
+                            "/conversions",
+                            post(get_data_type_conversion_targets::<S, A>),
+                        ),
                 )
                 .route("/load", post(load_external_data_type::<S, A>))
                 .route("/archive", put(archive_data_type::<S, A>))
@@ -358,16 +374,19 @@ where
 
             Ok(Json(
                 store
-                    .create_data_type(actor_id, CreateDataTypeParams {
-                        schema: *schema,
-                        classification: OntologyTypeClassificationMetadata::External {
-                            fetched_at: OffsetDateTime::now_utc(),
+                    .create_data_type(
+                        actor_id,
+                        CreateDataTypeParams {
+                            schema: *schema,
+                            classification: OntologyTypeClassificationMetadata::External {
+                                fetched_at: OffsetDateTime::now_utc(),
+                            },
+                            relationships,
+                            conflict_behavior: ConflictBehavior::Fail,
+                            provenance: *provenance,
+                            conversions: conversions.clone(),
                         },
-                        relationships,
-                        conflict_behavior: ConflictBehavior::Fail,
-                        provenance: *provenance,
-                        conversions: conversions.clone(),
-                    })
+                    )
                     .await
                     .map_err(report_to_response)?,
             ))
@@ -523,6 +542,54 @@ where
     response
 }
 
+#[utoipa::path(
+    post,
+    path = "/data-types/query/conversions",
+    request_body = GetDataTypeConversionTargetsParams,
+    tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = GetDataTypeConversionTargetsResponse,
+        ),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn get_data_type_conversion_targets<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<GetDataTypeConversionTargetsParams>,
+) -> Result<Json<GetDataTypeConversionTargetsResponse>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .get_data_type_conversion_targets(actor_id, request)
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdateDataTypeRequest {
@@ -544,8 +611,6 @@ struct UpdateDataTypeRequest {
     tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("after" = Option<String>, Query, description = "The cursor to start reading from"),
-        ("limit" = Option<usize>, Query, description = "The maximum number of data types to read"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = DataTypeMetadata),
@@ -594,12 +659,87 @@ where
         .map_err(report_to_response)?;
 
     store
-        .update_data_type(actor_id, UpdateDataTypesParams {
-            schema: data_type,
-            relationships,
-            provenance,
-            conversions,
-        })
+        .update_data_type(
+            actor_id,
+            UpdateDataTypesParams {
+                schema: data_type,
+                relationships,
+                provenance,
+                conversions,
+            },
+        )
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[utoipa::path(
+    put,
+    path = "/data-types/bulk",
+    tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the updated data types", body = [DataTypeMetadata]),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Base data types ID were not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = [UpdateDataTypeRequest],
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn update_data_types<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    bodies: Json<Vec<UpdateDataTypeRequest>>,
+) -> Result<Json<Vec<DataTypeMetadata>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    let params = bodies
+        .0
+        .into_iter()
+        .map(
+            |UpdateDataTypeRequest {
+                 schema,
+                 mut type_to_update,
+                 relationships,
+                 provenance,
+                 conversions,
+             }| {
+                type_to_update.version =
+                    OntologyTypeVersion::new(type_to_update.version.inner() + 1);
+
+                Ok(UpdateDataTypesParams {
+                    schema: patch_id_and_parse(&type_to_update, schema)
+                        .map_err(report_to_response)?,
+                    relationships,
+                    provenance,
+                    conversions,
+                })
+            },
+        )
+        .collect::<Result<Vec<_>, Response>>()?;
+    store
+        .update_data_types(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -942,10 +1082,13 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::CheckDataTypePermission {
-            data_type_id: &data_type_id,
-            permission,
-        });
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::CheckDataTypePermission {
+                data_type_id: &data_type_id,
+                permission,
+            },
+        );
     }
 
     let response = Ok(Json(PermissionResponse {

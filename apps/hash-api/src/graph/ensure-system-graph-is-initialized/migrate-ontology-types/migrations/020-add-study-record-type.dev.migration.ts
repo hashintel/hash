@@ -1,0 +1,571 @@
+import {
+  blockProtocolDataTypes,
+  blockProtocolPropertyTypes,
+  systemDataTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
+
+import type { MigrationFunction } from "../types";
+import {
+  anyUserInstantiator,
+  createSystemDataTypeIfNotExists,
+  createSystemEntityTypeIfNotExists,
+  createSystemPropertyTypeIfNotExists,
+  getCurrentHashSystemEntityTypeId,
+} from "../util";
+
+const migrate: MigrationFunction = async ({
+  context,
+  authentication,
+  migrationState,
+}) => {
+  /** Data types */
+  const phaseDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+        title: "Trial Phase",
+        description:
+          "The distinct stage of a clinical trial, categorizing the study's primary goals and level of testing. Phase 0 involves very limited human testing, Phase 1 tests safety, dosage, and administration, Phase 2 tests effectiveness, Phase 3 confirms benefits, and Phase 4 studies long-term effects.",
+        type: "string",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const nctIdDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+        title: "NCT ID",
+        description:
+          "National Clinical Trial (NCT) Identifier Number, which is a unique identifier assigned to each clinical trial registered with ClinicalTrials.gov.",
+        type: "string",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  /** Property types */
+
+  const objectivePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Objective",
+        description: "The goal or aim of something.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const trialPhasePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Trial Phase",
+        description:
+          "The stage of a clinical trial studying a drug or biological product.",
+        possibleValues: [{ dataTypeId: phaseDataType.schema.$id }],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const actualEnrollmentPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Actual Enrollment",
+        description: "The actual number of participants enrolled in something.",
+        possibleValues: [{ dataTypeId: systemDataTypes.integer.dataTypeId }],
+      },
+      migrationState,
+      webShortname: "hash",
+    });
+
+  const actualStudyStartDatePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Actual Study Start Date",
+        description:
+          "The actual date on which the first participant was enrolled in a clinical study.",
+        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+      },
+      migrationState,
+      webShortname: "hash",
+    });
+
+  const actualPrimaryCompletionDatePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Actual Study Primary Completion Date",
+        description:
+          "The date on which the last participant in a study was examined or received an intervention to collect final data for the primary outcome measure.",
+        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+      },
+      migrationState,
+      webShortname: "hash",
+    });
+
+  const actualStudyCompletionDatePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Actual Study Completion Date",
+        description:
+          "The date on which the last participant in a clinical study was examined or received an intervention to collect final data for the primary outcome measures, secondary outcome measures, and adverse events (that is, the last participant's last visit).",
+        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+      },
+      migrationState,
+      webShortname: "hash",
+    });
+
+  const estimatedEnrollmentPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Estimated Enrollment",
+        description:
+          "The estimated number of participants that will be enrolled in something.",
+        possibleValues: [{ dataTypeId: systemDataTypes.integer.dataTypeId }],
+      },
+      migrationState,
+      webShortname: "hash",
+    });
+
+  const estimatedStudyStartDatePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Estimated Study Start Date",
+        description:
+          "The estimated date on which the first participant will be enrolled in a clinical study.",
+        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+      },
+      migrationState,
+      webShortname: "hash",
+    });
+
+  const estimatedPrimaryCompletionDatePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Estimated Primary Completion Date",
+        description:
+          "The estimated date on which the last participant in a study will be examined or receive an intervention to collect final data for the primary outcome measure.",
+        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+      },
+      migrationState,
+      webShortname: "hash",
+    });
+
+  const estimatedStudyCompletionDatePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Estimated Study Completion Date",
+        description:
+          "The estimated date on which the last participant in a clinical study will be examined or receive an intervention to collect final data for the primary outcome measures, secondary outcome measures, and adverse events (that is, the last participant's last visit).",
+        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+      },
+      migrationState,
+      webShortname: "hash",
+    });
+
+  const nctIdPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "NCT ID",
+        description:
+          "The National Clinical Trial (NCT) Identifier Number for a study registered with ClinicalTrials.gov",
+        possibleValues: [{ dataTypeId: nctIdDataType.schema.$id }],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const isrctnIdDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+        title: "ISRCTN",
+        description:
+          "The unique id for a study registered with the ISRCTN Registry.",
+        type: "string",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const isrctnIdPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "ISRCTN",
+        description: "The ISRCTN Registry identifier for something.",
+        possibleValues: [{ dataTypeId: isrctnIdDataType.schema.$id }],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const studyTypePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Study Type",
+        description:
+          "Describes the nature of a clinical study. Study types include interventional studies, which aim to find out more about a particular intervention by assigning people to different treatment groups, and observational studies, where the researchers do not influence what treatment the participants receive.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const medicalConditionPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Medical Condition",
+        description:
+          "A disease, disorder, syndrome, illness, or injury, which may relate to either or both of physical and mental health.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "hash",
+    });
+
+  const timeFramePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Time Frame",
+        description:
+          "The time period over which something occurs or is measured.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const outcomeMeasurePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Outcome Measure",
+        description: "A measurement used to evaluate the outcome of a trial",
+        possibleValues: [
+          {
+            propertyTypeObjectProperties: {
+              [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: {
+                $ref: blockProtocolPropertyTypes.name.propertyTypeId,
+              },
+              [blockProtocolPropertyTypes.description.propertyTypeBaseUrl]: {
+                $ref: blockProtocolPropertyTypes.description.propertyTypeId,
+              },
+              [timeFramePropertyType.metadata.recordId.baseUrl]: {
+                $ref: timeFramePropertyType.schema.$id,
+              },
+            },
+            propertyTypeObjectRequiredProperties: [
+              blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
+            ],
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const interventionPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Intervention",
+        description:
+          "An action taken to change something, typically to address a problem or otherwise bring about a desirable outcome.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const studyArmPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Study Arm",
+        description:
+          "A specific treatment group in a clinical trial. Each arm represents a unique intervention strategy or control group, allowing researchers to compare outcomes between different approaches.",
+        possibleValues: [
+          {
+            propertyTypeObjectProperties: {
+              [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: {
+                $ref: blockProtocolPropertyTypes.name.propertyTypeId,
+              },
+              [interventionPropertyType.metadata.recordId.baseUrl]: {
+                $ref: interventionPropertyType.schema.$id,
+              },
+              [systemPropertyTypes.methodology.propertyTypeBaseUrl]: {
+                $ref: systemPropertyTypes.methodology.propertyTypeId,
+              },
+            },
+            propertyTypeObjectRequiredProperties: [
+              blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
+            ],
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const inclusionCriteriaPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Inclusion Criteria",
+        description:
+          "Criteria that must be met for someone or something to be included in something.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "hash",
+    });
+
+  const exclusionCriteriaPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Exclusion Criteria",
+        description:
+          "Criteria that would prevent someone or something from being included in something.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "hash",
+    });
+
+  const statusPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Status",
+        description: "The status of something.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const contactLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Has Contact",
+        description: "A contact for something (an organization, project, etc.)",
+      },
+      migrationState,
+      instantiator: anyUserInstantiator,
+      webShortname: "hash",
+    },
+  );
+
+  const sponsoredByLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Sponsored By",
+        description:
+          "An organization, person or other entity that provides financial, material, or other support for something, e.g. a project, study, or event.",
+        inverse: {
+          title: "Sponsors",
+        },
+      },
+      migrationState,
+      instantiator: anyUserInstantiator,
+      webShortname: "hash",
+    },
+  );
+
+  const investigatedByLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Investigated By",
+        titlePlural: "Investigated By",
+        description:
+          "A person, organization, or other entity that conducted research, analysis, or examination of something.",
+        inverse: {
+          title: "Investigator Of",
+        },
+      },
+      migrationState,
+      instantiator: anyUserInstantiator,
+      webShortname: "hash",
+    },
+  );
+
+  const personEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "person",
+    migrationState,
+  });
+
+  const institutionEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "institution",
+    migrationState,
+  });
+
+  const docEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "doc",
+    migrationState,
+  });
+
+  const _clinicalTrialRecordEntityType =
+    await createSystemEntityTypeIfNotExists(context, authentication, {
+      entityTypeDefinition: {
+        allOf: [docEntityTypeId],
+        title: "Study Record",
+        titlePlural: "Study Records",
+        description:
+          "A record of a study, including intervention studies (clinical trials), observational studies, and others.",
+        icon: "/icons/types/microscope.svg",
+        properties: [
+          {
+            propertyType: systemPropertyTypes.methodology.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: objectivePropertyType.schema.$id,
+            required: true,
+            array: true,
+          },
+          {
+            propertyType: statusPropertyType.schema.$id,
+          },
+          {
+            propertyType: nctIdPropertyType.schema.$id,
+          },
+          {
+            propertyType: isrctnIdPropertyType.schema.$id,
+          },
+          {
+            propertyType: systemPropertyTypes.doi.propertyTypeId,
+          },
+          {
+            propertyType: systemPropertyTypes.doiLink.propertyTypeId,
+          },
+          {
+            propertyType: systemPropertyTypes.location.propertyTypeId,
+          },
+          {
+            propertyType: trialPhasePropertyType.schema.$id,
+          },
+          {
+            propertyType: studyTypePropertyType.schema.$id,
+          },
+          {
+            propertyType: medicalConditionPropertyType.schema.$id,
+            array: true,
+          },
+          {
+            propertyType: actualEnrollmentPropertyType.schema.$id,
+          },
+          {
+            propertyType: actualStudyStartDatePropertyType.schema.$id,
+          },
+          {
+            propertyType: actualPrimaryCompletionDatePropertyType.schema.$id,
+          },
+          {
+            propertyType: actualStudyCompletionDatePropertyType.schema.$id,
+          },
+          {
+            propertyType: estimatedEnrollmentPropertyType.schema.$id,
+          },
+          {
+            propertyType: estimatedStudyStartDatePropertyType.schema.$id,
+          },
+          {
+            propertyType: estimatedPrimaryCompletionDatePropertyType.schema.$id,
+          },
+          {
+            propertyType: estimatedStudyCompletionDatePropertyType.schema.$id,
+          },
+          {
+            propertyType: outcomeMeasurePropertyType.schema.$id,
+            array: true,
+          },
+          {
+            propertyType: studyArmPropertyType.schema.$id,
+            array: true,
+          },
+          {
+            propertyType: inclusionCriteriaPropertyType.schema.$id,
+            array: true,
+          },
+          {
+            propertyType: exclusionCriteriaPropertyType.schema.$id,
+            array: true,
+          },
+        ],
+        outgoingLinks: [
+          {
+            destinationEntityTypes: [
+              personEntityTypeId,
+              institutionEntityTypeId,
+            ],
+            linkEntityType: sponsoredByLinkEntityType.schema.$id,
+          },
+          {
+            destinationEntityTypes: [personEntityTypeId],
+            linkEntityType: investigatedByLinkEntityType.schema.$id,
+          },
+          {
+            destinationEntityTypes: [personEntityTypeId],
+            linkEntityType: contactLinkEntityType.schema.$id,
+          },
+        ],
+      },
+      migrationState,
+      instantiator: anyUserInstantiator,
+      webShortname: "hash",
+    });
+
+  return migrationState;
+};
+
+export default migrate;

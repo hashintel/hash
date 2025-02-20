@@ -316,27 +316,6 @@
             "schema": {
               "$ref": "#/components/schemas/AccountId"
             }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of data types to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
-            }
           }
         ],
         "requestBody": {
@@ -416,6 +395,63 @@
           },
           "409": {
             "description": "Data type ID is already archived"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/data-types/bulk": {
+      "put": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "update_data_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UpdateDataTypeRequest"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated data types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataTypeMetadata"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Base data types ID were not found"
           },
           "422": {
             "description": "Provided request body is invalid"
@@ -559,6 +595,51 @@
           },
           "422": {
             "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/data-types/query/conversions": {
+      "post": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "get_data_type_conversion_targets",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetDataTypeConversionTargetsParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetDataTypeConversionTargetsResponse"
+                }
+              }
+            }
           },
           "500": {
             "description": "Store error occurred"
@@ -1709,27 +1790,6 @@
             "schema": {
               "$ref": "#/components/schemas/AccountId"
             }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of entity types to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
-            }
           }
         ],
         "requestBody": {
@@ -1809,6 +1869,63 @@
           },
           "409": {
             "description": "Entity type ID is already archived"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entity-types/bulk": {
+      "put": {
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
+        "operationId": "update_entity_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UpdateEntityTypeRequest"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated entity types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntityTypeMetadata"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Base entity types ID were not found"
           },
           "422": {
             "description": "Provided request body is invalid"
@@ -2336,27 +2453,6 @@
             "schema": {
               "$ref": "#/components/schemas/AccountId"
             }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of property types to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
-            }
           }
         ],
         "requestBody": {
@@ -2436,6 +2532,63 @@
           },
           "409": {
             "description": "Property type ID is already archived"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/property-types/bulk": {
+      "put": {
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
+        "operationId": "update_property_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UpdatePropertyTypeRequest"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated property types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PropertyTypeMetadata"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Base property types ID were not found"
           },
           "422": {
             "description": "Provided request body is invalid"
@@ -3304,8 +3457,7 @@
             ],
             "properties": {
               "const": {
-                "type": "number",
-                "format": "double"
+                "$ref": "#/components/schemas/Real"
               },
               "type": {
                 "type": "string",
@@ -3580,24 +3732,6 @@
                 ]
               }
             }
-          },
-          {
-            "type": "object",
-            "required": [
-              "data",
-              "type"
-            ],
-            "properties": {
-              "data": {
-                "$ref": "#/components/schemas/InvalidCanonicalValue"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "invalidValue"
-                ]
-              }
-            }
           }
         ],
         "discriminator": {
@@ -3645,6 +3779,67 @@
         ],
         "discriminator": {
           "propertyName": "type"
+        }
+      },
+      "DataTypeConversionTargets": {
+        "type": "object",
+        "required": [
+          "title",
+          "conversions"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversionDefinition"
+            }
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "DataTypeEditorSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
         }
       },
       "DataTypeInferenceError": {
@@ -3854,6 +4049,42 @@
               "relation": {
                 "type": "string",
                 "enum": [
+                  "setting"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/DataTypeSettingSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "editor"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/DataTypeEditorSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
                   "viewer"
                 ]
               },
@@ -3865,6 +4096,37 @@
         ],
         "discriminator": {
           "propertyName": "relation"
+        }
+      },
+      "DataTypeSetting": {
+        "type": "string",
+        "enum": [
+          "updateFromWeb"
+        ]
+      },
+      "DataTypeSettingSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "setting"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/DataTypeSetting"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
         }
       },
       "DataTypeVertexId": {
@@ -4831,6 +5093,7 @@
           "icon",
           "editionProvenance",
           "links",
+          "linkDestinations",
           "inheritsFrom",
           "children",
           "embedding"
@@ -5449,6 +5712,12 @@
                       "$ref": "#/components/schemas/Selector"
                     },
                     {
+                      "type": "string",
+                      "enum": [
+                        "convert"
+                      ]
+                    },
+                    {
                       "type": "string"
                     },
                     {
@@ -5532,6 +5801,38 @@
           },
           "entityType": {
             "$ref": "#/components/schemas/ClosedMultiEntityType"
+          }
+        }
+      },
+      "GetDataTypeConversionTargetsParams": {
+        "type": "object",
+        "required": [
+          "dataTypeIds"
+        ],
+        "properties": {
+          "dataTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetDataTypeConversionTargetsResponse": {
+        "type": "object",
+        "required": [
+          "conversions"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/components/schemas/DataTypeConversionTargets"
+              }
+            }
           }
         }
       },
@@ -6398,27 +6699,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "InvalidCanonicalValue": {
-        "type": "object",
-        "required": [
-          "key",
-          "expected",
-          "actual"
-        ],
-        "properties": {
-          "actual": {
-            "type": "number",
-            "format": "double"
-          },
-          "expected": {
-            "type": "number",
-            "format": "double"
-          },
-          "key": {
-            "$ref": "#/components/schemas/BaseUrl"
-          }
-        }
       },
       "JsonSchemaValueType": {
         "type": "string",
@@ -8117,6 +8397,9 @@
           {
             "type": "object",
             "title": "PropertyMetadataArray",
+            "required": [
+              "value"
+            ],
             "properties": {
               "metadata": {
                 "$ref": "#/components/schemas/ArrayMetadata"
@@ -8132,6 +8415,9 @@
           {
             "type": "object",
             "title": "PropertyMetadataObject",
+            "required": [
+              "value"
+            ],
             "properties": {
               "metadata": {
                 "$ref": "#/components/schemas/ObjectMetadata"
@@ -8797,6 +9083,9 @@
       },
       "PropertyWithMetadataArray": {
         "type": "object",
+        "required": [
+          "value"
+        ],
         "properties": {
           "metadata": {
             "$ref": "#/components/schemas/ArrayMetadata"
@@ -8812,6 +9101,9 @@
       },
       "PropertyWithMetadataObject": {
         "type": "object",
+        "required": [
+          "value"
+        ],
         "properties": {
           "metadata": {
             "$ref": "#/components/schemas/ObjectMetadata"
@@ -9086,6 +9378,9 @@
           }
         ],
         "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in queries\nthat return [`Subgraph`]s.\n\nThe [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided\nbounds an inclusive bound at the timestamp at point of resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph"
+      },
+      "Real": {
+        "type": "number"
       },
       "Report": {
         "$ref": "./models/report.json"

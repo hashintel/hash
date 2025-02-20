@@ -46,6 +46,7 @@ const Select = <T,>(
         </InputLabel>
       )}
       <MuiSelect
+        displayEmpty={!!props.placeholder}
         fullWidth
         sx={[
           ({ palette }) => ({

@@ -1,10 +1,11 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import dedent from "dedent";
 
 import { logger } from "../../../shared/activity-logger.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
-import type { AnthropicMessageModel } from "../../../shared/get-llm-response/anthropic-client.js";
+import type { PermittedAnthropicModel } from "../../../shared/get-llm-response/anthropic-client.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
@@ -100,7 +101,7 @@ const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
 export const deduplicateEntities = async (params: {
   entities: (LocalEntitySummary | ExistingEntitySummary)[];
-  model?: PermittedOpenAiModel | AnthropicMessageModel;
+  model?: PermittedOpenAiModel | PermittedAnthropicModel;
   exceededMaxTokensAttempt?: number | null;
 }): Promise<
   { duplicates: DuplicateReport[] } & {
@@ -194,6 +195,9 @@ export const deduplicateEntities = async (params: {
     }
 
     logger.error(`Error deduplicating entities: ${llmResponse.status}`);
+
+    await sleep(2_000);
+
     return deduplicateEntities(params);
   }
 

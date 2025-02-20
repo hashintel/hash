@@ -42,6 +42,8 @@ export const useBlockProtocolQueryDataTypes = (): {
       const response = await queryFn({
         variables: {
           constrainsValuesOn: { outgoing: 255 },
+          inheritsFrom: { outgoing: 255 },
+          latestOnly: true,
         },
       });
 

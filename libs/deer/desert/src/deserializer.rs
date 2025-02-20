@@ -221,7 +221,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         self.tape.next().expect("should have token to deserialize")
     }
 
-    pub(crate) fn tape_mut(&mut self) -> &mut Tape<'de> {
+    pub(crate) const fn tape_mut(&mut self) -> &mut Tape<'de> {
         &mut self.tape
     }
 

@@ -1,220 +1,596 @@
-import { Storage } from "@google-cloud/storage";
+import { type JsonValue, type VersionedUrl } from "@blockprotocol/type-system";
+import { SchemaType } from "@google-cloud/vertexai";
+import { sleep } from "@local/hash-backend-utils/utils";
+import type { PropertyProvenance } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
-  GenerativeModel,
-  Part,
-  ResponseSchema,
-} from "@google-cloud/vertexai";
-import { SchemaType, VertexAI } from "@google-cloud/vertexai";
+  EntityId,
+  PropertyObjectWithMetadata,
+  PropertyValue,
+  PropertyWithMetadata,
+} from "@local/hash-graph-types/entity";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { EntityTypeRootType } from "@local/hash-subgraph";
+import { getEntityTypes } from "@local/hash-subgraph/stdlib";
+import dedent from "dedent";
+import get from "lodash/get.js";
+import set from "lodash/set.js";
+import unset from "lodash/unset.js";
 
 import { logger } from "../../shared/activity-logger.js";
+import {
+  type DereferencedEntityType,
+  type DereferencedEntityTypeWithSimplifiedKeys,
+  dereferenceEntityType,
+  type MinimalPropertyObject,
+} from "../../shared/dereference-entity-type.js";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { getLlmResponse } from "../../shared/get-llm-response.js";
+import {
+  getToolCallsFromLlmAssistantMessage,
+  type LlmFileMessageContent,
+  type LlmMessageTextContent,
+  type LlmUserMessage,
+} from "../../shared/get-llm-response/llm-message.js";
+import type {
+  LlmParams,
+  LlmToolDefinition,
+} from "../../shared/get-llm-response/types.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
+import { judgeAiOutputs } from "../../shared/judge-ai-outputs.js";
 
-/**
- * Ideally we'd use something like Zod and zod-to-json-schema to define the schema, to have the type automatically
- * inferred, but the generated schema is not compatible with the Vertex AI schema, due to the latter's use of enums for
- * the type field.
- *
- * @todo use Zod and rewrite the bits of the schema that are incompatible with Vertex AI's schema type
- */
-const documentMetadataSchema: ResponseSchema = {
-  type: SchemaType.OBJECT,
-  properties: {
-    authors: {
-      type: SchemaType.ARRAY,
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          affiliatedWith: {
-            type: SchemaType.ARRAY,
-            items: {
-              type: SchemaType.STRING,
+const generateOutputSchema = (
+  dereferencedDocEntityTypes: DereferencedEntityType[],
+) => {
+  return {
+    type: "object",
+    additionalProperties: false as const,
+    properties: {
+      documentMetadata: {
+        anyOf: dereferencedDocEntityTypes.map(
+          ({
+            labelProperty: _,
+            links: __,
+            title,
+            $id,
+            properties,
+            required,
+          }) => {
+            return {
+              type: "object",
+              title,
+              properties: {
+                entityTypeId: { type: SchemaType.STRING, enum: [$id] },
+                ...properties,
+              },
+              required: [...(required ?? []), "entityTypeId"],
+            };
+          },
+        ),
+      },
+      authors: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false as const,
+          properties: {
+            affiliatedWith: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+              description:
+                "Any institution(s) or organization(s) that the document identifies the author as being affiliated with",
             },
-            description:
-              "Any institution(s) or organization(s) that the document identifies the author as being affiliated with",
+            name: {
+              description: "The name of the author",
+              type: "string",
+            },
+            email: {
+              description: "The email address of the author",
+              type: "string",
+            },
           },
-          name: {
-            description: "The name of the author",
-            type: SchemaType.STRING,
-          },
+          required: ["name"],
         },
       },
     },
-    doi: {
-      description: "The DOI for this document, if provided",
-      type: SchemaType.STRING,
-    },
-    doiLink: {
-      description: "The DOI link for this document, if provided",
-      type: SchemaType.STRING,
-    },
-    isbn: {
-      description:
-        "The ISBN for this document, if it is a book and the ISBN is provided",
-      type: SchemaType.STRING,
-    },
-    publishedBy: {
-      description: "The publisher of this document, if available.",
-      type: SchemaType.OBJECT,
-      properties: {
-        name: { type: SchemaType.STRING },
-      },
-    },
-    publicationVenue: {
-      description:
-        "The venue in which this document/paper was published, if available",
-      type: SchemaType.OBJECT,
-      properties: {
-        title: { type: SchemaType.STRING },
-      },
-    },
-    publishedInYear: {
-      description:
-        "The year (first year if a reprint) in which this document was published",
-      type: SchemaType.INTEGER,
-    },
-    summary: {
-      description: "A one paragraph summary of this document",
-      type: SchemaType.STRING,
-    },
-    title: { description: "The document's title", type: SchemaType.STRING },
-    type: {
-      description:
-        "If the specific type of this document is known, it can be provided here. Valid options are 'Book' and 'AcademicPaper'",
-      format: "enum",
-      enum: ["AcademicPaper", "Book"],
-      type: SchemaType.STRING,
-    },
-  },
-  required: ["summary", "title"],
+  } satisfies LlmToolDefinition["inputSchema"];
 };
 
-export type DocumentMetadata = {
-  authors?: { name: string; affiliatedWith?: string[] }[];
-  doi?: string;
-  doiLink?: string;
-  isbn?: string;
-  publishedBy?: {
-    name: string;
-  };
-  publicationVenue?: {
-    title: string;
-  };
-  publishedInYear?: number;
-  summary: string;
-  title: string;
-  type?: "AcademicPaper" | "Book";
+type DocumentMetadataWithSimplifiedProperties = {
+  entityTypeId: VersionedUrl;
+} & Record<string, PropertyValue>;
+
+type LlmResponseDocumentData = {
+  authors?: { name: string; email?: string; affiliatedWith?: string[] }[];
+  documentMetadata: DocumentMetadataWithSimplifiedProperties;
 };
 
-const googleCloudProjectId = process.env.GOOGLE_CLOUD_HASH_PROJECT_ID;
+export type DocumentData = Omit<LlmResponseDocumentData, "documentMetadata"> & {
+  documentMetadata: {
+    entityTypeId: VersionedUrl;
+    properties: PropertyObjectWithMetadata;
+  };
+};
 
-let _generativeModel: GenerativeModel | undefined;
+const assertIsLlmResponseDocumentData: (
+  input: unknown,
+) => asserts input is LlmResponseDocumentData = (input) => {
+  if (typeof input !== "object" || input === null) {
+    throw new Error("Input is not an object");
+  }
 
-const getGeminiModel = () => {
-  if (!googleCloudProjectId) {
+  if (
+    !("documentMetadata" in input) ||
+    typeof input.documentMetadata !== "object" ||
+    input.documentMetadata === null
+  ) {
+    throw new Error("input.documentMetadata is not an object");
+  }
+
+  const { entityTypeId } =
+    input.documentMetadata as DocumentData["documentMetadata"];
+
+  if (typeof entityTypeId !== "string") {
+    throw new Error("input.documentMetadata.entityTypeId is not a string");
+  }
+};
+
+const addMetadataToPropertyValue = (
+  key: string,
+  value: PropertyValue,
+  propertyMappings: DereferencedEntityTypeWithSimplifiedKeys["simplifiedPropertyTypeMappings"],
+  propertyObjectSchema:
+    | DereferencedEntityTypeWithSimplifiedKeys["schema"]["properties"]
+    | MinimalPropertyObject["properties"],
+  provenance: PropertyProvenance,
+): PropertyWithMetadata => {
+  const propertyTypeBaseUrl = propertyMappings[key];
+
+  if (!propertyTypeBaseUrl) {
     throw new Error(
-      "GOOGLE_CLOUD_HASH_PROJECT_ID environment variable is not set",
+      `Simplified property type mapping for key ${key} not found`,
     );
   }
 
-  if (_generativeModel) {
-    return _generativeModel;
+  const propertyType = propertyObjectSchema[key];
+
+  if (!propertyType) {
+    throw new Error(
+      `Property type for key ${key} not found in dereferenced entity type`,
+    );
   }
 
-  const vertexAI = new VertexAI({
-    project: googleCloudProjectId,
-    location: "us-east4",
-  });
+  const isArray = "items" in propertyType;
 
-  const generativeModel = vertexAI.getGenerativeModel({
-    model: "gemini-1.5-pro",
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: documentMetadataSchema,
-    },
-  });
+  const propertyTypeOneOf = isArray
+    ? propertyType.items.oneOf
+    : propertyType.oneOf;
 
-  _generativeModel = generativeModel;
+  if (propertyTypeOneOf.length !== 1) {
+    throw new Error(
+      `Property type for key ${key} has ${propertyTypeOneOf.length} oneOf options, expected 1.`,
+    );
+  }
 
-  return generativeModel;
+  const propertyTypeSchema = propertyTypeOneOf[0];
+
+  if (isArray) {
+    if (!Array.isArray(value)) {
+      throw new Error(
+        `Property type for key ${key} is array, but value '${stringifyPropertyValue(value)}' is not an array`,
+      );
+    }
+
+    if ("properties" in propertyTypeSchema) {
+      return {
+        value: value.map((objectInArray, index) => {
+          if (
+            typeof objectInArray !== "object" ||
+            objectInArray === null ||
+            Array.isArray(objectInArray)
+          ) {
+            throw new Error(
+              `Property type for key ${key} is array of objects, but value at index ${index} '${stringifyPropertyValue(objectInArray)}' is not an object`,
+            );
+          }
+
+          return {
+            value: Object.fromEntries(
+              Object.entries(objectInArray).map(([nestedKey, nestedValue]) => {
+                const nestedBaseUrl = propertyMappings[nestedKey];
+
+                if (!nestedBaseUrl) {
+                  throw new Error(
+                    `Simplified property type mapping for key ${nestedKey} not found`,
+                  );
+                }
+
+                return [
+                  nestedBaseUrl,
+                  addMetadataToPropertyValue(
+                    nestedKey,
+                    nestedValue,
+                    propertyMappings,
+                    propertyTypeSchema.properties,
+                    provenance,
+                  ),
+                ];
+              }),
+            ),
+          };
+        }),
+      };
+    }
+
+    if ("$id" in propertyTypeSchema) {
+      return {
+        value: value.map((item) => ({
+          value: item,
+          metadata: { dataTypeId: propertyTypeSchema.$id, provenance },
+        })),
+      };
+    }
+
+    const expectedDataType = propertyTypeSchema.items.oneOf[0];
+
+    if (!("$id" in expectedDataType)) {
+      throw new Error(
+        `Property type for key ${key} has unsupported schema: ${JSON.stringify(propertyTypeSchema)}`,
+      );
+    }
+
+    return {
+      value: value.map((item) => ({
+        value: item,
+        metadata: { dataTypeId: expectedDataType.$id, provenance },
+      })),
+    };
+  }
+
+  if ("properties" in propertyTypeSchema) {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      throw new Error(
+        `Property type for key ${key} is object, but value ${stringifyPropertyValue(value)} is not an object`,
+      );
+    }
+
+    return {
+      value: Object.fromEntries(
+        Object.entries(value).map(([nestedKey, nestedValue]) => {
+          const nestedBaseUrl = propertyMappings[nestedKey];
+
+          if (!nestedBaseUrl) {
+            throw new Error(
+              `Simplified property type mapping for key ${nestedKey} not found`,
+            );
+          }
+
+          return [
+            nestedBaseUrl,
+            addMetadataToPropertyValue(
+              nestedKey,
+              nestedValue,
+              propertyMappings,
+              propertyTypeSchema.properties,
+              provenance,
+            ),
+          ];
+        }),
+      ),
+    };
+  }
+
+  if ("$id" in propertyTypeSchema) {
+    return {
+      value,
+      metadata: { dataTypeId: propertyTypeSchema.$id, provenance },
+    };
+  }
+
+  const expectedDataType = propertyTypeSchema.items.oneOf[0];
+
+  if (!("$id" in expectedDataType)) {
+    throw new Error(
+      `Property type for key ${key} has unsupported schema: ${JSON.stringify(propertyTypeSchema)}`,
+    );
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error(
+      `Property type for key ${key} is array, but value ${stringifyPropertyValue(value)} is not an array`,
+    );
+  }
+
+  return {
+    value: value.map((item) => ({
+      value: item,
+      metadata: { dataTypeId: expectedDataType.$id, provenance },
+    })),
+  };
 };
 
-let _googleCloudStorage: Storage | undefined;
+const unsimplifyDocumentMetadata = (
+  input: unknown,
+  docEntityTypes: DereferencedEntityTypeWithSimplifiedKeys[],
+  provenance: {
+    entityId: EntityId;
+    fileUrl: string;
+  },
+): DocumentData => {
+  assertIsLlmResponseDocumentData(input);
 
-const storageBucket = process.env.GOOGLE_CLOUD_STORAGE_BUCKET;
+  const { documentMetadata, ...rest } = input;
 
-const getGoogleCloudStorage = () => {
-  if (_googleCloudStorage) {
-    return _googleCloudStorage;
+  const { entityTypeId, ...properties } = documentMetadata;
+
+  const docEntityType = docEntityTypes.find(
+    (type) => type.schema.$id === entityTypeId,
+  );
+
+  if (!docEntityType) {
+    throw new Error(
+      `Dereferenced entity type for entityTypeId ${entityTypeId} not found`,
+    );
   }
 
-  const storage = new Storage();
-  _googleCloudStorage = storage;
+  const title = properties.title as string | undefined;
 
-  return storage;
+  const propertyProvenance: PropertyProvenance = {
+    sources: [
+      {
+        authors: rest.authors?.map((author) => author.name),
+        type: "document",
+        entityId: provenance.entityId,
+        location: { uri: provenance.fileUrl, name: title },
+      },
+    ],
+  };
+
+  const fullPropertiesWithDataTypeIds: PropertyObjectWithMetadata = {
+    value: {},
+  };
+
+  for (const [key, value] of Object.entries(properties)) {
+    const propertyTypeBaseUrl =
+      docEntityType.simplifiedPropertyTypeMappings[key];
+
+    if (!propertyTypeBaseUrl) {
+      throw new Error(
+        `Simplified property type mapping for key ${key} not found`,
+      );
+    }
+
+    fullPropertiesWithDataTypeIds.value[propertyTypeBaseUrl] =
+      addMetadataToPropertyValue(
+        key,
+        value,
+        docEntityType.simplifiedPropertyTypeMappings,
+        docEntityType.schema.properties,
+        propertyProvenance,
+      );
+  }
+
+  return {
+    ...rest,
+    documentMetadata: {
+      entityTypeId: documentMetadata.entityTypeId,
+      properties: fullPropertiesWithDataTypeIds,
+    },
+  };
 };
 
 export const getLlmAnalysisOfDoc = async ({
-  hashFileStorageKey,
-  fileSystemPath,
+  fileEntity,
 }: {
-  hashFileStorageKey: string;
-  fileSystemPath: string;
-}): Promise<DocumentMetadata> => {
-  if (!storageBucket) {
-    throw new Error(
-      "GOOGLE_CLOUD_STORAGE_BUCKET environment variable is not set",
+  fileEntity: Entity<File>;
+}): Promise<DocumentData> => {
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
+
+  const docsEntityTypeSubgraph = await graphApiClient
+    .getEntityTypeSubgraph(userAuthentication.actorId, {
+      filter: {
+        all: [
+          {
+            equal: [
+              {
+                path: ["inheritsFrom", "*", "versionedUrl"],
+              },
+              {
+                parameter: systemEntityTypes.doc.entityTypeId,
+              },
+            ],
+          },
+        ],
+      },
+      includeDrafts: false,
+
+      temporalAxes: currentTimeInstantTemporalAxes,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsLinkDestinationsOn: { outgoing: 255 },
+        constrainsLinksOn: { outgoing: 255 },
+        constrainsValuesOn: { outgoing: 255 },
+        constrainsPropertiesOn: { outgoing: 255 },
+        inheritsFrom: { outgoing: 255 },
+      },
+    })
+    .then(({ data: response }) =>
+      mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
+        response.subgraph,
+        userAuthentication.actorId,
+      ),
     );
-  }
 
-  const gemini = getGeminiModel();
-
-  const storage = getGoogleCloudStorage();
-
-  const cloudStorageFilePath = `gs://${storageBucket}/${hashFileStorageKey}`;
-
-  try {
-    await storage.bucket(storageBucket).file(hashFileStorageKey).getMetadata();
-
-    logger.info(
-      `Already exists in Google Cloud Storage: HASH key ${hashFileStorageKey} in ${storageBucket} bucket`,
-    );
-  } catch (err) {
-    if ("code" in (err as Error) && (err as { code: unknown }).code === 404) {
-      await storage
-        .bucket(storageBucket)
-        .upload(fileSystemPath, { destination: hashFileStorageKey });
-      logger.info(
-        `Uploaded to Google Cloud Storage: HASH key ${hashFileStorageKey} in ${storageBucket} bucket`,
+  // const docEntityTypes
+  const dereferencedDocEntityTypes = getEntityTypes(docsEntityTypeSubgraph)
+    .map((entityType) =>
+      dereferenceEntityType({
+        entityTypeId: entityType.schema.$id,
+        subgraph: docsEntityTypeSubgraph,
+        simplifyPropertyKeys: true,
+      }),
+    )
+    .filter((type) => {
+      return (
+        type.schema.$id === systemEntityTypes.doc.entityTypeId ||
+        type.parentIds.includes(systemEntityTypes.doc.entityTypeId)
       );
-    } else {
-      throw err;
-    }
-  }
+    });
 
-  const filePart: Part = {
-    fileData: {
-      fileUri: cloudStorageFilePath,
-      mimeType: "application/pdf",
+  const schema = generateOutputSchema(
+    dereferencedDocEntityTypes.map((type) => type.schema),
+  );
+
+  const textContent: LlmMessageTextContent = {
+    type: "text",
+    text: dedent(`Please provide metadata about this document, using only the information visible in the document.
+    
+    You are given multiple options of what type of document this might be, and must choose from them.
+
+    The options are:
+    
+    ${dereferencedDocEntityTypes.map((type) => `- ${type.schema.title}`).join("\n")}
+
+    'Doc' is the most generic type. Use this if no other more specific type is appropriate.
+    If you can't find a more specific type, use 'Doc'.
+    
+    When dealing with dates in the document metadata, use the format YYYY-MM-DD. Bear in mind the document may use a different format.
+    Also note the difference between 'estimated'/'predicted' and 'actual'/'confirmed' dates. Either, neither or both may be present.
+    Depending on the type of document, this distinction may be important, and the document should give clues as to which dates are which.
+
+    Remember – if you can't determine a specifiy type for the document, use 'Doc'. If you can't find a title, use 'Unknown' as the title.
+    `),
+  };
+
+  const fileContent: LlmFileMessageContent = {
+    type: "file",
+    fileEntity: {
+      entityId: fileEntity.entityId,
+      properties: fileEntity.properties,
     },
   };
 
-  const textPart = {
-    text: `Please provide a summary of this document, and any of the requested metadata you can infer from it.
-    If you're not confident about any of the metadata fields, omit them.`,
+  const message: LlmUserMessage = {
+    role: "user",
+    content: [textContent, fileContent],
   };
 
-  const request = {
-    contents: [{ role: "user", parts: [filePart, textPart] }],
-  };
+  const tools: LlmParams["tools"] = [
+    {
+      name: "provideDocumentMetadata" as const,
+      description: "Provide metadata about the document",
+      inputSchema: schema,
+    },
+  ];
 
-  const resp = await gemini.generateContent(request);
+  const response = await getLlmResponse(
+    {
+      model: "gemini-1.5-pro-002",
+      messages: [message],
+      toolChoice: "required",
+      tools,
+    },
+    {
+      customMetadata: {
+        stepId,
+        taskName: "infer-metadata-from-document",
+      },
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
+    },
+  );
 
-  const contentResponse = resp.response.candidates?.[0]?.content.parts[0]?.text;
+  if (response.status !== "ok") {
+    if (response.status === "aborted") {
+      throw new Error("LLM analysis aborted");
+    }
 
-  if (!contentResponse) {
-    throw new Error("No content response from LLM analysis");
+    await sleep(2_000);
+
+    logger.error(
+      `LLM analysis failed, retrying. ${response.status}: ${
+        "message" in response ? response.message : "unknown error"
+      }`,
+    );
+    return getLlmAnalysisOfDoc({ fileEntity });
   }
 
-  const parsedResponse = JSON.parse(contentResponse) as DocumentMetadata;
+  const toolCalls = getToolCallsFromLlmAssistantMessage({
+    message: response.message,
+  });
 
-  return parsedResponse;
+  const toolCall = toolCalls[0];
+
+  if (!toolCall) {
+    logger.error("No tool call found");
+
+    await sleep(2_000);
+
+    return getLlmAnalysisOfDoc({ fileEntity });
+  }
+
+  try {
+    assertIsLlmResponseDocumentData(toolCall.input);
+  } catch (error) {
+    logger.error(
+      `LLM analysis failed: ${error instanceof Error ? error.message : "unknown error"}`,
+    );
+    await sleep(2_000);
+    return getLlmAnalysisOfDoc({ fileEntity });
+  }
+
+  const judgeVerdict = await judgeAiOutputs({
+    exchangeToReview: {
+      messages: [message, response.message],
+      tools,
+    },
+    judgeModel: "gemini-1.5-pro-002",
+  });
+
+  for (const {
+    correctionType,
+    jsonPath,
+    correctValue,
+  } of judgeVerdict.corrections) {
+    if (correctionType === "delete-unfounded") {
+      unset(response.message, jsonPath);
+      logger.info(
+        `Judge correction: remove property ${jsonPath.slice(3).join(".")} from output`,
+      );
+    } else {
+      const previousValue = get(response.message, jsonPath) as
+        | JsonValue
+        | undefined;
+
+      set(response.message, jsonPath, correctValue);
+
+      logger.info(
+        `Judge correction: set property ${jsonPath.slice(3).join(".")} to ${JSON.stringify(correctValue)}.${previousValue !== undefined ? ` (previous value: ${JSON.stringify(previousValue)})` : ""}`,
+      );
+    }
+  }
+
+  return unsimplifyDocumentMetadata(
+    toolCall.input,
+    dereferencedDocEntityTypes,
+    {
+      entityId: fileEntity.entityId,
+      fileUrl:
+        fileEntity.properties[
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+        ],
+    },
+  );
 };

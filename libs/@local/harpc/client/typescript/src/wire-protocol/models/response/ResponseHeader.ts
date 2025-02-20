@@ -1,6 +1,7 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
+  Either,
   Equal,
   Function,
   Hash,
@@ -10,8 +11,7 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../../../utils.js";
-import type * as Buffer from "../../Buffer.js";
+import { createProto, implDecode, implEncode } from "../../../utils.js";
 import * as Protocol from "../Protocol.js";
 import { RequestId } from "../request/index.js";
 
@@ -104,27 +104,26 @@ export const applyBodyVariant = (
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, header: ResponseHeader) => {
-    return pipe(
-      buffer,
-      Protocol.encode(header.protocol),
-      Effect.andThen(RequestId.encode(header.requestId)),
-      Effect.andThen(ResponseFlags.encode(header.flags)),
-    );
-  },
-);
+export const encode = implEncode((buffer, header: ResponseHeader) => {
+  return pipe(
+    buffer,
+    Protocol.encode(header.protocol),
+    Either.andThen(RequestId.encode(header.requestId)),
+    Either.andThen(ResponseFlags.encode(header.flags)),
+  );
+});
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
     const protocol = yield* Protocol.decode(buffer);
     const requestId = yield* RequestId.decode(buffer);
     const flags = yield* ResponseFlags.decode(buffer);
 
     return make(protocol, requestId, flags);
-  });
+  }),
+);
 
 export const isResponseHeader = (value: unknown): value is ResponseHeader =>
   Predicate.hasProperty(value, TypeId);

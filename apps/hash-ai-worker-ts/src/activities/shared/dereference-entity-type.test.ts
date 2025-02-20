@@ -804,6 +804,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
 
 const expectedResult = {
   isLink: false,
+  parentIds: [
+    "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
+  ],
   schema: {
     $id: "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
     additionalProperties: false,
@@ -832,6 +835,7 @@ const expectedResult = {
           description: "Stringified timestamp of when something was deleted.",
           oneOf: [
             {
+              $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               description: "An ordered sequence of characters",
               title: "Text",
               type: "string",
@@ -857,6 +861,7 @@ const expectedResult = {
                   description: "Miscellaneous notes about a thing",
                   oneOf: [
                     {
+                      $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                       description: "An ordered sequence of characters",
                       title: "Text",
                       type: "string",
@@ -870,6 +875,7 @@ const expectedResult = {
                 description: "The summary of the something.",
                 oneOf: [
                   {
+                    $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                     description: "An ordered sequence of characters",
                     title: "Text",
                     type: "string",
@@ -887,6 +893,7 @@ const expectedResult = {
         description: "Whether or not something has been archived.",
         oneOf: [
           {
+            $id: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
             description: "A True or False value",
             title: "Boolean",
             type: "boolean",
@@ -902,6 +909,7 @@ const expectedResult = {
             items: {
               oneOf: [
                 {
+                  $id: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                   description:
                     "An arithmetical value (in the Real number system)",
                   title: "Number",
@@ -919,6 +927,7 @@ const expectedResult = {
                           "Stringified timestamp of when something expired.",
                         oneOf: [
                           {
+                            $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                             description: "An ordered sequence of characters",
                             title: "Text",
                             type: "string",
@@ -933,6 +942,7 @@ const expectedResult = {
                         "Whether or not something has been archived.",
                       oneOf: [
                         {
+                          $id: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
                           description: "A True or False value",
                           title: "Boolean",
                           type: "boolean",
@@ -946,6 +956,7 @@ const expectedResult = {
                   items: {
                     oneOf: [
                       {
+                        $id: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                         description:
                           "An arithmetical value (in the Real number system)",
                         title: "Number",
@@ -962,6 +973,7 @@ const expectedResult = {
             type: "array",
           },
           {
+            $id: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
             description: "A True or False value",
             title: "Boolean",
             type: "boolean",
@@ -977,6 +989,7 @@ const expectedResult = {
                   description: "The name of an organization.",
                   oneOf: [
                     {
+                      $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                       description: "An ordered sequence of characters",
                       title: "Text",
                       type: "string",
@@ -990,6 +1003,7 @@ const expectedResult = {
                 description: "Stringified timestamp of when something expired.",
                 oneOf: [
                   {
+                    $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                     description: "An ordered sequence of characters",
                     title: "Text",
                     type: "string",
@@ -1009,6 +1023,8 @@ describe("The dereferenceEntityType function", () => {
   it("correctly dereferences an entity type", () => {
     const {
       simplifiedPropertyTypeMappings: _simplifiedPropertyTypeMappings,
+      reverseSimplifiedPropertyTypeMappings:
+        _reverseSimplifiedPropertyTypeMappings,
       ...result
     } = dereferenceEntityType({
       entityTypeId:

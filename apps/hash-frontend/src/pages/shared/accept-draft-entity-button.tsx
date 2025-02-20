@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { ClosedMultiEntityType } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
@@ -68,13 +69,18 @@ const getRightOrLeftEntitySx = (params: {
         background: ({ palette }) => palette.blue[20],
       };
 
+/**
+ * @todo H-3883 ensure that the un-drafting of a link will not violate min/max links on an entity
+ */
 export const AcceptDraftEntityButton: FunctionComponent<
   {
+    closedMultiEntityType: ClosedMultiEntityType;
     draftEntity: Entity;
     draftEntitySubgraph: Subgraph<EntityRootType>;
     onAcceptedEntity: ((acceptedEntity: Entity) => void) | null;
   } & ButtonProps
 > = ({
+  closedMultiEntityType,
   draftEntity,
   draftEntitySubgraph,
   onAcceptedEntity,
@@ -195,10 +201,9 @@ export const AcceptDraftEntityButton: FunctionComponent<
       });
     }, [draftLeftEntity, draftEntity, draftRightEntity, acceptDraftEntity]);
 
-  const label = useMemo(
-    () => generateEntityLabel(draftEntitySubgraph, draftEntity),
-    [draftEntitySubgraph, draftEntity],
-  );
+  const label = useMemo(() => {
+    return generateEntityLabel(closedMultiEntityType, draftEntity);
+  }, [closedMultiEntityType, draftEntity]);
 
   return (
     <>

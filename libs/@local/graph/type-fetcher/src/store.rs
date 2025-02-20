@@ -20,6 +20,7 @@ use hash_graph_store::{
     },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
+        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
         GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
         GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
@@ -219,7 +220,7 @@ where
         Ok(FetcherClient::new(connection_info.config.clone(), transport).spawn())
     }
 
-    pub fn store(&mut self) -> &mut S {
+    pub const fn store(&mut self) -> &mut S {
         &mut self.store
     }
 }
@@ -267,50 +268,59 @@ where
         match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(_) => self
                 .store
-                .get_data_types(actor_id, GetDataTypesParams {
-                    filter: Filter::for_versioned_url(url),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                .get_data_types(
+                    actor_id,
+                    GetDataTypesParams {
+                        filter: Filter::for_versioned_url(url),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        after: None,
+                        limit: None,
+                        include_drafts: true,
+                        include_count: false,
                     },
-                    after: None,
-                    limit: None,
-                    include_drafts: true,
-                    include_count: false,
-                })
+                )
                 .await
                 .map(|response| !response.data_types.is_empty()),
             OntologyTypeReference::PropertyTypeReference(_) => self
                 .store
-                .get_property_types(actor_id, GetPropertyTypesParams {
-                    filter: Filter::for_versioned_url(url),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                .get_property_types(
+                    actor_id,
+                    GetPropertyTypesParams {
+                        filter: Filter::for_versioned_url(url),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        after: None,
+                        limit: None,
+                        include_drafts: true,
+                        include_count: false,
                     },
-                    after: None,
-                    limit: None,
-                    include_drafts: true,
-                    include_count: false,
-                })
+                )
                 .await
                 .map(|response| !response.property_types.is_empty()),
             OntologyTypeReference::EntityTypeReference(_) => self
                 .store
-                .get_entity_types(actor_id, GetEntityTypesParams {
-                    filter: Filter::for_versioned_url(url),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                .get_entity_types(
+                    actor_id,
+                    GetEntityTypesParams {
+                        filter: Filter::for_versioned_url(url),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: true,
+                        after: None,
+                        limit: None,
+                        include_entity_types: None,
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
                     },
-                    include_drafts: true,
-                    after: None,
-                    limit: None,
-                    include_entity_types: None,
-                    include_count: false,
-                    include_web_ids: false,
-                    include_edition_created_by_ids: false,
-                })
+                )
                 .await
                 .map(|response| !response.entity_types.is_empty()),
         }
@@ -867,24 +877,41 @@ where
         self.store.get_data_type_subgraph(actor_id, params).await
     }
 
-    async fn update_data_type<R>(
+    async fn update_data_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        params: UpdateDataTypesParams<R>,
-    ) -> Result<DataTypeMetadata, Report<UpdateError>>
+        params: P,
+    ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
+        P: IntoIterator<Item = UpdateDataTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
+        let update_parameters = params.into_iter().collect::<Vec<_>>();
+        let requested_types = update_parameters
+            .iter()
+            .map(|parameters| parameters.schema.id())
+            .collect::<HashSet<_>>();
+
         self.insert_external_types(
             actor_id,
-            [&params.schema],
-            &HashSet::from([params.schema.id()]),
+            update_parameters
+                .iter()
+                .map(|parameters| &parameters.schema),
+            &requested_types,
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| params.schema.id().clone())?;
+        .attach_printable_lazy(|| {
+            requested_types
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        })?;
 
-        self.store.update_data_type(actor_id, params).await
+        self.store
+            .update_data_types(actor_id, update_parameters)
+            .await
     }
 
     async fn archive_data_type(
@@ -910,6 +937,16 @@ where
     ) -> Result<(), Report<UpdateError>> {
         self.store
             .update_data_type_embeddings(actor_id, params)
+            .await
+    }
+
+    async fn get_data_type_conversion_targets(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypeConversionTargetsParams,
+    ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
+        self.store
+            .get_data_type_conversion_targets(actor_id, params)
             .await
     }
 
@@ -985,24 +1022,41 @@ where
             .await
     }
 
-    async fn update_property_type<R>(
+    async fn update_property_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        params: UpdatePropertyTypesParams<R>,
-    ) -> Result<PropertyTypeMetadata, Report<UpdateError>>
+        params: P,
+    ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
+        P: IntoIterator<Item = UpdatePropertyTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
+        let update_parameters = params.into_iter().collect::<Vec<_>>();
+        let requested_types = update_parameters
+            .iter()
+            .map(|parameters| parameters.schema.id())
+            .collect::<HashSet<_>>();
+
         self.insert_external_types(
             actor_id,
-            [&params.schema],
-            &HashSet::from([params.schema.id()]),
+            update_parameters
+                .iter()
+                .map(|parameters| &parameters.schema),
+            &requested_types,
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| params.schema.id().clone())?;
+        .attach_printable_lazy(|| {
+            requested_types
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        })?;
 
-        self.store.update_property_type(actor_id, params).await
+        self.store
+            .update_property_types(actor_id, update_parameters)
+            .await
     }
 
     async fn archive_property_type(
@@ -1110,24 +1164,41 @@ where
         self.store.get_entity_type_subgraph(actor_id, params).await
     }
 
-    async fn update_entity_type<R>(
+    async fn update_entity_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        params: UpdateEntityTypesParams<R>,
-    ) -> Result<EntityTypeMetadata, Report<UpdateError>>
+        params: P,
+    ) -> Result<Vec<EntityTypeMetadata>, Report<UpdateError>>
     where
+        P: IntoIterator<Item = UpdateEntityTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
+        let update_parameters = params.into_iter().collect::<Vec<_>>();
+        let requested_types = update_parameters
+            .iter()
+            .map(|parameters| parameters.schema.id())
+            .collect::<HashSet<_>>();
+
         self.insert_external_types(
             actor_id,
-            [&params.schema],
-            &HashSet::from([params.schema.id()]),
+            update_parameters
+                .iter()
+                .map(|parameters| &parameters.schema),
+            &requested_types,
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| params.schema.id().clone())?;
+        .attach_printable_lazy(|| {
+            requested_types
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        })?;
 
-        self.store.update_entity_type(actor_id, params).await
+        self.store
+            .update_entity_types(actor_id, update_parameters)
+            .await
     }
 
     async fn archive_entity_type(

@@ -4,7 +4,7 @@ use hql_cst::expr::{Expr, ExprKind, call::Call};
 use hql_diagnostics::Diagnostic;
 use hql_span::{SpanId, TextRange};
 use winnow::{
-    Located, Parser as _,
+    LocatingSlice, Parser as _,
     error::{ContextError, ErrMode, ParseError},
 };
 
@@ -50,11 +50,10 @@ pub(crate) fn parse_expr<'arena, 'source>(
 
             let span = stream.insert_span(span);
 
-            Err(unexpected_token(span, [
-                SyntaxKind::String,
-                SyntaxKind::LBracket,
-                SyntaxKind::LBrace,
-            ]))
+            Err(unexpected_token(
+                span,
+                [SyntaxKind::String, SyntaxKind::LBracket, SyntaxKind::LBrace],
+            ))
         }
     }
 }
@@ -119,7 +118,7 @@ fn parse_string<'arena, 'source>(
     let parent_id = stream.insert_span(span);
 
     let input = winnow::Stateful {
-        input: Located::new(value.as_ref()),
+        input: LocatingSlice::new(value.as_ref()),
         state: ParseState {
             arena: stream.arena,
             spans: &stream.spans,

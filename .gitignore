@@ -1,6 +1,5 @@
 #########################
 ## Keep in sync with
-##  - .prettierignore
 ##  - .dockerignore
 #########################
 
@@ -149,3 +148,6 @@ seed-users.json
 # Turborepo
 .turbo/
 out/
+
+# Vercel CLI
+.vercel/

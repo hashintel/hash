@@ -46,11 +46,16 @@ export type ConstructEntityTypeParams = Omit<
   SystemDefinedProperties
 >;
 
+export type ConversionRequest = {
+  path: PropertyPath;
+  dataTypeId: VersionedUrl;
+};
+
 export type GetEntitiesRequest = Omit<
   GetEntitiesRequestGraphApi,
   "conversions"
 > & {
-  conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
+  conversions?: ConversionRequest[];
 };
 
 export type GetEntitySubgraphRequest = Omit<
@@ -72,6 +77,11 @@ export type UserPermissionsOnEntityType = {
   view: boolean;
   edit: boolean;
   instantiate: boolean;
+};
+
+export type UserPermissionsOnDataType = {
+  view: boolean;
+  edit: boolean;
 };
 
 export type UserPermissionsOnEntities = {

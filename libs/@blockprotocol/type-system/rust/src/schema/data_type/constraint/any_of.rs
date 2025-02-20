@@ -1,13 +1,15 @@
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail};
 use itertools::Itertools as _;
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 
-use crate::schema::{
-    ConstraintError, SingleValueSchema,
-    data_type::{
-        closed::ResolveClosedDataTypeError,
-        constraint::{Constraint, ConstraintValidator, ValueConstraints},
+use crate::{
+    Value,
+    schema::{
+        ConstraintError, SingleValueSchema,
+        data_type::{
+            closed::ResolveClosedDataTypeError,
+            constraint::{Constraint, ConstraintValidator, ValueConstraints},
+        },
     },
 };
 
@@ -98,16 +100,16 @@ impl Constraint for AnyOfConstraints {
     }
 }
 
-impl ConstraintValidator<JsonValue> for AnyOfConstraints {
+impl ConstraintValidator<Value> for AnyOfConstraints {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &JsonValue) -> bool {
+    fn is_valid(&self, value: &Value) -> bool {
         self.any_of
             .iter()
             .any(|schema| schema.constraints.is_valid(value))
     }
 
-    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
         let mut status = ReportSink::<ConstraintError>::new();
         for schema in &self.any_of {
             if status

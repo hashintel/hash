@@ -8,7 +8,10 @@ import { Box, Stack, Typography } from "@mui/material";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 
-import { useFileUploads } from "../../../shared/file-upload-context";
+import {
+  useFileUploads,
+  useFileUploadsProgress,
+} from "../../../shared/file-upload-context";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { FileUploadDropzone } from "../../settings/shared/file-upload-dropzone";
 
@@ -79,31 +82,46 @@ export const FileSettings = ({
   setSettings,
   webId,
 }: FileSettingsProps) => {
-  const [fileBeingUploaded, setFileBeingUploaded] = useState<File | null>(null);
+  const [uploadsInProgress, setUploadsInProgress] = useState<null | string[]>(
+    null,
+  );
 
   const { uploadFile } = useFileUploads();
 
-  const onFileProvided = async (file: File) => {
-    setFileBeingUploaded(file);
-    await uploadFile({
-      fileData: {
-        file,
-        fileEntityCreationInput: {},
-      },
-      makePublic: false,
-      onComplete: (upload) => {
-        setSettings((existingSettings) => ({
-          ...existingSettings,
-          fileEntities: [
-            ...existingSettings.fileEntities,
-            upload.createdEntities.fileEntity,
-          ],
-        }));
-        setFileBeingUploaded(null);
-      },
-      ownedById: webId,
-    });
+  const uploadsProgress = useFileUploadsProgress();
+
+  const onFilesProvided = async (files: File[]) => {
+    setUploadsInProgress(null);
+
+    await Promise.all(
+      files.map((file) =>
+        uploadFile({
+          fileData: {
+            file,
+            fileEntityCreationInput: {},
+          },
+          makePublic: false,
+          onComplete: (upload) => {
+            setSettings((existingSettings) => ({
+              ...existingSettings,
+              fileEntities: [
+                ...existingSettings.fileEntities,
+                upload.createdEntities.fileEntity,
+              ],
+            }));
+          },
+          ownedById: webId,
+          returnBeforeCompletion: true,
+        }),
+      ),
+    ).then((uploads) =>
+      setUploadsInProgress(uploads.map((upload) => upload.requestId)),
+    );
   };
+
+  const hasPendingUploads = uploadsInProgress?.some(
+    (requestId) => uploadsProgress[requestId] !== 100,
+  );
 
   return (
     <Box mb={3}>
@@ -113,8 +131,9 @@ export const FileSettings = ({
         </Typography>
         <FileUploadDropzone
           accept={{ "application/pdf": [".pdf"] }}
-          onFileProvided={onFileProvided}
-          showUploadingMessage={!!fileBeingUploaded}
+          multiple
+          onFilesProvided={onFilesProvided}
+          showUploadingMessage={hasPendingUploads}
         />
       </Box>
       {settings.fileEntities.length > 0 && (

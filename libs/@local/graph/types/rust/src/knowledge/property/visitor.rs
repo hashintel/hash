@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
 use futures::FutureExt as _;
-use serde_json::Value as JsonValue;
 use type_system::{
+    Value,
     schema::{
         ConstraintError, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema,
         PropertyType, PropertyTypeReference, PropertyValueArray, PropertyValueSchema,
@@ -61,15 +61,6 @@ pub struct PropertyValueTypeMismatch {
 
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub struct InvalidCanonicalValue {
-    pub key: BaseUrl,
-    pub expected: f64,
-    pub actual: f64,
-}
-
-#[derive(Debug, serde::Serialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "type", rename_all = "camelCase")]
 #[must_use]
 pub enum DataTypeInferenceError {
@@ -101,7 +92,6 @@ pub enum DataTypeConversionError {
 pub enum DataTypeCanonicalCalculation {
     Retrieval { error: Report<DataTypeRetrieval> },
     WrongType { data: JsonSchemaValueTypeMismatch },
-    InvalidValue { data: InvalidCanonicalValue },
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -285,7 +275,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     fn visit_value<P>(
         &mut self,
         desired_data_type_reference: &DataTypeReference,
-        value: &mut JsonValue,
+        value: &mut Value,
         metadata: &mut ValueMetadata,
         type_provider: &P,
     ) -> impl Future<Output = Result<(), ValueValidationReport>> + Send
@@ -602,7 +592,7 @@ where
                     );
                 }
             },
-        };
+        }
     }
 
     validation_map

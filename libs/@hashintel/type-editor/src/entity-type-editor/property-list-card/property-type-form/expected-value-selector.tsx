@@ -46,6 +46,7 @@ const ExpectedValueSelectorDropdown = () => {
     handleEdit,
     inputRef,
     searchText,
+    selectedDataTypeIds,
   } = useExpectedValueSelectorContext();
 
   const { dataTypes } = useDataTypesOptions();
@@ -89,12 +90,14 @@ const ExpectedValueSelectorDropdown = () => {
           <DataTypeSelector
             allowSelectingAbstractTypes
             dataTypes={dataTypeOptions}
+            handleScroll
             hideHint
             maxHeight={300}
             onSelect={(dataTypeId) => {
               addDataType(dataTypeId);
             }}
             searchText={searchText}
+            selectedDataTypeIds={selectedDataTypeIds}
           />
 
           <Button
@@ -146,6 +149,11 @@ export const ExpectedValueSelector = ({
 }) => {
   const propertyTypeFormMethods = useFormContext<PropertyTypeFormValues>();
 
+  const selectedDataTypeIds = useWatch({
+    control: propertyTypeFormMethods.control,
+    name: "expectedValues",
+  }).filter((value) => typeof value !== "object");
+
   const expectedValueSelectorFormMethods =
     useForm<ExpectedValueSelectorFormValues>({
       defaultValues: {
@@ -173,7 +181,33 @@ export const ExpectedValueSelector = ({
         propertyTypeFormMethods.clearErrors("expectedValues");
         setExpectedValuesValid(false);
       },
-      validate: (value) => {
+      validate: (value, formValues) => {
+        for (const newValue of Object.values(
+          formValues.flattenedCustomExpectedValueList,
+        )) {
+          const stillInExpectedValues = value.some((customValue) => {
+            return (
+              typeof customValue === "object" && customValue.id === newValue.id
+            );
+          });
+
+          if (!stillInExpectedValues) {
+            // The custom value has been removed from the expected values list
+            continue;
+          }
+
+          if (newValue.data?.typeId === "array") {
+            if (newValue.data.itemIds.length === 0) {
+              return "Arrays must have at least one item";
+            }
+          }
+          if (newValue.data?.typeId === "object") {
+            if (newValue.data.properties.length === 0) {
+              return "Objects must have at least one property";
+            }
+          }
+        }
+
         setExpectedValuesValid(!!value.length);
         return value.length
           ? true
@@ -192,7 +226,10 @@ export const ExpectedValueSelector = ({
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
 
   const infrequentlyChangingContextValues = useMemo<
-    Omit<ExpectedValueSelectorContextValue, "searchText">
+    Omit<
+      ExpectedValueSelectorContextValue,
+      "searchText" | "selectedDataTypeIds"
+    >
   >(() => {
     const closeCustomExpectedValueBuilder = () => {
       expectedValueSelectorFormMethods.setValue(
@@ -221,7 +258,7 @@ export const ExpectedValueSelector = ({
         }
 
         setInputValue("");
-        inputRef.current?.focus();
+        setAutocompleteFocused(false);
       },
       autocompleteFocused,
       closeAutocomplete: () => {
@@ -280,6 +317,8 @@ export const ExpectedValueSelector = ({
           { shouldDirty: true },
         );
         closeCustomExpectedValueBuilder();
+
+        setAutocompleteFocused(false);
       },
     };
   }, [
@@ -296,8 +335,9 @@ export const ExpectedValueSelector = ({
       return {
         ...infrequentlyChangingContextValues,
         searchText: inputValue,
+        selectedDataTypeIds,
       };
-    }, [infrequentlyChangingContextValues, inputValue]);
+    }, [infrequentlyChangingContextValues, inputValue, selectedDataTypeIds]);
 
   const { customExpectedValueBuilderOpen, handleEdit } =
     expectedValueSelectorContextValue;
@@ -384,7 +424,6 @@ export const ExpectedValueSelector = ({
           )}
           sx={{ width: "70%" }}
           options={[]}
-          disableCloseOnSelect
           componentsProps={{
             popper: {
               className: fluidFontClassName,

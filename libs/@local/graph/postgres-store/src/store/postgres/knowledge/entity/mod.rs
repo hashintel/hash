@@ -65,10 +65,10 @@ use hash_graph_types::{
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
-use serde_json::Value as JsonValue;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
+    Value,
     schema::{
         ClosedEntityType, ClosedMultiEntityType, DataTypeReference, EntityTypeUuid,
         InheritanceDepth, OntologyTypeUuid,
@@ -363,17 +363,18 @@ where
             return;
         };
 
-        let Some(mut value_number) = value.as_f64() else {
+        let &mut Value::Number(ref mut value_number) = value else {
             // If the value is not a number, we can ignore the property.
             return;
         };
 
+        let mut real = value_number.clone();
         for conversion in conversions.borrow() {
-            value_number = conversion.evaluate(value_number);
+            real = conversion.evaluate(real);
         }
         drop(conversions);
 
-        *value = JsonValue::from(value_number);
+        *value = Value::Number(real);
 
         metadata.data_type_id = Some(target_data_type_id.clone());
     }
@@ -448,18 +449,21 @@ where
                 .raw_entry_mut()
                 .from_key(*first_entity_type_id)
                 .or_insert_with(|| {
-                    ((*first_entity_type_id).clone(), ClosedMultiEntityTypeMap {
-                        schema: ClosedMultiEntityType::from_closed_schema(
-                            closed_types
-                                .get(*first_entity_type_id)
-                                .expect(
-                                    "The entity type was already resolved, so it should be \
-                                     present in the closed types",
-                                )
-                                .clone(),
-                        ),
-                        inner: HashMap::new(),
-                    })
+                    (
+                        (*first_entity_type_id).clone(),
+                        ClosedMultiEntityTypeMap {
+                            schema: ClosedMultiEntityType::from_closed_schema(
+                                closed_types
+                                    .get(*first_entity_type_id)
+                                    .expect(
+                                        "The entity type was already resolved, so it should be \
+                                         present in the closed types",
+                                    )
+                                    .clone(),
+                            ),
+                            inner: HashMap::new(),
+                        },
+                    )
                 });
 
             for entity_type_id in entity_type_id_iter {
@@ -480,10 +484,13 @@ where
                                     .clone(),
                             )
                             .expect("The entity type was constructed before so it has to be valid");
-                        ((*entity_type_id).clone(), ClosedMultiEntityTypeMap {
-                            schema: closed_parent,
-                            inner: HashMap::new(),
-                        })
+                        (
+                            (*entity_type_id).clone(),
+                            ClosedMultiEntityTypeMap {
+                                schema: closed_parent,
+                                inner: HashMap::new(),
+                            },
+                        )
                     });
                 *map = new_map;
             }
@@ -532,7 +539,9 @@ where
                 )
             });
 
-            compiler.add_filter(&params.filter);
+            compiler
+                .add_filter(&params.filter)
+                .change_context(QueryError)?;
 
             let (statement, parameters) = compiler.compile();
 
@@ -620,7 +629,6 @@ where
                 .count();
             let type_ids = type_ids.map(HashMap::from);
 
-            #[expect(clippy::if_then_some_else_none)]
             let type_titles = if params.include_type_titles {
                 let type_uuids = type_ids
                     .as_ref()
@@ -643,7 +651,9 @@ where
                     },
                     ParameterList::EntityTypeIds(&type_uuids),
                 );
-                type_compiler.add_filter(&filter);
+                type_compiler
+                    .add_filter(&filter)
+                    .change_context(QueryError)?;
 
                 let (statement, parameters) = type_compiler.compile();
 
@@ -1309,7 +1319,7 @@ where
             if schema.all_of.is_empty() {
                 validation_report.metadata.entity_types =
                     Some(EntityTypesError::Empty(Report::new(EmptyEntityTypes)));
-            };
+            }
 
             let mut preprocessor = EntityPreprocessor {
                 components: params.components,

@@ -4,7 +4,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { useCallback, useContext } from "react";
+import { useCallback } from "react";
 
 import type {
   UpdatePageMutation,
@@ -14,21 +14,13 @@ import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.q
 import { updatePage } from "../../graphql/queries/page.queries";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../pages/shared/block-collection-contents";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
-import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 
 export const useArchivePage = () => {
-  const entityTypeEntitiesContext = useContext(EntityTypeEntitiesContext);
-
   const [updatePageFn, { loading }] = useMutation<
     UpdatePageMutation,
     UpdatePageMutationVariables
   >(updatePage, {
     awaitRefetchQueries: false,
-    onCompleted: async () => {
-      if (entityTypeEntitiesContext) {
-        await entityTypeEntitiesContext.refetch();
-      }
-    },
   });
 
   const getRefetchQueries = useCallback((pageEntityId: EntityId) => {

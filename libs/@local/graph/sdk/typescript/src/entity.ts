@@ -12,6 +12,7 @@ import type {
   ValidateEntityParams,
 } from "@local/hash-graph-client";
 import type {
+  AccountId,
   CreatedById,
   EditionArchivedById,
   EditionCreatedById,
@@ -57,6 +58,15 @@ import type { EntityValidationReport } from "@local/hash-graph-types/validation"
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { AuthenticationContext } from "./authentication-context.js";
+
+/**
+ * Types used in getEntitySubgraph response to indicate the count of these in the whole result set,
+ * useful for filtering only a limited number of entities are returned in a single response.
+ */
+export type CreatedByIdsMap = Record<AccountId, number>;
+export type TypeIdsMap = Record<VersionedUrl, number>;
+export type TypeTitlesMap = Record<VersionedUrl, string>;
+export type WebIdsMap = Record<OwnedById, number>;
 
 export type EnforcedEntityEditionProvenance = Omit<
   ProvidedEntityEditionProvenance,

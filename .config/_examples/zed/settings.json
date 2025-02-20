@@ -1,0 +1,20 @@
+{
+  "file_types": {
+    "TOML": [".sqlfluff"],
+    "JSONC": ["turbo.json"],
+    "Git Ignore": [
+      ".prettierignore",
+      ".markdownlintignore",
+      ".dockerignore",
+      ".sqlfluffignore"
+    ]
+  },
+  "auto_install_extensions": {
+    "biome": true
+  },
+  "formatter": {
+    "language_server": {
+      "name": "biome"
+    }
+  }
+}

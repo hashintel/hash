@@ -91,9 +91,12 @@ mod test {
     #[test]
     fn encode_version() {
         let version = Version { major: 1, minor: 2 };
-        assert_encode(&version, expect![[r#"
+        assert_encode(
+            &version,
+            expect![[r#"
             0x01 0x02
-        "#]]);
+        "#]],
+        );
     }
 
     #[test]
@@ -110,9 +113,12 @@ mod test {
 
     #[test]
     fn encode_subsystem_id() {
-        assert_encode(&SubsystemId::new(0x01_02), expect![[r#"
+        assert_encode(
+            &SubsystemId::new(0x01_02),
+            expect![[r#"
                 0x01 0x02
-            "#]]);
+            "#]],
+        );
     }
 
     #[test]

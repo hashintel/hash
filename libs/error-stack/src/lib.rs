@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2025-01-08&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2025-02-17&color=blue)][rust-version]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
 //! [libs.rs]: https://lib.rs/crates/error-stack
@@ -469,8 +469,6 @@
 //! `futures`      | Enables support for [`Stream`], requires `unstable`                 | disabled
 //! `unstable`     | Enables unstable features, these features are not covered by semver | disabled
 //!
-//!
-//! [`set_debug_hook`]: Report::set_debug_hook
 //!
 //! [`Error`]: core::error::Error
 //! [`Error::provide`]: core::error::Error::provide

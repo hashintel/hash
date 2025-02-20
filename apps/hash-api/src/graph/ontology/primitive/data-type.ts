@@ -5,6 +5,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   ArchiveDataTypeParams,
   DataTypePermission,
@@ -22,12 +23,15 @@ import type {
   OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
+import type { DataTypeConversionTargets } from "@local/hash-isomorphic-utils/data-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  mapGraphApiDataTypeConversions,
   mapGraphApiDataTypesToDataTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { UserPermissionsOnDataType } from "@local/hash-isomorphic-utils/types";
 import type {
   DataTypeAuthorizationRelationship,
   DataTypeRelationAndSubject,
@@ -280,6 +284,14 @@ export const unarchiveDataType: ImpureGraphFunction<
   return temporalMetadata;
 };
 
+export const getDataTypeConversionTargets: ImpureGraphFunction<
+  { dataTypeIds: VersionedUrl[] },
+  Promise<Record<VersionedUrl, Record<VersionedUrl, DataTypeConversionTargets>>>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .getDataTypeConversionTargets(actorId, params)
+    .then(({ data }) => mapGraphApiDataTypeConversions(data.conversions));
+
 export const getDataTypeAuthorizationRelationships: ImpureGraphFunction<
   { dataTypeId: VersionedUrl },
   Promise<DataTypeAuthorizationRelationship[]>
@@ -320,3 +332,25 @@ export const checkDataTypePermission: ImpureGraphFunction<
   graphApi
     .checkDataTypePermission(actorId, params.dataTypeId, params.permission)
     .then(({ data }) => data.has_permission);
+
+export const checkPermissionsOnDataType: ImpureGraphFunction<
+  { dataTypeId: VersionedUrl },
+  Promise<UserPermissionsOnDataType>
+> = async (graphContext, { actorId }, params) => {
+  const { dataTypeId } = params;
+
+  const isPublicUser = actorId === publicUserAccountId;
+
+  const canUpdate = isPublicUser
+    ? false
+    : await checkDataTypePermission(
+        graphContext,
+        { actorId },
+        { dataTypeId, permission: "update" },
+      );
+
+  return {
+    edit: canUpdate,
+    view: true,
+  };
+};

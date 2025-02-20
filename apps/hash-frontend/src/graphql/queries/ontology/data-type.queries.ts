@@ -22,13 +22,43 @@ export const queryDataTypesQuery = gql`
   query queryDataTypes(
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $includeArchived: Boolean = false
+    $filter: Filter
+    $inheritsFrom: OutgoingEdgeResolveDepthInput!
+    $latestOnly: Boolean = true
   ) {
     queryDataTypes(
       constrainsValuesOn: $constrainsValuesOn
       includeArchived: $includeArchived
+      filter: $filter
+      inheritsFrom: $inheritsFrom
+      latestOnly: $latestOnly
     ) {
       ...SubgraphFields
     }
   }
   ${subgraphFieldsFragment}
+`;
+
+export const getDataTypeConversionTargetsQuery = gql`
+  query getDataTypeConversionTargets($dataTypeIds: [VersionedUrl!]!) {
+    getDataTypeConversionTargets(dataTypeIds: $dataTypeIds)
+  }
+`;
+
+export const checkUserPermissionsOnDataTypeQuery = gql`
+  query checkUserPermissionsOnDataType($dataTypeId: VersionedUrl!) {
+    checkUserPermissionsOnDataType(dataTypeId: $dataTypeId)
+  }
+`;
+
+export const createDataTypeMutation = gql`
+  mutation createDataType($ownedById: OwnedById!, $dataType: ConstructDataTypeParams!) {
+    createDataType(ownedById: $ownedById, dataType: $dataType)
+  }
+`;
+
+export const updateDataTypeMutation = gql`
+  mutation updateDataType($dataTypeId: VersionedUrl!, $dataType: ConstructDataTypeParams!) {
+    updateDataType(dataTypeId: $dataTypeId, dataType: $dataType)
+  }
 `;

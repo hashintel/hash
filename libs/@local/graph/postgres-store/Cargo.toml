@@ -23,7 +23,7 @@ tokio-postgres    = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack                    = { workspace = true, features = ["std", "serde", "unstable"] }
-hash-codec                     = { workspace = true }
+hash-codec                     = { workspace = true, features = ["numeric", "postgres"] }
 hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true, features = ["postgres"] }
 hash-status                    = { workspace = true }
@@ -34,6 +34,7 @@ async-scoped   = { workspace = true, features = ["use-tokio"] }
 bytes          = { workspace = true }
 clap           = { workspace = true, optional = true, features = ["derive", "env"] }
 derive-where   = { workspace = true }
+derive_more    = { workspace = true }
 dotenv-flow    = { workspace = true }
 futures        = { workspace = true }
 postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"] }

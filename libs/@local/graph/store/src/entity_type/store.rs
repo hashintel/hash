@@ -342,6 +342,30 @@ pub trait EntityTypeStore {
         params: UpdateEntityTypesParams<R>,
     ) -> impl Future<Output = Result<EntityTypeMetadata, Report<UpdateError>>> + Send
     where
+        Self: Send,
+        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+    {
+        async move {
+            Ok(self
+                .update_entity_types(actor_id, iter::once(params))
+                .await?
+                .pop()
+                .expect("created exactly one entity type"))
+        }
+    }
+
+    /// Update the definitions of the existing [`EntityType`]s.
+    ///
+    /// # Errors
+    ///
+    /// - if the [`EntityType`]s do not exist.
+    fn update_entity_types<P, R>(
+        &mut self,
+        actor_id: AccountId,
+        params: P,
+    ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<UpdateError>>> + Send
+    where
+        P: IntoIterator<Item = UpdateEntityTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync;
 
     /// Archives the definition of an existing [`EntityType`].

@@ -62,80 +62,73 @@ export type LinkProps = {
 
 // A styled version of the Next.js Link component:
 // https://nextjs.org/docs/api-reference/next/link
-export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
-  (
-    props,
-    ref, // https://github.com/prettier/prettier/issues/11923
-  ) => {
-    const {
-      activeClassName = "active",
-      as: linkAs,
-      className: classNameProps,
-      href: unvalidatedHref,
-      noLinkStyle,
-      openInNew,
-      ...other
-    } = props;
+export const Link = forwardRef<HTMLAnchorElement, LinkProps>((props, ref) => {
+  const {
+    activeClassName = "active",
+    as: linkAs,
+    className: classNameProps,
+    href: unvalidatedHref,
+    noLinkStyle,
+    openInNew,
+    ...other
+  } = props;
 
-    const router = useRouter();
-    const pathname =
-      typeof unvalidatedHref === "string"
-        ? unvalidatedHref
-        : unvalidatedHref.pathname;
+  const router = useRouter();
+  const pathname =
+    typeof unvalidatedHref === "string"
+      ? unvalidatedHref
+      : unvalidatedHref.pathname;
 
-    const className = clsx(classNameProps, {
-      [activeClassName]: router.pathname === pathname && activeClassName,
-    });
+  const className = clsx(classNameProps, {
+    [activeClassName]: router.pathname === pathname && activeClassName,
+  });
 
-    if (process.env.NODE_ENV !== "production") {
-      const children = other.children;
-      if (isValidElement(children) && children.type === Button) {
-        throw new Error(
-          "Please use <Button href='' /> instead of <Link><Button /></Link>",
-        );
-      }
-    }
-
-    const { href, isExternal } = generateLinkParameters(unvalidatedHref);
-
-    if (isExternal || openInNew) {
-      other.rel = "noopener";
-      other.target = "_blank";
-
-      if (noLinkStyle) {
-        return (
-          <Anchor className={className} href={href} ref={ref} {...other} />
-        );
-      }
-
-      return <MuiLink className={className} href={href} ref={ref} {...other} />;
-    }
-
-    if (noLinkStyle) {
-      return (
-        <NextLinkComposed
-          sx={{
-            ":focus-visible": {
-              outlineColor: ({ palette }) => palette.blue["70"],
-            },
-          }}
-          className={className}
-          ref={ref}
-          to={href}
-          {...other}
-        />
+  if (process.env.NODE_ENV !== "production") {
+    const children = other.children;
+    if (isValidElement(children) && children.type === Button) {
+      throw new Error(
+        "Please use <Button href='' /> instead of <Link><Button /></Link>",
       );
     }
+  }
 
+  const { href, isExternal } = generateLinkParameters(unvalidatedHref);
+
+  if (isExternal || openInNew) {
+    other.rel = "noopener";
+    other.target = "_blank";
+
+    if (noLinkStyle) {
+      return <Anchor className={className} href={href} ref={ref} {...other} />;
+    }
+
+    return <MuiLink className={className} href={href} ref={ref} {...other} />;
+  }
+
+  if (noLinkStyle) {
     return (
-      <MuiLink
-        component={NextLinkComposed}
-        as={linkAs}
+      <NextLinkComposed
+        sx={{
+          ":focus-visible": {
+            outlineColor: ({ palette }) => palette.blue["70"],
+          },
+        }}
         className={className}
         ref={ref}
         to={href}
         {...other}
       />
     );
-  },
-);
+  }
+
+  return (
+    <MuiLink
+      component={NextLinkComposed}
+      as={linkAs}
+      className={className}
+      ref={ref}
+      to={href}
+      {...other}
+    />
+  );
+});

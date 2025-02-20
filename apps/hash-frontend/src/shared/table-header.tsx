@@ -5,22 +5,15 @@ import {
   EyeRegularIcon,
   EyeSlashRegularIcon,
   IconButton,
+  LoadingSpinner,
 } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import {
-  extractOwnedByIdFromEntityId,
-  isExternalOntologyElementMetadata,
-} from "@local/hash-subgraph";
 import type { SxProps, Theme, TooltipProps } from "@mui/material";
 import {
   Box,
@@ -31,6 +24,7 @@ import {
   styled,
   Tooltip,
   tooltipClasses,
+  useTheme,
 } from "@mui/material";
 import type {
   Dispatch,
@@ -39,11 +33,11 @@ import type {
   ReactNode,
   SetStateAction,
 } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
-import type { Row } from "../components/grid/utils/rows";
+import type { GridRow } from "../components/grid/grid";
 import type { MinimalUser } from "../lib/user-and-org";
-import type { TypeEntitiesRow } from "../pages/shared/entities-table/use-entities-table/types";
+import type { EntitiesTableRow } from "../pages/shared/entities-visualizer/entities-table/types";
 import type { TypesTableRow } from "../pages/types/[[...type-kind]].page/types-table";
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
@@ -112,31 +106,27 @@ export type FilterState = {
   limitToWebs: string[] | false;
 };
 
-type TableHeaderProps = {
+type TableHeaderProps<R extends GridRow> = {
+  currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
+  currentlyDisplayedRowsRef: MutableRefObject<R[] | null>;
+  endAdornment?: ReactNode;
+  filterState: FilterState;
   hideExportToCsv?: boolean;
   hideFilters?: boolean;
-  internalWebIds: (AccountId | AccountGroupId)[];
   itemLabelPlural: "entities" | "pages" | "types";
-  items?: (
-    | Entity
-    | EntityTypeWithMetadata
-    | PropertyTypeWithMetadata
-    | DataTypeWithMetadata
-  )[];
+  loading: boolean;
+  numberOfExternalItems?: number;
+  numberOfUserWebItems?: number;
+  onBulkActionCompleted?: () => void;
   selectedItems?: (
     | Entity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
-  filterState: FilterState;
-  endAdornment?: ReactNode;
-  title: string;
-  currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
-  currentlyDisplayedRowsRef: MutableRefObject<Row[] | null>;
   setFilterState: Dispatch<SetStateAction<FilterState>>;
+  title: string;
   toggleSearch?: () => void;
-  onBulkActionCompleted?: () => void;
 };
 
 const commonChipSx = {
@@ -145,44 +135,28 @@ const commonChipSx = {
   height: 24,
 } as const satisfies SxProps<Theme>;
 
-export const TableHeader: FunctionComponent<TableHeaderProps> = ({
+export const TableHeader = <R extends GridRow>({
   currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
   endAdornment,
   filterState,
   hideExportToCsv,
   hideFilters,
-  internalWebIds,
   itemLabelPlural,
-  items,
+  loading,
+  numberOfExternalItems,
+  numberOfUserWebItems,
   onBulkActionCompleted,
   selectedItems,
   setFilterState,
   title,
   toggleSearch,
-}) => {
+}: TableHeaderProps<R>) => {
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
   const [publicFilterHovered, setPublicFilterHovered] =
     useState<boolean>(false);
 
-  const numberOfUserWebItems = useMemo(
-    () =>
-      items?.filter(({ metadata }) =>
-        "entityTypeIds" in metadata
-          ? internalWebIds.includes(
-              extractOwnedByIdFromEntityId(metadata.recordId.entityId),
-            )
-          : isExternalOntologyElementMetadata(metadata)
-            ? false
-            : internalWebIds.includes(metadata.ownedById),
-      ).length,
-    [items, internalWebIds],
-  );
-
-  const numberOfGlobalItems =
-    items && typeof numberOfUserWebItems !== "undefined"
-      ? items.length - numberOfUserWebItems
-      : undefined;
+  const theme = useTheme();
 
   const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
     const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
@@ -213,20 +187,22 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
       tableContentColumnTitles,
       ...currentlyDisplayedRows.map((row) => {
         const tableCells = columnRowKeys.map((key) => {
-          const value = row[key];
+          const value = row[key as keyof R];
 
           if (typeof value === "string") {
             return value;
-          } else if (key === "lastEditedBy") {
+          } else if (key === "lastEditedBy" || key === "createdBy") {
             const user = value as MinimalUser | undefined;
 
             return user?.displayName ?? "";
           } else if (key === "archived") {
-            return (row as TypesTableRow).archived ? "Yes" : "No";
+            return (row as unknown as TypesTableRow).archived ? "Yes" : "No";
           } else if (key === "sourceEntity" || key === "targetEntity") {
-            return (row as TypeEntitiesRow).sourceEntity?.label ?? "";
+            return (
+              (row as unknown as EntitiesTableRow).sourceEntity?.label ?? ""
+            );
           } else if (key === "entityTypes") {
-            return (row as TypeEntitiesRow).entityTypes
+            return (row as unknown as EntitiesTableRow).entityTypes
               .map((type) => type.title)
               .join(", ");
           } else {
@@ -322,7 +298,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                     <EarthAmericasRegularIcon />
                   )
                 }
-                label={`${numberOfGlobalItems ?? "–"} others`}
+                label={`${numberOfExternalItems ?? "–"} others`}
                 sx={({ palette }) => ({
                   ...commonChipSx,
                   [`.${chipClasses.label}`]: {
@@ -338,6 +314,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             </NoMaxWidthTooltip>
           </>
         )}
+        {loading && <LoadingSpinner size={16} color={theme.palette.blue[70]} />}
       </Box>
       <Box display="flex" alignItems="center" columnGap={1}>
         {!hideFilters && (
@@ -406,9 +383,14 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
           <ExportToCsvButton generateCsvFile={generateCsvFile} />
         )}
         {toggleSearch ? (
-          <IconButton onClick={toggleSearch}>
-            <MagnifyingGlassRegularIcon />
-          </IconButton>
+          /**
+           * @todo H-3909 full text search via API
+           */
+          <Tooltip title="Search for text in visible rows" placement="top">
+            <IconButton onClick={toggleSearch}>
+              <MagnifyingGlassRegularIcon />
+            </IconButton>
+          </Tooltip>
         ) : null}
         {endAdornment}
       </Box>

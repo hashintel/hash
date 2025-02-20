@@ -52,6 +52,7 @@ import type { AppPage } from "./shared/_app.util";
 import { redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { DataTypesContextProvider } from "./shared/data-types-context";
+import { maintenanceRoute } from "./shared/maintenance";
 import { setSentryUser } from "./shared/sentry";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
 
@@ -209,12 +210,17 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     ctx: { req, pathname, asPath },
   } = appContext;
 
+  if (pathname === maintenanceRoute) {
+    return {};
+  }
+
   const { cookie } = req?.headers ?? {};
 
   /**
-   * Fetch the authenticated user on the very first page load so it's available in the frontend –
-   *   on subsequent loads it will be cached so long as the cookie value remains the same.
+   * Fetch the authenticated user on the very first page load so it's available in the frontend.
    * We leave it up to the client to re-fetch the user as necessary in response to user-initiated actions.
+   *
+   * @todo this is running on every page transition. make it stop or make caching work (need to create new client on request to stop sharing user data)
    */
   const initialAuthenticatedUserSubgraph = await apolloClient
     .query<MeQuery>({
@@ -240,7 +246,9 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       redirectInGetInitialProps({
         appContext,
         location: `/signin${
-          ["", "/", "/404"].includes(pathname) ? "" : `?return_to=${asPath}`
+          ["", "/", "/404"].includes(pathname)
+            ? ""
+            : `?return_to=${req?.url ?? asPath}`
         }`,
       });
     }

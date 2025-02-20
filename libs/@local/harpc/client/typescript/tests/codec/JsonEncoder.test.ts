@@ -4,21 +4,22 @@ import type { ReadonlyRecord } from "effect/Record";
 
 import { Encoder, JsonEncoder } from "../../src/codec/index.js";
 
-const encode = (items: readonly ReadonlyRecord<string, string>[]) =>
-  Effect.gen(function* () {
-    const encoder = yield* Encoder.Encoder;
-    const textDecoder = new TextDecoder();
+const encode = Effect.fn("encode")(function* (
+  items: readonly ReadonlyRecord<string, string>[],
+) {
+  const encoder = yield* Encoder.Encoder;
+  const textDecoder = new TextDecoder();
 
-    const schema = Schema.Record({ key: Schema.String, value: Schema.String });
+  const schema = Schema.Record({ key: Schema.String, value: Schema.String });
 
-    return yield* pipe(
-      Stream.fromIterable(items),
-      encoder.encode(schema),
-      Stream.map((buffer) => textDecoder.decode(buffer)),
-      Stream.runCollect,
-      Effect.map(Chunk.toReadonlyArray),
-    );
-  });
+  return yield* pipe(
+    Stream.fromIterable(items),
+    encoder.encode(schema),
+    Stream.map((buffer) => textDecoder.decode(buffer)),
+    Stream.runCollect,
+    Effect.map(Chunk.toReadonlyArray),
+  );
+});
 
 describe.concurrent("JsonEncoder", () => {
   it.effect("single record", (cx) =>

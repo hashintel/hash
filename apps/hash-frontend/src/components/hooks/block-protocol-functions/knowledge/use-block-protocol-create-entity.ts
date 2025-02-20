@@ -15,7 +15,7 @@ import {
   getEntitySubgraphQuery,
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
-import { generateUseEntityTypeEntitiesQueryVariables } from "../../../../shared/use-entity-type-entities";
+import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../../shared/use-entity-type-entities";
 import type { CreateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolCreateEntity = (
@@ -30,22 +30,21 @@ export const useBlockProtocolCreateEntity = (
     CreateEntityMutation,
     CreateEntityMutationVariables
   >(createEntityMutation, {
-    refetchQueries:
-      ownedById === activeWorkspaceOwnedById
-        ? [
-            /**
-             * This refetch query accounts for the "Entities" section
-             * in the sidebar being updated when the first instance of
-             * a type is created by a user that is from a different web.
-             */
-            {
-              query: getEntitySubgraphQuery,
-              variables: generateUseEntityTypeEntitiesQueryVariables({
-                ownedById: activeWorkspaceOwnedById,
-              }),
-            },
-          ]
-        : [],
+    refetchQueries: activeWorkspaceOwnedById
+      ? [
+          /**
+           * This refetch query accounts for the "Entities" section
+           * in the sidebar being updated when the first instance of
+           * a type is created by a user that is from a different web.
+           */
+          {
+            query: getEntitySubgraphQuery,
+            variables: generateSidebarEntityTypeEntitiesQueryVariables({
+              ownedById: activeWorkspaceOwnedById,
+            }),
+          },
+        ]
+      : [],
   });
 
   const createEntity: CreateEntityMessageCallback = useCallback(

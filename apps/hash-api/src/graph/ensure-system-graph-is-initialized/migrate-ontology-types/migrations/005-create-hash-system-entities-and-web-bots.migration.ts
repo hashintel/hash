@@ -104,10 +104,13 @@ const migrate: MigrationFunction = async ({
           { actorId: userAccountId as AccountId },
           {
             ownedById: userAccountId,
+            logger,
             machineEntityTypeId: currentMachineEntityTypeId,
           },
         );
-        logger.info(`Created web machine actor for user ${userAccountId}`);
+        logger.info(
+          `Created missing machine web actor for user ${user.metadata.recordId.entityId}`,
+        );
       } else {
         throw new Error(
           `Unexpected error attempting to retrieve machine web actor for user ${user.metadata.recordId.entityId}`,
@@ -134,10 +137,13 @@ const migrate: MigrationFunction = async ({
           { actorId: orgAdminAccountId },
           {
             ownedById: orgAccountGroupId,
+            logger,
             machineEntityTypeId: currentMachineEntityTypeId,
           },
         );
-        logger.info(`Created web machine actor for org ${orgAccountGroupId}`);
+        logger.info(
+          `Created missing machine web actor for org ${org.metadata.recordId.entityId}`,
+        );
       } else {
         throw new Error(
           `Unexpected error attempting to retrieve machine web actor for organization ${org.metadata.recordId.entityId}`,

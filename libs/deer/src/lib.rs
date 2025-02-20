@@ -536,15 +536,13 @@ impl<T: Reflection> Visitor<'_> for NumberVisitor<T> {
     }
 
     fn visit_i128(self, value: i128) -> Result<Self::Value, Report<VisitorError>> {
-        Number::from_i128(value)
-            .ok_or_else(|| self.value_error(value))
-            .and_then(|number| self.visit_number(number))
+        let number = Number::from_i128(value).ok_or_else(|| self.value_error(value))?;
+        self.visit_number(number)
     }
 
     fn visit_u128(self, value: u128) -> Result<Self::Value, Report<VisitorError>> {
-        Number::from_u128(value)
-            .ok_or_else(|| self.value_error(value))
-            .and_then(|number| self.visit_number(number))
+        let number = Number::from_u128(value).ok_or_else(|| self.value_error(value))?;
+        self.visit_number(number)
     }
 }
 

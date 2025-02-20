@@ -43,23 +43,22 @@ const RequestProto: Omit<
   [TypeId]: TypeId,
 };
 
-export const make = <E, R>(
+export const make = Effect.fn("make")(function* <E, R>(
   subsystem: SubsystemDescriptor.SubsystemDescriptor,
   procedure: ProcedureDescriptor.ProcedureDescriptor,
 
   body: Stream.Stream<ArrayBuffer, E, R>,
-) =>
-  Effect.gen(function* () {
-    const producer = yield* RequestIdProducer.RequestIdProducer;
-    const id = yield* RequestIdProducer.next(producer);
+) {
+  const producer = yield* RequestIdProducer.RequestIdProducer;
+  const id = yield* RequestIdProducer.next(producer);
 
-    return createProto(RequestProto, {
-      id,
-      subsystem,
-      procedure,
-      body,
-    }) as Request<E, R>;
-  });
+  return createProto(RequestProto, {
+    id,
+    subsystem,
+    procedure,
+    body,
+  }) as Request<E, R>;
+});
 
 interface Scratch {
   buffer: ArrayBuffer;
@@ -163,10 +162,7 @@ export interface EncodeOptions {
   readonly noDelay?: boolean;
 }
 
-const encodeImpl = <E, R>(
-  self: Request<E, R>,
-  options?: EncodeOptions,
-): Stream.Stream<Request.Request, E, R> =>
+const encodeImpl = <E, R>(self: Request<E, R>, options?: EncodeOptions) =>
   Effect.gen(function* () {
     const requestId = self.id;
 

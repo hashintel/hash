@@ -11,14 +11,14 @@ import {
   EditBarContainer,
   EditBarContents,
   useFreezeScrollWhileTransitioning,
-} from "../../[shortname]/shared/edit-bar";
+} from "../../@/[shortname]/shared/edit-bar";
 
 const useFrozenValue = <T extends number | boolean | object>(value: T): T => {
-  const { isDirty } = useEntityTypeFormState<EntityTypeEditorFormData>();
+  const { dirtyFields } = useEntityTypeFormState<EntityTypeEditorFormData>();
 
   const [frozen, setFrozen] = useState(value);
 
-  if (isDirty && frozen !== value) {
+  if (Object.keys(dirtyFields).length > 0 && frozen !== value) {
     setFrozen(value);
   }
 
@@ -28,57 +28,67 @@ const useFrozenValue = <T extends number | boolean | object>(value: T): T => {
 export const EditBarTypeEditor = ({
   currentVersion,
   discardButtonProps,
+  errorMessage,
 }: {
   currentVersion: number;
   discardButtonProps: Partial<ButtonProps>;
+  errorMessage?: string;
 }) => {
-  const { isDirty, isSubmitting } =
+  const { dirtyFields, isSubmitting } =
     useEntityTypeFormState<EntityTypeEditorFormData>();
   const frozenVersion = useFrozenValue(currentVersion);
   const ref = useFreezeScrollWhileTransitioning();
 
-  const collapseIn = currentVersion === 0 || isDirty;
+  const collapseIn =
+    currentVersion === 0 || Object.keys(dirtyFields).length > 0;
 
   const frozenDiscardButtonProps = useFrozenValue(discardButtonProps);
 
   const frozenSubmitting = useFrozenValue(isSubmitting);
 
+  let label;
+  if (errorMessage) {
+    label = `before saving${errorMessage ? `: ${errorMessage}` : ""}`;
+  } else if (frozenVersion === 0) {
+    label = "– this type has not yet been created";
+  } else {
+    label = `Version ${frozenVersion} -> ${frozenVersion + 1}`;
+  }
+
   return (
     <EditBarCollapse in={collapseIn} ref={ref}>
-      <EditBarContainer>
-        {frozenVersion === 0 ? (
-          <EditBarContents
-            icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
-            title="Currently editing"
-            label="- this type has not yet been created"
-            discardButtonProps={{
-              children: "Discard this type",
-              disabled: frozenSubmitting,
-              ...frozenDiscardButtonProps,
-            }}
-            confirmButtonProps={{
-              children: "Create",
-              loading: frozenSubmitting,
-              disabled: frozenSubmitting,
-            }}
-          />
-        ) : (
-          <EditBarContents
-            icon={<PencilSimpleLine />}
-            title="Currently editing"
-            label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
-            discardButtonProps={{
-              children: "Discard changes",
-              disabled: frozenSubmitting,
-              ...frozenDiscardButtonProps,
-            }}
-            confirmButtonProps={{
-              children: "Publish update",
-              loading: frozenSubmitting,
-              disabled: frozenSubmitting,
-            }}
-          />
-        )}
+      <EditBarContainer hasErrors={!!errorMessage}>
+        <EditBarContents
+          hideConfirm={!!errorMessage}
+          icon={
+            frozenVersion === 0 ? (
+              <FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />
+            ) : (
+              <PencilSimpleLine />
+            )
+          }
+          title={errorMessage ? "Changes required" : "Currently editing"}
+          label={label}
+          discardButtonProps={{
+            children:
+              frozenVersion === 0 ? "Discard this type" : "Discard changes",
+            disabled: frozenSubmitting,
+            sx: errorMessage
+              ? {
+                  borderColor: "white",
+                  "&:hover": {
+                    backgroundColor: ({ palette }) => palette.red[50],
+                  },
+                }
+              : undefined,
+            ...frozenDiscardButtonProps,
+          }}
+          confirmButtonProps={{
+            children: frozenVersion === 0 ? "Create" : "Publish update",
+            loading: frozenSubmitting,
+            disabled: frozenSubmitting,
+          }}
+        />
       </EditBarContainer>
     </EditBarCollapse>
   );

@@ -6,6 +6,7 @@ import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
+  getDataTypeConversionTargets,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/ontology/primitive/util";
@@ -15,6 +16,8 @@ import type {
   DataTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
+import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
+import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -105,7 +108,13 @@ describe("Data type CRU", () => {
     createdDataType = await createDataType(graphContext, authentication, {
       ownedById: testOrg.accountGroupId as OwnedById,
       schema: dataTypeSchema,
-      relationships: [{ relation: "viewer", subject: { kind: "public" } }],
+      relationships: [
+        { relation: "viewer", subject: { kind: "public" } },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "updateFromWeb" },
+        },
+      ],
       conversions: {},
     });
   });
@@ -139,11 +148,100 @@ describe("Data type CRU", () => {
       relationships: [{ relation: "viewer", subject: { kind: "public" } }],
       conversions: {},
       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-    }).catch((err) => Promise.reject(err.data));
+    }).catch((err) => Promise.reject(err));
 
     expect(
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
         updatedDataType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
+  });
+
+  it("can convert data types", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    const conversionMap = await getDataTypeConversionTargets(
+      graphContext,
+      authentication,
+      {
+        dataTypeIds: [
+          systemDataTypes.centimeters.dataTypeId,
+          systemDataTypes.meters.dataTypeId,
+        ],
+      },
+    ).then((conversion_map) =>
+      Object.fromEntries(
+        Object.entries(conversion_map).map(
+          ([sourceDataTypeId, conversions]) => [
+            sourceDataTypeId,
+            Object.fromEntries(
+              Object.entries(conversions).map(
+                ([targetDataTypeId, conversion]) => [
+                  targetDataTypeId,
+                  {
+                    convert: createConversionFunction(conversion.conversions),
+                    title: conversion.title,
+                  },
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.millimeters.dataTypeId
+      ]!.convert(100),
+    ).toBe(1000);
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.millimeters.dataTypeId
+      ]!.title,
+    ).toBe(systemDataTypes.millimeters.title);
+
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.meters.dataTypeId
+      ]!.convert(1000),
+    ).toBe(10);
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.millimeters.dataTypeId
+      ]!.title,
+    ).toBe(systemDataTypes.millimeters.title);
+
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.kilometers.dataTypeId
+      ]!.convert(100000),
+    ).toBe(1);
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.kilometers.dataTypeId
+      ]!.title,
+    ).toBe(systemDataTypes.kilometers.title);
+
+    expect(
+      conversionMap[systemDataTypes.meters.dataTypeId]![
+        systemDataTypes.millimeters.dataTypeId
+      ]!.convert(1),
+    ).toBe(1000);
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.millimeters.dataTypeId
+      ]!.title,
+    ).toBe(systemDataTypes.millimeters.title);
+
+    expect(
+      conversionMap[systemDataTypes.meters.dataTypeId]![
+        systemDataTypes.kilometers.dataTypeId
+      ]!.convert(1000),
+    ).toBe(1);
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.kilometers.dataTypeId
+      ]!.title,
+    ).toBe(systemDataTypes.kilometers.title);
   });
 });

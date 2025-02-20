@@ -25,6 +25,7 @@ export interface ChipCellProps {
     iconFill?: DrawChipWithIconProps["iconFill"];
     onClick?: () => void;
     faIconDefinition?: Pick<IconDefinition, "icon">;
+    suffix?: string;
   }[];
   color?: ChipCellColor;
   variant?: ChipCellVariant;
@@ -92,12 +93,13 @@ export const createRenderChipCell = (params?: {
     const interactables: Interactable[] = [];
 
     for (let i = 0; i < chips.length; i++) {
-      const { icon, iconFill, text = "", onClick } = chips[i] ?? {};
+      const { icon, iconFill, text = "", suffix, onClick } = chips[i] ?? {};
 
       const { width, height, top } = drawChipWithIcon({
         args,
         color,
         text,
+        suffix,
         left: chipLeft,
         icon,
         iconFill,
@@ -126,7 +128,7 @@ export const createRenderChipCell = (params?: {
         interactables.push(
           InteractableManager.createCellInteractable(args, {
             id: generateUuid(),
-            pos: {
+            posRelativeToVisibleGridArea: {
               left: chipLeft,
               right: chipLeft + width + arrowSize + arrowSpacing,
               top,

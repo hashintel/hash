@@ -1,6 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
@@ -11,6 +10,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityRootType } from "@local/hash-subgraph";
 import {
@@ -18,8 +18,9 @@ import {
   splitEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import isEqual from "lodash.isequal";
-import isMatch from "lodash.ismatch";
+import isEqual from "lodash/isEqual.js";
+
+import type { ExistingEntityForMatching } from "../../shared/match-existing-entity.js";
 
 /**
  * @todo: move the primitive node helper methods from the Node API into a shared
@@ -82,30 +83,74 @@ export const getLatestEntityById = async (params: {
 
 export const getEntityUpdate = <T extends PropertyObjectWithMetadata>({
   existingEntity,
-  newProperties,
+  newPropertiesWithMetadata,
 }: {
-  existingEntity: Entity;
-  newProperties: T;
+  existingEntity: ExistingEntityForMatching;
+  newPropertiesWithMetadata: T;
 }) => {
   const patchOperations: PropertyPatchOperation[] = [];
 
-  const isExactMatch = isMatch(existingEntity.properties, newProperties);
+  let isExactMatch = true;
 
-  if (!isExactMatch) {
-    for (const [key, property] of typedEntries(newProperties.value)) {
-      // @todo better handle property objects, will currently overwrite the entire object if there are any differences
-      if (!isEqual(existingEntity.properties[key], property)) {
-        patchOperations.push({
-          op: existingEntity.properties[key] ? "replace" : "add",
-          path: [key],
-          property,
-        });
-      }
+  for (const [key, propertyWithMetadata] of typedEntries(
+    newPropertiesWithMetadata.value,
+  )) {
+    if (!existingEntity.properties[key]) {
+      isExactMatch = false;
     }
+
+    const newPropertySources =
+      propertyWithMetadata.metadata?.provenance?.sources;
+
+    const existingPropertySources =
+      existingEntity.propertiesMetadata.value[key]?.metadata?.provenance
+        ?.sources;
+
+    let sourcesToApply = newPropertySources;
+
+    /**
+     * This equality check is comparing the value of the properties object on the existingEntity
+     * with PropertyWithMetadata["value"] on the new input,
+     * and will always return false for array or object values (because the first is the value only, the second contains metadata).
+     * @todo H-3900: better handle property objects
+     */
+    if (isEqual(existingEntity.properties[key], propertyWithMetadata.value)) {
+      /**
+       * If the values are equal, we can merge the sources from the existing and new properties,
+       * to capture the fact that we have now seen the value in multiple places.
+       * This only works for primitive values (see comment above about isEqual check).
+       */
+      sourcesToApply = deduplicateSources([
+        ...(existingPropertySources ?? []),
+        ...(newPropertySources ?? []),
+      ]);
+    } else {
+      isExactMatch = false;
+    }
+
+    const clonedProperty = JSON.parse(
+      JSON.stringify(propertyWithMetadata),
+    ) as typeof propertyWithMetadata;
+
+    if (sourcesToApply?.length) {
+      clonedProperty.metadata ??= {};
+      clonedProperty.metadata.provenance ??= {};
+      clonedProperty.metadata.provenance.sources = sourcesToApply;
+    }
+
+    patchOperations.push({
+      op: existingEntity.properties[key] ? "replace" : "add",
+      path: [key],
+      /**
+       * @todo H-3900: consider merging property objects (e.g. if existingEntity has one nested field defined)
+       *   - the entire object will currently be overwritten with the new input.
+       */
+      property: clonedProperty,
+    });
   }
 
   const existingEntityIsDraft = !!extractDraftIdFromEntityId(
-    existingEntity.metadata.recordId.entityId,
+    existingEntity.entityId,
   );
 
   return {

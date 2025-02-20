@@ -66,31 +66,28 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let benchmarks = Benchmark::gather(criterion_directory())
         .map(|benchmark| {
-            benchmark.and_then(|benchmark| {
-                BenchmarkAnalysis::from_benchmark(benchmark, &args.baseline, &artifacts_path)
-                    .change_context(AnalyzeError::ReadInput)
-                    .and_then(|analysis| {
-                        if let Some(folded_stacks) = &analysis.folded_stacks {
-                            let flamegraph = folded_stacks
-                                .create_flame_graph(flamegraph::Options::default())
-                                .change_context(AnalyzeError::FlameGraphCreation)?;
-                            BufWriter::new(
-                                File::options()
-                                    .create(true)
-                                    .truncate(true)
-                                    .write(true)
-                                    .open(analysis.path.join("flamegraph.svg"))
-                                    .change_context(AnalyzeError::FlameGraphCreation)?,
-                            )
-                            .write_all(Bytes::from(flamegraph).as_ref())
-                            .change_context(AnalyzeError::FlameGraphCreation)?;
-                        } else if args.enforce_flame_graph {
-                            return Err(Report::new(AnalyzeError::FlameGraphMissing)
-                                .attach_printable(analysis.measurement.info.title));
-                        }
-                        Ok(analysis)
-                    })
-            })
+            let analysis =
+                BenchmarkAnalysis::from_benchmark(benchmark?, &args.baseline, &artifacts_path)
+                    .change_context(AnalyzeError::ReadInput)?;
+            if let Some(folded_stacks) = &analysis.folded_stacks {
+                let flamegraph = folded_stacks
+                    .create_flame_graph(flamegraph::Options::default())
+                    .change_context(AnalyzeError::FlameGraphCreation)?;
+                BufWriter::new(
+                    File::options()
+                        .create(true)
+                        .truncate(true)
+                        .write(true)
+                        .open(analysis.path.join("flamegraph.svg"))
+                        .change_context(AnalyzeError::FlameGraphCreation)?,
+                )
+                .write_all(Bytes::from(flamegraph).as_ref())
+                .change_context(AnalyzeError::FlameGraphCreation)?;
+            } else if args.enforce_flame_graph {
+                return Err(Report::new(AnalyzeError::FlameGraphMissing)
+                    .attach_printable(analysis.measurement.info.title));
+            }
+            Ok(analysis)
         })
         .collect::<Result<Vec<_>, _>>()?;
 

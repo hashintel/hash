@@ -5,7 +5,7 @@ use hql_cst::{
 };
 use hql_diagnostics::{Diagnostic, help::Help};
 use hql_span::SpanId;
-use winnow::{Located, Parser as _};
+use winnow::{LocatingSlice, Parser as _};
 
 use super::{
     error::{
@@ -122,7 +122,7 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
 
                 let r#type = parse_type
                     .parse(winnow::Stateful {
-                        input: Located::new(value.as_ref()),
+                        input: LocatingSlice::new(value.as_ref()),
                         state: ParseState {
                             arena: stream.arena,
                             spans: &stream.spans,

@@ -391,13 +391,13 @@ mod tests {
     }
 
     pub(crate) async fn validate_data(
-        mut value: JsonValue,
+        value: JsonValue,
         data_type: &str,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
     ) -> Result<PropertyWithMetadataValue, ValueValidationReport> {
         install_error_stack_hooks();
-
+        let mut value = serde_json::from_value(value).expect("failed to parse value");
         let mut provider = Provider::new(
             [],
             [],

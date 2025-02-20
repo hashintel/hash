@@ -1,3 +1,4 @@
+import { Tooltip } from "@mui/material";
 import { unparse } from "papaparse";
 import type { FunctionComponent } from "react";
 import { useCallback } from "react";
@@ -44,6 +45,8 @@ export const ExportToCsvButton: FunctionComponent<{
   }, [generateCsvFile]);
 
   return (
-    <TableHeaderButton onClick={handleExportToCsv}>Export</TableHeaderButton>
+    <Tooltip title="Export the visible rows to CSV" placement="top">
+      <TableHeaderButton onClick={handleExportToCsv}>Export</TableHeaderButton>
+    </Tooltip>
   );
 };

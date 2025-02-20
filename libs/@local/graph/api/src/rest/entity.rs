@@ -61,9 +61,9 @@ use hash_graph_types::{
             ValueMetadata,
             visitor::{
                 ArrayItemNumberMismatch, ArrayValidationReport, DataTypeCanonicalCalculation,
-                DataTypeConversionError, DataTypeInferenceError, InvalidCanonicalValue,
-                JsonSchemaValueTypeMismatch, ObjectPropertyValidationReport,
-                ObjectValidationReport, OneOfArrayValidationReports, OneOfObjectValidationReports,
+                DataTypeConversionError, DataTypeInferenceError, JsonSchemaValueTypeMismatch,
+                ObjectPropertyValidationReport, ObjectValidationReport,
+                OneOfArrayValidationReports, OneOfObjectValidationReports,
                 OneOfPropertyValidationReports, PropertyArrayValidationReport,
                 PropertyObjectValidationReport, PropertyValidationReport,
                 PropertyValueTypeMismatch, PropertyValueValidationReport, ValueValidationError,
@@ -198,7 +198,6 @@ use crate::rest::{
             DataTypeCanonicalCalculation,
             DataTypeInferenceError,
             PropertyValueTypeMismatch,
-            InvalidCanonicalValue,
             OneOfArrayValidationReports,
             PropertyArrayValidationReport,
             OneOfObjectValidationReports,
@@ -461,10 +460,13 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::CheckEntityPermission {
-            entity_id,
-            permission,
-        });
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::CheckEntityPermission {
+                entity_id,
+                permission,
+            },
+        );
     }
 
     let response = Ok(Json(PermissionResponse {
@@ -661,7 +663,7 @@ impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<
 #[tracing::instrument(
     level = "info",
     skip_all,
-    fields(actor=%actor_id, %request)
+    fields(actor=%actor_id)
 )]
 async fn get_entities<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,

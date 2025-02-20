@@ -23,10 +23,7 @@ import {
   PROPERTY_TYPE_META_SCHEMA,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import type {
-  DataTypeRelationAndSubject,
-  UpdatePropertyType,
-} from "@local/hash-graph-client";
+import type { UpdatePropertyType } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity";
 import type {
@@ -58,6 +55,7 @@ import {
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import type {
+  DataTypeRelationAndSubject,
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,

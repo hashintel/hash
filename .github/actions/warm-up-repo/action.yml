@@ -11,18 +11,18 @@ runs:
   using: composite
 
   steps:
-    - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+    - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
       with:
         node-version: 22 ## aligned with Node version on Vercel
         # cache: yarn ## Currently disabled because of frequent timeouts
 
     - name: Install WASM tools
-      uses: taiki-e/install-action@0779861fb45d2abc0679e6ff4713e53d06b089d0 # v2.47.10
+      uses: taiki-e/install-action@7bcfa52beaaa5899d991cea0399a67efc5e28171 # v2.48.12
       with:
         tool: wasm-pack@0.12.1
 
     - name: Install yarn dependencies
-      uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+      uses: nick-fields/retry@c97818ca39074beaea45180dba704f92496a0082 # v3.0.1
       env:
         LEFTHOOK: 0
       with:
@@ -39,7 +39,7 @@ runs:
 
     - name: npx playwright install
       if: ${{ inputs.playwright-deps != '' }}
-      uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+      uses: nick-fields/retry@c97818ca39074beaea45180dba704f92496a0082 # v3.0.1
       with:
         max_attempts: 3
         timeout_minutes: 10

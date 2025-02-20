@@ -59,6 +59,7 @@ impl Schema {
         }
     }
 
+    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub(crate) fn ty(&self) -> &str {
         &self.ty
     }
@@ -224,7 +225,7 @@ impl Document {
         // we already have the value inserted, therefore we do not need to add it again
         if let Some(reference) = self.references.get(&type_id) {
             return *reference;
-        };
+        }
 
         // we do not yet have the schema, to avoid cyclic references we already create the id
         let reference = Self::reference::<T>(self.counter.fetch_add());
@@ -246,10 +247,13 @@ impl Serialize for Document {
             .get(&self.id)
             .expect("`new()` should have created a schema for the main schema");
         map.serialize_entry("$ref", &id.as_path())?;
-        map.serialize_entry("$defs", &SerializeDefinitions {
-            schemas: &self.schemas,
-            references: &self.references,
-        })?;
+        map.serialize_entry(
+            "$defs",
+            &SerializeDefinitions {
+                schemas: &self.schemas,
+                references: &self.references,
+            },
+        )?;
 
         map.end()
     }

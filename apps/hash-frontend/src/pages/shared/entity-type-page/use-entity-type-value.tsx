@@ -1,6 +1,5 @@
 import { useMutation } from "@apollo/client";
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
@@ -26,12 +25,12 @@ import {
 import type {
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
-  UpdateEntityTypeMutation,
-  UpdateEntityTypeMutationVariables,
+  UpdateEntityTypesMutation,
+  UpdateEntityTypesMutationVariables,
 } from "../../../graphql/api-types.gen";
 import {
   createEntityTypeMutation,
-  updateEntityTypeMutation,
+  updateEntityTypesMutation,
 } from "../../../graphql/queries/ontology/entity-type.queries";
 import {
   useEntityTypesLoading,
@@ -43,7 +42,7 @@ import {
 export const useEntityTypeValue = (
   entityTypeBaseUrl: BaseUrl | null,
   requestedVersion: number | null,
-  accountId: AccountId | null,
+  ownedById: OwnedById | null,
   onCompleted?: (entityType: EntityTypeWithMetadata) => void,
 ) => {
   const router = useRouter();
@@ -59,10 +58,10 @@ export const useEntityTypeValue = (
 
   const isDraft = !entityTypeBaseUrl;
 
-  const [updateEntityType] = useMutation<
-    UpdateEntityTypeMutation,
-    UpdateEntityTypeMutationVariables
-  >(updateEntityTypeMutation);
+  const [updateEntityTypes] = useMutation<
+    UpdateEntityTypesMutation,
+    UpdateEntityTypesMutationVariables
+  >(updateEntityTypesMutation);
 
   const { contextEntityType, latestVersion } = useMemo<{
     contextEntityType: EntityTypeWithMetadata | null;
@@ -190,7 +189,10 @@ export const useEntityTypeValue = (
   }, [entityTypeBaseUrl, refetch]);
 
   const updateCallback = useCallback(
-    async (partialEntityType: Partial<ConstructEntityTypeParams>) => {
+    async (
+      partialEntityType: Partial<ConstructEntityTypeParams>,
+      dependentsToUpgrade: EntityType[],
+    ) => {
       if (!stateEntityTypeRef.current) {
         throw new Error("Cannot update yet");
       }
@@ -199,13 +201,23 @@ export const useEntityTypeValue = (
         schema: { $id, ...restOfEntityType },
       } = stateEntityTypeRef.current;
 
-      const res = await updateEntityType({
+      const primaryUpdate = {
+        entityTypeId: $id,
+        updatedEntityType: {
+          ...restOfEntityType,
+          ...partialEntityType,
+        },
+      };
+
+      const res = await updateEntityTypes({
         variables: {
-          entityTypeId: $id,
-          updatedEntityType: {
-            ...restOfEntityType,
-            ...partialEntityType,
-          },
+          updates: [
+            primaryUpdate,
+            ...dependentsToUpgrade.map(({ $id: dependencyId, ...rest }) => ({
+              entityTypeId: dependencyId,
+              updatedEntityType: rest,
+            })),
+          ],
         },
       });
 
@@ -213,14 +225,18 @@ export const useEntityTypeValue = (
 
       return res;
     },
-    [refetch, updateEntityType],
+    [refetch, updateEntityTypes],
   );
 
   const publishDraft = useCallback(
     async (draftEntityType: EntityType) => {
+      if (!ownedById) {
+        throw new Error("Cannot publish draft without ownedById");
+      }
+
       const res = await createEntityType({
         variables: {
-          ownedById: accountId as OwnedById,
+          ownedById,
           entityType: draftEntityType,
         },
       });
@@ -235,7 +251,7 @@ export const useEntityTypeValue = (
 
       await router.replace(newUrl, newUrl, { shallow: true });
     },
-    [createEntityType, accountId, refetch, router],
+    [createEntityType, ownedById, refetch, router],
   );
 
   return [

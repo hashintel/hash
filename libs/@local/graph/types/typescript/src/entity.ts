@@ -108,6 +108,26 @@ export type PropertyObject = {
   [key: BaseUrl]: Property;
 };
 
+/**
+ * Takes a property object which has unbranded string keys, such as those found in the generated system types
+ * in @local/hash-isomorphic-utils/system-types/*, and returns an object where the keys are branded as BaseUrls.
+ *
+ * Useful when wanting to strongly type a property object and pass it to a function that expends an object with branded keys.
+ *
+ * @todo consider updating the system type TS generation code to brand the keys automatically
+ */
+export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
+  T & {
+    [K in keyof T as Brand<K & string, "BaseUrl">]: T[K];
+  };
+
+// Helper function to create branded objects
+export const brandPropertyObject = <T extends Record<string, PropertyValue>>(
+  obj: T,
+): BrandedPropertyObject<T> => {
+  return obj as BrandedPropertyObject<T>;
+};
+
 export type EntityProperties = {
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   properties: PropertyObject;
@@ -129,7 +149,7 @@ export type Property = PropertyValue | PropertyArray | PropertyObject;
  * The metadata for a `PropertyValue`.
  */
 export type PropertyMetadataValue = {
-  metadata: Omit<ValueMetadata, "dataTypeId"> & {
+  metadata: Omit<ValueMetadata, "dataTypeId" | "canonical"> & {
     dataTypeId: VersionedUrl | null;
   };
 };
@@ -163,7 +183,8 @@ export type PropertyMetadata =
 
 export const isValueMetadata = (
   metadata: PropertyMetadata,
-): metadata is PropertyMetadataValue => !("value" in metadata);
+): metadata is PropertyMetadataValue =>
+  !!metadata.metadata && "dataTypeId" in metadata.metadata;
 
 export const isArrayMetadata = (
   metadata: PropertyMetadata,
@@ -220,6 +241,21 @@ export type PropertyWithMetadata =
   | PropertyArrayWithMetadata
   | PropertyObjectWithMetadata
   | PropertyValueWithMetadata;
+
+export const isValueWithMetadata = (
+  metadata: PropertyWithMetadata,
+): metadata is PropertyValueWithMetadata =>
+  metadata.metadata !== undefined && "dataTypeId" in metadata.metadata;
+
+export const isArrayWithMetadata = (
+  metadata: PropertyWithMetadata,
+): metadata is PropertyArrayWithMetadata =>
+  !isValueMetadata(metadata) && Array.isArray(metadata.value);
+
+export const isObjectWithMetadata = (
+  metadata: PropertyWithMetadata,
+): metadata is PropertyObjectWithMetadata =>
+  !isValueMetadata(metadata) && !Array.isArray(metadata.value);
 
 /**
  * A path to a property in a properties object

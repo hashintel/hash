@@ -12,6 +12,7 @@ export type ExpectedValueSelectorContextValue = {
   handleSave: () => void;
   inputRef?: RefObject<HTMLInputElement | null | undefined>;
   searchText: string;
+  selectedDataTypeIds: VersionedUrl[];
 };
 
 export const ExpectedValueSelectorContext =

@@ -29,6 +29,7 @@ import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
 import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../../shared/table-content";
@@ -42,8 +43,8 @@ import {
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import type { ChipCell } from "../../shared/chip-cell";
 import { createRenderChipCell } from "../../shared/chip-cell";
-import type { TextIconCell } from "../../shared/entities-table/text-icon-cell";
-import { createRenderTextIconCell } from "../../shared/entities-table/text-icon-cell";
+import type { TextIconCell } from "../../shared/entities-visualizer/entities-table/text-icon-cell";
+import { createRenderTextIconCell } from "../../shared/entities-visualizer/entities-table/text-icon-cell";
 import { TypeSlideOverStack } from "../../shared/entity-type-page/type-slide-over-stack";
 import { TableHeaderToggle } from "../../shared/table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
@@ -51,7 +52,7 @@ import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
 import type { VisualizerView } from "../../shared/visualizer-views";
 import { visualizerViewIcons } from "../../shared/visualizer-views";
 
-type LinkColumnId =
+export type TypesTableColumnId =
   | "title"
   | "kind"
   | "webShortname"
@@ -60,7 +61,7 @@ type LinkColumnId =
   | "lastEditedBy";
 
 type TypesTableColumn = {
-  id: LinkColumnId;
+  id: TypesTableColumnId;
 } & SizedGridColumn;
 
 export type TypesTableRow = {
@@ -287,8 +288,10 @@ export const TypesTable: FunctionComponent<{
   );
 
   const sortRows = useCallback<
-    NonNullable<GridProps<TypesTableRow>["sortRows"]>
-  >((unsortedRows, sort, previousSort) => {
+    NonNullable<
+      GridProps<TypesTableRow, TypesTableColumn, TypesTableColumnId>["sortRows"]
+    >
+  >((unsortedRows, sort) => {
     return unsortedRows.toSorted((a, b) => {
       const isActorSort = (key: string): key is "lastEditedBy" | "createdBy" =>
         ["lastEditedBy", "createdBy"].includes(key);
@@ -301,24 +304,7 @@ export const TypesTable: FunctionComponent<{
         ? (b[sort.columnKey]?.displayName ?? "")
         : String(b[sort.columnKey]);
 
-      const previousValue1: string | undefined = previousSort
-        ? isActorSort(previousSort.columnKey)
-          ? (a[previousSort.columnKey]?.displayName ?? "")
-          : String(a[previousSort.columnKey])
-        : undefined;
-
-      const previousValue2: string | undefined = previousSort?.columnKey
-        ? isActorSort(previousSort.columnKey)
-          ? (b[previousSort.columnKey]?.displayName ?? "")
-          : String(b[previousSort.columnKey])
-        : undefined;
-
       let comparison = value1.localeCompare(value2);
-
-      if (comparison === 0 && previousValue1 && previousValue2) {
-        // if the two keys are equal, we sort by the previous sort
-        comparison = previousValue1.localeCompare(previousValue2);
-      }
 
       if (sort.direction === "desc") {
         // reverse if descending
@@ -349,7 +335,9 @@ export const TypesTable: FunctionComponent<{
         switch (column.id) {
           case "title": {
             const isClickable =
-              row.kind === "entity-type" || row.kind === "link-type";
+              row.kind === "entity-type" ||
+              row.kind === "link-type" ||
+              row.kind === "data-type";
 
             return {
               kind: GridCellKind.Custom,
@@ -370,7 +358,16 @@ export const TypesTable: FunctionComponent<{
                     text: row.title,
                     onClick: isClickable
                       ? () => {
-                          setSelectedEntityType({ entityTypeId: row.typeId });
+                          if (row.kind === "data-type") {
+                            /**
+                             * @todo open data type in slide over
+                             */
+                            void router.push(
+                              generateLinkParameters(row.typeId).href,
+                            );
+                          } else {
+                            setSelectedEntityType({ entityTypeId: row.typeId });
+                          }
                         }
                       : undefined,
                     iconFill: theme.palette.blue[70],
@@ -491,6 +488,21 @@ export const TypesTable: FunctionComponent<{
     [],
   );
 
+  const numberOfUserWebItems = useMemo(
+    () =>
+      types?.filter(({ metadata }) =>
+        isExternalOntologyElementMetadata(metadata)
+          ? false
+          : internalWebIds.includes(metadata.ownedById),
+      ).length,
+    [types, internalWebIds],
+  );
+
+  const numberOfExternalItems =
+    types && typeof numberOfUserWebItems !== "undefined"
+      ? types.length - numberOfUserWebItems
+      : undefined;
+
   return (
     <>
       {selectedEntityType && (
@@ -515,13 +527,14 @@ export const TypesTable: FunctionComponent<{
               }))}
             />
           }
-          internalWebIds={internalWebIds}
           itemLabelPlural="types"
-          items={types}
           title={typesTablesToTitle[kind]}
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           filterState={filterState}
+          loading={false}
+          numberOfExternalItems={numberOfExternalItems}
+          numberOfUserWebItems={numberOfUserWebItems}
           setFilterState={setFilterState}
           selectedItems={types?.filter((type) =>
             selectedRows.some(({ typeId }) => type.schema.$id === typeId),
@@ -531,38 +544,43 @@ export const TypesTable: FunctionComponent<{
         {view === "Table" ? (
           <Box sx={tableContentSx}>
             <Grid
-              showSearch={showSearch}
-              onSearchClose={() => setShowSearch(false)}
               columns={typesTableColumns}
-              dataLoading={!types}
-              rows={filteredRows}
-              enableCheckboxSelection
-              selectedRows={selectedRows}
-              currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-              onSelectedRowsChange={(updatedSelectedRows) =>
-                setSelectedRows(updatedSelectedRows)
-              }
-              sortable
-              sortRows={sortRows}
-              firstColumnLeftPadding={firstColumnLeftPadding}
               createGetCellContent={createGetCellContent}
-              // define max height if there are lots of rows
-              height={`
-          min(
-            ${maxTableHeight},
-            calc(
-              ${gridHeaderHeightWithBorder}px +
-              (${
-                filteredRows?.length ? filteredRows.length : 1
-              } * ${gridRowHeight}px) +
-              ${gridHorizontalScrollbarHeight}px
-            )
-          )`}
+              currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
               customRenderers={[
                 createRenderTextIconCell({ firstColumnLeftPadding }),
                 createRenderChipCell({ firstColumnLeftPadding }),
               ]}
+              dataLoading={!types}
+              enableCheckboxSelection
+              firstColumnLeftPadding={firstColumnLeftPadding}
               freezeColumns={1}
+              height={`min(
+                ${maxTableHeight},
+                calc(
+                  ${gridHeaderHeightWithBorder}px +
+                  (${
+                    filteredRows?.length ? filteredRows.length : 1
+                  } * ${gridRowHeight}px) +
+                  ${gridHorizontalScrollbarHeight}px
+                )
+              )`}
+              onSearchClose={() => setShowSearch(false)}
+              onSelectedRowsChange={(updatedSelectedRows) =>
+                setSelectedRows(updatedSelectedRows)
+              }
+              rows={filteredRows}
+              selectedRows={selectedRows}
+              showSearch={showSearch}
+              sortableColumns={[
+                "title",
+                "kind",
+                "webShortname",
+                "archived",
+                "lastEdited",
+                "lastEditedBy",
+              ]}
+              sortRows={sortRows}
             />
           </Box>
         ) : (

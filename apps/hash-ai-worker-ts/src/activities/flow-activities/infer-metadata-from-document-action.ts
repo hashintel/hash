@@ -1,13 +1,3 @@
-import { createWriteStream } from "node:fs";
-import { mkdir, unlink } from "node:fs/promises";
-import path from "node:path";
-import { Readable } from "node:stream";
-import { finished } from "node:stream/promises";
-import type { ReadableStream } from "node:stream/web";
-import { fileURLToPath } from "node:url";
-
-import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
-import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type {
   OriginProvenance,
   PropertyProvenance,
@@ -22,10 +12,8 @@ import {
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolPropertyTypes,
-  systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -41,15 +29,15 @@ import { getEntityByFilter } from "../shared/get-entity-by-filter.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
+import { useFileSystemPathFromEntity } from "../shared/use-file-system-file-from-url.js";
 import { generateDocumentPropertyPatches } from "./infer-metadata-from-document-action/generate-property-patches.js";
 import { generateDocumentProposedEntitiesAndCreateClaims } from "./infer-metadata-from-document-action/generate-proposed-entities-and-claims.js";
 import { getLlmAnalysisOfDoc } from "./infer-metadata-from-document-action/get-llm-analysis-of-doc.js";
 import type { FlowActionActivity } from "./types.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const baseFilePath = path.join(__dirname, "/var/tmp_files");
+const isFileEntity = (entity: Entity): entity is Entity<File> =>
+  systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
+  blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
 export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
   inputs,
@@ -107,145 +95,87 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     };
   }
 
+  if (!isFileEntity(documentEntity)) {
+    return {
+      code: StatusCode.InvalidArgument,
+      contents: [],
+      message: `Document entity with entityId ${documentEntityId} is not a file entity`,
+    };
+  }
+
   const fileUrl =
     documentEntity.properties[
-      blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
     ];
 
   if (!fileUrl) {
     return {
-      code: StatusCode.InvalidArgument,
+      code: StatusCode.NotFound,
       contents: [],
       message: `Document entity with entityId ${documentEntityId} does not have a fileUrl property`,
     };
   }
 
-  if (typeof fileUrl !== "string") {
-    return {
-      code: StatusCode.InvalidArgument,
-      contents: [],
-      message: `Document entity with entityId ${documentEntityId} has a fileUrl property of type '${typeof fileUrl}', expected 'string'`,
-    };
-  }
-
-  const storageKey =
-    documentEntity.properties[
-      systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl
-    ];
-
-  if (!storageKey) {
-    return {
-      code: StatusCode.InvalidArgument,
-      contents: [],
-      message: `Document entity with entityId ${documentEntityId} does not have a fileStorageKey property`,
-    };
-  }
-
-  if (typeof storageKey !== "string") {
-    return {
-      code: StatusCode.InvalidArgument,
-      contents: [],
-      message: `Document entity with entityId ${documentEntityId} has a fileStorageKey property of type '${typeof storageKey}', expected 'string'`,
-    };
-  }
-
-  await mkdir(baseFilePath, { recursive: true });
-
-  const filePath = `${baseFilePath}/${generateUuid()}.pdf`;
-
-  const s3Config = getAwsS3Config();
-
-  const downloadProvider = new AwsS3StorageProvider(s3Config);
-
-  const urlForDownload = await downloadProvider.presignDownload({
-    entity: documentEntity as Entity<File>,
-    expiresInSeconds: 60 * 60,
-    key: storageKey,
-  });
-
-  const fetchFileResponse = await fetch(urlForDownload);
-
-  if (!fetchFileResponse.ok || !fetchFileResponse.body) {
-    return {
-      code: StatusCode.NotFound,
-      contents: [],
-      message: `Document entity with entityId ${documentEntityId} has a fileUrl ${fileUrl} that could not be fetched: ${fetchFileResponse.statusText}`,
-    };
-  }
-
-  try {
-    const fileStream = createWriteStream(filePath);
-    await finished(
-      Readable.fromWeb(
-        fetchFileResponse.body as ReadableStream<Uint8Array>,
-      ).pipe(fileStream),
-    );
-  } catch (error) {
-    await unlink(filePath);
-    return {
-      code: StatusCode.Internal,
-      contents: [],
-      message: `Failed to write file to file system: ${(error as Error).message}`,
-    };
-  }
-
   const pdfParser = new PDFParser();
 
-  const documentJson = await new Promise<Output>((resolve, reject) => {
-    pdfParser.on("pdfParser_dataError", (errData) =>
-      reject(errData.parserError),
-    );
+  const { documentMetadata, numberOfPages } = await useFileSystemPathFromEntity(
+    documentEntity,
+    async ({ fileSystemPath }) => {
+      const documentJson = await new Promise<Output>((resolve, reject) => {
+        pdfParser.on("pdfParser_dataError", (errData) =>
+          reject(errData.parserError),
+        );
 
-    pdfParser.on("pdfParser_dataReady", (pdfData) => {
-      resolve(pdfData);
-    });
+        pdfParser.on("pdfParser_dataReady", (pdfData) => {
+          resolve(pdfData);
+        });
 
-    // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
-    // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-    pdfParser.loadPDF(filePath).catch((err) => reject(err));
-  });
+        // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+        pdfParser.loadPDF(fileSystemPath).catch((err) => reject(err));
+      });
 
-  const numberOfPages = documentJson.Pages.length;
+      const numPages = documentJson.Pages.length;
 
-  /**
-   * @todo H-3620: handle documents exceeding Vertex AI limit of 30MB
-   */
+      /**
+       * @todo H-3620: handle documents exceeding Vertex AI limit of 30MB
+       */
 
-  const documentMetadata = await getLlmAnalysisOfDoc({
-    fileSystemPath: filePath,
-    hashFileStorageKey: storageKey,
-  });
+      const metadata = await getLlmAnalysisOfDoc({
+        fileEntity: documentEntity,
+      });
 
-  await unlink(filePath);
+      return {
+        documentMetadata: metadata,
+        numberOfPages: numPages,
+      };
+    },
+  );
 
   const {
     authors,
-    doi,
-    doiLink,
-    isbn,
-    publishedBy,
-    publishedInYear,
-    publicationVenue,
-    summary,
-    title,
-    type,
+    documentMetadata: { entityTypeId, properties },
   } = documentMetadata;
 
   const entityTypeIds = new Set(documentEntity.metadata.entityTypeIds);
+  entityTypeIds.add(entityTypeId);
 
-  if (type === "AcademicPaper") {
-    entityTypeIds.add(systemEntityTypes.academicPaper.entityTypeId);
-  } else if (type === "Book") {
-    entityTypeIds.add(systemEntityTypes.book.entityTypeId);
-  } else {
-    entityTypeIds.add(systemEntityTypes.doc.entityTypeId);
-  }
+  const filename =
+    documentEntity.properties[
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
+    ] ??
+    documentEntity.properties[
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"
+    ]!;
+
+  const title = properties.value[systemPropertyTypes.title.propertyTypeBaseUrl]
+    ?.value as string | undefined;
 
   const sourceProvenance: SourceProvenance = {
     type: "document",
     authors: (authors ?? []).map((author) => author.name),
     entityId: documentEntityId,
-    location: { uri: fileUrl },
+    location: { uri: fileUrl, name: title ?? filename },
   };
 
   const provenance: EnforcedEntityEditionProvenance = {
@@ -262,19 +192,11 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     sources: [sourceProvenance],
   };
 
-  const propertyPatches = generateDocumentPropertyPatches(
-    {
-      doi,
-      doiLink,
-      isbn,
-      numberOfPages,
-      publishedInYear,
-      summary,
-      title,
-      type,
-    },
-    propertyProvenance,
-  );
+  const propertyPatches = generateDocumentPropertyPatches({
+    numberOfPages,
+    properties,
+    provenance: propertyProvenance,
+  });
 
   const existingEntity = documentEntity.toJSON();
 
@@ -314,8 +236,8 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     await generateDocumentProposedEntitiesAndCreateClaims({
       aiAssistantAccountId,
       documentEntityId,
-      documentMetadata: { authors, publishedBy, publicationVenue },
-      documentTitle: title,
+      documentMetadata: { authors },
+      documentTitle: title ?? filename,
       provenance,
       propertyProvenance,
     });

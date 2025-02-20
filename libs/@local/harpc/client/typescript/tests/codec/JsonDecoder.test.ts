@@ -10,28 +10,27 @@ import type { DecodingError } from "../../src/codec/Decoder.js";
 import { Decoder, JsonDecoder } from "../../src/codec/index.js";
 import { expectArrayBuffer } from "../wire-protocol/utils.js";
 
-const decode = (
+const decode = Effect.fn("decode")(function* (
   cx: vitest.TaskContext<vitest.RunnerTestCase> & vitest.TestContext,
   text: readonly string[],
-) =>
-  Effect.gen(function* () {
-    const decoder = yield* Decoder.Decoder;
-    const textEncoder = new TextEncoder();
+) {
+  const decoder = yield* Decoder.Decoder;
+  const textEncoder = new TextEncoder();
 
-    const schema = Schema.Record({ key: Schema.String, value: Schema.String });
+  const schema = Schema.Record({ key: Schema.String, value: Schema.String });
 
-    const effect = Stream.fromChunk(Chunk.fromIterable(text)).pipe(
-      Stream.map((input) =>
-        expectArrayBuffer(cx, textEncoder.encode(input).buffer),
-      ),
-      decoder.decode(schema),
-      Stream.runCollect,
-      Effect.map(Chunk.toReadonlyArray),
-    );
+  const effect = Stream.fromChunk(Chunk.fromIterable(text)).pipe(
+    Stream.map((input) =>
+      expectArrayBuffer(cx, textEncoder.encode(input).buffer),
+    ),
+    decoder.decode(schema),
+    Stream.runCollect,
+    Effect.map(Chunk.toReadonlyArray),
+  );
 
-    // explicit type annotation needed for eslint
-    return (yield* effect) as readonly ReadonlyRecord<string, string>[];
-  });
+  // explicit type annotation needed for eslint
+  return (yield* effect) as readonly ReadonlyRecord<string, string>[];
+});
 
 describe.concurrent("JsonDecoder", () => {
   it.effect("single record in single chunk", (cx) =>

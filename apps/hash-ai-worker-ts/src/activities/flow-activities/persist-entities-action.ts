@@ -73,8 +73,11 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
   > = {};
 
   /**
-   * We could potentially parallelize the creation of (a) non-link entities and (b) link entities,
+   * We could potentially parallelize the creation of (a) non-link entities and then (b) link entities in batches,
    * if performance of this function becomes an issue.
+   *
+   * We need to create the links after all the non-links as the ids of the links may change,
+   * if an existing entity is found to update rather than a new one with the localId being created.
    */
   for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
     const {
@@ -188,7 +191,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     if (!output) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
         proposedEntity: unresolvedEntity,
-        message: `No outputs returned when attempting to persist entity`,
+        message:
+          persistedEntityOutputs.message ??
+          `No outputs returned when attempting to persist entity`,
       };
       continue;
     }
@@ -236,7 +241,18 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
 
   return {
     /** @todo H-2604 have some kind of 'partially completed' status when reworking flow return codes */
-    code: persistedEntities.length > 0 ? StatusCode.Ok : StatusCode.Internal,
+    code:
+      persistedEntities.length > 0
+        ? StatusCode.Ok
+        : proposedEntities.length > 0
+          ? StatusCode.Internal
+          : StatusCode.Ok,
+    message:
+      persistedEntities.length > 0
+        ? `Persisted ${persistedEntities.length} entities`
+        : proposedEntities.length > 0
+          ? `Failed to persist ${failedEntityProposals.length} entities`
+          : `No entities to persist`,
     contents: [
       {
         outputs: [

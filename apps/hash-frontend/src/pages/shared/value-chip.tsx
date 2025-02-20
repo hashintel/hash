@@ -16,7 +16,13 @@ export const ValueChip = ({
   sx?: SxProps<Theme>;
   tooltip?: string;
 }>) => (
-  <Tooltip title={tooltip} placement="left">
+  <Tooltip
+    componentsProps={{
+      tooltip: { sx: { maxWidth: 400, maxHeight: 600, overflowY: "auto" } },
+    }}
+    title={tooltip}
+    placement="left"
+  >
     <Stack
       direction="row"
       alignItems="center"
@@ -29,7 +35,6 @@ export const ValueChip = ({
           fontWeight: 500,
           fontSize: 12,
           lineHeight: 1,
-          maxWidth: "100%",
           px: 1.2,
           py: 0.8,
           whiteSpace: "nowrap",
