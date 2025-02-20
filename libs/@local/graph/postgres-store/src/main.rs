@@ -937,6 +937,51 @@ impl SnapshotData {
         );
     }
 
+    fn filter_non_system_machines(&mut self) {
+        let mut found_machine_entities = 0;
+        let mut removed_machine_entities = 0;
+        let machine_identifier_base_url =
+            BaseUrl::new("https://hash.ai/@h/types/property-type/machine-identifier/".to_owned())
+                .expect("should be a valid Base URL");
+        self.entities.retain(|_, (editions, _, _)| {
+            let Some(edition) = editions.iter().find(|edition| {
+                edition
+                    .metadata
+                    .entity_type_ids
+                    .iter()
+                    .any(|entity_type_id| {
+                        entity_type_id.base_url.as_str()
+                            == "https://hash.ai/@h/types/entity-type/machine/"
+                    })
+            }) else {
+                return true;
+            };
+
+            found_machine_entities += 1;
+            let Some(Property::Value(Value::String(identifier))) = edition
+                .properties
+                .properties()
+                .get(&machine_identifier_base_url)
+            else {
+                panic!(
+                    "Invalid machine identifier: {}",
+                    json!(&edition.properties.properties()[&machine_identifier_base_url])
+                )
+            };
+            let retain = identifier != "hash" && identifier != "hash-ai";
+            if !retain {
+                removed_machine_entities += 1;
+            }
+            retain
+        });
+        eprintln!(
+            "Removed {}/{}=>{} non-system machines",
+            removed_machine_entities,
+            found_machine_entities,
+            found_machine_entities - removed_machine_entities,
+        );
+    }
+
     fn filter_accounts_without_users_or_machines(&mut self) {
         let current_num_accounts = self.accounts.len();
         self.accounts.retain(|account_id| {
@@ -1301,10 +1346,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     snapshot.filter_web_relations();
 
     snapshot.filter_entities_by_invalid_links();
-    snapshot.count_entities();
 
     snapshot.filter_pre_defined_accounts();
     snapshot.filter_pre_defined_account_groups();
+
+    snapshot.filter_non_system_machines();
+
+    snapshot.count_entities();
 
     snapshot.print_full_snapshot();
 
