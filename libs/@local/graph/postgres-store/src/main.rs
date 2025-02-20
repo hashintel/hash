@@ -163,8 +163,8 @@ const OLD_INSTANCE_ADMIN_ACCOUNT_GROUP_ID: AccountGroupId =
 const NEW_INSTANCE_ADMIN_ACCOUNT_GROUP_ID: AccountGroupId =
     AccountGroupId::new(Uuid::from_u128(0x056C148E_383D_4357_BDEF_2A9B5C9D622A));
 
-// Generated when running API migrations
-const EXAMPLE_ORG_ACCOUNT_GROUP_ID: AccountGroupId =
+// The example org is generated when running API migrations, so we need to remove the old one
+const OLD_EXAMPLE_ORG_ACCOUNT_GROUP_ID: AccountGroupId =
     AccountGroupId::new(Uuid::from_u128(0x94EDAC71_6D77_425D_99C4_4445F748F83F));
 
 type EntityMapValue = (
@@ -202,7 +202,7 @@ impl SnapshotData {
             OLD_INSTANCE_ADMIN_ACCOUNT_GROUP_ID.to_string();
         let new_instance_admin_account_group_id_string =
             NEW_INSTANCE_ADMIN_ACCOUNT_GROUP_ID.to_string();
-        let example_org_account_group_id_string = EXAMPLE_ORG_ACCOUNT_GROUP_ID.to_string();
+        let old_example_org_account_group_id_string = OLD_EXAMPLE_ORG_ACCOUNT_GROUP_ID.to_string();
 
         let mut ontology_type_mappings = create_system_type_namespace_mapping()?;
         let namespace_to_retain = HashMap::<&str, ProvidedOntologyEditionProvenance>::from([
@@ -259,7 +259,7 @@ impl SnapshotData {
         'line: for line in std::io::BufReader::new(std::io::stdin().lock()).lines() {
             let mut line = line?;
 
-            if line.contains(&example_org_account_group_id_string) {
+            if line.contains(&old_example_org_account_group_id_string) {
                 continue;
             }
 
