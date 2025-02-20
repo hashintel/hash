@@ -19,6 +19,6 @@
     "@rust/hash-temporal-client": "0.0.0-private"
   },
   "devDependencies": {
-    "tsx": "4.19.2"
+    "tsx": "4.19.3"
   }
 }
