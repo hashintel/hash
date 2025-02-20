@@ -147,21 +147,25 @@ const OLD_SYSTEM_ACCOUNT_ID: AccountId =
     AccountId::new(Uuid::from_u128(0x8D86C8C3_D66D_43D1_859B_676C3BCAEADC));
 // Generated when running API migrations
 const NEW_SYSTEM_ACCOUNT_ID: AccountId =
-    AccountId::new(Uuid::from_u128(0x065D5C74_C7BC_4138_929E_02AA4DDC4FB9));
+    AccountId::new(Uuid::from_u128(0x2F941D56_96C8_4C5D_8031_94CD9916857F));
 
 // Account of the HASH-ai machine
 const OLD_HASH_AI_ACCOUNT_ID: AccountId =
     AccountId::new(Uuid::from_u128(0x5DF73B08_0BD8_4AC3_A699_B842EEF9F797));
 // Generated when running API migrations
 const NEW_HASH_AI_ACCOUNT_ID: AccountId =
-    AccountId::new(Uuid::from_u128(0x3940C0CC_3A37_4DCA_A586_0F34294CAA4A));
+    AccountId::new(Uuid::from_u128(0x385E4FF1_53D1_4943_9DC3_4C737E0F1A46));
 
 // Administrator of HASH-instance entity
 const OLD_INSTANCE_ADMIN_ACCOUNT_GROUP_ID: AccountGroupId =
     AccountGroupId::new(Uuid::from_u128(0x95A3E999_2023_4B3E_B5C7_B9BEC51A3624));
 // Generated when running API migrations
 const NEW_INSTANCE_ADMIN_ACCOUNT_GROUP_ID: AccountGroupId =
-    AccountGroupId::new(Uuid::from_u128(0xFA4472BB_54B8_42B1_B731_61C726D76AA5));
+    AccountGroupId::new(Uuid::from_u128(0x056C148E_383D_4357_BDEF_2A9B5C9D622A));
+
+// Generated when running API migrations
+const EXAMPLE_ORG_ACCOUNT_GROUP_ID: AccountGroupId =
+    AccountGroupId::new(Uuid::from_u128(0x94EDAC71_6D77_425D_99C4_4445F748F83F));
 
 type EntityMapValue = (
     Vec<Entity>,
@@ -198,6 +202,7 @@ impl SnapshotData {
             OLD_INSTANCE_ADMIN_ACCOUNT_GROUP_ID.to_string();
         let new_instance_admin_account_group_id_string =
             NEW_INSTANCE_ADMIN_ACCOUNT_GROUP_ID.to_string();
+        let example_org_account_group_id_string = EXAMPLE_ORG_ACCOUNT_GROUP_ID.to_string();
 
         let mut ontology_type_mappings = create_system_type_namespace_mapping()?;
         let namespace_to_retain = HashMap::<&str, ProvidedOntologyEditionProvenance>::from([
@@ -253,6 +258,10 @@ impl SnapshotData {
 
         'line: for line in std::io::BufReader::new(std::io::stdin().lock()).lines() {
             let mut line = line?;
+
+            if line.contains(&example_org_account_group_id_string) {
+                continue;
+            }
 
             // We can skip the loop if `@hash` does not appear in the line
             if line.contains("/@hash/") {
