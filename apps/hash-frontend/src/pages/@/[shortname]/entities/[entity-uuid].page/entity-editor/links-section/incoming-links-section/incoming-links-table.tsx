@@ -43,7 +43,7 @@ import { isValueIncludedInFilter } from "../../../../../../../shared/virtualized
 import type { VirtualizedTableSort } from "../../../../../../../shared/virtualized-table/header/sort";
 import { useVirtualizedTableFilterState } from "../../../../../../../shared/virtualized-table/use-filter-state";
 import { useEntityEditor } from "../../entity-editor-context";
-import type { CustomColumn } from "../../shared/types";
+import type { CustomEntityLinksColumn } from "../../shared/types";
 import { PropertiesTooltip } from "../shared/properties-tooltip";
 import {
   linksTableCellSx,
@@ -81,7 +81,7 @@ const staticColumns: VirtualizedTableColumn<FieldId>[] = [
   },
 ];
 
-const createColumns = (customColumns: CustomColumn[]) => {
+const createColumns = (customColumns: CustomEntityLinksColumn[]) => {
   const columns = [...staticColumns];
 
   for (const customColumn of customColumns) {
@@ -261,7 +261,7 @@ export const IncomingLinksTable = memo(
     const {
       closedMultiEntityTypesMap,
       closedMultiEntityTypesDefinitions,
-      customColumns,
+      customEntityLinksColumns: customColumns,
       draftLinksToArchive,
       entitySubgraph,
       onEntityClick,

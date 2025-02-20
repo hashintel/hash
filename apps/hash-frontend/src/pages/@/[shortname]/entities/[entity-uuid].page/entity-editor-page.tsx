@@ -1,14 +1,15 @@
 import { OntologyChip } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
+import type { PropertyObject } from "@local/hash-graph-types/entity";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { NextSeo } from "next-seo";
 import type { ReactNode } from "react";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 import { useSnackbar } from "../../../../../components/hooks/use-snackbar";
 import { SlideStack } from "../../../../shared/slide-stack";
+import type { SlideItem } from "../../../../shared/slide-stack/types";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditor } from "./entity-editor";
 import { EntityPageWrapper } from "./entity-page-wrapper";
@@ -17,7 +18,7 @@ import { QueryEditorPage } from "./query-editor-page";
 import { QueryEditorToggle } from "./query-editor-toggle";
 
 interface EntityEditorPageProps
-  extends Omit<EntityEditorProps, "onEntityClick"> {
+  extends Omit<EntityEditorProps, "onEntityClick" | "onTypeClick"> {
   entity?: Entity;
   editBar: ReactNode;
   owner: string;
@@ -44,35 +45,18 @@ export const EntityEditorPage = ({
 
   const { entityLabel, entitySubgraph, onEntityUpdated } = entityEditorProps;
 
-  const [selectedEntity, setSelectedEntity] = useState<{
-    entityId: EntityId;
-  } | null>(null);
-
-  const handleEntityClick = useCallback((entityId: EntityId) => {
-    try {
-      setSelectedEntity({
-        entityId,
-      });
-    } catch {
-      setSelectedEntity({ entityId });
-    }
-  }, []);
+  const [slideItem, setSlideItem] = useState<SlideItem | null>(null);
 
   return (
     <>
       <NextSeo title={`${entityLabel} | Entity`} />
 
-      {selectedEntity ? (
+      {slideItem ? (
         <SlideStack
-          rootItem={{
-            type: "entity",
-            isReadOnly: true,
-            itemId: selectedEntity.entityId,
-            onSubmit: () => {
-              throw new Error(`Editing not yet supported from this screen`);
-            },
-          }}
-          onClose={() => setSelectedEntity(null)}
+          hideOpenInNew={false}
+          isReadOnly
+          rootItem={slideItem}
+          onClose={() => setSlideItem(null)}
         />
       ) : null}
 
@@ -84,7 +68,21 @@ export const EntityEditorPage = ({
       )}
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditorPage
-          onEntityClick={handleEntityClick}
+          onEntityClick={(entityId) =>
+            setSlideItem({
+              kind: "entity",
+              itemId: entityId,
+              onSubmit: () => {
+                throw new Error(`Editing not yet supported from this screen`);
+              },
+            })
+          }
+          onTypeClick={(type, versionedUrl) => {
+            setSlideItem({
+              type,
+              itemId: versionedUrl,
+            });
+          }}
           mode={isDraft ? "create" : "edit"}
           handleSaveQuery={async (value) => {
             const properties = {
@@ -126,7 +124,21 @@ export const EntityEditorPage = ({
           {/* use `satisfies EntityEditorProps` here when satisfies keyword is supported to make this safer */}
           <EntityEditor
             {...entityEditorProps}
-            onEntityClick={handleEntityClick}
+            onEntityClick={(entityId) =>
+              setSlideItem({
+                kind: "entity",
+                itemId: entityId,
+                onSubmit: () => {
+                  throw new Error(`Editing not yet supported from this screen`);
+                },
+              })
+            }
+            onTypeClick={(type, versionedUrl) => {
+              setSlideItem({
+                type,
+                itemId: versionedUrl,
+              });
+            }}
           />
         </EntityPageWrapper>
       )}

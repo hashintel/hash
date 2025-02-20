@@ -7,6 +7,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import type { height } from "@mui/system";
 import type { ElementType } from "react";
 import { useState } from "react";
 
@@ -60,13 +61,15 @@ export const TypeCard = ({
     <WhiteCard
       href={disableClick ? undefined : url}
       LinkComponent={LinkComponent}
-      onClick={(event) => {
-        if (onClick) {
-          event.preventDefault();
-          event.stopPropagation();
-          onClick();
-        }
-      }}
+      onClick={
+        onClick
+          ? (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onClick();
+            }
+          : undefined
+      }
       onMouseEnter={() => (onDelete ? setHovered(true) : null)}
       onMouseLeave={() => (onDelete ? setHovered(false) : null)}
     >

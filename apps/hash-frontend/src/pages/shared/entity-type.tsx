@@ -17,15 +17,11 @@ import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import type { Theme } from "@mui/material";
-import { Box, Container, Typography } from "@mui/material";
-import { GlobalStyles } from "@mui/system";
-import { useRouter } from "next/router";
+import { Box, Container, Skeleton, Stack, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useIsSpecialEntityType } from "../../shared/entity-types-context/hooks";
-import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../shared/is-archived";
 import { isHrefExternal } from "../../shared/is-href-external";
 import { useUserPermissionsOnEntityType } from "../../shared/use-user-permissions-on-entity-type";
@@ -46,27 +42,33 @@ import {
 } from "./entity-type-page/use-entity-type-dependents";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
 import { NotFound } from "./not-found";
+import { TypeEditorSkeleton } from "./shared/type-editor-skeleton";
 import {
+  inSlideContainerStyles,
   TypeDefinitionContainer,
   typeHeaderContainerStyles,
 } from "./shared/type-editor-styling";
-import { SlideStack } from "./slide-stack";
+import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 
 type EntityTypeProps = {
   ownedById?: OwnedById | null;
   draftEntityType?: EntityTypeWithMetadata | null;
   entityTypeBaseUrl?: BaseUrl;
+  inSlide: boolean;
+  onEntityTypeUpdated?: (entityType: EntityTypeWithMetadata) => void;
   requestedVersion: number | null;
 };
 
-export const EntityTypePage = ({
+export const EntityType = ({
   ownedById,
   draftEntityType,
   entityTypeBaseUrl,
+  inSlide,
   requestedVersion,
+  onEntityTypeUpdated,
 }: EntityTypeProps) => {
-  const router = useRouter();
+  const { pushToSlideStack } = useSlideStack();
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { allOf: [], properties: [], links: [], inverse: {} },
@@ -120,9 +122,8 @@ export const EntityTypePage = ({
   const isDirty = Object.keys(formMethods.formState.dirtyFields).length > 0;
   const isDraft = !!draftEntityType;
 
-  const { userPermissions } = useUserPermissionsOnEntityType(
-    entityType?.schema.$id,
-  );
+  const { userPermissions, loading: loadingUserPermissions } =
+    useUserPermissionsOnEntityType(entityType?.schema.$id);
 
   const [entityTypeDependents, setEntityTypeDependents] = useState<
     Record<BaseUrl, EntityTypeDependent>
@@ -222,9 +223,7 @@ export const EntityTypePage = ({
       const res = await updateEntityTypes(rootType, dependents);
 
       if (!res.errors?.length && res.data?.updateEntityTypes[0]) {
-        void router.push(
-          generateLinkParameters(res.data.updateEntityTypes[0].schema.$id).href,
-        );
+        onEntityTypeUpdated?.(res.data.updateEntityTypes[0]);
       } else {
         throw new Error("Could not publish changes");
       }
@@ -232,11 +231,6 @@ export const EntityTypePage = ({
   });
 
   const currentTab = useCurrentTab();
-
-  const [typeInSlide, setTypeInSlide] = useState<{
-    kind: "entityType" | "dataType";
-    url: VersionedUrl;
-  } | null>(null);
 
   const titleWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -247,13 +241,13 @@ export const EntityTypePage = ({
     if (entityType && url === entityType.schema.$id) {
       titleWrapperRef.current?.scrollIntoView({ behavior: "smooth" });
     } else {
-      setTypeInSlide({ kind, url });
+      pushToSlideStack({ kind, itemId: url });
     }
   };
 
-  if (!entityType) {
-    if (loadingRemoteEntityType) {
-      return null;
+  if (!entityType || !userPermissions) {
+    if (loadingRemoteEntityType || loadingUserPermissions) {
+      return <TypeEditorSkeleton />;
     } else if (isHrefExternal(entityTypeBaseUrl as string)) {
       return (
         <Container sx={{ mt: 8 }}>
@@ -276,10 +270,6 @@ export const EntityTypePage = ({
         />
       );
     }
-  }
-
-  if (!userPermissions) {
-    return null;
   }
 
   const currentVersion = draftEntityType
@@ -326,9 +316,7 @@ export const EntityTypePage = ({
     );
 
     if (!res.errors?.length && res.data?.updateEntityTypes[0]) {
-      void router.push(
-        generateLinkParameters(res.data.updateEntityTypes[0].schema.$id).href,
-      );
+      onEntityTypeUpdated?.(res.data.updateEntityTypes[0]);
     } else {
       throw new Error("Could not publish changes");
     }
@@ -342,7 +330,9 @@ export const EntityTypePage = ({
 
   return (
     <>
-      <NextSeo title={`${entityType.schema.title} | Entity Type`} />
+      {!inSlide && (
+        <NextSeo title={`${entityType.schema.title} | Entity Type`} />
+      )}
       <UpgradeDependentsModal
         dependents={entityTypeDependents}
         excludedDependencies={dependentsExcludedFromUpgrade}
@@ -361,10 +351,19 @@ export const EntityTypePage = ({
       />
       <EntityTypeFormProvider {...formMethods}>
         <EntityTypeContext.Provider value={entityType.schema}>
-          <Box display="contents" component="form" onSubmit={handleSubmit}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={({ palette }) => ({
+              background: palette.gray[10],
+              width: "100%",
+            })}
+          >
             <TopContextBar
               actionMenuItems={[
-                ...(remoteEntityType && !isTypeArchived(remoteEntityType)
+                ...(!isReadonly &&
+                remoteEntityType &&
+                !isTypeArchived(remoteEntityType)
                   ? [
                       <ArchiveMenuItem
                         key={entityType.schema.$id}
@@ -435,7 +434,7 @@ export const EntityTypePage = ({
             )}
 
             <Box ref={titleWrapperRef} sx={typeHeaderContainerStyles}>
-              <Container>
+              <Container sx={inSlide ? inSlideContainerStyles : {}}>
                 <EntityTypeHeader
                   currentVersion={currentVersion}
                   entityTypeSchema={entityType.schema}
@@ -455,7 +454,7 @@ export const EntityTypePage = ({
               </Container>
             </Box>
 
-            <TypeDefinitionContainer>
+            <TypeDefinitionContainer inSlide={inSlide}>
               {currentTab === "definition" ? (
                 entityTypeAndPropertyTypes ? (
                   <DefinitionTab
@@ -478,27 +477,6 @@ export const EntityTypePage = ({
           </Box>
         </EntityTypeContext.Provider>
       </EntityTypeFormProvider>
-
-      {typeInSlide ? (
-        <SlideStack
-          isReadOnly
-          hideOpenInNew={false}
-          rootItem={{
-            type: typeInSlide.kind,
-            itemId: typeInSlide.url,
-          }}
-          onClose={() => setTypeInSlide(null)}
-        />
-      ) : null}
-
-      <GlobalStyles<Theme>
-        styles={(theme) => ({
-          body: {
-            minHeight: "100vh",
-            background: theme.palette.gray[10],
-          },
-        })}
-      />
     </>
   );
 };

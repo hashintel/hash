@@ -8,13 +8,20 @@ export const typeHeaderContainerStyles: SxProps<Theme> = ({ palette }) => ({
   backgroundColor: palette.common.white,
 });
 
+export const inSlideContainerStyles = { px: "32px !important" };
+
 export const TypeDefinitionContainer = ({
   children,
-  inSlide = false,
+  inSlide,
 }: { children: React.ReactNode; inSlide?: boolean }) => {
   return (
-    <Box pb={5} pt={inSlide ? 0 : 5}>
-      <Container>{children}</Container>
+    <Box
+      py={5}
+      sx={({ palette }) => ({ background: palette.gray[10], height: "100%" })}
+    >
+      <Container sx={inSlide ? inSlideContainerStyles : {}}>
+        {children}
+      </Container>
     </Box>
   );
 };

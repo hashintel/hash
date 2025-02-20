@@ -6,7 +6,7 @@ import { useMemo } from "react";
 
 import type { NextPageWithLayout } from "../../../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../../../shared/layout";
-import { EntityTypePage } from "../../../../shared/entity-type-page";
+import { EntityType } from "../../../../shared/entity-type";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { getTypeBaseUrl } from "../shared/get-type-base-url";
 
@@ -91,7 +91,8 @@ const Page: NextPageWithLayout = () => {
   }
 
   return (
-    <EntityTypePage
+    <EntityType
+      inSlide={false}
       ownedById={routeNamespace.ownedById}
       draftEntityType={draftEntityType}
       entityTypeBaseUrl={entityTypeBaseUrl}

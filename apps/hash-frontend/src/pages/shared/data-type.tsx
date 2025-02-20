@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client";
 import type { DataTypeWithMetadata as BpDataTypeWithMetadata } from "@blockprotocol/graph";
-import { extractVersion, type VersionedUrl } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -11,9 +11,8 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 import type { DataTypeRootType } from "@local/hash-subgraph/types";
 import type { Theme } from "@mui/material";
-import { Box, Container, Typography } from "@mui/material";
-import { GlobalStyles, Stack } from "@mui/system";
-import { isPrerenderInterruptedError } from "next/dist/server/app-render/dynamic-rendering";
+import { Box, Container, Stack, Typography } from "@mui/material";
+import { GlobalStyles } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo } from "react";
@@ -47,29 +46,28 @@ import { useDataTypesContext } from "./data-types-context";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
 import { NotFound } from "./not-found";
 import {
+  inSlideContainerStyles,
   TypeDefinitionContainer,
   typeHeaderContainerStyles,
 } from "./shared/type-editor-styling";
+import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
+import { TypeEditorSkeleton } from "./shared/type-editor-skeleton";
 
 type DataTypeProps = {
   inSlide?: boolean;
-  isReadOnly: boolean;
   ownedById?: OwnedById | null;
   draftNewDataType?: BpDataTypeWithMetadata | null;
   dataTypeBaseUrl?: BaseUrl;
-  onDataTypeClick: (dataTypeId: VersionedUrl) => void;
   requestedVersion: number | null;
 };
 
 export const DataType = ({
   inSlide,
-  isReadOnly: readonlyFromProps,
   ownedById,
   draftNewDataType,
   dataTypeBaseUrl,
   requestedVersion,
-  onDataTypeClick,
 }: DataTypeProps) => {
   const router = useRouter();
 
@@ -253,6 +251,8 @@ export const DataType = ({
     void router.push(response.data.updateDataType.schema.$id);
   });
 
+  const { pushToSlideStack } = useSlideStack();
+
   if (
     !draftNewDataType &&
     !dataType &&
@@ -287,7 +287,7 @@ export const DataType = ({
   }
 
   if (loadingUserPermissions || loadingRemoteDataType) {
-    return null;
+    return <TypeEditorSkeleton />;
   }
 
   if (!dataType || !userPermissions) {
@@ -300,40 +300,36 @@ export const DataType = ({
 
   const isLatest = !requestedVersion || requestedVersion === latestVersion;
 
-  const isReadOnly =
-    readonlyFromProps ||
-    (!draftNewDataType && (!userPermissions.edit || !isLatest));
+  const isReadOnly = !draftNewDataType && (!userPermissions.edit || !isLatest);
 
   return (
     <>
       <NextSeo title={`${dataType.schema.title} | Data Type`} />
       <FormProvider {...formMethods}>
         <Box display="contents" component="form" onSubmit={handleSubmit}>
-          {!inSlide && (
-            <TopContextBar
-              defaultCrumbIcon={null}
-              item={remoteDataType ?? undefined}
-              crumbs={[
-                {
-                  href: "/types",
-                  title: "Types",
-                  id: "types",
-                },
-                {
-                  href: "/types/data-type",
-                  title: "Data Types",
-                  id: "data-types",
-                },
-                {
-                  title: dataType.schema.title,
-                  href: "#",
-                  id: dataType.schema.$id,
-                },
-              ]}
-              scrollToTop={() => {}}
-              sx={{ bgcolor: "white" }}
-            />
-          )}
+          <TopContextBar
+            defaultCrumbIcon={null}
+            item={remoteDataType ?? undefined}
+            crumbs={[
+              {
+                href: "/types",
+                title: "Types",
+                id: "types",
+              },
+              {
+                href: "/types/data-type",
+                title: "Data Types",
+                id: "data-types",
+              },
+              {
+                title: dataType.schema.title,
+                href: "#",
+                id: dataType.schema.$id,
+              },
+            ]}
+            scrollToTop={() => {}}
+            sx={{ bgcolor: "white" }}
+          />
 
           {!isReadOnly && (
             <EditBarTypeEditor
@@ -361,13 +357,8 @@ export const DataType = ({
             />
           )}
 
-          <Box
-            sx={[
-              typeHeaderContainerStyles,
-              inSlide ? { border: "none", pb: 0 } : {},
-            ]}
-          >
-            <Container>
+          <Box sx={typeHeaderContainerStyles}>
+            <Container sx={inSlide ? inSlideContainerStyles : {}}>
               <DataTypeHeader
                 currentVersion={currentVersion}
                 dataTypeSchema={dataType.schema}
@@ -388,7 +379,12 @@ export const DataType = ({
                 </Typography>
                 <DataTypesParents
                   isReadOnly={isReadOnly}
-                  onDataTypeClick={onDataTypeClick}
+                  onDataTypeClick={(dataTypeId) => {
+                    pushToSlideStack({
+                      kind: "dataType",
+                      itemId: dataTypeId,
+                    });
+                  }}
                 />
               </Box>
               <Box>

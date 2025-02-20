@@ -22,18 +22,18 @@ import { LinkSection } from "./entity-editor/link-section";
 import { LinksSection } from "./entity-editor/links-section";
 import type { OutgoingLinksFilterValues } from "./entity-editor/links-section/outgoing-links-section/readonly-outgoing-links-table";
 import { PropertiesSection } from "./entity-editor/properties-section";
-import type { CustomColumn } from "./entity-editor/shared/types";
+import type { CustomEntityLinksColumn } from "./entity-editor/shared/types";
 import { TypesSection } from "./entity-editor/types-section";
 import { useEntityEditorTab } from "./shared/entity-editor-tabs";
 import type { DraftLinkState } from "./shared/use-draft-link-state";
 
-export type { CustomColumn };
+export type { CustomEntityLinksColumn };
 
 export interface EntityEditorProps extends DraftLinkState {
   closedMultiEntityType: ClosedMultiEntityType;
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
   closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
-  customColumns?: CustomColumn[];
+  customEntityLinksColumns?: CustomEntityLinksColumn[];
   defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
   isDirty: boolean;
   entityLabel: string;

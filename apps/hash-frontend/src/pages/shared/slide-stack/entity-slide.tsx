@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client";
 import {
   ArrowUpRightFromSquareRegularIcon,
-  ArrowUpRightRegularIcon,
   EntityOrTypeIcon,
   Skeleton,
 } from "@hashintel/design-system";
@@ -9,15 +8,10 @@ import {
   type Entity,
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
-  isClosedMultiEntityTypeForEntityTypeIds,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  ClosedMultiEntityTypesDefinitions,
-  ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-types/ontology";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
@@ -26,14 +20,10 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  extractOwnedByIdFromEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
+import { splitEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Stack, Typography } from "@mui/material";
-import type { RefObject } from "react";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
@@ -46,7 +36,7 @@ import {
   getEntitySubgraphQuery,
   updateEntityMutation,
 } from "../../../graphql/queries/knowledge/entity.queries";
-import { Button, Link } from "../../../shared/ui";
+import { Link } from "../../../shared/ui";
 import type { EntityEditorProps } from "../../@/[shortname]/entities/[entity-uuid].page/entity-editor";
 import { EntityEditor } from "../../@/[shortname]/entities/[entity-uuid].page/entity-editor";
 import { createDraftEntitySubgraph } from "../../@/[shortname]/entities/[entity-uuid].page/shared/create-draft-entity-subgraph";
@@ -56,52 +46,37 @@ import { useHandleTypeChanges } from "../../@/[shortname]/entities/[entity-uuid]
 import { ArchivedItemBanner } from "../top-context-bar/archived-item-banner";
 import type { MinimalEntityValidationReport } from "../use-validate-entity";
 import { useValidateEntity } from "../use-validate-entity";
-import type { PushToStackFn } from "./types";
+import { useSlideStack } from "./context";
 
 export interface EntitySlideProps {
-  closedMultiEntityTypesMap?: ClosedMultiEntityTypesRootMap;
-  closedMultiEntityTypesDefinitions?: ClosedMultiEntityTypesDefinitions;
-  customColumns?: EntityEditorProps["customColumns"];
+  /**
+   * The default outgoing link filters to apply to the links tables in the entity editor
+   */
   defaultOutgoingLinkFilters?: EntityEditorProps["defaultOutgoingLinkFilters"];
   /**
    * Hide the link to open the entity in a new tab.
    */
   hideOpenInNew?: boolean;
-  isReadOnly: boolean;
-  onSubmit: () => void;
-  pushToStack: PushToStackFn;
   /**
-   * If you already have a subgraph with the entity, its types and incoming/outgoing links to a depth of 1, provide it.
-   * If you have a subgraph with partial data (e.g. no links), you can provide it along with `entityId`,
-   * and the missing data will be fetched and loaded in when it is available.
+   * When the entity is updated, call this function with the updated entity's entityId.
    */
-  entitySubgraph?: Subgraph<EntityRootType>;
+  onUpdateEntity?: (entityId: EntityId) => void;
   entityId: EntityId;
-  /**
-   * The ref to the container of the slide. Used to correctly attach popups etc within the editor,
-   * in case the slide is not attached to the body.
-   */
-  slideContainerRef?: RefObject<HTMLDivElement | null>;
 }
 
 export const EntitySlide = memo(
   ({
-    closedMultiEntityTypesMap: providedClosedMultiEntityTypesMap,
-    closedMultiEntityTypesDefinitions:
-      providedClosedMultiEntityTypesDefinitions,
-    customColumns,
     defaultOutgoingLinkFilters,
-    entitySubgraph: providedEntitySubgraph,
     entityId: providedEntityId,
     hideOpenInNew,
-    onSubmit,
-    pushToStack,
-    isReadOnly = false,
-    slideContainerRef,
+    onUpdateEntity,
   }: EntitySlideProps) => {
     const [localEntitySubgraph, setLocalEntitySubgraph] = useState<
       Subgraph<EntityRootType> | undefined
-    >(providedEntitySubgraph);
+    >();
+
+    const { customEntityLinksColumns, pushToSlideStack, slideContainerRef } =
+      useSlideStack();
 
     const entity = localEntitySubgraph
       ? getRoots(localEntitySubgraph)[0]
@@ -109,36 +84,13 @@ export const EntitySlide = memo(
 
     const [ownedById, entityUuid, draftId] = splitEntityId(providedEntityId);
 
-    const providedTypeDetails = useMemo(() => {
-      if (
-        providedClosedMultiEntityTypesMap &&
-        providedClosedMultiEntityTypesDefinitions &&
-        entity?.metadata.entityTypeIds
-      ) {
-        const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
-          providedClosedMultiEntityTypesMap,
-          entity.metadata.entityTypeIds,
-        );
-
-        return {
-          closedMultiEntityType,
-          closedMultiEntityTypesDefinitions:
-            providedClosedMultiEntityTypesDefinitions,
-        };
-      }
-    }, [
-      providedClosedMultiEntityTypesMap,
-      providedClosedMultiEntityTypesDefinitions,
-      entity?.metadata.entityTypeIds,
-    ]);
-
     const [draftEntityTypesDetails, setDraftEntityTypesDetails] = useState<
       | Pick<
           EntityEditorProps,
           "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
         >
       | undefined
-    >(providedTypeDetails);
+    >();
 
     const [
       draftLinksToCreate,
@@ -154,62 +106,6 @@ export const EntitySlide = memo(
       setDraftEntitySubgraph: setLocalEntitySubgraph,
       setDraftLinksToArchive,
     });
-
-    useEffect(() => {
-      if (
-        entity?.metadata.entityTypeIds &&
-        providedTypeDetails &&
-        !isClosedMultiEntityTypeForEntityTypeIds(
-          providedTypeDetails.closedMultiEntityType,
-          entity.metadata.entityTypeIds,
-        )
-      ) {
-        setDraftEntityTypesDetails(providedTypeDetails);
-      }
-    }, [entity?.metadata.entityTypeIds, providedTypeDetails]);
-
-    const entityWithLinksAndTypesAvailableLocally = useMemo(() => {
-      if (!localEntitySubgraph || !draftEntityTypesDetails || !entity) {
-        return false;
-      }
-
-      if (
-        !isClosedMultiEntityTypeForEntityTypeIds(
-          draftEntityTypesDetails.closedMultiEntityType,
-          entity.metadata.entityTypeIds,
-        )
-      ) {
-        return false;
-      }
-
-      /**
-       * If the provided subgraph doesn't have a depth of 1 for these traversal options,
-       * it doesn't contain the incoming and outgoing links from the entity.
-       */
-      if (
-        localEntitySubgraph.depths.hasLeftEntity.incoming === 0 ||
-        localEntitySubgraph.depths.hasLeftEntity.outgoing === 0 ||
-        localEntitySubgraph.depths.hasRightEntity.incoming === 0 ||
-        localEntitySubgraph.depths.hasRightEntity.outgoing === 0
-      ) {
-        return false;
-      }
-
-      /**
-       * If the entity isn't in the subgraph roots, it may not have the links to/from it.
-       */
-      const roots = getRoots(localEntitySubgraph);
-      const containsRequestedEntity = roots.some(
-        (root) => root.entityId === providedEntityId,
-      );
-
-      return containsRequestedEntity;
-    }, [
-      entity,
-      draftEntityTypesDetails,
-      localEntitySubgraph,
-      providedEntityId,
-    ]);
 
     /**
      * If the parent component didn't have the entitySubgraph already available,
@@ -253,9 +149,6 @@ export const EntitySlide = memo(
           closedMultiEntityTypesDefinitions: definitions,
         });
       },
-      skip:
-        entityWithLinksAndTypesAvailableLocally &&
-        !!providedClosedMultiEntityTypesDefinitions,
       variables: {
         request: {
           filter: {
@@ -294,15 +187,8 @@ export const EntitySlide = memo(
           fetchedEntityData.getEntitySubgraph.subgraph,
         );
       }
+    }, [fetchedEntityData]);
 
-      if (providedEntitySubgraph) {
-        return providedEntitySubgraph;
-      }
-
-      return null;
-    }, [providedEntitySubgraph, fetchedEntityData]);
-
-    const [savingChanges, setSavingChanges] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
 
     const [updateEntity] = useMutation<
@@ -383,7 +269,7 @@ export const EntitySlide = memo(
         }
 
         resetEntityEditor();
-        onSubmit();
+        onUpdateEntity?.(draftEntity.metadata.recordId.entityId);
       } catch {
         setSavingChanges(false);
       }
@@ -393,7 +279,7 @@ export const EntitySlide = memo(
       draftLinksToCreate,
       originalEntitySubgraph,
       localEntitySubgraph,
-      onSubmit,
+      onUpdateEntity,
       resetEntityEditor,
       updateEntity,
     ]);
@@ -428,7 +314,6 @@ export const EntitySlide = memo(
     if (
       !entity ||
       !localEntitySubgraph ||
-      !entityWithLinksAndTypesAvailableLocally ||
       !draftEntityTypesDetails ||
       entity.entityId !== providedEntityId
     ) {
@@ -450,7 +335,11 @@ export const EntitySlide = memo(
         )}
         <Stack gap={5} px={6} pb={5} pt={1}>
           <Stack alignItems="flex-start" direction="row">
-            <Stack alignItems="flex-start" direction="row">
+            <Stack
+              alignItems="flex-start"
+              direction="row"
+              justifyContent="flex-start"
+            >
               <EntityOrTypeIcon
                 entity={entity}
                 icon={icon}
@@ -479,7 +368,7 @@ export const EntitySlide = memo(
                   <ArrowUpRightFromSquareRegularIcon
                     sx={{
                       fill: ({ palette }) => palette.blue[70],
-                      fontSize: 18,
+                      fontSize: 24,
                       ml: 1.2,
                     }}
                   />
@@ -491,13 +380,12 @@ export const EntitySlide = memo(
           <EntityEditor
             closedMultiEntityTypesMap={
               fetchedEntityData?.getEntitySubgraph.closedMultiEntityTypes ??
-              providedClosedMultiEntityTypesMap ??
               null
             }
-            customColumns={customColumns}
+            customEntityLinksColumns={customEntityLinksColumns}
             {...draftEntityTypesDetails}
             defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
-            readonly={isReadOnly}
+            readonly={false}
             onEntityUpdated={null}
             entityLabel={entityLabel}
             entitySubgraph={localEntitySubgraph}
@@ -533,32 +421,18 @@ export const EntitySlide = memo(
             }}
             isDirty={isDirty}
             onEntityClick={(entityId) => {
-              pushToStack({ type: "entity", itemId: entityId, onSubmit });
+              pushToSlideStack({ kind: "entity", itemId: entityId });
             }}
             onTypeClick={(kind, url) => {
-              pushToStack({ type: kind, itemId: url });
+              pushToSlideStack({ kind, itemId: url });
             }}
             draftLinksToCreate={draftLinksToCreate}
             setDraftLinksToCreate={setDraftLinksToCreate}
             draftLinksToArchive={draftLinksToArchive}
             setDraftLinksToArchive={setDraftLinksToArchive}
-            slideContainerRef={slideContainerRef}
+            slideContainerRef={slideContainerRef ?? undefined}
             validationReport={null}
           />
-          {!isReadOnly && (
-            <Stack direction="row" gap={3}>
-              <Button
-                onClick={handleSaveChanges}
-                loading={savingChanges}
-                disabled={submitDisabled}
-              >
-                Save Changes
-              </Button>
-              <Button onClick={handleDiscardChanges} variant="tertiary">
-                Discard
-              </Button>
-            </Stack>
-          )}
         </Stack>
       </Box>
     );

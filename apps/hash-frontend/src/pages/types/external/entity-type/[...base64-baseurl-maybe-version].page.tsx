@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../../shared/layout";
-import { EntityTypePage } from "../../../shared/entity-type-page";
+import { EntityType } from "../../../shared/entity-type";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -19,7 +19,7 @@ const Page: NextPageWithLayout = () => {
     : null;
 
   return (
-    <EntityTypePage
+    <EntityType
       entityTypeBaseUrl={entityTypeBaseUrl}
       key={`${entityTypeBaseUrl}-${requestedVersion}`}
       requestedVersion={requestedVersion}

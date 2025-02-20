@@ -26,7 +26,13 @@ export const EditBarScroller = ({
 
   return (
     <EditBarContext.Provider value={value}>
-      <Box sx={{ minHeight: `calc(100vh - ${HEADER_HEIGHT}px)` }} ref={setPage}>
+      <Box
+        sx={{
+          display: "contents",
+          minHeight: `calc(100vh - ${HEADER_HEIGHT}px)`,
+        }}
+        ref={setPage}
+      >
         {children}
       </Box>
     </EditBarContext.Provider>

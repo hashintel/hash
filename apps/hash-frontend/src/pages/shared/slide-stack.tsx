@@ -1,25 +1,34 @@
-import { Backdrop, Box, Slide } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useState } from "react";
+import { Backdrop, Box, Slide, Stack } from "@mui/material";
+import type {
+  Dispatch,
+  FunctionComponent,
+  RefObject,
+  SetStateAction,
+} from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useScrollLock } from "../../shared/use-scroll-lock";
+import type { CustomEntityLinksColumn } from "../@/[shortname]/entities/[entity-uuid].page/entity-editor";
+import { SlideStackContext } from "./slide-stack/context";
 import { DataTypeSlide } from "./slide-stack/data-type-slide";
 import { EntitySlide } from "./slide-stack/entity-slide";
 import { EntityTypeSlide } from "./slide-stack/entity-type-slide";
-import { SlideBackForwardCloseBar } from "./slide-stack/slide-back-forward-close-bar";
-import type { CommonSlideProps, SlideItem } from "./slide-stack/types";
+import {
+  backForwardHeight,
+  SlideBackForwardCloseBar,
+} from "./slide-stack/slide-back-forward-close-bar";
+import type { SlideItem } from "./slide-stack/types";
+
+export { useSlideStack } from "./slide-stack/context";
 
 const SLIDE_WIDTH = 1_000;
 
 const StackSlide = ({
-  hideOpenInNew,
-  isReadOnly,
   item,
   open,
   onBack,
   onClose,
   onForward,
-  pushToStack,
   slideContainerRef,
   stackPosition,
 }: {
@@ -28,8 +37,9 @@ const StackSlide = ({
   onBack?: () => void;
   onClose: () => void;
   onForward?: () => void;
+  slideContainerRef: RefObject<HTMLDivElement | null> | null;
   stackPosition: number;
-} & CommonSlideProps) => {
+}) => {
   const [animateOut, setAnimateOut] = useState(false);
 
   const handleBackClick = useCallback(() => {
@@ -49,14 +59,14 @@ const StackSlide = ({
     >
       <Box
         sx={{
-          height: 1,
+          height: "100vh",
           width: SLIDE_WIDTH,
-          background: "white",
           position: "absolute",
           top: 0,
           right: 0,
           overflowY: "auto",
           zIndex: ({ zIndex }) => zIndex.drawer + 2 + stackPosition,
+          background: ({ palette }) => palette.gray[10],
         }}
       >
         <SlideBackForwardCloseBar
@@ -64,67 +74,43 @@ const StackSlide = ({
           onForward={onForward}
           onClose={onClose}
         />
-        {item.type === "dataType" && (
-          <DataTypeSlide
-            dataTypeId={item.itemId}
-            hideOpenInNew={hideOpenInNew}
-            isReadOnly={isReadOnly}
-            pushToStack={pushToStack}
-          />
+
+        {item.kind === "dataType" && <DataTypeSlide dataTypeId={item.itemId} />}
+        {item.kind === "entityType" && (
+          <EntityTypeSlide typeUrl={item.itemId} />
         )}
-        {item.type === "entityType" && (
-          <EntityTypeSlide
-            isReadOnly={isReadOnly}
-            pushToStack={pushToStack}
-            typeUrl={item.itemId}
-          />
-        )}
-        {item.type === "entity" && (
-          <EntitySlide
-            {...item}
-            entityId={item.itemId}
-            hideOpenInNew={hideOpenInNew}
-            isReadOnly={isReadOnly}
-            pushToStack={pushToStack}
-          />
+        {item.kind === "entity" && (
+          <EntitySlide {...item} entityId={item.itemId} />
         )}
       </Box>
     </Slide>
   );
 };
 
-export const SlideStack: FunctionComponent<
-  {
-    rootItem: SlideItem;
-    onClose: () => void;
-  } & Omit<CommonSlideProps, "pushToStack">
-> = ({ rootItem, onClose, ...props }) => {
+export const SlideStack: FunctionComponent<{
+  currentIndex: number;
+  items: SlideItem[];
+  setCurrentIndex: Dispatch<SetStateAction<number>>;
+  setItems: (items: SlideItem[]) => void;
+  slideContainerRef: RefObject<HTMLDivElement | null> | null;
+}> = ({
+  currentIndex,
+  items,
+  setCurrentIndex,
+  setItems,
+  slideContainerRef,
+}) => {
   const [animateOut, setAnimateOut] = useState(false);
-  const [items, setItems] = useState<SlideItem[]>([rootItem]);
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
 
-  useScrollLock(true);
-
-  if (rootItem.itemId !== items[0]?.itemId) {
-    setCurrentIndex(0);
-    setItems([rootItem]);
-  }
+  useScrollLock(items.length > 0);
 
   const handleBack = useCallback(() => {
     setCurrentIndex((prevIndex) => Math.max(prevIndex - 1, 0));
-  }, []);
+  }, [setCurrentIndex]);
 
   const handleForward = useCallback(() => {
     setCurrentIndex((prevIndex) => Math.min(prevIndex + 1, items.length - 1));
-  }, [items.length]);
-
-  const pushToStack = useCallback(
-    (item: SlideItem) => {
-      setItems((prev) => [...prev.slice(0, currentIndex + 1), item]);
-      setCurrentIndex((prevIndex) => prevIndex + 1);
-    },
-    [currentIndex],
-  );
+  }, [items.length, setCurrentIndex]);
 
   const handleClose = useCallback(() => {
     setAnimateOut(true);
@@ -132,13 +118,12 @@ export const SlideStack: FunctionComponent<
     setTimeout(() => {
       setAnimateOut(false);
       setItems([]);
-      onClose();
     }, 200);
-  }, [setAnimateOut, setItems, onClose]);
+  }, [setAnimateOut, setItems]);
 
   return (
     <Backdrop
-      open={!animateOut}
+      open={items.length > 0 && !animateOut}
       onClick={handleClose}
       sx={{ zIndex: ({ zIndex }) => zIndex.drawer + 2 }}
     >
@@ -151,11 +136,68 @@ export const SlideStack: FunctionComponent<
           onBack={index > 0 ? handleBack : undefined}
           onForward={index < items.length - 1 ? handleForward : undefined}
           onClose={handleClose}
-          pushToStack={pushToStack}
+          slideContainerRef={slideContainerRef}
           stackPosition={index}
-          {...props}
         />
       ))}
     </Backdrop>
+  );
+};
+
+export const SlideStackProvider = ({
+  children,
+  customEntityLinksColumns,
+}: {
+  children: React.ReactNode;
+  customEntityLinksColumns?: CustomEntityLinksColumn[];
+}) => {
+  const [items, setItems] = useState<SlideItem[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [slideContainerRef, setSlideContainerRef] =
+    useState<RefObject<HTMLDivElement | null> | null>(null);
+
+  if (currentIndex > 0 && items.length === 0) {
+    setCurrentIndex(0);
+  }
+
+  const pushToSlideStack = useCallback(
+    (item: SlideItem) => {
+      setItems((prev) => [...prev.slice(0, currentIndex + 1), item]);
+
+      if (items.length === 0) {
+        setCurrentIndex(0);
+      } else {
+        setCurrentIndex((prevIndex) => prevIndex + 1);
+      }
+    },
+    [currentIndex, items.length],
+  );
+
+  const value = useMemo(
+    () => ({
+      customEntityLinksColumns,
+      pushToSlideStack,
+      setSlideContainerRef,
+      slideContainerRef,
+    }),
+    [
+      customEntityLinksColumns,
+      pushToSlideStack,
+      setSlideContainerRef,
+      slideContainerRef,
+    ],
+  );
+
+  return (
+    <SlideStackContext.Provider value={value}>
+      {children}
+      <SlideStack
+        currentIndex={currentIndex}
+        items={items}
+        setCurrentIndex={setCurrentIndex}
+        setItems={setItems}
+        slideContainerRef={slideContainerRef}
+      />
+    </SlideStackContext.Provider>
   );
 };

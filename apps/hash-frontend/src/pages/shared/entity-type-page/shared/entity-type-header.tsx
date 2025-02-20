@@ -60,13 +60,13 @@ export const EntityTypeHeader = ({
     <>
       <Box>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-          <CopyableOntologyChip
+          {/* <CopyableOntologyChip
             hideOpenInNew={hideOpenInNew}
             versionedUrl={versionedUrlFromComponents(
               extractBaseUrl(entityTypeSchema.$id),
               currentVersion,
             )}
-          />
+          /> */}
 
           {!isLatest && (
             <Link
@@ -90,7 +90,7 @@ export const EntityTypeHeader = ({
           justifyContent="space-between"
         >
           <Stack direction="row" alignItems="center" gap={5}>
-            <Box display="flex" alignItems="center" my={3}>
+            <Box display="flex" alignItems="center" mt={1} mb={3}>
               <Controller
                 control={control}
                 name="icon"
