@@ -1,7 +1,10 @@
 import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SxProps, Theme } from "@mui/material";
 import {
@@ -24,9 +27,9 @@ import { Breadcrumbs } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
 import { ShareDropdownMenu } from "./top-context-bar/share-dropdown-menu";
-import { isItemEntityType } from "./top-context-bar/util";
+import { isItemType } from "./top-context-bar/util";
 
-export { isItemEntityType };
+export { isItemType as isItemEntityType };
 export { useContextBarActionsContext } from "./top-context-bar/context-bar-actions-context";
 
 const PageRestoredMessageWrapper: FunctionComponent<{
@@ -105,7 +108,7 @@ export const TOP_CONTEXT_BAR_HEIGHT = 50;
 type TopContextBarProps = {
   actionMenuItems?: ReactElement<MenuItemProps>[];
   crumbs: BreadcrumbsProps["crumbs"];
-  item?: Entity | EntityTypeWithMetadata;
+  item?: Entity | EntityTypeWithMetadata | DataTypeWithMetadata;
   defaultCrumbIcon?: ReactNode;
   scrollToTop?: () => void;
   sx?: SxProps<Theme>;
@@ -173,7 +176,7 @@ export const TopContextBar = ({
           />
           {item && displayRestoredMessage ? (
             <PageRestoredMessageWrapper>{`${
-              isItemEntityType(item)
+              isItemType(item)
                 ? "Type"
                 : isEntityPageEntity(item)
                   ? "Page"
@@ -183,7 +186,7 @@ export const TopContextBar = ({
           {breadcrumbsEndAdornment}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {item && !isItemEntityType(item) && !isEntityPageEntity(item) && (
+          {item && !isItemType(item) && !isEntityPageEntity(item) && (
             <ShareDropdownMenu entity={item} />
           )}
 

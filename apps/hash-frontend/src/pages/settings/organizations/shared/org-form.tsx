@@ -7,7 +7,7 @@ import {
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 
 import { useShortnameInput } from "../../../../components/hooks/use-shortname-input";
 import type { Org } from "../../../../lib/user-and-org";
@@ -105,7 +105,6 @@ export const OrgForm = ({
     handleSubmit,
     register,
     reset,
-    watch,
   } = useForm<OrgFormData>({
     mode: "all",
     defaultValues: {
@@ -120,14 +119,14 @@ export const OrgForm = ({
   const { validateShortname, parseShortnameInput, getShortnameError } =
     useShortnameInput();
 
-  const shortnameWatcher = watch("shortname");
+  const shortnameWatcher = useWatch({ control, name: "shortname" });
 
   const shortnameError = getShortnameError(
     errors.shortname?.message,
     !!touchedFields.shortname,
   );
 
-  const nameWatcher = watch("name");
+  const nameWatcher = useWatch({ control, name: "name" });
 
   const existingImageEntity = initialOrg?.hasAvatar?.imageEntity;
 

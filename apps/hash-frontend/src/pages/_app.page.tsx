@@ -246,7 +246,9 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       redirectInGetInitialProps({
         appContext,
         location: `/signin${
-          ["", "/", "/404"].includes(pathname) ? "" : `?return_to=${asPath}`
+          ["", "/", "/404"].includes(pathname)
+            ? ""
+            : `?return_to=${req?.url ?? asPath}`
         }`,
       });
     }

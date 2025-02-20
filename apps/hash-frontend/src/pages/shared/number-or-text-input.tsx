@@ -1,9 +1,8 @@
 import type { TextFieldProps } from "@hashintel/design-system";
 import { TextField } from "@hashintel/design-system";
-import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
+import type { MergedValueSchema } from "@local/hash-isomorphic-utils/data-types";
 import { format, formatISO, parseISO } from "date-fns";
-
-import type { CellInputProps } from "./types";
+import type { Ref } from "react";
 
 /**
  * Get the current offset from UTC according to the user's device.
@@ -33,17 +32,27 @@ const convertDateTimeToLocalRFC3339 = (dateTimeStringWithoutOffset: string) => {
 };
 
 export const NumberOrTextInput = ({
+  fontSize,
+  inputRef,
   isNumber,
+  multiLineText,
   onBlur,
   onChange,
   onEnterPressed,
+  onEscapePressed,
   schema,
   value: uncheckedValue,
-}: CellInputProps<number | string | undefined> & {
+}: {
+  fontSize?: number;
+  inputRef?: Ref<HTMLInputElement>;
   isNumber: boolean;
+  multiLineText?: boolean;
   onBlur?: TextFieldProps["onBlur"];
-  schema: MergedDataTypeSingleSchema;
+  onChange: (value: number | string | undefined) => void;
+  schema: MergedValueSchema;
   onEnterPressed?: () => void;
+  onEscapePressed?: () => void;
+  value: number | string | undefined;
 }) => {
   const minLength = "minLength" in schema ? schema.minLength : undefined;
   const maxLength = "maxLength" in schema ? schema.maxLength : undefined;
@@ -52,7 +61,7 @@ export const NumberOrTextInput = ({
     throw new Error("multipleOf with multiple values is not supported");
   }
 
-  const step =
+  let step =
     "multipleOf" in schema && schema.multipleOf?.[0] !== undefined
       ? schema.multipleOf[0]
       : 0.001;
@@ -86,8 +95,13 @@ export const NumberOrTextInput = ({
       if (typeof value === "string" && value) {
         const datetime = parseISO(value);
         // reformat the date to match the datetime-local input type
-        value = format(datetime, "yyyy-MM-dd'T'HH:mm:ss.SSS");
+        try {
+          value = format(datetime, "yyyy-MM-dd'T'HH:mm:ss.SSS");
+        } catch {
+          value = "";
+        }
       }
+      step = 60;
       break;
     case "date":
       inputType = "date";
@@ -98,6 +112,7 @@ export const NumberOrTextInput = ({
         // drop the offset from the end of the time to match the input type
         value = value.split(/([Z+-])/)[0];
       }
+      step = 60;
       break;
     case "email":
       inputType = "email";
@@ -116,13 +131,17 @@ export const NumberOrTextInput = ({
         inputProps: {
           minLength,
           maxLength,
-          minimum,
-          maximum,
+          min: minimum,
+          max: maximum,
           step,
+        },
+        inputRef,
+        sx: {
+          fontSize,
         },
       }}
       autoFocus
-      multiline={inputType === "text"}
+      multiline={inputType === "text" && multiLineText}
       minRows={1}
       value={value}
       type={inputType}
@@ -149,8 +168,14 @@ export const NumberOrTextInput = ({
       }}
       onKeyDown={(event) => {
         if (onEnterPressed && event.key === "Enter") {
+          event.preventDefault();
           event.stopPropagation();
           onEnterPressed();
+        }
+
+        if (onEscapePressed && event.key === "Escape") {
+          event.stopPropagation();
+          onEscapePressed();
         }
       }}
     />

@@ -16,7 +16,7 @@ export const scalars = {
 
   DataTypeWithMetadata: "@local/hash-graph-types/ontology#DataTypeWithMetadata",
   ConstructDataTypeParams:
-    "@local/hash-isomorphic-utils/data-types#ConstructDataTypeParams",
+    "@local/hash-graph-types/ontology#ConstructDataTypeParams",
   DataTypeConversionsMap:
     "@local/hash-isomorphic-utils/data-types#DataTypeConversionsMap",
 
@@ -30,6 +30,7 @@ export const scalars = {
     "@local/hash-graph-types/ontology#EntityTypeWithMetadata",
   ConstructEntityTypeParams:
     "@local/hash-isomorphic-utils/types#ConstructEntityTypeParams",
+
   PropertyTypeWithMetadata:
     "@local/hash-graph-types/ontology#PropertyTypeWithMetadata",
   ConstructPropertyTypeParams:
@@ -71,6 +72,8 @@ export const scalars = {
   UserPermissions: "@local/hash-isomorphic-utils/types#UserPermissions",
   UserPermissionsOnEntityType:
     "@local/hash-isomorphic-utils/types#UserPermissionsOnEntityType",
+  UserPermissionsOnDataType:
+    "@local/hash-isomorphic-utils/types#UserPermissionsOnDataType",
   ProspectiveUserProperties:
     "@local/hash-isomorphic-utils/system-types/prospectiveuser#ProspectiveUserProperties",
 

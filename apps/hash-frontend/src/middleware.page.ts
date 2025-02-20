@@ -55,7 +55,7 @@ export const middleware = async (request: NextRequest) => {
 
   if (
     ontologyType &&
-    (!accept?.includes("text/html") || ontologyType !== "entity-type")
+    (!accept?.includes("text/html") || ontologyType === "property-type")
   ) {
     return returnTypeAsJson(request);
   }

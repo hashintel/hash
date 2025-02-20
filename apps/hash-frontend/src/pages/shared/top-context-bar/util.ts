@@ -1,6 +1,15 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 
-export const isItemEntityType = (
-  item: Entity | EntityTypeWithMetadata,
-): item is EntityTypeWithMetadata => "schema" in item;
+export const isItemType = <
+  Type extends
+    | EntityTypeWithMetadata
+    | DataTypeWithMetadata
+    | PropertyTypeWithMetadata,
+>(
+  item: Entity | Type,
+): item is Type => "schema" in item;

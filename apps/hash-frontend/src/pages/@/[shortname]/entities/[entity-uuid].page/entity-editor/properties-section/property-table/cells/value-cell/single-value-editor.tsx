@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
 import type { ClosedDataType } from "@blockprotocol/type-system";
-import { Chip } from "@hashintel/design-system";
+import { Autocomplete, Chip } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import type { PropertyMetadataValue } from "@local/hash-graph-types/entity";
 import { isValueMetadata } from "@local/hash-graph-types/entity";
@@ -9,7 +9,7 @@ import {
   createConversionFunction,
   getMergedDataTypeSchema,
 } from "@local/hash-isomorphic-utils/data-types";
-import { Box } from "@mui/material";
+import { Box, outlinedInputClasses, Typography } from "@mui/material";
 import produce from "immer";
 import { useEffect, useRef, useState } from "react";
 
@@ -18,12 +18,12 @@ import type {
   GetDataTypeConversionTargetsQueryVariables,
 } from "../../../../../../../../../../graphql/api-types.gen";
 import { getDataTypeConversionTargetsQuery } from "../../../../../../../../../../graphql/queries/ontology/data-type.queries";
+import { NumberOrTextInput } from "../../../../../../../../../shared/number-or-text-input";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { getEditorSpecs } from "./editor-specs";
 import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
 import { JsonInput } from "./inputs/json-input";
-import { NumberOrTextInput } from "./inputs/number-or-text-input";
 import type { ValueCell, ValueCellEditorComponent } from "./types";
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
@@ -53,6 +53,9 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
       const schema = getMergedDataTypeSchema(dataType.schema);
 
       if ("anyOf" in schema) {
+        /**
+         * @todo H-4067: Support anyOf constraints (e.g. data types which can be 'string' or 'number')
+         */
         throw new Error(
           "Data types with different expected sets of constraints (anyOf) are not yet supported",
         );
@@ -92,6 +95,9 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     const schema = getMergedDataTypeSchema(dataType.schema);
 
     if ("anyOf" in schema) {
+      /**
+       * @todo H-4067: Support anyOf constraints (e.g. data types which can be 'string' or 'number')
+       */
       throw new Error(
         "Data types with different expected sets of constraints (anyOf) are not yet supported",
       );
@@ -167,6 +173,9 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
             const schema = getMergedDataTypeSchema(type);
 
             if ("anyOf" in schema) {
+              /**
+               * @todo H-4067: Support anyOf constraints (e.g. data types which can be 'string' or 'number')
+               */
               throw new Error(
                 "Data types with different expected sets of constraints (anyOf) are not yet supported",
               );
@@ -294,6 +303,73 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
+  if ("enum" in schema) {
+    if (!schema.enum) {
+      throw new Error("schema.enum is undefined");
+    }
+
+    return (
+      <GridEditorWrapper>
+        <Autocomplete
+          componentsProps={{
+            paper: {
+              className: GRID_CLICK_IGNORE_CLASS,
+            },
+          }}
+          disableCloseOnSelect={false}
+          options={schema.enum}
+          inputProps={{
+            endAdornment: <Box />,
+            startAdornment: <Box />,
+            sx: {
+              [`&.${outlinedInputClasses.root}`]: {
+                pr: 0,
+                py: 0,
+                "& input": {
+                  fontSize: 14,
+                },
+              },
+            },
+          }}
+          isOptionEqualToValue={(option, val) => option === val}
+          value={value}
+          onChange={(_event, newValue) => {
+            const newCell = produce(cell, (draftCell) => {
+              draftCell.data.propertyRow.value = newValue;
+            });
+
+            onFinishedEditing(newCell);
+          }}
+          renderOption={({ key, ...itemProps }, item) => (
+            <Box
+              component="li"
+              key={key}
+              {...itemProps}
+              className={GRID_CLICK_IGNORE_CLASS}
+              sx={{
+                cursor: item === "value" ? "default" : "pointer",
+                px: 1,
+                py: 1,
+                background:
+                  item === value ? ({ palette }) => palette.blue[15] : "none",
+              }}
+            >
+              <Typography
+                variant="smallTextParagraphs"
+                sx={{
+                  color: ({ palette }) => palette.gray[90],
+                  fontSize: 14,
+                }}
+              >
+                {String(item)}
+              </Typography>
+            </Box>
+          )}
+        />
+      </GridEditorWrapper>
+    );
+  }
+
   /**
    * Force validation on the text input form.
    * If the form is valid or if the form has been unmounted, allow <Grid /> to handle click events again.
@@ -348,6 +424,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
         ref={textInputFormRef}
       >
         <NumberOrTextInput
+          multiLineText={schema.type === "string"}
           schema={schema}
           isNumber={schema.type === "number"}
           value={(value as number | string | undefined) ?? ""}

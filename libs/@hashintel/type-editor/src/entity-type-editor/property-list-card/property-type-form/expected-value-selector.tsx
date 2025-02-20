@@ -46,6 +46,7 @@ const ExpectedValueSelectorDropdown = () => {
     handleEdit,
     inputRef,
     searchText,
+    selectedDataTypeIds,
   } = useExpectedValueSelectorContext();
 
   const { dataTypes } = useDataTypesOptions();
@@ -96,6 +97,7 @@ const ExpectedValueSelectorDropdown = () => {
               addDataType(dataTypeId);
             }}
             searchText={searchText}
+            selectedDataTypeIds={selectedDataTypeIds}
           />
 
           <Button
@@ -146,6 +148,11 @@ export const ExpectedValueSelector = ({
   propertyTypeBaseUrl?: BaseUrl;
 }) => {
   const propertyTypeFormMethods = useFormContext<PropertyTypeFormValues>();
+
+  const selectedDataTypeIds = useWatch({
+    control: propertyTypeFormMethods.control,
+    name: "expectedValues",
+  }).filter((value) => typeof value !== "object");
 
   const expectedValueSelectorFormMethods =
     useForm<ExpectedValueSelectorFormValues>({
@@ -219,7 +226,10 @@ export const ExpectedValueSelector = ({
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
 
   const infrequentlyChangingContextValues = useMemo<
-    Omit<ExpectedValueSelectorContextValue, "searchText">
+    Omit<
+      ExpectedValueSelectorContextValue,
+      "searchText" | "selectedDataTypeIds"
+    >
   >(() => {
     const closeCustomExpectedValueBuilder = () => {
       expectedValueSelectorFormMethods.setValue(
@@ -325,8 +335,9 @@ export const ExpectedValueSelector = ({
       return {
         ...infrequentlyChangingContextValues,
         searchText: inputValue,
+        selectedDataTypeIds,
       };
-    }, [infrequentlyChangingContextValues, inputValue]);
+    }, [infrequentlyChangingContextValues, inputValue, selectedDataTypeIds]);
 
   const { customExpectedValueBuilderOpen, handleEdit } =
     expectedValueSelectorContextValue;

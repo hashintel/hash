@@ -1,42 +1,42 @@
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { AccountEntityId } from "@local/hash-subgraph";
-import { extractAccountId } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useOrgs } from "./use-orgs";
 import { useUsers } from "./use-users";
 
-export const useGetAccountIdForShortname = (
+export const useGetOwnedByIdForShortname = (
   shortname: string | undefined,
-): { loading: boolean; accountId: AccountId | undefined } => {
+): { loading: boolean; ownedById: OwnedById | undefined } => {
   const { loading: usersLoading, users } = useUsers();
   const { loading: orgsLoading, orgs } = useOrgs();
 
-  const accountId = useMemo(() => {
+  const ownedById = useMemo(() => {
     /** @todo - don't do extract anymore */
-    const userBaseId = users?.find((user) => user.shortname === shortname)
+    const userEntityId = users?.find((user) => user.shortname === shortname)
       ?.entity.metadata.recordId.entityId;
-    const userAccountId = userBaseId
-      ? extractAccountId(userBaseId as AccountEntityId)
+
+    const userOwnedById = userEntityId
+      ? extractOwnedByIdFromEntityId(userEntityId)
       : undefined;
 
-    if (userAccountId !== undefined) {
-      return userAccountId;
+    if (userOwnedById !== undefined) {
+      return userOwnedById;
     }
 
-    const orgBaseId = orgs?.find((org) => org.shortname === shortname)?.entity
+    const orgEntityId = orgs?.find((org) => org.shortname === shortname)?.entity
       .metadata.recordId.entityId;
-    const orgAccountId = orgBaseId
-      ? extractAccountId(orgBaseId as AccountEntityId)
+    const orgOwnedById = orgEntityId
+      ? extractOwnedByIdFromEntityId(orgEntityId)
       : undefined;
 
-    if (orgAccountId !== undefined) {
-      return orgAccountId;
+    if (orgOwnedById !== undefined) {
+      return orgOwnedById;
     }
   }, [users, orgs, shortname]);
 
   return {
     loading: usersLoading || orgsLoading,
-    accountId,
+    ownedById,
   };
 };

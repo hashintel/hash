@@ -402,7 +402,7 @@ export const CreateEntityTypeForm = ({
           inputProps={{ minRows: 1 }}
           label="Description"
           type="text"
-          placeholder="Describe this entity in one or two sentences"
+          placeholder={`Describe this ${isLink ? "link" : "entity"} type in one or two sentences`}
           tooltipText="Descriptions should explain what an entity type is"
           sx={{ px: inModal ? 3 : 0 }}
         />
