@@ -298,7 +298,7 @@ mod tests {
     fn in_web() -> Result<(), Box<dyn Error>> {
         let web_id = OwnedById::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::Web(WebPrincipalConstraint::InWeb { id: Some(web_id) }),
+            PrincipalConstraint::Web(WebPrincipalConstraint::InWeb { id: Some(web_id) }),
             json!({
                 "type": "web",
                 "id": web_id,
@@ -307,7 +307,7 @@ mod tests {
         )?;
 
         check_principal(
-            &PrincipalConstraint::Web(WebPrincipalConstraint::InWeb { id: None }),
+            PrincipalConstraint::Web(WebPrincipalConstraint::InWeb { id: None }),
             json!({
                 "type": "web",
                 "id": null,
@@ -338,7 +338,7 @@ mod tests {
     fn in_role() -> Result<(), Box<dyn Error>> {
         let role_id = WebRoleId::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::Web(WebPrincipalConstraint::InRole {
+            PrincipalConstraint::Web(WebPrincipalConstraint::InRole {
                 role_id: Some(role_id),
             }),
             json!({
@@ -349,7 +349,7 @@ mod tests {
         )?;
 
         check_principal(
-            &PrincipalConstraint::Web(WebPrincipalConstraint::InRole { role_id: None }),
+            PrincipalConstraint::Web(WebPrincipalConstraint::InRole { role_id: None }),
             json!({
                 "type": "web",
                 "roleId": null,
@@ -373,7 +373,7 @@ mod tests {
     fn in_team() -> Result<(), Box<dyn Error>> {
         let team_id = WebTeamId::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::Web(WebPrincipalConstraint::InTeam {
+            PrincipalConstraint::Web(WebPrincipalConstraint::InTeam {
                 team_id: Some(team_id),
             }),
             json!({
@@ -384,7 +384,7 @@ mod tests {
         )?;
 
         check_principal(
-            &PrincipalConstraint::Web(WebPrincipalConstraint::InTeam { team_id: None }),
+            PrincipalConstraint::Web(WebPrincipalConstraint::InTeam { team_id: None }),
             json!({
                 "type": "web",
                 "teamId": null,
@@ -415,7 +415,7 @@ mod tests {
     fn in_team_role() -> Result<(), Box<dyn Error>> {
         let role_id = WebTeamRoleId::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::Web(WebPrincipalConstraint::InTeamRole {
+            PrincipalConstraint::Web(WebPrincipalConstraint::InTeamRole {
                 team_role_id: Some(role_id),
             }),
             json!({
@@ -426,7 +426,7 @@ mod tests {
         )?;
 
         check_principal(
-            &PrincipalConstraint::Web(WebPrincipalConstraint::InTeamRole { team_role_id: None }),
+            PrincipalConstraint::Web(WebPrincipalConstraint::InTeamRole { team_role_id: None }),
             json!({
                 "type": "web",
                 "teamRoleId": null,

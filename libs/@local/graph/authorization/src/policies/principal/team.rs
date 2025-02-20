@@ -187,7 +187,7 @@ mod tests {
     fn in_team() -> Result<(), Box<dyn Error>> {
         let team_id = TeamId::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::Team(TeamPrincipalConstraint::InTeam { id: Some(team_id) }),
+            PrincipalConstraint::Team(TeamPrincipalConstraint::InTeam { id: Some(team_id) }),
             json!({
                 "type": "team",
                 "id": team_id,
@@ -196,7 +196,7 @@ mod tests {
         )?;
 
         check_principal(
-            &PrincipalConstraint::Team(TeamPrincipalConstraint::InTeam { id: None }),
+            PrincipalConstraint::Team(TeamPrincipalConstraint::InTeam { id: None }),
             json!({
                 "type": "team",
                 "id": null,
@@ -227,7 +227,7 @@ mod tests {
     fn in_role() -> Result<(), Box<dyn Error>> {
         let role_id = TeamRoleId::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::Team(TeamPrincipalConstraint::InRole {
+            PrincipalConstraint::Team(TeamPrincipalConstraint::InRole {
                 role_id: Some(role_id),
             }),
             json!({
@@ -238,7 +238,7 @@ mod tests {
         )?;
 
         check_principal(
-            &PrincipalConstraint::Team(TeamPrincipalConstraint::InRole { role_id: None }),
+            PrincipalConstraint::Team(TeamPrincipalConstraint::InRole { role_id: None }),
             json!({
                 "type": "team",
                 "roleId": null,

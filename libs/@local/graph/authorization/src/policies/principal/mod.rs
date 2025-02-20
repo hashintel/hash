@@ -203,32 +203,76 @@ impl PrincipalConstraint {
 mod tests {
     use core::error::Error;
 
+    use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
+    use uuid::Uuid;
 
     use super::PrincipalConstraint;
-    use crate::test_utils::{check_deserialization_error, check_serialization};
+    use crate::{
+        policies::{
+            Effect, Policy, PolicyId, action::ActionConstraint, resource::ResourceConstraint,
+            tests::check_policy,
+        },
+        test_utils::{check_deserialization_error, check_serialization},
+    };
 
     #[track_caller]
     pub(crate) fn check_principal(
-        constraint: &PrincipalConstraint,
+        constraint: PrincipalConstraint,
         value: JsonValue,
         cedar_string: impl AsRef<str>,
     ) -> Result<(), Box<dyn Error>> {
-        check_serialization(constraint, value);
-
         let cedar_constraint = constraint.to_cedar();
-        assert_eq!(cedar_constraint.to_string(), cedar_string.as_ref());
+        let cedar_string = cedar_string.as_ref();
+
+        assert_eq!(cedar_constraint.to_string(), cedar_string);
         if !constraint.has_slot() {
             PrincipalConstraint::try_from_cedar(&cedar_constraint)?;
         }
+
+        let policy = Policy {
+            id: PolicyId::new(Uuid::new_v4()),
+            effect: Effect::Permit,
+            principal: constraint,
+            action: ActionConstraint::All {},
+            resource: ResourceConstraint::Global {},
+            constraints: None,
+        };
+
+        check_policy(
+            &policy,
+            json!({
+                "id": policy.id,
+                "effect": "permit",
+                "principal": &value,
+                "action": {
+                    "type": "all",
+                },
+                "resource": {
+                    "type": "global",
+                },
+            }),
+            formatdoc!(
+                "permit(
+                  {cedar_string},
+                  action,
+                  resource
+                ) when {{
+                  true
+                }};"
+            ),
+        )?;
+
+        check_serialization(&policy.principal, value);
+
         Ok(())
     }
 
     #[test]
     fn constraint_public() -> Result<(), Box<dyn Error>> {
         check_principal(
-            &PrincipalConstraint::Public {},
+            PrincipalConstraint::Public {},
             json!({
                 "type": "public",
             }),

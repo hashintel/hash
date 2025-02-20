@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn any() -> Result<(), Box<dyn Error>> {
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Any {}),
+            PrincipalConstraint::User(UserPrincipalConstraint::Any {}),
             json!({
                 "type": "user",
             }),
@@ -174,7 +174,7 @@ mod tests {
     fn exact() -> Result<(), Box<dyn Error>> {
         let user_id = UserId::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Exact {
+            PrincipalConstraint::User(UserPrincipalConstraint::Exact {
                 user_id: Some(user_id),
             }),
             json!({
@@ -185,7 +185,7 @@ mod tests {
         )?;
 
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Exact { user_id: None }),
+            PrincipalConstraint::User(UserPrincipalConstraint::Exact { user_id: None }),
             json!({
                 "type": "user",
                 "userId": null,
@@ -209,7 +209,7 @@ mod tests {
     fn organization() -> Result<(), Box<dyn Error>> {
         let web_id = OwnedById::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Web(
+            PrincipalConstraint::User(UserPrincipalConstraint::Web(
                 WebPrincipalConstraint::InWeb { id: Some(web_id) },
             )),
             json!({
@@ -220,7 +220,7 @@ mod tests {
         )?;
 
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Web(
+            PrincipalConstraint::User(UserPrincipalConstraint::Web(
                 WebPrincipalConstraint::InWeb { id: None },
             )),
             json!({
@@ -246,7 +246,7 @@ mod tests {
     fn organization_role() -> Result<(), Box<dyn Error>> {
         let web_role_id = WebRoleId::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Web(
+            PrincipalConstraint::User(UserPrincipalConstraint::Web(
                 WebPrincipalConstraint::InRole {
                     role_id: Some(web_role_id),
                 },
@@ -259,7 +259,7 @@ mod tests {
         )?;
 
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Web(
+            PrincipalConstraint::User(UserPrincipalConstraint::Web(
                 WebPrincipalConstraint::InRole { role_id: None },
             )),
             json!({

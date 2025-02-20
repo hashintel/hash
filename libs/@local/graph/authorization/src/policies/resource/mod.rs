@@ -172,26 +172,68 @@ mod tests {
     use core::error::Error;
 
     use hash_graph_types::owned_by_id::OwnedById;
+    use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
     use uuid::Uuid;
 
     use super::ResourceConstraint;
-    use crate::test_utils::{check_deserialization_error, check_serialization};
+    use crate::{
+        policies::{
+            Effect, Policy, PolicyId, action::ActionConstraint, principal::PrincipalConstraint,
+            tests::check_policy,
+        },
+        test_utils::{check_deserialization_error, check_serialization},
+    };
 
     #[track_caller]
     pub(crate) fn check_resource(
-        constraint: &ResourceConstraint,
+        constraint: ResourceConstraint,
         value: JsonValue,
         cedar_string: impl AsRef<str>,
     ) -> Result<(), Box<dyn Error>> {
-        check_serialization(constraint, value);
-
         let cedar_constraint = constraint.to_cedar();
-        assert_eq!(cedar_constraint.to_string(), cedar_string.as_ref());
+        let cedar_string = cedar_string.as_ref();
+
+        assert_eq!(cedar_constraint.to_string(), cedar_string);
         if !constraint.has_slot() {
             ResourceConstraint::try_from_cedar(&cedar_constraint)?;
         }
+
+        let policy = Policy {
+            id: PolicyId::new(Uuid::new_v4()),
+            effect: Effect::Permit,
+            principal: PrincipalConstraint::Public {},
+            action: ActionConstraint::All {},
+            resource: constraint,
+            constraints: None,
+        };
+
+        check_policy(
+            &policy,
+            json!({
+                "id": policy.id,
+                "effect": "permit",
+                "principal": {
+                    "type": "public",
+                },
+                "action": {
+                    "type": "all",
+                },
+                "resource": &value,
+            }),
+            formatdoc!(
+                "permit(
+                  principal,
+                  action,
+                  {cedar_string}
+                ) when {{
+                  true
+                }};"
+            ),
+        )?;
+
+        check_serialization(&policy.resource, value);
 
         Ok(())
     }
@@ -199,7 +241,7 @@ mod tests {
     #[test]
     fn constraint_any() -> Result<(), Box<dyn Error>> {
         check_resource(
-            &ResourceConstraint::Global {},
+            ResourceConstraint::Global {},
             json!({
                 "type": "global",
             }),
@@ -221,7 +263,7 @@ mod tests {
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
         let web_id = OwnedById::new(Uuid::new_v4());
         check_resource(
-            &ResourceConstraint::Web {
+            ResourceConstraint::Web {
                 web_id: Some(web_id),
             },
             json!({
@@ -232,7 +274,7 @@ mod tests {
         )?;
 
         check_resource(
-            &ResourceConstraint::Web { web_id: None },
+            ResourceConstraint::Web { web_id: None },
             json!({
                 "type": "web",
                 "webId": null,

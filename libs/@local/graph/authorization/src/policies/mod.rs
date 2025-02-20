@@ -7,13 +7,14 @@ mod cedar;
 
 use alloc::{collections::BTreeMap, sync::Arc};
 use core::{error::Error, fmt, str::FromStr as _};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::LazyLock};
 
 use cedar::CedarEntityId as _;
 use cedar_policy_core::{
     ast, entities::Entities, evaluator::Evaluator, extensions::Extensions,
     parser::parse_policy_or_template_to_est_and_ast,
 };
+use cedar_policy_validator::ValidatorSchema;
 use error_stack::{Report, ResultExt as _};
 use uuid::Uuid;
 
@@ -105,7 +106,7 @@ impl Request<'_> {
             (self.action.to_euid(), None),
             (self.resource.to_euid(), None),
             self.context.to_cedar(),
-            None::<&ast::RequestSchemaAllPass>,
+            Some(&*POLICY_SCHEMA),
             Extensions::none(),
         )?)
     }
@@ -124,6 +125,25 @@ pub enum InvalidPolicy {
     #[display("Invalid policy syntax")]
     InvalidSyntax,
 }
+
+static POLICY_SCHEMA: LazyLock<ValidatorSchema> = LazyLock::new(|| {
+    let (schema, warnings) = ValidatorSchema::from_cedarschema_str(
+        include_str!("../../schemas/policies.cedarschema"),
+        Extensions::none(),
+    )
+    .unwrap_or_else(|error| {
+        panic!("Policy schema is invalid: {error}");
+    });
+
+    for warning in warnings {
+        tracing::warn!("policy schema warning: {warning}");
+        #[cfg(test)]
+        {
+            eprintln!("policy schema warning: {warning}");
+        }
+    }
+    schema
+});
 
 impl Policy {
     pub(crate) fn try_from_cedar_template(
@@ -208,13 +228,15 @@ impl Policy {
 mod tests {
     use core::error::Error;
 
+    use cedar_policy_core::ast;
+    use cedar_policy_validator::{ValidationMode, Validator};
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
     use uuid::Uuid;
 
     use super::Policy;
-    use crate::test_utils::check_serialization;
+    use crate::{policies::POLICY_SCHEMA, test_utils::check_serialization};
 
     #[track_caller]
     pub(crate) fn check_policy(
@@ -225,10 +247,32 @@ mod tests {
         check_serialization(policy, value);
 
         let cedar_policy = policy.to_cedar();
+
         assert_eq!(cedar_policy.to_string(), cedar_string.as_ref());
         if !policy.principal.has_slot() && !policy.resource.has_slot() {
             Policy::try_from_cedar_template(&cedar_policy)?;
         }
+
+        let mut policy_set = ast::PolicySet::new();
+        policy_set
+            .add_template(cedar_policy)
+            .expect("Should be able to add a policy to an empty policy set");
+        let result =
+            Validator::new((*POLICY_SCHEMA).clone()).validate(&policy_set, ValidationMode::Strict);
+        if !result.validation_passed() {
+            let messages = result
+                .validation_errors()
+                .map(|error| format!(" - error: {error}"))
+                .chain(
+                    result
+                        .validation_warnings()
+                        .map(|warning| format!(" - warning: {warning}")),
+                )
+                .collect::<Vec<String>>()
+                .join("\n");
+            panic!("Policy is invalid:\n{messages}");
+        }
+
         Ok(())
     }
 

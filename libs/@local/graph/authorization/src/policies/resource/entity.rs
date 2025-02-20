@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn constraint_any() -> Result<(), Box<dyn Error>> {
         check_resource(
-            &ResourceConstraint::Entity(EntityResourceConstraint::Any {}),
+            ResourceConstraint::Entity(EntityResourceConstraint::Any {}),
             json!({
                 "type": "entity"
             }),
@@ -129,7 +129,7 @@ mod tests {
     fn constraint_exact() -> Result<(), Box<dyn Error>> {
         let entity_uuid = EntityUuid::new(Uuid::new_v4());
         check_resource(
-            &ResourceConstraint::Entity(EntityResourceConstraint::Exact {
+            ResourceConstraint::Entity(EntityResourceConstraint::Exact {
                 entity_uuid: Some(entity_uuid),
             }),
             json!({
@@ -140,7 +140,7 @@ mod tests {
         )?;
 
         check_resource(
-            &ResourceConstraint::Entity(EntityResourceConstraint::Exact { entity_uuid: None }),
+            ResourceConstraint::Entity(EntityResourceConstraint::Exact { entity_uuid: None }),
             json!({
                 "type": "entity",
                 "entityUuid": null,
@@ -164,7 +164,7 @@ mod tests {
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
         let web_id = OwnedById::new(Uuid::new_v4());
         check_resource(
-            &ResourceConstraint::Entity(EntityResourceConstraint::Web {
+            ResourceConstraint::Entity(EntityResourceConstraint::Web {
                 web_id: Some(web_id),
             }),
             json!({
@@ -175,7 +175,7 @@ mod tests {
         )?;
 
         check_resource(
-            &ResourceConstraint::Entity(EntityResourceConstraint::Web { web_id: None }),
+            ResourceConstraint::Entity(EntityResourceConstraint::Web { web_id: None }),
             json!({
                 "type": "entity",
                 "webId": null,
