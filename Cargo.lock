@@ -3055,6 +3055,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_plain",
+ "smol_str",
  "tokio",
  "tokio-util",
  "tracing",

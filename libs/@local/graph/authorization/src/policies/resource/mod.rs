@@ -3,27 +3,42 @@
     reason = "serde::Deseiriealize does not use the never-type"
 )]
 
+mod entity;
+mod entity_type;
+
 use alloc::sync::Arc;
-use core::str::FromStr as _;
+use core::{error::Error, str::FromStr as _};
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
+use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
+use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
-pub use self::entity::{EntityResource, EntityResourceConstraint};
+use self::entity_type::EntityTypeId;
+pub use self::{
+    entity::{EntityResource, EntityResourceConstraint},
+    entity_type::{EntityTypeResource, EntityTypeResourceConstraint},
+};
 use crate::policies::cedar::CedarEntityId as _;
-mod entity;
-
-use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
 
 pub enum Resource<'a> {
     Entity(EntityResource<'a>),
+    EntityType(EntityTypeResource<'a>),
 }
 
 impl Resource<'_> {
     pub(crate) fn to_euid(&self) -> ast::EntityUID {
         match self {
-            Self::Entity(entity) => entity.entity_uuid.to_euid(),
+            Self::Entity(entity) => entity.id.to_euid(),
+            Self::EntityType(entity_type) => entity_type.id.to_euid(),
+        }
+    }
+
+    pub(crate) fn to_entity(&self) -> Result<ast::Entity, Box<dyn Error>> {
+        match self {
+            Self::Entity(entity) => entity.to_cedar_entity(),
+            Self::EntityType(entity_type) => entity_type.to_cedar_entity(),
         }
     }
 }
@@ -46,6 +61,7 @@ pub enum ResourceConstraint {
         web_id: Option<OwnedById>,
     },
     Entity(EntityResourceConstraint),
+    EntityType(EntityTypeResourceConstraint),
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -66,6 +82,7 @@ impl ResourceConstraint {
             Self::Global {} | Self::Web { web_id: Some(_) } => false,
             Self::Web { web_id: None } => true,
             Self::Entity(entity) => entity.has_slot(),
+            Self::EntityType(entity_type) => entity_type.has_slot(),
         }
     }
 
@@ -78,91 +95,120 @@ impl ResourceConstraint {
                     ast::ResourceConstraint::is_in(Arc::new(web_id.to_euid()))
                 }),
             Self::Entity(entity) => entity.to_cedar(),
+            Self::EntityType(entity_type) => entity_type.to_cedar(),
         }
     }
 
     pub(crate) fn try_from_cedar(
         constraint: &ast::ResourceConstraint,
     ) -> Result<Self, Report<InvalidResourceConstraint>> {
-        Ok(match constraint.as_inner() {
-            ast::PrincipalOrResourceConstraint::Any => Self::Global {},
-
-            ast::PrincipalOrResourceConstraint::Is(resource_type)
-                if **resource_type == **EntityUuid::entity_type() =>
-            {
-                Self::Entity(EntityResourceConstraint::Any {})
-            }
+        match constraint.as_inner() {
+            ast::PrincipalOrResourceConstraint::Any => Ok(Self::Global {}),
             ast::PrincipalOrResourceConstraint::Is(resource_type) => {
-                bail!(InvalidResourceConstraint::UnexpectedEntityType(
-                    ast::EntityType::clone(resource_type)
-                ))
+                Self::try_from_cedar_is_in(resource_type, None)
             }
-
-            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(resource))
-                if *resource.entity_type() == **EntityUuid::entity_type() =>
-            {
-                Self::Entity(EntityResourceConstraint::Exact {
-                    entity_uuid: Some(EntityUuid::new(
-                        Uuid::from_str(resource.eid().as_ref())
-                            .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
-                    )),
-                })
+            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(resource)) => {
+                Self::try_from_cedar_eq(resource)
             }
-            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(principal)) => {
-                bail!(InvalidResourceConstraint::UnexpectedEntityType(
-                    principal.entity_type().clone()
-                ))
+            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(resource)) => {
+                Self::try_from_cedar_in(resource)
             }
-            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::Slot(_)) => {
-                bail!(InvalidResourceConstraint::AmbiguousSlot)
-            }
-
             ast::PrincipalOrResourceConstraint::IsIn(
                 resource_type,
                 ast::EntityReference::EUID(resource),
-            ) if **resource_type == **EntityUuid::entity_type() => {
-                if *resource.entity_type() == **OwnedById::entity_type() {
-                    Self::Entity(EntityResourceConstraint::Web {
-                        web_id: Some(OwnedById::new(
-                            Uuid::from_str(resource.eid().as_ref())
-                                .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
-                        )),
-                    })
-                } else {
-                    bail!(InvalidResourceConstraint::UnexpectedEntityType(
-                        resource.entity_type().clone()
-                    ))
-                }
-            }
-            ast::PrincipalOrResourceConstraint::IsIn(
-                resource_type,
-                ast::EntityReference::EUID(_),
-            ) => bail!(InvalidResourceConstraint::UnexpectedEntityType(
-                ast::EntityType::clone(resource_type)
-            )),
-            ast::PrincipalOrResourceConstraint::IsIn(_, ast::EntityReference::Slot(_)) => {
+            ) => Self::try_from_cedar_is_in(resource_type, Some(resource)),
+            ast::PrincipalOrResourceConstraint::IsIn(_, ast::EntityReference::Slot(_))
+            | ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::Slot(_))
+            | ast::PrincipalOrResourceConstraint::In(ast::EntityReference::Slot(_)) => {
                 bail!(InvalidResourceConstraint::AmbiguousSlot)
             }
+        }
+    }
 
-            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(resource))
-                if *resource.entity_type() == **OwnedById::entity_type() =>
-            {
-                Self::Web {
+    fn try_from_cedar_eq(
+        resource: &ast::EntityUID,
+    ) -> Result<Self, Report<InvalidResourceConstraint>> {
+        if *resource.entity_type() == **EntityUuid::entity_type() {
+            Ok(Self::Entity(EntityResourceConstraint::Exact {
+                id: Some(EntityUuid::new(
+                    Uuid::from_str(resource.eid().as_ref())
+                        .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
+                )),
+            }))
+        } else if *resource.entity_type() == **EntityTypeId::entity_type() {
+            Ok(Self::EntityType(EntityTypeResourceConstraint::Exact {
+                id: Some(EntityTypeId::new(
+                    VersionedUrl::from_str(resource.eid().as_ref())
+                        .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
+                )),
+            }))
+        } else {
+            bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                resource.entity_type().clone()
+            ))
+        }
+    }
+
+    fn try_from_cedar_in(
+        resource: &ast::EntityUID,
+    ) -> Result<Self, Report<InvalidResourceConstraint>> {
+        if *resource.entity_type() == **OwnedById::entity_type() {
+            Ok(Self::Web {
+                web_id: Some(OwnedById::new(
+                    Uuid::from_str(resource.eid().as_ref())
+                        .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
+                )),
+            })
+        } else {
+            bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                ast::EntityType::clone(resource.entity_type())
+            ))
+        }
+    }
+
+    fn try_from_cedar_is_in(
+        resource_type: &ast::EntityType,
+        in_resource: Option<&ast::EntityUID>,
+    ) -> Result<Self, Report<InvalidResourceConstraint>> {
+        if *resource_type == **EntityUuid::entity_type() {
+            let Some(in_resource) = in_resource else {
+                return Ok(Self::Entity(EntityResourceConstraint::Any {}));
+            };
+
+            if *in_resource.entity_type() == **OwnedById::entity_type() {
+                Ok(Self::Entity(EntityResourceConstraint::Web {
                     web_id: Some(OwnedById::new(
-                        Uuid::from_str(resource.eid().as_ref())
+                        Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     )),
-                }
-            }
-            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(resource)) => {
+                }))
+            } else {
                 bail!(InvalidResourceConstraint::UnexpectedEntityType(
-                    resource.entity_type().clone()
+                    in_resource.entity_type().clone()
                 ))
             }
-            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::Slot(_)) => {
-                bail!(InvalidResourceConstraint::AmbiguousSlot)
+        } else if *resource_type == **EntityTypeId::entity_type() {
+            let Some(in_resource) = in_resource else {
+                return Ok(Self::EntityType(EntityTypeResourceConstraint::Any {}));
+            };
+
+            if *in_resource.entity_type() == **OwnedById::entity_type() {
+                Ok(Self::EntityType(EntityTypeResourceConstraint::Web {
+                    web_id: Some(OwnedById::new(
+                        Uuid::from_str(in_resource.eid().as_ref())
+                            .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
+                    )),
+                }))
+            } else {
+                bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                    in_resource.entity_type().clone()
+                ))
             }
-        })
+        } else {
+            bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                resource_type.clone()
+            ))
+        }
     }
 }
 

@@ -4,10 +4,10 @@
 )]
 
 use alloc::sync::Arc;
-use core::{error::Error, fmt, str::FromStr as _};
+use core::{error::Error, fmt, iter, str::FromStr as _};
 use std::sync::LazyLock;
 
-use cedar_policy_core::ast;
+use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use uuid::Uuid;
 
@@ -73,11 +73,33 @@ pub enum RoleId {
     Team(TeamRoleId),
 }
 
+impl RoleId {
+    fn to_euid(&self) -> ast::EntityUID {
+        match self {
+            Self::Web(web_role_id) => web_role_id.to_euid(),
+            Self::WebTeam(web_team_role_id) => web_team_role_id.to_euid(),
+            Self::Team(team_role_id) => team_role_id.to_euid(),
+        }
+    }
+}
+
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct User {
     pub id: UserId,
     pub roles: Vec<RoleId>,
+}
+
+impl User {
+    pub(crate) fn to_entity(&self) -> Result<ast::Entity, Box<dyn Error>> {
+        Ok(ast::Entity::new(
+            self.id.to_euid(),
+            iter::empty(),
+            self.roles.iter().map(RoleId::to_euid).collect(),
+            iter::empty(),
+            Extensions::none(),
+        )?)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

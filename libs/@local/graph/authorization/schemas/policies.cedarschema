@@ -9,6 +9,10 @@ namespace HASH {
   };
 
   entity Entity in [Web] {
+    entity_types: Set<EntityType>,
+  };
+
+  entity EntityType in [Web] {
   };
 
   entity User in [HASH::Web::Role, HASH::Team::Role, HASH::Web::Team::Role] {
@@ -16,7 +20,12 @@ namespace HASH {
 
   action create, view, update appliesTo {
     principal: User,
-    resource: [Entity],
+    resource: [Entity, EntityType],
+  };
+
+  action instantiate appliesTo {
+    principal: User,
+    resource: [EntityType],
   };
 }
 

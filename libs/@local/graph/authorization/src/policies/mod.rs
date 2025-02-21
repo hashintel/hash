@@ -11,10 +11,13 @@ use std::{collections::HashMap, sync::LazyLock};
 
 use cedar::CedarEntityId as _;
 use cedar_policy_core::{
-    ast, entities::Entities, evaluator::Evaluator, extensions::Extensions,
+    ast,
+    entities::{Entities, TCComputation},
+    evaluator::Evaluator,
+    extensions::Extensions,
     parser::parse_policy_or_template_to_est_and_ast,
 };
-use cedar_policy_validator::ValidatorSchema;
+use cedar_policy_validator::{CoreSchema, ValidatorSchema};
 use error_stack::{Report, ResultExt as _};
 use uuid::Uuid;
 
@@ -217,7 +220,17 @@ impl Policy {
         let cedar_policy = Arc::new(self.to_cedar());
         let policy_id = cedar_policy.id().clone();
         let policy = ast::Template::link(cedar_policy, policy_id, HashMap::new())?;
-        let entities = Entities::new();
+
+        let entities = Entities::new().add_entities(
+            [
+                Arc::new(request.user.to_entity()?),
+                Arc::new(request.resource.to_entity()?),
+            ],
+            Some(&CoreSchema::new(&POLICY_SCHEMA)),
+            TCComputation::ComputeNow,
+            Extensions::none(),
+        )?;
+
         let evaluator = Evaluator::new(request.to_cedar()?, &entities, Extensions::none());
         Ok(evaluator.evaluate(&policy)?)
     }
@@ -307,7 +320,7 @@ mod tests {
                     actions: vec![ActionId::View],
                 },
                 resource: ResourceConstraint::Entity(EntityResourceConstraint::Exact {
-                    entity_uuid: Some(entity_uuid),
+                    id: Some(entity_uuid),
                 }),
                 constraints: None,
             };
@@ -327,7 +340,7 @@ mod tests {
                     },
                     "resource": {
                         "type": "entity",
-                        "entityUuid": entity_uuid,
+                        "id": entity_uuid,
                     },
                 }),
                 formatdoc!(
@@ -349,7 +362,7 @@ mod tests {
 
             let entity = Resource::Entity(EntityResource {
                 web_id: OwnedById::new(Uuid::new_v4()),
-                entity_uuid,
+                id: entity_uuid,
                 entity_type: Cow::Owned(vec![
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/1")
                         .expect("Invalid entity type URL"),
