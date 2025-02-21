@@ -171,6 +171,7 @@ impl Policy {
     }
 
     pub(crate) fn to_cedar(&self) -> ast::Template {
+        let (resource_constraint, resource_expr) = self.resource.to_cedar();
         ast::Template::new(
             ast::PolicyID::from_string(self.id.to_string()),
             None,
@@ -181,8 +182,8 @@ impl Policy {
             },
             self.principal.to_cedar(),
             self.action.to_cedar(),
-            self.resource.to_cedar(),
-            ast::Expr::val(true),
+            resource_constraint,
+            resource_expr,
         )
     }
 

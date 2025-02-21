@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 use self::entity_type::EntityTypeId;
 pub use self::{
-    entity::{EntityResource, EntityResourceConstraint},
+    entity::{EntityResource, EntityResourceConstraint, EntityResourceFilter},
     entity_type::{EntityTypeResource, EntityTypeResourceConstraint},
 };
 use crate::policies::cedar::CedarEntityId as _;
@@ -87,15 +87,17 @@ impl ResourceConstraint {
     }
 
     #[must_use]
-    pub(crate) fn to_cedar(&self) -> ast::ResourceConstraint {
+    pub(crate) fn to_cedar(&self) -> (ast::ResourceConstraint, ast::Expr<()>) {
         match self {
-            Self::Global {} => ast::ResourceConstraint::any(),
-            Self::Web { web_id } => web_id
-                .map_or_else(ast::ResourceConstraint::is_in_slot, |web_id| {
+            Self::Global {} => (ast::ResourceConstraint::any(), ast::Expr::val(true)),
+            Self::Web { web_id } => (
+                web_id.map_or_else(ast::ResourceConstraint::is_in_slot, |web_id| {
                     ast::ResourceConstraint::is_in(Arc::new(web_id.to_euid()))
                 }),
-            Self::Entity(entity) => entity.to_cedar(),
-            Self::EntityType(entity_type) => entity_type.to_cedar(),
+                ast::Expr::val(true),
+            ),
+            Self::Entity(entity) => entity.to_cedar_resource_constraint(),
+            Self::EntityType(entity_type) => (entity_type.to_cedar(), ast::Expr::val(true)),
         }
     }
 
@@ -172,7 +174,7 @@ impl ResourceConstraint {
     ) -> Result<Self, Report<InvalidResourceConstraint>> {
         if *resource_type == **EntityUuid::entity_type() {
             let Some(in_resource) = in_resource else {
-                return Ok(Self::Entity(EntityResourceConstraint::Any {}));
+                return Ok(Self::Entity(EntityResourceConstraint::Any { filter: None }));
             };
 
             if *in_resource.entity_type() == **OwnedById::entity_type() {
@@ -181,6 +183,7 @@ impl ResourceConstraint {
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     )),
+                    filter: None,
                 }))
             } else {
                 bail!(InvalidResourceConstraint::UnexpectedEntityType(
@@ -238,7 +241,7 @@ mod tests {
         value: JsonValue,
         cedar_string: impl AsRef<str>,
     ) -> Result<(), Box<dyn Error>> {
-        let cedar_constraint = constraint.to_cedar();
+        let (cedar_constraint, resource_expr) = constraint.to_cedar();
         let cedar_string = cedar_string.as_ref();
 
         assert_eq!(cedar_constraint.to_string(), cedar_string);
@@ -274,7 +277,7 @@ mod tests {
                   action,
                   {cedar_string}
                 ) when {{
-                  true
+                  {resource_expr}
                 }};"
             ),
         )?;
