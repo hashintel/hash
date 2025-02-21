@@ -1,6 +1,8 @@
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, RefObject } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
+
+import { useSlideStack } from "../../../slide-stack";
 
 export type FullScreenContextType = {
   isFullScreen: boolean;
@@ -14,8 +16,14 @@ export const FullScreenContext = createContext<FullScreenContextType | null>(
 export const FullScreenContextProvider = ({
   children,
   fullScreenMode = "element",
-}: PropsWithChildren<{ fullScreenMode?: "document" | "element" }>) => {
+  graphContainerRef,
+}: PropsWithChildren<{
+  fullScreenMode?: "document" | "element";
+  graphContainerRef: RefObject<HTMLDivElement | null>;
+}>) => {
   const handle = useFullScreenHandle();
+
+  const { setSlideContainerRef } = useSlideStack();
 
   const toggleFullScreen = useCallback(() => {
     if (fullScreenMode === "document") {
@@ -29,10 +37,12 @@ export const FullScreenContextProvider = ({
 
     if (handle.active) {
       void handle.exit();
+      setSlideContainerRef(null);
     } else {
       void handle.enter();
+      setSlideContainerRef(graphContainerRef);
     }
-  }, [fullScreenMode, handle]);
+  }, [fullScreenMode, handle, graphContainerRef, setSlideContainerRef]);
 
   const value = useMemo<FullScreenContextType>(
     () => ({

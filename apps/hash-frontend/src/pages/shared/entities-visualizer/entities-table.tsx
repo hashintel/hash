@@ -117,10 +117,7 @@ export const EntitiesTable: FunctionComponent<
     currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
     disableTypeClick?: boolean;
     filterState: FilterState;
-    handleEntityClick: (
-      entityId: EntityId,
-      modalContainerRef?: RefObject<HTMLDivElement | null>,
-    ) => void;
+    handleEntityClick: (entityId: EntityId) => void;
     hasSomeLinks: boolean;
     hidePropertiesColumns?: boolean;
     hideColumns?: (keyof EntitiesTableRow)[];

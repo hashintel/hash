@@ -44,7 +44,10 @@ import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import { generateUseEntityTypeEntitiesFilter } from "../../shared/use-entity-type-entities";
 import { useMemoCompare } from "../../shared/use-memo-compare";
-import type { EntityEditorProps } from "../@/[shortname]/entities/[entity-uuid].page/entity-editor";
+import type {
+  CustomEntityLinksColumn,
+  EntityEditorProps,
+} from "../@/[shortname]/entities/[entity-uuid].page/entity/entity-editor";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
@@ -137,6 +140,10 @@ const generateGraphSort = (
 
 export const EntitiesVisualizer: FunctionComponent<{
   /**
+   * Custom columns to display in the ingoing/outgoing links tables for entities
+   */
+  customEntityLinksColumns?: CustomEntityLinksColumn[];
+  /**
    * The default filter to apply
    */
   defaultFilter?: FilterState;
@@ -186,6 +193,7 @@ export const EntitiesVisualizer: FunctionComponent<{
    */
   readonly?: boolean;
 }> = ({
+  customEntityLinksColumns,
   defaultFilter,
   defaultGraphConfig,
   defaultGraphFilters,
@@ -452,23 +460,20 @@ export const EntitiesVisualizer: FunctionComponent<{
     }
   }, [isViewingOnlyPages, filterState]);
 
-  const { pushToSlideStack, setSlideContainerRef } = useSlideStack();
+  const { pushToSlideStack } = useSlideStack();
 
   const handleEntityClick = useCallback(
     (
       entityId: EntityId,
-      modalContainerRef?: RefObject<HTMLDivElement | null>,
       options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">,
     ) => {
-      setSlideContainerRef(modalContainerRef ?? null);
-
       pushToSlideStack({
         kind: "entity",
         itemId: entityId,
         defaultOutgoingLinkFilters: options?.defaultOutgoingLinkFilters,
       });
     },
-    [pushToSlideStack, setSlideContainerRef],
+    [pushToSlideStack],
   );
 
   const handleEntityTypeClick = useCallback(

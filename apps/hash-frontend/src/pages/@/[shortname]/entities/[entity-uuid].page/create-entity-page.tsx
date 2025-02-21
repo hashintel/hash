@@ -31,8 +31,8 @@ import { useValidateEntity } from "../../../../shared/use-validate-entity";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 import { EditBar } from "../../shared/edit-bar";
 import { createInitialDraftEntitySubgraph } from "./create-entity-page/create-initial-draft-entity-subgraph";
-import type { EntityEditorProps } from "./entity-editor";
-import { EntityEditorPage } from "./entity-editor-page";
+import type { EntityEditorProps } from "./entity/entity-editor";
+import { Entity } from "./entity";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
 import { createDraftEntitySubgraph } from "./shared/create-draft-entity-subgraph";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
@@ -239,7 +239,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
           </Typography>
         </AlertModal>
       )}
-      <EntityEditorPage
+      <Entity
         {...draftEntityTypesDetails}
         closedMultiEntityTypesMap={null}
         editBar={

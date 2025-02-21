@@ -1,10 +1,12 @@
-import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import {
   atLeastOne,
   extractVersion,
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
@@ -13,11 +15,15 @@ import {
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+  OntologyElementMetadata,
+} from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { Box, Container, Skeleton, Stack, Typography } from "@mui/material";
+import { Box, Container, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -30,11 +36,14 @@ import { ConvertTypeMenuItem } from "./entity-type-page/convert-type-menu-item";
 import { DefinitionTab } from "./entity-type-page/definition-tab";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
 import { EntitiesTab } from "./entity-type-page/entities-tab";
-import { EntityTypeTabs } from "./entity-type-page/entity-type-tabs";
+import {
+  EntityTypeTabProvider,
+  EntityTypeTabs,
+  useEntityTypeTab,
+} from "./entity-type-page/entity-type-tabs";
 import { FileUploadsTab } from "./entity-type-page/file-uploads-tab";
 import { EntityTypeContext } from "./entity-type-page/shared/entity-type-context";
 import { EntityTypeHeader } from "./entity-type-page/shared/entity-type-header";
-import { useCurrentTab } from "./entity-type-page/shared/tabs";
 import { UpgradeDependentsModal } from "./entity-type-page/upgrade-dependents-modal";
 import {
   type EntityTypeDependent,
@@ -42,9 +51,9 @@ import {
 } from "./entity-type-page/use-entity-type-dependents";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
 import { NotFound } from "./not-found";
+import { inSlideContainerStyles } from "./shared/slide-styles";
 import { TypeEditorSkeleton } from "./shared/type-editor-skeleton";
 import {
-  inSlideContainerStyles,
   TypeDefinitionContainer,
   typeHeaderContainerStyles,
 } from "./shared/type-editor-styling";
@@ -58,6 +67,59 @@ type EntityTypeProps = {
   inSlide: boolean;
   onEntityTypeUpdated?: (entityType: EntityTypeWithMetadata) => void;
   requestedVersion: number | null;
+};
+
+const TypeDefinition = ({
+  entityTypeAndPropertyTypes,
+  entityTypeBaseUrl,
+  isFile,
+  isImage,
+  onNavigateToType,
+  ownedById,
+  readonly,
+}: {
+  entityTypeAndPropertyTypes: {
+    entityType: EntityTypeWithMetadata;
+    propertyTypes: Record<
+      `${string}v/${number}`,
+      {
+        schema: PropertyType;
+        metadata: OntologyElementMetadata;
+      }
+    >;
+  } | null;
+  entityTypeBaseUrl: BaseUrl | null;
+  isFile: boolean;
+  isImage: boolean;
+  onNavigateToType: (
+    kind: "entityType" | "dataType",
+    url: VersionedUrl,
+  ) => void;
+  ownedById: OwnedById | null;
+  readonly: boolean;
+}) => {
+  const { tab } = useEntityTypeTab();
+
+  return (
+    <>
+      {tab === "definition" ? (
+        entityTypeAndPropertyTypes ? (
+          <DefinitionTab
+            entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
+            onNavigateToType={onNavigateToType}
+            ownedById={ownedById ?? null}
+            readonly={readonly}
+          />
+        ) : (
+          "Loading..."
+        )
+      ) : null}
+      {tab === "entities" && entityTypeBaseUrl ? (
+        <EntitiesTab entityTypeBaseUrl={entityTypeBaseUrl} />
+      ) : null}
+      {isFile && tab === "upload" ? <FileUploadsTab isImage={isImage} /> : null}
+    </>
+  );
 };
 
 export const EntityType = ({
@@ -229,8 +291,6 @@ export const EntityType = ({
       }
     }
   });
-
-  const currentTab = useCurrentTab();
 
   const titleWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -433,47 +493,41 @@ export const EntityType = ({
               />
             )}
 
-            <Box ref={titleWrapperRef} sx={typeHeaderContainerStyles}>
-              <Container sx={inSlide ? inSlideContainerStyles : {}}>
-                <EntityTypeHeader
-                  currentVersion={currentVersion}
-                  entityTypeSchema={entityType.schema}
-                  hideOpenInNew
-                  isDraft={isDraft}
-                  isLink={isLink}
-                  isReadonly={isReadonly}
-                  latestVersion={latestVersion}
-                />
+            <EntityTypeTabProvider isInSlide={inSlide}>
+              <Box ref={titleWrapperRef} sx={typeHeaderContainerStyles}>
+                <Container sx={inSlide ? inSlideContainerStyles : {}}>
+                  <EntityTypeHeader
+                    currentVersion={currentVersion}
+                    entityTypeSchema={entityType.schema}
+                    hideOpenInNew
+                    isDraft={isDraft}
+                    isLink={isLink}
+                    isReadonly={isReadonly}
+                    latestVersion={latestVersion}
+                  />
 
-                <EntityTypeTabs
-                  canCreateEntity={userPermissions.instantiate}
-                  isDraft={isDraft}
+                  <EntityTypeTabs
+                    canCreateEntity={userPermissions.instantiate}
+                    isDraft={isDraft}
+                    isFile={isFile}
+                    isImage={isImage}
+                    isInSlide={inSlide}
+                  />
+                </Container>
+              </Box>
+
+              <TypeDefinitionContainer inSlide={inSlide}>
+                <TypeDefinition
+                  entityTypeBaseUrl={entityTypeBaseUrl ?? null}
+                  entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
                   isFile={isFile}
                   isImage={isImage}
+                  onNavigateToType={onNavigateToType}
+                  ownedById={ownedById ?? null}
+                  readonly={isReadonly}
                 />
-              </Container>
-            </Box>
-
-            <TypeDefinitionContainer inSlide={inSlide}>
-              {currentTab === "definition" ? (
-                entityTypeAndPropertyTypes ? (
-                  <DefinitionTab
-                    entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
-                    onNavigateToType={onNavigateToType}
-                    ownedById={ownedById ?? null}
-                    readonly={isReadonly}
-                  />
-                ) : (
-                  "Loading..."
-                )
-              ) : null}
-              {currentTab === "entities" && entityTypeBaseUrl ? (
-                <EntitiesTab entityTypeBaseUrl={entityTypeBaseUrl} />
-              ) : null}
-              {isFile && currentTab === "upload" ? (
-                <FileUploadsTab isImage={isImage} />
-              ) : null}
-            </TypeDefinitionContainer>
+              </TypeDefinitionContainer>
+            </EntityTypeTabProvider>
           </Box>
         </EntityTypeContext.Provider>
       </EntityTypeFormProvider>

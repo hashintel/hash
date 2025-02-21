@@ -1,10 +1,8 @@
 import { createContext, type RefObject, useContext } from "react";
 
-import type { CustomEntityLinksColumn } from "../../@/[shortname]/entities/[entity-uuid].page/entity-editor";
 import type { PushToStackFn } from "./types";
 
 type SlideStackContextData = {
-  customEntityLinksColumns?: CustomEntityLinksColumn[];
   pushToSlideStack: PushToStackFn;
   setSlideContainerRef: (ref: RefObject<HTMLDivElement | null> | null) => void;
   slideContainerRef?: RefObject<HTMLDivElement | null> | null;

@@ -1,6 +1,6 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
 
-import { useEntityEditor } from "../entity-editor/entity-editor-context";
+import { useEntityEditor } from "../entity/entity-editor/entity-editor-context";
 
 export const useMarkLinkEntityToArchive = () => {
   const { draftLinksToCreate, setDraftLinksToCreate, setDraftLinksToArchive } =

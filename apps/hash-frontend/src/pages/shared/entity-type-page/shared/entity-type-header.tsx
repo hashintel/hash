@@ -154,7 +154,7 @@ export const EntityTypeHeader = ({
               {isLink && <EntityTypeInverse readonly={isReadonly} />}
             </Stack>
           </Stack>
-          {!isDraft && !isPreviewSlide ? (
+          {!isDraft ? (
             <Button
               onClick={() => setShowExtendTypeModal(true)}
               variant="secondary"
@@ -165,7 +165,7 @@ export const EntityTypeHeader = ({
           ) : null}
         </Stack>
 
-        <Box sx={{ mb: 5.25 }}>
+        <Box sx={{ mb: 3 }}>
           <EntityTypeDescription readonly={isReadonly} />
         </Box>
       </Box>

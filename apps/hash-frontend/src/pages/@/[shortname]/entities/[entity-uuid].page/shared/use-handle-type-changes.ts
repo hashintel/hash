@@ -12,7 +12,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useCallback } from "react";
 
 import { useGetClosedMultiEntityType } from "../../../../../shared/use-get-closed-multi-entity-type";
-import type { EntityEditorProps } from "../entity-editor";
+import type { EntityEditorProps } from "../entity/entity-editor";
 import { createDraftEntitySubgraph } from "./create-draft-entity-subgraph";
 
 export const useHandleTypeChanges = ({

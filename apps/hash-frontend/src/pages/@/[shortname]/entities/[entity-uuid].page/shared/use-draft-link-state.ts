@@ -2,7 +2,7 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 
-import type { LinkAndTargetEntity } from "../entity-editor/links-section/outgoing-links-section/types";
+import type { LinkAndTargetEntity } from "../entity/entity-editor/links-section/outgoing-links-section/types";
 
 export type DraftLinksToCreate = (LinkAndTargetEntity & {
   rightEntityLabel: string;

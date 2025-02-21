@@ -1,4 +1,4 @@
-import { Backdrop, Box, Slide, Stack } from "@mui/material";
+import { Backdrop, Box, Slide } from "@mui/material";
 import type {
   Dispatch,
   FunctionComponent,
@@ -8,15 +8,11 @@ import type {
 import { useCallback, useMemo, useState } from "react";
 
 import { useScrollLock } from "../../shared/use-scroll-lock";
-import type { CustomEntityLinksColumn } from "../@/[shortname]/entities/[entity-uuid].page/entity-editor";
 import { SlideStackContext } from "./slide-stack/context";
 import { DataTypeSlide } from "./slide-stack/data-type-slide";
 import { EntitySlide } from "./slide-stack/entity-slide";
 import { EntityTypeSlide } from "./slide-stack/entity-type-slide";
-import {
-  backForwardHeight,
-  SlideBackForwardCloseBar,
-} from "./slide-stack/slide-back-forward-close-bar";
+import { SlideBackForwardCloseBar } from "./slide-stack/slide-back-forward-close-bar";
 import type { SlideItem } from "./slide-stack/types";
 
 export { useSlideStack } from "./slide-stack/context";
@@ -29,6 +25,8 @@ const StackSlide = ({
   onBack,
   onClose,
   onForward,
+  removeItem,
+  replaceItem,
   slideContainerRef,
   stackPosition,
 }: {
@@ -37,6 +35,8 @@ const StackSlide = ({
   onBack?: () => void;
   onClose: () => void;
   onForward?: () => void;
+  removeItem: () => void;
+  replaceItem: (item: SlideItem) => void;
   slideContainerRef: RefObject<HTMLDivElement | null> | null;
   stackPosition: number;
 }) => {
@@ -75,12 +75,19 @@ const StackSlide = ({
           onClose={onClose}
         />
 
-        {item.kind === "dataType" && <DataTypeSlide dataTypeId={item.itemId} />}
+        {item.kind === "dataType" && (
+          <DataTypeSlide dataTypeId={item.itemId} replaceItem={replaceItem} />
+        )}
         {item.kind === "entityType" && (
-          <EntityTypeSlide typeUrl={item.itemId} />
+          <EntityTypeSlide replaceItem={replaceItem} typeUrl={item.itemId} />
         )}
         {item.kind === "entity" && (
-          <EntitySlide {...item} entityId={item.itemId} />
+          <EntitySlide
+            {...item}
+            entityId={item.itemId}
+            removeItem={removeItem}
+            replaceItem={replaceItem}
+          />
         )}
       </Box>
     </Slide>
@@ -90,12 +97,16 @@ const StackSlide = ({
 export const SlideStack: FunctionComponent<{
   currentIndex: number;
   items: SlideItem[];
+  replaceItem: (item: SlideItem) => void;
+  removeItem: () => void;
   setCurrentIndex: Dispatch<SetStateAction<number>>;
   setItems: (items: SlideItem[]) => void;
   slideContainerRef: RefObject<HTMLDivElement | null> | null;
 }> = ({
   currentIndex,
   items,
+  removeItem,
+  replaceItem,
   setCurrentIndex,
   setItems,
   slideContainerRef,
@@ -136,6 +147,8 @@ export const SlideStack: FunctionComponent<{
           onBack={index > 0 ? handleBack : undefined}
           onForward={index < items.length - 1 ? handleForward : undefined}
           onClose={handleClose}
+          removeItem={removeItem}
+          replaceItem={replaceItem}
           slideContainerRef={slideContainerRef}
           stackPosition={index}
         />
@@ -146,10 +159,8 @@ export const SlideStack: FunctionComponent<{
 
 export const SlideStackProvider = ({
   children,
-  customEntityLinksColumns,
 }: {
   children: React.ReactNode;
-  customEntityLinksColumns?: CustomEntityLinksColumn[];
 }) => {
   const [items, setItems] = useState<SlideItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -173,19 +184,25 @@ export const SlideStackProvider = ({
     [currentIndex, items.length],
   );
 
+  const replaceItem = useCallback(
+    (item: SlideItem) => {
+      setItems((prev) => [...prev.slice(0, currentIndex), item]);
+    },
+    [currentIndex],
+  );
+
+  const removeItem = useCallback(() => {
+    setItems((prev) => prev.slice(0, currentIndex));
+    setCurrentIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+  }, [currentIndex]);
+
   const value = useMemo(
     () => ({
-      customEntityLinksColumns,
       pushToSlideStack,
       setSlideContainerRef,
       slideContainerRef,
     }),
-    [
-      customEntityLinksColumns,
-      pushToSlideStack,
-      setSlideContainerRef,
-      slideContainerRef,
-    ],
+    [pushToSlideStack, setSlideContainerRef, slideContainerRef],
   );
 
   return (
@@ -194,6 +211,8 @@ export const SlideStackProvider = ({
       <SlideStack
         currentIndex={currentIndex}
         items={items}
+        removeItem={removeItem}
+        replaceItem={replaceItem}
         setCurrentIndex={setCurrentIndex}
         setItems={setItems}
         slideContainerRef={slideContainerRef}

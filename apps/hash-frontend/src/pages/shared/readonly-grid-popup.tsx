@@ -3,7 +3,7 @@ import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-p
 import { Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { GridEditorWrapper } from "../@/[shortname]/entities/[entity-uuid].page/entity-editor/shared/grid-editor-wrapper";
+import { GridEditorWrapper } from "../@/[shortname]/entities/[entity-uuid].page/entity/entity-editor/shared/grid-editor-wrapper";
 
 export const ReadonlyGridPopup = ({
   value,

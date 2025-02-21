@@ -15,7 +15,7 @@ import { isExternalOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
-import type { FunctionComponent, RefObject } from "react";
+import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import {
@@ -29,7 +29,6 @@ import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
 import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../../shared/table-content";
@@ -310,7 +309,7 @@ export const TypesTable: FunctionComponent<{
     });
   }, []);
 
-  const { pushToSlideStack, setSlideContainerRef } = useSlideStack();
+  const { pushToSlideStack } = useSlideStack();
 
   const theme = useTheme();
 
@@ -471,17 +470,13 @@ export const TypesTable: FunctionComponent<{
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
   const onTypeClick = useCallback(
-    (
-      typeId: VersionedUrl,
-      slideContainerRef?: RefObject<HTMLDivElement | null>,
-    ) => {
+    (typeId: VersionedUrl) => {
       pushToSlideStack({
         kind: "entityType",
         itemId: typeId,
       });
-      setSlideContainerRef(slideContainerRef ?? null);
     },
-    [pushToSlideStack, setSlideContainerRef],
+    [pushToSlideStack],
   );
 
   const numberOfUserWebItems = useMemo(

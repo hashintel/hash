@@ -16,7 +16,7 @@ import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
 import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 import { EntityPageWrapper } from "./entity-page-wrapper";
-import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
+import { EntityHeader } from "./entity/entity-header";
 import { LinksSectionEmptyState } from "./shared/links-section-empty-state";
 import { PropertiesSectionEmptyState } from "./shared/properties-section-empty-state";
 
@@ -37,7 +37,7 @@ export const SelectEntityTypePage = () => {
   return (
     <EntityPageWrapper
       header={
-        <EntityPageHeader
+        <EntityHeader
           entityLabel="New entity"
           lightTitle
           chip={

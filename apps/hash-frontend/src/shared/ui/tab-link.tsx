@@ -9,7 +9,8 @@ import { Link } from "./link";
 
 export type TabLinkProps = {
   label: ReactNode;
-  href: string;
+  href?: string;
+  onClick?: () => void;
   value: string;
   count?: number;
   icon?: ReactElement;
@@ -21,6 +22,7 @@ export type TabLinkProps = {
 export const TabLink: FunctionComponent<TabLinkProps> = ({
   label,
   href,
+  onClick,
   value,
   count,
   loading,
@@ -32,7 +34,16 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
     {...props}
     disableRipple
     value={value}
-    href={href}
+    onClick={
+      onClick
+        ? (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onClick();
+          }
+        : undefined
+    }
+    href={href ?? "#"}
     component={Link}
     label={
       <Typography
