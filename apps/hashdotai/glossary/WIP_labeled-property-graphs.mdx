@@ -1,0 +1,32 @@
+---
+title: Labeled Property Graphs
+description: "Labeled Property Graphs consist of nodes (also called vertices) and relationships (edges), each of which can hold associated data."
+slug: labeled-property-graphs
+tags: ["Graphs"]
+---
+# **Data Modeling Principles**
+
+## **Structure of Labeled Property Graphs**
+
+A **labeled property graph (LPG)** such as a [HASH web](/guide/webs) consists of *nodes* (also called vertices) and *relationships* (edges), each of which can hold associated data. Nodes typically represent entities (e.g. a Person or Product) and can be assigned one or more **labels** to categorize their type. Relationships connect nodes and have a **type** (label) that describes the nature of the connection (e.g. `FRIENDS_WITH` or `PURCHASED`). Both nodes and relationships can have any number of **properties**, which are key–value pairs storing additional attributes (for example, a Person node might have properties like `name:"Alice"` and `age:30`). Relationships are usually **directed**, meaning they have a start and end node, though in some use cases direction can be ignored or traversed in both ways as needed.
+
+This model is best understood with a simple example. Consider two Person nodes and a friendship between them:
+
+```
+CREATE (p:Person { name: "Alice", age: 30 });
+CREATE (q:Person { name: "Bob", age: 32 });
+CREATE (p)-[:FRIENDS_WITH]->(q);
+```
+
+Here we created two nodes labeled **Person** with some properties, and a directed relationship of type **FRIENDS\_WITH** from Alice to Bob. In an LPG-based database (such as HASH), this data is stored as a graph structure – you can later query it by traversing from `Alice` to find all `FRIENDS_WITH` connections, for example. The key elements to note are: nodes have labels and properties, relationships have types and can also carry properties (e.g. one could add a property `since:2020` on the `FRIENDS_WITH` relationship to indicate when the friendship started). This enriched graph structure makes the LPG extremely expressive for modeling complex domains.
+
+## **LPG vs. Other Graph Models (e.g. RDF)**
+
+Labeled property graphs are one of the two major graph data modeling paradigms in wide use today, the other being the **RDF** (Resource Description Framework) triple model. While both represent data as networks of connected entities, there are fundamental differences in how data is structured and annotated:
+
+- **Node properties _vs._ Triples**: In an LPG, a node can have attributes stored directly as properties (as in the Alice example above). In RDF, by contrast, there is *no concept of an attribute on a node* – every piece of information is expressed as a separate triple (subject–predicate–object). For example, to represent a person’s birthdate in RDF, one would create a triple like `(BarackObama) -[birthDate]-> ("1961")`, essentially treating the date "1961" as an object node or literal connected via a predicate. In an LPG, that same fact could simply be a property `birthDate: 1961` on the Barack Obama node, with no extra edge needed. This means RDF tends to produce many more small connecting elements, whereas LPG can store richer information per node/edge object (more analogous to an object in OOP with fields).  
+- **Global _vs._ Local identification**: RDF uses globally unique identifiers (URIs) for each entity and relationship type, aiming for web-scale data integration. Every predicate (relationship type) and often nodes are defined by URIs that can link across datasets. LPG systems typically use application-local identifiers (like string names for relationship types and labels) and do not inherently link across databases. This makes property graphs simpler to work with in a closed-world context, whereas RDF is built for interoperability at the cost of some verbosity. [HASH](https://hash.ai/) is a next-generation platform that combines the interoperability and mutual intelligibility of RDF with the expressiveness and customizability of LPG.  
+- **Atomic unit of data**: The atomic unit in RDF is the triple. Even a single entity with multiple attributes is essentially a collection of triples sharing the same subject. LPGs do not have a single fixed atomic structure; a node with properties is a self-contained data structure, and an edge with its properties is another. This means an LPG can be thought of as a collection of nodes and edges (each a small record with key-values), rather than a collection of triples.  
+- **Schema and semantics**: RDF is tightly connected to the Semantic Web and has a rich standard stack for defining ontologies and schemas (RDF Schema, OWL) that let you formally specify classes, relationships, and even logical inference rules. An RDF graph can be “self-describing” to a degree, as the meaning of relationships and nodes can be defined through shared vocabularies/ontologies. Property graphs, on the other hand, do not enforce any specific global schema or ontology layer; the **interpretation of the labels and properties is left to the consumer** or defined at the application level. This gives LPGs more flexibility (you can add any property to any node without prior schema setup), but it also means that understanding the data’s meaning relies on external documentation or conventions rather than inherent semantics. As a hybrid of RDF and LPG-based approaches, HASH relies upon a [type system](/guide/types) to describe labeled property graphs and ensure interoperability.
+
+In summary, LPGs emphasize a pragmatic, object-like approach to graph data modeling: nodes and relationships as entities with properties, suitable for straightforward querying and mutation in graph databases. RDF emphasizes a web-standard, triple-based approach with powerful integration and reasoning capabilities. While RDF is common in open knowledge graphs and linked data scenarios, LPGs are frequently found in graph databases for operational or analytic applications. And now, with HASH, the two models can complement one another.
