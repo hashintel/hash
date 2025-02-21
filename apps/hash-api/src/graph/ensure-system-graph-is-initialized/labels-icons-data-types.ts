@@ -190,7 +190,10 @@ const _entityTypeChanges: Record<
   "https://hash.ai/@h/types/entity-type/user/v/6": {
     icon: "/icons/types/user.svg",
     titlePlural: "Users",
-    labelProperty: "https://hash.ai/@h/types/property-type/preferred-name/",
+  },
+  "https://hash.ai/@h/types/entity-type/actor/v/2": {
+    titlePlural: "Actors",
+    labelProperty: "https://hash.ai/@h/types/property-type/display-name/",
   },
   "https://hash.ai/@h/types/entity-type/text/v/1": {
     icon: "/icons/types/text.svg",

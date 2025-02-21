@@ -32,7 +32,7 @@ export const TypeChipLabel = ({
     <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
       <EntityOrTypeIcon
         entity={null}
-        fontSize="inherit"
+        fontSize={14}
         icon={icon}
         isLink
         fill={({ palette }) => palette.blue[70]}
