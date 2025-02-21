@@ -51,6 +51,7 @@ const migrate: MigrationFunction = async ({
         $ref: displayNamePropertyTypeId,
       },
     },
+    labelProperty: displayNameBaseUrl,
   };
 
   const { updatedEntityTypeId: updatedActorEntityTypeId } =

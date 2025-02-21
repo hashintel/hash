@@ -31,6 +31,7 @@ const migrate: MigrationFunction = async ({
         title: "Actor",
         description:
           "Someone or something that can perform actions in the system",
+        icon: "/icons/types/user.svg",
       },
       webShortname: "h",
       migrationState,

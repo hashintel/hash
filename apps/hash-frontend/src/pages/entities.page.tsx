@@ -267,7 +267,7 @@ const EntitiesPage: NextPageWithLayout = () => {
           <EntityOrTypeIcon
             entity={null}
             fill={({ palette }) => palette.gray[50]}
-            fontSize="inherit"
+            fontSize={14}
             icon={entityType.schema.icon}
             isLink={
               /**

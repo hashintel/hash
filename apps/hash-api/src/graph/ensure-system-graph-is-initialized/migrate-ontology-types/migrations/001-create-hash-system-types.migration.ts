@@ -847,7 +847,6 @@ const migrate: MigrationFunction = async ({
         titlePlural: "Users",
         icon: "/icons/types/user.svg",
         description: "A user of the HASH application.",
-        labelProperty: systemPropertyTypes.preferredName.propertyTypeBaseUrl,
         properties: [
           {
             propertyType: shortnamePropertyType,
