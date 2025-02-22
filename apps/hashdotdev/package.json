@@ -64,7 +64,7 @@
     "unist-util-visit": "4.1.2"
   },
   "devDependencies": {
-    "@babel/core": "7.26.8",
+    "@babel/core": "7.26.9",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/d3": "7.4.3",
@@ -72,17 +72,17 @@
     "@types/gtag.js": "0.0.20",
     "@types/html-to-text": "9.0.4",
     "@types/md5": "2.3.5",
-    "@types/node": "22.13.1",
+    "@types/node": "22.13.4",
     "@types/prismjs": "1.26.5",
-    "@types/react": "19.0.8",
-    "@types/react-dom": "19.0.3",
+    "@types/react": "19.0.10",
+    "@types/react-dom": "19.0.4",
     "@types/react-html-parser": "2.0.6",
     "@types/unist": "3.0.3",
     "babel-loader": "9.2.1",
     "chalk": "5.4.1",
     "eslint": "9.20.1",
     "execa": "7.2.0",
-    "tsx": "4.19.2",
+    "tsx": "4.19.3",
     "typescript": "5.7.3"
   }
 }

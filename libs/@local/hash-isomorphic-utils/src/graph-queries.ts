@@ -12,6 +12,7 @@ import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type {
+  DataTypeRelationAndSubject,
   EntityRelationAndSubject,
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,
@@ -374,6 +375,23 @@ export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndS
     },
     {
       relation: "instantiator",
+      subject: {
+        kind: "public",
+      },
+    },
+  ];
+
+export const defaultDataTypeAuthorizationRelationships: DataTypeRelationAndSubject[] =
+  [
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "updateFromWeb",
+      },
+    },
+    {
+      relation: "viewer",
       subject: {
         kind: "public",
       },

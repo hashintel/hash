@@ -1,39 +1,54 @@
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
-import { Box, Collapse, Tooltip, Typography } from "@mui/material";
+import {
+  Box,
+  Collapse,
+  type SxProps,
+  type Theme,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import type { ElementType } from "react";
 import { useState } from "react";
 
 import { EntityOrTypeIcon } from "./entity-or-type-icon";
 import { FontAwesomeIcon } from "./fontawesome-icon";
+import { ArrowsRotateRegularIcon } from "./icon-arrows-rotate-regular";
 import { IconButton } from "./icon-button";
 import { CloseIcon } from "./icon-close";
 import { WhiteCard } from "./white-card";
 
+const deleteButtonSx: SxProps<Theme> = ({ palette }) => ({
+  width: 11,
+  height: 11,
+  "&:hover": {
+    fill: palette.error.main,
+  },
+});
+
 interface TypeCardProps {
   disableClick?: boolean;
-  onDelete?: () => void;
-  LinkComponent?: ElementType;
   icon?: string | null;
   isLink: boolean;
-  url: string;
+  LinkComponent?: ElementType;
+  newVersionConfig?: { newVersion: number; onUpdateVersion: () => void };
+  onDelete?: () => void;
+  swappableOnly?: boolean;
   title: string;
+  url: string;
   version: number;
-  newVersionConfig?: {
-    onUpdateVersion: () => void;
-    newVersion: number;
-  };
 }
 
 export const TypeCard = ({
   disableClick,
-  onDelete,
-  LinkComponent,
   icon,
   isLink,
-  url,
-  title,
-  version,
+  LinkComponent,
   newVersionConfig,
+  onDelete,
+  swappableOnly,
+  title,
+  url,
+  version,
 }: TypeCardProps) => {
   const { newVersion, onUpdateVersion } = newVersionConfig ?? {};
 
@@ -93,14 +108,14 @@ export const TypeCard = ({
                 event.stopPropagation();
                 onUpdateVersion?.();
               }}
-              sx={{
-                color: "yellow.80",
+              sx={({ palette }) => ({
+                color: palette.yellow[80],
                 "&:hover": {
-                  color: "blue.70",
-                  backgroundColor: "blue.20",
+                  color: palette.blue[70],
+                  backgroundColor: palette.blue[20],
                 },
                 ml: 1,
-              }}
+              })}
             >
               <FontAwesomeIcon icon={faArrowsRotate} />
             </IconButton>
@@ -116,15 +131,11 @@ export const TypeCard = ({
               }}
               sx={{ "&:hover": { background: "none" }, ml: 1, padding: 0 }}
             >
-              <CloseIcon
-                sx={({ palette }) => ({
-                  width: 11,
-                  height: 11,
-                  "&:hover": {
-                    fill: palette.error.main,
-                  },
-                })}
-              />
+              {swappableOnly ? (
+                <ArrowsRotateRegularIcon sx={deleteButtonSx} />
+              ) : (
+                <CloseIcon sx={deleteButtonSx} />
+              )}
             </IconButton>
           </Collapse>
         )}

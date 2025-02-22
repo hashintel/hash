@@ -41,16 +41,16 @@
     "lodash.debounce": "4.0.8",
     "react-sizeme": "3.0.2",
     "rooks": "7.14.1",
-    "uuid": "11.0.5"
+    "uuid": "11.1.0"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@types/lodash.debounce": "4.0.9",
-    "@types/react-dom": "19.0.3",
+    "@types/react-dom": "19.0.4",
     "block-scripts": "0.3.4",
     "eslint": "9.20.1",
     "mock-block-dock": "0.1.9",
-    "prettier": "3.5.0",
+    "prettier": "3.5.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "typescript": "5.7.3"

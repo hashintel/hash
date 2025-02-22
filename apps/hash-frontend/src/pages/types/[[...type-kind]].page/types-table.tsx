@@ -29,6 +29,7 @@ import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
 import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../../shared/table-content";
@@ -334,7 +335,9 @@ export const TypesTable: FunctionComponent<{
         switch (column.id) {
           case "title": {
             const isClickable =
-              row.kind === "entity-type" || row.kind === "link-type";
+              row.kind === "entity-type" ||
+              row.kind === "link-type" ||
+              row.kind === "data-type";
 
             return {
               kind: GridCellKind.Custom,
@@ -355,7 +358,16 @@ export const TypesTable: FunctionComponent<{
                     text: row.title,
                     onClick: isClickable
                       ? () => {
-                          setSelectedEntityType({ entityTypeId: row.typeId });
+                          if (row.kind === "data-type") {
+                            /**
+                             * @todo open data type in slide over
+                             */
+                            void router.push(
+                              generateLinkParameters(row.typeId).href,
+                            );
+                          } else {
+                            setSelectedEntityType({ entityTypeId: row.typeId });
+                          }
                         }
                       : undefined,
                     iconFill: theme.palette.blue[70],

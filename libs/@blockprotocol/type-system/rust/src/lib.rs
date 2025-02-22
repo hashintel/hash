@@ -33,14 +33,17 @@ use serde::Serialize as _;
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(untagged)]
+#[serde(untagged, rename = "JsonValue")]
 pub enum Value {
     Null,
     Bool(bool),
     String(String),
-    Number(Real),
-    Array(Vec<Self>),
-    Object(HashMap<String, Self>),
+    Number(#[cfg_attr(target_arch = "wasm32", tsify(type = "number"))] Real),
+    Array(#[cfg_attr(target_arch = "wasm32", tsify(type = "JsonValue[]"))] Vec<Self>),
+    Object(
+        #[cfg_attr(target_arch = "wasm32", tsify(type = "{ [key: string]: JsonValue }"))]
+        HashMap<String, Self>,
+    ),
 }
 
 impl fmt::Display for Value {

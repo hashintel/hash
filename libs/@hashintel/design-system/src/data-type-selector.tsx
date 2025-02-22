@@ -1,12 +1,17 @@
-import type {
-  DataType,
-  StringConstraints,
-  VersionedUrl,
+import {
+  type DataType,
+  type StringConstraints,
+  type VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 // eslint-disable-next-line no-restricted-imports -- TODO needs fixing if this package to be used from npm
-import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  ClosedDataTypeDefinition,
+} from "@local/hash-graph-types/ontology";
 // eslint-disable-next-line no-restricted-imports -- TODO needs fixing if this package to be used from npm
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
+// eslint-disable-next-line no-restricted-imports -- TODO needs fixing if this package to be used from npm
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   outlinedInputClasses,
@@ -33,6 +38,7 @@ export {
 export type DataTypeForSelector = {
   $id: VersionedUrl;
   abstract: boolean;
+  baseUrl: BaseUrl;
   children: DataTypeForSelector[];
   description: string;
   directParents: VersionedUrl[];
@@ -40,6 +46,7 @@ export type DataTypeForSelector = {
   label: DataType["label"];
   type: string;
   title: string;
+  version: number;
 };
 
 const isDataType = (
@@ -113,8 +120,11 @@ const transformDataTypeForSelector = <
     format = "format" in firstSchema ? firstSchema.format : undefined;
   }
 
+  const { baseUrl, version } = componentsFromVersionedUrl($id);
+
   const transformedDataType = {
     $id,
+    baseUrl,
     abstract: !!schema.abstract,
     children: transformedChildren.sort((a, b) =>
       a.title.localeCompare(b.title),
@@ -123,10 +133,11 @@ const transformDataTypeForSelector = <
     directParents: isDataType(dataType)
       ? (dataType.allOf?.map(({ $ref }) => $ref) ?? [])
       : dataType.parents,
+    format,
     label: schema.label,
     title: schema.title,
     type,
-    format,
+    version,
   };
 
   return {
@@ -233,9 +244,10 @@ export const buildDataTypeTreesForSelector = <
 
 const DataTypeLabel = (props: {
   dataType: DataTypeForSelector;
+  isEarlierVersion: boolean;
   selected: boolean;
 }) => {
-  const { dataType, selected } = props;
+  const { dataType, selected, isEarlierVersion } = props;
 
   const labelParts: string[] = [];
   if (dataType.label?.left) {
@@ -277,6 +289,17 @@ const DataTypeLabel = (props: {
             {unitLabel}
           </Typography>
         )}
+        {isEarlierVersion && (
+          <Typography
+            sx={({ palette }) => ({
+              color: palette.gray[50],
+              ml: 1,
+              fontSize: 13,
+            })}
+          >
+            (Old version)
+          </Typography>
+        )}
       </Stack>
     </Tooltip>
   );
@@ -285,20 +308,43 @@ const DataTypeLabel = (props: {
 const DataTypeFlatView = (props: {
   allowSelectingAbstractTypes?: boolean;
   dataType: DataTypeForSelector;
-  selected: boolean;
+  latestVersionByBaseUrl: Record<BaseUrl, number>;
   onSelect: (dataTypeId: VersionedUrl) => void;
+  selectedDataTypeIds?: VersionedUrl[];
 }) => {
-  const { allowSelectingAbstractTypes, dataType, onSelect, selected } = props;
+  const {
+    allowSelectingAbstractTypes,
+    dataType,
+    latestVersionByBaseUrl,
+    onSelect,
+    selectedDataTypeIds,
+  } = props;
 
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (selected) {
+    if (selectedDataTypeIds?.includes(dataType.$id)) {
       setTimeout(() => {
         ref.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     }
-  }, [selected]);
+  }, [selectedDataTypeIds, dataType.$id]);
+
+  const { baseUrl, version } = dataType;
+
+  const latestVersion = latestVersionByBaseUrl[baseUrl];
+
+  if (!latestVersion) {
+    throw new Error(`No latest version found for baseUrl: ${baseUrl}`);
+  }
+
+  const selected = !!selectedDataTypeIds?.includes(dataType.$id);
+
+  const isEarlierVersion = version < latestVersion;
+
+  if (!selected && isEarlierVersion) {
+    return null;
+  }
 
   return (
     <Box
@@ -325,7 +371,11 @@ const DataTypeFlatView = (props: {
         transition: transitions.create("background"),
       })}
     >
-      <DataTypeLabel {...props} />
+      <DataTypeLabel
+        {...props}
+        selected={selected}
+        isEarlierVersion={isEarlierVersion}
+      />
     </Box>
   );
 };
@@ -337,18 +387,20 @@ const DataTypeTreeView = (props: {
   dataType: DataTypeForSelector;
   depth?: number;
   isOnlyRoot?: boolean;
-  selectedDataTypeId?: VersionedUrl;
+  latestVersionByBaseUrl: Record<BaseUrl, number>;
+  selectedDataTypeIds?: VersionedUrl[];
   onSelect: (dataTypeId: VersionedUrl) => void;
 }) => {
   const {
     allowSelectingAbstractTypes,
     dataType,
     depth = 0,
+    latestVersionByBaseUrl,
     onSelect,
-    selectedDataTypeId,
+    selectedDataTypeIds,
   } = props;
 
-  const selected = dataType.$id === selectedDataTypeId;
+  const selected = !!selectedDataTypeIds?.includes(dataType.$id);
 
   const ref = useRef<HTMLDivElement>(null);
 
@@ -367,13 +419,27 @@ const DataTypeTreeView = (props: {
     while (stack.length > 0) {
       const current = stack.pop()!;
 
-      if (current.$id === selectedDataTypeId) {
+      if (selectedDataTypeIds?.includes(current.$id)) {
         return true;
       }
 
       stack.push(...current.children);
     }
   });
+
+  const { baseUrl, version } = dataType;
+
+  const latestVersion = latestVersionByBaseUrl[baseUrl];
+
+  if (!latestVersion) {
+    throw new Error(`No latest version found for baseUrl: ${baseUrl}`);
+  }
+
+  const isEarlierVersion = version < latestVersion;
+
+  if (!selected && isEarlierVersion) {
+    return null;
+  }
 
   const defaultAction: MouseEventHandler<HTMLDivElement> =
     abstract && !allowSelectingAbstractTypes
@@ -418,7 +484,11 @@ const DataTypeTreeView = (props: {
           transition: transitions.create("background"),
         })}
       >
-        <DataTypeLabel {...props} selected={selected} />
+        <DataTypeLabel
+          {...props}
+          selected={selected}
+          isEarlierVersion={isEarlierVersion}
+        />
         <Stack direction="row" gap={0}>
           {children.length > 0 && (
             <IconButton
@@ -473,8 +543,9 @@ const DataTypeTreeView = (props: {
               key={child.$id}
               dataType={child}
               depth={depth + 1}
+              latestVersionByBaseUrl={latestVersionByBaseUrl}
               onSelect={onSelect}
-              selectedDataTypeId={selectedDataTypeId}
+              selectedDataTypeIds={selectedDataTypeIds}
             />
           );
         })}
@@ -490,7 +561,7 @@ export type DataTypeSelectorProps = {
   maxHeight?: number;
   onSelect: (dataTypeId: VersionedUrl) => void;
   searchText?: string;
-  selectedDataTypeId?: VersionedUrl;
+  selectedDataTypeIds?: VersionedUrl[];
 };
 
 export const DataTypeSelector = (props: DataTypeSelectorProps) => {
@@ -502,7 +573,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
     maxHeight: maxHeightFromProps,
     onSelect,
     searchText: externallyControlledSearchText,
-    selectedDataTypeId,
+    selectedDataTypeIds,
   } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -541,18 +612,27 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
 
   const searchText = externallyControlledSearchText ?? localSearchText;
 
-  const flattenedDataTypes = useMemo(() => {
+  const { flattenedDataTypes, latestVersionByBaseUrl } = useMemo(() => {
     const flattened: DataTypeForSelector[] = [];
 
     const stack = [...dataTypes];
 
     const seenDataTypes = new Set<VersionedUrl>();
+    const latestByBaseUrl: Record<BaseUrl, number> = {};
 
     while (stack.length > 0) {
       const current = stack.pop()!;
 
       if (seenDataTypes.has(current.$id)) {
         continue;
+      }
+
+      const { baseUrl, version } = current;
+
+      const currentLatest = latestByBaseUrl[baseUrl];
+
+      if (!currentLatest || currentLatest < version) {
+        latestByBaseUrl[baseUrl] = version;
       }
 
       flattened.push(current);
@@ -562,7 +642,10 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
       seenDataTypes.add(current.$id);
     }
 
-    return flattened;
+    return {
+      flattenedDataTypes: flattened,
+      latestVersionByBaseUrl: latestByBaseUrl,
+    };
   }, [dataTypes]);
 
   const dataTypesToDisplay = useMemo(() => {
@@ -664,16 +747,15 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
           </Typography>
         )}
         {sortedDataTypes.map((dataType) => {
-          const selected = dataType.$id === selectedDataTypeId;
-
           if (searchText) {
             return (
               <DataTypeFlatView
                 allowSelectingAbstractTypes={allowSelectingAbstractTypes}
                 key={dataType.$id}
                 dataType={dataType}
+                latestVersionByBaseUrl={latestVersionByBaseUrl}
                 onSelect={onSelect}
-                selected={selected}
+                selectedDataTypeIds={selectedDataTypeIds}
               />
             );
           }
@@ -683,9 +765,10 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
               allowSelectingAbstractTypes={allowSelectingAbstractTypes}
               key={dataType.$id}
               dataType={dataType}
+              latestVersionByBaseUrl={latestVersionByBaseUrl}
               isOnlyRoot={dataTypes.length === 1}
               onSelect={onSelect}
-              selectedDataTypeId={selectedDataTypeId}
+              selectedDataTypeIds={selectedDataTypeIds}
             />
           );
         })}

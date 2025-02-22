@@ -80,7 +80,7 @@
     "md5": "2.3.0",
     "mime-types": "2.1.35",
     "officeparser": "4.2.0",
-    "openai": "4.84.1",
+    "openai": "4.85.2",
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.5.2",
     "pdf2json": "3.1.5",
@@ -89,7 +89,7 @@
     "puppeteer-extra-plugin-stealth": "2.11.2",
     "sanitize-html": "2.14.0",
     "tsconfig-paths-webpack-plugin": "4.2.0",
-    "tsx": "4.19.2",
+    "tsx": "4.19.3",
     "typescript": "5.7.3"
   },
   "devDependencies": {
@@ -102,7 +102,7 @@
     "@types/lodash": "4.17.15",
     "@types/md5": "2.3.5",
     "@types/mime-types": "2.1.4",
-    "@types/node": "22.13.1",
+    "@types/node": "22.13.4",
     "@types/papaparse": "5.3.15",
     "@types/sanitize-html": "2.13.0",
     "@vitest/coverage-istanbul": "2.1.9",

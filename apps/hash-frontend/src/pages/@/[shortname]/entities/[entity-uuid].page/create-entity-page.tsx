@@ -15,7 +15,6 @@ import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useContext, useEffect, useState } from "react";
 
-import { PageErrorState } from "../../../../../components/page-error-state";
 import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
@@ -57,8 +56,10 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     setDraftLinksToArchive,
   ] = useDraftLinkState();
 
-  const { getClosedMultiEntityType, loading: closedTypeLoading } =
-    useGetClosedMultiEntityType();
+  const { getClosedMultiEntityType } = useGetClosedMultiEntityType();
+
+  const [closedTypeRequestPending, setClosedTypeRequestPending] =
+    useState(true);
 
   const [draftEntityTypesDetails, setDraftEntityTypesDetails] =
     useState<
@@ -74,8 +75,10 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const fetchAndSetTypeDetails = useCallback(
     async (entityTypeIds: VersionedUrl[]) => {
+      setClosedTypeRequestPending(true);
       await getClosedMultiEntityType(entityTypeIds).then((result) => {
         setDraftEntityTypesDetails(result);
+        setClosedTypeRequestPending(false);
       });
     },
     [getClosedMultiEntityType],
@@ -205,12 +208,12 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     }
   };
 
-  if (closedTypeLoading) {
+  if (closedTypeRequestPending) {
     return <EntityPageLoadingState />;
   }
 
   if (!draftEntityTypesDetails) {
-    return <PageErrorState />;
+    throw new Error("No draft entity types details available");
   }
 
   const entityLabel = generateEntityLabel(
