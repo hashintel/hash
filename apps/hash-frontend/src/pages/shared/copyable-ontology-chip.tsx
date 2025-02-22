@@ -43,7 +43,8 @@ export const CopyableOntologyChip: FunctionComponent<{
       alignItems="center"
       columnGap={1}
       sx={({ palette }) => ({
-        border: `1px solid ${palette.gray[20]}`,
+        border: `1px solid ${palette.gray[30]}`,
+        borderRadius: "13px",
       })}
     >
       <Tooltip

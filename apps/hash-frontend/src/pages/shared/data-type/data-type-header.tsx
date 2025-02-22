@@ -73,7 +73,7 @@ export const DataTypeHeader = ({
           justifyContent="space-between"
         >
           <Stack direction="row" alignItems="center" gap={5}>
-            <Box my={3}>
+            <Stack direction="row" alignItems="center" mt={1} mb={3}>
               <Tooltip
                 placement="top"
                 componentsProps={{
@@ -83,10 +83,9 @@ export const DataTypeHeader = ({
                   tooltip: {
                     sx: {
                       background: "transparent",
-                      marginBottom: 0,
+                      marginBottom: "5px !important",
                       maxWidth: "unset",
                       p: 0,
-                      borderRadius: "13px",
                     },
                   },
                 }}
@@ -121,7 +120,7 @@ export const DataTypeHeader = ({
                   />
                 </Link>
               )}
-            </Box>
+            </Stack>
           </Stack>
           {!isDraft ? (
             <Button

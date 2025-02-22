@@ -64,7 +64,7 @@ const StackSlide = ({
           position: "absolute",
           top: 0,
           right: 0,
-          overflowY: "auto",
+          overflowY: "scroll",
           zIndex: ({ zIndex }) => zIndex.drawer + 2 + stackPosition,
           background: ({ palette }) => palette.gray[10],
         }}

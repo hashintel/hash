@@ -145,10 +145,9 @@ export const EntityTypeHeader = ({
                   tooltip: {
                     sx: {
                       background: "transparent",
-                      marginBottom: 0,
+                      marginBottom: "5px !important",
                       maxWidth: "unset",
                       p: 0,
-                      borderRadius: "13px",
                     },
                   },
                 }}
