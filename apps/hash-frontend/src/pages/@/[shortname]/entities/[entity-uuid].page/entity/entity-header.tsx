@@ -14,13 +14,11 @@ import {
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import type { ReactNode } from "react";
-import { useContext } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { Link } from "../../../../../../shared/ui";
 import { inSlideContainerStyles } from "../../../../../shared/shared/slide-styles";
 import { TopContextBar } from "../../../../../shared/top-context-bar";
-import { WorkspaceContext } from "../../../../../shared/workspace-context";
 import { EntityEditorTabs } from "../shared/entity-editor-tabs";
 import { DraftEntityBanner } from "./draft-entity-banner";
 
@@ -49,25 +47,24 @@ export const EntityHeader = ({
   onDraftPublished: (entity: Entity) => void;
   showTabs?: boolean;
 }) => {
-  const { activeWorkspace } = useContext(WorkspaceContext);
-
-  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
-    {
-      ownedById: entity
-        ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
-        : null,
-    },
-  );
-
-  const shortname = activeWorkspace?.shortname;
+  const { shortname } = useUserOrOrgShortnameByOwnedById({
+    ownedById: entity
+      ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+      : null,
+  });
 
   const icon = closedMultiEntityType
     ? getDisplayFieldsForClosedEntityType(closedMultiEntityType).icon
     : null;
 
-  if (!shortname) {
-    throw new Error("Cannot render before workspace is available");
-  }
+  const entityPath =
+    entity && shortname
+      ? generateEntityPath({
+          shortname,
+          entityId: entity.metadata.recordId.entityId,
+          includeDraftId: true,
+        })
+      : null;
 
   return (
     <>
@@ -82,7 +79,6 @@ export const EntityHeader = ({
           },
           {
             title: entityLabel,
-            href: "#",
             id: "entityId",
             icon: (
               <EntityOrTypeIcon
@@ -98,7 +94,7 @@ export const EntityHeader = ({
         scrollToTop={() => {}}
       />
 
-      {entity && entitySubgraph && closedMultiEntityType ? (
+      {entity && entitySubgraph && shortname && closedMultiEntityType ? (
         <Collapse
           in={!!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)}
         >
@@ -118,7 +114,7 @@ export const EntityHeader = ({
 
       <Box
         pt={3.75}
-        pb={showTabs ? 0 : 3.75}
+        pb={showTabs ? 0 : 7}
         sx={({ palette }) => ({ background: palette.common.white })}
       >
         <Container sx={{ ...(isInSlide ? inSlideContainerStyles : {}) }}>
@@ -144,15 +140,8 @@ export const EntityHeader = ({
             >
               {entityLabel}
             </Typography>
-            {entityOwningShortname && isInSlide && entity && (
-              <Link
-                href={generateEntityPath({
-                  shortname: entityOwningShortname,
-                  entityId: entity.metadata.recordId.entityId,
-                  includeDraftId: true,
-                })}
-                target="_blank"
-              >
+            {entityPath && isInSlide && (
+              <Link href={entityPath} target="_blank">
                 <ArrowUpRightFromSquareRegularIcon
                   sx={{
                     fill: ({ palette }) => palette.blue[50],
@@ -166,9 +155,9 @@ export const EntityHeader = ({
               </Link>
             )}
           </Stack>
-          {showTabs && (
+          {showTabs && entityPath && (
             <Box mt={7.5}>
-              <EntityEditorTabs isInSlide={isInSlide} />
+              <EntityEditorTabs entityPath={entityPath} isInSlide={isInSlide} />
             </Box>
           )}
         </Container>

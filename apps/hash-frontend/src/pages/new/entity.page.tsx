@@ -74,7 +74,7 @@ const Page: NextPageWithLayout = () => {
   );
 
   const { activeWorkspace } = useContext(WorkspaceContext);
-  const shouldBeCreatingEntity = entityTypeId?.type === "Ok";
+  const hasSelectedEntityType = entityTypeId?.type === "Ok";
 
   if (
     userPermissionsLoading ||
@@ -115,7 +115,7 @@ const Page: NextPageWithLayout = () => {
     );
   }
 
-  if (shouldBeCreatingEntity) {
+  if (hasSelectedEntityType) {
     return <CreateEntityPage entityTypeId={entityTypeId.inner} />;
   }
 

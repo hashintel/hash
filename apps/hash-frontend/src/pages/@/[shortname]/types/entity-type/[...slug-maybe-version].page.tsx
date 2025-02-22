@@ -1,4 +1,5 @@
-import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import type { EntityTypeWithMetadata as BpEntityTypeWithMetadata } from "@blockprotocol/graph";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
@@ -72,7 +73,7 @@ const Page: NextPageWithLayout = () => {
           },
         },
         schema: entityTypeSchema,
-      } satisfies EntityTypeWithMetadata;
+      } satisfies BpEntityTypeWithMetadata as EntityTypeWithMetadata;
     } else {
       return null;
     }
@@ -92,7 +93,7 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <EntityType
-      inSlide={false}
+      isInSlide={false}
       ownedById={routeNamespace.ownedById}
       draftEntityType={draftEntityType}
       entityTypeBaseUrl={entityTypeBaseUrl}

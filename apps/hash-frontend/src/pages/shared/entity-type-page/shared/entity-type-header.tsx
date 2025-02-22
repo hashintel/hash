@@ -1,6 +1,7 @@
 import type { EntityType } from "@blockprotocol/type-system/slim";
 import { extractVersion } from "@blockprotocol/type-system/slim";
 import {
+  ArrowUpRightFromSquareRegularIcon,
   ArrowUpRightIcon,
   EntityTypeIcon,
   LinkTypeIcon,
@@ -11,14 +12,16 @@ import {
   extractBaseUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 import { Controller } from "react-hook-form";
 
 import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
+import { generateLinkParameters } from "../../../../shared/generate-link-parameters";
 import { Button, Link, Modal } from "../../../../shared/ui";
 import { CopyableOntologyChip } from "../../copyable-ontology-chip";
 import { CreateEntityTypeForm } from "../../create-entity-type-form";
+import { useSlideStack } from "../../slide-stack";
 import { EntityTypeDescription } from "../entity-type-description";
 import { EntityTypeInverse } from "../entity-type-inverse";
 import { EntityTypePlural } from "../entity-type-plural";
@@ -29,7 +32,7 @@ interface EntityTypeHeaderProps {
   hideOpenInNew?: boolean;
   isDraft: boolean;
   isLink: boolean;
-  isPreviewSlide?: boolean;
+  isInSlide?: boolean;
   isReadonly: boolean;
   latestVersion?: number | null;
 }
@@ -37,10 +40,9 @@ interface EntityTypeHeaderProps {
 export const EntityTypeHeader = ({
   currentVersion,
   entityTypeSchema,
-  hideOpenInNew,
   isDraft,
   isLink,
-  isPreviewSlide,
+  isInSlide,
   isReadonly,
   latestVersion,
 }: EntityTypeHeaderProps) => {
@@ -56,18 +58,12 @@ export const EntityTypeHeader = ({
 
   const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();
 
+  const { slideContainerRef } = useSlideStack();
+
   return (
     <>
       <Box>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-          {/* <CopyableOntologyChip
-            hideOpenInNew={hideOpenInNew}
-            versionedUrl={versionedUrlFromComponents(
-              extractBaseUrl(entityTypeSchema.$id),
-              currentVersion,
-            )}
-          /> */}
-
           {!isLatest && (
             <Link
               href={latestVersionUrl}
@@ -79,7 +75,7 @@ export const EntityTypeHeader = ({
                 color="inherit"
                 sx={{ fontSize: 11, fontWeight: 600 }}
               >
-                {`–> v${latestVersion} available`}
+                {`v${currentVersion} –> v${latestVersion} available`}
               </Typography>
             </Link>
           )}
@@ -140,9 +136,53 @@ export const EntityTypeHeader = ({
                   );
                 }}
               />
-              <Typography variant="h1" fontWeight="bold" marginLeft={2}>
-                {entityTypeSchema.title}
-              </Typography>
+              <Tooltip
+                placement="top"
+                componentsProps={{
+                  popper: {
+                    container: slideContainerRef?.current,
+                  },
+                  tooltip: {
+                    sx: {
+                      background: "transparent",
+                      marginBottom: 0,
+                      maxWidth: "unset",
+                      p: 0,
+                      borderRadius: "13px",
+                    },
+                  },
+                }}
+                title={
+                  <CopyableOntologyChip
+                    hideOpenInNew
+                    versionedUrl={versionedUrlFromComponents(
+                      extractBaseUrl(entityTypeSchema.$id),
+                      currentVersion,
+                    )}
+                  />
+                }
+              >
+                <Typography variant="h1" fontWeight="bold" marginLeft={2}>
+                  {entityTypeSchema.title}
+                </Typography>
+              </Tooltip>
+              {isInSlide && (
+                <Link
+                  href={generateLinkParameters(entityTypeSchema.$id).href}
+                  target="_blank"
+                >
+                  <ArrowUpRightFromSquareRegularIcon
+                    sx={{
+                      fill: ({ palette }) => palette.blue[50],
+                      fontSize: 24,
+                      "&:hover": {
+                        fill: ({ palette }) => palette.blue[70],
+                      },
+                      ml: 1.2,
+                    }}
+                  />
+                </Link>
+              )}
             </Box>
             <Stack
               direction="row"

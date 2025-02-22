@@ -48,12 +48,16 @@ import type { EntityEditorProps } from "./entity/entity-editor";
 import { EntityEditor } from "./entity/entity-editor";
 import { EntityHeader } from "./entity/entity-header";
 import { QueryEditor } from "./entity/query-editor";
+import { EntityEditorContainer } from "./entity-editor-container";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
 import { QueryEditorToggle } from "./query-editor-toggle";
 import { createDraftEntitySubgraph } from "./shared/create-draft-entity-subgraph";
 import { EntityEditorTabProvider } from "./shared/entity-editor-tabs";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
-import { useDraftLinkState } from "./shared/use-draft-link-state";
+import {
+  type DraftLinksToCreate,
+  useDraftLinkState,
+} from "./shared/use-draft-link-state";
 import { useHandleTypeChanges } from "./shared/use-handle-type-changes";
 
 interface EntityProps {
@@ -74,7 +78,10 @@ interface EntityProps {
      * Nothing will happen otherwise – the button will appear to have taken no effect.
      * The parent should reroute to the appropriate page, slide etc, with the persisted entityId.
      */
-    createFromLocalDraft: (persistedEntityId: EntityId) => void;
+    createFromLocalDraft: (params: {
+      localDraft: EntityClass;
+      draftLinksToCreate: DraftLinksToCreate;
+    }) => Promise<void>;
     /**
      * The initial subgraph of the new draft entity.
      */
@@ -263,6 +270,7 @@ export const Entity = ({
   >(updateEntityMutation);
 
   const isReadonly =
+    !draftLocalEntity &&
     !getEntitySubgraphData?.getEntitySubgraph.userPermissionsOnEntities?.[
       entityId
     ]?.edit;
@@ -293,7 +301,7 @@ export const Entity = ({
     [dataFromDb],
   );
 
-  const [isDirty, setIsDirty] = useState(false);
+  const [isDirty, setIsDirty] = useState(!!draftLocalEntity);
 
   const resetDraftState = () => {
     setIsDirty(false);
@@ -318,12 +326,27 @@ export const Entity = ({
   const [savingChanges, setSavingChanges] = useState(false);
 
   const handleSaveChanges = async (overrideProperties?: PropertyObject) => {
-    if (!dataFromDb || !draftEntitySubgraph) {
+    if (!draftEntitySubgraph || !draftEntity) {
+      throw new Error(
+        "Draft subgraph and entity must be present to save entity",
+      );
+    }
+
+    if (draftLocalEntity) {
+      try {
+        setSavingChanges(true);
+        await draftLocalEntity.createFromLocalDraft({
+          localDraft: draftEntity,
+          draftLinksToCreate,
+        });
+      } finally {
+        setSavingChanges(false);
+      }
       return;
     }
 
-    if (!draftEntity) {
-      return;
+    if (!dataFromDb) {
+      throw new Error("No data from database");
     }
 
     try {
@@ -453,6 +476,7 @@ export const Entity = ({
             );
           }}
           isDirty={isDirty}
+          isInSlide={isInSlide}
           onEntityClick={(clickedEntityId) =>
             pushToSlideStack({
               kind: "entity",
@@ -512,15 +536,31 @@ export const Entity = ({
             }
             editBar={
               <EditBar
-                visible={haveChangesBeenMade}
-                discardButtonProps={{
-                  onClick: discardChanges,
-                }}
-                confirmButtonProps={{
-                  onClick: () => handleSaveChanges(),
-                  loading: savingChanges,
-                  children: "Save changes",
-                }}
+                visible={haveChangesBeenMade || !!draftLocalEntity}
+                {...(draftLocalEntity
+                  ? {
+                      discardButtonProps: {
+                        onClick: draftLocalEntity.onDraftDiscarded,
+                        children: "Discard entity",
+                      },
+                      confirmButtonProps: {
+                        onClick: () => handleSaveChanges(),
+                        loading: savingChanges,
+                        children: "Create entity",
+                      },
+                      label: "– this entity has not been created yet",
+                    }
+                  : {
+                      confirmButtonProps: {
+                        onClick: () => handleSaveChanges(),
+                        loading: savingChanges,
+                        children: "Save changes",
+                      },
+                      discardButtonProps: {
+                        onClick: discardChanges,
+                        children: "Discard changes",
+                      },
+                    })}
                 hasErrors={!!validationReport}
               />
             }
@@ -531,74 +571,64 @@ export const Entity = ({
             isModifyingEntity={haveChangesBeenMade}
             onDraftArchived={onRemoteDraftArchived}
             onDraftPublished={onRemoteDraftPublished}
-            showTabs
+            showTabs={!draftLocalEntity}
           />
-          <Box
-            sx={({ palette }) => ({
-              borderTop: 1,
-              borderColor: palette.gray[20],
-              bgcolor: palette.gray[10],
-            })}
-          >
-            <Container
-              sx={{ py: 7, ...(isInSlide ? inSlideContainerStyles : {}) }}
-            >
-              <EntityEditor
-                closedMultiEntityTypesMap={
-                  dataFromDb?.closedMultiEntityTypesMap ?? null
-                }
-                {...draftEntityTypesDetails}
-                draftLinksToCreate={draftLinksToCreate}
-                draftLinksToArchive={draftLinksToArchive}
-                entityLabel={entityLabel}
-                entitySubgraph={draftEntitySubgraph}
-                handleTypesChange={async (change) => {
-                  const newEntity = await handleTypeChanges(change);
+          <EntityEditorContainer isInSlide={isInSlide}>
+            <EntityEditor
+              closedMultiEntityTypesMap={
+                dataFromDb?.closedMultiEntityTypesMap ?? null
+              }
+              {...draftEntityTypesDetails}
+              draftLinksToCreate={draftLinksToCreate}
+              draftLinksToArchive={draftLinksToArchive}
+              entityLabel={entityLabel}
+              entitySubgraph={draftEntitySubgraph}
+              handleTypesChange={async (change) => {
+                const newEntity = await handleTypeChanges(change);
 
-                  await validateEntity(newEntity);
+                await validateEntity(newEntity);
 
-                  setIsDirty(
-                    JSON.stringify(change.entityTypeIds.toSorted()) !==
-                      JSON.stringify(
-                        entityFromDb?.metadata.entityTypeIds.toSorted(),
-                      ),
-                  );
-                }}
-                isDirty={isDirty}
-                onEntityClick={(clickedEntityId) =>
-                  pushToSlideStack({
-                    kind: "entity",
-                    itemId: clickedEntityId,
-                  })
-                }
-                onEntityUpdated={onEntityUpdatedInDb}
-                onTypeClick={(type, versionedUrl) => {
-                  pushToSlideStack({
-                    kind: type,
-                    itemId: versionedUrl,
-                  });
-                }}
-                readonly={isReadonly}
-                setDraftLinksToArchive={setDraftLinksToArchive}
-                setDraftLinksToCreate={setDraftLinksToCreate}
-                setEntity={async (changedEntity) => {
-                  setDraftEntitySubgraph((prev) =>
-                    createDraftEntitySubgraph({
-                      entity: changedEntity,
-                      entityTypeIds: changedEntity.metadata.entityTypeIds,
-                      currentSubgraph: prev,
-                      omitProperties: [],
-                    }),
-                  );
+                setIsDirty(
+                  JSON.stringify(change.entityTypeIds.toSorted()) !==
+                    JSON.stringify(
+                      entityFromDb?.metadata.entityTypeIds.toSorted(),
+                    ),
+                );
+              }}
+              isDirty={isDirty}
+              onEntityClick={(clickedEntityId) =>
+                pushToSlideStack({
+                  kind: "entity",
+                  itemId: clickedEntityId,
+                })
+              }
+              onEntityUpdated={onEntityUpdatedInDb}
+              onTypeClick={(type, versionedUrl) => {
+                pushToSlideStack({
+                  kind: type,
+                  itemId: versionedUrl,
+                });
+              }}
+              readonly={isReadonly}
+              setDraftLinksToArchive={setDraftLinksToArchive}
+              setDraftLinksToCreate={setDraftLinksToCreate}
+              setEntity={async (changedEntity) => {
+                setDraftEntitySubgraph((prev) =>
+                  createDraftEntitySubgraph({
+                    entity: changedEntity,
+                    entityTypeIds: changedEntity.metadata.entityTypeIds,
+                    currentSubgraph: prev,
+                    omitProperties: [],
+                  }),
+                );
 
-                  await validateEntity(changedEntity);
+                await validateEntity(changedEntity);
 
-                  setIsDirty(true);
-                }}
-                validationReport={validationReport}
-              />
-            </Container>
-          </Box>
+                setIsDirty(true);
+              }}
+              validationReport={validationReport}
+            />
+          </EntityEditorContainer>
         </>
       )}
     </EntityEditorTabProvider>

@@ -106,6 +106,7 @@ const Page: NextPageWithLayout = () => {
 
       <Entity
         entityId={entityId}
+        isInSlide={false}
         onEntityUpdatedInDb={onEntityUpdatedInDb}
         onRemoteDraftArchived={onRemoteDraftArchived}
         onRemoteDraftPublished={onEntityUpdatedInDb}

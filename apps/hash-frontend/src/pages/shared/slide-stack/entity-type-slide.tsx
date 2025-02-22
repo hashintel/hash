@@ -19,7 +19,7 @@ export const EntityTypeSlide: FunctionComponent<EntityTypeSlideProps> = ({
   return (
     <EntityType
       entityTypeBaseUrl={baseUrl}
-      inSlide
+      isInSlide
       requestedVersion={version}
       onEntityTypeUpdated={(entityType) =>
         replaceItem({

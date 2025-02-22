@@ -3,6 +3,7 @@ import { createContext, type RefObject, useContext } from "react";
 import type { PushToStackFn } from "./types";
 
 type SlideStackContextData = {
+  closeSlideStack: () => void;
   pushToSlideStack: PushToStackFn;
   setSlideContainerRef: (ref: RefObject<HTMLDivElement | null> | null) => void;
   slideContainerRef?: RefObject<HTMLDivElement | null> | null;

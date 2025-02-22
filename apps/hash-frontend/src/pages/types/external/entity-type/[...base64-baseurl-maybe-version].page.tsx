@@ -21,6 +21,7 @@ const Page: NextPageWithLayout = () => {
   return (
     <EntityType
       entityTypeBaseUrl={entityTypeBaseUrl}
+      isInSlide={false}
       key={`${entityTypeBaseUrl}-${requestedVersion}`}
       requestedVersion={requestedVersion}
     />

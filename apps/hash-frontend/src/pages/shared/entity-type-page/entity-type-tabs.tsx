@@ -1,3 +1,4 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
@@ -6,9 +7,11 @@ import type { PropsWithChildren } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { TabLink } from "../../../shared/ui/tab-link";
 import { Tabs } from "../../../shared/ui/tabs";
 import { useEntityType } from "./shared/entity-type-context";
+import { useSlideStack } from "../slide-stack";
 
 const defaultTab = "definition";
 
@@ -64,8 +67,9 @@ export const useEntityTypeTab = () => {
   return context;
 };
 
-export const getTabUrl = (tab: string) => {
-  const pathWithoutParams = window.location.pathname.split("?")[0]!;
+export const getTabUrl = (tab: string, entityTypeId: VersionedUrl) => {
+  const pathWithoutParams = generateLinkParameters(entityTypeId).href;
+
   return tab === defaultTab
     ? pathWithoutParams
     : `${pathWithoutParams}?tab=${encodeURIComponent(tab)}`;
@@ -90,7 +94,7 @@ export const EntityTypeTabs = ({
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
   const isLinkEntityType = isSpecialEntityTypeLookup?.[entityType.$id]?.isLink;
 
-  console.log("isInSlide", isInSlide, tab);
+  const { closeSlideStack } = useSlideStack();
 
   return (
     <Box display="flex">
@@ -98,13 +102,16 @@ export const EntityTypeTabs = ({
         <TabLink
           value="definition"
           href={
-            isInSlide
-              ? undefined
-              : isDraft
-                ? router.asPath
-                : getTabUrl("definition")
+            isDraft ? router.asPath : getTabUrl("definition", entityType.$id)
           }
-          onClick={isInSlide ? () => setTab("definition") : undefined}
+          onClick={
+            isInSlide
+              ? (event) => {
+                  event.preventDefault();
+                  setTab("definition");
+                }
+              : undefined
+          }
           label="Definition"
           active={tab === "definition"}
         />
@@ -120,8 +127,15 @@ export const EntityTypeTabs = ({
               <TabLink
                 key="entities"
                 value="entities"
-                href={isInSlide ? undefined : getTabUrl("entities")}
-                onClick={isInSlide ? () => setTab("entities") : undefined}
+                href={getTabUrl("entities", entityType.$id)}
+                onClick={
+                  isInSlide
+                    ? (event) => {
+                        event.preventDefault();
+                        setTab("entities");
+                      }
+                    : undefined
+                }
                 label="Entities"
                 active={tab === "entities"}
               />,
@@ -132,19 +146,15 @@ export const EntityTypeTabs = ({
                   key={isFile ? "upload" : "create"}
                   value={isFile ? "upload" : "create"}
                   href={
-                    isInSlide
-                      ? undefined
-                      : isFile
-                        ? getTabUrl("upload")
-                        : `/new/entity?entity-type-id=${encodeURIComponent(
-                            entityType.$id,
-                          )}`
+                    isFile
+                      ? getTabUrl("upload", entityType.$id)
+                      : `/new/entity?entity-type-id=${encodeURIComponent(
+                          entityType.$id,
+                        )}`
                   }
-                  onClick={
-                    isInSlide
-                      ? () => setTab(isFile ? "upload" : "create")
-                      : undefined
-                  }
+                  onClick={() => {
+                    closeSlideStack();
+                  }}
                   label={
                     isFile
                       ? `Add new ${isImage ? "image" : "file"}`

@@ -196,13 +196,23 @@ export const SlideStackProvider = ({
     setCurrentIndex((prevIndex) => Math.max(prevIndex - 1, 0));
   }, [currentIndex]);
 
+  const closeSlideStack = useCallback(() => {
+    setItems([]);
+  }, []);
+
   const value = useMemo(
     () => ({
+      closeSlideStack,
       pushToSlideStack,
       setSlideContainerRef,
       slideContainerRef,
     }),
-    [pushToSlideStack, setSlideContainerRef, slideContainerRef],
+    [
+      closeSlideStack,
+      pushToSlideStack,
+      setSlideContainerRef,
+      slideContainerRef,
+    ],
   );
 
   return (

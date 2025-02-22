@@ -365,10 +365,9 @@ export const DataType = ({
               <DataTypeHeader
                 currentVersion={currentVersion}
                 dataTypeSchema={dataType.schema}
-                hideOpenInNew={!inSlide}
                 isDraft={isDraft}
                 isReadOnly={isReadOnly}
-                isPreviewSlide={inSlide}
+                isInSlide={inSlide}
                 latestVersion={latestVersion}
               />
             </Container>

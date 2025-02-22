@@ -64,7 +64,7 @@ type EntityTypeProps = {
   ownedById?: OwnedById | null;
   draftEntityType?: EntityTypeWithMetadata | null;
   entityTypeBaseUrl?: BaseUrl;
-  inSlide: boolean;
+  isInSlide: boolean;
   onEntityTypeUpdated?: (entityType: EntityTypeWithMetadata) => void;
   requestedVersion: number | null;
 };
@@ -126,7 +126,7 @@ export const EntityType = ({
   ownedById,
   draftEntityType,
   entityTypeBaseUrl,
-  inSlide,
+  isInSlide,
   requestedVersion,
   onEntityTypeUpdated,
 }: EntityTypeProps) => {
@@ -390,7 +390,7 @@ export const EntityType = ({
 
   return (
     <>
-      {!inSlide && (
+      {!isInSlide && (
         <NextSeo title={`${entityType.schema.title} | Entity Type`} />
       )}
       <UpgradeDependentsModal
@@ -493,14 +493,14 @@ export const EntityType = ({
               />
             )}
 
-            <EntityTypeTabProvider isInSlide={inSlide}>
+            <EntityTypeTabProvider isInSlide={isInSlide}>
               <Box ref={titleWrapperRef} sx={typeHeaderContainerStyles}>
-                <Container sx={inSlide ? inSlideContainerStyles : {}}>
+                <Container sx={isInSlide ? inSlideContainerStyles : {}}>
                   <EntityTypeHeader
                     currentVersion={currentVersion}
                     entityTypeSchema={entityType.schema}
-                    hideOpenInNew
                     isDraft={isDraft}
+                    isInSlide={isInSlide}
                     isLink={isLink}
                     isReadonly={isReadonly}
                     latestVersion={latestVersion}
@@ -511,12 +511,12 @@ export const EntityType = ({
                     isDraft={isDraft}
                     isFile={isFile}
                     isImage={isImage}
-                    isInSlide={inSlide}
+                    isInSlide={isInSlide}
                   />
                 </Container>
               </Box>
 
-              <TypeDefinitionContainer inSlide={inSlide}>
+              <TypeDefinitionContainer inSlide={isInSlide}>
                 <TypeDefinition
                   entityTypeBaseUrl={entityTypeBaseUrl ?? null}
                   entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}

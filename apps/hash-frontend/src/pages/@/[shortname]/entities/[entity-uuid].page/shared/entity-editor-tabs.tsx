@@ -58,22 +58,34 @@ export const useEntityEditorTab = () => {
   return context;
 };
 
-const getTabUrl = (tab: string) => {
-  const url = new URL(window.location.href);
-  const searchParams = new URLSearchParams(url.search);
+const getTabUrl = (tab: string, entityPath: string, isInSlide: boolean) => {
+  let searchParams = new URLSearchParams();
 
-  searchParams.delete("tab");
+  if (!isInSlide) {
+    /**
+     * Preserve the search params (except tab) if we're on the entity's page
+     */
+    const url = new URL(window.location.href);
+    searchParams = new URLSearchParams(url.search);
+    searchParams.delete("tab");
+  }
 
   if (tab === defaultTab) {
-    return `${url.pathname}?${searchParams.toString()}`;
+    return `${entityPath}?${searchParams.toString()}`;
   }
 
   searchParams.set("tab", tab);
 
-  return `${url.pathname}?${searchParams.toString()}`;
+  return `${entityPath}?${searchParams.toString()}`;
 };
 
-export const EntityEditorTabs = ({ isInSlide }: { isInSlide: boolean }) => {
+export const EntityEditorTabs = ({
+  entityPath,
+  isInSlide,
+}: {
+  entityPath: string;
+  isInSlide: boolean;
+}) => {
   const { tab, setTab } = useEntityEditorTab();
 
   return (
@@ -81,15 +93,29 @@ export const EntityEditorTabs = ({ isInSlide }: { isInSlide: boolean }) => {
       <Tabs value={tab}>
         <TabLink
           value="overview"
-          href={isInSlide ? undefined : getTabUrl("overview")}
-          onClick={isInSlide ? () => setTab("overview") : undefined}
+          href={getTabUrl("overview", entityPath, isInSlide)}
+          onClick={
+            isInSlide
+              ? (event) => {
+                  event.preventDefault();
+                  setTab("overview");
+                }
+              : undefined
+          }
           label="Overview"
           active={tab === "overview"}
         />
         <TabLink
           value="history"
-          href={isInSlide ? undefined : getTabUrl("history")}
-          onClick={isInSlide ? () => setTab("history") : undefined}
+          href={getTabUrl("history", entityPath, isInSlide)}
+          onClick={
+            isInSlide
+              ? (event) => {
+                  event.preventDefault();
+                  setTab("history");
+                }
+              : undefined
+          }
           label="History"
           active={tab === "history"}
         />

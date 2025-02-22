@@ -51,7 +51,7 @@ export const useCreateGetCellContent = (
         // create valueCell here, because it's used in two places below
         const valueCell: ValueCell = {
           kind: GridCellKind.Custom,
-          allowOverlay: typeof row.value !== "undefined",
+          allowOverlay: readonly ? typeof row.value !== "undefined" : true,
           copyData: String(row.value),
           cursor: typeof row.value === "undefined" ? "default" : "pointer",
           data: {

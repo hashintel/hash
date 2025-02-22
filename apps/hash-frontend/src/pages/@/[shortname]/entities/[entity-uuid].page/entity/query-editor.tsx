@@ -13,7 +13,7 @@ import {
   useLatestEntityTypesOptional,
 } from "../../../../../../shared/entity-types-context/hooks";
 import { usePropertyTypes } from "../../../../../../shared/property-types-context";
-import { EntityPageWrapper } from "../entity-page-wrapper";
+import { EntityEditorContainer } from "../entity-editor-container";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { TypesSection } from "./entity-editor/types-section";
@@ -21,6 +21,7 @@ import { EntityHeader } from "./entity-header";
 
 interface QueryEditorProps extends EntityEditorProps {
   handleSaveQuery: (value: MultiFilter) => Promise<void>;
+  isInSlide: boolean;
   mode:
     | {
         type: "create";
@@ -32,7 +33,7 @@ interface QueryEditorProps extends EntityEditorProps {
 }
 
 export const QueryEditor = (props: QueryEditorProps) => {
-  const { handleSaveQuery, mode, ...entityEditorProps } = props;
+  const { handleSaveQuery, mode, isInSlide, ...entityEditorProps } = props;
 
   const [queryEditorKey, setQueryEditorKey] = useState(0);
 
@@ -81,11 +82,22 @@ export const QueryEditor = (props: QueryEditorProps) => {
     <>
       <NextSeo title={`${entityLabel} | Entity`} />
 
-      <EntityPageWrapper
-        header={
-          <EntityHeader entityLabel={entityLabel} onEntityUpdated={null} />
-        }
-      >
+      <EntityHeader
+        entityLabel={entityLabel}
+        isInSlide={isInSlide}
+        onDraftArchived={() => {
+          throw new Error(
+            "Unexpected call to onDraftArchived from query editor",
+          );
+        }}
+        onDraftPublished={() => {
+          throw new Error(
+            "Unexpected call to onDraftPublished from query editor",
+          );
+        }}
+      />
+
+      <EntityEditorContainer isInSlide={false}>
         <EntityEditorContextProvider {...entityEditorProps}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 6.5 }}>
             <TypesSection />
@@ -146,7 +158,7 @@ export const QueryEditor = (props: QueryEditorProps) => {
             )}
           </Box>
         </EntityEditorContextProvider>
-      </EntityPageWrapper>
+      </EntityEditorContainer>
     </>
   );
 };
