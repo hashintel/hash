@@ -328,10 +328,11 @@ type SystemLinkEntityTypeId =
 
 const _linkEntityTypeChanges: Record<
   SystemLinkEntityTypeId,
-  {
-    icon?: `/icons/types/${string}.svg`;
-    labelProperty?: `${string}/`;
-  } & Required<Pick<EntityType, "inverse">>
+  | ({
+      icon?: `/icons/types/${string}.svg`;
+      labelProperty?: `${string}/`;
+    } & Required<Pick<EntityType, "inverse">>)
+  | undefined
 > = {
   "https://hash.ai/@h/types/entity-type/has-object/v/1": {
     inverse: {

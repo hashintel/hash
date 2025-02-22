@@ -117,7 +117,7 @@ type SystemLinkEntityTypeId =
 
 const _defaultLinkEntityProvenance: Record<
   SystemLinkEntityTypeId,
-  EnforcedEntityEditionProvenance
+  EnforcedEntityEditionProvenance | undefined
 > = {
   "https://hash.ai/@h/types/entity-type/affiliated-with/v/1": aiModified,
   "https://hash.ai/@h/types/entity-type/associated-with-account/v/1":
