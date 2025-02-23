@@ -43,7 +43,7 @@ import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge
 import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../../shared/get-file-properties";
-import { SlideStack } from "../../../../shared/slide-stack";
+import { SlideStack, useSlideStack } from "../../../../shared/slide-stack";
 import { generateEntityRootedSubgraph } from "../../../../shared/subgraphs";
 import { ClaimsOutput } from "./outputs/claims-output";
 import { Deliverables } from "./outputs/deliverables";
@@ -531,6 +531,8 @@ export const Outputs = ({
     }
   }, [hasClaims, hasEntities, visibleSection]);
 
+  const { pushToSlideStack } = useSlideStack();
+
   const entitiesForGraph = useMemo<EntityForGraphChart[]>(() => {
     const entities: EntityForGraphChart[] = [];
 
@@ -582,47 +584,8 @@ export const Outputs = ({
     return entities;
   }, [persistedEntities, proposedEntities]);
 
-  const onEntityClick = useCallback(
-    (entityId: EntityId) => setSlideOver({ type: "entity", entityId }),
-    [],
-  );
-
-  const onEntityTypeClick = useCallback(
-    (entityTypeId: VersionedUrl) =>
-      setSlideOver({ type: "entityType", entityTypeId }),
-    [],
-  );
-
   return (
     <>
-      {slideOver?.type === "entityType" && (
-        <SlideStack
-          rootItem={{ type: "entityType", itemId: slideOver.entityTypeId }}
-          onClose={() => setSlideOver(null)}
-        />
-      )}
-      {selectedEntitySubgraph && slideOver?.type === "entity" && (
-        <SlideStack
-          entitySubgraph={selectedEntitySubgraph}
-          hideOpenInNew={persistedEntities.length === 0}
-          rootItem={{
-            type: "entity",
-            isReadOnly: true,
-            itemId: slideOver.entityId,
-            rootEntityOptions: {
-              entitySubgraph: selectedEntitySubgraph,
-            },
-            onSubmit: () => {
-              throw new Error(`Editing not yet supported from this screen`);
-            },
-          }}
-          onClose={() => setSlideOver(null)}
-          onSubmit={() => {
-            throw new Error(`Editing not yet supported from this screen`);
-          }}
-          readonly
-        />
-      )}
       <Box position="relative">
         <Stack
           alignItems="center"
@@ -695,18 +658,29 @@ export const Outputs = ({
                 !persistedEntitiesSubgraph &&
                 !proposedEntitiesTypesSubgraph
               }
-              onEntityClick={onEntityClick}
-              onEntityTypeClick={onEntityTypeClick}
+              onEntityClick={(entityId) => {
+                pushToSlideStack({
+                  type: "entity",
+                  itemId: entityId,
+                });
+              }}
+              onEntityTypeClick={(entityTypeId) => {
+                pushToSlideStack({
+                  kind: "entityType",
+                  itemId: entityTypeId,
+                });
+              }}
               persistedEntities={persistedEntities}
-              persistedEntitiesSubgraph={persistedEntitiesSubgraph}
-              proposedEntities={proposedEntities}
-              proposedEntitiesTypesSubgraph={proposedEntitiesTypesSubgraph}
-              relevantEntityIds={relevantEntityIds}
             />
           ) : (
             <EntityResultGraph
               onEntityClick={onEntityClick}
-              onEntityTypeClick={onEntityTypeClick}
+              onEntityTypeClick={(entityTypeId) => {
+                pushToSlideStack({
+                  kind: "entityType",
+                  itemId: entityTypeId,
+                });
+              }}
               entities={entitiesForGraph}
               subgraphWithTypes={
                 persistedEntitiesSubgraph ?? proposedEntitiesTypesSubgraph
