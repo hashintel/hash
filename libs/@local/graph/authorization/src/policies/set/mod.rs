@@ -46,7 +46,7 @@ impl PolicySet {
     ///
     /// # Errors
     ///
-    /// - [`Error`] if the policy is invalid.
+    /// Returns an error if the evaluation fails.
     pub fn evaluate(
         &self,
         request: &Request,
