@@ -16,9 +16,10 @@ use crate::policies::cedar::CedarEntityId;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ActionId {
+    Create,
     View,
-    ViewProperties,
-    ViewMetadata,
+    Update,
+    Instantiate,
 }
 
 impl CedarEntityId for ActionId {
@@ -48,16 +49,6 @@ impl FromStr for ActionId {
 impl fmt::Display for ActionId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(fmt)
-    }
-}
-
-impl ActionId {
-    #[must_use]
-    pub const fn parents(self) -> &'static [Self] {
-        match self {
-            Self::View => &[],
-            Self::ViewProperties | Self::ViewMetadata => &[Self::View],
-        }
     }
 }
 
@@ -171,7 +162,7 @@ mod tests {
 
     #[test]
     fn constraint_one() -> Result<(), Box<dyn Error>> {
-        let action = ActionId::ViewProperties;
+        let action = ActionId::View;
         check_action(
             &ActionConstraint::One { action },
             json!({
@@ -202,7 +193,7 @@ mod tests {
 
     #[test]
     fn constraint_many() -> Result<(), Box<dyn Error>> {
-        let actions = [ActionId::ViewProperties, ActionId::ViewMetadata];
+        let actions = [ActionId::View, ActionId::Update];
         check_action(
             &ActionConstraint::Many {
                 actions: actions.to_vec(),
