@@ -196,27 +196,7 @@ export const updateEntityTypeResolver: ResolverFn<
     {
       entityTypeId: params.entityTypeId,
       schema: params.updatedEntityType,
-      relationships: [
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "updateFromWeb",
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-        {
-          relation: "instantiator",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
+      relationships: defaultEntityTypeAuthorizationRelationships,
     },
   );
 

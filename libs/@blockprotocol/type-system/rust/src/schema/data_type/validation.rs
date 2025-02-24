@@ -4,22 +4,13 @@ use std::{collections::HashSet, sync::LazyLock};
 use thiserror::Error;
 
 use crate::{
-    Valid, Validator, Value,
+    Valid, Validator,
     schema::{ClosedDataType, DataType, DataTypeReference},
     url::VersionedUrl,
 };
 
 #[derive(Debug, Error)]
 pub enum ValidateDataTypeError {
-    #[error("Enum values are not compatible with `const` value")]
-    EnumValuesNotCompatibleWithConst {
-        const_value: Value,
-        enum_values: Vec<Value>,
-    },
-    #[error("Missing data type `{data_type_id}`")]
-    MissingDataType { data_type_id: VersionedUrl },
-    #[error("Cyclic data type reference detected for type `{data_type_id}`")]
-    CyclicDataTypeReference { data_type_id: VersionedUrl },
     #[error("A data type requires a parent specified in `allOf`")]
     MissingParent,
     #[error("Only primitive data types can inherit from the value data type")]

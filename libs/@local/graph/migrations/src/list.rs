@@ -21,7 +21,6 @@ pub trait MigrationList<C> {
     /// This will only forward the [`Migration`] to the [`MigrationRunner`].
     ///
     /// [`Migration`]: crate::Migration
-    /// [`down`]: Migration::down
     async fn traverse(
         self,
         runner: &impl MigrationRunner,

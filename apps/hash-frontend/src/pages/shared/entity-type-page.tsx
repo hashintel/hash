@@ -5,7 +5,7 @@ import {
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { EntityOrTypeIcon, OntologyChip } from "@hashintel/design-system";
+import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
   EntityTypeFormProvider,
@@ -13,7 +13,6 @@ import {
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type { AccountId } from "@local/hash-graph-types/account";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
@@ -25,7 +24,6 @@ import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { PageErrorState } from "../../components/page-error-state";
 import { useIsSpecialEntityType } from "../../shared/entity-types-context/hooks";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../shared/is-archived";
@@ -48,17 +46,22 @@ import {
   useGetEntityTypeDependents,
 } from "./entity-type-page/use-entity-type-dependents";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
+import { NotFound } from "./not-found";
+import {
+  TypeDefinitionContainer,
+  typeHeaderContainerStyles,
+} from "./shared/type-editor-styling";
 import { TopContextBar } from "./top-context-bar";
 
 type EntityTypeProps = {
-  accountId?: AccountId | null;
+  ownedById?: OwnedById | null;
   draftEntityType?: EntityTypeWithMetadata | null;
   entityTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
 };
 
 export const EntityTypePage = ({
-  accountId,
+  ownedById,
   draftEntityType,
   entityTypeBaseUrl,
   requestedVersion,
@@ -86,7 +89,7 @@ export const EntityTypePage = ({
   ] = useEntityTypeValue(
     entityTypeBaseUrl ?? null,
     requestedVersion,
-    accountId ?? null,
+    ownedById ?? null,
     (fetchedEntityType) => {
       // Load the initial form data after the entity type has been fetched
       reset({
@@ -259,7 +262,14 @@ export const EntityTypePage = ({
         </Container>
       );
     } else {
-      return <PageErrorState />;
+      return (
+        <NotFound
+          resourceLabel={{
+            label: "entity type",
+            withArticle: "an entity type",
+          }}
+        />
+      );
     }
   }
 
@@ -419,28 +429,13 @@ export const EntityTypePage = ({
               />
             )}
 
-            <Box
-              ref={titleWrapperRef}
-              sx={{
-                borderBottom: 1,
-                borderColor: "gray.20",
-                pt: 3.75,
-                backgroundColor: "white",
-              }}
-            >
+            <Box ref={titleWrapperRef} sx={typeHeaderContainerStyles}>
               <Container>
                 <EntityTypeHeader
-                  isDraft={isDraft}
-                  ontologyChip={
-                    <OntologyChip
-                      domain={new URL(entityType.schema.$id).hostname}
-                      path={new URL(entityType.schema.$id).pathname.replace(
-                        /\d+$/,
-                        currentVersion.toString(),
-                      )}
-                    />
-                  }
+                  currentVersion={currentVersion}
                   entityTypeSchema={entityType.schema}
+                  hideOpenInNew
+                  isDraft={isDraft}
                   isLink={isLink}
                   isReadonly={isReadonly}
                   latestVersion={latestVersion}
@@ -455,28 +450,26 @@ export const EntityTypePage = ({
               </Container>
             </Box>
 
-            <Box py={5}>
-              <Container>
-                {currentTab === "definition" ? (
-                  entityTypeAndPropertyTypes ? (
-                    <DefinitionTab
-                      entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
-                      onNavigateToType={onNavigateToType}
-                      ownedById={accountId as OwnedById | null}
-                      readonly={isReadonly}
-                    />
-                  ) : (
-                    "Loading..."
-                  )
-                ) : null}
-                {currentTab === "entities" && entityTypeBaseUrl ? (
-                  <EntitiesTab entityTypeBaseUrl={entityTypeBaseUrl} />
-                ) : null}
-                {isFile && currentTab === "upload" ? (
-                  <FileUploadsTab isImage={isImage} />
-                ) : null}
-              </Container>
-            </Box>
+            <TypeDefinitionContainer>
+              {currentTab === "definition" ? (
+                entityTypeAndPropertyTypes ? (
+                  <DefinitionTab
+                    entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
+                    onNavigateToType={onNavigateToType}
+                    ownedById={ownedById ?? null}
+                    readonly={isReadonly}
+                  />
+                ) : (
+                  "Loading..."
+                )
+              ) : null}
+              {currentTab === "entities" && entityTypeBaseUrl ? (
+                <EntitiesTab entityTypeBaseUrl={entityTypeBaseUrl} />
+              ) : null}
+              {isFile && currentTab === "upload" ? (
+                <FileUploadsTab isImage={isImage} />
+              ) : null}
+            </TypeDefinitionContainer>
           </Box>
         </EntityTypeContext.Provider>
       </EntityTypeFormProvider>

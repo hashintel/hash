@@ -66,6 +66,9 @@ export const formatValue = (
       const schema = getMergedDataTypeSchema(dataType.schema);
 
       if ("anyOf" in schema) {
+        /**
+         * @todo H-4067: Support anyOf constraints (e.g. data types which can be 'string' or 'number')
+         */
         throw new Error(
           "Data types with different expected sets of constraints (anyOf) are not yet supported",
         );
@@ -106,6 +109,9 @@ export const formatValue = (
     const schema = getMergedDataTypeSchema(dataType.schema);
 
     if ("anyOf" in schema) {
+      /**
+       * @todo H-4067: Support anyOf constraints (e.g. data types which can be 'string' or 'number')
+       */
       throw new Error(
         "Data types with different expected sets of constraints (anyOf) are not yet supported",
       );

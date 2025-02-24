@@ -124,7 +124,7 @@
     "signia-react": "0.1.5",
     "url-regex-safe": "4.0.0",
     "use-font-face-observer": "1.2.2",
-    "uuid": "11.0.5"
+    "uuid": "11.1.0"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.3",
@@ -142,18 +142,18 @@
     "@types/jsonpath": "0.2.4",
     "@types/lodash": "4.17.15",
     "@types/papaparse": "5.3.15",
-    "@types/react": "19.0.8",
+    "@types/react": "19.0.10",
     "@types/react-beautiful-dnd": "13.1.8",
-    "@types/react-dom": "19.0.3",
+    "@types/react-dom": "19.0.4",
     "@types/react-window": "1.8.8",
     "@types/url-regex-safe": "1.0.2",
     "@welldone-software/why-did-you-render": "8.0.3",
     "eslint": "9.20.1",
     "graphology-types": "0.24.8",
     "rimraf": "6.0.1",
-    "sass": "1.84.0",
+    "sass": "1.85.0",
     "typescript": "5.7.3",
     "wait-on": "8.0.2",
-    "webpack": "5.97.1"
+    "webpack": "5.98.0"
   }
 }

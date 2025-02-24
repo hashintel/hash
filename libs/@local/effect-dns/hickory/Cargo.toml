@@ -26,5 +26,10 @@ napi-build = { workspace = true }
 [lints]
 workspace = true
 
+
 [package.metadata.sync.turborepo]
-ignore = true
+package-name = "@local/effect-dns-hickory"
+extra-dev-dependencies = [
+    { name = "@local/eslint", version = "0.0.0-private" },
+    { name = "@local/tsconfig", version = "0.0.0-private" },
+]

@@ -1,6 +1,7 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   AsteriskRegularIcon,
+  BarcodeIcon,
   FontAwesomeIcon,
   LinkIcon,
 } from "@hashintel/design-system";
@@ -124,6 +125,13 @@ const ActionsDropdownInner: FunctionComponent = () => {
           </ListItemIcon>
           <ListItemText primary="Link type" />
         </MenuItem>
+        <MenuItem href="/new/types/data-type" onClick={popupState.close}>
+          <ListItemIcon>
+            <BarcodeIcon />
+          </ListItemIcon>
+          <ListItemText primary="Data type" />
+        </MenuItem>
+
         <Divider />
         <MenuItem
           href={`${systemEntityTypes.file.entityTypeId}?tab=upload`}

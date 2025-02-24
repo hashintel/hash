@@ -1,6 +1,5 @@
 import { useMutation } from "@apollo/client";
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
@@ -43,7 +42,7 @@ import {
 export const useEntityTypeValue = (
   entityTypeBaseUrl: BaseUrl | null,
   requestedVersion: number | null,
-  accountId: AccountId | null,
+  ownedById: OwnedById | null,
   onCompleted?: (entityType: EntityTypeWithMetadata) => void,
 ) => {
   const router = useRouter();
@@ -231,9 +230,13 @@ export const useEntityTypeValue = (
 
   const publishDraft = useCallback(
     async (draftEntityType: EntityType) => {
+      if (!ownedById) {
+        throw new Error("Cannot publish draft without ownedById");
+      }
+
       const res = await createEntityType({
         variables: {
-          ownedById: accountId as OwnedById,
+          ownedById,
           entityType: draftEntityType,
         },
       });
@@ -248,7 +251,7 @@ export const useEntityTypeValue = (
 
       await router.replace(newUrl, newUrl, { shallow: true });
     },
-    [createEntityType, accountId, refetch, router],
+    [createEntityType, ownedById, refetch, router],
   );
 
   return [

@@ -16,10 +16,10 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Stack, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 
+import { NumberOrTextInput } from "../../../../../../../../../../shared/number-or-text-input";
 import { getEditorSpecs } from "../editor-specs";
 import { BooleanInput } from "../inputs/boolean-input";
 import { JsonInput } from "../inputs/json-input";
-import { NumberOrTextInput } from "../inputs/number-or-text-input";
 import { RowAction } from "./row-action";
 import type { SortableItem } from "./types";
 import { ValueChip } from "./value-chip";
@@ -76,6 +76,9 @@ export const SortableRow = ({
   const [prevEditing, setPrevEditing] = useState(editing);
 
   if ("anyOf" in schema || !editorSpec) {
+    /**
+     * @todo H-4067: Support anyOf constraints (e.g. data types which can be 'string' or 'number')
+     */
     throw new Error(
       "Data types with different expected sets of constraints (anyOf) are not yet supported",
     );
@@ -132,6 +135,7 @@ export const SortableRow = ({
 
     return (
       <NumberOrTextInput
+        multiLineText={schema.type === "string"}
         isNumber={schema.type === "number"}
         onEnterPressed={saveChanges}
         /** @todo is this casting ok? */

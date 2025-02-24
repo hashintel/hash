@@ -81,9 +81,14 @@ import { submitEarlyAccessFormResolver } from "./knowledge/user/submit-early-acc
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
 import {
+  archiveDataTypeResolver,
+  checkUserPermissionsOnDataTypeResolver,
+  createDataTypeResolver,
   getDataType,
   getDataTypeConversionTargetsResolver,
   queryDataTypes,
+  unarchiveDataTypeResolver,
+  updateDataTypeResolver,
 } from "./ontology/data-type";
 import {
   archiveEntityTypeResolver,
@@ -151,6 +156,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     checkUserPermissionsOnEntity: (_, { metadata }, context, info) =>
       checkUserPermissionsOnEntity({ metadata }, _, context, info),
     checkUserPermissionsOnEntityType: checkUserPermissionsOnEntityTypeResolver,
+    checkUserPermissionsOnDataType: checkUserPermissionsOnDataTypeResolver,
     hasAccessToHash: loggedInMiddleware(hasAccessToHashResolver),
     // Generation
     generateInverse: loggedInMiddleware(generateInverseResolver),
@@ -179,6 +185,10 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     unarchivePropertyType: loggedInAndSignedUpMiddleware(
       unarchivePropertyTypeResolver,
     ),
+    createDataType: loggedInAndSignedUpMiddleware(createDataTypeResolver),
+    updateDataType: loggedInAndSignedUpMiddleware(updateDataTypeResolver),
+    archiveDataType: loggedInAndSignedUpMiddleware(archiveDataTypeResolver),
+    unarchiveDataType: loggedInAndSignedUpMiddleware(unarchiveDataTypeResolver),
     createEntityType: loggedInAndSignedUpMiddleware(createEntityTypeResolver),
     updateEntityType: loggedInAndSignedUpMiddleware(updateEntityTypeResolver),
     updateEntityTypes: loggedInAndSignedUpMiddleware(updateEntityTypesResolver),

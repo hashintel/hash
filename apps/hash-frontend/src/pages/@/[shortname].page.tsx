@@ -264,7 +264,7 @@ const ProfilePage: NextPageWithLayout = () => {
   }
 
   return profileNotFound ? (
-    <NotFound />
+    <NotFound resourceLabel={{ label: "profile", withArticle: "a profile" }} />
   ) : (
     <>
       <ProfilePageHeader

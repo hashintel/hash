@@ -144,21 +144,19 @@ GROUP BY type_title_for_entity.entity_edition_id;
 
 CREATE VIEW label_for_entity AS
 SELECT
-    entity_temporal_metadata.entity_edition_id,
+    entity_editions.entity_edition_id,
     jsonb_extract_path(
         entity_editions.properties,
         jsonb_array_elements_text(
             jsonb_path_query_array(
                 entity_types.closed_schema,
-                '$.allOf[*].label_property'
+                '$.allOf[*].labelProperty'
             )
         )
     ) AS label_property
-FROM entity_temporal_metadata
-INNER JOIN entity_editions
-    ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id
+FROM entity_editions
 INNER JOIN entity_is_of_type
-    ON entity_temporal_metadata.entity_edition_id = entity_is_of_type.entity_edition_id
+    ON entity_editions.entity_edition_id = entity_is_of_type.entity_edition_id
 INNER JOIN ontology_temporal_metadata
     ON entity_is_of_type.entity_type_ontology_id = ontology_temporal_metadata.ontology_id
 INNER JOIN entity_types

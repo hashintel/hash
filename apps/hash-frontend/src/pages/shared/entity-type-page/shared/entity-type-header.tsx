@@ -12,33 +12,35 @@ import {
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, Typography } from "@mui/material";
-import type { ReactNode } from "react";
 import { useState } from "react";
 import { Controller } from "react-hook-form";
 
 import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
 import { Button, Link, Modal } from "../../../../shared/ui";
+import { CopyableOntologyChip } from "../../copyable-ontology-chip";
 import { CreateEntityTypeForm } from "../../create-entity-type-form";
 import { EntityTypeDescription } from "../entity-type-description";
 import { EntityTypeInverse } from "../entity-type-inverse";
 import { EntityTypePlural } from "../entity-type-plural";
 
 interface EntityTypeHeaderProps {
-  isPreviewSlide?: boolean;
-  ontologyChip: ReactNode;
+  currentVersion: number;
   entityTypeSchema: EntityType;
+  hideOpenInNew?: boolean;
   isDraft: boolean;
   isLink: boolean;
+  isPreviewSlide?: boolean;
   isReadonly: boolean;
   latestVersion?: number | null;
 }
 
 export const EntityTypeHeader = ({
-  isPreviewSlide,
-  ontologyChip,
+  currentVersion,
   entityTypeSchema,
+  hideOpenInNew,
   isDraft,
   isLink,
+  isPreviewSlide,
   isReadonly,
   latestVersion,
 }: EntityTypeHeaderProps) => {
@@ -58,7 +60,13 @@ export const EntityTypeHeader = ({
     <>
       <Box>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-          {ontologyChip}
+          <CopyableOntologyChip
+            hideOpenInNew={hideOpenInNew}
+            versionedUrl={versionedUrlFromComponents(
+              extractBaseUrl(entityTypeSchema.$id),
+              currentVersion,
+            )}
+          />
 
           {!isLatest && (
             <Link

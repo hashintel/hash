@@ -45,7 +45,7 @@ export const EditorTypePicker = ({
       dataTypes={dataTypeTrees}
       handleScroll
       onSelect={onSelect}
-      selectedDataTypeId={selectedDataTypeId}
+      selectedDataTypeIds={selectedDataTypeId ? [selectedDataTypeId] : []}
     />
   );
 };
