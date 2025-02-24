@@ -30,10 +30,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  systemEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
