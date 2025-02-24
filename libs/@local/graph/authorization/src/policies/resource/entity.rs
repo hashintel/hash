@@ -12,6 +12,7 @@ use uuid::Uuid;
 use super::entity_type::EntityTypeId;
 use crate::policies::cedar::CedarEntityId;
 
+#[derive(Debug)]
 pub struct EntityResource<'a> {
     pub web_id: OwnedById,
     pub id: EntityUuid,
@@ -53,8 +54,8 @@ impl EntityResourceFilter {
 }
 
 impl EntityResource<'_> {
-    pub(crate) fn to_cedar_entity(&self) -> Result<ast::Entity, Box<dyn Error>> {
-        Ok(ast::Entity::new(
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+        ast::Entity::new(
             self.id.to_euid(),
             [(
                 SmolStr::new_static("entity_types"),
@@ -67,7 +68,8 @@ impl EntityResource<'_> {
             iter::once(self.web_id.to_euid()).collect(),
             iter::empty(),
             Extensions::none(),
-        )?)
+        )
+        .expect("Entity should be a valid Cedar entity")
     }
 }
 

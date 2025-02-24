@@ -6,8 +6,8 @@
 mod entity;
 mod entity_type;
 
-use alloc::sync::Arc;
-use core::{error::Error, str::FromStr as _};
+use alloc::{borrow::Cow, sync::Arc};
+use core::str::FromStr as _;
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
@@ -22,20 +22,40 @@ pub use self::{
 };
 use crate::policies::cedar::CedarEntityId as _;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResourceId<'a> {
+    Entity(EntityUuid),
+    EntityType(Cow<'a, EntityTypeId>),
+}
+
+impl ResourceId<'_> {
+    pub(crate) fn to_euid(&self) -> ast::EntityUID {
+        match self {
+            Self::Entity(id) => id.to_euid(),
+            Self::EntityType(id) => id.to_euid(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum Resource<'a> {
     Entity(EntityResource<'a>),
     EntityType(EntityTypeResource<'a>),
 }
 
 impl Resource<'_> {
-    pub(crate) fn to_euid(&self) -> ast::EntityUID {
+    #[must_use]
+    pub const fn id(&self) -> ResourceId<'_> {
         match self {
-            Self::Entity(entity) => entity.id.to_euid(),
-            Self::EntityType(entity_type) => entity_type.id.to_euid(),
+            Self::Entity(entity) => ResourceId::Entity(entity.id),
+            Self::EntityType(entity_type) => ResourceId::EntityType(match &entity_type.id {
+                Cow::Borrowed(id) => Cow::Borrowed(*id),
+                Cow::Owned(id) => Cow::Borrowed(id),
+            }),
         }
     }
 
-    pub(crate) fn to_entity(&self) -> Result<ast::Entity, Box<dyn Error>> {
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
         match self {
             Self::Entity(entity) => entity.to_cedar_entity(),
             Self::EntityType(entity_type) => entity_type.to_cedar_entity(),

@@ -40,14 +40,15 @@ impl fmt::Display for EntityTypeId {
     }
 }
 
+#[derive(Debug)]
 pub struct EntityTypeResource<'a> {
     pub web_id: OwnedById,
     pub id: Cow<'a, EntityTypeId>,
 }
 
 impl EntityTypeResource<'_> {
-    pub(crate) fn to_cedar_entity(&self) -> Result<ast::Entity, Box<dyn Error>> {
-        Ok(ast::Entity::new(
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+        ast::Entity::new(
             self.id.to_euid(),
             [
                 (
@@ -62,7 +63,8 @@ impl EntityTypeResource<'_> {
             iter::once(self.web_id.to_euid()).collect(),
             iter::empty(),
             Extensions::none(),
-        )?)
+        )
+        .expect("Entity type should be a valid Cedar entity")
     }
 }
 
