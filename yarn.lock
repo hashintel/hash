@@ -587,7 +587,7 @@ __metadata:
     signia-react: "npm:0.1.5"
     typescript: "npm:5.7.3"
     url-regex-safe: "npm:4.0.0"
-    use-font-face-observer: "npm:1.2.2"
+    use-font-face-observer: "npm:1.3.0"
     uuid: "npm:11.1.0"
     wait-on: "npm:8.0.2"
     webpack: "npm:5.98.0"
@@ -45758,14 +45758,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"use-font-face-observer@npm:1.2.2":
-  version: 1.2.2
-  resolution: "use-font-face-observer@npm:1.2.2"
+"use-font-face-observer@npm:1.3.0":
+  version: 1.3.0
+  resolution: "use-font-face-observer@npm:1.3.0"
   dependencies:
     fontfaceobserver: "npm:2.1.0"
   peerDependencies:
     react: ^16.8.0 || ^17.0.0 || ^18.0.0
-  checksum: 10c0/90a6de1d53ce2a0217f94feed7599ecb6de512f50b2d815efabf0bfa1064d929ef94596349ec4ba6ae7aae439f7831a613663ce2e886e30468301f1c2d13f4b5
+  checksum: 10c0/5341ace893f4c3e177bf2605c2ec77a89adaba7018714f3629622ae130852ec5da62b8dd65e9d159f53e29592ae5d8743c8ed0e9c0695c7c8e4419f028dfce97
   languageName: node
   linkType: hard
 
