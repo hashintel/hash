@@ -347,8 +347,6 @@ describe("Entity type CRU", () => {
               depth: 0,
               $id: systemEntityTypes.user.entityTypeId,
               icon: "/icons/types/user.svg",
-              labelProperty:
-                systemPropertyTypes.preferredName.propertyTypeBaseUrl,
             },
             {
               depth: 1,
