@@ -4513,10 +4513,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@chainsafe/as-sha256@npm:^0.6.1":
-  version: 0.6.1
-  resolution: "@chainsafe/as-sha256@npm:0.6.1"
-  checksum: 10c0/51acff9b78b89bc96867dd08d5d1bf1d857a491a879f76bd044afb53502edd8c792347a60f40cccb1ba61e5e797bacb08b4100edfc2054f1eb6f0c3534f8efa2
+"@chainsafe/as-sha256@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "@chainsafe/as-sha256@npm:1.0.0"
+  checksum: 10c0/b55af3dac0f9b2601e709eea23e82a1667239d52dffadf26af5716031f407c12b60567c364727ccd9a33c601fc5dabb80996b32d31a9ba9bb0b452a3b5a068da
   languageName: node
   linkType: hard
 
@@ -4527,16 +4527,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@chainsafe/libp2p-noise@npm:16.0.1":
-  version: 16.0.1
-  resolution: "@chainsafe/libp2p-noise@npm:16.0.1"
+"@chainsafe/libp2p-noise@npm:16.0.3":
+  version: 16.0.3
+  resolution: "@chainsafe/libp2p-noise@npm:16.0.3"
   dependencies:
     "@chainsafe/as-chacha20poly1305": "npm:^0.1.0"
-    "@chainsafe/as-sha256": "npm:^0.6.1"
+    "@chainsafe/as-sha256": "npm:^1.0.0"
     "@libp2p/crypto": "npm:^5.0.0"
     "@libp2p/interface": "npm:^2.0.0"
     "@libp2p/peer-id": "npm:^5.0.0"
-    "@noble/ciphers": "npm:^0.6.0"
+    "@noble/ciphers": "npm:^1.1.3"
     "@noble/curves": "npm:^1.1.0"
     "@noble/hashes": "npm:^1.3.1"
     it-length-prefixed: "npm:^9.0.1"
@@ -4548,7 +4548,7 @@ __metadata:
     uint8arraylist: "npm:^2.4.3"
     uint8arrays: "npm:^5.0.0"
     wherearewe: "npm:^2.0.1"
-  checksum: 10c0/b1047d15fa61d1e01b42d9a912b23e243fdccb6c503a4fabfed7c23185eaf2b0a166d352a29bd1d3029e1ce0987cd848c62378eafa42a3bca00312444a1d7b9d
+  checksum: 10c0/c12fb48f611fc3bff8544d72f0e10e4afdc41895e2f062f77b8dda3cd6653492d67d01e2a7a5c5a89f50b7ba2e9e64ede2c0a06cdb556867d4f4a2fab7ffcd03
   languageName: node
   linkType: hard
 
@@ -8830,7 +8830,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/harpc-client@workspace:libs/@local/harpc/client/typescript"
   dependencies:
-    "@chainsafe/libp2p-noise": "npm:16.0.1"
+    "@chainsafe/libp2p-noise": "npm:16.0.3"
     "@chainsafe/libp2p-yamux": "npm:7.0.1"
     "@effect/platform": "npm:0.77.2"
     "@effect/platform-node": "npm:0.73.2"
@@ -9696,10 +9696,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/ciphers@npm:^0.6.0":
-  version: 0.6.0
-  resolution: "@noble/ciphers@npm:0.6.0"
-  checksum: 10c0/840900243306dbf4caad942d518dc215bbe83e4daf6385d9294e76ea39b0834ba21591271cf2dd5cc5e64f96f98cdb967065b75e804b0b338b10ed50415ea64e
+"@noble/ciphers@npm:^1.1.3":
+  version: 1.2.1
+  resolution: "@noble/ciphers@npm:1.2.1"
+  checksum: 10c0/00e414da686ddba00f6e9bed124abb698bfe076658d40cc4e3b67b51fc7582fc3c2a7002ef33f154ea8cbf45e7783cfd48325cf3885d577ce8c0ae8bdd648069
   languageName: node
   linkType: hard
 
