@@ -321,7 +321,7 @@ where
           SET
             transaction_time = tstzrange(lower(transaction_time), now(), '[)'),
             provenance = provenance || JSONB_BUILD_OBJECT(
-                'archivedBy', $3::UUID
+                'archivedById', $3::UUID
             )
           WHERE ontology_id = (
             SELECT ontology_id

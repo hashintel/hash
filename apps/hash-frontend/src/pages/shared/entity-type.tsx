@@ -146,7 +146,7 @@ export const EntityType = ({
     remotePropertyTypes,
     updateEntityTypes,
     publishDraft,
-    { loading: loadingRemoteEntityType },
+    { loading: loadingRemoteEntityType, refetch },
   ] = useEntityTypeValue(
     entityTypeBaseUrl ?? null,
     requestedVersion,
@@ -469,6 +469,9 @@ export const EntityType = ({
                   ),
                 },
               ]}
+              onItemUnarchived={() => {
+                void refetch();
+              }}
               scrollToTop={() => {}}
               sx={{ bgcolor: "white" }}
             />

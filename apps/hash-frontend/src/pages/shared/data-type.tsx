@@ -73,14 +73,14 @@ export const DataType = ({
 }: DataTypeProps) => {
   const router = useRouter();
 
-  const { refetch } = useDataTypesContext();
+  const { refetch: refetchAllDataTypes } = useDataTypesContext();
 
   const [createDataType] = useMutation<
     CreateDataTypeMutation,
     CreateDataTypeMutationVariables
   >(createDataTypeMutation, {
     onCompleted() {
-      refetch();
+      refetchAllDataTypes();
     },
   });
 
@@ -89,7 +89,7 @@ export const DataType = ({
     UpdateDataTypeMutationVariables
   >(updateDataTypeMutation, {
     onCompleted(data) {
-      refetch();
+      refetchAllDataTypes();
       onDataTypeUpdated(data.updateDataType);
     },
   });
@@ -123,22 +123,26 @@ export const DataType = ({
     }
   }, [draftNewDataType, reset]);
 
-  const { loading: loadingRemoteDataType, data: remoteDataTypeData } = useQuery<
-    QueryDataTypesQuery,
-    QueryDataTypesQueryVariables
-  >(queryDataTypesQuery, {
-    variables: {
-      constrainsValuesOn: { outgoing: 255 },
-      filter: {
-        equal: [{ path: ["baseUrl"] }, { parameter: dataTypeBaseUrl }],
+  const {
+    loading: loadingRemoteDataType,
+    data: remoteDataTypeData,
+    refetch: refetchRemoteType,
+  } = useQuery<QueryDataTypesQuery, QueryDataTypesQueryVariables>(
+    queryDataTypesQuery,
+    {
+      variables: {
+        constrainsValuesOn: { outgoing: 255 },
+        filter: {
+          equal: [{ path: ["baseUrl"] }, { parameter: dataTypeBaseUrl }],
+        },
+        includeArchived: true,
+        inheritsFrom: { outgoing: 255 },
+        latestOnly: false,
       },
-      includeArchived: true,
-      inheritsFrom: { outgoing: 255 },
-      latestOnly: false,
+      skip: !!draftNewDataType,
+      fetchPolicy: "cache-and-network",
     },
-    skip: !!draftNewDataType,
-    fetchPolicy: "cache-and-network",
-  });
+  );
 
   const { remoteDataType, latestVersionNumber: latestVersion } = useMemo<{
     remoteDataType: DataTypeWithMetadata | null;
@@ -327,6 +331,10 @@ export const DataType = ({
                 id: dataType.schema.$id,
               },
             ]}
+            onItemUnarchived={() => {
+              void refetchRemoteType();
+              refetchAllDataTypes();
+            }}
             scrollToTop={() => {}}
             sx={{ bgcolor: "white" }}
           />

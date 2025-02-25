@@ -623,6 +623,9 @@ export const Entity = ({
             isModifyingEntity={haveChangesBeenMade}
             onDraftArchived={onRemoteDraftArchived}
             onDraftPublished={onRemoteDraftPublished}
+            onUnarchived={() => {
+              void refetch();
+            }}
             showTabs={!draftLocalEntity}
           />
           <EntityEditorContainer isInSlide={isInSlide}>

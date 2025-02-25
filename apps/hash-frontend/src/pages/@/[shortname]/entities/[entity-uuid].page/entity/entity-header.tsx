@@ -16,6 +16,7 @@ import { Container } from "@mui/system";
 import type { ReactNode } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
+import { isItemArchived } from "../../../../../../shared/is-archived";
 import { Link } from "../../../../../../shared/ui";
 import { inSlideContainerStyles } from "../../../../../shared/shared/slide-styles";
 import { TopContextBar } from "../../../../../shared/top-context-bar";
@@ -34,6 +35,7 @@ export const EntityHeader = ({
   lightTitle,
   onDraftArchived,
   onDraftPublished,
+  onUnarchived,
   showTabs,
 }: {
   closedMultiEntityType?: ClosedMultiEntityType;
@@ -47,6 +49,7 @@ export const EntityHeader = ({
   lightTitle?: boolean;
   onDraftArchived: () => void;
   onDraftPublished: (entity: Entity) => void;
+  onUnarchived: () => void;
   showTabs?: boolean;
 }) => {
   const { shortname } = useUserOrOrgShortnameByOwnedById({
@@ -93,12 +96,16 @@ export const EntityHeader = ({
             ),
           },
         ]}
+        onItemUnarchived={onUnarchived}
         scrollToTop={() => {}}
       />
 
       {entity && entitySubgraph && shortname && closedMultiEntityType ? (
         <Collapse
-          in={!!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)}
+          in={
+            !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId) &&
+            !isItemArchived(entity)
+          }
         >
           <DraftEntityBanner
             closedMultiEntityType={closedMultiEntityType}
