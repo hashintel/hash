@@ -42,7 +42,6 @@ pub struct CreateEntityTypeParams<R> {
     pub classification: OntologyTypeClassificationMetadata,
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -209,7 +208,6 @@ pub struct GetClosedMultiEntityTypeResponse {
 pub struct UpdateEntityTypesParams<R> {
     pub schema: EntityType,
     pub relationships: R,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -226,7 +224,6 @@ pub struct ArchiveEntityTypeParams<'a> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnarchiveEntityTypeParams<'a> {
     pub entity_type_id: Cow<'a, VersionedUrl>,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
 }
 

@@ -21,8 +21,8 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import {
-  type EnforcedEntityEditionProvenance,
   Entity,
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
@@ -131,7 +131,7 @@ export const createFileEntityFromUrl = async (params: {
   entityUuid: EntityUuid | null;
   url: string;
   propertyMetadata?: PropertyMetadataObject;
-  provenance?: EnforcedEntityEditionProvenance;
+  provenance?: ProvidedEntityEditionProvenance;
   entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
   description?: string;
   displayName?: string;
@@ -234,7 +234,7 @@ export const createFileEntityFromUrl = async (params: {
     );
   }
 
-  const provenance: EnforcedEntityEditionProvenance = provenanceFromParams ?? {
+  const provenance: ProvidedEntityEditionProvenance = provenanceFromParams ?? {
     actorType: "machine",
     origin: {
       type: "flow",

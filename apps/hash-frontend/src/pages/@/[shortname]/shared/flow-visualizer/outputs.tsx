@@ -271,6 +271,10 @@ const mockEntityFromProposedEntity = (
         createdById: "ownedById",
         edition: {
           createdById: "ownedById",
+          actorType: "machine",
+          origin: {
+            type: "flow",
+          },
         },
       },
     },

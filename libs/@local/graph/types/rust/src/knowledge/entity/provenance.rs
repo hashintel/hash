@@ -150,6 +150,23 @@ pub struct OriginProvenance {
     pub user_agent: Option<String>,
 }
 
+impl OriginProvenance {
+    #[must_use]
+    pub const fn from_empty_type(ty: OriginType) -> Self {
+        Self {
+            ty,
+            id: None,
+            version: None,
+            semantic_version: None,
+            environment: None,
+            device_id: None,
+            session_id: None,
+            api_key_public_id: None,
+            user_agent: None,
+        }
+    }
+}
+
 #[cfg(feature = "utoipa")]
 impl<'__s> ToSchema<'__s> for OriginProvenance {
     fn schema() -> (&'__s str, RefOr<Schema>) {
@@ -296,18 +313,14 @@ impl ToSql for EntityEditionProvenance {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvidedEntityEditionProvenance {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sources: Vec<SourceProvenance>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub actor_type: Option<ActorType>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub origin: Option<OriginProvenance>,
+    pub actor_type: ActorType,
+    pub origin: OriginProvenance,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

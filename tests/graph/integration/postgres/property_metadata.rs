@@ -9,7 +9,10 @@ use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     knowledge::{
         Confidence,
-        entity::{Location, ProvidedEntityEditionProvenance, SourceProvenance, SourceType},
+        entity::{
+            ActorType, Location, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
+            SourceProvenance, SourceType,
+        },
         property::{
             ObjectMetadata, PropertyMetadata, PropertyMetadataObject, PropertyObject,
             PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
@@ -191,7 +194,11 @@ async fn initial_metadata() {
                 link_data: None,
                 draft: true,
                 relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             },
         )
         .await
@@ -324,7 +331,11 @@ async fn no_initial_metadata() {
                 link_data: None,
                 draft: false,
                 relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             },
         )
         .await
@@ -364,7 +375,11 @@ async fn no_initial_metadata() {
                 draft: None,
                 decision_time: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             },
         )
         .await
@@ -383,7 +398,11 @@ async fn no_initial_metadata() {
                 draft: None,
                 decision_time: None,
                 confidence: Confidence::new(0.5),
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             },
         )
         .await
@@ -435,7 +454,11 @@ async fn no_initial_metadata() {
                 draft: None,
                 decision_time: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             },
         )
         .await
@@ -528,7 +551,11 @@ async fn properties_add() {
                 link_data: None,
                 draft: false,
                 relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             },
         )
         .await
@@ -559,7 +586,11 @@ async fn properties_add() {
                 draft: None,
                 archived: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             },
         )
         .await
@@ -625,7 +656,11 @@ async fn properties_remove() {
                 link_data: None,
                 draft: false,
                 relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             },
         )
         .await
@@ -677,7 +712,11 @@ async fn properties_remove() {
                 draft: None,
                 archived: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             },
         )
         .await
@@ -744,7 +783,11 @@ async fn properties_remove() {
                 draft: None,
                 archived: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             },
         )
         .await
