@@ -103,7 +103,7 @@
     "ts-json-schema-generator": "1.5.1",
     "tsx": "4.19.3",
     "typescript": "5.7.3",
-    "ws": "8.18.0"
+    "ws": "8.18.1"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.5-nightly.ff02a0b",
