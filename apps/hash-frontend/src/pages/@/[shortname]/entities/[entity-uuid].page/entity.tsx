@@ -221,6 +221,15 @@ export const Entity = ({
     !proposedEntitySubgraph && !draftLocalEntity,
   );
 
+  const [isDirty, setIsDirty] = useState(!!draftLocalEntity);
+
+  const [
+    draftLinksToCreate,
+    setDraftLinksToCreate,
+    draftLinksToArchive,
+    setDraftLinksToArchive,
+  ] = useDraftLinkState();
+
   const { data: getEntitySubgraphData, refetch } = useQuery<
     GetEntitySubgraphQuery,
     GetEntitySubgraphQueryVariables
@@ -265,6 +274,10 @@ export const Entity = ({
       });
 
       setDraftEntitySubgraph(subgraph);
+
+      setIsDirty(false);
+      setDraftLinksToCreate([]);
+      setDraftLinksToArchive([]);
 
       setLoading(false);
     },
@@ -315,13 +328,6 @@ export const Entity = ({
 
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
-  const [
-    draftLinksToCreate,
-    setDraftLinksToCreate,
-    draftLinksToArchive,
-    setDraftLinksToArchive,
-  ] = useDraftLinkState();
-
   const handleTypeChanges = useHandleTypeChanges({
     entitySubgraph: draftEntitySubgraph,
     setDraftEntityTypesDetails,
@@ -338,8 +344,6 @@ export const Entity = ({
     () => (dataFromDb ? getRoots(dataFromDb.entitySubgraph)[0] : null),
     [dataFromDb],
   );
-
-  const [isDirty, setIsDirty] = useState(!!draftLocalEntity);
 
   const resetDraftState = () => {
     setIsDirty(false);
@@ -457,8 +461,6 @@ export const Entity = ({
     } finally {
       setSavingChanges(false);
     }
-
-    resetDraftState();
   };
 
   const entityLabel =

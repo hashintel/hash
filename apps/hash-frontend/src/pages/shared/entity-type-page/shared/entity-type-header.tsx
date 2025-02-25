@@ -29,7 +29,6 @@ import { EntityTypePlural } from "../entity-type-plural";
 interface EntityTypeHeaderProps {
   currentVersion: number;
   entityTypeSchema: EntityType;
-  hideOpenInNew?: boolean;
   isDraft: boolean;
   isLink: boolean;
   isInSlide?: boolean;
@@ -58,7 +57,7 @@ export const EntityTypeHeader = ({
 
   const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();
 
-  const { slideContainerRef } = useSlideStack();
+  const { slideContainerRef, pushToSlideStack } = useSlideStack();
 
   return (
     <>
@@ -67,6 +66,15 @@ export const EntityTypeHeader = ({
           {!isLatest && (
             <Link
               href={latestVersionUrl}
+              onClick={(event) => {
+                if (isInSlide) {
+                  event.preventDefault();
+                  pushToSlideStack({
+                    kind: "entityType",
+                    itemId: latestVersionUrl,
+                  });
+                }
+              }}
               sx={{
                 textDecoration: "none",
               }}

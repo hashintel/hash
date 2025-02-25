@@ -10,7 +10,7 @@ import {
   entityIdFromComponents,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
-import { Typography } from "@mui/material";
+import { GlobalStyles, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useContext, useState } from "react";
@@ -168,6 +168,14 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
           throw new Error(
             "Unexpected call to onRemoteDraftPublished from new entity page",
           );
+        }}
+      />
+
+      <GlobalStyles
+        styles={{
+          body: {
+            overflowY: "scroll",
+          },
         }}
       />
     </>

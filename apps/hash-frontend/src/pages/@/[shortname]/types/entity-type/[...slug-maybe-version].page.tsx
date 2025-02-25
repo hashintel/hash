@@ -1,6 +1,7 @@
 import type { EntityTypeWithMetadata as BpEntityTypeWithMetadata } from "@blockprotocol/graph";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
@@ -92,14 +93,23 @@ const Page: NextPageWithLayout = () => {
   }
 
   return (
-    <EntityType
-      isInSlide={false}
-      ownedById={routeNamespace.ownedById}
-      draftEntityType={draftEntityType}
-      entityTypeBaseUrl={entityTypeBaseUrl}
-      key={`${entityTypeBaseUrl}-${requestedVersion}`}
-      requestedVersion={requestedVersion}
-    />
+    <>
+      <EntityType
+        isInSlide={false}
+        ownedById={routeNamespace.ownedById}
+        draftEntityType={draftEntityType}
+        entityTypeBaseUrl={entityTypeBaseUrl}
+        key={`${entityTypeBaseUrl}-${requestedVersion}`}
+        requestedVersion={requestedVersion}
+      />
+      <GlobalStyles
+        styles={{
+          body: {
+            overflowY: "scroll",
+          },
+        }}
+      />
+    </>
   );
 };
 

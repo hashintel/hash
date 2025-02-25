@@ -1,3 +1,4 @@
+import type { Theme } from "@emotion/react";
 import type { Entity as EntityClass } from "@local/hash-graph-sdk/entity";
 import type { DraftId, EntityUuid } from "@local/hash-graph-types/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
@@ -9,6 +10,7 @@ import {
   extractDraftIdFromEntityId,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { GlobalStyles } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useCallback, useMemo, useState } from "react";
@@ -112,6 +114,14 @@ const Page: NextPageWithLayout = () => {
         onRemoteDraftPublished={onEntityUpdatedInDb}
         onEntityLoad={onEntityLoad}
         onEntityLabelChange={setEntityLabel}
+      />
+
+      <GlobalStyles
+        styles={{
+          body: {
+            overflowY: "scroll",
+          },
+        }}
       />
     </>
   );

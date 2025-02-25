@@ -2,17 +2,16 @@ import {
   type Entity,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Checkbox, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { Link } from "../../shared/ui";
-import { SlideStack } from "../shared/slide-stack";
+import { useSlideStack } from "../shared/slide-stack";
 import { useEntityHref } from "../shared/use-entity-href";
 import type { EntityTypeDisplayInfoByBaseUrl } from "./draft-entities/types";
 import { useDraftEntities } from "./draft-entities-context";
@@ -38,8 +37,7 @@ export const DraftEntity: FunctionComponent<{
 }) => {
   const { refetch } = useDraftEntities();
 
-  const [displayEntityIdInModal, setDisplayEntityIdInModal] =
-    useState<EntityId | null>(null);
+  const { pushToSlideStack } = useSlideStack();
 
   const href = useEntityHref(entity, true);
 
@@ -76,23 +74,6 @@ export const DraftEntity: FunctionComponent<{
               paddingRight: 1.5,
             }}
           />
-          {displayEntityIdInModal ? (
-            <SlideStack
-              hideOpenInNew={false}
-              rootItem={{
-                type: "entity",
-                itemId: displayEntityIdInModal,
-                onSubmit: () => {
-                  void refetch();
-                  setDisplayEntityIdInModal(null);
-                },
-              }}
-              onClose={() => setDisplayEntityIdInModal(null)}
-              isReadOnly={
-                displayEntityIdInModal !== entity.metadata.recordId.entityId
-              }
-            />
-          ) : null}
           <Link
             noLinkStyle
             href={href}
@@ -105,8 +86,15 @@ export const DraftEntity: FunctionComponent<{
               if (event.metaKey) {
                 return;
               }
-              setDisplayEntityIdInModal(entity.metadata.recordId.entityId);
+
               event.preventDefault();
+              pushToSlideStack({
+                kind: "entity",
+                itemId: entity.metadata.recordId.entityId,
+                onEntityDbChange: () => {
+                  void refetch();
+                },
+              });
             }}
           >
             <Box

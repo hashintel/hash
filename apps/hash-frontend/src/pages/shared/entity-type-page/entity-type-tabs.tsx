@@ -10,8 +10,8 @@ import { useEntityTypesContextRequired } from "../../../shared/entity-types-cont
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { TabLink } from "../../../shared/ui/tab-link";
 import { Tabs } from "../../../shared/ui/tabs";
-import { useEntityType } from "./shared/entity-type-context";
 import { useSlideStack } from "../slide-stack";
+import { useEntityType } from "./shared/entity-type-context";
 
 const defaultTab = "definition";
 

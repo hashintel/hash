@@ -45,7 +45,7 @@ export const DataTypeHeader = ({
     latestVersion ?? 0,
   );
 
-  const { slideContainerRef } = useSlideStack();
+  const { slideContainerRef, pushToSlideStack } = useSlideStack();
 
   return (
     <>
@@ -54,6 +54,15 @@ export const DataTypeHeader = ({
           {!isLatest && (
             <Link
               href={latestVersionUrl}
+              onClick={(event) => {
+                if (isInSlide) {
+                  event.preventDefault();
+                  pushToSlideStack({
+                    kind: "dataType",
+                    itemId: latestVersionUrl,
+                  });
+                }
+              }}
               sx={{
                 textDecoration: "none",
               }}

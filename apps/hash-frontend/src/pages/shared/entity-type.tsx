@@ -75,7 +75,6 @@ const TypeDefinition = ({
   isFile,
   isImage,
   onNavigateToType,
-  ownedById,
   readonly,
 }: {
   entityTypeAndPropertyTypes: {
@@ -95,7 +94,6 @@ const TypeDefinition = ({
     kind: "entityType" | "dataType",
     url: VersionedUrl,
   ) => void;
-  ownedById: OwnedById | null;
   readonly: boolean;
 }) => {
   const { tab } = useEntityTypeTab();
@@ -107,7 +105,6 @@ const TypeDefinition = ({
           <DefinitionTab
             entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
             onNavigateToType={onNavigateToType}
-            ownedById={ownedById ?? null}
             readonly={readonly}
           />
         ) : (
@@ -428,6 +425,9 @@ export const EntityType = ({
                       <ArchiveMenuItem
                         key={entityType.schema.$id}
                         item={remoteEntityType}
+                        onItemChange={() => {
+                          onEntityTypeUpdated?.(entityType);
+                        }}
                       />,
                     ]
                   : []),
@@ -457,7 +457,6 @@ export const EntityType = ({
                 },
                 {
                   title: entityType.schema.title,
-                  href: "#",
                   id: entityType.schema.$id,
                   icon: (
                     <EntityOrTypeIcon
@@ -523,7 +522,6 @@ export const EntityType = ({
                   isFile={isFile}
                   isImage={isImage}
                   onNavigateToType={onNavigateToType}
-                  ownedById={ownedById ?? null}
                   readonly={isReadonly}
                 />
               </TypeDefinitionContainer>

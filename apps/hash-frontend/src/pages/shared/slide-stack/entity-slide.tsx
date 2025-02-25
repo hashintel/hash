@@ -11,17 +11,19 @@ export type EntitySlideProps = {
    * The default outgoing link filters to apply to the links tables in the entity editor
    */
   defaultOutgoingLinkFilters?: EntityEditorProps["defaultOutgoingLinkFilters"];
-  removeItem: () => void;
-  /**
-   * When the entity is updated, call this function with the updated entity's entityId.
-   */
-  replaceItem: (item: SlideItem) => void;
   entityId: EntityId;
   /**
    * If the entity is a Flow proposal, it won't be persisted in the database yet.
    * This mock subgraph allows viewing it in the slide (and will disable attempting to request info from the db on it)
    */
   proposedEntitySubgraph?: Subgraph<EntityRootType>;
+  replaceItem: (item: SlideItem) => void;
+  removeItem: () => void;
+
+  /**
+   * Optional callback to react when the entity is updated in the database (updated, draft archived, draft published)
+   */
+  onEntityDbChange?: (entityId: EntityId) => void;
 };
 
 export const EntitySlide = memo(
@@ -29,6 +31,7 @@ export const EntitySlide = memo(
     defaultOutgoingLinkFilters,
     entityId,
     proposedEntitySubgraph,
+    onEntityDbChange,
     removeItem,
     replaceItem,
   }: EntitySlideProps) => {
@@ -37,21 +40,25 @@ export const EntitySlide = memo(
         defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
         entityId={entityId}
         isInSlide
-        onEntityUpdatedInDb={(entity) =>
+        onEntityUpdatedInDb={(entity) => {
           replaceItem({
             itemId: entity.entityId,
             kind: "entity",
-          })
-        }
+          });
+          onEntityDbChange?.(entity.entityId);
+        }}
         onRemoteDraftArchived={() => {
           removeItem();
+
+          onEntityDbChange?.(entityId);
         }}
-        onRemoteDraftPublished={(persistedDraft) =>
+        onRemoteDraftPublished={(persistedDraft) => {
           replaceItem({
             itemId: persistedDraft.entityId,
             kind: "entity",
-          })
-        }
+          });
+          onEntityDbChange?.(persistedDraft.entityId);
+        }}
         proposedEntitySubgraph={proposedEntitySubgraph}
       />
     );

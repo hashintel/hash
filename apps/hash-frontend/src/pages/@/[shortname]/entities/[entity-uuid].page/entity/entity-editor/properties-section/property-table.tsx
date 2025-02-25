@@ -60,7 +60,6 @@ export const PropertyTable = ({
         customRenderers={customRenderers}
         sortableColumns={["title", "value", "permittedDataTypes"]}
         sortRows={sortAndFlattenRows}
-        // define max height if there are lots of rows
         height={rows.length > 10 ? 500 : undefined}
       />
       {tooltipElement}

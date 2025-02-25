@@ -6,7 +6,7 @@ import type { EntitySlideProps } from "./entity-slide";
 export type SlideEntityItem = {
   kind: "entity";
   itemId: EntityId;
-  onUpdate?: (entityId: EntityId) => void;
+  onEntityDbChange?: (entityId: EntityId) => void;
 } & Pick<
   EntitySlideProps,
   "defaultOutgoingLinkFilters" | "proposedEntitySubgraph"

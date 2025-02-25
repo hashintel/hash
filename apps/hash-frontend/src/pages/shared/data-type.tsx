@@ -250,8 +250,6 @@ export const DataType = ({
     if (!!response.errors?.length || !response.data) {
       throw new Error("Could not update data type");
     }
-
-    void router.push(response.data.updateDataType.schema.$id);
   });
 
   const { pushToSlideStack } = useSlideStack();
@@ -326,7 +324,6 @@ export const DataType = ({
               },
               {
                 title: dataType.schema.title,
-                href: "#",
                 id: dataType.schema.$id,
               },
             ]}
