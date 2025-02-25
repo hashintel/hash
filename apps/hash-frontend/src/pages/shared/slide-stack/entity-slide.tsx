@@ -1,4 +1,5 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { memo } from "react";
 
 import { Entity } from "../../@/[shortname]/entities/[entity-uuid].page/entity";
@@ -10,28 +11,30 @@ export type EntitySlideProps = {
    * The default outgoing link filters to apply to the links tables in the entity editor
    */
   defaultOutgoingLinkFilters?: EntityEditorProps["defaultOutgoingLinkFilters"];
-  /**
-   * Hide the link to open the entity in a new tab.
-   */
-  hideOpenInNew?: boolean;
   removeItem: () => void;
   /**
    * When the entity is updated, call this function with the updated entity's entityId.
    */
   replaceItem: (item: SlideItem) => void;
   entityId: EntityId;
+  /**
+   * If the entity is a Flow proposal, it won't be persisted in the database yet.
+   * This mock subgraph allows viewing it in the slide (and will disable attempting to request info from the db on it)
+   */
+  proposedEntitySubgraph?: Subgraph<EntityRootType>;
 };
 
 export const EntitySlide = memo(
   ({
     defaultOutgoingLinkFilters,
     entityId,
-    hideOpenInNew,
+    proposedEntitySubgraph,
     removeItem,
     replaceItem,
   }: EntitySlideProps) => {
     return (
       <Entity
+        defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
         entityId={entityId}
         isInSlide
         onEntityUpdatedInDb={(entity) =>
@@ -49,6 +52,7 @@ export const EntitySlide = memo(
             kind: "entity",
           })
         }
+        proposedEntitySubgraph={proposedEntitySubgraph}
       />
     );
   },

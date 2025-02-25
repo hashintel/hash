@@ -7,7 +7,10 @@ export type SlideEntityItem = {
   kind: "entity";
   itemId: EntityId;
   onUpdate?: (entityId: EntityId) => void;
-} & Pick<EntitySlideProps, "defaultOutgoingLinkFilters">;
+} & Pick<
+  EntitySlideProps,
+  "defaultOutgoingLinkFilters" | "proposedEntitySubgraph"
+>;
 
 export type SlideEntityTypeItem = {
   kind: "entityType";

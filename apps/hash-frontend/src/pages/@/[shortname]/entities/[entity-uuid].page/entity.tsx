@@ -20,7 +20,6 @@ import {
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { splitEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { Box, Container } from "@mui/material";
 import NextErrorComponent from "next/error";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -36,7 +35,6 @@ import {
   updateEntityMutation,
 } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { NotFound } from "../../../../shared/not-found";
-import { inSlideContainerStyles } from "../../../../shared/shared/slide-styles";
 import { useSlideStack } from "../../../../shared/slide-stack";
 import { useGetClosedMultiEntityType } from "../../../../shared/use-get-closed-multi-entity-type";
 import {
@@ -62,6 +60,10 @@ import { useHandleTypeChanges } from "./shared/use-handle-type-changes";
 
 interface EntityProps {
   entityId: EntityId;
+  /**
+   * The default outgoing link filters to apply to the links tables in the entity editor
+   */
+  defaultOutgoingLinkFilters?: EntityEditorProps["defaultOutgoingLinkFilters"];
 
   /**
    * To be provided if this is a new entity which hasn't yet been created in the database,
@@ -129,9 +131,16 @@ interface EntityProps {
    * e.g. if it's displaying it somewhere outside of this component (such as HTML <title>).
    */
   onEntityLabelChange?: (entityLabel: string) => void;
+
+  /**
+   * If the entity is a Flow proposal, it won't be persisted in the database yet.
+   * This mock subgraph allows viewing it in the slide (and will disable attempting to request info from the db on it)
+   */
+  proposedEntitySubgraph?: Subgraph<EntityRootType>;
 }
 
 export const Entity = ({
+  defaultOutgoingLinkFilters,
   draftLocalEntity,
   entityId,
   isInSlide,
@@ -140,6 +149,7 @@ export const Entity = ({
   onRemoteDraftPublished,
   onEntityLoad,
   onEntityLabelChange,
+  proposedEntitySubgraph,
 }: EntityProps) => {
   const [shouldShowQueryEditor, setShouldShowQueryEditor] = useState(true);
   const { triggerSnackbar } = useSnackbar();
@@ -161,7 +171,7 @@ export const Entity = ({
 
   const [draftEntitySubgraph, setDraftEntitySubgraph] = useState<
     Subgraph<EntityRootType> | undefined
-  >(draftLocalEntity?.initialSubgraph);
+  >(draftLocalEntity?.initialSubgraph ?? proposedEntitySubgraph);
 
   const [draftEntityTypesDetails, setDraftEntityTypesDetails] = useState<
     | Pick<
@@ -174,106 +184,134 @@ export const Entity = ({
   const { getClosedMultiEntityType } = useGetClosedMultiEntityType();
 
   useEffect(() => {
-    if (draftLocalEntity && !draftEntityTypesDetails) {
-      void getClosedMultiEntityType([draftLocalEntity.entityTypeId]).then(
-        (result) => {
-          setDraftEntityTypesDetails(result);
-        },
-      );
+    if (
+      (draftLocalEntity || proposedEntitySubgraph) &&
+      !draftEntityTypesDetails
+    ) {
+      let entityTypeIds: VersionedUrl[] | undefined;
+
+      if (draftLocalEntity) {
+        entityTypeIds = [draftLocalEntity.entityTypeId];
+      } else if (proposedEntitySubgraph) {
+        const proposedEntity = getRoots(proposedEntitySubgraph)[0];
+
+        if (!proposedEntity) {
+          throw new Error("No entity found in proposedEntitySubgraph");
+        }
+
+        entityTypeIds = proposedEntity.metadata.entityTypeIds;
+      }
+
+      if (!entityTypeIds) {
+        throw new Error("No entity type ids found");
+      }
+
+      void getClosedMultiEntityType(entityTypeIds).then((result) => {
+        setDraftEntityTypesDetails(result);
+      });
     }
-  }, [draftLocalEntity, draftEntityTypesDetails, getClosedMultiEntityType]);
+  }, [
+    draftLocalEntity,
+    draftEntityTypesDetails,
+    getClosedMultiEntityType,
+    proposedEntitySubgraph,
+  ]);
 
-  const {
-    data: getEntitySubgraphData,
-    loading,
-    refetch,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
-    {
-      fetchPolicy: "cache-and-network",
-      onCompleted: (data) => {
-        const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.getEntitySubgraph.subgraph,
-        );
-
-        const { definitions, closedMultiEntityTypes } = data.getEntitySubgraph;
-
-        if (!definitions || !closedMultiEntityTypes) {
-          throw new Error(
-            "definitions and closedMultiEntityTypes must be present in entitySubgraph",
-          );
-        }
-
-        const returnedEntity = getRoots(subgraph)[0];
-
-        if (!returnedEntity) {
-          throw new Error("No entity found in entitySubgraph");
-        }
-
-        onEntityLoad?.(returnedEntity);
-
-        const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
-          closedMultiEntityTypes,
-          returnedEntity.metadata.entityTypeIds,
-        );
-
-        setDraftEntityTypesDetails({
-          closedMultiEntityType,
-          closedMultiEntityTypesDefinitions: definitions,
-        });
-
-        setDataFromDb({
-          entitySubgraph: subgraph,
-          closedMultiEntityType,
-          closedMultiEntityTypesDefinitions: definitions,
-          closedMultiEntityTypesMap: closedMultiEntityTypes,
-        });
-
-        setDraftEntitySubgraph(subgraph);
-      },
-      variables: {
-        request: {
-          filter: {
-            all: [
-              {
-                equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-              },
-              {
-                equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-              },
-              ...(draftId
-                ? [
-                    {
-                      equal: [{ path: ["draftId"] }, { parameter: draftId }],
-                    },
-                  ]
-                : []),
-            ],
-          },
-          temporalAxes: currentTimeInstantTemporalAxes,
-          graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            hasLeftEntity: { incoming: 1, outgoing: 1 },
-            hasRightEntity: { incoming: 1, outgoing: 1 },
-          },
-          includeDrafts: !!draftId,
-          includeEntityTypes: "resolvedWithDataTypeChildren",
-        },
-        includePermissions: false,
-      },
-    },
+  const [loading, setLoading] = useState(
+    !proposedEntitySubgraph && !draftLocalEntity,
   );
+
+  const { data: getEntitySubgraphData, refetch } = useQuery<
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
+    fetchPolicy: "cache-and-network",
+    onCompleted: (data) => {
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        data.getEntitySubgraph.subgraph,
+      );
+
+      const { definitions, closedMultiEntityTypes } = data.getEntitySubgraph;
+
+      if (!definitions || !closedMultiEntityTypes) {
+        throw new Error(
+          "definitions and closedMultiEntityTypes must be present in entitySubgraph",
+        );
+      }
+
+      const returnedEntity = getRoots(subgraph)[0];
+
+      if (!returnedEntity) {
+        throw new Error("No entity found in entitySubgraph");
+      }
+
+      onEntityLoad?.(returnedEntity);
+
+      const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
+        closedMultiEntityTypes,
+        returnedEntity.metadata.entityTypeIds,
+      );
+
+      setDraftEntityTypesDetails({
+        closedMultiEntityType,
+        closedMultiEntityTypesDefinitions: definitions,
+      });
+
+      setDataFromDb({
+        entitySubgraph: subgraph,
+        closedMultiEntityType,
+        closedMultiEntityTypesDefinitions: definitions,
+        closedMultiEntityTypesMap: closedMultiEntityTypes,
+      });
+
+      setDraftEntitySubgraph(subgraph);
+
+      setLoading(false);
+    },
+    variables: {
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+            },
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            },
+            ...(draftId
+              ? [
+                  {
+                    equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                  },
+                ]
+              : []),
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          hasLeftEntity: { incoming: 1, outgoing: 1 },
+          hasRightEntity: { incoming: 1, outgoing: 1 },
+        },
+        includeDrafts: !!draftId,
+        includeEntityTypes: "resolvedWithDataTypeChildren",
+      },
+      includePermissions: true,
+    },
+    skip: !!draftLocalEntity || !!proposedEntitySubgraph,
+  });
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
-  const isReadonly =
-    !draftLocalEntity &&
-    !getEntitySubgraphData?.getEntitySubgraph.userPermissionsOnEntities?.[
-      entityId
-    ]?.edit;
+  const isReadOnly =
+    !!proposedEntitySubgraph ||
+    (!draftLocalEntity &&
+      !getEntitySubgraphData?.getEntitySubgraph.userPermissionsOnEntities?.[
+        entityId
+      ]?.edit);
 
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
@@ -490,7 +528,7 @@ export const Entity = ({
               itemId: versionedUrl,
             });
           }}
-          readonly={isReadonly}
+          readonly={isReadOnly}
           setDraftLinksToArchive={setDraftLinksToArchive}
           setDraftLinksToCreate={setDraftLinksToCreate}
           setEntity={async (changedEntity) => {
@@ -567,6 +605,7 @@ export const Entity = ({
             entity={draftEntity}
             entityLabel={entityLabel}
             entitySubgraph={draftEntitySubgraph}
+            hideOpenInNew={!!proposedEntitySubgraph || !!draftLocalEntity}
             isInSlide={isInSlide}
             isModifyingEntity={haveChangesBeenMade}
             onDraftArchived={onRemoteDraftArchived}
@@ -578,6 +617,7 @@ export const Entity = ({
               closedMultiEntityTypesMap={
                 dataFromDb?.closedMultiEntityTypesMap ?? null
               }
+              defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
               {...draftEntityTypesDetails}
               draftLinksToCreate={draftLinksToCreate}
               draftLinksToArchive={draftLinksToArchive}
@@ -609,7 +649,7 @@ export const Entity = ({
                   itemId: versionedUrl,
                 });
               }}
-              readonly={isReadonly}
+              readonly={isReadOnly}
               setDraftLinksToArchive={setDraftLinksToArchive}
               setDraftLinksToCreate={setDraftLinksToCreate}
               setEntity={async (changedEntity) => {

@@ -28,6 +28,7 @@ export const EntityHeader = ({
   entity,
   entityLabel,
   entitySubgraph,
+  hideOpenInNew,
   isInSlide,
   isModifyingEntity,
   lightTitle,
@@ -40,6 +41,7 @@ export const EntityHeader = ({
   entity?: Entity;
   entityLabel: string;
   entitySubgraph?: Subgraph<EntityRootType>;
+  hideOpenInNew?: boolean;
   isInSlide: boolean;
   isModifyingEntity?: boolean;
   lightTitle?: boolean;
@@ -140,7 +142,7 @@ export const EntityHeader = ({
             >
               {entityLabel}
             </Typography>
-            {entityPath && isInSlide && (
+            {entityPath && isInSlide && !hideOpenInNew && (
               <Link href={entityPath} target="_blank">
                 <ArrowUpRightFromSquareRegularIcon
                   sx={{
