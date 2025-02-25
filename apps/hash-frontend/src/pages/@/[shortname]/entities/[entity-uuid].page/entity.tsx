@@ -363,6 +363,23 @@ export const Entity = ({
 
   const [savingChanges, setSavingChanges] = useState(false);
 
+  const [validationReport, setValidationReport] =
+    useState<MinimalEntityValidationReport | null>(null);
+
+  const { validateEntity: validateFn } = useValidateEntity();
+
+  const validateEntity = useCallback(
+    async (entityToValidate: EntityClass) => {
+      const report = await validateFn({
+        properties: entityToValidate.propertiesWithMetadata,
+        entityTypeIds: entityToValidate.metadata.entityTypeIds,
+      });
+
+      setValidationReport(report);
+    },
+    [validateFn],
+  );
+
   const handleSaveChanges = async (overrideProperties?: PropertyObject) => {
     if (!draftEntitySubgraph || !draftEntity) {
       throw new Error(
@@ -373,6 +390,17 @@ export const Entity = ({
     if (draftLocalEntity) {
       try {
         setSavingChanges(true);
+
+        const report = await validateFn({
+          properties: draftEntity.propertiesWithMetadata,
+          entityTypeIds: draftEntity.metadata.entityTypeIds,
+        });
+
+        if (report) {
+          setValidationReport(report);
+          return;
+        }
+
         await draftLocalEntity.createFromLocalDraft({
           localDraft: draftEntity,
           draftLinksToCreate,
@@ -432,23 +460,6 @@ export const Entity = ({
 
     resetDraftState();
   };
-
-  const [validationReport, setValidationReport] =
-    useState<MinimalEntityValidationReport | null>(null);
-
-  const { validateEntity: validateFn } = useValidateEntity();
-
-  const validateEntity = useCallback(
-    async (entityToValidate: EntityClass) => {
-      const report = await validateFn({
-        properties: entityToValidate.propertiesWithMetadata,
-        entityTypeIds: entityToValidate.metadata.entityTypeIds,
-      });
-
-      setValidationReport(report);
-    },
-    [validateFn],
-  );
 
   const entityLabel =
     draftEntity && draftEntityTypesDetails

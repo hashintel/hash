@@ -81,7 +81,8 @@ export const createDraftLinkEntity = ({
 export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
-  const { entity, setDraftLinksToCreate, readonly } = useEntityEditor();
+  const { entity, draftLinksToCreate, setDraftLinksToCreate, readonly } =
+    useEntityEditor();
   const markLinkEntityToArchive = useMarkLinkEntityToArchive();
 
   const { value: cell, onFinishedEditing, onChange } = props;
@@ -159,11 +160,27 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
         {sortedLinkAndTargetEntities.map(
           ({ rightEntity, linkEntity, rightEntityLabel }) => {
             const linkEntityId = linkEntity.metadata.recordId.entityId;
+
+            const isUncreatedDraftLink = draftLinksToCreate.some(
+              (draftLink) =>
+                draftLink.linkEntity.metadata.recordId.entityId ===
+                linkEntityId,
+            );
+
             return (
               <LinkedEntityListRow
                 key={linkEntityId}
                 closeEditor={onFinishedEditing}
-                entityId={linkEntityId}
+                entityId={
+                  isUncreatedDraftLink
+                    ? /**
+                       * If the link hasn't yet been created, we can't open it in the slideover. So we open the target entity instead.
+                       * In case the link entity HAS been created, it's more useful to open the link entity itself (to be able to see any attributes on the link).
+                       * Ideally we'd be able to also be able to edit the properties of the draft link entity.
+                       */
+                      rightEntity.metadata.recordId.entityId
+                    : linkEntityId
+                }
                 imageSrc={getImageUrlFromEntityProperties(
                   rightEntity.properties,
                 )}
