@@ -258,50 +258,64 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
 
     for (const affiliateName of affiliatedWith ?? []) {
       let institutionEntityId = institutionEntityIdByName[affiliateName];
+      let institutionProposedEntity = institutionEntityId
+        ? proposedEntities.find(
+            (entity) => entity.localEntityId === institutionEntityId,
+          )
+        : null;
+
       if (!institutionEntityId) {
         institutionEntityId = entityIdFromComponents(
           webId,
           generateUuid() as EntityUuid,
         );
+      }
 
+      if (!institutionProposedEntity) {
         const properties: InstitutionProperties = {
           "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
             affiliateName,
         };
 
-        /**
-         * Create a claim about the person being affiliated with the institution.
-         */
-        const authorToInstitutionClaim = await createClaim({
-          claimText: `${authorName} is affiliated with ${affiliateName}`,
-          creatorActorId: aiAssistantAccountId,
-          draft: createEntitiesAsDraft,
-          objectText: affiliateName,
-          ownedById: webId,
-          propertyProvenance,
-          provenance,
-          subjectText: authorName,
-          userActorId: userAuthentication.actorId,
-        });
-
-        authorProposedEntity.claims.isSubjectOf.push(
-          authorToInstitutionClaim.entityId,
-        );
-
-        proposedEntities.push({
+        institutionProposedEntity = {
           claims: {
             isSubjectOf: [],
-            isObjectOf: [authorToInstitutionClaim.entityId],
+            isObjectOf: [],
           },
           entityTypeIds: [systemEntityTypes.institution.entityTypeId],
           localEntityId: institutionEntityId,
           properties,
           propertyMetadata: nameOnlyPropertyMetadata,
           provenance,
-        });
+        };
+
+        proposedEntities.push(institutionProposedEntity);
 
         institutionEntityIdByName[affiliateName] = institutionEntityId;
       }
+
+      /**
+       * Create a claim about the person being affiliated with the institution.
+       */
+      const authorToInstitutionClaim = await createClaim({
+        claimText: `${authorName} is affiliated with ${affiliateName}`,
+        creatorActorId: aiAssistantAccountId,
+        draft: createEntitiesAsDraft,
+        objectText: affiliateName,
+        ownedById: webId,
+        propertyProvenance,
+        provenance,
+        subjectText: authorName,
+        userActorId: userAuthentication.actorId,
+      });
+
+      authorProposedEntity.claims.isSubjectOf.push(
+        authorToInstitutionClaim.entityId,
+      );
+
+      institutionProposedEntity.claims.isSubjectOf.push(
+        authorToInstitutionClaim.entityId,
+      );
 
       /**
        * Propose the link between the person and the institution entity
