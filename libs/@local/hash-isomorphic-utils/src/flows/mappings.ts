@@ -19,14 +19,14 @@ export const mapFlowDefinitionToEntityProperties = (
     flowDefinition.name,
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
     flowDefinition.description,
-  "https://hash.ai/@hash/types/property-type/output-definitions/":
+  "https://hash.ai/@h/types/property-type/output-definitions/":
     flowDefinition.outputs,
-  "https://hash.ai/@hash/types/property-type/step-definitions/":
+  "https://hash.ai/@h/types/property-type/step-definitions/":
     flowDefinition.steps,
-  "https://hash.ai/@hash/types/property-type/trigger-definition/": {
-    "https://hash.ai/@hash/types/property-type/trigger-definition-id/":
+  "https://hash.ai/@h/types/property-type/trigger-definition/": {
+    "https://hash.ai/@h/types/property-type/trigger-definition-id/":
       flowDefinition.trigger.triggerDefinitionId,
-    "https://hash.ai/@hash/types/property-type/output-definitions/":
+    "https://hash.ai/@h/types/property-type/output-definitions/":
       flowDefinition.trigger.outputs,
   },
 });
@@ -54,10 +54,10 @@ export const mapFlowDefinitionEntityToFlowDefinition = (
       kind: "trigger",
       triggerDefinitionId:
         triggerDefinition[
-          "https://hash.ai/@hash/types/property-type/trigger-definition-id/"
+          "https://hash.ai/@h/types/property-type/trigger-definition-id/"
         ],
       outputs: triggerDefinition[
-        "https://hash.ai/@hash/types/property-type/output-definitions/"
+        "https://hash.ai/@h/types/property-type/output-definitions/"
       ] as OutputDefinition<boolean>[],
       /** @todo: fix this */
     } as unknown as FlowDefinition["trigger"],
@@ -75,7 +75,7 @@ export const mapFlowRunToEntityProperties = (
           "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
       },
     },
-    "https://hash.ai/@hash/types/property-type/flow-definition-id/": {
+    "https://hash.ai/@h/types/property-type/flow-definition-id/": {
       value: flowRun.flowDefinitionId,
       metadata: {
         dataTypeId:
@@ -84,7 +84,7 @@ export const mapFlowRunToEntityProperties = (
     },
     ...(flowRun.outputs
       ? {
-          "https://hash.ai/@hash/types/property-type/outputs/": {
+          "https://hash.ai/@h/types/property-type/outputs/": {
             value: flowRun.outputs.map((output) => ({
               value: output,
               metadata: {
@@ -95,7 +95,7 @@ export const mapFlowRunToEntityProperties = (
           },
         }
       : {}),
-    "https://hash.ai/@hash/types/property-type/step/": {
+    "https://hash.ai/@h/types/property-type/step/": {
       value: flowRun.steps.map((step) => ({
         value: step,
         metadata: {
@@ -104,9 +104,9 @@ export const mapFlowRunToEntityProperties = (
         },
       })),
     },
-    "https://hash.ai/@hash/types/property-type/trigger/": {
+    "https://hash.ai/@h/types/property-type/trigger/": {
       value: {
-        "https://hash.ai/@hash/types/property-type/trigger-definition-id/": {
+        "https://hash.ai/@h/types/property-type/trigger-definition-id/": {
           value: flowRun.trigger.triggerDefinitionId,
           metadata: {
             dataTypeId:
@@ -115,7 +115,7 @@ export const mapFlowRunToEntityProperties = (
         },
         ...(flowRun.trigger.outputs
           ? {
-              "https://hash.ai/@hash/types/property-type/outputs/": {
+              "https://hash.ai/@h/types/property-type/outputs/": {
                 value: flowRun.trigger.outputs.map((output) => ({
                   value: output,
                   metadata: {
@@ -148,10 +148,10 @@ export const mapFlowEntityToFlow = (entity: Entity<FlowRun>): LocalFlowRun => {
     steps: steps as LocalFlowRun["steps"],
     trigger: {
       triggerDefinitionId: trigger[
-        "https://hash.ai/@hash/types/property-type/trigger-definition-id/"
+        "https://hash.ai/@h/types/property-type/trigger-definition-id/"
       ] as TriggerDefinitionId,
       outputs: trigger[
-        "https://hash.ai/@hash/types/property-type/outputs/"
+        "https://hash.ai/@h/types/property-type/outputs/"
       ] as LocalFlowRun["trigger"]["outputs"],
     },
   };

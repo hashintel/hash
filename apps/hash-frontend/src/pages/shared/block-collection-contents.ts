@@ -147,7 +147,7 @@ export const getBlockCollectionContents = (params: {
 
       const componentId =
         rightEntity.properties[
-          "https://hash.ai/@hash/types/property-type/component-id/"
+          "https://hash.ai/@h/types/property-type/component-id/"
         ];
 
       const blockChildEntity = getOutgoingLinkAndTargetEntities(

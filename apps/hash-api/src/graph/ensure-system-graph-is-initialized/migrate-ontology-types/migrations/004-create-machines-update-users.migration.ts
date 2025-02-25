@@ -31,8 +31,9 @@ const migrate: MigrationFunction = async ({
         title: "Actor",
         description:
           "Someone or something that can perform actions in the system",
+        icon: "/icons/types/user.svg",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: null,
     },
@@ -48,13 +49,16 @@ const migrate: MigrationFunction = async ({
         description: "A unique identifier for a machine",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
       title: "Machine",
+      titlePlural: "Machines",
+      icon: "/icons/types/user-robot.svg",
+      labelProperty: blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
       description: "A machine that can perform actions in the system",
       properties: [
         {
@@ -68,7 +72,7 @@ const migrate: MigrationFunction = async ({
       ],
       allOf: [actorEntityType.schema.$id],
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: {
       kind: "account",
@@ -113,7 +117,7 @@ const migrate: MigrationFunction = async ({
         description: "An identifier for an edition of an entity",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -165,7 +169,7 @@ const migrate: MigrationFunction = async ({
           "The type of change that occurred (e.g. create, update, archive)",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -173,6 +177,7 @@ const migrate: MigrationFunction = async ({
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
       title: "Graph Change Notification",
+      titlePlural: "Graph Change Notifications",
       description: "A notification of a change to a graph",
       allOf: [notificationEntityType],
       properties: [
@@ -189,7 +194,7 @@ const migrate: MigrationFunction = async ({
         },
       ],
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });

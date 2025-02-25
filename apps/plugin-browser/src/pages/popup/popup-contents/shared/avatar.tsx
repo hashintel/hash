@@ -1,4 +1,4 @@
-import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
+import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack } from "@mui/material";
 
@@ -16,7 +16,7 @@ export const Avatar = ({
   name,
   size = 32,
 }: {
-  avatar?: Image | null;
+  avatar?: ImageFile | null;
   href?: string;
   name: string;
   size?: number;

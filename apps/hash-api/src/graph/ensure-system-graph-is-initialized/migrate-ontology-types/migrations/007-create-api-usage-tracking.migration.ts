@@ -31,7 +31,7 @@ const migrate: MigrationFunction = async ({
         description: "The name of a service",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -45,7 +45,7 @@ const migrate: MigrationFunction = async ({
         description: "The name of a feature",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -59,7 +59,7 @@ const migrate: MigrationFunction = async ({
         description: "The cost of an input unit",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -73,7 +73,7 @@ const migrate: MigrationFunction = async ({
         description: "The cost of an output unit",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -92,7 +92,7 @@ const migrate: MigrationFunction = async ({
         description: "The point in time at which something begins to apply",
         possibleValues: [{ dataTypeId: datetimeDataTypeVersionedUrl }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -106,7 +106,7 @@ const migrate: MigrationFunction = async ({
         description: "The point at which something ceases to apply",
         possibleValues: [{ dataTypeId: datetimeDataTypeVersionedUrl }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -140,7 +140,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -151,6 +151,9 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Service Feature",
+        titlePlural: "Service Features",
+        icon: "/icons/types/plug-circle-check.svg",
+        labelProperty: serviceNamePropertyType.metadata.recordId.baseUrl,
         description: "A feature of a service",
         properties: [
           {
@@ -167,7 +170,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -182,9 +185,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Records Usage Of",
+        inverse: {
+          title: "Usage Recorded By",
+        },
         description: "The thing that something records usage of.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -197,9 +203,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Created",
+        inverse: {
+          title: "Created By",
+        },
         description: "The thing that something created.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -212,9 +221,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Updated",
+        inverse: {
+          title: "Updated By",
+        },
         description: "The thing that something created.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -229,7 +241,7 @@ const migrate: MigrationFunction = async ({
         description: "How many input units were or will be used",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -243,7 +255,7 @@ const migrate: MigrationFunction = async ({
         description: "How many output units were or will be used",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -251,6 +263,8 @@ const migrate: MigrationFunction = async ({
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
       title: "Usage Record",
+      titlePlural: "Usage Records",
+      icon: "/icons/types/gauge-max.svg",
       description: "A record of usage of a service",
       properties: [
         {
@@ -275,7 +289,7 @@ const migrate: MigrationFunction = async ({
         },
       ],
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -349,7 +363,7 @@ const migrate: MigrationFunction = async ({
   ];
 
   const hashOrg = await getOrgByShortname(context, authentication, {
-    shortname: "hash",
+    shortname: "h",
     permitOlderVersions: true,
   });
   if (!hashOrg) {
@@ -404,45 +418,43 @@ const migrate: MigrationFunction = async ({
       ] as ServiceFeature["entityTypeIds"],
       properties: {
         value: {
-          "https://hash.ai/@hash/types/property-type/service-name/": {
+          "https://hash.ai/@h/types/property-type/service-name/": {
             value: serviceName,
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-          "https://hash.ai/@hash/types/property-type/feature-name/": {
+          "https://hash.ai/@h/types/property-type/feature-name/": {
             value: featureName,
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-          "https://hash.ai/@hash/types/property-type/service-unit-cost/": {
+          "https://hash.ai/@h/types/property-type/service-unit-cost/": {
             value: [
               {
                 value: {
-                  "https://hash.ai/@hash/types/property-type/input-unit-cost/":
-                    {
-                      value: inputUnitCost,
-                      metadata: {
-                        dataTypeId:
-                          "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-                      },
+                  "https://hash.ai/@h/types/property-type/input-unit-cost/": {
+                    value: inputUnitCost,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                     },
-                  "https://hash.ai/@hash/types/property-type/output-unit-cost/":
-                    {
-                      value: outputUnitCost,
-                      metadata: {
-                        dataTypeId:
-                          "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-                      },
+                  },
+                  "https://hash.ai/@h/types/property-type/output-unit-cost/": {
+                    value: outputUnitCost,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                     },
-                  "https://hash.ai/@hash/types/property-type/applies-from/": {
+                  },
+                  "https://hash.ai/@h/types/property-type/applies-from/": {
                     value: new Date("2023-12-20").toISOString(),
                     metadata: {
                       dataTypeId:
-                        "https://hash.ai/@hash/types/data-type/datetime/v/1",
+                        "https://hash.ai/@h/types/data-type/datetime/v/1",
                     },
                   },
                 },

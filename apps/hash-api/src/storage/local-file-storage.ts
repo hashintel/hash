@@ -60,14 +60,14 @@ export class LocalFileSystemStorageProvider
       presignedPut,
       fileStorageProperties: {
         value: {
-          "https://hash.ai/@hash/types/property-type/file-storage-key/": {
+          "https://hash.ai/@h/types/property-type/file-storage-key/": {
             value: key,
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-          "https://hash.ai/@hash/types/property-type/file-storage-provider/": {
+          "https://hash.ai/@h/types/property-type/file-storage-provider/": {
             value: this.storageType,
             metadata: {
               dataTypeId:
@@ -76,8 +76,8 @@ export class LocalFileSystemStorageProvider
           },
         } satisfies Pick<
           File["propertiesWithMetadata"]["value"],
-          | "https://hash.ai/@hash/types/property-type/file-storage-key/"
-          | "https://hash.ai/@hash/types/property-type/file-storage-provider/"
+          | "https://hash.ai/@h/types/property-type/file-storage-key/"
+          | "https://hash.ai/@h/types/property-type/file-storage-provider/"
         >,
       },
     };

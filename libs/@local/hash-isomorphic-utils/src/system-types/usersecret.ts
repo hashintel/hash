@@ -5,6 +5,8 @@
 import type {
   ConnectionSourceNamePropertyValue,
   ConnectionSourceNamePropertyValueWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   ExpiredAtPropertyValue,
   ExpiredAtPropertyValueWithMetadata,
   TextDataType,
@@ -21,6 +23,8 @@ import type {
 export type {
   ConnectionSourceNamePropertyValue,
   ConnectionSourceNamePropertyValueWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   ExpiredAtPropertyValue,
   ExpiredAtPropertyValueWithMetadata,
   TextDataType,

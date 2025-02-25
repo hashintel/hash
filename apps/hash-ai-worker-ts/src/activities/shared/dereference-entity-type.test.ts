@@ -13,7 +13,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_PROPERTIES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId: "https://hash.ai/@hash/types/property-type/expired-at/",
+            baseId: "https://hash.ai/@h/types/property-type/expired-at/",
             revisionId: 1,
           },
         },
@@ -21,8 +21,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_PROPERTIES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId:
-              "https://hash.ai/@hash/types/property-type/organization-name/",
+            baseId: "https://hash.ai/@h/types/property-type/organization-name/",
             revisionId: 1,
           },
         },
@@ -30,7 +29,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_PROPERTIES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId: "https://hash.ai/@hash/types/property-type/archived/",
+            baseId: "https://hash.ai/@h/types/property-type/archived/",
             revisionId: 1,
           },
         },
@@ -67,7 +66,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         },
       ],
     },
-    "https://hash.ai/@hash/types/property-type/deleted-at/": {
+    "https://hash.ai/@h/types/property-type/deleted-at/": {
       "1": [
         {
           kind: "CONSTRAINS_VALUES_ON",
@@ -94,7 +93,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_PROPERTIES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId: "https://hash.ai/@hash/types/property-type/summary/",
+            baseId: "https://hash.ai/@h/types/property-type/summary/",
             revisionId: 1,
           },
         },
@@ -106,7 +105,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_PROPERTIES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId: "https://hash.ai/@hash/types/property-type/archived/",
+            baseId: "https://hash.ai/@h/types/property-type/archived/",
             revisionId: 1,
           },
         },
@@ -114,7 +113,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_PROPERTIES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId: "https://hash.ai/@hash/types/property-type/deleted-at/",
+            baseId: "https://hash.ai/@h/types/property-type/deleted-at/",
             revisionId: 1,
           },
         },
@@ -137,7 +136,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         },
       ],
     },
-    "https://hash.ai/@hash/types/property-type/expired-at/": {
+    "https://hash.ai/@h/types/property-type/expired-at/": {
       "1": [
         {
           kind: "CONSTRAINS_VALUES_ON",
@@ -150,7 +149,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         },
       ],
     },
-    "https://hash.ai/@hash/types/property-type/summary/": {
+    "https://hash.ai/@h/types/property-type/summary/": {
       "1": [
         {
           kind: "CONSTRAINS_VALUES_ON",
@@ -163,7 +162,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         },
       ],
     },
-    "https://hash.ai/@hash/types/property-type/organization-name/": {
+    "https://hash.ai/@h/types/property-type/organization-name/": {
       "1": [
         {
           kind: "CONSTRAINS_VALUES_ON",
@@ -176,7 +175,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         },
       ],
     },
-    "https://hash.ai/@hash/types/property-type/archived/": {
+    "https://hash.ai/@h/types/property-type/archived/": {
       "1": [
         {
           kind: "CONSTRAINS_VALUES_ON",
@@ -259,8 +258,8 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                       $ref: "https://hash.ai/@d/types/property-type/notes/v/1",
                     },
                   },
-                  "https://hash.ai/@hash/types/property-type/summary/": {
-                    $ref: "https://hash.ai/@hash/types/property-type/summary/v/1",
+                  "https://hash.ai/@h/types/property-type/summary/": {
+                    $ref: "https://hash.ai/@h/types/property-type/summary/v/1",
                   },
                 },
               },
@@ -307,30 +306,30 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               "A type with various permutations of expected property value types",
             type: "object",
             properties: {
-              "https://hash.ai/@hash/types/property-type/deleted-at/": {
+              "https://hash.ai/@h/types/property-type/deleted-at/": {
                 type: "array",
                 items: {
-                  $ref: "https://hash.ai/@hash/types/property-type/deleted-at/v/1",
+                  $ref: "https://hash.ai/@h/types/property-type/deleted-at/v/1",
                 },
                 minItems: 0,
               },
               "https://hash.ai/@test/types/property-type/notes-and-summary/": {
                 $ref: "https://hash.ai/@test/types/property-type/notes-and-summary/v/1",
               },
-              "https://hash.ai/@hash/types/property-type/archived/": {
-                $ref: "https://hash.ai/@hash/types/property-type/archived/v/1",
+              "https://hash.ai/@h/types/property-type/archived/": {
+                $ref: "https://hash.ai/@h/types/property-type/archived/v/1",
               },
               "https://hash.ai/@test/types/property-type/mixed-array/": {
                 $ref: "https://hash.ai/@test/types/property-type/mixed-array/v/3",
               },
             },
             links: {
-              "https://hash.ai/@hash/types/entity-type/has-parent/v/1": {
+              "https://hash.ai/@h/types/entity-type/has-parent/v/1": {
                 type: "array",
                 items: {
                   oneOf: [
                     {
-                      $ref: "https://hash.ai/@hash/types/entity-type/block-collection/v/1",
+                      $ref: "https://hash.ai/@h/types/entity-type/block-collection/v/1",
                     },
                   ],
                 },
@@ -427,15 +426,14 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                     {
                       type: "object",
                       properties: {
-                        "https://hash.ai/@hash/types/property-type/expired-at/":
-                          {
-                            type: "array",
-                            items: {
-                              $ref: "https://hash.ai/@hash/types/property-type/expired-at/v/1",
-                            },
+                        "https://hash.ai/@h/types/property-type/expired-at/": {
+                          type: "array",
+                          items: {
+                            $ref: "https://hash.ai/@h/types/property-type/expired-at/v/1",
                           },
-                        "https://hash.ai/@hash/types/property-type/archived/": {
-                          $ref: "https://hash.ai/@hash/types/property-type/archived/v/1",
+                        },
+                        "https://hash.ai/@h/types/property-type/archived/": {
+                          $ref: "https://hash.ai/@h/types/property-type/archived/v/1",
                         },
                       },
                     },
@@ -460,15 +458,14 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               {
                 type: "object",
                 properties: {
-                  "https://hash.ai/@hash/types/property-type/organization-name/":
-                    {
-                      type: "array",
-                      items: {
-                        $ref: "https://hash.ai/@hash/types/property-type/organization-name/v/1",
-                      },
+                  "https://hash.ai/@h/types/property-type/organization-name/": {
+                    type: "array",
+                    items: {
+                      $ref: "https://hash.ai/@h/types/property-type/organization-name/v/1",
                     },
-                  "https://hash.ai/@hash/types/property-type/expired-at/": {
-                    $ref: "https://hash.ai/@hash/types/property-type/expired-at/v/1",
+                  },
+                  "https://hash.ai/@h/types/property-type/expired-at/": {
+                    $ref: "https://hash.ai/@h/types/property-type/expired-at/v/1",
                   },
                 },
               },
@@ -500,7 +497,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         },
       },
     },
-    "https://hash.ai/@hash/types/property-type/archived/": {
+    "https://hash.ai/@h/types/property-type/archived/": {
       "1": {
         kind: "propertyType",
         inner: {
@@ -508,7 +505,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             $schema:
               "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
-            $id: "https://hash.ai/@hash/types/property-type/archived/v/1",
+            $id: "https://hash.ai/@h/types/property-type/archived/v/1",
             title: "Archived",
             description: "Whether or not something has been archived.",
             oneOf: [
@@ -519,7 +516,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           },
           metadata: {
             recordId: {
-              baseUrl: "https://hash.ai/@hash/types/property-type/archived/",
+              baseUrl: "https://hash.ai/@h/types/property-type/archived/",
               version: 1,
             },
             provenance: {
@@ -543,7 +540,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         },
       },
     },
-    "https://hash.ai/@hash/types/property-type/expired-at/": {
+    "https://hash.ai/@h/types/property-type/expired-at/": {
       "1": {
         kind: "propertyType",
         inner: {
@@ -551,7 +548,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             $schema:
               "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
-            $id: "https://hash.ai/@hash/types/property-type/expired-at/v/1",
+            $id: "https://hash.ai/@h/types/property-type/expired-at/v/1",
             title: "Expired At",
             description: "Stringified timestamp of when something expired.",
             oneOf: [
@@ -562,7 +559,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           },
           metadata: {
             recordId: {
-              baseUrl: "https://hash.ai/@hash/types/property-type/expired-at/",
+              baseUrl: "https://hash.ai/@h/types/property-type/expired-at/",
               version: 1,
             },
             provenance: {
@@ -586,7 +583,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         },
       },
     },
-    "https://hash.ai/@hash/types/property-type/summary/": {
+    "https://hash.ai/@h/types/property-type/summary/": {
       "1": {
         kind: "propertyType",
         inner: {
@@ -594,7 +591,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             $schema:
               "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
-            $id: "https://hash.ai/@hash/types/property-type/summary/v/1",
+            $id: "https://hash.ai/@h/types/property-type/summary/v/1",
             title: "Summary",
             description: "The summary of the something.",
             oneOf: [
@@ -605,7 +602,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           },
           metadata: {
             recordId: {
-              baseUrl: "https://hash.ai/@hash/types/property-type/summary/",
+              baseUrl: "https://hash.ai/@h/types/property-type/summary/",
               version: 1,
             },
             provenance: {
@@ -629,7 +626,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         },
       },
     },
-    "https://hash.ai/@hash/types/property-type/organization-name/": {
+    "https://hash.ai/@h/types/property-type/organization-name/": {
       "1": {
         kind: "propertyType",
         inner: {
@@ -637,7 +634,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             $schema:
               "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
-            $id: "https://hash.ai/@hash/types/property-type/organization-name/v/1",
+            $id: "https://hash.ai/@h/types/property-type/organization-name/v/1",
             title: "Organization Name",
             description: "The name of an organization.",
             oneOf: [
@@ -649,7 +646,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           metadata: {
             recordId: {
               baseUrl:
-                "https://hash.ai/@hash/types/property-type/organization-name/",
+                "https://hash.ai/@h/types/property-type/organization-name/",
               version: 1,
             },
             provenance: {
@@ -673,7 +670,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         },
       },
     },
-    "https://hash.ai/@hash/types/property-type/deleted-at/": {
+    "https://hash.ai/@h/types/property-type/deleted-at/": {
       "1": {
         kind: "propertyType",
         inner: {
@@ -681,7 +678,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             $schema:
               "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
-            $id: "https://hash.ai/@hash/types/property-type/deleted-at/v/1",
+            $id: "https://hash.ai/@h/types/property-type/deleted-at/v/1",
             title: "Deleted At",
             description: "Stringified timestamp of when something was deleted.",
             oneOf: [
@@ -692,7 +689,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           },
           metadata: {
             recordId: {
-              baseUrl: "https://hash.ai/@hash/types/property-type/deleted-at/",
+              baseUrl: "https://hash.ai/@h/types/property-type/deleted-at/",
               version: 1,
             },
             provenance: {
@@ -814,12 +811,12 @@ const expectedResult = {
     description:
       "A type with various permutations of expected property value types",
     links: {
-      "https://hash.ai/@hash/types/entity-type/has-parent/v/1": {
+      "https://hash.ai/@h/types/entity-type/has-parent/v/1": {
         type: "array",
         items: {
           oneOf: [
             {
-              $ref: "https://hash.ai/@hash/types/entity-type/block-collection/v/1",
+              $ref: "https://hash.ai/@h/types/entity-type/block-collection/v/1",
             },
           ],
         },
@@ -827,10 +824,10 @@ const expectedResult = {
       },
     },
     properties: {
-      "https://hash.ai/@hash/types/property-type/deleted-at/": {
+      "https://hash.ai/@h/types/property-type/deleted-at/": {
         type: "array",
         items: {
-          $id: "https://hash.ai/@hash/types/property-type/deleted-at/v/1",
+          $id: "https://hash.ai/@h/types/property-type/deleted-at/v/1",
           title: "Deleted At",
           description: "Stringified timestamp of when something was deleted.",
           oneOf: [
@@ -869,8 +866,8 @@ const expectedResult = {
                   ],
                 },
               },
-              "https://hash.ai/@hash/types/property-type/summary/": {
-                $id: "https://hash.ai/@hash/types/property-type/summary/v/1",
+              "https://hash.ai/@h/types/property-type/summary/": {
+                $id: "https://hash.ai/@h/types/property-type/summary/v/1",
                 title: "Summary",
                 description: "The summary of the something.",
                 oneOf: [
@@ -887,8 +884,8 @@ const expectedResult = {
           },
         ],
       },
-      "https://hash.ai/@hash/types/property-type/archived/": {
-        $id: "https://hash.ai/@hash/types/property-type/archived/v/1",
+      "https://hash.ai/@h/types/property-type/archived/": {
+        $id: "https://hash.ai/@h/types/property-type/archived/v/1",
         title: "Archived",
         description: "Whether or not something has been archived.",
         oneOf: [
@@ -918,10 +915,10 @@ const expectedResult = {
                 {
                   additionalProperties: false,
                   properties: {
-                    "https://hash.ai/@hash/types/property-type/expired-at/": {
+                    "https://hash.ai/@h/types/property-type/expired-at/": {
                       type: "array",
                       items: {
-                        $id: "https://hash.ai/@hash/types/property-type/expired-at/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/expired-at/v/1",
                         title: "Expired At",
                         description:
                           "Stringified timestamp of when something expired.",
@@ -935,8 +932,8 @@ const expectedResult = {
                         ],
                       },
                     },
-                    "https://hash.ai/@hash/types/property-type/archived/": {
-                      $id: "https://hash.ai/@hash/types/property-type/archived/v/1",
+                    "https://hash.ai/@h/types/property-type/archived/": {
+                      $id: "https://hash.ai/@h/types/property-type/archived/v/1",
                       title: "Archived",
                       description:
                         "Whether or not something has been archived.",
@@ -981,10 +978,10 @@ const expectedResult = {
           {
             additionalProperties: false,
             properties: {
-              "https://hash.ai/@hash/types/property-type/organization-name/": {
+              "https://hash.ai/@h/types/property-type/organization-name/": {
                 type: "array",
                 items: {
-                  $id: "https://hash.ai/@hash/types/property-type/organization-name/v/1",
+                  $id: "https://hash.ai/@h/types/property-type/organization-name/v/1",
                   title: "Organization Name",
                   description: "The name of an organization.",
                   oneOf: [
@@ -997,8 +994,8 @@ const expectedResult = {
                   ],
                 },
               },
-              "https://hash.ai/@hash/types/property-type/expired-at/": {
-                $id: "https://hash.ai/@hash/types/property-type/expired-at/v/1",
+              "https://hash.ai/@h/types/property-type/expired-at/": {
+                $id: "https://hash.ai/@h/types/property-type/expired-at/v/1",
                 title: "Expired At",
                 description: "Stringified timestamp of when something expired.",
                 oneOf: [

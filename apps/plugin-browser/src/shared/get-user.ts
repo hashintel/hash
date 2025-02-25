@@ -9,7 +9,7 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
+import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import type {
   BrowserPluginSettingsProperties,
   BrowserPluginSettingsPropertiesWithMetadata,
@@ -34,7 +34,7 @@ import { getFromLocalStorage, setInLocalStorage } from "./storage";
 const getAvatarForEntity = (
   subgraph: Subgraph<EntityRootType>,
   entityId: EntityId,
-): Entity<Image> | undefined => {
+): Entity<ImageFile> | undefined => {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     entityId,
@@ -44,7 +44,9 @@ const getAvatarForEntity = (
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
     ),
   );
-  return avatarLinkAndEntities[0]?.rightEntity[0] as Entity<Image> | undefined;
+  return avatarLinkAndEntities[0]?.rightEntity[0] as
+    | Entity<ImageFile>
+    | undefined;
 };
 
 /**
@@ -168,7 +170,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
         const properties: BrowserPluginSettingsPropertiesWithMetadata = {
           value: {
-            "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
+            "https://hash.ai/@h/types/property-type/automatic-inference-configuration/":
               {
                 value: automaticInferenceConfig,
                 metadata: {
@@ -176,7 +178,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
                 },
               },
-            "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
+            "https://hash.ai/@h/types/property-type/manual-inference-configuration/":
               {
                 value: manualInferenceConfig,
                 metadata: {
@@ -184,7 +186,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
                 },
               },
-            "https://hash.ai/@hash/types/property-type/browser-plugin-tab/": {
+            "https://hash.ai/@h/types/property-type/browser-plugin-tab/": {
               value: popupTab,
               metadata: {
                 dataTypeId:
@@ -193,7 +195,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
             },
             ...(draftQuickNote
               ? {
-                  "https://hash.ai/@hash/types/property-type/draft-note/": {
+                  "https://hash.ai/@h/types/property-type/draft-note/": {
                     value: draftQuickNote,
                     metadata: {
                       dataTypeId:

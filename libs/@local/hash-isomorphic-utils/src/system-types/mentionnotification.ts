@@ -41,6 +41,8 @@ import type {
   BrowserPluginSettingsPropertiesWithMetadata,
   BrowserPluginTabPropertyValue,
   BrowserPluginTabPropertyValueWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   Comment,
   CommentAuthoredByLink,
   CommentHasParentLink,
@@ -61,6 +63,8 @@ import type {
   DisplayNamePropertyValueWithMetadata,
   DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EnabledFeatureFlagsPropertyValue,
@@ -141,11 +145,13 @@ import type {
   HasTextPropertiesWithMetadata,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
-  ImagePropertiesWithMetadata,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
+  ImageFilePropertiesWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -248,9 +254,12 @@ import type {
   TriggeredByUserPropertiesWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
+  UserHasCoverImageLink,
   UserHasLink,
   UserHasServiceAccountLink,
   UserIsMemberOfLink,
@@ -299,6 +308,8 @@ export type {
   BrowserPluginSettingsPropertiesWithMetadata,
   BrowserPluginTabPropertyValue,
   BrowserPluginTabPropertyValueWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   Comment,
   CommentAuthoredByLink,
   CommentHasParentLink,
@@ -319,6 +330,8 @@ export type {
   DisplayNamePropertyValueWithMetadata,
   DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EnabledFeatureFlagsPropertyValue,
@@ -399,11 +412,13 @@ export type {
   HasTextPropertiesWithMetadata,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
-  ImagePropertiesWithMetadata,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
+  ImageFilePropertiesWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -506,9 +521,12 @@ export type {
   TriggeredByUserPropertiesWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
+  UserHasCoverImageLink,
   UserHasLink,
   UserHasServiceAccountLink,
   UserIsMemberOfLink,
@@ -525,7 +543,7 @@ export type {
  */
 export type MentionNotification = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/mention-notification/v/6",
+    "https://hash.ai/@h/types/entity-type/mention-notification/v/6",
   ];
   properties: MentionNotificationProperties;
   propertiesWithMetadata: MentionNotificationPropertiesWithMetadata;
@@ -559,32 +577,23 @@ export type MentionNotificationOutgoingLinkAndTarget =
   | MentionNotificationTriggeredByUserLink;
 
 export type MentionNotificationOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": MentionNotificationOccurredInBlockLink;
-  "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
-  "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": MentionNotificationOccurredInEntityLink;
-  "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
-  "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-block/v/1": MentionNotificationOccurredInBlockLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-entity/v/2": MentionNotificationOccurredInEntityLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
+  "https://hash.ai/@h/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
 };
 
 /**
  * A notification that a user was mentioned somewhere.
  */
-export type MentionNotificationProperties = MentionNotificationProperties1 &
-  MentionNotificationProperties2;
-export type MentionNotificationProperties1 = NotificationProperties;
-
-export type MentionNotificationProperties2 = {};
+export type MentionNotificationProperties = NotificationProperties & {};
 
 export type MentionNotificationPropertiesWithMetadata =
-  MentionNotificationPropertiesWithMetadata1 &
-    MentionNotificationPropertiesWithMetadata2;
-export type MentionNotificationPropertiesWithMetadata1 =
-  NotificationPropertiesWithMetadata;
-
-export type MentionNotificationPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  NotificationPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 export type MentionNotificationTriggeredByUserLink = {
   linkEntity: TriggeredByUser;
@@ -596,7 +605,7 @@ export type MentionNotificationTriggeredByUserLink = {
  */
 export type OccurredInComment = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1",
+    "https://hash.ai/@h/types/entity-type/occurred-in-comment/v/1",
   ];
   properties: OccurredInCommentProperties;
   propertiesWithMetadata: OccurredInCommentPropertiesWithMetadata;
@@ -609,30 +618,19 @@ export type OccurredInCommentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A comment that something occurred in.
  */
-export type OccurredInCommentProperties = OccurredInCommentProperties1 &
-  OccurredInCommentProperties2;
-export type OccurredInCommentProperties1 = LinkProperties;
-
-export type OccurredInCommentProperties2 = {};
+export type OccurredInCommentProperties = LinkProperties & {};
 
 export type OccurredInCommentPropertiesWithMetadata =
-  OccurredInCommentPropertiesWithMetadata1 &
-    OccurredInCommentPropertiesWithMetadata2;
-export type OccurredInCommentPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type OccurredInCommentPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * Text that something occurred in.
  */
 export type OccurredInText = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/occurred-in-text/v/1"];
   properties: OccurredInTextProperties;
   propertiesWithMetadata: OccurredInTextPropertiesWithMetadata;
 };
@@ -644,17 +642,10 @@ export type OccurredInTextOutgoingLinksByLinkEntityTypeId = {};
 /**
  * Text that something occurred in.
  */
-export type OccurredInTextProperties = OccurredInTextProperties1 &
-  OccurredInTextProperties2;
-export type OccurredInTextProperties1 = LinkProperties;
-
-export type OccurredInTextProperties2 = {};
+export type OccurredInTextProperties = LinkProperties & {};
 
 export type OccurredInTextPropertiesWithMetadata =
-  OccurredInTextPropertiesWithMetadata1 & OccurredInTextPropertiesWithMetadata2;
-export type OccurredInTextPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type OccurredInTextPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

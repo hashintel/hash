@@ -51,6 +51,7 @@ const migrate: MigrationFunction = async ({
         $ref: displayNamePropertyTypeId,
       },
     },
+    labelProperty: displayNameBaseUrl,
   };
 
   const { updatedEntityTypeId: updatedActorEntityTypeId } =
@@ -76,7 +77,7 @@ const migrate: MigrationFunction = async ({
    */
 
   const latestImageEntityTypeId = getCurrentHashSystemEntityTypeId({
-    entityTypeKey: "image",
+    entityTypeKey: "imageFile",
     migrationState,
   });
 

@@ -53,7 +53,7 @@ const provenance: EnforcedEntityEditionProvenance = {
   },
 };
 
-const webShortname = "hash";
+const webShortname = "h";
 const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   {
     propertyTypeDefinition: Omit<PropertyTypeDefinition, "propertyTypeId">;
@@ -174,7 +174,7 @@ const seedFlowTestTypes = async () => {
   const hashBotActorId = await getMachineActorId(
     context,
     { actorId: publicUserAccountId },
-    { identifier: "hash" },
+    { identifier: "h" },
   );
 
   const authentication = { actorId: hashBotActorId };
@@ -492,11 +492,11 @@ const seedFlowTestTypes = async () => {
   );
 
   const hashOrg = await getOrgByShortname(context, authentication, {
-    shortname: "hash",
+    shortname: "h",
   });
 
   if (!hashOrg) {
-    throw new Error("Hash org not found");
+    throw new Error("HASH org not found");
   }
 
   const hashOwnedById = hashOrg.accountGroupId as OwnedById;

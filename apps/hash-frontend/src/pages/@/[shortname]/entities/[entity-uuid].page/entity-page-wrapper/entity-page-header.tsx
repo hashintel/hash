@@ -74,7 +74,7 @@ export const EntityPageHeader = ({
                 icon={icon}
                 isLink={!!entity?.linkData}
                 fill={({ palette }) => palette.gray[50]}
-                fontSize="inherit"
+                fontSize={15}
               />
             ),
           },

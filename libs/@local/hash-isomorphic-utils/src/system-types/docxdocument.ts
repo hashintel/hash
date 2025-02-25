@@ -7,6 +7,8 @@ import type { ObjectMetadata } from "@local/hash-graph-client";
 import type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -43,6 +45,8 @@ import type {
   FileStorageRegionPropertyValueWithMetadata,
   FileURLPropertyValue,
   FileURLPropertyValueWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   MIMETypePropertyValue,
   MIMETypePropertyValueWithMetadata,
   NumberDataType,
@@ -61,11 +65,15 @@ import type {
   TextualContentPropertyValueWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -102,6 +110,8 @@ export type {
   FileStorageRegionPropertyValueWithMetadata,
   FileURLPropertyValue,
   FileURLPropertyValueWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   MIMETypePropertyValue,
   MIMETypePropertyValueWithMetadata,
   NumberDataType,
@@ -120,13 +130,15 @@ export type {
   TextualContentPropertyValueWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };
 
 /**
  * A Microsoft Word document.
  */
 export type DOCXDocument = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/docx-document/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/docx-document/v/1"];
   properties: DOCXDocumentProperties;
   propertiesWithMetadata: DOCXDocumentPropertiesWithMetadata;
 };
@@ -138,18 +150,10 @@ export type DOCXDocumentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A Microsoft Word document.
  */
-export type DOCXDocumentProperties = DOCXDocumentProperties1 &
-  DOCXDocumentProperties2;
-export type DOCXDocumentProperties1 = DocumentFileProperties;
-
-export type DOCXDocumentProperties2 = {};
+export type DOCXDocumentProperties = DocumentFileProperties & {};
 
 export type DOCXDocumentPropertiesWithMetadata =
-  DOCXDocumentPropertiesWithMetadata1 & DOCXDocumentPropertiesWithMetadata2;
-export type DOCXDocumentPropertiesWithMetadata1 =
-  DocumentFilePropertiesWithMetadata;
-
-export type DOCXDocumentPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  DocumentFilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

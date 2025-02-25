@@ -31,9 +31,7 @@ export const GoogleAccountSelect = ({
       )
       .map((account) => ({
         label:
-          account.properties[
-            "https://hash.ai/@hash/types/property-type/email/"
-          ],
+          account.properties["https://hash.ai/@h/types/property-type/email/"],
         value:
           account.properties[
             "https://hash.ai/@google/types/property-type/account-id/"

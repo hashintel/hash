@@ -343,10 +343,14 @@ describe("Entity type CRU", () => {
             {
               depth: 0,
               $id: systemEntityTypes.user.entityTypeId,
+              icon: "/icons/types/user.svg",
             },
             {
               depth: 1,
               $id: systemEntityTypes.actor.entityTypeId,
+              icon: "/icons/types/user.svg",
+              labelProperty:
+                "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
             },
           ],
         } satisfies ClosedEntityType,

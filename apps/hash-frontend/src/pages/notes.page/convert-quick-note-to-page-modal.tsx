@@ -106,7 +106,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
           propertyPatches: [
             {
               path: [
-                "https://hash.ai/@hash/types/property-type/title/" satisfies keyof PageProperties as BaseUrl,
+                "https://hash.ai/@h/types/property-type/title/" satisfies keyof PageProperties as BaseUrl,
               ],
               op: "add",
               property: {
@@ -119,7 +119,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
             },
             {
               path: [
-                "https://hash.ai/@hash/types/property-type/fractional-index/" satisfies keyof PageProperties as BaseUrl,
+                "https://hash.ai/@h/types/property-type/fractional-index/" satisfies keyof PageProperties as BaseUrl,
               ],
               op: "add",
               property: {

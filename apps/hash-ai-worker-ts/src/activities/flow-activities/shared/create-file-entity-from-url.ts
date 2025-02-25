@@ -197,7 +197,7 @@ export const createFileEntityFromUrl = async (params: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
       filename,
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-      displayName ?? undefined,
+      displayName ?? filename,
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
       originalUrl,
     "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
@@ -292,8 +292,7 @@ export const createFileEntityFromUrl = async (params: {
         {
           value: formatFileUrl(key),
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
           },
         },
     },

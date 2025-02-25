@@ -19,7 +19,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -35,7 +35,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -52,7 +52,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -66,7 +66,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -79,7 +79,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -97,7 +97,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["/", "self", { const: 60, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -115,7 +115,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["/", "self", { const: 3600, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -133,7 +133,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["/", "self", { const: 86400, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -150,7 +150,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["/", "self", { const: 604800, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -168,7 +168,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["/", "self", { const: 2629800, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -188,7 +188,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["/", "self", { const: 31557600, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 

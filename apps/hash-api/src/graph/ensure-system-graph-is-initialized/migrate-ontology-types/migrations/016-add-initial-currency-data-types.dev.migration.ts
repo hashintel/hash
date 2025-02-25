@@ -21,7 +21,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -37,7 +37,7 @@ const migrate: MigrationFunction = async ({
       },
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -52,7 +52,7 @@ const migrate: MigrationFunction = async ({
       },
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -67,7 +67,7 @@ const migrate: MigrationFunction = async ({
       },
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
