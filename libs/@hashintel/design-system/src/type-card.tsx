@@ -7,7 +7,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { height } from "@mui/system";
 import type { ElementType } from "react";
 import { useState } from "react";
 

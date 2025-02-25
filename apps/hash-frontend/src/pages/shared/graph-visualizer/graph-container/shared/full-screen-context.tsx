@@ -25,21 +25,21 @@ export const FullScreenContextProvider = ({
 
   const { setSlideContainerRef } = useSlideStack();
 
-  const toggleFullScreen = useCallback(() => {
+  const toggleFullScreen = useCallback(async () => {
     if (fullScreenMode === "document") {
       if (document.fullscreenElement) {
-        void document.exitFullscreen();
+        await document.exitFullscreen();
       } else {
-        void document.documentElement.requestFullscreen();
+        await document.documentElement.requestFullscreen();
       }
       return;
     }
 
     if (handle.active) {
-      void handle.exit();
+      await handle.exit();
       setSlideContainerRef(null);
     } else {
-      void handle.enter();
+      await handle.enter();
       setSlideContainerRef(graphContainerRef);
     }
   }, [fullScreenMode, handle, graphContainerRef, setSlideContainerRef]);
