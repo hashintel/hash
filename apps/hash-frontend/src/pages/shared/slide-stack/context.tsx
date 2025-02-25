@@ -4,6 +4,7 @@ import type { PushToStackFn } from "./types";
 
 type SlideStackContextData = {
   closeSlideStack: () => void;
+  currentSlideRef?: RefObject<HTMLDivElement | null>;
   pushToSlideStack: PushToStackFn;
   setSlideContainerRef: (ref: RefObject<HTMLDivElement | null> | null) => void;
   slideContainerRef?: RefObject<HTMLDivElement | null> | null;

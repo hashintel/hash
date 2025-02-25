@@ -5,7 +5,7 @@ import type {
   RefObject,
   SetStateAction,
 } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { createRef, useCallback, useMemo, useState } from "react";
 
 import { useScrollLock } from "../../shared/use-scroll-lock";
 import { SlideStackContext } from "./slide-stack/context";
@@ -27,6 +27,7 @@ const StackSlide = ({
   onForward,
   removeItem,
   replaceItem,
+  slideRef,
   slideContainerRef,
   stackPosition,
 }: {
@@ -38,6 +39,7 @@ const StackSlide = ({
   removeItem: () => void;
   replaceItem: (item: SlideItem) => void;
   slideContainerRef: RefObject<HTMLDivElement | null> | null;
+  slideRef: RefObject<HTMLDivElement | null>;
   stackPosition: number;
 }) => {
   const [animateOut, setAnimateOut] = useState(false);
@@ -58,6 +60,7 @@ const StackSlide = ({
       onClick={(event) => event.stopPropagation()}
     >
       <Box
+        ref={slideRef}
         sx={{
           height: "100vh",
           width: SLIDE_WIDTH,
@@ -96,11 +99,13 @@ const StackSlide = ({
 
 export const SlideStack: FunctionComponent<{
   currentIndex: number;
-  items: SlideItem[];
+  items: { item: SlideItem; ref: RefObject<HTMLDivElement | null> }[];
   replaceItem: (item: SlideItem) => void;
   removeItem: () => void;
   setCurrentIndex: Dispatch<SetStateAction<number>>;
-  setItems: (items: SlideItem[]) => void;
+  setItems: (
+    items: { item: SlideItem; ref: RefObject<HTMLDivElement | null> }[],
+  ) => void;
   slideContainerRef: RefObject<HTMLDivElement | null> | null;
 }> = ({
   currentIndex,
@@ -138,7 +143,7 @@ export const SlideStack: FunctionComponent<{
       onClick={handleClose}
       sx={{ zIndex: ({ zIndex }) => zIndex.drawer + 2 }}
     >
-      {items.slice(0, currentIndex + 1).map((item, index) => (
+      {items.slice(0, currentIndex + 1).map(({ item, ref }, index) => (
         <StackSlide
           // eslint-disable-next-line react/no-array-index-key
           key={`${index}-${item.itemId}`}
@@ -149,6 +154,7 @@ export const SlideStack: FunctionComponent<{
           onClose={handleClose}
           removeItem={removeItem}
           replaceItem={replaceItem}
+          slideRef={ref}
           slideContainerRef={slideContainerRef}
           stackPosition={index}
         />
@@ -162,7 +168,10 @@ export const SlideStackProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [items, setItems] = useState<SlideItem[]>([]);
+  const [items, setItems] = useState<
+    { item: SlideItem; ref: RefObject<HTMLDivElement | null> }[]
+  >([]);
+
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [slideContainerRef, setSlideContainerRef] =
     useState<RefObject<HTMLDivElement | null> | null>(null);
@@ -173,7 +182,10 @@ export const SlideStackProvider = ({
 
   const pushToSlideStack = useCallback(
     (item: SlideItem) => {
-      setItems((prev) => [...prev.slice(0, currentIndex + 1), item]);
+      setItems((prev) => [
+        ...prev.slice(0, currentIndex + 1),
+        { item, ref: createRef() },
+      ]);
 
       if (items.length === 0) {
         setCurrentIndex(0);
@@ -186,7 +198,10 @@ export const SlideStackProvider = ({
 
   const replaceItem = useCallback(
     (item: SlideItem) => {
-      setItems((prev) => [...prev.slice(0, currentIndex), item]);
+      setItems((prev) => [
+        ...prev.slice(0, currentIndex),
+        { item, ref: createRef() },
+      ]);
     },
     [currentIndex],
   );
@@ -203,12 +218,15 @@ export const SlideStackProvider = ({
   const value = useMemo(
     () => ({
       closeSlideStack,
+      currentSlideRef: items[currentIndex]?.ref,
       pushToSlideStack,
       setSlideContainerRef,
       slideContainerRef,
     }),
     [
       closeSlideStack,
+      currentIndex,
+      items,
       pushToSlideStack,
       setSlideContainerRef,
       slideContainerRef,
