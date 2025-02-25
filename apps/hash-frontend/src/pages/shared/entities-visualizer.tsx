@@ -27,7 +27,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, useTheme } from "@mui/material";
-import type { FunctionComponent, ReactElement, RefObject } from "react";
+import type { FunctionComponent, ReactElement } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ColumnSort } from "../../components/grid/utils/sorting";
@@ -44,10 +44,6 @@ import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import { generateUseEntityTypeEntitiesFilter } from "../../shared/use-entity-type-entities";
 import { useMemoCompare } from "../../shared/use-memo-compare";
-import type {
-  CustomEntityLinksColumn,
-  EntityEditorProps,
-} from "../@/[shortname]/entities/[entity-uuid].page/entity/entity-editor";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
@@ -56,6 +52,7 @@ import type {
   SortableEntitiesTableColumnKey,
 } from "./entities-visualizer/entities-table/types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
+import type { EntityEditorProps } from "./entity/entity-editor";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import type {
   DynamicNodeSizing,
@@ -63,7 +60,6 @@ import type {
   GraphVizFilters,
 } from "./graph-visualizer";
 import { useSlideStack } from "./slide-stack";
-import { generateEntityRootedSubgraph } from "./subgraphs";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { VisualizerView } from "./visualizer-views";
@@ -140,10 +136,6 @@ const generateGraphSort = (
 
 export const EntitiesVisualizer: FunctionComponent<{
   /**
-   * Custom columns to display in the ingoing/outgoing links tables for entities
-   */
-  customEntityLinksColumns?: CustomEntityLinksColumn[];
-  /**
    * The default filter to apply
    */
   defaultFilter?: FilterState;
@@ -193,7 +185,6 @@ export const EntitiesVisualizer: FunctionComponent<{
    */
   readonly?: boolean;
 }> = ({
-  customEntityLinksColumns,
   defaultFilter,
   defaultGraphConfig,
   defaultGraphFilters,

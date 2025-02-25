@@ -2,8 +2,8 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { memo } from "react";
 
-import { Entity } from "../../@/[shortname]/entities/[entity-uuid].page/entity";
-import type { EntityEditorProps } from "../../@/[shortname]/entities/[entity-uuid].page/entity/entity-editor";
+import { Entity } from "../entity";
+import type { EntityEditorProps } from "../entity/entity-editor";
 import type { SlideItem } from "./types";
 
 export type EntitySlideProps = {

@@ -11,8 +11,8 @@ import { getLayoutWithSidebar } from "../../shared/layout";
 import { Link } from "../../shared/ui/link";
 import { useUserPermissionsOnEntityType } from "../../shared/use-user-permissions-on-entity-type";
 import { CreateEntityPage } from "../@/[shortname]/entities/[entity-uuid].page/create-entity-page";
-import { EntityPageLoadingState } from "../@/[shortname]/entities/[entity-uuid].page/entity-page-loading-state";
 import { SelectEntityTypePage } from "../@/[shortname]/entities/[entity-uuid].page/select-entity-type-page";
+import { EntityPageLoadingState } from "../shared/entity/entity-page-loading-state";
 import { WorkspaceContext } from "../shared/workspace-context";
 
 const CreateEntityError: FunctionComponent<

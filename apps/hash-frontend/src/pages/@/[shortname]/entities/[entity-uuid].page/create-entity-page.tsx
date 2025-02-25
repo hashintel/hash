@@ -25,12 +25,12 @@ import {
 } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { Link } from "../../../../../shared/ui/link";
 import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../../../shared/use-entity-type-entities";
+import { Entity } from "../../../../shared/entity";
+import { EntityPageLoadingState } from "../../../../shared/entity/entity-page-loading-state";
+import { useApplyDraftLinkEntityChanges } from "../../../../shared/entity/shared/use-apply-draft-link-entity-changes";
+import type { DraftLinksToCreate } from "../../../../shared/entity/shared/use-draft-link-state";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 import { createInitialDraftEntitySubgraph } from "./create-entity-page/create-initial-draft-entity-subgraph";
-import { Entity } from "./entity";
-import { EntityPageLoadingState } from "./entity-page-loading-state";
-import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
-import type { DraftLinksToCreate } from "./shared/use-draft-link-state";
 
 interface CreateEntityPageProps {
   entityTypeId: VersionedUrl;

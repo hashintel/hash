@@ -1,4 +1,3 @@
-import type { Theme } from "@emotion/react";
 import type { Entity as EntityClass } from "@local/hash-graph-sdk/entity";
 import type { DraftId, EntityUuid } from "@local/hash-graph-types/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
@@ -17,10 +16,10 @@ import { useCallback, useMemo, useState } from "react";
 
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../../shared/layout";
+import { Entity } from "../../../shared/entity";
+import { EntityPageLoadingState } from "../../../shared/entity/entity-page-loading-state";
 import { NotFound } from "../../../shared/not-found";
 import { useRouteNamespace } from "../shared/use-route-namespace";
-import { Entity } from "./[entity-uuid].page/entity";
-import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();

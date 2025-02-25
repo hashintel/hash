@@ -1,6 +1,5 @@
 import { useQuery } from "@apollo/client";
 import { buildSubgraph } from "@blockprotocol/graph/stdlib";
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import type {
@@ -43,8 +42,7 @@ import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge
 import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../../shared/get-file-properties";
-import { SlideStack, useSlideStack } from "../../../../shared/slide-stack";
-import { generateEntityRootedSubgraph } from "../../../../shared/subgraphs";
+import { useSlideStack } from "../../../../shared/slide-stack";
 import { ClaimsOutput } from "./outputs/claims-output";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
