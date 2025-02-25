@@ -12,7 +12,7 @@ import {
   useState,
 } from "react";
 
-import type { EntityEditorProps } from ".";
+import type { EntityEditorProps } from "../entity-editor";
 
 export type TableExpandStatus = Record<string, boolean>;
 

@@ -1,3 +1,4 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -26,7 +27,6 @@ import {
 } from "react";
 
 import { ClickableCellChip } from "../../../../../../../../shared/clickable-cell-chip";
-import { ValueChip } from "../../../../../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -116,6 +116,7 @@ type OutgoingLinkRow = {
     "icon" | "$id" | "inverse" | "title"
   >[];
   onEntityClick: (entityId: EntityId) => void;
+  onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
   customFields: { [fieldId: string]: string | number };
 };
 
@@ -134,8 +135,10 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
       <TableCell sx={linksTableCellSx}>
         <Stack direction="row" alignItems="center" gap={1}>
           {row.linkEntityTypes.map((linkEntityType) => (
-            <ValueChip
+            <ClickableCellChip
               key={linkEntityType.$id}
+              fontSize={linksTableFontSize}
+              isType
               icon={
                 <EntityOrTypeIcon
                   entity={null}
@@ -145,14 +148,9 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
                   isLink
                 />
               }
-              showInFull
-              type
-              sx={{
-                fontSize: linksTableFontSize,
-              }}
-            >
-              {linkEntityType.title}
-            </ValueChip>
+              onClick={() => row.onTypeClick("entityType", linkEntityType.$id)}
+              label={linkEntityType.title}
+            />
           ))}
         </Stack>
       </TableCell>
@@ -182,25 +180,24 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
       <TableCell sx={linksTableCellSx}>
         <Stack direction="row" gap={1}>
           {row.targetEntityTypes.map((targetEntityType) => (
-            <ValueChip
+            <ClickableCellChip
               key={targetEntityType.$id}
+              fontSize={linksTableFontSize}
+              isType
               icon={
                 <EntityOrTypeIcon
                   entity={null}
                   fontSize={linksTableFontSize}
                   fill={({ palette }) => palette.blue[70]}
                   icon={targetEntityType.icon}
-                  /* @todo H-3363 use closed entity type schema to check link status */
                   isLink={!!row.targetEntity.linkData}
                 />
               }
-              type
-              sx={{
-                fontSize: linksTableFontSize,
-              }}
-            >
-              {targetEntityType.title}
-            </ValueChip>
+              label={targetEntityType.title}
+              onClick={() =>
+                row.onTypeClick("entityType", targetEntityType.$id)
+              }
+            />
           ))}
         </Stack>
       </TableCell>
@@ -257,6 +254,7 @@ export const OutgoingLinksTable = memo(
       customEntityLinksColumns: customColumns,
       defaultOutgoingLinkFilters,
       onEntityClick,
+      onTypeClick,
     } = useEntityEditor();
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
@@ -458,6 +456,7 @@ export const OutgoingLinksTable = memo(
             linkEntityLabel,
             linkEntityProperties,
             onEntityClick,
+            onTypeClick,
             targetEntity: rightEntity,
             targetEntityLabel: rightEntityLabel,
             targetEntityProperties,

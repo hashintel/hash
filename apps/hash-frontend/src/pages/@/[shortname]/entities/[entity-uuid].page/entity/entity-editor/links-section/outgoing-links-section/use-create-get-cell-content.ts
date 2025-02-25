@@ -12,7 +12,7 @@ import { linkGridIndexes } from "./constants";
 import type { LinkRow } from "./types";
 
 export const useCreateGetCellContent = () => {
-  const { readonly } = useEntityEditor();
+  const { readonly, onTypeClick } = useEntityEditor();
 
   const theme = useTheme();
 
@@ -72,11 +72,12 @@ export const useCreateGetCellContent = () => {
               readonly: true,
               allowOverlay: true, // in case we have so many expected types that we need to open on click to see them all
               copyData: String(expectedEntityTypeTitles.join(", ")),
+              cursor: "pointer",
               data: {
                 kind: "chip-cell",
                 chips: expectsAnything
                   ? [{ text: "Anything" }]
-                  : row.expectedEntityTypes.map(({ title, icon }) => ({
+                  : row.expectedEntityTypes.map(({ $id, title, icon }) => ({
                       text: title,
                       icon: icon
                         ? { entityTypeIcon: icon }
@@ -84,6 +85,9 @@ export const useCreateGetCellContent = () => {
                             inbuiltIcon: "bpAsterisk",
                           },
                       iconFill: theme.palette.blue[70],
+                      onClick: () => {
+                        onTypeClick("entityType", $id);
+                      },
                     })),
                 color: expectsAnything ? "blue" : "white",
               },
@@ -91,7 +95,7 @@ export const useCreateGetCellContent = () => {
           }
         }
       },
-    [readonly, theme],
+    [readonly, theme, onTypeClick],
   );
 
   return createGetCellContent;

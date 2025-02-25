@@ -218,15 +218,17 @@ export const SlideStackProvider = ({
   return (
     <SlideStackContext.Provider value={value}>
       {children}
-      <SlideStack
-        currentIndex={currentIndex}
-        items={items}
-        removeItem={removeItem}
-        replaceItem={replaceItem}
-        setCurrentIndex={setCurrentIndex}
-        setItems={setItems}
-        slideContainerRef={slideContainerRef}
-      />
+      {items.length > 0 && (
+        <SlideStack
+          currentIndex={currentIndex}
+          items={items}
+          removeItem={removeItem}
+          replaceItem={replaceItem}
+          setCurrentIndex={setCurrentIndex}
+          setItems={setItems}
+          slideContainerRef={slideContainerRef}
+        />
+      )}
     </SlideStackContext.Provider>
   );
 };

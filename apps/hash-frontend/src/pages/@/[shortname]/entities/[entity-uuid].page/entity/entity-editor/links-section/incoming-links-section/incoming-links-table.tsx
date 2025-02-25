@@ -1,3 +1,4 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -25,7 +26,6 @@ import {
 } from "react";
 
 import { ClickableCellChip } from "../../../../../../../../shared/clickable-cell-chip";
-import { ValueChip } from "../../../../../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -112,6 +112,7 @@ type IncomingLinkRow = {
     "icon" | "$id" | "inverse" | "title"
   >[];
   onEntityClick: (entityId: EntityId) => void;
+  onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
   customFields: { [fieldId: string]: string | number };
 };
 
@@ -155,9 +156,11 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
       <TableCell sx={linksTableCellSx}>
         <Stack direction="row" alignItems="center">
           {row.linkEntityTypes.map((linkEntityType) => (
-            <ValueChip
+            <ClickableCellChip
               key={linkEntityType.$id}
-              showInFull
+              fontSize={linksTableFontSize}
+              hideArrow
+              isType
               icon={
                 <EntityOrTypeIcon
                   entity={null}
@@ -167,15 +170,10 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
                   isLink
                 />
               }
-              type
-              sx={{
-                fontSize: linksTableFontSize,
-                mr: 1,
-              }}
-            >
-              {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */}
-              {linkEntityType.inverse?.title || linkEntityType.title}
-            </ValueChip>
+              onClick={() => row.onTypeClick("entityType", linkEntityType.$id)}
+              /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */
+              label={linkEntityType.inverse?.title || linkEntityType.title}
+            />
           ))}
           <Typography
             sx={{
@@ -186,6 +184,7 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
               fontSize: linksTableFontSize,
               color: ({ palette }) => palette.gray[50],
               maxWidth: "100%",
+              ml: 1,
             }}
           >
             {entityLabel}
@@ -195,9 +194,10 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
       <TableCell sx={linksTableCellSx}>
         <Stack direction="row" gap={1}>
           {row.sourceEntityTypes.map((sourceEntityType) => (
-            <ValueChip
+            <ClickableCellChip
               key={sourceEntityType.$id}
-              type
+              fontSize={linksTableFontSize}
+              isType
               icon={
                 <EntityOrTypeIcon
                   entity={null}
@@ -207,12 +207,11 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
                   isLink={!!row.sourceEntity.linkData}
                 />
               }
-              sx={{
-                fontSize: linksTableFontSize,
-              }}
-            >
-              {sourceEntityType.title}
-            </ValueChip>
+              label={sourceEntityType.title}
+              onClick={() =>
+                row.onTypeClick("entityType", sourceEntityType.$id)
+              }
+            />
           ))}
         </Stack>
       </TableCell>
@@ -265,6 +264,7 @@ export const IncomingLinksTable = memo(
       draftLinksToArchive,
       entitySubgraph,
       onEntityClick,
+      onTypeClick,
     } = useEntityEditor();
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
@@ -471,6 +471,7 @@ export const IncomingLinksTable = memo(
             linkEntityLabel,
             linkEntityProperties,
             onEntityClick,
+            onTypeClick,
             sourceEntity: leftEntity,
             sourceEntityLabel: leftEntityLabel,
             sourceEntityProperties,
@@ -509,6 +510,7 @@ export const IncomingLinksTable = memo(
       entitySubgraph,
       incomingLinksAndSources,
       onEntityClick,
+      onTypeClick,
     ]);
 
     const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
