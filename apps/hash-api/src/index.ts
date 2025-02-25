@@ -30,7 +30,7 @@ import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
 import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
@@ -242,7 +242,7 @@ const main = async () => {
 
   const vaultClient = createVaultClient();
 
-  const machineProvenance: EnforcedEntityEditionProvenance = {
+  const machineProvenance: ProvidedEntityEditionProvenance = {
     actorType: "machine",
     origin: {
       type: "api",
@@ -501,7 +501,7 @@ const main = async () => {
   // Make the data sources/clients available to REST controllers
   // @todo figure out sharing of context between REST and GraphQL without repeating this
   app.use((req, _res, next) => {
-    const provenance: EnforcedEntityEditionProvenance = {
+    const provenance: ProvidedEntityEditionProvenance = {
       actorType: "human",
       origin: {
         type: getHashClientTypeFromRequest(req) ?? "api",

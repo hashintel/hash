@@ -146,7 +146,7 @@ export const createEntityType: ImpureGraphFunction<
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname, provenance } = params;
+  const { ownedById, webShortname } = params;
 
   const shortname =
     webShortname ??
@@ -175,7 +175,10 @@ export const createEntityType: ImpureGraphFunction<
       ownedById,
       schema,
       relationships: params.relationships,
-      provenance,
+      provenance: {
+        ...ctx.provenance,
+        ...params.provenance,
+      },
     },
   );
 
@@ -352,7 +355,7 @@ export const updateEntityType: ImpureGraphFunction<
   UpdateEntityTypeParams,
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { entityTypeId, schema, provenance } = params;
+  const { entityTypeId, schema } = params;
   const updateArguments: UpdateEntityTypeRequest = {
     typeToUpdate: entityTypeId,
     schema: {
@@ -361,7 +364,10 @@ export const updateEntityType: ImpureGraphFunction<
       ...schema,
     },
     relationships: params.relationships,
-    provenance,
+    provenance: {
+      ...ctx.provenance,
+      ...params.provenance,
+    },
   };
 
   const { data: metadata } = await ctx.graphApi.updateEntityType(
@@ -407,7 +413,10 @@ export const updateEntityTypes: ImpureGraphFunction<
         ...schema,
       },
       relationships,
-      provenance,
+      provenance: {
+        ...ctx.provenance,
+        ...provenance,
+      },
     }),
   );
 
@@ -502,12 +511,12 @@ export const archiveEntityType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is unarchiving the entity type
  */
 export const unarchiveEntityType: ImpureGraphFunction<
-  UnarchiveEntityTypeParams,
+  Omit<UnarchiveEntityTypeParams, "provenance">,
   Promise<OntologyTemporalMetadata>
-> = async ({ graphApi }, { actorId }, params) => {
+> = async ({ graphApi, provenance }, { actorId }, params) => {
   const { data: temporalMetadata } = await graphApi.unarchiveEntityType(
     actorId,
-    params,
+    { ...params, provenance },
   );
 
   return temporalMetadata;

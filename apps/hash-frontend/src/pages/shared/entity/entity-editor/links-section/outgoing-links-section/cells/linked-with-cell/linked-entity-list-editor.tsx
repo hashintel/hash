@@ -53,7 +53,11 @@ export const createDraftLinkEntity = ({
         createdById: "" as CreatedById,
         createdAtTransactionTime: "" as CreatedAtTransactionTime,
         createdAtDecisionTime: "" as CreatedAtDecisionTime,
-        edition: { createdById: "" as EditionCreatedById },
+        edition: {
+          createdById: "" as EditionCreatedById,
+          actorType: "human",
+          origin: { type: "api" },
+        },
       },
       temporalVersioning: {
         decisionTime: {

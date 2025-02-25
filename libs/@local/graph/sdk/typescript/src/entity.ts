@@ -4,11 +4,9 @@ import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
   GraphApi,
-  OriginProvenance,
   PatchEntityParams as GraphApiPatchEntityParams,
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
-  ProvidedEntityEditionProvenanceOriginTypeEnum,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
 import type {
@@ -68,14 +66,6 @@ export type TypeIdsMap = Record<VersionedUrl, number>;
 export type TypeTitlesMap = Record<VersionedUrl, string>;
 export type WebIdsMap = Record<OwnedById, number>;
 
-export type EnforcedEntityEditionProvenance = Omit<
-  ProvidedEntityEditionProvenance,
-  "actorType" | "origin"
-> & {
-  actorType: ProvidedEntityEditionProvenance["actorType"];
-  origin: OriginProvenance;
-};
-
 export type CreateEntityParameters<
   T extends EntityProperties = EntityProperties,
 > = Omit<
@@ -87,7 +77,7 @@ export type CreateEntityParameters<
   linkData?: LinkData;
   entityTypeIds: T["entityTypeIds"];
   entityUuid?: EntityUuid;
-  provenance: EnforcedEntityEditionProvenance;
+  provenance: ProvidedEntityEditionProvenance;
   draft?: boolean;
 };
 
@@ -96,7 +86,7 @@ export type PatchEntityParameters = Omit<
   "entityId" | "decisionTime" | "properties" | "provenance"
 > & {
   propertyPatches?: PropertyPatchOperation[];
-  provenance: EnforcedEntityEditionProvenance;
+  provenance: ProvidedEntityEditionProvenance;
 };
 
 const typeId: unique symbol = Symbol.for(
@@ -873,18 +863,9 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(({ entityTypeIds, draft, provenance, ...rest }) => ({
+        params.map(({ entityTypeIds, draft, ...rest }) => ({
           entityTypeIds,
           draft: draft ?? false,
-          provenance: {
-            ...provenance,
-            origin: {
-              ...provenance.origin,
-              // ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
-              type: provenance.origin
-                .type as ProvidedEntityEditionProvenanceOriginTypeEnum,
-            },
-          },
           ...rest,
         })),
       )
@@ -913,12 +894,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    {
-      entityTypeIds,
-      propertyPatches,
-      provenance,
-      ...params
-    }: PatchEntityParameters,
+    { entityTypeIds, propertyPatches, ...params }: PatchEntityParameters,
     /**
      * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of
      *   the update. I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId
@@ -935,14 +911,6 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
         entityId: this.entityId,
         entityTypeIds,
         properties: propertyPatches,
-        provenance: {
-          ...provenance,
-          origin: {
-            ...provenance.origin,
-            // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
-            type: provenance.origin.type satisfies "migration",
-          },
-        },
         ...params,
       })
       .then(({ data }) => new Entity(data) as this);
@@ -951,38 +919,24 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   public async archive(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    provenance: EnforcedEntityEditionProvenance,
+    provenance: ProvidedEntityEditionProvenance,
   ): Promise<void> {
     await graphAPI.patchEntity(authentication.actorId, {
       entityId: this.entityId,
       archived: true,
-      provenance: {
-        ...provenance,
-        origin: {
-          ...provenance.origin,
-          // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
-          type: provenance.origin.type satisfies "migration",
-        },
-      },
+      provenance,
     });
   }
 
   public async unarchive(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    provenance: EnforcedEntityEditionProvenance,
+    provenance: ProvidedEntityEditionProvenance,
   ): Promise<void> {
     await graphAPI.patchEntity(authentication.actorId, {
       entityId: this.entityId,
       archived: false,
-      provenance: {
-        ...provenance,
-        origin: {
-          ...provenance.origin,
-          // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
-          type: provenance.origin.type satisfies "migration",
-        },
-      },
+      provenance,
     });
   }
 
@@ -1081,18 +1035,9 @@ export class LinkEntity<
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(({ entityTypeIds, draft, provenance, ...rest }) => ({
+        params.map(({ entityTypeIds, draft, ...rest }) => ({
           entityTypeIds,
           draft: draft ?? false,
-          provenance: {
-            ...provenance,
-            origin: {
-              ...provenance.origin,
-              // ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
-              type: provenance.origin
-                .type as ProvidedEntityEditionProvenanceOriginTypeEnum,
-            },
-          },
           ...rest,
         })),
       )
@@ -1117,26 +1062,13 @@ export class LinkEntity<
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    {
-      entityTypeIds,
-      propertyPatches,
-      provenance,
-      ...params
-    }: PatchEntityParameters,
+    { entityTypeIds, propertyPatches, ...params }: PatchEntityParameters,
   ): Promise<this> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
         entityTypeIds,
         properties: propertyPatches,
-        provenance: {
-          ...provenance,
-          origin: {
-            ...provenance.origin,
-            // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
-            type: provenance.origin.type satisfies "migration",
-          },
-        },
         ...params,
       })
       .then(({ data }) => new LinkEntity(data) as this);

@@ -500,6 +500,12 @@ describe("Entity type CRU", () => {
           },
           { relation: "instantiator", subject: { kind: "public" } },
         ],
+        provenance: {
+          actorType: "machine",
+          origin: {
+            type: "api",
+          },
+        },
       },
       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     ).catch((err) => Promise.reject(err.data));
