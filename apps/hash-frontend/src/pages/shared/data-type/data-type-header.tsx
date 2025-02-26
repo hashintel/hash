@@ -146,7 +146,10 @@ export const DataTypeHeader = ({
           <DataTypeDescription isReadOnly={isReadOnly} />
         </Box>
       </Box>
-      <Modal open={showExtendTypeModal} contentStyle={{ p: { xs: 0, md: 0 } }}>
+      <Modal
+        open={showExtendTypeModal}
+        contentStyle={{ p: { xs: 0, md: 0 }, maxWidth: 500 }}
+      >
         <>
           <Typography
             sx={({ palette }) => ({

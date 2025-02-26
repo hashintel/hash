@@ -385,6 +385,7 @@ export const DataType = ({
                   Extends
                 </Typography>
                 <DataTypesParents
+                  dataTypeBaseUrl={dataType.metadata.recordId.baseUrl}
                   isReadOnly={isReadOnly}
                   onDataTypeClick={(dataTypeId) => {
                     pushToSlideStack({

@@ -21,8 +21,8 @@ const StringLengthEditor = ({
   inheritedConstraints,
 }: {
   hasEnum: boolean;
-  ownMinLength?: number;
-  ownMaxLength?: number;
+  ownMinLength: number | null;
+  ownMaxLength: number | null;
   inheritedConstraints: InheritedConstraints;
 }) => {
   const { control } = useFormContext<DataTypeFormData>();
@@ -91,8 +91,8 @@ export const StringConstraintEditor = ({
 }: {
   ownEnum?: [string, ...string[]];
   ownFormat?: StringFormat;
-  ownMinLength?: number;
-  ownMaxLength?: number;
+  ownMinLength: number | null;
+  ownMaxLength: number | null;
   inheritedConstraints: InheritedConstraints;
 }) => {
   const format = ownFormat ?? inheritedConstraints.format?.value;
@@ -114,6 +114,11 @@ export const StringConstraintEditor = ({
         ownFormat={ownFormat}
         ownMinLength={ownMinLength}
         ownMaxLength={ownMaxLength}
+        ownMinimum={null}
+        ownMaximum={null}
+        ownExclusiveMinimum={null}
+        ownExclusiveMaximum={null}
+        ownMultipleOf={null}
         inheritedConstraints={inheritedConstraints}
         type="string"
       />
@@ -130,18 +135,30 @@ const StringLengthText = ({
   maxLength?: number;
   inheritedConstraints: InheritedConstraints;
 }) => {
+  const minLengthInheritedFrom =
+    inheritedConstraints.minLength &&
+    inheritedConstraints.minLength.value === minLength
+      ? inheritedConstraints.minLength.from
+      : undefined;
+
+  const maxLengthInheritedFrom =
+    inheritedConstraints.maxLength &&
+    inheritedConstraints.maxLength.value === maxLength
+      ? inheritedConstraints.maxLength.from
+      : undefined;
+
   if (typeof minLength === "number" && typeof maxLength === "number") {
     return (
       <>
         {", of between "}
         <ConstraintText
           text={minLength.toString()}
-          from={inheritedConstraints.minLength?.from}
+          from={minLengthInheritedFrom}
         />
         {" and "}
         <ConstraintText
           text={maxLength.toString()}
-          from={inheritedConstraints.maxLength?.from}
+          from={maxLengthInheritedFrom}
         />
         {" characters long"}
       </>
@@ -154,7 +171,7 @@ const StringLengthText = ({
         {", of at least "}
         <ConstraintText
           text={minLength.toString()}
-          from={inheritedConstraints.minLength?.from}
+          from={minLengthInheritedFrom}
         />
         {" characters long"}
       </>
@@ -167,7 +184,7 @@ const StringLengthText = ({
         {", of at most "}
         <ConstraintText
           text={maxLength.toString()}
-          from={inheritedConstraints.maxLength?.from}
+          from={maxLengthInheritedFrom}
         />
         {" characters long"}
       </>
@@ -205,6 +222,42 @@ export const StringConstraints = ({
 
   const maxLength = ownMaxLength ?? inheritedConstraints.maxLength?.value;
 
+  /**
+   * Reset the min/max length if the inherited constraints are narrower
+   * – handle the case of a parent change which makes the type's own constraints invalid.
+   */
+  useEffect(() => {
+    if (
+      inheritedConstraints.minLength?.value !== undefined &&
+      ownMinLength != null
+    ) {
+      if (inheritedConstraints.minLength.value > ownMinLength) {
+        setValue("constraints.minLength", null, { shouldDirty: true });
+      }
+    }
+    if (
+      inheritedConstraints.maxLength?.value !== undefined &&
+      ownMaxLength != null
+    ) {
+      if (inheritedConstraints.maxLength.value < ownMaxLength) {
+        setValue("constraints.maxLength", null, { shouldDirty: true });
+      }
+    }
+
+    if (inheritedConstraints.enum?.value.length && ownEnum) {
+      const validEnumValues = ownEnum.filter((value) =>
+        /**
+         * @todo what is going on with the type inference here
+         */
+        inheritedConstraints.enum!.value.includes(value as never),
+      ) as unknown as typeof inheritedConstraints.enum.value;
+
+      if (validEnumValues.length !== ownEnum.length) {
+        setValue("constraints.enum", validEnumValues, { shouldDirty: true });
+      }
+    }
+  }, [inheritedConstraints, ownEnum, ownMinLength, ownMaxLength, setValue]);
+
   const patterns: string[] = [];
   if (ownPattern) {
     patterns.push(ownPattern);
@@ -212,8 +265,8 @@ export const StringConstraints = ({
 
   useEffect(() => {
     if (["date", "date-time"].includes(format ?? "")) {
-      setValue("constraints.minLength", undefined, { shouldDirty: true });
-      setValue("constraints.maxLength", undefined, { shouldDirty: true });
+      setValue("constraints.minLength", null, { shouldDirty: true });
+      setValue("constraints.maxLength", null, { shouldDirty: true });
     }
   }, [format, setValue]);
 
@@ -263,8 +316,8 @@ export const StringConstraints = ({
       {!isReadOnly && (
         <StringConstraintEditor
           ownEnum={ownEnum as [string, ...string[]]}
-          ownMinLength={ownMinLength}
-          ownMaxLength={ownMaxLength}
+          ownMinLength={ownMinLength ?? null}
+          ownMaxLength={ownMaxLength ?? null}
           inheritedConstraints={inheritedConstraints}
         />
       )}

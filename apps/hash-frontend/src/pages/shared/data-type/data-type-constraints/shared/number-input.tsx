@@ -15,8 +15,8 @@ export const NumberInput = ({
   min?: number;
   max?: number;
   multipleOf?: number;
-  onChange: (value: number | undefined) => void;
-  value?: number;
+  onChange: (value: number | null) => void;
+  value: number | null;
   width?: number;
 }) => {
   return (
@@ -28,12 +28,12 @@ export const NumberInput = ({
       min={min}
       max={max}
       type="number"
-      value={value?.toString()}
+      value={value != null ? value.toString() : ""}
       onChange={(event) => {
         const parsedValue = parseInt(event.target.value, 10);
 
         if (Number.isNaN(parsedValue)) {
-          onChange(undefined);
+          onChange(null);
         } else {
           onChange(parsedValue);
         }

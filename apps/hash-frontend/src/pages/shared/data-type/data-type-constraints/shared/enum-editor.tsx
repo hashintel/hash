@@ -292,13 +292,13 @@ export const EnumEditor = ({
 }: {
   ownEnum?: [string, ...string[]] | [number, ...number[]];
   ownFormat?: StringFormat;
-  ownMinLength?: number;
-  ownMaxLength?: number;
-  ownMinimum?: number;
-  ownMaximum?: number;
-  ownExclusiveMinimum?: boolean;
-  ownExclusiveMaximum?: boolean;
-  ownMultipleOf?: number;
+  ownMinLength: number | null;
+  ownMaxLength: number | null;
+  ownMinimum: number | null;
+  ownMaximum: number | null;
+  ownExclusiveMinimum: boolean | null;
+  ownExclusiveMaximum: boolean | null;
+  ownMultipleOf: number | null;
   inheritedConstraints: InheritedConstraints;
   type: "string" | "number";
 }) => {

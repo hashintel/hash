@@ -1,4 +1,5 @@
 import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@blockprotocol/type-system/slim";
 import {
   extractBaseUrl,
   extractVersion,
@@ -90,9 +91,11 @@ export const DataTypeParentCard = ({
 };
 
 export const DataTypesParents = ({
+  dataTypeBaseUrl,
   isReadOnly,
   onDataTypeClick,
 }: {
+  dataTypeBaseUrl: BaseUrl;
   isReadOnly: boolean;
   onDataTypeClick: (dataTypeId: VersionedUrl) => void;
 }) => {
@@ -138,43 +141,50 @@ export const DataTypesParents = ({
 
     return buildDataTypeTreesForSelector({
       targetDataTypes: dataTypesArray
-        .filter((type) =>
-          type.schema.allOf?.some(
-            ({ $ref }) => $ref === blockProtocolDataTypes.value.dataTypeId,
-          ),
+        .filter(
+          (type) =>
+            type.schema.allOf?.some(
+              ({ $ref }) => $ref === blockProtocolDataTypes.value.dataTypeId,
+            ) && type.metadata.recordId.baseUrl !== dataTypeBaseUrl,
         )
         .map((type) => type.schema),
       dataTypePoolById: dataTypesArray.reduce<Record<VersionedUrl, DataType>>(
         (acc, type) => {
+          if (type.metadata.recordId.baseUrl === dataTypeBaseUrl) {
+            return acc;
+          }
+
           acc[type.schema.$id] = type.schema;
           return acc;
         },
         {},
       ),
     });
-  }, [dataTypes]);
+  }, [dataTypes, dataTypeBaseUrl]);
 
-  const addParent = (dataTypeId: VersionedUrl) => {
-    const parent = dataTypes?.[dataTypeId]?.schema;
+  const addParent = (newParentTypeId: VersionedUrl) => {
+    const parent = dataTypes?.[newParentTypeId]?.schema;
 
     if (!parent) {
-      throw new Error(`Parent data type not found: ${dataTypeId}`);
+      throw new Error(`Parent data type not found: ${newParentTypeId}`);
     }
 
     if (!("type" in parent)) {
-      throw new Error(`Parent data type does not have a type: ${dataTypeId}`);
+      throw new Error(
+        `Parent data type does not have a type: ${newParentTypeId}`,
+      );
     }
 
     const parentsWithoutOlderVersion = directParentDataTypeIds.filter(
       (parentId) => {
         const existingParentBaseUrl = extractBaseUrl(parentId);
-        const newParentBaseUrl = extractBaseUrl(dataTypeId);
+        const newParentBaseUrl = extractBaseUrl(newParentTypeId);
 
         return existingParentBaseUrl !== newParentBaseUrl;
       },
     );
 
-    setValue("allOf", [...parentsWithoutOlderVersion, dataTypeId], {
+    setValue("allOf", [...parentsWithoutOlderVersion, newParentTypeId], {
       shouldDirty: true,
     });
     setValue("constraints.type", parent.type, {
@@ -199,10 +209,12 @@ export const DataTypesParents = ({
     }
   }, [type, parents, setValue]);
 
-  const removeParent = (dataTypeId: VersionedUrl) => {
+  const removeParent = (parentToRemoveTypeId: VersionedUrl) => {
     setValue(
       "allOf",
-      directParentDataTypeIds.filter((parentId) => parentId !== dataTypeId),
+      directParentDataTypeIds.filter(
+        (parentId) => parentId !== parentToRemoveTypeId,
+      ),
       {
         shouldDirty: true,
       },
@@ -240,8 +252,8 @@ export const DataTypesParents = ({
             handleScroll
             hideHint
             maxHeight={300}
-            onSelect={(dataTypeId) => {
-              addParent(dataTypeId);
+            onSelect={(newParentTypeId) => {
+              addParent(newParentTypeId);
             }}
             selectedDataTypeIds={directParentDataTypeIds}
           />
