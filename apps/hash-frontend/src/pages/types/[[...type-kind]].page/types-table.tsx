@@ -15,7 +15,7 @@ import { isExternalOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
-import type { FunctionComponent, RefObject } from "react";
+import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import {
@@ -29,7 +29,6 @@ import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
 import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../../shared/table-content";
@@ -45,7 +44,7 @@ import type { ChipCell } from "../../shared/chip-cell";
 import { createRenderChipCell } from "../../shared/chip-cell";
 import type { TextIconCell } from "../../shared/entities-visualizer/entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "../../shared/entities-visualizer/entities-table/text-icon-cell";
-import { TypeSlideOverStack } from "../../shared/entity-type-page/type-slide-over-stack";
+import { useSlideStack } from "../../shared/slide-stack";
 import { TableHeaderToggle } from "../../shared/table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
@@ -122,11 +121,6 @@ export const TypesTable: FunctionComponent<{
     includeGlobal: false,
     limitToWebs: false,
   });
-
-  const [selectedEntityType, setSelectedEntityType] = useState<{
-    entityTypeId: VersionedUrl;
-    slideContainerRef?: RefObject<HTMLDivElement | null>;
-  } | null>(null);
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -315,6 +309,8 @@ export const TypesTable: FunctionComponent<{
     });
   }, []);
 
+  const { pushToSlideStack } = useSlideStack();
+
   const theme = useTheme();
 
   const createGetCellContent = useCallback(
@@ -358,16 +354,13 @@ export const TypesTable: FunctionComponent<{
                     text: row.title,
                     onClick: isClickable
                       ? () => {
-                          if (row.kind === "data-type") {
-                            /**
-                             * @todo open data type in slide over
-                             */
-                            void router.push(
-                              generateLinkParameters(row.typeId).href,
-                            );
-                          } else {
-                            setSelectedEntityType({ entityTypeId: row.typeId });
-                          }
+                          pushToSlideStack({
+                            kind:
+                              row.kind === "data-type"
+                                ? "dataType"
+                                : "entityType",
+                            itemId: row.typeId,
+                          });
                         }
                       : undefined,
                     iconFill: theme.palette.blue[70],
@@ -467,7 +460,7 @@ export const TypesTable: FunctionComponent<{
           }
         }
       },
-    [typesTableColumns, router, theme],
+    [typesTableColumns, pushToSlideStack, router, theme],
   );
 
   const maxTableHeight = `calc(100vh - (${
@@ -477,15 +470,13 @@ export const TypesTable: FunctionComponent<{
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
   const onTypeClick = useCallback(
-    (
-      typeId: VersionedUrl,
-      slideContainerRef?: RefObject<HTMLDivElement | null>,
-    ) =>
-      setSelectedEntityType({
-        entityTypeId: typeId,
-        slideContainerRef,
-      }),
-    [],
+    (typeId: VersionedUrl) => {
+      pushToSlideStack({
+        kind: "entityType",
+        itemId: typeId,
+      });
+    },
+    [pushToSlideStack],
   );
 
   const numberOfUserWebItems = useMemo(
@@ -504,58 +495,50 @@ export const TypesTable: FunctionComponent<{
       : undefined;
 
   return (
-    <>
-      {selectedEntityType && (
-        <TypeSlideOverStack
-          rootTypeId={selectedEntityType.entityTypeId}
-          onClose={() => setSelectedEntityType(null)}
-          slideContainerRef={selectedEntityType.slideContainerRef}
-        />
-      )}
-      <Box>
-        <TableHeader
-          endAdornment={
-            <TableHeaderToggle
-              value={view}
-              setValue={setView}
-              options={(
-                ["Table", "Graph"] as const satisfies VisualizerView[]
-              ).map((optionValue) => ({
-                icon: visualizerViewIcons[optionValue],
-                label: `${optionValue} view`,
-                value: optionValue,
-              }))}
-            />
-          }
-          itemLabelPlural="types"
-          title={typesTablesToTitle[kind]}
-          currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
-          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          filterState={filterState}
-          loading={false}
-          numberOfExternalItems={numberOfExternalItems}
-          numberOfUserWebItems={numberOfUserWebItems}
-          setFilterState={setFilterState}
-          selectedItems={types?.filter((type) =>
-            selectedRows.some(({ typeId }) => type.schema.$id === typeId),
-          )}
-          onBulkActionCompleted={() => setSelectedRows([])}
-        />
-        {view === "Table" ? (
-          <Box sx={tableContentSx}>
-            <Grid
-              columns={typesTableColumns}
-              createGetCellContent={createGetCellContent}
-              currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-              customRenderers={[
-                createRenderTextIconCell({ firstColumnLeftPadding }),
-                createRenderChipCell({ firstColumnLeftPadding }),
-              ]}
-              dataLoading={!types}
-              enableCheckboxSelection
-              firstColumnLeftPadding={firstColumnLeftPadding}
-              freezeColumns={1}
-              height={`min(
+    <Box>
+      <TableHeader
+        endAdornment={
+          <TableHeaderToggle
+            value={view}
+            setValue={setView}
+            options={(
+              ["Table", "Graph"] as const satisfies VisualizerView[]
+            ).map((optionValue) => ({
+              icon: visualizerViewIcons[optionValue],
+              label: `${optionValue} view`,
+              value: optionValue,
+            }))}
+          />
+        }
+        itemLabelPlural="types"
+        title={typesTablesToTitle[kind]}
+        currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+        filterState={filterState}
+        loading={false}
+        numberOfExternalItems={numberOfExternalItems}
+        numberOfUserWebItems={numberOfUserWebItems}
+        setFilterState={setFilterState}
+        selectedItems={types?.filter((type) =>
+          selectedRows.some(({ typeId }) => type.schema.$id === typeId),
+        )}
+        onBulkActionCompleted={() => setSelectedRows([])}
+      />
+      {view === "Table" ? (
+        <Box sx={tableContentSx}>
+          <Grid
+            columns={typesTableColumns}
+            createGetCellContent={createGetCellContent}
+            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+            customRenderers={[
+              createRenderTextIconCell({ firstColumnLeftPadding }),
+              createRenderChipCell({ firstColumnLeftPadding }),
+            ]}
+            dataLoading={!types}
+            enableCheckboxSelection
+            firstColumnLeftPadding={firstColumnLeftPadding}
+            freezeColumns={1}
+            height={`min(
                 ${maxTableHeight},
                 calc(
                   ${gridHeaderHeightWithBorder}px +
@@ -565,33 +548,32 @@ export const TypesTable: FunctionComponent<{
                   ${gridHorizontalScrollbarHeight}px
                 )
               )`}
-              onSearchClose={() => setShowSearch(false)}
-              onSelectedRowsChange={(updatedSelectedRows) =>
-                setSelectedRows(updatedSelectedRows)
-              }
-              rows={filteredRows}
-              selectedRows={selectedRows}
-              showSearch={showSearch}
-              sortableColumns={[
-                "title",
-                "kind",
-                "webShortname",
-                "archived",
-                "lastEdited",
-                "lastEditedBy",
-              ]}
-              sortRows={sortRows}
-            />
-          </Box>
-        ) : (
-          <Box height={maxTableHeight} sx={tableContentSx}>
-            <TypeGraphVisualizer
-              onTypeClick={onTypeClick}
-              types={filteredTypes}
-            />
-          </Box>
-        )}
-      </Box>
-    </>
+            onSearchClose={() => setShowSearch(false)}
+            onSelectedRowsChange={(updatedSelectedRows) =>
+              setSelectedRows(updatedSelectedRows)
+            }
+            rows={filteredRows}
+            selectedRows={selectedRows}
+            showSearch={showSearch}
+            sortableColumns={[
+              "title",
+              "kind",
+              "webShortname",
+              "archived",
+              "lastEdited",
+              "lastEditedBy",
+            ]}
+            sortRows={sortRows}
+          />
+        </Box>
+      ) : (
+        <Box height={maxTableHeight} sx={tableContentSx}>
+          <TypeGraphVisualizer
+            onTypeClick={onTypeClick}
+            types={filteredTypes}
+          />
+        </Box>
+      )}
+    </Box>
   );
 };

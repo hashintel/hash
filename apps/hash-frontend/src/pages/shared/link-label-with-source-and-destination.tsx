@@ -44,7 +44,7 @@ import { Fragment, useMemo, useRef } from "react";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { Link } from "../../shared/ui";
-import { useEntityEditor } from "../@/[shortname]/entities/[entity-uuid].page/entity-editor/entity-editor-context";
+import { useEntityEditor } from "./entity/entity-editor/entity-editor-context";
 import { TooltipChip } from "./tooltip-chip";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({
@@ -160,6 +160,7 @@ const LeftOrRightEntity: FunctionComponent<{
       paddingY={0.75}
       sx={[
         {
+          background: ({ palette }) => palette.common.white,
           borderRadius: "6px",
           borderColor: ({ palette }) => palette.gray[30],
           borderWidth: 1,
@@ -588,7 +589,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   subgraph,
   sx,
 }) => {
-  const { disableTypeClick } = useEntityEditor();
+  const { onTypeClick } = useEntityEditor();
 
   const { leftEntity, rightEntity, linkEntityTypes } = useMemo(() => {
     return {
@@ -681,29 +682,23 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
       >
         {linkEntityTypes.map((linkEntityType, index) => (
           <Fragment key={linkEntityType.$id}>
-            {disableTypeClick ? (
-              <Box>
-                <LinkTypeInner
-                  amongMultipleTypes={linkEntityTypes.length > 1}
-                  clickable={false}
-                  linkEntityType={linkEntityType}
-                  elementRef={linkTypeRefs.current[index]!}
-                />
-              </Box>
-            ) : (
-              <Link
-                openInNew={openInNew}
-                href={generateLinkParameters(linkEntityType.$id).href}
-                noLinkStyle
-              >
-                <LinkTypeInner
-                  amongMultipleTypes={linkEntityTypes.length > 1}
-                  clickable
-                  linkEntityType={linkEntityType}
-                  elementRef={linkTypeRefs.current[index]!}
-                />
-              </Link>
-            )}
+            <Link
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onTypeClick("entityType", linkEntityType.$id);
+              }}
+              openInNew={openInNew}
+              href={generateLinkParameters(linkEntityType.$id).href}
+              noLinkStyle
+            >
+              <LinkTypeInner
+                amongMultipleTypes={linkEntityTypes.length > 1}
+                clickable
+                linkEntityType={linkEntityType}
+                elementRef={linkTypeRefs.current[index]!}
+              />
+            </Link>
             {linkEntityTypes.length > 0 && linkTypeRefs.current[index] && (
               /**
                * In cases where we have multiple link entity types, draw a line from:

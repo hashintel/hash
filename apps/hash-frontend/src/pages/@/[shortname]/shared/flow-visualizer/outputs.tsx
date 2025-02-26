@@ -1,6 +1,5 @@
 import { useQuery } from "@apollo/client";
 import { buildSubgraph } from "@blockprotocol/graph/stdlib";
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import type {
@@ -41,11 +40,9 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
-import { EntityEditorSlideStack } from "../../../../shared/entity-editor-slide-stack";
-import { TypeSlideOverStack } from "../../../../shared/entity-type-page/type-slide-over-stack";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../../shared/get-file-properties";
-import { generateEntityRootedSubgraph } from "../../../../shared/subgraphs";
+import { useSlideStack } from "../../../../shared/slide-stack";
 import { ClaimsOutput } from "./outputs/claims-output";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
@@ -277,21 +274,11 @@ const mockEntityFromProposedEntity = (
           },
         },
       },
+      properties: proposedEntity.propertyMetadata,
     },
     properties: proposedEntity.properties,
   } satisfies GraphApiEntity);
 };
-
-type ResultSlideOver =
-  | {
-      type: "entity";
-      entityId: EntityId;
-    }
-  | {
-      type: "entityType";
-      entityTypeId: VersionedUrl;
-    }
-  | null;
 
 type OutputsProps = {
   persistedEntities: PersistedEntity[];
@@ -327,8 +314,6 @@ export const Outputs = ({
   const [visibleSection, setVisibleSection] = useState<
     "claims" | "entities" | "deliverables"
   >(hasEntities ? "entities" : "claims");
-
-  const [slideOver, setSlideOver] = useState<ResultSlideOver>(null);
 
   const persistedEntitiesFilter = useMemo<Filter>(
     () => ({
@@ -431,104 +416,109 @@ export const Outputs = ({
     );
   }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
 
-  const selectedEntitySubgraph = useMemo(() => {
-    const selectedEntityId =
-      slideOver?.type === "entity" ? slideOver.entityId : undefined;
+  const { pushToSlideStack } = useSlideStack();
 
-    if (!selectedEntityId || !selectedFlowRun?.webId) {
-      return undefined;
-    }
-
-    const persistedEntity = persistedEntities.find(
-      ({ entity }) =>
-        entity &&
-        new Entity(entity).metadata.recordId.entityId === selectedEntityId,
-    );
-
-    if (persistedEntity) {
-      if (!persistedEntitiesSubgraph) {
+  const handleEntityClick = useCallback(
+    (selectedEntityId: EntityId) => {
+      if (!selectedFlowRun?.webId) {
         return undefined;
       }
 
-      return generateEntityRootedSubgraph(
-        selectedEntityId,
-        persistedEntitiesSubgraph,
+      const persistedEntity = persistedEntities.find(
+        ({ entity }) =>
+          entity &&
+          new Entity(entity).metadata.recordId.entityId === selectedEntityId,
       );
-    }
 
-    const proposedEntity = proposedEntities.find(
-      (entity) => entity.localEntityId === selectedEntityId,
-    );
-
-    if (proposedEntity) {
-      if (!proposedEntitiesTypesSubgraph) {
-        return undefined;
+      if (persistedEntity) {
+        pushToSlideStack({
+          kind: "entity",
+          itemId: selectedEntityId,
+        });
+        return;
       }
 
-      const mockedEntity = mockEntityFromProposedEntity(proposedEntity);
+      const proposedEntity = proposedEntities.find(
+        (entity) => entity.localEntityId === selectedEntityId,
+      );
 
-      const entityTypes = getEntityTypes(proposedEntitiesTypesSubgraph);
-      const propertyTypes = getPropertyTypes(proposedEntitiesTypesSubgraph);
-      const dataTypes = getDataTypes(proposedEntitiesTypesSubgraph);
+      if (proposedEntity) {
+        if (!proposedEntitiesTypesSubgraph) {
+          return undefined;
+        }
 
-      const now = new Date().toISOString();
+        const mockedEntity = mockEntityFromProposedEntity(proposedEntity);
 
-      const mockSubgraph = buildSubgraph(
-        {
-          dataTypes,
-          propertyTypes,
-          entityTypes,
+        const entityTypes = getEntityTypes(proposedEntitiesTypesSubgraph);
+        const propertyTypes = getPropertyTypes(proposedEntitiesTypesSubgraph);
+        const dataTypes = getDataTypes(proposedEntitiesTypesSubgraph);
 
-          /**
-           * @todo H-3162: also handle proposed entities which link to existing persisted entities
-           *   -- requires having fetched them.
-           */
-          entities: proposedEntities.map((entity) =>
-            entity.localEntityId === selectedEntityId
-              ? mockedEntity
-              : mockEntityFromProposedEntity(entity),
-          ),
-        },
-        [mockedEntity.metadata.recordId],
-        {
-          ...fullOntologyResolveDepths,
-          hasLeftEntity: {
-            outgoing: 1,
-            incoming: 1,
+        const now = new Date().toISOString();
+
+        const mockSubgraph = buildSubgraph(
+          {
+            dataTypes,
+            propertyTypes,
+            entityTypes,
+
+            /**
+             * @todo H-3162: also handle proposed entities which link to existing persisted entities
+             *   -- requires having fetched them.
+             */
+            entities: proposedEntities.map((entity) =>
+              entity.localEntityId === selectedEntityId
+                ? mockedEntity
+                : mockEntityFromProposedEntity(entity),
+            ),
           },
-          hasRightEntity: {
-            outgoing: 1,
-            incoming: 1,
-          },
-        },
-        {
-          initial: currentTimeInstantTemporalAxes,
-          resolved: {
-            pinned: {
-              axis: "transactionTime",
-              timestamp: now,
+          [mockedEntity.metadata.recordId],
+          {
+            ...fullOntologyResolveDepths,
+            hasLeftEntity: {
+              outgoing: 1,
+              incoming: 1,
             },
-            variable: {
-              axis: "decisionTime",
-              interval: {
-                start: { kind: "inclusive", limit: new Date(0).toISOString() },
-                end: { kind: "inclusive", limit: now },
+            hasRightEntity: {
+              outgoing: 1,
+              incoming: 1,
+            },
+          },
+          {
+            initial: currentTimeInstantTemporalAxes,
+            resolved: {
+              pinned: {
+                axis: "transactionTime",
+                timestamp: now,
+              },
+              variable: {
+                axis: "decisionTime",
+                interval: {
+                  start: {
+                    kind: "inclusive",
+                    limit: new Date(0).toISOString(),
+                  },
+                  end: { kind: "inclusive", limit: now },
+                },
               },
             },
           },
-        },
-      ) as unknown as Subgraph<EntityRootType>;
+        ) as unknown as Subgraph<EntityRootType>;
 
-      return mockSubgraph;
-    }
-  }, [
-    persistedEntities,
-    persistedEntitiesSubgraph,
-    proposedEntitiesTypesSubgraph,
-    proposedEntities,
-    selectedFlowRun?.webId,
-    slideOver,
-  ]);
+        pushToSlideStack({
+          kind: "entity",
+          itemId: selectedEntityId,
+          proposedEntitySubgraph: mockSubgraph,
+        });
+      }
+    },
+    [
+      persistedEntities,
+      proposedEntitiesTypesSubgraph,
+      proposedEntities,
+      pushToSlideStack,
+      selectedFlowRun?.webId,
+    ],
+  );
 
   useEffect(() => {
     if (!hasClaims && visibleSection === "claims" && hasEntities) {
@@ -587,37 +577,8 @@ export const Outputs = ({
     return entities;
   }, [persistedEntities, proposedEntities]);
 
-  const onEntityClick = useCallback(
-    (entityId: EntityId) => setSlideOver({ type: "entity", entityId }),
-    [],
-  );
-
-  const onEntityTypeClick = useCallback(
-    (entityTypeId: VersionedUrl) =>
-      setSlideOver({ type: "entityType", entityTypeId }),
-    [],
-  );
-
   return (
     <>
-      {slideOver?.type === "entityType" && (
-        <TypeSlideOverStack
-          rootTypeId={slideOver.entityTypeId}
-          onClose={() => setSlideOver(null)}
-        />
-      )}
-      {selectedEntitySubgraph && slideOver?.type === "entity" && (
-        <EntityEditorSlideStack
-          entitySubgraph={selectedEntitySubgraph}
-          hideOpenInNew={persistedEntities.length === 0}
-          rootEntityId={slideOver.entityId}
-          onClose={() => setSlideOver(null)}
-          onSubmit={() => {
-            throw new Error(`Editing not yet supported from this screen`);
-          }}
-          readonly
-        />
-      )}
       <Box position="relative">
         <Stack
           alignItems="center"
@@ -690,8 +651,13 @@ export const Outputs = ({
                 !persistedEntitiesSubgraph &&
                 !proposedEntitiesTypesSubgraph
               }
-              onEntityClick={onEntityClick}
-              onEntityTypeClick={onEntityTypeClick}
+              onEntityClick={handleEntityClick}
+              onEntityTypeClick={(entityTypeId) => {
+                pushToSlideStack({
+                  kind: "entityType",
+                  itemId: entityTypeId,
+                });
+              }}
               persistedEntities={persistedEntities}
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
               proposedEntities={proposedEntities}
@@ -700,8 +666,13 @@ export const Outputs = ({
             />
           ) : (
             <EntityResultGraph
-              onEntityClick={onEntityClick}
-              onEntityTypeClick={onEntityTypeClick}
+              onEntityClick={handleEntityClick}
+              onEntityTypeClick={(entityTypeId) => {
+                pushToSlideStack({
+                  kind: "entityType",
+                  itemId: entityTypeId,
+                });
+              }}
               entities={entitiesForGraph}
               subgraphWithTypes={
                 persistedEntitiesSubgraph ?? proposedEntitiesTypesSubgraph
@@ -710,7 +681,7 @@ export const Outputs = ({
           ))}
         {visibleSection === "claims" && (
           <ClaimsOutput
-            onEntityClick={onEntityClick}
+            onEntityClick={handleEntityClick}
             proposedEntities={proposedEntities}
           />
         )}

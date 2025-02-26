@@ -207,7 +207,7 @@ export const NumberConstraintEditor = ({
   inheritedConstraints: InheritedConstraints;
 }) => {
   return (
-    <Stack gap={3} mt={2}>
+    <Stack gap={4} mt={2}>
       {!inheritedConstraints.enum && (
         <NumberRangeEditor
           hasEnum={"enum" in inheritedConstraints || !!ownEnum}

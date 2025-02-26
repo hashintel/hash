@@ -1,6 +1,8 @@
 import { Box } from "@mui/material";
 import { Container, type SxProps, type Theme } from "@mui/system";
 
+import { inSlideContainerStyles } from "./slide-styles";
+
 export const typeHeaderContainerStyles: SxProps<Theme> = ({ palette }) => ({
   borderBottom: 1,
   borderColor: palette.gray[20],
@@ -10,10 +12,16 @@ export const typeHeaderContainerStyles: SxProps<Theme> = ({ palette }) => ({
 
 export const TypeDefinitionContainer = ({
   children,
-}: { children: React.ReactNode }) => {
+  inSlide,
+}: { children: React.ReactNode; inSlide?: boolean }) => {
   return (
-    <Box py={5}>
-      <Container>{children}</Container>
+    <Box
+      py={5}
+      sx={({ palette }) => ({ background: palette.gray[10], height: "100%" })}
+    >
+      <Container sx={inSlide ? inSlideContainerStyles : {}}>
+        {children}
+      </Container>
     </Box>
   );
 };

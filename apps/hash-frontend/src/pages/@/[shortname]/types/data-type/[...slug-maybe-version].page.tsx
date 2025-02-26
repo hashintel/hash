@@ -1,9 +1,11 @@
 import type { DataTypeWithMetadata } from "@blockprotocol/graph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
+import { generateLinkParameters } from "../../../../../shared/generate-link-parameters";
 import type { NextPageWithLayout } from "../../../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../../../shared/layout";
 import { DataType } from "../../../../shared/data-type";
@@ -91,13 +93,25 @@ const Page: NextPageWithLayout = () => {
   }
 
   return (
-    <DataType
-      ownedById={routeNamespace.ownedById}
-      draftNewDataType={draftDataType}
-      dataTypeBaseUrl={dataTypeBaseUrl}
-      key={`${dataTypeBaseUrl}-${requestedVersion}`}
-      requestedVersion={requestedVersion}
-    />
+    <>
+      <DataType
+        ownedById={routeNamespace.ownedById}
+        draftNewDataType={draftDataType}
+        dataTypeBaseUrl={dataTypeBaseUrl}
+        key={`${dataTypeBaseUrl}-${requestedVersion}`}
+        requestedVersion={requestedVersion}
+        onDataTypeUpdated={(dataType) => {
+          void router.push(generateLinkParameters(dataType.schema.$id).href);
+        }}
+      />
+      <GlobalStyles
+        styles={{
+          body: {
+            overflowY: "scroll",
+          },
+        }}
+      />
+    </>
   );
 };
 

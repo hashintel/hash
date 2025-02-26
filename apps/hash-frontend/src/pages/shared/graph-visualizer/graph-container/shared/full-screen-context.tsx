@@ -1,6 +1,8 @@
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, RefObject } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
+
+import { useSlideStack } from "../../../slide-stack";
 
 export type FullScreenContextType = {
   isFullScreen: boolean;
@@ -14,25 +16,33 @@ export const FullScreenContext = createContext<FullScreenContextType | null>(
 export const FullScreenContextProvider = ({
   children,
   fullScreenMode = "element",
-}: PropsWithChildren<{ fullScreenMode?: "document" | "element" }>) => {
+  graphContainerRef,
+}: PropsWithChildren<{
+  fullScreenMode?: "document" | "element";
+  graphContainerRef: RefObject<HTMLDivElement | null>;
+}>) => {
   const handle = useFullScreenHandle();
 
-  const toggleFullScreen = useCallback(() => {
+  const { setSlideContainerRef } = useSlideStack();
+
+  const toggleFullScreen = useCallback(async () => {
     if (fullScreenMode === "document") {
       if (document.fullscreenElement) {
-        void document.exitFullscreen();
+        await document.exitFullscreen();
       } else {
-        void document.documentElement.requestFullscreen();
+        await document.documentElement.requestFullscreen();
       }
       return;
     }
 
     if (handle.active) {
-      void handle.exit();
+      await handle.exit();
+      setSlideContainerRef(null);
     } else {
-      void handle.enter();
+      await handle.enter();
+      setSlideContainerRef(graphContainerRef);
     }
-  }, [fullScreenMode, handle]);
+  }, [fullScreenMode, handle, graphContainerRef, setSlideContainerRef]);
 
   const value = useMemo<FullScreenContextType>(
     () => ({

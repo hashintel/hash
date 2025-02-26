@@ -26,11 +26,13 @@ export const DataTypeParentCard = ({
   isReadOnly,
   onlyParent,
   parent,
+  onClick,
   onRemove,
 }: {
   isReadOnly: boolean;
   onlyParent: boolean;
   parent: DataTypeParent;
+  onClick: () => void;
   onRemove: () => void;
 }) => {
   const { dataType, latestVersion } = parent;
@@ -67,6 +69,7 @@ export const DataTypeParentCard = ({
 
   return (
     <TypeCard
+      onClick={onClick}
       onDelete={isReadOnly ? undefined : onRemove}
       isLink={false}
       LinkComponent={Link}
@@ -88,8 +91,10 @@ export const DataTypeParentCard = ({
 
 export const DataTypesParents = ({
   isReadOnly,
+  onDataTypeClick,
 }: {
   isReadOnly: boolean;
+  onDataTypeClick: (dataTypeId: VersionedUrl) => void;
 }) => {
   const { dataTypes } = useDataTypesContext();
 
@@ -252,6 +257,9 @@ export const DataTypesParents = ({
           <DataTypeParentCard
             key={parent.dataType.$id}
             isReadOnly={isReadOnly}
+            onClick={() => {
+              onDataTypeClick(parent.dataType.$id);
+            }}
             onlyParent={parents.length === 1}
             parent={parent}
             onRemove={() => {

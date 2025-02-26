@@ -25,10 +25,9 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, useTheme } from "@mui/material";
-import type { FunctionComponent, ReactElement, RefObject } from "react";
+import type { FunctionComponent, ReactElement } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ColumnSort } from "../../components/grid/utils/sorting";
@@ -45,10 +44,6 @@ import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import { generateUseEntityTypeEntitiesFilter } from "../../shared/use-entity-type-entities";
 import { useMemoCompare } from "../../shared/use-memo-compare";
-import type {
-  CustomColumn,
-  EntityEditorProps,
-} from "../@/[shortname]/entities/[entity-uuid].page/entity-editor";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
@@ -57,15 +52,14 @@ import type {
   SortableEntitiesTableColumnKey,
 } from "./entities-visualizer/entities-table/types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
-import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
+import type { EntityEditorProps } from "./entity/entity-editor";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
-import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import type {
   DynamicNodeSizing,
   GraphVizConfig,
   GraphVizFilters,
 } from "./graph-visualizer";
-import { generateEntityRootedSubgraph } from "./subgraphs";
+import { useSlideStack } from "./slide-stack";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { VisualizerView } from "./visualizer-views";
@@ -142,10 +136,6 @@ const generateGraphSort = (
 
 export const EntitiesVisualizer: FunctionComponent<{
   /**
-   * Custom columns to display in the entities table
-   */
-  customColumns?: CustomColumn[];
-  /**
    * The default filter to apply
    */
   defaultFilter?: FilterState;
@@ -161,14 +151,6 @@ export const EntitiesVisualizer: FunctionComponent<{
    * The default visualizer view
    */
   defaultView?: VisualizerView;
-  /**
-   * Hide the option to open entities in a new tab
-   */
-  disableEntityOpenInNew?: boolean;
-  /**
-   * Disable clicking on a type to navigate to it
-   */
-  disableTypeClick?: boolean;
   /**
    * Limit the entities displayed to only those matching any version of this type
    */
@@ -203,13 +185,10 @@ export const EntitiesVisualizer: FunctionComponent<{
    */
   readonly?: boolean;
 }> = ({
-  customColumns,
   defaultFilter,
   defaultGraphConfig,
   defaultGraphFilters,
   defaultView = "Table",
-  disableEntityOpenInNew,
-  disableTypeClick,
   entityTypeBaseUrl,
   entityTypeId,
   fullScreenMode,
@@ -411,11 +390,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     <LoadingSpinner size={42} color={theme.palette.blue[60]} />
   );
 
-  const [selectedEntityType, setSelectedEntityType] = useState<{
-    entityTypeId: VersionedUrl;
-    slideContainerRef?: RefObject<HTMLDivElement | null>;
-  } | null>(null);
-
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const isDisplayingFilesOnly = useMemo(
@@ -477,31 +451,27 @@ export const EntitiesVisualizer: FunctionComponent<{
     }
   }, [isViewingOnlyPages, filterState]);
 
-  const [selectedEntity, setSelectedEntity] = useState<{
-    entityId: EntityId;
-    options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">;
-    slideContainerRef?: RefObject<HTMLDivElement | null>;
-    subgraph: Subgraph<EntityRootType>;
-  } | null>(null);
+  const { pushToSlideStack } = useSlideStack();
 
   const handleEntityClick = useCallback(
     (
       entityId: EntityId,
-      modalContainerRef?: RefObject<HTMLDivElement | null>,
       options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">,
     ) => {
-      if (subgraph) {
-        const entitySubgraph = generateEntityRootedSubgraph(entityId, subgraph);
-
-        setSelectedEntity({
-          options,
-          entityId,
-          slideContainerRef: modalContainerRef,
-          subgraph: entitySubgraph,
-        });
-      }
+      pushToSlideStack({
+        kind: "entity",
+        itemId: entityId,
+        defaultOutgoingLinkFilters: options?.defaultOutgoingLinkFilters,
+      });
     },
-    [subgraph],
+    [pushToSlideStack],
+  );
+
+  const handleEntityTypeClick = useCallback(
+    ({ entityTypeId: itemId }: { entityTypeId: VersionedUrl }) => {
+      pushToSlideStack({ kind: "entityType", itemId });
+    },
+    [pushToSlideStack],
   );
 
   const currentlyDisplayedColumnsRef = useRef<SizedGridColumn[] | null>(null);
@@ -536,161 +506,120 @@ export const EntitiesVisualizer: FunctionComponent<{
   }, [nextCursor]);
 
   return (
-    <>
-      {selectedEntityType && (
-        <TypeSlideOverStack
-          rootTypeId={selectedEntityType.entityTypeId}
-          onClose={() => setSelectedEntityType(null)}
-          slideContainerRef={selectedEntityType.slideContainerRef}
-        />
-      )}
-      {selectedEntity ? (
-        <EntityEditorSlideStack
-          customColumns={customColumns}
-          /*
-            The subgraphWithLinkedEntities can take a long time to load with many entities.
-            We pass the subgraph without linked entities so that there is _some_ data to load into the editor,
-            which will be missing links. passing entityId below means the slideover fetches the entity
-            with its links, so they'll load in shortly.
-            It's unlikely subgraphWithLinkedEntities will be used but if it happens to be available already,
-            it means the links will load in immediately.
-           */
-          entitySubgraph={selectedEntity.subgraph}
-          disableTypeClick={disableTypeClick}
-          hideOpenInNew={disableEntityOpenInNew}
-          rootEntityId={selectedEntity.entityId}
-          rootEntityOptions={{
-            defaultOutgoingLinkFilters:
-              selectedEntity.options?.defaultOutgoingLinkFilters,
-          }}
-          onClose={() => setSelectedEntity(null)}
-          onSubmit={() => {
-            throw new Error(`Editing not yet supported from this screen`);
-          }}
-          readonly
-          /*
-             If we've been given a specific DOM element to contain the modal, pass it here.
-             This is for use when attaching to the body is not suitable (e.g. a specific DOM element is full-screened).
-           */
-          slideContainerRef={selectedEntity.slideContainerRef}
-        />
-      ) : null}
-      <Box>
-        <TableHeader
+    <Box>
+      <TableHeader
+        currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+        endAdornment={
+          <TableHeaderToggle
+            value={view}
+            setValue={setView}
+            options={(
+              [
+                "Table",
+                ...(supportGridView ? (["Grid"] as const) : []),
+                "Graph",
+              ] as const satisfies VisualizerView[]
+            ).map((optionValue) => ({
+              icon: visualizerViewIcons[optionValue],
+              label: `${optionValue} view`,
+              value: optionValue,
+            }))}
+          />
+        }
+        filterState={filterState}
+        hideExportToCsv={view !== "Table"}
+        hideFilters={hideFilters}
+        itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
+        loading={dataLoading || childDoingWork}
+        onBulkActionCompleted={() => {
+          void refetchWithoutLinks();
+        }}
+        numberOfExternalItems={
+          externalWebsOnlyCountData?.countEntities ?? undefined
+        }
+        numberOfUserWebItems={internalEntitiesCount}
+        selectedItems={
+          entities?.filter((entity) =>
+            selectedTableRows.some(
+              ({ entityId }) => entity.metadata.recordId.entityId === entityId,
+            ),
+          ) ?? []
+        }
+        setFilterState={setFilterState}
+        title="Entities"
+        toggleSearch={
+          view === "Table"
+            ? () => setShowTableSearch(!showTableSearch)
+            : undefined
+        }
+      />
+      {!subgraph || !closedMultiEntityTypesRootMap ? (
+        <Stack
+          alignItems="center"
+          justifyContent="center"
+          sx={[
+            {
+              height: tableHeight,
+              width: "100%",
+            },
+            tableContentSx,
+          ]}
+        >
+          <Box>{loadingComponent}</Box>
+        </Stack>
+      ) : view === "Graph" ? (
+        <Box height={tableHeight} sx={tableContentSx}>
+          <EntityGraphVisualizer
+            closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
+            defaultConfig={defaultGraphConfig}
+            defaultFilters={defaultGraphFilters}
+            entities={entities}
+            fullScreenMode={fullScreenMode}
+            loadingComponent={loadingComponent}
+            isPrimaryEntity={isPrimaryEntity}
+            onEntityClick={handleEntityClick}
+          />
+        </Box>
+      ) : view === "Grid" ? (
+        <GridView entities={entities} onEntityClick={handleEntityClick} />
+      ) : (
+        <EntitiesTable
+          activeConversions={activeConversions}
+          createdByIds={createdByIds}
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          endAdornment={
-            <TableHeaderToggle
-              value={view}
-              setValue={setView}
-              options={(
-                [
-                  "Table",
-                  ...(supportGridView ? (["Grid"] as const) : []),
-                  "Graph",
-                ] as const satisfies VisualizerView[]
-              ).map((optionValue) => ({
-                icon: visualizerViewIcons[optionValue],
-                label: `${optionValue} view`,
-                value: optionValue,
-              }))}
-            />
-          }
+          closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
+          definitions={definitions}
+          editionCreatedByIds={editionCreatedByIds}
+          entities={entities}
           filterState={filterState}
-          hideExportToCsv={view !== "Table"}
-          hideFilters={hideFilters}
-          itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
-          loading={dataLoading || childDoingWork}
-          onBulkActionCompleted={() => {
-            void refetchWithoutLinks();
-          }}
-          numberOfExternalItems={
-            externalWebsOnlyCountData?.countEntities ?? undefined
-          }
-          numberOfUserWebItems={internalEntitiesCount}
-          selectedItems={
-            entities?.filter((entity) =>
-              selectedTableRows.some(
-                ({ entityId }) =>
-                  entity.metadata.recordId.entityId === entityId,
-              ),
-            ) ?? []
-          }
-          setFilterState={setFilterState}
-          title="Entities"
-          toggleSearch={
-            view === "Table"
-              ? () => setShowTableSearch(!showTableSearch)
-              : undefined
-          }
+          handleEntityClick={handleEntityClick}
+          hasSomeLinks={hasSomeLinks}
+          hideColumns={hideColumns}
+          limit={limit}
+          loading={dataLoading}
+          loadingComponent={loadingComponent}
+          isViewingOnlyPages={isViewingOnlyPages}
+          maxHeight={tableHeight}
+          goToNextPage={nextCursor ? nextPage : undefined}
+          readonly={readonly}
+          setActiveConversions={setActiveConversions}
+          setLoading={setChildDoingWork}
+          setSelectedEntityType={handleEntityTypeClick}
+          setSelectedRows={setSelectedTableRows}
+          selectedRows={selectedTableRows}
+          setLimit={setLimit}
+          showSearch={showTableSearch}
+          setShowSearch={setShowTableSearch}
+          sort={sort}
+          setSort={setSort}
+          subgraph={subgraph}
+          typeIds={typeIds}
+          typeTitles={typeTitles}
+          webIds={webIds}
         />
-        {!subgraph || !closedMultiEntityTypesRootMap ? (
-          <Stack
-            alignItems="center"
-            justifyContent="center"
-            sx={[
-              {
-                height: tableHeight,
-                width: "100%",
-              },
-              tableContentSx,
-            ]}
-          >
-            <Box>{loadingComponent}</Box>
-          </Stack>
-        ) : view === "Graph" ? (
-          <Box height={tableHeight} sx={tableContentSx}>
-            <EntityGraphVisualizer
-              closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
-              defaultConfig={defaultGraphConfig}
-              defaultFilters={defaultGraphFilters}
-              entities={entities}
-              fullScreenMode={fullScreenMode}
-              loadingComponent={loadingComponent}
-              isPrimaryEntity={isPrimaryEntity}
-              onEntityClick={handleEntityClick}
-            />
-          </Box>
-        ) : view === "Grid" ? (
-          <GridView entities={entities} onEntityClick={handleEntityClick} />
-        ) : (
-          <EntitiesTable
-            activeConversions={activeConversions}
-            createdByIds={createdByIds}
-            currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
-            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-            closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
-            definitions={definitions}
-            editionCreatedByIds={editionCreatedByIds}
-            entities={entities}
-            filterState={filterState}
-            handleEntityClick={handleEntityClick}
-            hasSomeLinks={hasSomeLinks}
-            hideColumns={hideColumns}
-            limit={limit}
-            loading={dataLoading}
-            loadingComponent={loadingComponent}
-            isViewingOnlyPages={isViewingOnlyPages}
-            maxHeight={tableHeight}
-            goToNextPage={nextCursor ? nextPage : undefined}
-            readonly={readonly}
-            setActiveConversions={setActiveConversions}
-            setLoading={setChildDoingWork}
-            setSelectedEntityType={setSelectedEntityType}
-            setSelectedRows={setSelectedTableRows}
-            selectedRows={selectedTableRows}
-            setLimit={setLimit}
-            showSearch={showTableSearch}
-            setShowSearch={setShowTableSearch}
-            sort={sort}
-            setSort={setSort}
-            subgraph={subgraph}
-            typeIds={typeIds}
-            typeTitles={typeTitles}
-            webIds={webIds}
-          />
-        )}
-      </Box>
-    </>
+      )}
+    </Box>
   );
 };

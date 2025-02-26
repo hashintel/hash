@@ -310,17 +310,22 @@ const TableRow = memo(
             zIndex: 1,
           }}
         >
-          <ClickableCellChip
-            onClick={() =>
-              row.onEntityClick(
-                row.persistedEntity
-                  ? row.persistedEntity.metadata.recordId.entityId
-                  : row.proposedEntityId!,
-              )
-            }
-            fontSize={typographySx.fontSize}
-            label={row.entityLabel}
-          />
+          {row.persistedEntity ? (
+            <ClickableCellChip
+              onClick={() =>
+                row.onEntityClick(
+                  row.persistedEntity
+                    ? row.persistedEntity.metadata.recordId.entityId
+                    : row.proposedEntityId!,
+                )
+              }
+              fontSize={typographySx.fontSize}
+              label={row.entityLabel}
+            />
+            /** @todo H-3849: use closed types in outputs and re-enable clicking to open proposed entity in slideover */
+          ) : (
+            <ValueChip>{row.entityLabel}</ValueChip>
+          )}
         </TableCell>
         {columns
           .slice(
