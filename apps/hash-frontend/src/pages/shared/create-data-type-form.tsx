@@ -102,6 +102,12 @@ export const CreateDataTypeForm = ({
       version: 1,
     });
 
+    const primitiveType =
+      parentType?.schema && "type" in parentType.schema
+        ? /** not sure what is going on with tsc inference here, something about the disjoint union of type: x options it complains about */
+          (parentType.schema.type as "boolean")
+        : ("string" as "boolean");
+
     const dataType: DataType = {
       $schema: DATA_TYPE_META_SCHEMA,
       kind: "dataType",
@@ -110,7 +116,7 @@ export const CreateDataTypeForm = ({
       allOf: parentId ? [{ $ref: parentId }] : undefined,
       title: data.title,
       description: data.description,
-      type: "string",
+      type: primitiveType,
     };
 
     const nextUrl = `${baseUrl}?draft=${encodeURIComponent(

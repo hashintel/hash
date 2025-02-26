@@ -4,9 +4,9 @@ import { useEffect } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
 import type { DataTypeFormData } from "../data-type-form";
+import { ItemLabel } from "../shared/item-label";
 import { ConstraintText } from "./shared/constraint-text";
 import { EnumEditor } from "./shared/enum-editor";
-import { ItemLabel } from "./shared/item-label";
 import { NumberInput } from "./shared/number-input";
 import type { InheritedConstraints } from "./types";
 

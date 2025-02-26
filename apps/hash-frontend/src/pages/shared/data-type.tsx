@@ -11,7 +11,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 import type { DataTypeRootType } from "@local/hash-subgraph/types";
 import type { Theme } from "@mui/material";
-import { Box, Container, Stack, Typography } from "@mui/material";
+import { Box, Container, Stack } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
@@ -41,6 +41,7 @@ import {
   getFormDataFromDataType,
 } from "./data-type/data-type-form";
 import { DataTypeHeader } from "./data-type/data-type-header";
+import { DataTypeLabels } from "./data-type/data-type-labels";
 import { DataTypesParents } from "./data-type/data-type-parents";
 import { useDataTypesContext } from "./data-types-context";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
@@ -381,27 +382,19 @@ export const DataType = ({
 
           <TypeDefinitionContainer inSlide={inSlide}>
             <Stack spacing={6.5}>
-              <Box>
-                <Typography variant="h5" mb={2}>
-                  Extends
-                </Typography>
-                <DataTypesParents
-                  dataTypeBaseUrl={dataType.metadata.recordId.baseUrl}
-                  isReadOnly={isReadOnly}
-                  onDataTypeClick={(dataTypeId) => {
-                    pushToSlideStack({
-                      kind: "dataType",
-                      itemId: dataTypeId,
-                    });
-                  }}
-                />
-              </Box>
-              <Box>
-                <Typography variant="h5" mb={2}>
-                  Constraints
-                </Typography>
-                <DataTypeConstraints isReadOnly={isReadOnly} />
-              </Box>
+              <DataTypesParents
+                dataTypeBaseUrl={dataType.metadata.recordId.baseUrl}
+                isReadOnly={isReadOnly}
+                onDataTypeClick={(dataTypeId) => {
+                  pushToSlideStack({
+                    kind: "dataType",
+                    itemId: dataTypeId,
+                  });
+                }}
+              />
+
+              <DataTypeConstraints isReadOnly={isReadOnly} />
+              <DataTypeLabels isReadOnly={isReadOnly} />
             </Stack>
           </TypeDefinitionContainer>
         </Box>

@@ -178,7 +178,7 @@ export const getFormDataFromDataType = (
     allOf: allOf?.map(({ $ref }) => $ref) ?? [],
     abstract: !!abstract,
     description,
-    label: label ?? {},
+    label: label?.left?.length || label?.right?.length ? label : undefined,
     title,
     constraints: nulledConstraints,
   };

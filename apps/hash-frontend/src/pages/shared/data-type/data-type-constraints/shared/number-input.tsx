@@ -1,5 +1,7 @@
 import { Box } from "@mui/material";
 
+import { inputStyles } from "../../shared/input-styles";
+
 export const NumberInput = ({
   id,
   disabled,
@@ -38,15 +40,7 @@ export const NumberInput = ({
           onChange(parsedValue);
         }
       }}
-      sx={({ palette }) => ({
-        border: `1px solid ${palette.gray[30]}`,
-        borderRadius: 1,
-        fontSize: 14,
-        py: 1.2,
-        px: 1.5,
-        mt: 0.5,
-        width,
-      })}
+      sx={[inputStyles, { width }]}
     />
   );
 };

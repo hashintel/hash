@@ -33,8 +33,8 @@ import { TriangleExclamationRegularIcon } from "../../../../../shared/icons/tria
 import { Button } from "../../../../../shared/ui";
 import { NumberOrTextInput } from "../../../number-or-text-input";
 import type { DataTypeFormData } from "../../data-type-form";
+import { ItemLabel } from "../../shared/item-label";
 import type { InheritedConstraints } from "../types";
-import { ItemLabel } from "./item-label";
 
 const SaveButton = ({ onClick }: { onClick: () => void }) => (
   <Tooltip title="Save" placement="top">

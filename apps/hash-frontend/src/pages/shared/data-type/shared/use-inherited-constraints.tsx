@@ -3,9 +3,9 @@ import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-ty
 import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { useDataTypesContext } from "../data-types-context";
-import type { InheritedConstraints } from "./data-type-constraints/types";
-import type { DataTypeFormData } from "./data-type-form";
+import { useDataTypesContext } from "../../data-types-context";
+import type { InheritedConstraints } from "../data-type-constraints/types";
+import type { DataTypeFormData } from "../data-type-form";
 
 export const useInheritedConstraints = () => {
   const { dataTypes } = useDataTypesContext();
@@ -82,6 +82,24 @@ export const useInheritedConstraints = () => {
       parentsByVersionedUrl[parentVersionedUrl] = parent.schema;
 
       allOfStack.push(...(parent.schema.allOf?.map(({ $ref }) => $ref) ?? []));
+
+      if (parentSchema.label?.left) {
+        narrowedConstraints.label ??= {};
+
+        narrowedConstraints.label.left = {
+          value: parentSchema.label.left,
+          from: parentSchema,
+        };
+      }
+
+      if (parentSchema.label?.right) {
+        narrowedConstraints.label ??= {};
+
+        narrowedConstraints.label.right = {
+          value: parentSchema.label.right,
+          from: parentSchema,
+        };
+      }
 
       if ("enum" in parentSchema) {
         if (
