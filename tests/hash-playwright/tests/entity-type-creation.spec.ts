@@ -32,13 +32,13 @@ test("user can create entity type", async ({ page }) => {
     (url) => !!url.pathname.match(/^\/new\/types\/entity-type/),
   );
 
-  // Create a random entity name for each test
-  const entityName = `TestEntity${(Math.random() * 1000).toFixed()}`;
+  // Create a random entity type name for each test
+  const entityTypeName = `TestEntity${(Math.random() * 1000).toFixed()}`;
 
   // Fill up entity creation form
   await page.fill(
     '[data-testid=entity-type-creation-form] input[name="title"]',
-    entityName,
+    entityTypeName,
   );
   await page.fill(
     '[data-testid=entity-type-creation-form] textarea[name="description"]',
@@ -46,7 +46,7 @@ test("user can create entity type", async ({ page }) => {
   );
   await page.fill(
     '[data-testid=entity-type-creation-form] input[name="titlePlural"]',
-    `${entityName}s`,
+    `${entityTypeName}s`,
   );
 
   // Submit entity creation form and wait for page load
@@ -84,5 +84,7 @@ test("user can create entity type", async ({ page }) => {
 
   await sleep(5_000);
 
-  await page.waitForURL((url) => !!url.pathname.endsWith("v/1"));
+  await page.waitForURL(
+    (url) => !!url.pathname.endsWith(entityTypeName.toLowerCase()),
+  );
 });
