@@ -34,7 +34,7 @@ import {
   getEntitySubgraphQuery,
   updateEntityMutation,
 } from "../../graphql/queries/knowledge/entity.queries";
-import { EditBar } from "./entity/edit-bar";
+import { EditBarEntityEditor } from "./entity/edit-bar";
 import type { EntityEditorProps } from "./entity/entity-editor";
 import { EntityEditor } from "./entity/entity-editor";
 import { EntityEditorContainer } from "./entity/entity-editor-container";
@@ -586,7 +586,7 @@ export const Entity = ({
               draftEntityTypesDetails.closedMultiEntityType
             }
             editBar={
-              <EditBar
+              <EditBarEntityEditor
                 visible={haveChangesBeenMade || !!draftLocalEntity}
                 {...(draftLocalEntity
                   ? {

@@ -55,7 +55,7 @@ import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 
 type DataTypeProps = {
-  inSlide?: boolean;
+  isInSlide?: boolean;
   ownedById?: OwnedById | null;
   draftNewDataType?: BpDataTypeWithMetadata | null;
   dataTypeBaseUrl?: BaseUrl;
@@ -64,7 +64,7 @@ type DataTypeProps = {
 };
 
 export const DataType = ({
-  inSlide,
+  isInSlide: inSlide,
   ownedById,
   draftNewDataType,
   dataTypeBaseUrl,
@@ -362,6 +362,7 @@ export const DataType = ({
                     : undefined
               }
               key={dataType.schema.$id} // reset edit bar state when the data type changes
+              gentleErrorStyling={parents.length === 0}
             />
           )}
 
