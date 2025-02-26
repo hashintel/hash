@@ -24,7 +24,7 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     property_type::{GetPropertyTypeSubgraphParams, PropertyTypeStore as _},
-    query::{QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
+    query::{Ordering, QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
@@ -1714,7 +1714,7 @@ impl PostgresRecord for EntityTypeWithMetadata {
             transaction_time: compiler.add_distinct_selection_with_ordering(
                 &EntityTypeQueryPath::TransactionTime,
                 Distinctness::Distinct,
-                None,
+                Some((Ordering::Descending, None)),
             ),
             schema: compiler.add_selection_path(&EntityTypeQueryPath::Schema(None)),
             edition_provenance: compiler

@@ -20,7 +20,7 @@ use hash_graph_store::{
         GetPropertyTypesResponse, PropertyTypeQueryPath, PropertyTypeStore,
         UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
-    query::{QueryResult as _, Read as _, ReadPaginated, VersionedUrlSorting},
+    query::{Ordering, QueryResult as _, Read as _, ReadPaginated, VersionedUrlSorting},
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -1007,7 +1007,7 @@ impl PostgresRecord for PropertyTypeWithMetadata {
             transaction_time: compiler.add_distinct_selection_with_ordering(
                 &PropertyTypeQueryPath::TransactionTime,
                 Distinctness::Distinct,
-                None,
+                Some((Ordering::Descending, None)),
             ),
             schema: compiler.add_selection_path(&PropertyTypeQueryPath::Schema(None)),
             edition_provenance: compiler
