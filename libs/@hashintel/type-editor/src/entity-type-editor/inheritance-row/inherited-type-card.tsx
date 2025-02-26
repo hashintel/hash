@@ -8,7 +8,6 @@ import { TypeCard } from "@hashintel/design-system";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { useCustomizationSettings } from "../../shared/customization-context";
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import type { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
@@ -24,8 +23,6 @@ export const InheritedTypeCard = ({
 }) => {
   const { $id, title } = entityType;
   const { entityTypes } = useEntityTypesOptions();
-
-  const { onNavigateToType } = useCustomizationSettings();
 
   const [currentVersion, latestVersion] = useTypeVersions($id, entityTypes);
   const newVersion = currentVersion < latestVersion ? latestVersion : undefined;
