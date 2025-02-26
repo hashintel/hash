@@ -110,7 +110,7 @@
     "lefthook": "1.10.11",
     "markdownlint-cli2": "0.17.2",
     "npm-run-all2": "7.0.2",
-    "turbo": "2.4.2"
+    "turbo": "2.4.4"
   },
   "packageManager": "yarn@4.6.0",
   "engines": {
