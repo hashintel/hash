@@ -106,8 +106,8 @@ bitvec                   = { version = "=1.0.1", default-features = false }
 bumpalo                  = { version = "=3.17.0", default-features = false }
 bytes                    = { version = "=1.10.0" }
 bytes-utils              = { version = "=0.1.4", default-features = false }
-cedar-policy-core        = { version = "=4.3.2", default-features = false }
-cedar-policy-validator   = { version = "=4.3.2", default-features = false }
+cedar-policy-core        = { version = "=4.3.3", default-features = false }
+cedar-policy-validator   = { version = "=4.3.3", default-features = false }
 clap                     = { version = "=4.5.31", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder             = { version = "=4.5.31", default-features = false, features = ["std"] }
 clap_complete            = { version = "=4.5.46", default-features = false }
