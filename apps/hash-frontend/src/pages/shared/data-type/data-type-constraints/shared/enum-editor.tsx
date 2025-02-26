@@ -557,10 +557,36 @@ export const EnumEditor = ({
     }
   }, [items, mergedSchema, setError, clearErrors]);
 
+  const hasConstraints = [
+    ownEnum,
+    ownFormat,
+    ownMinLength,
+    ownMaxLength,
+    ownMinimum,
+    ownMaximum,
+    ownExclusiveMinimum,
+    ownExclusiveMaximum,
+    ownMultipleOf,
+    inheritedConstraints.enum,
+    inheritedConstraints.format,
+  ].some((constraint) => constraint != null);
+
   return (
     <Stack>
       <Box>
         <ItemLabel tooltip={tooltip}>Permitted values</ItemLabel>
+        {hasConstraints && (
+          <Typography
+            variant="smallTextParagraphs"
+            sx={{
+              color: ({ palette }) => palette.gray[50],
+              fontSize: 13,
+              mb: 1,
+            }}
+          >
+            Values must meet the constraints listed above.
+          </Typography>
+        )}
         <Stack
           sx={{
             mt: 0.8,
@@ -575,6 +601,7 @@ export const EnumEditor = ({
               Any value meeting the constraints will be allowed.
             </Typography>
           )}
+
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}

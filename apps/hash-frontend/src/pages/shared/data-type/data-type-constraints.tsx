@@ -16,7 +16,14 @@ const Constraint = ({
 }: {
   inheritedConstraints: InheritedConstraints;
   isReadOnly: boolean;
-  type: "string" | "number" | "boolean" | "null" | "array" | "object";
+  type:
+    | "string"
+    | "number"
+    | "boolean"
+    | "null"
+    | "array"
+    | "object"
+    | "anything";
 }) => {
   switch (type) {
     case "string":
@@ -33,6 +40,13 @@ const Constraint = ({
           isReadOnly={isReadOnly}
         />
       );
+    case "anything": {
+      return (
+        <Typography variant="smallTextParagraphs">
+          It can be <ConstraintText text="anything" />.
+        </Typography>
+      );
+    }
     default:
       return (
         <Typography variant="smallTextParagraphs">

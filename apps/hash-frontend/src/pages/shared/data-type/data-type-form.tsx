@@ -35,6 +35,7 @@ type NullableStringSchema =
   | { enum: [string, ...string[]] };
 
 type NullableSingleValueConstraints =
+  | { type: "anything" }
   | { type: "null" }
   | { type: "boolean" }
   | ({ type: "number" } & NullableNumberSchema)
@@ -62,6 +63,9 @@ export const getDataTypeFromFormData = ({
   let unNulledConstraints: SingleValueConstraints;
 
   switch (constraints.type) {
+    case "anything": {
+      throw new Error("Unexpected update to 'Value' type");
+    }
     case "object":
     case "array":
     case "null":
@@ -121,6 +125,15 @@ export const getFormDataFromDataType = (
   } = dataType;
 
   if ("anyOf" in constraints) {
+    if (title === "Value") {
+      return {
+        allOf: [],
+        description,
+        label,
+        title,
+        constraints: { type: "anything" },
+      };
+    }
     throw new Error("anyOf constraints are not supported");
   }
 
