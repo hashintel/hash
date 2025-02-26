@@ -425,11 +425,11 @@ export const NumberConstraints = ({
       {!isReadOnly && (
         <NumberConstraintEditor
           ownEnum={ownEnum as [number, ...number[]]}
-          ownMinimum={ownMinimum}
-          ownMaximum={ownMaximum}
-          ownExclusiveMinimum={ownExclusiveMinimum}
-          ownExclusiveMaximum={ownExclusiveMaximum}
-          ownMultipleOf={ownMultipleOf}
+          ownMinimum={ownMinimum ?? null}
+          ownMaximum={ownMaximum ?? null}
+          ownExclusiveMinimum={ownExclusiveMinimum ?? null}
+          ownExclusiveMaximum={ownExclusiveMaximum ?? null}
+          ownMultipleOf={ownMultipleOf ?? null}
           inheritedConstraints={inheritedConstraints}
         />
       )}

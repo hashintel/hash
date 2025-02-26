@@ -10,10 +10,12 @@ import {
   TypeCard,
 } from "@hashintel/design-system";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { Typography } from "@mui/material";
 import { Box, Stack } from "@mui/system";
 import { useEffect, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
+import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { Link } from "../../../shared/ui/link";
 import { useDataTypesContext } from "../data-types-context";
 import type { DataTypeFormData } from "./data-type-form";
@@ -84,7 +86,7 @@ export const DataTypeParentCard = ({
       }
       swappableOnly={onlyParent}
       title={title}
-      url={$id}
+      url={generateLinkParameters($id).href}
       version={extractVersion($id)}
     />
   );
@@ -226,6 +228,14 @@ export const DataTypesParents = ({
   }
 
   if (parents.length === 0) {
+    if (isReadOnly) {
+      return (
+        <Typography variant="smallTextParagraphs">
+          This type has no parents.
+        </Typography>
+      );
+    }
+
     return (
       <Box
         sx={{

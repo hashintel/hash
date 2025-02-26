@@ -20,6 +20,7 @@ import type {
   QueryEntityTypesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { queryEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
+import { generateLinkParameters } from "../../../../shared/generate-link-parameters";
 import { Button } from "../../../../shared/ui/button";
 import { Link } from "../../../../shared/ui/link";
 import { EntityTypeSelector } from "../../entity-type-selector";
@@ -157,7 +158,7 @@ export const TypeButton = ({
         isLink={currentEntityType.isLink}
         onClick={() => onTypeClick("entityType", entityTypeId)}
         onDelete={readonly || !allowDelete ? undefined : onDeleteClicked}
-        url={entityTypeId}
+        url={generateLinkParameters(entityTypeId).href}
         title={entityTypeTitle}
         version={currentVersion}
         newVersionConfig={
