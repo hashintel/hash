@@ -84,9 +84,5 @@ test("user can create entity type", async ({ page }) => {
 
   await sleep(5_000);
 
-  const ontologyChipPath = await page
-    .locator('[data-testid="ontology-chip-path"]')
-    .innerText();
-
-  expect(ontologyChipPath.endsWith("v/1")).toBeTruthy();
+  await page.waitForURL((url) => !!url.pathname.endsWith("v/1"));
 });
