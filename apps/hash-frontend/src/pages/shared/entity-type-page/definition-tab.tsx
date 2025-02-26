@@ -2,27 +2,28 @@ import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { EntityTypeEditor } from "@hashintel/type-editor";
 import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { useDataTypesContext } from "../data-types-context";
+import { useNewTypeOwner } from "../shared/use-new-type-owner";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 
 type DefinitionTabProps = {
-  ownedById: OwnedById | null;
   entityTypeAndPropertyTypes: {
     entityType: EntityTypeWithMetadata;
     propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
   };
-  onNavigateToType: (url: VersionedUrl) => void;
+  onNavigateToType: (
+    kind: "entityType" | "dataType",
+    url: VersionedUrl,
+  ) => void;
   readonly: boolean;
 };
 
 export const DefinitionTab = ({
   entityTypeAndPropertyTypes,
-  ownedById,
   onNavigateToType,
   readonly,
 }: DefinitionTabProps) => {
@@ -59,8 +60,12 @@ export const DefinitionTab = ({
     [entityTypeOptions, propertyTypeOptions],
   );
 
+  const newTypeOwnedById = useNewTypeOwner(
+    entityTypeAndPropertyTypes.entityType.schema.$id,
+  );
+
   const ontologyFunctions = useEditorOntologyFunctions(
-    ownedById,
+    newTypeOwnedById ?? null,
     typesWithMetadata,
   );
 

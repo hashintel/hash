@@ -13,13 +13,13 @@
   },
   "dependencies": {
     "@openapitools/openapi-generator-cli": "2.16.3",
-    "axios": "1.7.9"
+    "axios": "1.8.0"
   },
   "devDependencies": {
     "@local/tsconfig": "0.0.0-private",
-    "@redocly/cli": "1.30.0",
+    "@redocly/cli": "1.31.1",
     "@rust/hash-graph-api": "0.0.0-private",
-    "@types/node": "22.13.4",
+    "@types/node": "22.13.5",
     "fix-esm-import-path": "1.10.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.3"

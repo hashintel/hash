@@ -21,8 +21,8 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import {
-  type EnforcedEntityEditionProvenance,
   Entity,
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
@@ -131,7 +131,7 @@ export const createFileEntityFromUrl = async (params: {
   entityUuid: EntityUuid | null;
   url: string;
   propertyMetadata?: PropertyMetadataObject;
-  provenance?: EnforcedEntityEditionProvenance;
+  provenance?: ProvidedEntityEditionProvenance;
   entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
   description?: string;
   displayName?: string;
@@ -197,7 +197,7 @@ export const createFileEntityFromUrl = async (params: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
       filename,
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-      displayName ?? undefined,
+      displayName ?? filename,
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
       originalUrl,
     "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
@@ -234,7 +234,7 @@ export const createFileEntityFromUrl = async (params: {
     );
   }
 
-  const provenance: EnforcedEntityEditionProvenance = provenanceFromParams ?? {
+  const provenance: ProvidedEntityEditionProvenance = provenanceFromParams ?? {
     actorType: "machine",
     origin: {
       type: "flow",
@@ -292,8 +292,7 @@ export const createFileEntityFromUrl = async (params: {
         {
           value: formatFileUrl(key),
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
           },
         },
     },

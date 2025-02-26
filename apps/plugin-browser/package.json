@@ -46,7 +46,7 @@
     "react-dom": "19.0.0",
     "uuid": "11.1.0",
     "webextension-polyfill": "0.12.0",
-    "ws": "8.18.0"
+    "ws": "8.18.1"
   },
   "devDependencies": {
     "@babel/core": "7.26.9",
@@ -65,7 +65,7 @@
     "@types/lodash.debounce": "4.0.9",
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4",
-    "@types/webextension-polyfill": "0.12.1",
+    "@types/webextension-polyfill": "0.12.2",
     "@types/ws": "8.5.14",
     "babel-loader": "9.2.1",
     "babel-preset-react-app": "10.1.0",
@@ -82,7 +82,7 @@
     "react-refresh": "0.16.0",
     "react-refresh-typescript": "2.0.10",
     "rimraf": "6.0.1",
-    "sass": "1.85.0",
+    "sass": "1.85.1",
     "sass-loader": "13.3.3",
     "source-map-loader": "3.0.2",
     "style-loader": "3.3.4",

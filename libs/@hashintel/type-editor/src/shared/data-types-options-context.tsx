@@ -56,6 +56,7 @@ type ExpectedValueDisplay = {
   icon: typeof faText;
   colors: typeof chipColors.blue;
   title: string;
+  $id?: VersionedUrl;
 };
 
 // @todo consolidate this with editor-specs.ts in the entity editor
@@ -242,6 +243,7 @@ export const DataTypesOptionsContextProvider = ({
 
         if ("type" in dataType && dataType.type === "array") {
           return {
+            $id: dataType.$id,
             title: dataType.title,
             ...getArrayDataTypeDisplay(dataType),
           };
@@ -270,6 +272,7 @@ export const DataTypesOptionsContextProvider = ({
         }
 
         return {
+          $id: dataType.$id,
           title: dataType.title,
           ...expectedValuesDisplayMap[displayType],
         };

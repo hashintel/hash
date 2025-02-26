@@ -33,7 +33,7 @@ test.only(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
     });
@@ -98,7 +98,7 @@ test(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: ["https://hash.ai/@hash/types/entity-type/company/v/1"],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/company/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
     });
@@ -141,7 +141,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "HUNTING PLC, represented by the stock code HTG, has a market cap of 614.40 million GBX, a last recorded price of 452.50 GBX, and experienced a recent price change of 80.00 GBX, translating to a 21.48% increase.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
     ],
   },
   {
@@ -150,7 +150,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "KELLER GROUP PLC, symbolized by KLR, with a market capitalization of 829.01 million GBX, a last price of 1,330.00 GBX, and a recent price jump of 194.00 GBX, which is a 17.08% increase.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
     ],
   },
   {
@@ -159,7 +159,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "BRITVIC PLC, trading under the code BVIC, has a market capitalization of 2,288.97 million GBX, with its last price at 1,021.00 GBX, and a recent price increase of 103.50 GBX, amounting to an 11.28% rise.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
     ],
   },
   {
@@ -168,7 +168,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "EXPERIAN PLC, designated by the code EXPN, with a market cap of 31,860.88 million GBX, a closing price of 3,697.00 GBX, and a recent gain of 227.00 GBX, equivalent to a 6.54% uplift.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
     ],
   },
   {
@@ -177,7 +177,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "VODAFONE GROUP PLC, identified by the ticker VOD, has a market capitalization of 19,844.47 million GBX, a last recorded price of 76.72 GBX, and a recent change of 3.44 GBX, marking a 4.69% increase.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
     ],
   },
   {
@@ -186,7 +186,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "IMPERIAL BRANDS PLC, under the symbol IMB, with a market cap of 16,187.35 million GBX, a last price of 1,966.00 GBX, and a recent change of 87.50 GBX, results in a 4.66% increase.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
     ],
   },
   {
@@ -195,7 +195,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "CMC MARKETS PLC, represented by CMCX, has a market capitalization of 726.12 million GBX, recorded its last price at 271.00 GBX, and saw a recent price increase of 11.50 GBX, or 4.43%.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
     ],
   },
   {
@@ -204,7 +204,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "SPIRAX-SARCO ENGINEERING PLC, with the ticker SPX, boasts a market capitalization of 6,831.66 million GBX, a last price of 9,615.00 GBX, and sustained a recent increase of 355.00 GBX, amounting to a 3.83% rise.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
     ],
   },
   {
@@ -213,7 +213,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "REDDE NORTHGATE PLC, trading with the code REDD, has a market capitalization of 924.94 million GBX, a last price of 420.50 GBX, and observed a recent price rise of 12.50 GBX, which is a 3.06% increase.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
     ],
   },
   {
@@ -222,7 +222,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "CENTRICA PLC, identified by the ticker CNA, with a market cap of 7,410.30 million GBX, having a last recorded price of 143.40 GBX, and a recent change of 4.00 GBX, reflecting a 2.87% increase.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
     ],
   },
 ];
@@ -248,9 +248,9 @@ test(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
-        "https://hash.ai/@hash/types/entity-type/stock-market-index/v/1",
-        "https://hash.ai/@hash/types/entity-type/appears-in-index/v/1",
+        "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
+        "https://hash.ai/@h/types/entity-type/stock-market-index/v/1",
+        "https://hash.ai/@h/types/entity-type/appears-in-index/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -287,37 +287,37 @@ const statyaNadellaLinkedInEntitySummaries: LocalEntitySummary[] = [
     localId: generateEntityId("aaff2df6-22a1-44b2-a58e-2374bfda7ad4"),
     name: "Satya Nadella",
     summary: "Chairman and CEO at Microsoft.",
-    entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
+    entityTypeIds: ["https://hash.ai/@h/types/entity-type/person/v/1"],
   },
   {
     localId: generateEntityId("fe64f288-ad60-4da5-a47e-4a37ef3d90e4"),
     name: "Microsoft",
     summary: "Satya Nadella is the Chairman and CEO.",
-    entityTypeIds: ["https://hash.ai/@hash/types/entity-type/company/v/1"],
+    entityTypeIds: ["https://hash.ai/@h/types/entity-type/company/v/1"],
   },
   {
     localId: generateEntityId("b10f69c2-1494-44de-a346-3c388eff9731"),
     name: "Starbucks",
     summary: "Satya Nadella is a Board Member.",
-    entityTypeIds: ["https://hash.ai/@hash/types/entity-type/company/v/1"],
+    entityTypeIds: ["https://hash.ai/@h/types/entity-type/company/v/1"],
   },
   {
     localId: generateEntityId("2f81d53d-653b-413d-8359-fa27e6a48736"),
     name: "The Business Council U.S.",
     summary: "Satya Nadella was Chairman from 2021 to 2023.",
-    entityTypeIds: ["https://hash.ai/@hash/types/entity-type/company/v/1"],
+    entityTypeIds: ["https://hash.ai/@h/types/entity-type/company/v/1"],
   },
   {
     localId: generateEntityId("6502865f-68e5-49d1-9849-0b984c1c6bb7"),
     name: "Fred Hutch",
     summary: "Satya Nadella was a Board Member from 2016 to 2022.",
-    entityTypeIds: ["https://hash.ai/@hash/types/entity-type/company/v/1"],
+    entityTypeIds: ["https://hash.ai/@h/types/entity-type/company/v/1"],
   },
   {
     localId: generateEntityId("a27f19ce-f356-41ca-a1d3-19be9e1aa87a"),
     name: "University of Chicago",
     summary: "Satya Nadella is a Member of the Board of Trustees.",
-    entityTypeIds: ["https://hash.ai/@hash/types/entity-type/company/v/1"],
+    entityTypeIds: ["https://hash.ai/@h/types/entity-type/company/v/1"],
   },
 ];
 
@@ -344,9 +344,9 @@ test.skip(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@hash/types/entity-type/person/v/1",
-        "https://hash.ai/@hash/types/entity-type/worked-at/v/1",
-        "https://hash.ai/@hash/types/entity-type/company/v/1",
+        "https://hash.ai/@h/types/entity-type/person/v/1",
+        "https://hash.ai/@h/types/entity-type/worked-at/v/1",
+        "https://hash.ai/@h/types/entity-type/company/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -385,7 +385,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "GPT-4o is OpenAI's most advanced multimodal large language model, known for its high efficiency, speed, and cost-effectiveness.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -394,7 +394,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "GPT-4 Turbo is a high-intelligence and multimodal large language model previously favored for its advanced reasoning and vision capabilities.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -403,7 +403,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "GPT-3.5 Turbo is a fast, inexpensive large language model optimized for simple tasks and chat functionalities.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -412,7 +412,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "GPT Base models are large language models capable of understanding and generating natural language or code without instruction following.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -421,7 +421,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "gpt-4-turbo-2024-04-09 is a version of GPT-4 Turbo with vision capabilities, supporting JSON mode and function calling.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -430,7 +430,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "GPT-4 Turbo with Vision is the latest GPT-4 Turbo model with vision capabilities, including support for JSON mode and function calling.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -439,7 +439,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "gpt-4-turbo-preview is a preview version of GPT-4 Turbo intended to reduce incomplete task responses.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -448,7 +448,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "gpt-4-0125-preview is an earlier preview of GPT-4 Turbo, focused on reducing inadequately completed tasks.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -457,7 +457,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "gpt-4-1106-preview is a preview version of GPT-4 Turbo with improved instruction following and new features.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -466,7 +466,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "gpt-4-vision-preview is a preview model of GPT-4 with image understanding and other high-level capabilities.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -475,7 +475,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "gpt-4-1106-vision-preview is a preview model of GPT-4 with image understanding and advanced functionalities.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -484,7 +484,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "GPT-4 is a multimodal large language model known for its advanced reasoning, solving difficult problems with greater accuracy and broader general knowledge.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -493,7 +493,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "gpt-4-0613 is a snapshot model of GPT-4 focused on improved function calling support as of June 13, 2023.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -502,7 +502,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "gpt-4-32k is a version of GPT-4 designed for larger context windows, though not widely rolled out due to preference for GPT-4 Turbo.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -511,7 +511,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "gpt-4-32k-0613 is a snapshot model of GPT-4 for large context windows with better function calling support.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -520,7 +520,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "gpt-3.5-turbo-0125 is a version of GPT-3.5 Turbo with higher programming format accuracy and improved non-English language support.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -529,7 +529,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "gpt-3.5-turbo-1106 features improved instruction following and other enhancements.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
   {
@@ -538,7 +538,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
     summary:
       "GPT-3.5 Turbo Instruct is a large language model compatible with legacy Completions endpoints.",
     entityTypeIds: [
-      "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+      "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
     ],
   },
 ];
@@ -563,7 +563,7 @@ test(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
+        "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,

@@ -109,17 +109,24 @@ export const createOrg: ImpureGraphFunction<
     orgAccountGroupId?: AccountGroupId;
     websiteUrl?: string | null;
     entityTypeVersion?: number;
+    bypassShortnameValidation?: boolean;
   },
   Promise<Org>
 > = async (ctx, authentication, params) => {
-  const { shortname, name, websiteUrl, entityTypeVersion } = params;
+  const {
+    bypassShortnameValidation,
+    shortname,
+    name,
+    websiteUrl,
+    entityTypeVersion,
+  } = params;
 
-  if (shortnameIsInvalid({ shortname })) {
+  if (!bypassShortnameValidation && shortnameIsInvalid({ shortname })) {
     throw new Error(`The shortname "${shortname}" is invalid`);
   }
 
   if (
-    shortnameIsRestricted({ shortname }) ||
+    (!bypassShortnameValidation && shortnameIsRestricted({ shortname })) ||
     (await shortnameIsTaken(ctx, authentication, { shortname }))
   ) {
     throw new Error(
@@ -146,14 +153,14 @@ export const createOrg: ImpureGraphFunction<
 
   const properties: OrganizationPropertiesWithMetadata = {
     value: {
-      "https://hash.ai/@hash/types/property-type/shortname/": {
+      "https://hash.ai/@h/types/property-type/shortname/": {
         value: shortname,
         metadata: {
           dataTypeId:
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
-      "https://hash.ai/@hash/types/property-type/organization-name/": {
+      "https://hash.ai/@h/types/property-type/organization-name/": {
         value: name,
         metadata: {
           dataTypeId:
@@ -162,11 +169,10 @@ export const createOrg: ImpureGraphFunction<
       },
       ...(websiteUrl !== undefined && websiteUrl !== null
         ? {
-            "https://hash.ai/@hash/types/property-type/website-url/": {
+            "https://hash.ai/@h/types/property-type/website-url/": {
               value: websiteUrl,
               metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
               },
             },
           }

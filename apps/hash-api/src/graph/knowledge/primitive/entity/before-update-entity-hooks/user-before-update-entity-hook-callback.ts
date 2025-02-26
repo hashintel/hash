@@ -55,7 +55,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
     const user = getUserFromEntity({ entity: previousEntity });
 
     const isShortnameRemoved = isValueRemovedByPatches<UserProperties>({
-      baseUrl: "https://hash.ai/@hash/types/property-type/shortname/",
+      baseUrl: "https://hash.ai/@h/types/property-type/shortname/",
       propertyPatches,
     });
     if (isShortnameRemoved) {
@@ -63,7 +63,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
     }
 
     const isEmailRemoved = isValueRemovedByPatches<UserProperties>({
-      baseUrl: "https://hash.ai/@hash/types/property-type/email/",
+      baseUrl: "https://hash.ai/@h/types/property-type/email/",
       propertyPatches,
     });
     if (isEmailRemoved) {
@@ -76,7 +76,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
     const currentEmails = user.emails;
 
     const updatedEmails = getNewValueForPath(
-      "https://hash.ai/@hash/types/property-type/email/",
+      "https://hash.ai/@h/types/property-type/email/",
     );
 
     if (
@@ -89,7 +89,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
     const currentShortname = user.shortname;
 
     const updatedShortname = getNewValueForPath(
-      "https://hash.ai/@hash/types/property-type/shortname/",
+      "https://hash.ai/@h/types/property-type/shortname/",
     );
 
     const updatedDisplayName = getNewValueForPath(

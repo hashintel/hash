@@ -24,7 +24,7 @@ export const fileTypedef = gql`
 
   input FileEntityCreationInput {
     """
-    Optionally provide a more specific type for the file entity, which must inherit from @hash's File system type
+    Optionally provide a more specific type for the file entity, which must inherit from @h's File system type
     """
     entityTypeId: VersionedUrl
     """
@@ -35,7 +35,7 @@ export const fileTypedef = gql`
 
   input FileEntityUpdateInput {
     """
-    Optionally provide a more specific type for the file entity, which must inherit from @hash's File system type
+    Optionally provide a more specific type for the file entity, which must inherit from @h's File system type
     """
     entityTypeId: VersionedUrl
     """

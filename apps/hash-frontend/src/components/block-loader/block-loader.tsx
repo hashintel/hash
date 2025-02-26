@@ -309,6 +309,10 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
                     createdById: extractOwnedByIdFromEntityId(
                       entityInStore.metadata.recordId.entityId as EntityId,
                     ),
+                    actorType: "human",
+                    origin: {
+                      type: "api",
+                    },
                   },
                 },
               },

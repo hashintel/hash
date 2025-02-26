@@ -38,7 +38,15 @@ export const CopyableOntologyChip: FunctionComponent<{
   }, [versionedUrl]);
 
   return (
-    <Box display="flex" alignItems="center" columnGap={1}>
+    <Box
+      display="flex"
+      alignItems="center"
+      columnGap={1}
+      sx={({ palette }) => ({
+        border: `1px solid ${palette.gray[30]}`,
+        borderRadius: "13px",
+      })}
+    >
       <Tooltip
         open={copyTooltipIsOpen}
         title={tooltipTitle}

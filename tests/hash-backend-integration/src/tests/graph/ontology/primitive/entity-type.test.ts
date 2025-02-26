@@ -4,12 +4,15 @@ import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
+  archiveEntityType,
   createEntityType,
   getClosedEntityTypes,
   getClosedMultiEntityType,
   getEntityTypeById,
+  getEntityTypes,
   getEntityTypeSubgraph,
   getEntityTypeSubgraphById,
+  unarchiveEntityType,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
@@ -28,6 +31,7 @@ import type {
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
+  fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -343,10 +347,14 @@ describe("Entity type CRU", () => {
             {
               depth: 0,
               $id: systemEntityTypes.user.entityTypeId,
+              icon: "/icons/types/user.svg",
             },
             {
               depth: 1,
               $id: systemEntityTypes.actor.entityTypeId,
+              icon: "/icons/types/user.svg",
+              labelProperty:
+                "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
             },
           ],
         } satisfies ClosedEntityType,
@@ -496,6 +504,12 @@ describe("Entity type CRU", () => {
           },
           { relation: "instantiator", subject: { kind: "public" } },
         ],
+        provenance: {
+          actorType: "machine",
+          origin: {
+            type: "api",
+          },
+        },
       },
       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     ).catch((err) => Promise.reject(err.data));
@@ -504,6 +518,67 @@ describe("Entity type CRU", () => {
       isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
         updatedEntityType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
+  });
+
+  it("can archive a entity type", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    await archiveEntityType(graphContext, authentication, {
+      entityTypeId: createdEntityType.schema.$id,
+    });
+
+    const [archivedEntityType] = await getEntityTypes(
+      graphContext,
+      authentication,
+      {
+        filter: {
+          equal: [
+            { path: ["versionedUrl"] },
+            { parameter: createdEntityType.schema.$id },
+          ],
+        },
+        temporalAxes: fullTransactionTimeAxis,
+      },
+    );
+
+    expect(
+      await getEntityTypes(graphContext, authentication, {
+        filter: {
+          equal: [
+            { path: ["versionedUrl"] },
+            { parameter: createdEntityType.schema.$id },
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+      }),
+    ).toHaveLength(0);
+
+    expect(
+      archivedEntityType?.metadata.temporalVersioning.transactionTime.end.kind,
+    ).toBe("exclusive");
+
+    await unarchiveEntityType(graphContext, authentication, {
+      entityTypeId: createdEntityType.schema.$id,
+    });
+
+    const [unarchivedEntityType] = await getEntityTypes(
+      graphContext,
+      authentication,
+      {
+        filter: {
+          equal: [
+            { path: ["versionedUrl"] },
+            { parameter: createdEntityType.schema.$id },
+          ],
+        },
+        temporalAxes: fullTransactionTimeAxis,
+      },
+    );
+
+    expect(
+      unarchivedEntityType?.metadata.temporalVersioning.transactionTime.end
+        .kind,
+    ).toBe("unbounded");
   });
 
   it.skip("can load an external type on demand", async () => {

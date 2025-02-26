@@ -1,6 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type {
+  GraphApi,
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
@@ -57,7 +60,7 @@ export const parseTextFromFile = async (
 
     const { flowEntityId, stepId } = await getFlowContext();
 
-    const provenance: EnforcedEntityEditionProvenance = {
+    const provenance: ProvidedEntityEditionProvenance = {
       actorType: "machine",
       origin: {
         type: "flow",

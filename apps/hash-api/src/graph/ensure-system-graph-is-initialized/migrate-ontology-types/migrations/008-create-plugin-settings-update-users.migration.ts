@@ -30,7 +30,7 @@ const migrate: MigrationFunction = async ({
         description: "Configuration for a manual entity inference feature",
         possibleValues: [{ primitiveDataType: "object" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -42,7 +42,7 @@ const migrate: MigrationFunction = async ({
           "Configuration for an automatic or passive entity inference feature",
         possibleValues: [{ primitiveDataType: "object" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -55,7 +55,7 @@ const migrate: MigrationFunction = async ({
         description: "A tab in the HASH browser plugin",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -69,7 +69,7 @@ const migrate: MigrationFunction = async ({
         description: "A working draft of a text note",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -78,6 +78,8 @@ const migrate: MigrationFunction = async ({
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
         title: "Browser Plugin Settings",
+        titlePlural: "Browser Plugin Settings",
+        icon: "/icons/types/gear.svg",
         description: "Settings for the HASH browser plugin",
         properties: [
           {
@@ -97,7 +99,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -114,7 +116,7 @@ const migrate: MigrationFunction = async ({
         title: "Has",
         description: "Something that something has",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },

@@ -207,13 +207,13 @@ export const NotificationCountContextProvider: FunctionComponent<
               {
                 op: "add",
                 path: [
-                  "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
+                  "https://hash.ai/@h/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
                 ],
                 property: {
                   value: now.toISOString(),
                   metadata: {
                     dataTypeId:
-                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                      "https://hash.ai/@h/types/data-type/datetime/v/1",
                   },
                 } satisfies ReadAtPropertyValueWithMetadata,
               },
@@ -246,13 +246,13 @@ export const NotificationCountContextProvider: FunctionComponent<
                 {
                   op: "add",
                   path: [
-                    "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
+                    "https://hash.ai/@h/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
                   ],
                   property: {
                     value: now.toISOString(),
                     metadata: {
                       dataTypeId:
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "https://hash.ai/@h/types/data-type/datetime/v/1",
                     },
                   } satisfies ReadAtPropertyValueWithMetadata,
                 },
@@ -284,7 +284,7 @@ export const NotificationCountContextProvider: FunctionComponent<
                 {
                   op: "add",
                   path: [
-                    "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof Notification["properties"] as BaseUrl,
+                    "https://hash.ai/@h/types/property-type/archived/" satisfies keyof Notification["properties"] as BaseUrl,
                   ],
                   property: {
                     value: true,

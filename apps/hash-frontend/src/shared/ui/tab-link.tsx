@@ -10,6 +10,7 @@ import { Link } from "./link";
 export type TabLinkProps = {
   label: ReactNode;
   href: string;
+  onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   value: string;
   count?: number;
   icon?: ReactElement;
@@ -21,6 +22,7 @@ export type TabLinkProps = {
 export const TabLink: FunctionComponent<TabLinkProps> = ({
   label,
   href,
+  onClick,
   value,
   count,
   loading,
@@ -32,6 +34,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
     {...props}
     disableRipple
     value={value}
+    onClick={onClick}
     href={href}
     component={Link}
     label={

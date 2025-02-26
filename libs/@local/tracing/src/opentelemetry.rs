@@ -2,14 +2,13 @@ use core::time::Duration;
 
 use error_stack::Report;
 use opentelemetry::{
-    KeyValue, global,
+    global,
     trace::{TraceError, TracerProvider as _},
 };
 use opentelemetry_otlp::{SpanExporter, WithExportConfig as _};
 use opentelemetry_sdk::{
     Resource,
     propagation::TraceContextPropagator,
-    runtime,
     trace::{self, RandomIdGenerator, Sampler},
 };
 use tokio::runtime::Handle;
@@ -72,13 +71,13 @@ where
     //   - OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT
     //   - OTEL_SPAN_EVENT_COUNT_LIMIT
     //   - OTEL_SPAN_LINK_COUNT_LIMIT
-    let tracer = trace::TracerProvider::builder()
-        .with_batch_exporter(exporter, runtime::Tokio)
+    let tracer = trace::SdkTracerProvider::builder()
+        .with_batch_exporter(exporter)
         .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
             0.1,
         ))))
         .with_id_generator(RandomIdGenerator::default())
-        .with_resource(Resource::new(vec![KeyValue::new("service.name", "graph")]))
+        .with_resource(Resource::builder().with_service_name("graph").build())
         .build()
         .tracer("graph");
 

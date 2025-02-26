@@ -34,7 +34,6 @@ pub struct CreatePropertyTypeParams<R> {
     pub classification: OntologyTypeClassificationMetadata,
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -103,7 +102,6 @@ pub struct GetPropertyTypesResponse {
 pub struct UpdatePropertyTypesParams<R> {
     pub schema: PropertyType,
     pub relationships: R,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -120,7 +118,6 @@ pub struct ArchivePropertyTypeParams<'a> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnarchivePropertyTypeParams<'a> {
     pub property_type_id: Cow<'a, VersionedUrl>,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
 }
 

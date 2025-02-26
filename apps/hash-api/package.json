@@ -67,7 +67,7 @@
     "apollo-server-errors": "3.3.1",
     "apollo-server-express": "3.9.0",
     "app-root-path": "3.1.0",
-    "axios": "1.7.9",
+    "axios": "1.8.0",
     "body-parser": "1.20.3",
     "clipboardy": "2.3.0",
     "cors": "2.8.5",
@@ -99,11 +99,11 @@
     "nanoid": "3.3.8",
     "nodemailer": "6.10.0",
     "oembed-providers": "1.0.20241022",
-    "openai": "4.85.2",
+    "openai": "4.85.4",
     "ts-json-schema-generator": "1.5.1",
     "tsx": "4.19.3",
     "typescript": "5.7.3",
-    "ws": "8.18.0"
+    "ws": "8.18.1"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.5-nightly.ff02a0b",

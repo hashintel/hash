@@ -2,7 +2,7 @@ import type { DataEditorProps } from "@glideapps/glide-data-grid";
 import { isObjectEditorCallbackResult } from "@glideapps/glide-data-grid";
 import { type ReactNode, type RefObject } from "react";
 
-import { useEditBarContext } from "../../../shared/edit-bar-scroller";
+import { useSlideStack } from "../../../pages/shared/slide-stack";
 import { useScrollLock } from "../../../shared/use-scroll-lock";
 import { InteractableManager } from "./interactable-manager";
 
@@ -23,12 +23,9 @@ import { InteractableManager } from "./interactable-manager";
 const ScrollLockWrapper = ({
   children,
 }: { children: ReactNode | Promise<ReactNode> }) => {
-  /**
-   * The editBarContext provides the node that will have vertical scroll when the page is longer than the viewport
-   */
-  const editBarContext = useEditBarContext();
+  const { currentSlideRef } = useSlideStack();
 
-  useScrollLock(true, editBarContext?.scrollingNode);
+  useScrollLock(true, currentSlideRef?.current ?? document.body);
 
   // eslint-disable-next-line react/jsx-no-useless-fragment
   return <>{children}</>;

@@ -365,6 +365,9 @@ const Page: NextPageWithLayout<PageProps> = () => {
                 : [
                     <ArchiveMenuItem
                       key={page.metadata.recordId.entityId}
+                      onItemChange={() => {
+                        // refetching pages is handled in useArchivePage
+                      }}
                       item={page}
                     />,
                   ]

@@ -155,16 +155,10 @@ class InteractableManagerClass {
       return false;
     }
 
-    const { onClick, onMouseEnter } = foundInteractable;
+    const { onClick } = foundInteractable;
 
-    /**
-     * if there is no onClick event defined, onMouseEnter works as onClick
-     * since onMouseEnter is mostly used for showing tooltips, this will enable showing tooltips on mobile when on touch
-     */
-    const handler = onClick ?? onMouseEnter;
-
-    if (handler) {
-      handler(foundInteractable);
+    if (onClick) {
+      onClick(foundInteractable);
 
       return true;
     }

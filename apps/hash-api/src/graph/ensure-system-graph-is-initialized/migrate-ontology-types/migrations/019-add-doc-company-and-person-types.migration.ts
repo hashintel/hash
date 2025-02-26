@@ -1,7 +1,6 @@
 import {
   blockProtocolDataTypes,
   blockProtocolPropertyTypes,
-  systemDataTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
@@ -12,6 +11,8 @@ import {
   createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashDataTypeId,
+  getCurrentHashLinkEntityTypeId,
 } from "../util";
 
 const migrate: MigrationFunction = async ({
@@ -33,7 +34,7 @@ const migrate: MigrationFunction = async ({
       },
       conversions: {},
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -47,9 +48,14 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ dataTypeId: doiDataType.schema.$id }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
+
+  const uriDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "uri",
+    migrationState,
+  });
 
   const doiLinkPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -59,10 +65,10 @@ const migrate: MigrationFunction = async ({
         title: "DOI Link",
         description:
           "A permanent link for a digital object, using its Digital Object Identifier (DOI), which resolves to a webpage describing it",
-        possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
+        possibleValues: [{ dataTypeId: uriDataTypeId }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -80,7 +86,7 @@ const migrate: MigrationFunction = async ({
       },
       conversions: {},
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -94,7 +100,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ dataTypeId: isbnDataType.schema.$id }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -108,7 +114,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ primitiveDataType: "text" }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -126,7 +132,7 @@ const migrate: MigrationFunction = async ({
       },
       conversions: {},
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -142,7 +148,7 @@ const migrate: MigrationFunction = async ({
       },
       conversions: {},
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -156,7 +162,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ dataTypeId: yearDataType.schema.$id }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -171,7 +177,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ primitiveDataType: "text" }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -184,7 +190,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ primitiveDataType: "text" }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     });
 
   const findingPropertyType = await createSystemPropertyTypeIfNotExists(
@@ -198,27 +204,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ primitiveDataType: "text" }],
       },
       migrationState,
-      webShortname: "hash",
-    },
-  );
-
-  const authoredByLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
-        icon: "🖊",
-        title: "Authored By",
-        titlePlural: "Authored Bys",
-        inverse: {
-          title: "Author Of",
-        },
-        description: "Who or what something was authored by",
-      },
-      migrationState,
-      instantiator: anyUserInstantiator,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -230,7 +216,6 @@ const migrate: MigrationFunction = async ({
   //     entityTypeDefinition: {
   //       allOf: [linkEntityTypeUrl],
   //       title: "Published By",
-  //       titlePlural: "Published Bys",
   //       inverse: {
   //         title: "Published",
   //       },
@@ -238,7 +223,7 @@ const migrate: MigrationFunction = async ({
   //     },
   //     migrationState,
   //     instantiator: anyUserInstantiator,
-  //     webShortname: "hash",
+  //     webShortname: "h",
   //   },
   // );
 
@@ -250,7 +235,6 @@ const migrate: MigrationFunction = async ({
   //     entityTypeDefinition: {
   //       allOf: [linkEntityTypeUrl],
   //       title: "Published In",
-  //       titlePlural: "Published Ins",
   //       inverse: {
   //         title: "Published",
   //       },
@@ -258,7 +242,7 @@ const migrate: MigrationFunction = async ({
   //     },
   //     migrationState,
   //     instantiator: anyUserInstantiator,
-  //     webShortname: "hash",
+  //     webShortname: "h",
   //   },
   // );
 
@@ -269,15 +253,14 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Affiliated With",
-        titlePlural: "Affiliated Withs",
         inverse: {
-          title: "Affiliated Width",
+          title: "Affiliated With",
         },
         description: "Something that something is affiliated with.",
       },
       migrationState,
       instantiator: anyUserInstantiator,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -287,7 +270,9 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Institution",
-        icon: "🏛",
+        titlePlural: "Institutions",
+        icon: "/icons/types/building-columns.svg",
+        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         description:
           "An organization dedicated to a specific purpose, such as education, research, or public service, and structured with formal systems of governance and operation.",
         properties: [
@@ -302,7 +287,7 @@ const migrate: MigrationFunction = async ({
       },
       instantiator: anyUserInstantiator,
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -326,7 +311,7 @@ const migrate: MigrationFunction = async ({
   //     },
   //     instantiator: anyUserInstantiator,
   //     migrationState,
-  //     webShortname: "hash",
+  //     webShortname: "h",
   //   },
   // );
 
@@ -351,7 +336,7 @@ const migrate: MigrationFunction = async ({
   //     },
   //     instantiator: anyUserInstantiator,
   //     migrationState,
-  //     webShortname: "hash",
+  //     webShortname: "h",
   //   },
   // );
 
@@ -368,7 +353,7 @@ const migrate: MigrationFunction = async ({
   //     },
   //     instantiator: anyUserInstantiator,
   //     migrationState,
-  //     webShortname: "hash",
+  //     webShortname: "h",
   //   },
   // );
 
@@ -379,7 +364,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Person",
         /**
-         * @todo when updating this, add plural title
+         * @todo when updating this, add plural title and set SVG icon
          */
         icon: "👤",
         /** @todo improve this desc */
@@ -407,7 +392,7 @@ const migrate: MigrationFunction = async ({
       },
       instantiator: anyUserInstantiator,
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -421,9 +406,14 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ primitiveDataType: "number" }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
+
+  const authoredByLinkEntityTypeId = getCurrentHashLinkEntityTypeId({
+    linkEntityTypeKey: "authoredBy",
+    migrationState,
+  });
 
   const docEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -432,7 +422,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Doc",
         description: "A written work, such as a book or article.",
-        icon: "📝",
+        icon: "/types/icons/page-lines.svg",
+        titlePlural: "Docs",
         labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
         properties: [
           {
@@ -452,13 +443,13 @@ const migrate: MigrationFunction = async ({
         outgoingLinks: [
           {
             destinationEntityTypes: [personEntityType.schema.$id],
-            linkEntityType: authoredByLinkEntityType.schema.$id,
+            linkEntityType: authoredByLinkEntityTypeId,
           },
         ],
       },
       instantiator: anyUserInstantiator,
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -469,6 +460,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [docEntityType.schema.$id],
         title: "Book",
+        titlePlural: "Books",
+        icon: "/icons/types/book.svg",
         description:
           "A written work, typically longer than an article, often published in print form.",
         properties: [
@@ -479,7 +472,7 @@ const migrate: MigrationFunction = async ({
       },
       instantiator: anyUserInstantiator,
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -490,6 +483,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [docEntityType.schema.$id],
         title: "Academic Paper",
+        titlePlural: "Academic Papers",
+        icon: "/icons/types/memo.svg",
         description: "A paper describing academic research",
         properties: [
           {
@@ -534,7 +529,7 @@ const migrate: MigrationFunction = async ({
       },
       instantiator: anyUserInstantiator,
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 

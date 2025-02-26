@@ -19,18 +19,14 @@ pub struct OntologyProvenance {
     pub edition: OntologyEditionProvenance,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvidedOntologyEditionProvenance {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sources: Vec<SourceProvenance>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub actor_type: Option<ActorType>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub origin: Option<OriginProvenance>,
+    pub actor_type: ActorType,
+    pub origin: OriginProvenance,
 }
 
 impl ProvidedOntologyEditionProvenance {

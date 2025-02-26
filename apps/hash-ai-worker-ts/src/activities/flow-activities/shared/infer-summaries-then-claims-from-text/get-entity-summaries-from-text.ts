@@ -104,7 +104,7 @@ export const entitySummariesFromTextSystemPrompt = dedent(`
       {
         "name": "Bill Gates",
         "summary": "William Henry Gates III is an American business magnate best known for co-founding the software company Microsoft with his childhood friend Paul Allen.",
-        "type": "https://hash.ai/@hash/types/entity-type/person/v/1" // user-provided entityTypeId
+        "type": "https://hash.ai/@h/types/entity-type/person/v/1" // user-provided entityTypeId
       },
       {
         "name": "Microsoft",

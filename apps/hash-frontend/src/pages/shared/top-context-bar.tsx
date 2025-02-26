@@ -107,22 +107,24 @@ export const TOP_CONTEXT_BAR_HEIGHT = 50;
 
 type TopContextBarProps = {
   actionMenuItems?: ReactElement<MenuItemProps>[];
+  breadcrumbsEndAdornment?: ReactNode;
   crumbs: BreadcrumbsProps["crumbs"];
-  item?: Entity | EntityTypeWithMetadata | DataTypeWithMetadata;
   defaultCrumbIcon?: ReactNode;
+  item?: Entity | EntityTypeWithMetadata | DataTypeWithMetadata;
+  onItemUnarchived?: () => void;
   scrollToTop?: () => void;
   sx?: SxProps<Theme>;
-  breadcrumbsEndAdornment?: ReactNode;
 };
 
 export const TopContextBar = ({
   actionMenuItems,
+  breadcrumbsEndAdornment,
   crumbs,
-  item,
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
+  onItemUnarchived,
+  item,
   scrollToTop = () => {},
   sx = [],
-  breadcrumbsEndAdornment,
 }: TopContextBarProps) => {
   const [displayRestoredMessage, setDisplayRestoredMessage] = useState(false);
 
@@ -226,6 +228,7 @@ export const TopContextBar = ({
               setTimeout(() => {
                 setDisplayRestoredMessage(false);
               }, 5000);
+              onItemUnarchived?.();
             }}
           />
         </Collapse>

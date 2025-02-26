@@ -19,8 +19,12 @@ import type {
   AccountUsesUserSecretLink,
   ConnectionSourceNamePropertyValue,
   ConnectionSourceNamePropertyValueWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   DisplayNamePropertyValue,
   DisplayNamePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   ExpiredAtPropertyValue,
@@ -57,8 +61,12 @@ export type {
   AccountUsesUserSecretLink,
   ConnectionSourceNamePropertyValue,
   ConnectionSourceNamePropertyValueWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   DisplayNamePropertyValue,
   DisplayNamePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   ExpiredAtPropertyValue,
@@ -87,7 +95,8 @@ export type {
 /**
  * The type of thing that can, should or will act on something.
  */
-export type ActorTypeDataType = "human" | "machine";
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents -- @todo H-3848 stop codegen adding inherited type here
+export type ActorTypeDataType = TextDataType & ("machine" | "human");
 
 export type ActorTypeDataTypeWithMetadata = {
   value: ActorTypeDataType;
@@ -96,7 +105,7 @@ export type ActorTypeDataTypeWithMetadata = {
 export type ActorTypeDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@hash/types/data-type/actor-type/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/actor-type/v/1";
 };
 
 /**
@@ -104,7 +113,7 @@ export type ActorTypeDataTypeMetadata = {
  */
 export type AssociatedWithAccount = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1",
+    "https://hash.ai/@h/types/entity-type/associated-with-account/v/1",
   ];
   properties: AssociatedWithAccountProperties;
   propertiesWithMetadata: AssociatedWithAccountPropertiesWithMetadata;
@@ -117,22 +126,13 @@ export type AssociatedWithAccountOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The account that something is associated with.
  */
-export type AssociatedWithAccountProperties = AssociatedWithAccountProperties1 &
-  AssociatedWithAccountProperties2;
-export type AssociatedWithAccountProperties1 = LinkProperties;
-
-export type AssociatedWithAccountProperties2 = {};
+export type AssociatedWithAccountProperties = LinkProperties & {};
 
 export type AssociatedWithAccountPropertiesWithMetadata =
-  AssociatedWithAccountPropertiesWithMetadata1 &
-    AssociatedWithAccountPropertiesWithMetadata2;
-export type AssociatedWithAccountPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type AssociatedWithAccountPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * A True or False value
@@ -150,27 +150,27 @@ export type BooleanDataTypeMetadata = {
 };
 
 /**
+ * A unit of information equal to eight bits.
+ */
+export type BytesDataType = InformationDataType;
+
+export type BytesDataTypeWithMetadata = {
+  value: BytesDataType;
+  metadata: BytesDataTypeMetadata;
+};
+export type BytesDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1";
+};
+
+/**
  * The expected audience for some data.
  */
 export type DataAudiencePropertyValue = ActorTypeDataType;
 
 export type DataAudiencePropertyValueWithMetadata =
   ActorTypeDataTypeWithMetadata;
-
-/**
- * A reference to a particular date and time, formatted according to RFC 3339.
- */
-export type DateTimeDataType = string;
-
-export type DateTimeDataTypeWithMetadata = {
-  value: DateTimeDataType;
-  metadata: DateTimeDataTypeMetadata;
-};
-export type DateTimeDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1";
-};
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -183,7 +183,7 @@ export type DescriptionPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A file hosted at a URL
  */
 export type File = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/file/v/2"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/file/v/2"];
   properties: FileProperties;
   propertiesWithMetadata: FilePropertiesWithMetadata;
 };
@@ -227,13 +227,13 @@ export type FileProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
-  "https://hash.ai/@hash/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
+  "https://hash.ai/@h/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValue;
 };
 
 export type FilePropertiesWithMetadata = {
@@ -249,22 +249,22 @@ export type FilePropertiesWithMetadata = {
     "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValueWithMetadata;
   };
 };
 
 /**
  * The size of a file
  */
-export type FileSizePropertyValue = NumberDataType;
+export type FileSizePropertyValue = BytesDataType;
 
-export type FileSizePropertyValueWithMetadata = NumberDataTypeWithMetadata;
+export type FileSizePropertyValueWithMetadata = BytesDataTypeWithMetadata;
 
 /**
  * The bucket in which a file is stored.
@@ -316,9 +316,9 @@ export type FileStorageRegionPropertyValueWithMetadata =
 /**
  * A URL that serves a file.
  */
-export type FileURLPropertyValue = TextDataType;
+export type FileURLPropertyValue = URIDataType;
 
-export type FileURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type FileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * A Google Sheets file.
@@ -340,33 +340,39 @@ export type GoogleSheetsFileOutgoingLinkAndTarget =
   GoogleSheetsFileAssociatedWithAccountLink;
 
 export type GoogleSheetsFileOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1": GoogleSheetsFileAssociatedWithAccountLink;
+  "https://hash.ai/@h/types/entity-type/associated-with-account/v/1": GoogleSheetsFileAssociatedWithAccountLink;
 };
 
 /**
  * A Google Sheets file.
  */
-export type GoogleSheetsFileProperties = GoogleSheetsFileProperties1 &
-  GoogleSheetsFileProperties2;
-export type GoogleSheetsFileProperties1 = SpreadsheetFileProperties;
-
-export type GoogleSheetsFileProperties2 = {
-  "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValue;
+export type GoogleSheetsFileProperties = SpreadsheetFileProperties & {
+  "https://hash.ai/@h/types/property-type/data-audience/": DataAudiencePropertyValue;
+  "https://hash.ai/@h/types/property-type/file-id/": FileIdPropertyValue;
 };
 
 export type GoogleSheetsFilePropertiesWithMetadata =
-  GoogleSheetsFilePropertiesWithMetadata1 &
-    GoogleSheetsFilePropertiesWithMetadata2;
-export type GoogleSheetsFilePropertiesWithMetadata1 =
-  SpreadsheetFilePropertiesWithMetadata;
-
-export type GoogleSheetsFilePropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
+  SpreadsheetFilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@h/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
+      "https://hash.ai/@h/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
+    };
   };
+
+/**
+ * A measure of information content.
+ */
+export type InformationDataType = NumberDataType;
+
+export type InformationDataTypeWithMetadata = {
+  value: InformationDataType;
+  metadata: InformationDataTypeMetadata;
+};
+export type InformationDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/information/v/1";
 };
 
 /**
@@ -411,17 +417,15 @@ export type OriginalSourcePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The original URL something was hosted at
  */
-export type OriginalURLPropertyValue = TextDataType;
+export type OriginalURLPropertyValue = URIDataType;
 
-export type OriginalURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type OriginalURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * A spreadsheet file.
  */
 export type SpreadsheetFile = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/spreadsheet-file/v/1"];
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
 };
@@ -433,20 +437,27 @@ export type SpreadsheetFileOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A spreadsheet file.
  */
-export type SpreadsheetFileProperties = SpreadsheetFileProperties1 &
-  SpreadsheetFileProperties2;
-export type SpreadsheetFileProperties1 = FileProperties;
-
-export type SpreadsheetFileProperties2 = {};
+export type SpreadsheetFileProperties = FileProperties & {};
 
 export type SpreadsheetFilePropertiesWithMetadata =
-  SpreadsheetFilePropertiesWithMetadata1 &
-    SpreadsheetFilePropertiesWithMetadata2;
-export type SpreadsheetFilePropertiesWithMetadata1 = FilePropertiesWithMetadata;
+  FilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
-export type SpreadsheetFilePropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
+/**
+ * A unique identifier for a resource (e.g. a URL, or URN).
+ */
+export type URIDataType = TextDataType;
+
+export type URIDataTypeWithMetadata = {
+  value: URIDataType;
+  metadata: URIDataTypeMetadata;
+};
+export type URIDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1";
 };
 
 /**

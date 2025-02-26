@@ -5,11 +5,11 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type { OriginProvenance } from "@local/hash-graph-client";
-import {
-  type EnforcedEntityEditionProvenance,
-  Entity,
-} from "@local/hash-graph-sdk/entity";
+import type {
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   createDefaultAuthorizationRelationships,
@@ -326,8 +326,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         {
           value: spreadsheet.spreadsheetUrl,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
           },
         },
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
@@ -338,7 +337,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
-      "https://hash.ai/@hash/types/property-type/file-id/": {
+      "https://hash.ai/@h/types/property-type/file-id/": {
         value: spreadsheet.spreadsheetId,
         metadata: {
           dataTypeId:
@@ -353,10 +352,10 @@ export const writeGoogleSheetAction: FlowActionActivity<{
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
-      "https://hash.ai/@hash/types/property-type/data-audience/": {
+      "https://hash.ai/@h/types/property-type/data-audience/": {
         value: audience,
         metadata: {
-          dataTypeId: "https://hash.ai/@hash/types/data-type/actor-type/v/1",
+          dataTypeId: "https://hash.ai/@h/types/data-type/actor-type/v/1",
         },
       },
     },
@@ -368,7 +367,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     { ownedById: webId },
   );
 
-  const provenance: EnforcedEntityEditionProvenance = {
+  const provenance: ProvidedEntityEditionProvenance = {
     actorType: "machine",
     origin: {
       type: "flow",

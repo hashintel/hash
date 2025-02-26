@@ -17,7 +17,7 @@ export const EntityOrTypeIcon = ({
 }: {
   entity: Entity | null;
   fill?: string | ((theme: Theme) => string);
-  fontSize: number | string;
+  fontSize: number;
   icon?: string | ReactElement | null;
   isLink: boolean;
   sx?: SxProps<Theme>;

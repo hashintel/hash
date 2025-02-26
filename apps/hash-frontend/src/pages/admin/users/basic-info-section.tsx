@@ -57,7 +57,7 @@ export const BasicInfoSection: FunctionComponent<{
               {
                 op: "add",
                 path: [
-                  "https://hash.ai/@hash/types/property-type/enabled-feature-flags/" satisfies keyof UserProperties as BaseUrl,
+                  "https://hash.ai/@h/types/property-type/enabled-feature-flags/" satisfies keyof UserProperties as BaseUrl,
                 ],
                 property: {
                   value: data.enabledFeatureFlags.map((featureFlag) => ({
