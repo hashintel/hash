@@ -4,10 +4,10 @@ This folder contains Terraform modules to deploy a HASH instance on AWS. The ent
 
 ## Getting started
 
-1. Install the [terraform CLI](https://learn.hashicorp.com/tutorials/terraform/install-cli)
+1. Install the [Terraform CLI](https://learn.hashicorp.com/tutorials/terraform/install-cli)
 1. Install Docker
 1. Install [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) and configure it to use [your credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
-1. Initialize the terraform modules by executing the following command in [`./hash/`](./hash/): `terraform init`
+1. Initialize the Terraform modules by executing the following command in [`./hash/`](./hash/): `terraform init`
 
 After initializing, you'll be put into the `default` workspace which isn't allowed for the plan.
 You can create new workspace names by creating/selecting new workspaces:
@@ -19,7 +19,7 @@ $ terraform workspace select prod
 prod
 ```
 
-By default, the selected region is `us-east-1` and can be configured by editing the TF variables used for applying the TF plan, e.g. the one in [`./hash/prod-usea1.tfvars`](./hash/prod-usea1.tfvars).
+By default, the selected region is `us-east-1` and can be configured by editing the Terraform variables used for applying the Terraform plan (e.g. the one in [`./hash/prod-usea1.tfvars`](./hash/prod-usea1.tfvars)).
 
 # Naming convention
 
@@ -135,7 +135,7 @@ $ terraform apply --var-file prod-usea1.tfvars
 
 ## 2. Migrate databases
 
-Once the terraform infrastructure is deployed, you should have an RDS Postgres database accessible from the bastion host with `graph` and `kratos` users/dbs. These need to be migrated locally in preparation for starting the services.
+Once the Terraform infrastructure is deployed, you should have an RDS Postgres database accessible from the bastion host with `graph` and `kratos` users/dbs. These need to be migrated locally in preparation for starting the services.
 
 Before migrating, you must start an SSH tunnel through the bastion host to access the database. This can be done by executing the following command from the [`./hash/`](./hash/) folder:
 
@@ -233,7 +233,7 @@ $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kra
 
 **Building temporal services**:
 
-All temporal services requires the `TEMPORAL_VERSION` build argument to be set to the version of temporal to use. The current version can be found in [`.env`](../../.env) in the repository root and should be set to the same value as the `HASH_TEMPORAL_VERSION`. The image should be tagged with the same version as the `TEMPORAL_VERSION` build argument.
+All Temporal services requires the `TEMPORAL_VERSION` build argument to be set to the version of Temporal to use. The current version can be found in [`.env`](../../.env) in the repository root and should be set to the same value as the `HASH_TEMPORAL_VERSION`. The image should be tagged with the same version as the `TEMPORAL_VERSION` build argument.
 
 ```console
 $ DOCKER_BUILDKIT=1 docker build ./apps/hash-external-services/temporal/ -f ./apps/hash-external-services/temporal/migrate.Dockerfile --build-arg TEMPORAL_VERSION=$HASH_TEMPORAL_VERSION -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-temporal-prod-usea1-migrate:$HASH_TEMPORAL_VERSION
@@ -244,7 +244,7 @@ $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-temporal-prod-usea1
 ..
 ```
 
-To build and push the temporal workers you may use these commands:
+To build and push the Temporal workers you may use these commands:
 
 ```console
 $ # AI Typescript worker
