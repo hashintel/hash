@@ -111,7 +111,7 @@ cedar-policy-validator   = { version = "=4.3.3", default-features = false }
 clap                     = { version = "=4.5.31", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder             = { version = "=4.5.31", default-features = false, features = ["std"] }
 clap_complete            = { version = "=4.5.46", default-features = false }
-convert_case             = { version = "=0.7.1", default-features = false }
+convert_case             = { version = "=0.8.0", default-features = false }
 criterion                = { version = "=0.5.1" }
 criterion-macro          = { version = "=0.4.0", default-features = false }
 dashu-base               = { version = "=0.4.1", default-features = false }
