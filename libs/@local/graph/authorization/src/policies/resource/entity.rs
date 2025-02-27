@@ -12,7 +12,8 @@ use uuid::Uuid;
 use super::entity_type::EntityTypeId;
 use crate::policies::cedar::CedarEntityId;
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityResource<'a> {
     pub web_id: OwnedById,
     pub id: EntityUuid,
@@ -28,6 +29,8 @@ pub struct EntityResource<'a> {
 )]
 pub enum EntityResourceFilter {
     IsType { entity_type: VersionedUrl },
+    IsAllTypes { entity_types: Vec<VersionedUrl> },
+    IsAnyType { entity_types: Vec<VersionedUrl> },
 }
 
 fn versioned_url_to_euid(url: &VersionedUrl) -> ast::EntityUID {
@@ -48,6 +51,28 @@ impl EntityResourceFilter {
                     SmolStr::new_static("entity_types"),
                 ),
                 ast::Expr::val(versioned_url_to_euid(entity_type)),
+            ),
+            Self::IsAllTypes { entity_types } => ast::Expr::contains_all(
+                ast::Expr::get_attr(
+                    ast::Expr::var(ast::Var::Resource),
+                    SmolStr::new_static("entity_types"),
+                ),
+                ast::Expr::set(
+                    entity_types
+                        .iter()
+                        .map(|url| ast::Expr::val(versioned_url_to_euid(url))),
+                ),
+            ),
+            Self::IsAnyType { entity_types } => ast::Expr::contains_any(
+                ast::Expr::get_attr(
+                    ast::Expr::var(ast::Var::Resource),
+                    SmolStr::new_static("entity_types"),
+                ),
+                ast::Expr::set(
+                    entity_types
+                        .iter()
+                        .map(|url| ast::Expr::val(versioned_url_to_euid(url))),
+                ),
             ),
         }
     }

@@ -15,10 +15,11 @@ use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
-use self::entity_type::EntityTypeId;
 pub use self::{
     entity::{EntityResource, EntityResourceConstraint, EntityResourceFilter},
-    entity_type::{EntityTypeResource, EntityTypeResourceConstraint},
+    entity_type::{
+        EntityTypeId, EntityTypeResource, EntityTypeResourceConstraint, EntityTypeResourceFilter,
+    },
 };
 use crate::policies::cedar::CedarEntityId as _;
 
@@ -117,7 +118,7 @@ impl ResourceConstraint {
                 ast::Expr::val(true),
             ),
             Self::Entity(entity) => entity.to_cedar_resource_constraint(),
-            Self::EntityType(entity_type) => (entity_type.to_cedar(), ast::Expr::val(true)),
+            Self::EntityType(entity_type) => entity_type.to_cedar(),
         }
     }
 
@@ -212,7 +213,9 @@ impl ResourceConstraint {
             }
         } else if *resource_type == **EntityTypeId::entity_type() {
             let Some(in_resource) = in_resource else {
-                return Ok(Self::EntityType(EntityTypeResourceConstraint::Any {}));
+                return Ok(Self::EntityType(EntityTypeResourceConstraint::Any {
+                    filter: None,
+                }));
             };
 
             if *in_resource.entity_type() == **OwnedById::entity_type() {
@@ -221,6 +224,7 @@ impl ResourceConstraint {
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     )),
+                    filter: None,
                 }))
             } else {
                 bail!(InvalidResourceConstraint::UnexpectedEntityType(

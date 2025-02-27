@@ -7,7 +7,12 @@ use super::{
 use crate::policies::cedar::CedarEntityId as _;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
+#[serde(
+    tag = "type",
+    content = "id",
+    rename_all = "camelCase",
+    deny_unknown_fields
+)]
 pub enum RoleId {
     Web(WebRoleId),
     WebTeam(WebTeamRoleId),
