@@ -301,7 +301,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:2.1.9"
     ajv: "npm:8.17.1"
     ajv-formats: "npm:3.0.1"
-    axios: "npm:1.8.0"
+    axios: "npm:1.8.1"
     cache-manager: "npm:5.7.6"
     dedent: "npm:0.7.0"
     dotenv-flow: "npm:3.3.0"
@@ -402,7 +402,7 @@ __metadata:
     apollo-server-errors: "npm:3.3.1"
     apollo-server-express: "npm:3.9.0"
     app-root-path: "npm:3.1.0"
-    axios: "npm:1.8.0"
+    axios: "npm:1.8.1"
     body-parser: "npm:1.20.3"
     clipboardy: "npm:2.3.0"
     cors: "npm:2.8.5"
@@ -524,7 +524,7 @@ __metadata:
     "@types/url-regex-safe": "npm:1.0.2"
     "@vercel/edge-config": "npm:0.4.1"
     "@welldone-software/why-did-you-render": "npm:8.0.3"
-    axios: "npm:1.8.0"
+    axios: "npm:1.8.1"
     buffer: "npm:6.0.3"
     clsx: "npm:1.2.1"
     date-fns: "npm:4.1.0"
@@ -637,7 +637,7 @@ __metadata:
     "@temporalio/workflow": "npm:1.11.7"
     "@types/dotenv-flow": "npm:3.3.3"
     agentkeepalive: "npm:4.6.0"
-    axios: "npm:1.8.0"
+    axios: "npm:1.8.1"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
     rimraf: "npm:6.0.1"
@@ -739,7 +739,7 @@ __metadata:
     "@types/react-dom": "npm:19.0.4"
     "@types/react-html-parser": "npm:2.0.6"
     "@types/unist": "npm:3.0.3"
-    axios: "npm:1.8.0"
+    axios: "npm:1.8.1"
     babel-loader: "npm:9.2.1"
     calculation-block: "npm:0.2.2"
     chalk: "npm:5.4.1"
@@ -8906,7 +8906,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:2.1.9"
     agentkeepalive: "npm:4.6.0"
     apollo-datasource: "npm:3.3.2"
-    axios: "npm:1.8.0"
+    axios: "npm:1.8.1"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
     exponential-backoff: "npm:3.1.2"
@@ -8932,7 +8932,7 @@ __metadata:
     "@redocly/cli": "npm:1.31.1"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.13.5"
-    axios: "npm:1.8.0"
+    axios: "npm:1.8.1"
     fix-esm-import-path: "npm:1.10.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
@@ -9056,7 +9056,7 @@ __metadata:
     "@biomejs/biome": "npm:1.9.5-nightly.ff02a0b"
     "@openapitools/openapi-generator-cli": "npm:2.16.3"
     "@types/node": "npm:22.13.5"
-    axios: "npm:1.8.0"
+    axios: "npm:1.8.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
   languageName: unknown
@@ -20908,14 +20908,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.8.0, axios@npm:^1.6.1, axios@npm:^1.7.4, axios@npm:^1.7.9":
-  version: 1.8.0
-  resolution: "axios@npm:1.8.0"
+"axios@npm:1.8.1, axios@npm:^1.6.1, axios@npm:^1.7.4, axios@npm:^1.7.9":
+  version: 1.8.1
+  resolution: "axios@npm:1.8.1"
   dependencies:
     follow-redirects: "npm:^1.15.6"
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/e015663526ab4bd1aba1bc4a37750ca815cc2eb911401797ab9e5d3d13f66c482dcd95dcbb28e832f01e926c64ffa40ae5c2e86ce817fda7eb570f245b2524dd
+  checksum: 10c0/b2e1d5a61264502deee4b50f0a6df0aa3b174c546ccf68c0dff714a2b8863232e0bd8cb5b84f853303e97f242a98260f9bb9beabeafe451ad5af538e9eb7ac22
   languageName: node
   linkType: hard
 
