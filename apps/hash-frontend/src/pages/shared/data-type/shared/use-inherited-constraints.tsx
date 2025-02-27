@@ -1,13 +1,14 @@
 import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { useDataTypesContext } from "../../data-types-context";
 import type { InheritedConstraints } from "../data-type-constraints/types";
 import type { DataTypeFormData } from "../data-type-form";
 
-export const useInheritedConstraints = () => {
+const useInheritedConstraintsValue = (): InheritedConstraints => {
   const { dataTypes } = useDataTypesContext();
 
   const { control } = useFormContext<DataTypeFormData>();
@@ -52,7 +53,7 @@ export const useInheritedConstraints = () => {
         continue;
       }
 
-      const { schema: parentSchema } = parent;
+      const { schema: parentSchema, metadata: parentMetadata } = parent;
 
       if ("anyOf" in parentSchema) {
         /**
@@ -99,6 +100,24 @@ export const useInheritedConstraints = () => {
           value: parentSchema.label.right,
           from: parentSchema,
         };
+      }
+
+      if (parentMetadata.conversions) {
+        narrowedConstraints.conversions ??= {};
+
+        for (const [targetBaseUrl, conversions] of typedEntries(
+          parentMetadata.conversions,
+        )) {
+          /**
+           * We only want to set this if it hasn't already been set.
+           * If a child (which we'll encounter sooner) has set a conversion for a given target,
+           * that's the one that should be used.
+           */
+          narrowedConstraints.conversions[targetBaseUrl] ??= {
+            value: conversions,
+            from: parent.schema,
+          };
+        }
       }
 
       if ("enum" in parentSchema) {
@@ -219,4 +238,32 @@ export const useInheritedConstraints = () => {
 
     return narrowedConstraints;
   }, [dataTypes, allOf]);
+};
+
+const InheritedConstraintsContext = createContext<InheritedConstraints | null>(
+  null,
+);
+
+export const InheritedConstraintsProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const inheritedConstraints = useInheritedConstraintsValue();
+
+  return (
+    <InheritedConstraintsContext.Provider value={inheritedConstraints}>
+      {children}
+    </InheritedConstraintsContext.Provider>
+  );
+};
+
+export const useInheritedConstraints = (): InheritedConstraints => {
+  const inheritedConstraints = useContext(InheritedConstraintsContext);
+
+  if (!inheritedConstraints) {
+    throw new Error("InheritedConstraintsProvider not found");
+  }
+
+  return inheritedConstraints;
 };

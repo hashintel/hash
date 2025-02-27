@@ -35,6 +35,7 @@ import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { Link } from "../../shared/ui/link";
 import { useUserPermissionsOnDataType } from "../../shared/use-user-permissions-on-data-type";
 import { DataTypeConstraints } from "./data-type/data-type-constraints";
+import { DataTypeConversions } from "./data-type/data-type-conversions";
 import {
   type DataTypeFormData,
   getDataTypeFromFormData,
@@ -43,6 +44,7 @@ import {
 import { DataTypeHeader } from "./data-type/data-type-header";
 import { DataTypeLabels } from "./data-type/data-type-labels";
 import { DataTypesParents } from "./data-type/data-type-parents";
+import { InheritedConstraintsProvider } from "./data-type/shared/use-inherited-constraints";
 import { useDataTypesContext } from "./data-types-context";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
 import { NotFound } from "./not-found";
@@ -120,7 +122,12 @@ export const DataType = ({
 
   useEffect(() => {
     if (draftNewDataType) {
-      reset(getFormDataFromDataType(draftNewDataType.schema));
+      reset(
+        getFormDataFromDataType({
+          schema: draftNewDataType.schema,
+          metadata: {},
+        }),
+      );
     }
   }, [draftNewDataType, reset]);
 
@@ -194,7 +201,7 @@ export const DataType = ({
 
   useEffect(() => {
     if (remoteDataType) {
-      formMethods.reset(getFormDataFromDataType(remoteDataType.schema));
+      formMethods.reset(getFormDataFromDataType(remoteDataType));
     }
   }, [remoteDataType, formMethods]);
 
@@ -393,8 +400,14 @@ export const DataType = ({
                 }}
               />
 
-              <DataTypeConstraints isReadOnly={isReadOnly} />
-              <DataTypeLabels isReadOnly={isReadOnly} />
+              <InheritedConstraintsProvider>
+                <DataTypeConstraints isReadOnly={isReadOnly} />
+                <DataTypeLabels isReadOnly={isReadOnly} />
+                <DataTypeConversions
+                  dataType={dataType.schema}
+                  isReadOnly={isReadOnly}
+                />
+              </InheritedConstraintsProvider>
             </Stack>
           </TypeDefinitionContainer>
         </Box>

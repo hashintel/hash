@@ -1,11 +1,16 @@
 import type {
   ArraySchema,
+  Conversions,
   DataType,
   SingleValueConstraints,
   StringConstraints,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type {
+  BaseUrl,
+  DataTypeMetadata,
+} from "@local/hash-graph-types/ontology";
 
 /**
  * For the purposes of react-hook-form we need to have explicit null values to be able to unset values.
@@ -49,6 +54,7 @@ export type DataTypeFormData = Pick<
 > & {
   allOf: VersionedUrl[];
   constraints: NullableSingleValueConstraints;
+  conversions: Record<BaseUrl, Conversions> | null;
 };
 
 export const getDataTypeFromFormData = ({
@@ -109,9 +115,10 @@ export const getDataTypeFromFormData = ({
   };
 };
 
-export const getFormDataFromDataType = (
-  dataType: DataType,
-): DataTypeFormData => {
+export const getFormDataFromDataType = (dataTypeWithMetadata: {
+  schema: DataType;
+  metadata: Pick<DataTypeMetadata, "conversions">;
+}): DataTypeFormData => {
   const {
     $id: _$id,
     $schema: _$schema,
@@ -122,12 +129,13 @@ export const getFormDataFromDataType = (
     label,
     title,
     ...constraints
-  } = dataType;
+  } = dataTypeWithMetadata.schema;
 
   if ("anyOf" in constraints) {
     if (title === "Value") {
       return {
         allOf: [],
+        conversions: null,
         description,
         label,
         title,
@@ -174,9 +182,15 @@ export const getFormDataFromDataType = (
       break;
   }
 
+  const { conversions } =
+    "ownedById" in dataTypeWithMetadata.metadata
+      ? dataTypeWithMetadata.metadata
+      : { conversions: null };
+
   return {
     allOf: allOf?.map(({ $ref }) => $ref) ?? [],
     abstract: !!abstract,
+    conversions: conversions ?? null,
     description,
     label: label?.left?.length || label?.right?.length ? label : undefined,
     title,

@@ -10,8 +10,7 @@ import {
   TypeCard,
 } from "@hashintel/design-system";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Typography } from "@mui/material";
-import { Box, Stack } from "@mui/system";
+import { Box, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 

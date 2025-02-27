@@ -5,6 +5,7 @@ import type {
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph";
 import type {
+  Conversions,
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
@@ -101,7 +102,9 @@ export type ConstructDataTypeParams = DistributiveOmit<
   "$id" | "kind" | "$schema"
 >;
 
-export type DataTypeMetadata = OntologyElementMetadata;
+export type DataTypeMetadata = OntologyElementMetadata & {
+  conversions?: Record<BaseUrl, Conversions>;
+};
 export type PropertyTypeMetadata = OntologyElementMetadata;
 export type EntityTypeMetadata = OntologyElementMetadata;
 
@@ -109,7 +112,7 @@ export type DataTypeWithMetadata = Subtype<
   DataTypeWithMetadataBp,
   {
     schema: DataType;
-    metadata: OntologyElementMetadata;
+    metadata: DataTypeMetadata;
   }
 >;
 
