@@ -12,7 +12,9 @@ use error_stack::Report;
 use uuid::Uuid;
 
 use super::{InPrincipalConstraint, TeamPrincipalConstraint, role::RoleId};
-use crate::policies::{cedar::CedarEntityId, principal::web::WebPrincipalConstraint};
+use crate::policies::{
+    cedar::CedarEntityId, principal::web::WebPrincipalConstraint, resource::EntityResource,
+};
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
@@ -70,10 +72,11 @@ impl CedarEntityId for MachineId {
 pub struct Machine {
     pub id: MachineId,
     pub roles: Vec<RoleId>,
+    pub entity: EntityResource<'static>,
 }
 
 impl Machine {
-    pub(crate) fn to_entity(&self) -> ast::Entity {
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
@@ -204,7 +207,7 @@ mod tests {
         check_deserialization_error::<PrincipalConstraint>(
             json!({
                 "type": "machine",
-                "machineId": machine_id,
+                "id": machine_id,
                 "additional": "unexpected",
             }),
             "data did not match any variant of untagged enum MachinePrincipalConstraint",

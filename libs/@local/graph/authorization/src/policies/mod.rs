@@ -24,7 +24,8 @@ use self::{
 };
 pub use self::{
     context::{Context, ContextBuilder, ContextError},
-    validation::{PolicyValidationError, Validator},
+    set::{PolicyEvaluationError, PolicySet, PolicySetInsertionError},
+    validation::{PolicyValidationError, PolicyValidator},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -69,7 +70,7 @@ impl fmt::Display for PolicyId {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Policy {
     pub id: PolicyId,
@@ -81,8 +82,14 @@ pub struct Policy {
     pub constraints: Option<()>,
 }
 
+impl fmt::Debug for Policy {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}", self.to_cedar_template())
+    }
+}
+
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct RequestContext;
 
 impl RequestContext {
@@ -97,10 +104,10 @@ impl RequestContext {
 
 #[derive(Debug)]
 pub struct Request<'a> {
-    actor: ActorId,
-    action: ActionId,
-    resource: &'a ResourceId<'a>,
-    context: RequestContext,
+    pub actor: ActorId,
+    pub action: ActionId,
+    pub resource: &'a ResourceId<'a>,
+    pub context: RequestContext,
 }
 
 impl Request<'_> {
@@ -110,7 +117,7 @@ impl Request<'_> {
             (self.action.to_euid(), None),
             (self.resource.to_euid(), None),
             self.context.to_cedar(),
-            Some(Validator::schema()),
+            Some(PolicyValidator::schema()),
             Extensions::none(),
         )
         .expect("Request should be a valid Cedar request")
@@ -135,6 +142,23 @@ impl Policy {
     pub(crate) fn try_from_cedar(
         policy: &ast::StaticPolicy,
     ) -> Result<Self, Report<InvalidPolicy>> {
+        // let resource_filter = match policy.condition().expr_kind() {
+        //     ast::ExprKind::Lit(ast::Literal::Bool(true)) => None,
+        //     ast::ExprKind::BinaryApp {
+        //         op: ast::BinaryOp::Contains,
+        //         arg1,
+        //         arg2,
+        //     } => {
+        //         let resource_filter =
+        //             if arg1.expr_kind() == ast::ExprKind::Lit(ast::Literal::Bool(true)) {
+        //                 Some(arg2)
+        //             } else {
+        //                 None
+        //             };
+        //     }
+        //     _ => return Err(InvalidPolicy::InvalidSyntax.into()),
+        // };
+
         Ok(Self {
             id: PolicyId::new(
                 Uuid::from_str(policy.id().as_ref()).change_context(InvalidPolicy::InvalidId)?,
@@ -197,8 +221,22 @@ impl Policy {
                 )),
                 text,
             )
-            .change_context(InvalidPolicy::InvalidSyntax)?,
+            .change_context(InvalidPolicy::InvalidSyntax)
+            .attach_printable_lazy(|| text.to_owned())?,
         )
+    }
+
+    /// Parses multiple policies from a string.
+    ///
+    /// # Errors
+    ///
+    /// - [`InvalidPolicy::InvalidSyntax`] if the Cedar policy is invalid.
+    /// - [`InvalidPolicy`] if the Cedar policy cannot be converted to a [`Policy`].
+    pub fn parse_cedar_policies(text: &str) -> Result<Vec<Self>, Report<InvalidPolicy>> {
+        text.split_inclusive(';')
+            .filter(|policy| !policy.trim().is_empty())
+            .map(|policy| Self::parse_cedar_policy(policy, None))
+            .collect()
     }
 }
 
@@ -214,7 +252,7 @@ mod tests {
 
     use super::Policy;
     use crate::{
-        policies::{Validator, set::PolicySet},
+        policies::{PolicyValidator, set::PolicySet},
         test_utils::check_serialization,
     };
 
@@ -226,9 +264,7 @@ mod tests {
     ) -> Result<(), Box<dyn Error>> {
         check_serialization(policy, value);
 
-        let cedar_policy = policy.to_cedar_template();
-
-        assert_eq!(cedar_policy.to_string(), cedar_string.as_ref());
+        assert_eq!(format!("{policy:?}"), cedar_string.as_ref());
 
         let mut policy_set = PolicySet::default();
         if policy.principal.has_slot() || policy.resource.has_slot() {
@@ -238,7 +274,7 @@ mod tests {
             policy_set.add_policy(&Policy::try_from_cedar(&static_policy)?)?;
         }
 
-        Validator.validate_policy_set(&policy_set)?;
+        PolicyValidator.validate_policy_set(&policy_set)?;
 
         Ok(())
     }
@@ -255,10 +291,10 @@ mod tests {
             ActionConstraint, ActionId, ContextBuilder, Effect, PolicyId, PrincipalConstraint,
             Request, RequestContext, ResourceConstraint,
             principal::{
-                Actor,
+                ActorId,
                 user::{User, UserId, UserPrincipalConstraint},
             },
-            resource::{EntityResource, EntityResourceConstraint, Resource},
+            resource::{EntityResource, EntityResourceConstraint, ResourceId},
         };
 
         #[test]
@@ -312,26 +348,24 @@ mod tests {
                 ),
             )?;
 
-            let actor = Actor::User(User {
+            let user = User {
                 id: user_id,
                 roles: Vec::new(),
-            });
-            let actor_id = actor.id();
+                entity: EntityResource {
+                    web_id: OwnedById::new(user_id.into_uuid()),
+                    id: entity_uuid,
+                    entity_type: Cow::Owned(vec![
+                        VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,
+                        VersionedUrl::from_str(
+                            "https://hash.ai/@hash/types/entity-type/actor/v/2",
+                        )?,
+                    ]),
+                },
+            };
+            let resource_id = ResourceId::Entity(user.entity.id);
+            let context = ContextBuilder::default().with_user(&user).build()?;
 
-            let entity = Resource::Entity(EntityResource {
-                web_id: OwnedById::new(Uuid::new_v4()),
-                id: entity_uuid,
-                entity_type: Cow::Owned(vec![
-                    VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/1")
-                        .expect("Invalid entity type URL"),
-                ]),
-            });
-            let resource_id = entity.id();
-
-            let context = ContextBuilder::default()
-                .with_actor(&actor)
-                .with_resource(&entity)
-                .build()?;
+            let actor_id = ActorId::User(user.id);
 
             let mut policy_set = PolicySet::default();
             policy_set.add_policy(&policy)?;

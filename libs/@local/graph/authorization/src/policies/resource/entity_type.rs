@@ -6,7 +6,7 @@ use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use hash_graph_types::owned_by_id::OwnedById;
 use smol_str::SmolStr;
-use type_system::url::VersionedUrl;
+use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::policies::cedar::CedarEntityId;
 
@@ -68,6 +68,56 @@ impl EntityTypeResource<'_> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum EntityTypeResourceFilter {
+    All { filters: Vec<Self> },
+    Any { filters: Vec<Self> },
+    Not { filter: Box<Self> },
+    IsBaseUrl { base_url: BaseUrl },
+    IsVersion { version: OntologyTypeVersion },
+}
+
+impl EntityTypeResourceFilter {
+    #[must_use]
+    pub(crate) fn to_cedar(&self) -> ast::Expr {
+        match self {
+            Self::All { filters } => filters
+                .iter()
+                .map(Self::to_cedar)
+                .reduce(ast::Expr::and)
+                .unwrap_or_else(|| ast::Expr::val(true)),
+            Self::Any { filters } => filters
+                .iter()
+                .map(Self::to_cedar)
+                .reduce(ast::Expr::or)
+                .unwrap_or_else(|| ast::Expr::val(false)),
+            Self::Not { filter } => ast::Expr::not(filter.to_cedar()),
+            Self::IsBaseUrl { base_url } => ast::Expr::binary_app(
+                ast::BinaryOp::Eq,
+                ast::Expr::get_attr(
+                    ast::Expr::var(ast::Var::Resource),
+                    SmolStr::new_static("base_url"),
+                ),
+                ast::Expr::val(base_url.to_string()),
+            ),
+            Self::IsVersion { version } => ast::Expr::binary_app(
+                ast::BinaryOp::Eq,
+                ast::Expr::get_attr(
+                    ast::Expr::var(ast::Var::Resource),
+                    SmolStr::new_static("version"),
+                ),
+                ast::Expr::val(version.inner().to_string()),
+            ),
+        }
+    }
+}
+
 impl CedarEntityId for EntityTypeId {
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
@@ -87,11 +137,10 @@ impl CedarEntityId for EntityTypeId {
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged, rename_all_fields = "camelCase", deny_unknown_fields)]
 pub enum EntityTypeResourceConstraint {
-    #[expect(
-        clippy::empty_enum_variants_with_brackets,
-        reason = "Serialization is different"
-    )]
-    Any {},
+    Any {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        filter: Option<EntityTypeResourceFilter>,
+    },
     Exact {
         #[serde(deserialize_with = "Option::deserialize")]
         id: Option<EntityTypeId>,
@@ -99,6 +148,8 @@ pub enum EntityTypeResourceConstraint {
     Web {
         #[serde(deserialize_with = "Option::deserialize")]
         web_id: Option<OwnedById>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        filter: Option<EntityTypeResourceFilter>,
     },
 }
 
@@ -106,34 +157,53 @@ impl EntityTypeResourceConstraint {
     #[must_use]
     pub const fn has_slot(&self) -> bool {
         match self {
-            Self::Any {} | Self::Exact { id: Some(_) } | Self::Web { web_id: Some(_) } => false,
-            Self::Exact { id: None } | Self::Web { web_id: None } => true,
+            Self::Any { filter: _ }
+            | Self::Exact { id: Some(_) }
+            | Self::Web {
+                web_id: Some(_),
+                filter: _,
+            } => false,
+            Self::Exact { id: None }
+            | Self::Web {
+                web_id: None,
+                filter: _,
+            } => true,
         }
     }
 
     #[must_use]
-    pub(crate) fn to_cedar(&self) -> ast::ResourceConstraint {
+    pub(crate) fn to_cedar(&self) -> (ast::ResourceConstraint, ast::Expr) {
         match self {
-            Self::Any {} => {
-                ast::ResourceConstraint::is_entity_type(Arc::clone(EntityTypeId::entity_type()))
-            }
-            Self::Exact { id } => id
-                .as_ref()
-                .map_or_else(ast::ResourceConstraint::is_eq_slot, |id| {
-                    ast::ResourceConstraint::is_eq(Arc::new(id.to_euid()))
-                }),
-            Self::Web { web_id } => web_id.map_or_else(
-                || {
-                    ast::ResourceConstraint::is_entity_type_in_slot(Arc::clone(
-                        EntityTypeId::entity_type(),
-                    ))
-                },
-                |web_id| {
-                    ast::ResourceConstraint::is_entity_type_in(
-                        Arc::clone(EntityTypeId::entity_type()),
-                        Arc::new(web_id.to_euid()),
-                    )
-                },
+            Self::Any { filter } => (
+                ast::ResourceConstraint::is_entity_type(Arc::clone(EntityTypeId::entity_type())),
+                filter
+                    .as_ref()
+                    .map_or_else(|| ast::Expr::val(true), EntityTypeResourceFilter::to_cedar),
+            ),
+            Self::Exact { id } => (
+                id.as_ref()
+                    .map_or_else(ast::ResourceConstraint::is_eq_slot, |id| {
+                        ast::ResourceConstraint::is_eq(Arc::new(id.to_euid()))
+                    }),
+                ast::Expr::val(true),
+            ),
+            Self::Web { web_id, filter } => (
+                web_id.map_or_else(
+                    || {
+                        ast::ResourceConstraint::is_entity_type_in_slot(Arc::clone(
+                            EntityTypeId::entity_type(),
+                        ))
+                    },
+                    |web_id| {
+                        ast::ResourceConstraint::is_entity_type_in(
+                            Arc::clone(EntityTypeId::entity_type()),
+                            Arc::new(web_id.to_euid()),
+                        )
+                    },
+                ),
+                filter
+                    .as_ref()
+                    .map_or_else(|| ast::Expr::val(true), EntityTypeResourceFilter::to_cedar),
             ),
         }
     }
@@ -157,7 +227,7 @@ mod tests {
     #[test]
     fn constraint_any() -> Result<(), Box<dyn Error>> {
         check_resource(
-            ResourceConstraint::EntityType(EntityTypeResourceConstraint::Any {}),
+            ResourceConstraint::EntityType(EntityTypeResourceConstraint::Any { filter: None }),
             json!({
                 "type": "entityType"
             }),
@@ -219,6 +289,7 @@ mod tests {
         check_resource(
             ResourceConstraint::EntityType(EntityTypeResourceConstraint::Web {
                 web_id: Some(web_id),
+                filter: None,
             }),
             json!({
                 "type": "entityType",
@@ -228,7 +299,10 @@ mod tests {
         )?;
 
         check_resource(
-            ResourceConstraint::EntityType(EntityTypeResourceConstraint::Web { web_id: None }),
+            ResourceConstraint::EntityType(EntityTypeResourceConstraint::Web {
+                web_id: None,
+                filter: None,
+            }),
             json!({
                 "type": "entityType",
                 "webId": null,
