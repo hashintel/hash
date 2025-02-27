@@ -12,7 +12,7 @@
     "validate": "openapi-generator-cli validate"
   },
   "dependencies": {
-    "axios": "1.8.0"
+    "axios": "1.8.1"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.5-nightly.ff02a0b",
