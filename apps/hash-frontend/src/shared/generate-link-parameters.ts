@@ -5,11 +5,14 @@ import type { Url } from "next/dist/shared/lib/router/router";
 import { isHrefExternal } from "./is-href-external";
 
 /**
- * A RegExp to match the path of HASH or Block Protocol-formatted type URLs,
- * First capture will be the base URL, and the second (if present) the version number.
+ * A RegExp to match the path of HASH or Block Protocol-formatted type URLs.
+ * Captures:
+ * 1. The base URL
+ * 2. The kind (e.g. entity-type, data-type, property-type)
+ * 3. The version (if present)
  */
 const typeUrlRegExp =
-  /(.*\/@.+\/types\/(?:entity-type|data-type|property-type)\/[^/]+\/)(?:v\/(\d+))?$/;
+  /(.*\/@.+\/types\/(entity-type|data-type|property-type)\/[^/]+\/)(?:v\/(\d+))?$/;
 
 /**
  * For a given href to be used in a link:
@@ -46,16 +49,19 @@ export const generateLinkParameters = (
   const paramsString = sanitizedHref.split("?")[1];
 
   // Check whether this matches a HASH-formatted type URL (BaseUrl or VersionedURL)
-  const [, typeBaseUrl, typeVersion] =
+  const [, typeBaseUrl, typeKind, typeVersion] =
     sanitizedHref.split("?")[0]!.match(typeUrlRegExp) ?? [];
 
   if (typeBaseUrl) {
-    if (isExternal && typeBaseUrl.includes("/entity-type/")) {
+    if (
+      (isExternal && typeKind === "entity-type") ||
+      (isExternal && typeKind === "data-type")
+    ) {
       // If it's an external entity type, use the type route for loading external types
       const base64EncodedBaseUrl = btoa(typeBaseUrl);
       return {
         isExternal: false, // it's an external type but we're using an internal route
-        href: `/types/external/entity-type/${base64EncodedBaseUrl}${
+        href: `/types/external/${typeKind}/${base64EncodedBaseUrl}${
           typeVersion ? `/v/${typeVersion}` : ""
         }${paramsString ? `?${paramsString}` : ""}`,
       };

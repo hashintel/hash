@@ -27,4 +27,8 @@ export type InheritedConstraints = {
   pattern?: InheritedConstraint<string>[];
   format?: InheritedConstraint<StringFormat>;
   enum?: InheritedConstraint<[string, ...string[]] | [number, ...number[]]>;
+  label?: {
+    left?: InheritedConstraint<string>;
+    right?: InheritedConstraint<string>;
+  };
 };

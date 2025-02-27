@@ -656,7 +656,13 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
     return flattenedDataTypes.filter(
       (dataType) =>
         (allowSelectingAbstractTypes || !dataType.abstract) &&
-        dataType.title.toLowerCase().includes(searchText.toLowerCase()),
+        (dataType.title.toLowerCase().includes(searchText.toLowerCase()) ||
+          dataType.label?.left
+            ?.toLowerCase()
+            .includes(searchText.toLowerCase()) ||
+          dataType.label?.right
+            ?.toLowerCase()
+            .includes(searchText.toLowerCase())),
     );
   }, [allowSelectingAbstractTypes, dataTypes, flattenedDataTypes, searchText]);
 

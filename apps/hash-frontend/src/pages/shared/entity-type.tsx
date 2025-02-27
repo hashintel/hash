@@ -491,6 +491,7 @@ export const EntityType = ({
                         },
                       }
                 }
+                gentleErrorStyling={false}
                 key={entityType.schema.$id} // reset edit bar state when the entity type changes
               />
             )}

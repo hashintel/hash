@@ -33,8 +33,8 @@ import { TriangleExclamationRegularIcon } from "../../../../../shared/icons/tria
 import { Button } from "../../../../../shared/ui";
 import { NumberOrTextInput } from "../../../number-or-text-input";
 import type { DataTypeFormData } from "../../data-type-form";
+import { ItemLabel } from "../../shared/item-label";
 import type { InheritedConstraints } from "../types";
-import { ItemLabel } from "./item-label";
 
 const SaveButton = ({ onClick }: { onClick: () => void }) => (
   <Tooltip title="Save" placement="top">
@@ -292,13 +292,13 @@ export const EnumEditor = ({
 }: {
   ownEnum?: [string, ...string[]] | [number, ...number[]];
   ownFormat?: StringFormat;
-  ownMinLength?: number;
-  ownMaxLength?: number;
-  ownMinimum?: number;
-  ownMaximum?: number;
-  ownExclusiveMinimum?: boolean;
-  ownExclusiveMaximum?: boolean;
-  ownMultipleOf?: number;
+  ownMinLength: number | null;
+  ownMaxLength: number | null;
+  ownMinimum: number | null;
+  ownMaximum: number | null;
+  ownExclusiveMinimum: boolean | null;
+  ownExclusiveMaximum: boolean | null;
+  ownMultipleOf: number | null;
   inheritedConstraints: InheritedConstraints;
   type: "string" | "number";
 }) => {
@@ -557,10 +557,36 @@ export const EnumEditor = ({
     }
   }, [items, mergedSchema, setError, clearErrors]);
 
+  const hasConstraints = [
+    ownEnum,
+    ownFormat,
+    ownMinLength,
+    ownMaxLength,
+    ownMinimum,
+    ownMaximum,
+    ownExclusiveMinimum,
+    ownExclusiveMaximum,
+    ownMultipleOf,
+    inheritedConstraints.enum,
+    inheritedConstraints.format,
+  ].some((constraint) => constraint != null);
+
   return (
     <Stack>
       <Box>
         <ItemLabel tooltip={tooltip}>Permitted values</ItemLabel>
+        {hasConstraints && (
+          <Typography
+            variant="smallTextParagraphs"
+            sx={{
+              color: ({ palette }) => palette.gray[50],
+              fontSize: 13,
+              mb: 1,
+            }}
+          >
+            Values must meet the constraints listed above.
+          </Typography>
+        )}
         <Stack
           sx={{
             mt: 0.8,
@@ -575,6 +601,7 @@ export const EnumEditor = ({
               Any value meeting the constraints will be allowed.
             </Typography>
           )}
+
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}

@@ -70,7 +70,7 @@ export type FormattedValuePart = {
   text: string;
 };
 
-const createFormattedParts = ({
+export const createFormattedValueParts = ({
   inner,
   schema,
 }: {
@@ -111,11 +111,14 @@ export const formatDataValue = (
   const { type } = schema;
 
   if (type === "null") {
-    return createFormattedParts({ inner: "Null", schema });
+    return createFormattedValueParts({ inner: "Null", schema });
   }
 
   if (type === "boolean") {
-    return createFormattedParts({ inner: value ? "True" : "False", schema });
+    return createFormattedValueParts({
+      inner: value ? "True" : "False",
+      schema,
+    });
   }
 
   if (type === "array") {
@@ -155,10 +158,10 @@ export const formatDataValue = (
   }
 
   if (typeof value === "object" && value) {
-    return createFormattedParts({ inner: JSON.stringify(value), schema });
+    return createFormattedValueParts({ inner: JSON.stringify(value), schema });
   }
 
-  return createFormattedParts({ inner: String(value), schema });
+  return createFormattedValueParts({ inner: String(value), schema });
 };
 
 type Context = {

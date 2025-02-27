@@ -18,7 +18,7 @@ export const DataTypeSlide: FunctionComponent<DataTypeSlideProps> = ({
 
   return (
     <DataType
-      inSlide
+      isInSlide
       dataTypeBaseUrl={baseUrl}
       requestedVersion={version}
       onDataTypeUpdated={(dataType) =>

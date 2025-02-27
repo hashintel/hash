@@ -1,10 +1,11 @@
 import { Box, Checkbox, Stack, Tooltip, Typography } from "@mui/material";
+import { useEffect } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
 import type { DataTypeFormData } from "../data-type-form";
+import { ItemLabel } from "../shared/item-label";
 import { ConstraintText } from "./shared/constraint-text";
 import { EnumEditor } from "./shared/enum-editor";
-import { ItemLabel } from "./shared/item-label";
 import { NumberInput } from "./shared/number-input";
 import type { InheritedConstraints } from "./types";
 
@@ -17,10 +18,10 @@ const NumberRangeEditor = ({
   inheritedConstraints,
 }: {
   hasEnum: boolean;
-  ownMinimum?: number;
-  ownMaximum?: number;
-  ownExclusiveMinimum?: boolean;
-  ownExclusiveMaximum?: boolean;
+  ownMinimum: number | null;
+  ownMaximum: number | null;
+  ownExclusiveMinimum: boolean | null;
+  ownExclusiveMaximum: boolean | null;
   inheritedConstraints: InheritedConstraints;
 }) => {
   const { control, setValue } = useFormContext<DataTypeFormData>();
@@ -199,11 +200,11 @@ export const NumberConstraintEditor = ({
   inheritedConstraints,
 }: {
   ownEnum?: [number, ...number[]];
-  ownMinimum?: number;
-  ownMaximum?: number;
-  ownExclusiveMinimum?: boolean;
-  ownExclusiveMaximum?: boolean;
-  ownMultipleOf?: number;
+  ownMinimum: number | null;
+  ownMaximum: number | null;
+  ownExclusiveMinimum: boolean | null;
+  ownExclusiveMaximum: boolean | null;
+  ownMultipleOf: number | null;
   inheritedConstraints: InheritedConstraints;
 }) => {
   return (
@@ -224,6 +225,8 @@ export const NumberConstraintEditor = ({
         ownMaximum={ownMaximum}
         ownExclusiveMinimum={ownExclusiveMinimum}
         ownExclusiveMaximum={ownExclusiveMaximum}
+        ownMinLength={null}
+        ownMaxLength={null}
         ownMultipleOf={ownMultipleOf}
         inheritedConstraints={inheritedConstraints}
         type="number"
@@ -245,24 +248,30 @@ const NumberRangeText = ({
   exclusiveMaximum?: boolean;
   inheritedConstraints: InheritedConstraints;
 }) => {
+  const minimumInheritedFrom =
+    inheritedConstraints.minimum &&
+    inheritedConstraints.minimum.value.value === minimum
+      ? inheritedConstraints.minimum.from
+      : undefined;
+
+  const maximumInheritedFrom =
+    inheritedConstraints.maximum &&
+    inheritedConstraints.maximum.value.value === maximum
+      ? inheritedConstraints.maximum.from
+      : undefined;
+
   if (typeof minimum === "number" && typeof maximum === "number") {
     return (
       <>
         {" between "}
-        <ConstraintText
-          text={minimum.toString()}
-          from={inheritedConstraints.minimum?.from}
-        />{" "}
+        <ConstraintText text={minimum.toString()} from={minimumInheritedFrom} />{" "}
         (
         <ConstraintText
           text={exclusiveMinimum ? "exclusive" : "inclusive"}
           from={inheritedConstraints.minimum?.from}
         />
         ){" and "}
-        <ConstraintText
-          text={maximum.toString()}
-          from={inheritedConstraints.maximum?.from}
-        />{" "}
+        <ConstraintText text={maximum.toString()} from={maximumInheritedFrom} />{" "}
         (
         <ConstraintText
           text={exclusiveMaximum ? "exclusive" : "inclusive"}
@@ -277,10 +286,7 @@ const NumberRangeText = ({
     return (
       <>
         {" greater than "}
-        <ConstraintText
-          text={minimum.toString()}
-          from={inheritedConstraints.minimum?.from}
-        />{" "}
+        <ConstraintText text={minimum.toString()} from={minimumInheritedFrom} />{" "}
         (
         <ConstraintText
           text={exclusiveMinimum ? "exclusive" : "inclusive"}
@@ -295,10 +301,7 @@ const NumberRangeText = ({
     return (
       <>
         {" less than "}
-        <ConstraintText
-          text={maximum.toString()}
-          from={inheritedConstraints.maximum?.from}
-        />{" "}
+        <ConstraintText text={maximum.toString()} from={maximumInheritedFrom} />{" "}
         (
         <ConstraintText
           text={exclusiveMaximum ? "exclusive" : "inclusive"}
@@ -319,7 +322,7 @@ export const NumberConstraints = ({
   inheritedConstraints: InheritedConstraints;
   isReadOnly: boolean;
 }) => {
-  const { control } = useFormContext<DataTypeFormData>();
+  const { control, setValue } = useFormContext<DataTypeFormData>();
 
   const constraints = useWatch({ control, name: "constraints" });
 
@@ -352,6 +355,42 @@ export const NumberConstraints = ({
     ownExclusiveMaximum ?? inheritedConstraints.maximum?.value.exclusive;
   const multipleOf =
     ownMultipleOf ?? inheritedConstraints.multipleOf?.[0]?.value;
+
+  /**
+   * Reset the min/max and enum if the inherited constraints are narrower
+   * – handle the case of a parent change which makes the type's own constraints invalid.
+   */
+  useEffect(() => {
+    if (
+      inheritedConstraints.minimum?.value.value !== undefined &&
+      ownMinimum != null
+    ) {
+      if (inheritedConstraints.minimum.value.value > ownMinimum) {
+        setValue("constraints.minimum", null, { shouldDirty: true });
+      }
+    }
+    if (
+      inheritedConstraints.maximum?.value.value !== undefined &&
+      ownMaximum != null
+    ) {
+      if (inheritedConstraints.maximum.value.value < ownMaximum) {
+        setValue("constraints.maximum", null, { shouldDirty: true });
+      }
+    }
+
+    if (inheritedConstraints.enum?.value.length && ownEnum) {
+      const validEnumValues = ownEnum.filter((value) =>
+        /**
+         * @todo what is going on with the type inference here
+         */
+        inheritedConstraints.enum!.value.includes(value as never),
+      ) as unknown as typeof inheritedConstraints.enum.value;
+
+      if (validEnumValues.length !== ownEnum.length) {
+        setValue("constraints.enum", validEnumValues, { shouldDirty: true });
+      }
+    }
+  }, [inheritedConstraints, ownEnum, ownMinimum, ownMaximum, setValue]);
 
   return (
     <Stack>
@@ -386,11 +425,11 @@ export const NumberConstraints = ({
       {!isReadOnly && (
         <NumberConstraintEditor
           ownEnum={ownEnum as [number, ...number[]]}
-          ownMinimum={ownMinimum}
-          ownMaximum={ownMaximum}
-          ownExclusiveMinimum={ownExclusiveMinimum}
-          ownExclusiveMaximum={ownExclusiveMaximum}
-          ownMultipleOf={ownMultipleOf}
+          ownMinimum={ownMinimum ?? null}
+          ownMaximum={ownMaximum ?? null}
+          ownExclusiveMinimum={ownExclusiveMinimum ?? null}
+          ownExclusiveMaximum={ownExclusiveMaximum ?? null}
+          ownMultipleOf={ownMultipleOf ?? null}
           inheritedConstraints={inheritedConstraints}
         />
       )}
