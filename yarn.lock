@@ -59,14 +59,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apidevtools/json-schema-ref-parser@npm:11.9.1, @apidevtools/json-schema-ref-parser@npm:^11.5.5":
-  version: 11.9.1
-  resolution: "@apidevtools/json-schema-ref-parser@npm:11.9.1"
+"@apidevtools/json-schema-ref-parser@npm:11.9.2, @apidevtools/json-schema-ref-parser@npm:^11.5.5":
+  version: 11.9.2
+  resolution: "@apidevtools/json-schema-ref-parser@npm:11.9.2"
   dependencies:
     "@jsdevtools/ono": "npm:^7.1.3"
     "@types/json-schema": "npm:^7.0.15"
     js-yaml: "npm:^4.1.0"
-  checksum: 10c0/584d99f9b05822a30adaf73abfcedb485d3c0da957f4de09afd485123307a216e0b6ba499a21a57e0b723f8a48e61d82dd4f1d49659ddd73c01bb4837ba446b0
+  checksum: 10c0/28dcf9ab9690a27e7ba0652108b55377da0ace3d188a1d176e0914f274ed57b37303d40893f6f8edb32e50ea7db2e034763dfe129c039427c89c71033b1a0bce
   languageName: node
   linkType: hard
 
@@ -4418,7 +4418,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blockprotocol/graph@workspace:libs/@blockprotocol/graph"
   dependencies:
-    "@apidevtools/json-schema-ref-parser": "npm:11.9.1"
+    "@apidevtools/json-schema-ref-parser": "npm:11.9.2"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@local/eslint": "npm:0.0.0-private"
