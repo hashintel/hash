@@ -15,16 +15,16 @@ namespace HASH {
   entity EntityType in [Web] {
   };
 
-  entity User in [HASH::Web::Role, HASH::Team::Role, HASH::Web::Team::Role] {
+  entity User, Machine in [HASH::Web::Role, HASH::Team::Role, HASH::Web::Team::Role] {
   };
 
   action create, view, update appliesTo {
-    principal: User,
+    principal: [User, Machine],
     resource: [Entity, EntityType],
   };
 
   action instantiate appliesTo {
-    principal: User,
+    principal: [User, Machine],
     resource: [EntityType],
   };
 }

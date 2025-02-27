@@ -24,9 +24,9 @@ use crate::policies::{cedar::CedarEntityId, principal::web::WebPrincipalConstrai
 )]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
-pub struct UserId(Uuid);
+pub struct MachineId(Uuid);
 
-impl UserId {
+impl MachineId {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
@@ -43,16 +43,16 @@ impl UserId {
     }
 }
 
-impl fmt::Display for UserId {
+impl fmt::Display for MachineId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl CedarEntityId for UserId {
+impl CedarEntityId for MachineId {
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
-            LazyLock::new(|| crate::policies::cedar_resource_type(["User"]));
+            LazyLock::new(|| crate::policies::cedar_resource_type(["Machine"]));
         &ENTITY_TYPE
     }
 
@@ -67,12 +67,12 @@ impl CedarEntityId for UserId {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct User {
-    pub id: UserId,
+pub struct Machine {
+    pub id: MachineId,
     pub roles: Vec<RoleId>,
 }
 
-impl User {
+impl Machine {
     pub(crate) fn to_entity(&self) -> ast::Entity {
         ast::Entity::new(
             self.id.to_euid(),
@@ -81,13 +81,13 @@ impl User {
             iter::empty(),
             Extensions::none(),
         )
-        .expect("User should be a valid Cedar entity")
+        .expect("Machine should be a valid Cedar entity")
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged, rename_all_fields = "camelCase", deny_unknown_fields)]
-pub enum UserPrincipalConstraint {
+pub enum MachinePrincipalConstraint {
     #[expect(
         clippy::empty_enum_variants_with_brackets,
         reason = "Serialization is different"
@@ -95,18 +95,21 @@ pub enum UserPrincipalConstraint {
     Any {},
     Exact {
         #[serde(deserialize_with = "Option::deserialize")]
-        user_id: Option<UserId>,
+        machine_id: Option<MachineId>,
     },
     Web(WebPrincipalConstraint),
     Team(TeamPrincipalConstraint),
 }
 
-impl UserPrincipalConstraint {
+impl MachinePrincipalConstraint {
     #[must_use]
     pub const fn has_slot(&self) -> bool {
         match self {
-            Self::Any {} | Self::Exact { user_id: Some(_) } => false,
-            Self::Exact { user_id: None } => true,
+            Self::Any {}
+            | Self::Exact {
+                machine_id: Some(_),
+            } => false,
+            Self::Exact { machine_id: None } => true,
             Self::Web(web) => web.has_slot(),
             Self::Team(team) => team.has_slot(),
         }
@@ -116,19 +119,19 @@ impl UserPrincipalConstraint {
     pub(crate) fn to_cedar(&self) -> ast::PrincipalConstraint {
         match self {
             Self::Any {} => {
-                ast::PrincipalConstraint::is_entity_type(Arc::clone(UserId::entity_type()))
+                ast::PrincipalConstraint::is_entity_type(Arc::clone(MachineId::entity_type()))
             }
-            Self::Exact { user_id } => user_id
-                .map_or_else(ast::PrincipalConstraint::is_eq_slot, |user_id| {
-                    ast::PrincipalConstraint::is_eq(Arc::new(user_id.to_euid()))
+            Self::Exact { machine_id } => machine_id
+                .map_or_else(ast::PrincipalConstraint::is_eq_slot, |machine_id| {
+                    ast::PrincipalConstraint::is_eq(Arc::new(machine_id.to_euid()))
                 }),
-            Self::Web(web) => web.to_cedar_in_type::<UserId>(),
-            Self::Team(team) => team.to_cedar_in_type::<UserId>(),
+            Self::Web(web) => web.to_cedar_in_type::<MachineId>(),
+            Self::Team(team) => team.to_cedar_in_type::<MachineId>(),
         }
     }
 }
 
-impl From<InPrincipalConstraint> for UserPrincipalConstraint {
+impl From<InPrincipalConstraint> for MachinePrincipalConstraint {
     fn from(value: InPrincipalConstraint) -> Self {
         match value {
             InPrincipalConstraint::Web(web) => Self::Web(web),
@@ -145,11 +148,11 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    use super::{UserId, WebPrincipalConstraint};
+    use super::{MachineId, WebPrincipalConstraint};
     use crate::{
         policies::{
             PrincipalConstraint,
-            principal::{UserPrincipalConstraint, tests::check_principal, web::WebRoleId},
+            principal::{MachinePrincipalConstraint, tests::check_principal, web::WebRoleId},
         },
         test_utils::check_deserialization_error,
     };
@@ -157,19 +160,19 @@ mod tests {
     #[test]
     fn any() -> Result<(), Box<dyn Error>> {
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Any {}),
+            PrincipalConstraint::Machine(MachinePrincipalConstraint::Any {}),
             json!({
-                "type": "user",
+                "type": "machine",
             }),
-            "principal is HASH::User",
+            "principal is HASH::Machine",
         )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "user",
+                "type": "machine",
                 "additional": "unexpected",
             }),
-            "data did not match any variant of untagged enum UserPrincipalConstraint",
+            "data did not match any variant of untagged enum MachinePrincipalConstraint",
         )?;
 
         Ok(())
@@ -177,34 +180,34 @@ mod tests {
 
     #[test]
     fn exact() -> Result<(), Box<dyn Error>> {
-        let user_id = UserId::new(Uuid::new_v4());
+        let machine_id = MachineId::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Exact {
-                user_id: Some(user_id),
+            PrincipalConstraint::Machine(MachinePrincipalConstraint::Exact {
+                machine_id: Some(machine_id),
             }),
             json!({
-                "type": "user",
-                "userId": user_id,
+                "type": "machine",
+                "machineId": machine_id,
             }),
-            format!(r#"principal == HASH::User::"{user_id}""#),
+            format!(r#"principal == HASH::Machine::"{machine_id}""#),
         )?;
 
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Exact { user_id: None }),
+            PrincipalConstraint::Machine(MachinePrincipalConstraint::Exact { machine_id: None }),
             json!({
-                "type": "user",
-                "userId": null,
+                "type": "machine",
+                "machineId": null,
             }),
             "principal == ?principal",
         )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "user",
-                "userId": user_id,
+                "type": "machine",
+                "machineId": machine_id,
                 "additional": "unexpected",
             }),
-            "data did not match any variant of untagged enum UserPrincipalConstraint",
+            "data did not match any variant of untagged enum MachinePrincipalConstraint",
         )?;
 
         Ok(())
@@ -214,34 +217,34 @@ mod tests {
     fn organization() -> Result<(), Box<dyn Error>> {
         let web_id = OwnedById::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Web(
+            PrincipalConstraint::Machine(MachinePrincipalConstraint::Web(
                 WebPrincipalConstraint::InWeb { id: Some(web_id) },
             )),
             json!({
-                "type": "user",
+                "type": "machine",
                 "id": web_id,
             }),
-            format!(r#"principal is HASH::User in HASH::Web::"{web_id}""#),
+            format!(r#"principal is HASH::Machine in HASH::Web::"{web_id}""#),
         )?;
 
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Web(
+            PrincipalConstraint::Machine(MachinePrincipalConstraint::Web(
                 WebPrincipalConstraint::InWeb { id: None },
             )),
             json!({
-                "type": "user",
+                "type": "machine",
                 "id": null,
             }),
-            "principal is HASH::User in ?principal",
+            "principal is HASH::Machine in ?principal",
         )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "user",
+                "type": "machine",
                 "id": web_id,
                 "additional": "unexpected",
             }),
-            "data did not match any variant of untagged enum UserPrincipalConstraint",
+            "data did not match any variant of untagged enum MachinePrincipalConstraint",
         )?;
 
         Ok(())
@@ -251,36 +254,36 @@ mod tests {
     fn organization_role() -> Result<(), Box<dyn Error>> {
         let web_role_id = WebRoleId::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Web(
+            PrincipalConstraint::Machine(MachinePrincipalConstraint::Web(
                 WebPrincipalConstraint::InRole {
                     role_id: Some(web_role_id),
                 },
             )),
             json!({
-                "type": "user",
+                "type": "machine",
                 "roleId": web_role_id,
             }),
-            format!(r#"principal is HASH::User in HASH::Web::Role::"{web_role_id}""#),
+            format!(r#"principal is HASH::Machine in HASH::Web::Role::"{web_role_id}""#),
         )?;
 
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Web(
+            PrincipalConstraint::Machine(MachinePrincipalConstraint::Web(
                 WebPrincipalConstraint::InRole { role_id: None },
             )),
             json!({
-                "type": "user",
+                "type": "machine",
                 "roleId": null,
             }),
-            "principal is HASH::User in ?principal",
+            "principal is HASH::Machine in ?principal",
         )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "user",
+                "type": "machine",
                 "webRoleId": web_role_id,
                 "additional": "unexpected",
             }),
-            "data did not match any variant of untagged enum UserPrincipalConstraint",
+            "data did not match any variant of untagged enum MachinePrincipalConstraint",
         )?;
 
         Ok(())

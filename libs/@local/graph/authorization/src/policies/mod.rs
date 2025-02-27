@@ -4,28 +4,27 @@ pub mod principal;
 pub mod resource;
 
 mod cedar;
+mod context;
+mod set;
+mod validation;
 
 use alloc::{collections::BTreeMap, sync::Arc};
-use core::{error::Error, fmt, str::FromStr as _};
-use std::{collections::HashMap, sync::LazyLock};
+use core::{fmt, str::FromStr as _};
 
 use cedar::CedarEntityId as _;
-use cedar_policy_core::{
-    ast,
-    entities::{Entities, TCComputation},
-    evaluator::Evaluator,
-    extensions::Extensions,
-    parser::parse_policy_or_template_to_est_and_ast,
-};
-use cedar_policy_validator::{CoreSchema, ValidatorSchema};
+use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
 use error_stack::{Report, ResultExt as _};
 use uuid::Uuid;
 
 pub(crate) use self::cedar::cedar_resource_type;
 use self::{
     action::{ActionConstraint, ActionId},
-    principal::{PrincipalConstraint, user::User},
-    resource::{Resource, ResourceConstraint},
+    principal::{ActorId, PrincipalConstraint},
+    resource::{ResourceConstraint, ResourceId},
+};
+pub use self::{
+    context::{Context, ContextBuilder, ContextError},
+    validation::{PolicyValidationError, Validator},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -83,6 +82,7 @@ pub struct Policy {
 }
 
 #[non_exhaustive]
+#[derive(Debug)]
 pub struct RequestContext;
 
 impl RequestContext {
@@ -95,23 +95,25 @@ impl RequestContext {
     }
 }
 
+#[derive(Debug)]
 pub struct Request<'a> {
-    user: &'a User,
+    actor: ActorId,
     action: ActionId,
-    resource: &'a Resource<'a>,
+    resource: &'a ResourceId<'a>,
     context: RequestContext,
 }
 
 impl Request<'_> {
-    pub(crate) fn to_cedar(&self) -> Result<ast::Request, Box<dyn Error>> {
-        Ok(ast::Request::new(
-            (self.user.id.to_euid(), None),
+    pub(crate) fn to_cedar(&self) -> ast::Request {
+        ast::Request::new(
+            (self.actor.to_euid(), None),
             (self.action.to_euid(), None),
             (self.resource.to_euid(), None),
             self.context.to_cedar(),
-            Some(&*POLICY_SCHEMA),
+            Some(Validator::schema()),
             Extensions::none(),
-        )?)
+        )
+        .expect("Request should be a valid Cedar request")
     }
 }
 
@@ -129,28 +131,9 @@ pub enum InvalidPolicy {
     InvalidSyntax,
 }
 
-static POLICY_SCHEMA: LazyLock<ValidatorSchema> = LazyLock::new(|| {
-    let (schema, warnings) = ValidatorSchema::from_cedarschema_str(
-        include_str!("../../schemas/policies.cedarschema"),
-        Extensions::none(),
-    )
-    .unwrap_or_else(|error| {
-        panic!("Policy schema is invalid: {error}");
-    });
-
-    for warning in warnings {
-        tracing::warn!("policy schema warning: {warning}");
-        #[cfg(test)]
-        {
-            eprintln!("policy schema warning: {warning}");
-        }
-    }
-    schema
-});
-
 impl Policy {
-    pub(crate) fn try_from_cedar_template(
-        policy: &ast::Template,
+    pub(crate) fn try_from_cedar(
+        policy: &ast::StaticPolicy,
     ) -> Result<Self, Report<InvalidPolicy>> {
         Ok(Self {
             id: PolicyId::new(
@@ -170,7 +153,7 @@ impl Policy {
         })
     }
 
-    pub(crate) fn to_cedar(&self) -> ast::Template {
+    pub(crate) fn to_cedar_template(&self) -> ast::Template {
         let (resource_constraint, resource_expr) = self.resource.to_cedar();
         ast::Template::new(
             ast::PolicyID::from_string(self.id.to_string()),
@@ -187,6 +170,12 @@ impl Policy {
         )
     }
 
+    pub(crate) fn to_cedar_static_policy(
+        &self,
+    ) -> Result<ast::StaticPolicy, Report<ast::UnexpectedSlotError>> {
+        Ok(self.to_cedar_template().try_into()?)
+    }
+
     /// Parses a policy from a string.
     ///
     /// If `policy_id` is not provided, a new [`PolicyId`] will be generated.
@@ -199,41 +188,17 @@ impl Policy {
         text: &str,
         policy_id: Option<PolicyId>,
     ) -> Result<Self, Report<InvalidPolicy>> {
-        let (_, template) = parse_policy_or_template_to_est_and_ast(
-            Some(ast::PolicyID::from_string(
-                policy_id
-                    .unwrap_or_else(|| PolicyId::new(Uuid::new_v4()))
-                    .to_string(),
-            )),
-            text,
+        Self::try_from_cedar(
+            &parse_policy(
+                Some(ast::PolicyID::from_string(
+                    policy_id
+                        .unwrap_or_else(|| PolicyId::new(Uuid::new_v4()))
+                        .to_string(),
+                )),
+                text,
+            )
+            .change_context(InvalidPolicy::InvalidSyntax)?,
         )
-        .change_context(InvalidPolicy::InvalidSyntax)?;
-        Self::try_from_cedar_template(&template)
-    }
-
-    /// Evaluates the policy for the given request.
-    ///
-    /// # Errors
-    ///
-    /// - [`Error`] if the policy is invalid.
-    // TODO: Use `Report` instead of `Box<dyn Error>`
-    pub fn evaluate(&self, request: &Request) -> Result<bool, Box<dyn Error>> {
-        let cedar_policy = Arc::new(self.to_cedar());
-        let policy_id = cedar_policy.id().clone();
-        let policy = ast::Template::link(cedar_policy, policy_id, HashMap::new())?;
-
-        let entities = Entities::new().add_entities(
-            [
-                Arc::new(request.user.to_entity()?),
-                Arc::new(request.resource.to_entity()?),
-            ],
-            Some(&CoreSchema::new(&POLICY_SCHEMA)),
-            TCComputation::ComputeNow,
-            Extensions::none(),
-        )?;
-
-        let evaluator = Evaluator::new(request.to_cedar()?, &entities, Extensions::none());
-        Ok(evaluator.evaluate(&policy)?)
     }
 }
 
@@ -242,15 +207,16 @@ impl Policy {
 mod tests {
     use core::error::Error;
 
-    use cedar_policy_core::ast;
-    use cedar_policy_validator::{ValidationMode, Validator};
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
     use uuid::Uuid;
 
     use super::Policy;
-    use crate::{policies::POLICY_SCHEMA, test_utils::check_serialization};
+    use crate::{
+        policies::{Validator, set::PolicySet},
+        test_utils::check_serialization,
+    };
 
     #[track_caller]
     pub(crate) fn check_policy(
@@ -260,32 +226,19 @@ mod tests {
     ) -> Result<(), Box<dyn Error>> {
         check_serialization(policy, value);
 
-        let cedar_policy = policy.to_cedar();
+        let cedar_policy = policy.to_cedar_template();
 
         assert_eq!(cedar_policy.to_string(), cedar_string.as_ref());
-        if !policy.principal.has_slot() && !policy.resource.has_slot() {
-            Policy::try_from_cedar_template(&cedar_policy)?;
+
+        let mut policy_set = PolicySet::default();
+        if policy.principal.has_slot() || policy.resource.has_slot() {
+            policy_set.add_template(policy)?;
+        } else {
+            let static_policy = policy.to_cedar_static_policy()?;
+            policy_set.add_policy(&Policy::try_from_cedar(&static_policy)?)?;
         }
 
-        let mut policy_set = ast::PolicySet::new();
-        policy_set
-            .add_template(cedar_policy)
-            .expect("Should be able to add a policy to an empty policy set");
-        let result =
-            Validator::new((*POLICY_SCHEMA).clone()).validate(&policy_set, ValidationMode::Strict);
-        if !result.validation_passed() {
-            let messages = result
-                .validation_errors()
-                .map(|error| format!(" - error: {error}"))
-                .chain(
-                    result
-                        .validation_warnings()
-                        .map(|warning| format!(" - warning: {warning}")),
-                )
-                .collect::<Vec<String>>()
-                .join("\n");
-            panic!("Policy is invalid:\n{messages}");
-        }
+        Validator.validate_policy_set(&policy_set)?;
 
         Ok(())
     }
@@ -299,9 +252,12 @@ mod tests {
 
         use super::*;
         use crate::policies::{
-            ActionConstraint, ActionId, Effect, PolicyId, PrincipalConstraint, Request,
-            RequestContext, ResourceConstraint,
-            principal::user::{User, UserId, UserPrincipalConstraint},
+            ActionConstraint, ActionId, ContextBuilder, Effect, PolicyId, PrincipalConstraint,
+            Request, RequestContext, ResourceConstraint,
+            principal::{
+                Actor,
+                user::{User, UserId, UserPrincipalConstraint},
+            },
             resource::{EntityResource, EntityResourceConstraint, Resource},
         };
 
@@ -356,10 +312,11 @@ mod tests {
                 ),
             )?;
 
-            let actor = User {
+            let actor = Actor::User(User {
                 id: user_id,
                 roles: Vec::new(),
-            };
+            });
+            let actor_id = actor.id();
 
             let entity = Resource::Entity(EntityResource {
                 web_id: OwnedById::new(Uuid::new_v4()),
@@ -369,20 +326,35 @@ mod tests {
                         .expect("Invalid entity type URL"),
                 ]),
             });
+            let resource_id = entity.id();
 
-            assert!(policy.evaluate(&Request {
-                user: &actor,
-                action: ActionId::View,
-                resource: &entity,
-                context: RequestContext,
-            })?);
+            let context = ContextBuilder::default()
+                .with_actor(&actor)
+                .with_resource(&entity)
+                .build()?;
 
-            assert!(!policy.evaluate(&Request {
-                user: &actor,
-                action: ActionId::Update,
-                resource: &entity,
-                context: RequestContext,
-            })?);
+            let mut policy_set = PolicySet::default();
+            policy_set.add_policy(&policy)?;
+
+            assert!(policy_set.evaluate(
+                &Request {
+                    actor: actor_id,
+                    action: ActionId::View,
+                    resource: &resource_id,
+                    context: RequestContext,
+                },
+                &context
+            )?);
+
+            assert!(!policy_set.evaluate(
+                &Request {
+                    actor: actor_id,
+                    action: ActionId::Update,
+                    resource: &resource_id,
+                    context: RequestContext,
+                },
+                &context
+            )?);
 
             Ok(())
         }
