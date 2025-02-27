@@ -1,3 +1,5 @@
+use core::fmt;
+
 use cedar_policy_core::{
     ast,
     entities::{Entities, TCComputation},
@@ -5,7 +7,15 @@ use cedar_policy_core::{
 };
 use error_stack::{Report, ResultExt as _};
 
-use super::{Validator, principal::Actor, resource::Resource};
+use super::{
+    PolicyValidator,
+    principal::{
+        machine::Machine,
+        user::User,
+        web::{Web, WebRole},
+    },
+    resource::{EntityResource, EntityTypeResource, Resource},
+};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum ContextError {
@@ -13,9 +23,15 @@ pub enum ContextError {
     TransitiveClosureError,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Context {
     entities: Entities,
+}
+
+impl fmt::Debug for Context {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.entities, fmt)
+    }
 }
 
 impl Context {
@@ -31,15 +47,63 @@ pub struct ContextBuilder {
 }
 
 impl ContextBuilder {
+    pub fn add_machine(&mut self, machine: &Machine) {
+        self.entities.push(machine.to_cedar_entity());
+        self.entities.push(machine.entity.to_cedar_entity());
+    }
+
+    pub fn add_user(&mut self, user: &User) {
+        self.entities.push(user.to_cedar_entity());
+        self.entities.push(user.entity.to_cedar_entity());
+    }
+
+    pub fn add_resource(&mut self, resource: &Resource) {
+        self.entities.push(resource.to_cedar_entity());
+    }
+
+    pub fn add_entity(&mut self, entity: &EntityResource) {
+        self.entities.push(entity.to_cedar_entity());
+    }
+
+    pub fn add_entity_type(&mut self, entity_type: &EntityTypeResource) {
+        self.entities.push(entity_type.to_cedar_entity());
+    }
+
+    pub fn add_web(&mut self, web: &Web) {
+        self.entities.push(web.to_cedar_entity());
+    }
+
+    pub fn add_web_role(&mut self, web_role: &WebRole) {
+        self.entities.push(web_role.to_cedar_entity());
+    }
+
     #[must_use]
-    pub fn with_actor(mut self, actor: &Actor) -> Self {
-        self.entities.push(actor.to_cedar_entity());
+    pub fn with_user(mut self, user: &User) -> Self {
+        self.add_user(user);
+        self
+    }
+
+    #[must_use]
+    pub fn with_machine(mut self, machine: &Machine) -> Self {
+        self.add_machine(machine);
         self
     }
 
     #[must_use]
     pub fn with_resource(mut self, resource: &Resource) -> Self {
-        self.entities.push(resource.to_cedar_entity());
+        self.add_resource(resource);
+        self
+    }
+
+    #[must_use]
+    pub fn with_web(mut self, web: &Web) -> Self {
+        self.add_web(web);
+        self
+    }
+
+    #[must_use]
+    pub fn with_web_role(mut self, web_role: &WebRole) -> Self {
+        self.add_web_role(web_role);
         self
     }
 
@@ -54,7 +118,7 @@ impl ContextBuilder {
         Ok(Context {
             entities: Entities::from_entities(
                 self.entities,
-                Some(&Validator::core_schema()),
+                Some(&PolicyValidator::core_schema()),
                 TCComputation::ComputeNow,
                 Extensions::none(),
             )

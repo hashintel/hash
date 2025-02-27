@@ -1,13 +1,30 @@
 use alloc::sync::Arc;
-use core::{error::Error, fmt, str::FromStr as _};
-use std::sync::LazyLock;
+use core::{error::Error, fmt, iter, str::FromStr as _};
+use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::ast;
+use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use hash_graph_types::owned_by_id::OwnedById;
 use uuid::Uuid;
 
 use crate::policies::cedar::CedarEntityId;
+
+pub struct Web {
+    pub id: OwnedById,
+}
+
+impl Web {
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+        ast::Entity::new(
+            self.id.to_euid(),
+            iter::empty(),
+            HashSet::new(),
+            iter::empty(),
+            Extensions::none(),
+        )
+        .expect("web should be a valid Cedar entity")
+    }
+}
 
 impl CedarEntityId for OwnedById {
     fn entity_type() -> &'static Arc<ast::EntityType> {
@@ -22,6 +39,24 @@ impl CedarEntityId for OwnedById {
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+    }
+}
+
+pub struct WebRole {
+    pub web_id: OwnedById,
+    pub id: WebRoleId,
+}
+
+impl WebRole {
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+        ast::Entity::new(
+            self.id.to_euid(),
+            iter::empty(),
+            HashSet::from([self.web_id.to_euid()]),
+            iter::empty(),
+            Extensions::none(),
+        )
+        .expect("web role should be a valid Cedar entity")
     }
 }
 
