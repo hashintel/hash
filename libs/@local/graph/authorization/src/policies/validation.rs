@@ -33,9 +33,9 @@ static VALIDATOR: LazyLock<cedar_policy_validator::Validator> =
 pub struct PolicyValidationError;
 
 #[derive(Debug)]
-pub struct Validator;
+pub struct PolicyValidator;
 
-impl Validator {
+impl PolicyValidator {
     pub(crate) fn schema() -> &'static ValidatorSchema {
         &SCHEMA
     }
