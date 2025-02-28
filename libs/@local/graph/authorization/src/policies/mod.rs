@@ -2,6 +2,7 @@ pub mod action;
 pub mod error;
 pub mod principal;
 pub mod resource;
+pub mod store;
 
 mod cedar;
 mod context;
@@ -282,6 +283,7 @@ mod tests {
     mod serialization {
         use alloc::borrow::Cow;
         use core::{error::Error, str::FromStr as _};
+        use std::collections::HashSet;
 
         use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
         use type_system::url::VersionedUrl;
@@ -350,19 +352,17 @@ mod tests {
 
             let user = User {
                 id: user_id,
-                roles: Vec::new(),
-                entity: EntityResource {
-                    web_id: OwnedById::new(user_id.into_uuid()),
-                    id: entity_uuid,
-                    entity_type: Cow::Owned(vec![
-                        VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,
-                        VersionedUrl::from_str(
-                            "https://hash.ai/@hash/types/entity-type/actor/v/2",
-                        )?,
-                    ]),
-                },
+                roles: HashSet::new(),
             };
-            let resource_id = ResourceId::Entity(user.entity.id);
+            let user_entity = EntityResource {
+                web_id: OwnedById::new(user_id.into_uuid()),
+                id: entity_uuid,
+                entity_type: Cow::Owned(vec![
+                    VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,
+                    VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/actor/v/2")?,
+                ]),
+            };
+            let resource_id = ResourceId::Entity(user_entity.id);
             let context = ContextBuilder::default().with_user(&user).build()?;
 
             let actor_id = ActorId::User(user.id);

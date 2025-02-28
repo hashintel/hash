@@ -11,8 +11,9 @@ use super::{
     PolicyValidator,
     principal::{
         machine::Machine,
+        team::Team,
         user::User,
-        web::{Web, WebRole},
+        web::{Web, WebRole, WebTeam},
     },
     resource::{EntityResource, EntityTypeResource, Resource},
 };
@@ -49,12 +50,10 @@ pub struct ContextBuilder {
 impl ContextBuilder {
     pub fn add_machine(&mut self, machine: &Machine) {
         self.entities.push(machine.to_cedar_entity());
-        self.entities.push(machine.entity.to_cedar_entity());
     }
 
     pub fn add_user(&mut self, user: &User) {
         self.entities.push(user.to_cedar_entity());
-        self.entities.push(user.entity.to_cedar_entity());
     }
 
     pub fn add_resource(&mut self, resource: &Resource) {
@@ -71,6 +70,14 @@ impl ContextBuilder {
 
     pub fn add_web(&mut self, web: &Web) {
         self.entities.push(web.to_cedar_entity());
+    }
+
+    pub fn add_team(&mut self, team: &Team) {
+        self.entities.push(team.to_cedar_entity());
+    }
+
+    pub fn add_web_team(&mut self, web_team: &WebTeam) {
+        self.entities.push(web_team.to_cedar_entity());
     }
 
     pub fn add_web_role(&mut self, web_role: &WebRole) {

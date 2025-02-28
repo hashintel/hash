@@ -1,8 +1,8 @@
 use alloc::sync::Arc;
-use core::{error::Error, fmt, str::FromStr as _};
-use std::sync::LazyLock;
+use core::{error::Error, fmt, iter, str::FromStr as _};
+use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::ast;
+use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use uuid::Uuid;
 
@@ -56,6 +56,25 @@ impl CedarEntityId for TeamId {
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+    }
+}
+
+#[derive(Debug)]
+pub struct Team {
+    pub id: TeamId,
+    pub roles: HashSet<TeamRoleId>,
+}
+
+impl Team {
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+        ast::Entity::new(
+            self.id.to_euid(),
+            iter::empty(),
+            HashSet::new(),
+            iter::empty(),
+            Extensions::none(),
+        )
+        .expect("web team should be a valid Cedar entity")
     }
 }
 
