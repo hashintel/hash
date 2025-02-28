@@ -75,7 +75,7 @@
     "typescript": "5.7.3"
   },
   "devDependencies": {
-    "@apidevtools/json-schema-ref-parser": "11.9.2",
+    "@apidevtools/json-schema-ref-parser": "11.9.3",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.isequal": "4.5.8",
