@@ -2,6 +2,7 @@ pub mod action;
 pub mod error;
 pub mod principal;
 pub mod resource;
+pub mod store;
 
 mod cedar;
 mod context;
