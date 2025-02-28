@@ -47,6 +47,10 @@ pub struct ContextBuilder {
 }
 
 impl ContextBuilder {
+    pub(crate) fn add_cedar_entity(&mut self, entity: &ast::Entity) {
+        self.entities.push(entity.clone());
+    }
+
     pub fn add_machine(&mut self, machine: &Machine) {
         self.entities.push(machine.to_cedar_entity());
         self.entities.push(machine.entity.to_cedar_entity());

@@ -5,7 +5,7 @@
 
 use alloc::sync::Arc;
 use core::{error::Error, fmt, iter, str::FromStr as _};
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
@@ -71,7 +71,7 @@ impl CedarEntityId for MachineId {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Machine {
     pub id: MachineId,
-    pub roles: Vec<RoleId>,
+    pub roles: HashSet<RoleId>,
     pub entity: EntityResource<'static>,
 }
 
