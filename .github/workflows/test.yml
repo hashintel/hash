@@ -141,7 +141,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           temp_dir=$(mktemp -d)
-          gh release download chromium/6721 --repo bblanchon/pdfium-binaries --pattern 'pdfium-linux-x64.tgz' --dir $temp_dir
+          gh release download chromium/7033 --repo bblanchon/pdfium-binaries --pattern 'pdfium-linux-x64.tgz' --dir $temp_dir
           tar -xzf $temp_dir/pdfium-linux-x64.tgz -C $temp_dir
           mv $temp_dir/lib/* "${{ matrix.path }}/libs/"
           rm -rf $temp_dir
