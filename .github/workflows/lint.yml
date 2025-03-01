@@ -115,6 +115,8 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Rust dependencies
         if: always() && steps.lints.outputs.has-rust == 'true'
@@ -207,6 +209,8 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate package.json generated from Cargo.toml
         if: ${{ success() || failure() }}

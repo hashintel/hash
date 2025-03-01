@@ -11,6 +11,8 @@ jobs:
 
       - name: Warm up repo
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fix
         run: yarn fix

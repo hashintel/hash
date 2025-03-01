@@ -128,6 +128,8 @@ jobs:
       - name: Warm up repository
         if: steps.benches.outputs.create-baseline == 'true'
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Rust dependencies
         if: steps.benches.outputs.has-rust == 'true'
@@ -163,6 +165,8 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run head benches
         run: turbo run bench:unit --filter "${{ matrix.name }}"
@@ -280,6 +284,8 @@ jobs:
       - name: Warm up repository
         if: steps.benches.outputs.create-baseline == 'true'
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Rust dependencies
         if: steps.benches.outputs.has-rust == 'true'
@@ -330,6 +336,8 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Launch external services
         run: |

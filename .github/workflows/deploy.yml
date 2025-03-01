@@ -83,6 +83,8 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Sentry
         run: yarn sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
