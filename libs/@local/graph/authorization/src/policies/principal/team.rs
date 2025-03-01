@@ -1,8 +1,8 @@
 use alloc::sync::Arc;
-use core::{error::Error, fmt, iter, str::FromStr as _};
+use core::{error::Error, fmt, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::{ast, extensions::Extensions};
+use cedar_policy_core::ast;
 use error_stack::Report;
 use uuid::Uuid;
 
@@ -63,19 +63,6 @@ impl CedarEntityId for TeamId {
 pub struct Team {
     pub id: TeamId,
     pub roles: HashSet<TeamRoleId>,
-}
-
-impl Team {
-    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
-        ast::Entity::new(
-            self.id.to_euid(),
-            iter::empty(),
-            HashSet::new(),
-            iter::empty(),
-            Extensions::none(),
-        )
-        .expect("web team should be a valid Cedar entity")
-    }
 }
 
 #[derive(

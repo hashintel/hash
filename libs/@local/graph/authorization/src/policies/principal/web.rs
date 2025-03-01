@@ -19,19 +19,6 @@ pub struct Web {
     pub teams: HashMap<WebTeamId, WebTeam>,
 }
 
-impl Web {
-    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
-        ast::Entity::new(
-            self.id.to_euid(),
-            iter::empty(),
-            HashSet::new(),
-            iter::empty(),
-            Extensions::none(),
-        )
-        .expect("web team should be a valid Cedar entity")
-    }
-}
-
 #[derive(Debug)]
 pub struct WebTeam {
     pub id: WebTeamId,

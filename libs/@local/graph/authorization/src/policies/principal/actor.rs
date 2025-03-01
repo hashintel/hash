@@ -24,10 +24,10 @@ impl ActorId {
 }
 
 impl fmt::Display for ActorId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::User(id) => fmt::Display::fmt(id, f),
-            Self::Machine(id) => fmt::Display::fmt(id, f),
+            Self::User(id) => fmt::Display::fmt(id, fmt),
+            Self::Machine(id) => fmt::Display::fmt(id, fmt),
         }
     }
 }

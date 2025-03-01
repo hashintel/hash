@@ -363,7 +363,9 @@ mod tests {
                 ]),
             };
             let resource_id = ResourceId::Entity(user_entity.id);
-            let context = ContextBuilder::default().with_user(&user).build()?;
+            let mut context = ContextBuilder::default();
+            context.add_entity(&user_entity);
+            let context = context.build()?;
 
             let actor_id = ActorId::User(user.id);
 
