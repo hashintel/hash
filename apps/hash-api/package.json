@@ -119,7 +119,7 @@
     "@types/express-http-proxy": "1.6.6",
     "@types/html-to-text": "8.1.1",
     "@types/jsonpath": "0.2.4",
-    "@types/lodash": "4.17.15",
+    "@types/lodash": "4.17.16",
     "@types/mailchimp__mailchimp_marketing": "3.0.21",
     "@types/md5": "2.3.5",
     "@types/mime-types": "2.1.4",
