@@ -11,10 +11,13 @@ runs:
   using: composite
 
   steps:
-    - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+    - name: Install Tools
+      uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
       with:
-        node-version: 22 ## aligned with Node version on Vercel
-        # cache: yarn ## Currently disabled because of frequent timeouts
+        install_args: --jobs 1
+      env:
+        MISE_NODE_COREPACK: 1
+        GITHUB_TOKEN: ${{ inputs.token }}
 
     - name: Install WASM tools
       uses: taiki-e/install-action@3c8fc6eaa5fcff049bb133c1f540c6c2287a191f # v2.49.10
@@ -34,7 +37,6 @@ runs:
         command: |
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
           export YARN_ENABLE_HARDENED_MODE=0
-          corepack enable
           yarn install --immutable
 
     - name: npx playwright install
