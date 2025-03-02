@@ -11,10 +11,12 @@ runs:
   using: composite
 
   steps:
-    - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+    - name: Install Tools
+      uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
       with:
-        node-version: 22 ## aligned with Node version on Vercel
-        # cache: yarn ## Currently disabled because of frequent timeouts
+        install_args: --jobs 1
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
 
     - name: Install WASM tools
       uses: taiki-e/install-action@2dbeb927f58939d3aa13bf06ba0c0a34b76b9bfb # v2.48.20
