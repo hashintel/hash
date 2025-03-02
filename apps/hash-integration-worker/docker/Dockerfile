@@ -84,9 +84,9 @@ WORKDIR /usr/local/src/apps/hash-integration-worker
 RUN mise install node yarn && \
     groupadd --system --gid 60000 hash && \
     useradd --system integrationworker -G hash && \
-    install -d -m 0775 -o integrationworker -g hash /log /home/integrationworker && \
+    install -d -m 0775 -o integrationworker -g hash /log /home/integrationworker
 
-    ENTRYPOINT [ "yarn"]
+ENTRYPOINT [ "yarn"]
 CMD ["start"]
 
 USER integrationworker:hash

@@ -84,9 +84,9 @@ WORKDIR /usr/local/src/apps/hash-api
 RUN mise install node yarn && \
     groupadd --system --gid 60000 hash && \
     useradd --system api -G hash && \
-    install -d -m 0775 -o api -g hash /log /home/api officeParserTemp/tempfiles && \
+    install -d -m 0775 -o api -g hash /log /home/api officeParserTemp/tempfiles
 
-    ENTRYPOINT [ "yarn"]
+ENTRYPOINT [ "yarn"]
 CMD ["start"]
 
 USER api:hash
