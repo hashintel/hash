@@ -7,7 +7,7 @@ use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
 use hash_graph_types::owned_by_id::OwnedById;
 
-pub use self::actor::ActorId;
+pub use self::actor::{Actor, ActorId};
 use self::{
     machine::{MachineId, MachinePrincipalConstraint},
     team::{TeamId, TeamPrincipalConstraint, TeamRoleId},

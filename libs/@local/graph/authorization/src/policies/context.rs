@@ -12,9 +12,9 @@ use super::{
     principal::{
         machine::Machine,
         user::User,
-        web::{Web, WebRole},
+        web::{WebRole, WebTeam},
     },
-    resource::{EntityResource, EntityTypeResource, Resource},
+    resource::{EntityResource, EntityTypeResource},
 };
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -49,16 +49,18 @@ pub struct ContextBuilder {
 impl ContextBuilder {
     pub fn add_machine(&mut self, machine: &Machine) {
         self.entities.push(machine.to_cedar_entity());
-        self.entities.push(machine.entity.to_cedar_entity());
     }
 
     pub fn add_user(&mut self, user: &User) {
         self.entities.push(user.to_cedar_entity());
-        self.entities.push(user.entity.to_cedar_entity());
     }
 
-    pub fn add_resource(&mut self, resource: &Resource) {
-        self.entities.push(resource.to_cedar_entity());
+    pub fn add_web_team(&mut self, web_team: &WebTeam) {
+        self.entities.push(web_team.to_cedar_entity());
+    }
+
+    pub fn add_web_role(&mut self, web_role: &WebRole) {
+        self.entities.push(web_role.to_cedar_entity());
     }
 
     pub fn add_entity(&mut self, entity: &EntityResource) {
@@ -67,44 +69,6 @@ impl ContextBuilder {
 
     pub fn add_entity_type(&mut self, entity_type: &EntityTypeResource) {
         self.entities.push(entity_type.to_cedar_entity());
-    }
-
-    pub fn add_web(&mut self, web: &Web) {
-        self.entities.push(web.to_cedar_entity());
-    }
-
-    pub fn add_web_role(&mut self, web_role: &WebRole) {
-        self.entities.push(web_role.to_cedar_entity());
-    }
-
-    #[must_use]
-    pub fn with_user(mut self, user: &User) -> Self {
-        self.add_user(user);
-        self
-    }
-
-    #[must_use]
-    pub fn with_machine(mut self, machine: &Machine) -> Self {
-        self.add_machine(machine);
-        self
-    }
-
-    #[must_use]
-    pub fn with_resource(mut self, resource: &Resource) -> Self {
-        self.add_resource(resource);
-        self
-    }
-
-    #[must_use]
-    pub fn with_web(mut self, web: &Web) -> Self {
-        self.add_web(web);
-        self
-    }
-
-    #[must_use]
-    pub fn with_web_role(mut self, web_role: &WebRole) -> Self {
-        self.add_web_role(web_role);
-        self
     }
 
     /// Builds the context.

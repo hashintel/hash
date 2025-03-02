@@ -5,16 +5,14 @@
 
 use alloc::sync::Arc;
 use core::{error::Error, fmt, iter, str::FromStr as _};
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use uuid::Uuid;
 
 use super::{InPrincipalConstraint, TeamPrincipalConstraint, role::RoleId};
-use crate::policies::{
-    cedar::CedarEntityId, principal::web::WebPrincipalConstraint, resource::EntityResource,
-};
+use crate::policies::{cedar::CedarEntityId, principal::web::WebPrincipalConstraint};
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
@@ -71,8 +69,7 @@ impl CedarEntityId for MachineId {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Machine {
     pub id: MachineId,
-    pub roles: Vec<RoleId>,
-    pub entity: EntityResource<'static>,
+    pub roles: HashSet<RoleId>,
 }
 
 impl Machine {

@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 use core::{error::Error, fmt, str::FromStr as _};
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::ast;
 use error_stack::Report;
@@ -57,6 +57,12 @@ impl CedarEntityId for TeamId {
     fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
     }
+}
+
+#[derive(Debug)]
+pub struct Team {
+    pub id: TeamId,
+    pub roles: HashSet<TeamRoleId>,
 }
 
 #[derive(

@@ -38,8 +38,7 @@ fn check_policy(policy: &Policy) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[expect(clippy::panic_in_result_fn)]
-pub(crate) fn forbid_update_web_machine() -> Result<Vec<Policy>, Box<dyn Error>> {
+pub(crate) fn forbid_update_web_machine() -> Vec<Policy> {
     const POLICIES: &str = include_str!("forbid-update-web-machine.cedar");
 
     let policies = vec![Policy {
@@ -53,7 +52,8 @@ pub(crate) fn forbid_update_web_machine() -> Result<Vec<Policy>, Box<dyn Error>>
             filter: Some(EntityResourceFilter::IsType {
                 entity_type: VersionedUrl::from_str(
                     "https://hash.ai/@h/types/entity-type/machine/v/2",
-                )?,
+                )
+                .expect("should be a valid URL"),
             }),
         }),
         constraints: None,
@@ -65,18 +65,17 @@ pub(crate) fn forbid_update_web_machine() -> Result<Vec<Policy>, Box<dyn Error>>
         .enumerate()
     {
         assert_eq!(
-            parse_policy_or_template(None, cedar_policy_string)?.to_string(),
+            parse_policy_or_template(None, cedar_policy_string)
+                .expect("should be a valid policy")
+                .to_string(),
             format!("{:?}", policies[index]),
         );
     }
 
-    Ok(policies)
+    policies
 }
 
-pub(crate) fn permit_admin_web(
-    web_id: OwnedById,
-    admin_role: WebRoleId,
-) -> Result<Vec<Policy>, Box<dyn Error>> {
+pub(crate) fn permit_admin_web(web_id: OwnedById, admin_role: WebRoleId) -> Vec<Policy> {
     const POLICIES: &str = include_str!("permit-admin-web.cedar");
 
     #[expect(clippy::literal_string_with_formatting_args)]
@@ -84,19 +83,20 @@ pub(crate) fn permit_admin_web(
         &POLICIES
             .replace("{web_id}", &web_id.to_string())
             .replace("{role_id}", &admin_role.to_string()),
-    )?;
+    )
+    .expect("should be a valid policy");
     for policy in &policies {
-        check_policy(policy)?;
+        check_policy(policy).expect("should be a valid policy");
     }
 
-    Ok(policies)
+    policies
 }
 
 pub(crate) fn permit_hash_instance_admins(
     admin_role: TeamRoleId,
     member_role: TeamRoleId,
     hash_instance_entity_id: EntityUuid,
-) -> Result<Vec<Policy>, Box<dyn Error>> {
+) -> Vec<Policy> {
     const POLICIES: &str = include_str!("permit-hash-instance-admins.cedar");
 
     let policies = Policy::parse_cedar_policies(
@@ -104,18 +104,16 @@ pub(crate) fn permit_hash_instance_admins(
             .replace("{admin_role_id}", &admin_role.to_string())
             .replace("{member_role_id}", &member_role.to_string())
             .replace("{entity_id}", &hash_instance_entity_id.to_string()),
-    )?;
+    )
+    .expect("should be a valid policy");
     for policy in &policies {
-        check_policy(policy)?;
+        check_policy(policy).expect("should be a valid policy");
     }
 
-    Ok(policies)
+    policies
 }
 
-#[expect(clippy::panic_in_result_fn)]
-pub(crate) fn permit_instantiate(
-    system_machine_id: MachineId,
-) -> Result<Vec<Policy>, Box<dyn Error>> {
+pub(crate) fn permit_instantiate(system_machine_id: MachineId) -> Vec<Policy> {
     const POLICIES: &str = include_str!("permit-instantiate.cedar");
 
     let policies = vec![
@@ -133,23 +131,27 @@ pub(crate) fn permit_instantiate(
                             EntityTypeResourceFilter::IsBaseUrl {
                                 base_url: BaseUrl::new(
                                     "https://hash.ai/@h/types/entity-type/machine/".to_owned(),
-                                )?,
+                                )
+                                .expect("should be a valid URL"),
                             },
                             EntityTypeResourceFilter::IsBaseUrl {
                                 base_url: BaseUrl::new(
                                     "https://hash.ai/@h/types/entity-type/user/".to_owned(),
-                                )?,
+                                )
+                                .expect("should be a valid URL"),
                             },
                             EntityTypeResourceFilter::IsBaseUrl {
                                 base_url: BaseUrl::new(
                                     "https://hash.ai/@h/types/entity-type/organization/".to_owned(),
-                                )?,
+                                )
+                                .expect("should be a valid URL"),
                             },
                             EntityTypeResourceFilter::IsBaseUrl {
                                 base_url: BaseUrl::new(
                                     "https://hash.ai/@h/types/entity-type/hash-instance/"
                                         .to_owned(),
-                                )?,
+                                )
+                                .expect("should be a valid URL"),
                             },
                         ],
                     }),
@@ -181,18 +183,17 @@ pub(crate) fn permit_instantiate(
         .enumerate()
     {
         assert_eq!(
-            parse_policy_or_template(None, cedar_policy_string)?.to_string(),
+            parse_policy_or_template(None, cedar_policy_string)
+                .expect("should be a valid policy")
+                .to_string(),
             format!("{:?}", policies[index]),
         );
     }
 
-    Ok(policies)
+    policies
 }
 
-pub(crate) fn permit_member_crud_web(
-    web_id: OwnedById,
-    member_role: WebRoleId,
-) -> Result<Vec<Policy>, Box<dyn Error>> {
+pub(crate) fn permit_member_crud_web(web_id: OwnedById, member_role: WebRoleId) -> Vec<Policy> {
     const POLICIES: &str = include_str!("permit-member-crud-web.cedar");
 
     #[expect(clippy::literal_string_with_formatting_args)]
@@ -200,28 +201,27 @@ pub(crate) fn permit_member_crud_web(
         &POLICIES
             .replace("{web_id}", &web_id.to_string())
             .replace("{role_id}", &member_role.to_string()),
-    )?;
+    )
+    .expect("should be a valid policy");
     for policy in &policies {
-        check_policy(policy)?;
+        check_policy(policy).expect("should be a valid policy");
     }
 
-    Ok(policies)
+    policies
 }
 
-pub(crate) fn permit_view_ontology() -> Result<Vec<Policy>, Box<dyn Error>> {
+pub(crate) fn permit_view_ontology() -> Vec<Policy> {
     const POLICIES: &str = include_str!("permit-view-ontology.cedar");
 
-    let policies = Policy::parse_cedar_policies(POLICIES)?;
+    let policies = Policy::parse_cedar_policies(POLICIES).expect("should be a valid policy");
     for policy in &policies {
-        check_policy(policy)?;
+        check_policy(policy).expect("should be a valid policy");
     }
 
-    Ok(policies)
+    policies
 }
 
-pub(crate) fn permit_view_system_entities(
-    system_web_id: OwnedById,
-) -> Result<Vec<Policy>, Box<dyn Error>> {
+pub(crate) fn permit_view_system_entities(system_web_id: OwnedById) -> Vec<Policy> {
     const POLICIES: &str = include_str!("permit-view-system-entities.cedar");
 
     let policies = vec![
@@ -248,10 +248,12 @@ pub(crate) fn permit_view_system_entities(
             resource: ResourceConstraint::Entity(EntityResourceConstraint::Any {
                 filter: Some(EntityResourceFilter::IsAnyType {
                     entity_types: vec![
-                        VersionedUrl::from_str("https://hash.ai/@h/types/entity-type/actor/v/2")?,
+                        VersionedUrl::from_str("https://hash.ai/@h/types/entity-type/actor/v/2")
+                            .expect("should be a valid URL"),
                         VersionedUrl::from_str(
                             "https://hash.ai/@h/types/entity-type/organization/v/2",
-                        )?,
+                        )
+                        .expect("should be a valid URL"),
                     ],
                 }),
             }),
@@ -267,10 +269,12 @@ pub(crate) fn permit_view_system_entities(
         .enumerate()
     {
         assert_eq!(
-            parse_policy_or_template(None, cedar_policy_string)?.to_string(),
+            parse_policy_or_template(None, cedar_policy_string)
+                .expect("should be a valid policy")
+                .to_string(),
             format!("{:?}", policies[index]),
         );
     }
 
-    Ok(policies)
+    policies
 }
