@@ -112,7 +112,7 @@
     "npm-run-all2": "7.0.2",
     "turbo": "2.4.4"
   },
-  "packageManager": "yarn@4.6.0",
+  "packageManager": "yarn@4.7.0",
   "engines": {
     "node": ">= v22"
   }
