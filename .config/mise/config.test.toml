@@ -2,6 +2,3 @@
 _.file = [".env.test", ".env.test.local"]
 
 NODE_ENV = "test"
-
-[tools]
-'npm:vitest' = "2.1.9"

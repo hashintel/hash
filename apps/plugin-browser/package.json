@@ -15,9 +15,9 @@
     ]
   },
   "scripts": {
-    "build": "yarn lint:tsc && mise exec --env prod node -- node utils/build.js",
+    "build": "yarn lint:tsc && NODE_ENV=production node utils/build.js",
     "build:firefox": "yarn lint:tsc && BROWSER=firefox NODE_ENV=production node utils/build.js",
-    "build:test": "yarn lint:tsc && mise exec --env test node -- node utils/build.js",
+    "build:test": "yarn lint:tsc && NODE_ENV=test node utils/build.js",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "NODE_ENV=development node utils/webserver.js",
     "dev:firefox": "BROWSER=firefox node utils/webserver.js",

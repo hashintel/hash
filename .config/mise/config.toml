@@ -1,8 +1,6 @@
 [env]
 _.file = [".env", ".env.local"]
 
-NODE_OPTIONS = "--max-old-space-size=2048"
-
 [tools]
 java = "24"
 node = "22.14.0"

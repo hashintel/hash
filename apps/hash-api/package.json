@@ -20,7 +20,7 @@
     "start:test": "NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
     "start:test:healthcheck": "wait-on --timeout 300000 http://localhost:5001",
     "start:test:migrate": "NODE_ENV=test tsx ./src/ensure-system-graph-is-initialized.ts",
-    "test:unit": "mise exec --env test npm:vitest -- vitest --run"
+    "test:unit": "vitest --run"
   },
   "dependencies": {
     "@apps/hash-graph": "0.0.0-private",

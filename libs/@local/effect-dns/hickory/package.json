@@ -15,7 +15,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "regenerate-packages": "napi create-npm-dir --target=.",
-    "test:unit": "mise exec --env test npm:vitest -- vitest --run"
+    "test:unit": "vitest --run"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",

@@ -20,7 +20,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test:unit": "mise exec --env test npm:vitest -- vitest --run"
+    "test:unit": "vitest --run"
   },
   "dependencies": {
     "@chainsafe/libp2p-noise": "16.0.3",
