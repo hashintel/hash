@@ -1,14 +1,18 @@
-FROM alpine:3.21 AS mise
+FROM bitnami/minideb:bookworm AS mise
 
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
+ENV MISE_NODE_COREPACK=1
 ENV PATH="/mise/shims:$PATH"
 
-RUN apk add --no-cache curl bash && \
-    curl https://mise.run | sh
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends bash curl ca-certificates && \
+    curl https://mise.run | sh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-SHELL [ "/bin/bash", "-euo", "pipefail", "-c" ]
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 COPY .config/mise /etc/mise
 
@@ -19,8 +23,8 @@ FROM mise AS base
 
 WORKDIR /app
 
-RUN apk add --no-cache npm && \
-    mise use --global npm:turbo yq
+RUN mise install node && \
+    mise use --global yq npm:turbo@$(jq -r '.devDependencies.turbo' < package.json)
 
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
@@ -29,7 +33,7 @@ RUN turbo prune --scope='@apps/hash-graph' --docker && \
     [ -f "/app/out/full/$1" ] || ( \
     mkdir -p "/app/out/full/$(dirname "$1")/src" &&  \
     echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
-    echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
+    printf "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
     )' _ {} \; && \
     cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
@@ -42,8 +46,7 @@ ENV MISE_CARGO_HOME="/usr/local/cargo" \
     PATH="$PATH:/usr/local/cargo/bin"
 
 COPY rust-toolchain.toml .
-RUN apk add --no-cache gcc && \
-    mise use --global yq && \
+RUN mise use --global yq && \
     mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml) && \
     rm rust-toolchain.toml
 
@@ -57,9 +60,12 @@ COPY --from=base /app/out/yarn.lock ./yarn.lock
 COPY --from=base /app/out/full/.yarn .yarn
 COPY --from=base /app/out/full/turbo.json turbo.json
 
-RUN mise install yarn && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential musl-tools && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    mise install node && \
     mise use --global protoc && \
-    apk add --no-cache gcc musl-dev npm && \
     yarn install --immutable && \
     yarn cache clean
 
@@ -80,7 +86,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     export PROFILE=dev-llvm; \
     fi && \
     FEATURES=${FEATURES[@]} && \
-    cargo install --path apps/hash-graph --root /tmp --features "${FEATURES// /,}" --profile $PROFILE --locked && \
+    rustup target add "$(uname -m)-unknown-linux-musl" && \
+    cargo install --target "$(uname -m)-unknown-linux-musl" --path apps/hash-graph --root /tmp --features "${FEATURES// /,}" --profile $PROFILE --locked && \
     mkdir -p /out/etc && \
     cp /tmp/bin/hash-graph /out/hash-graph && \
     echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd && \

@@ -64,7 +64,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install node yarn java && \
+    mise install node java && \
     yarn install --immutable && \
     yarn cache clean
 
