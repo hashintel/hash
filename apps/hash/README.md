@@ -46,23 +46,15 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
 ### Running HASH locally
 
-To run HASH locally, please follow these steps:
-
-1. Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Rust](https://www.rust-lang.org), [Docker](https://docs.docker.com/get-docker/), [Protobuf](https://github.com/protocolbuffers/protobuf), and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
+1. Make sure you have, [Git](https://git-scm.com), [Rust](https://www.rust-lang.org), [Docker](https://docs.docker.com/get-docker/), and [Protobuf](https://github.com/protocolbuffers/protobuf). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
    Run each of these version commands and make sure the output is expected:
 
    ```sh
    git --version
    ## ≥ 2.17
 
-   node --version
-   ## ≥ 20.12
-
-   yarn --version
-   ## ≥ 1.16
-
    rustup --version
-   ## ≥ 1.27.1 (Required to match the toolchain as specified in `rust-toolchain.toml`)
+   ## ≥ 1.27.1 (Required to match the toolchain as specified in `rust-toolchain.toml`, lower versions most likely will work as well)
 
    docker --version
    ## ≥ 20.10
@@ -75,9 +67,6 @@ To run HASH locally, please follow these steps:
 
    protoc --version
    ## ≥ 25
-
-   java --version
-   ## ≥ 8
    ```
 
    If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
@@ -86,13 +75,21 @@ To run HASH locally, please follow these steps:
 
 1. [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
 
+1. We use [mise-en-place](https://mise.jdx.dev/) to manage tool versions consistently across our codebase. We recommend using `mise` to automatically install and manage the required development tools:
+
+   ```sh
+   mise install
+   ```
+
+   It's also possible to install them manually, use the correct versions for these tools as specified in `.config/mise`.
+
 1. Enable [corepack](https://nodejs.org/api/corepack.html):
 
-```sh
-corepack enable
-```
+   ```sh
+   corepack enable
+   ```
 
-You might need to re-create your shell.
+   You might need to re-create your shell.
 
 1. Install dependencies:
 

@@ -6,5 +6,4 @@ runs:
   steps:
     - name: Install turbo
       shell: bash
-      # `yarn global add` does not exist in yarn berry, instead you're supposed to use `yarn dlx` for oneshot scripts and `npm install -g` for global installs (if required)
       run: npm install -g "turbo@$(jq -r '.devDependencies.turbo' < package.json)"

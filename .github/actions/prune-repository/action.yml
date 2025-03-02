@@ -8,9 +8,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Enable corepack
-      uses: ./.github/actions/enable-corepack
-
     - name: Install turbo
       uses: ./.github/actions/install-turbo
 

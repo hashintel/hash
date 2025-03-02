@@ -117,6 +117,7 @@
 
     // Manifest files
     "*.lock",
+    ".config/mise/**",
     "Cargo.toml",
     "package.json",
     "pyproject.toml",

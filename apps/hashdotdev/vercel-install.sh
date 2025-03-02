@@ -3,6 +3,11 @@
 echo "Changing dir to root"
 cd ../..
 
+echo "installing mise"
+yum install -y yum-utils
+yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
+yum install -y mise
+
 echo "Installing prerequisites"
 yum install -y jq
 
