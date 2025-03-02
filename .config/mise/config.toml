@@ -1,3 +1,12 @@
+[env]
+_.file = [".env", ".env.local"]
+
+NODE_OPTIONS = "--max-old-space-size=2048"
+
 [tools]
-java = '24'
-node = '22.14.0'
+java = "24"
+node = "22.14.0"
+
+[tasks.sync-turborepo]
+description = "Sync the turborepo"
+run         = "cargo -Zscript run --manifest-path .github/scripts/rust/sync-turborepo.rs | xargs yarn fix:package-json"

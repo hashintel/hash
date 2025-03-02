@@ -1,4 +1,4 @@
-FROM bitnami/minideb:bookworm AS mise
+FROM debian:12.9-slim AS mise
 
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"

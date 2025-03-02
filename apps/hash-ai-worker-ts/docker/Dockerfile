@@ -1,4 +1,4 @@
-FROM bitnami/minideb:bookworm AS mise
+FROM debian:12.9-slim AS mise
 
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
@@ -105,6 +105,5 @@ CMD ["start"]
 
 USER tsworker:hash
 ENV NODE_ENV=production
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4100/health || exit 1

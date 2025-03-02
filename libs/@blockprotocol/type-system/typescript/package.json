@@ -48,7 +48,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "prepublishOnly": "yarn build:wasm && yarn test && yarn build:bundle",
-    "test:unit": "vitest --run"
+    "test:unit": "mise exec --env test npm:vitest -- vitest --run"
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private"

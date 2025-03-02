@@ -20,7 +20,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test:unit": "vitest --run"
+    "test:unit": "mise exec --env test npm:vitest -- vitest --run"
   },
   "dependencies": {
     "@blockprotocol/graph": "0.4.0-canary.0",
