@@ -25,11 +25,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@anthropic-ai/bedrock-sdk@npm:0.11.2":
-  version: 0.11.2
-  resolution: "@anthropic-ai/bedrock-sdk@npm:0.11.2"
+"@anthropic-ai/bedrock-sdk@npm:0.12.4":
+  version: 0.12.4
+  resolution: "@anthropic-ai/bedrock-sdk@npm:0.12.4"
   dependencies:
-    "@anthropic-ai/sdk": "npm:^0"
+    "@anthropic-ai/sdk": "npm:>=0.36 <1"
     "@aws-crypto/sha256-js": "npm:^4.0.0"
     "@aws-sdk/client-bedrock-runtime": "npm:^3.423.0"
     "@aws-sdk/credential-providers": "npm:^3.341.0"
@@ -40,11 +40,11 @@ __metadata:
     "@smithy/smithy-client": "npm:^2.1.9"
     "@smithy/types": "npm:^2.3.4"
     "@smithy/util-base64": "npm:^2.0.0"
-  checksum: 10c0/08534d8bc3a0887150d1e244e9f853d53e82b1b3fef871dc496b2095e71760373c6f0e54fd915db0d73913dd37ee2fc06206c6ac7a0b39de7628e21d47834a22
+  checksum: 10c0/c02c7c5818a9b1e7728084d1456acff2dfaf0420a05abbafb3e67ed125d5d4c5978d782ac8e3fb6fcf0a89038143e79498aa6d522906a6f8d9f2a5618d098c7a
   languageName: node
   linkType: hard
 
-"@anthropic-ai/sdk@npm:0.32.1, @anthropic-ai/sdk@npm:^0":
+"@anthropic-ai/sdk@npm:0.32.1":
   version: 0.32.1
   resolution: "@anthropic-ai/sdk@npm:0.32.1"
   dependencies:
@@ -56,6 +56,21 @@ __metadata:
     formdata-node: "npm:^4.3.2"
     node-fetch: "npm:^2.6.7"
   checksum: 10c0/a8924ada337b676e473d4fe1a06a0099f9ae6e50ffeca62ed01a5a1bf6d465cd0ee10d64c0f45b85d849836e9221b399b33d697acae7fe1c5a7f18c9949959e1
+  languageName: node
+  linkType: hard
+
+"@anthropic-ai/sdk@npm:0.39.0, @anthropic-ai/sdk@npm:>=0.36 <1":
+  version: 0.39.0
+  resolution: "@anthropic-ai/sdk@npm:0.39.0"
+  dependencies:
+    "@types/node": "npm:^18.11.18"
+    "@types/node-fetch": "npm:^2.6.4"
+    abort-controller: "npm:^3.0.0"
+    agentkeepalive: "npm:^4.2.1"
+    form-data-encoder: "npm:1.7.2"
+    formdata-node: "npm:^4.3.2"
+    node-fetch: "npm:^2.6.7"
+  checksum: 10c0/f3832ccf8af33fedd4dcb459804ccbebc84fa20b93ef39df1855060d6567444aa7ae83ea8dae09ca1f719f60ddf800b168f36f10dccaa3cab5e231e8adeb3a71
   languageName: node
   linkType: hard
 
@@ -265,8 +280,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@apps/hash-ai-worker-ts@workspace:apps/hash-ai-worker-ts"
   dependencies:
-    "@anthropic-ai/bedrock-sdk": "npm:0.11.2"
-    "@anthropic-ai/sdk": "npm:0.32.1"
+    "@anthropic-ai/bedrock-sdk": "npm:0.12.4"
+    "@anthropic-ai/sdk": "npm:0.39.0"
     "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
