@@ -23,8 +23,8 @@ FROM mise AS base
 
 WORKDIR /app
 
-RUN mise install node && \
-    mise use --global yq npm:turbo@$(jq -r '.devDependencies.turbo' < package.json)
+RUN mise install node npm:turbo && \
+    mise use --global yq
 
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member

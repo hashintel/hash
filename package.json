@@ -109,8 +109,7 @@
     "@yarnpkg/types": "^4.0.0",
     "lefthook": "1.11.2",
     "markdownlint-cli2": "0.17.2",
-    "npm-run-all2": "7.0.2",
-    "turbo": "2.4.4"
+    "npm-run-all2": "7.0.2"
   },
   "packageManager": "yarn@4.7.0",
   "engines": {

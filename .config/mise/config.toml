@@ -5,6 +5,8 @@ _.file = [".env", ".env.local"]
 java = "24"
 node = "22.14.0"
 
+'npm:turbo' = "2.4.4"
+
 [tasks.sync-turborepo]
 description = "Sync the turborepo"
 run         = "cargo -Zscript run --manifest-path .github/scripts/rust/sync-turborepo.rs | xargs yarn fix:package-json"

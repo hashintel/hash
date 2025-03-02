@@ -9,7 +9,9 @@ runs:
   using: "composite"
   steps:
     - name: Install turbo
-      uses: ./.github/actions/install-turbo
+      uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
+      with:
+        install_args: npm:turbo
 
     - name: Prune repository
       shell: bash

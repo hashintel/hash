@@ -33,7 +33,9 @@ jobs:
           fetch-depth: 2
 
       - name: Install turbo
-        uses: ./.github/actions/install-turbo
+        uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
+        with:
+          install_args: npm:turbo
 
       - name: Determine changed packages
         id: packages
@@ -102,28 +104,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Install turbo
-        uses: ./.github/actions/install-turbo
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.name }}
 
       - name: Find test steps to run
         id: tests
         run: |
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
-          if [[ $HAS_RUST = 'true' ]]; then
-            if [[ -f "${{ matrix.path }}/rust-toolchain.toml" ]]; then
-              RUST_TOOLCHAIN_FILE="${{ matrix.path }}/rust-toolchain.toml"
-            else
-              RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
-            fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
-          fi
-
-      - name: Prune repository
-        uses: ./.github/actions/prune-repository
-        with:
-          scope: ${{ matrix.name }}
 
       - name: Install Protobuf
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -141,23 +131,16 @@ jobs:
           rm -rf $temp_dir
           echo "PDFIUM_DYNAMIC_LIB_PATH=$(pwd)/${{ matrix.path }}/libs/" >> $GITHUB_ENV
 
-      - name: Install Rust toolchain
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: ./.github/actions/install-rust-toolchain
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
         with:
-          toolchain: ${{ steps.tests.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.path }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: taiki-e/install-action@3c8fc6eaa5fcff049bb133c1f540c6c2287a191f # v2.49.10
         with:
           tool: just@1.34.0,cargo-hack@0.6.30,cargo-nextest@0.9.72,cargo-llvm-cov@0.6.11
-
-      - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -225,9 +208,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Install turbo
-        uses: ./.github/actions/install-turbo
-
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
@@ -259,22 +239,16 @@ jobs:
       - name: Create temp files and folders
         run: mkdir -p var/logs
 
-      - name: Install Rust toolchain
-        uses: ./.github/actions/install-rust-toolchain
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
         with:
-          toolchain: ${{ steps.tests.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.path }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Rust tools
         if: steps.tests.outputs.has-rust == 'true'
         uses: taiki-e/install-action@3c8fc6eaa5fcff049bb133c1f540c6c2287a191f # v2.49.10
         with:
           tool: just@1.34.0,cargo-hack@0.6.30,cargo-nextest@0.9.72,cargo-llvm-cov@0.6.11
-
-      - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Protobuf
         run: sudo apt install protobuf-compiler
@@ -404,21 +378,6 @@ jobs:
         run: |
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
-          if [[ $HAS_RUST = 'true' ]]; then
-            if [[ -f "${{ matrix.path }}/rust-toolchain.toml" ]]; then
-              RUST_TOOLCHAIN_FILE="${{ matrix.path }}/rust-toolchain.toml"
-            else
-              RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
-            fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
-          fi
-
-      - name: Install Rust toolchain
-        if: always() && steps.publish.outputs.has-rust == 'true'
-        uses: ./.github/actions/install-rust-toolchain
-        with:
-          toolchain: ${{ steps.publish.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.path }}
 
       - name: Login
         run: |

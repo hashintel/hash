@@ -23,8 +23,8 @@ FROM mise AS base
 
 WORKDIR /app
 
-RUN mise install node && \
-    mise use --global yq npm:turbo@$(jq -r '.devDependencies.turbo' < package.json)
+RUN mise install node npm:turbo && \
+    mise use --global yq
 
 COPY . .
 

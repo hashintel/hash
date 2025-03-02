@@ -6,6 +6,8 @@ inputs:
     default: ""
     description: "List of browsers separated by space, e.g. 'chrome firefox'"
     required: false
+  token:
+    required: true
 
 runs:
   using: composite
@@ -18,6 +20,20 @@ runs:
       env:
         MISE_NODE_COREPACK: 1
         GITHUB_TOKEN: ${{ inputs.token }}
+
+    - name: "Install Rust"
+      shell: bash
+      run: |
+        # extract components from the rust-toolchain.toml
+        COMPONENTS="$(yq -p toml '.toolchain.components[]' rust-toolchain.toml)"
+        TOOLCHAIN_CHANNEL="$(yq -p toml '.toolchain.channel' rust-toolchain.toml)"
+        rustup toolchain install "$TOOLCHAIN_CHANNEL"
+
+        for component in $COMPONENTS; do
+          rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
+        done
+
+        echo "RUSTUP_TOOLCHAIN=$TOOLCHAIN_CHANNEL" >> $GITHUB_ENV
 
     - name: Install WASM tools
       uses: taiki-e/install-action@3c8fc6eaa5fcff049bb133c1f540c6c2287a191f # v2.49.10
