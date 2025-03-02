@@ -63,10 +63,10 @@
     "@types/node": "22.13.8",
     "@types/uuid": "9.0.8",
     "@types/wait-on": "5.3.4",
-    "@vitest/coverage-istanbul": "2.1.9",
+    "@vitest/coverage-istanbul": "3.0.7",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
-    "vitest": "2.1.9"
+    "vitest": "3.0.7"
   }
 }
