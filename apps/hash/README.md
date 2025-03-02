@@ -46,20 +46,22 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
 ### Running HASH locally
 
-To run HASH locally, please follow these steps:
+1. We use [mise-en-place](https://mise.jdx.dev/) to manage development tool versions consistently across our codebase. We recommend using `mise` to automatically install and manage the required development tools, but you can also install them manually.
 
-1. Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Rust](https://www.rust-lang.org), [Docker](https://docs.docker.com/get-docker/), [Protobuf](https://github.com/protocolbuffers/protobuf), and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
+   If using `mise`, it will automatically install the correct versions of tools specified in `.config/mise` by running
+
+   ```sh
+   mise install
+   ```
+
+   If installing manually, you'll need to manually install them.
+
+1. In addition to the tools installed by `mise`, make sure you have, [Git](https://git-scm.com), [Rust](https://www.rust-lang.org), [Docker](https://docs.docker.com/get-docker/), and [Protobuf](https://github.com/protocolbuffers/protobuf). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
    Run each of these version commands and make sure the output is expected:
 
    ```sh
    git --version
    ## ≥ 2.17
-
-   node --version
-   ## ≥ 20.12
-
-   yarn --version
-   ## ≥ 1.16
 
    rustup --version
    ## ≥ 1.27.1 (Required to match the toolchain as specified in `rust-toolchain.toml`)
@@ -75,9 +77,6 @@ To run HASH locally, please follow these steps:
 
    protoc --version
    ## ≥ 25
-
-   java --version
-   ## ≥ 8
    ```
 
    If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
