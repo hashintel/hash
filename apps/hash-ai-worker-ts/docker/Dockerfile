@@ -64,7 +64,6 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     mise install node yarn java && \
-    corepack enable && \
     yarn install --immutable && \
     yarn cache clean
 
@@ -82,15 +81,10 @@ FROM mise AS runner
 COPY --from=builder /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-ai-worker-ts
 
-ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
-ARG GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON
-ENV GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON}
-
 RUN mise install node yarn && \
     groupadd --system --gid 60000 hash && \
     useradd --system tsworker -G hash && \
-    install -d -m 0775 -o tsworker -g hash /log /home/tsworker $COREPACK_HOME officeParserTemp/tempfiles && \
-    corepack enable && corepack prepare --activate && \
+    install -d -m 0775 -o tsworker -g hash /log /home/tsworker officeParserTemp/tempfiles && \
     if [ -n "$GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON" ]; then \
     echo $GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON > /tmp/google_workload_identity_federation_config.json && \
     export GOOGLE_APPLICATION_CREDENTIALS=/tmp/google_workload_identity_federation_config.json && \

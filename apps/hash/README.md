@@ -85,14 +85,6 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
 1. [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
 
-1. Enable [corepack](https://nodejs.org/api/corepack.html):
-
-```sh
-corepack enable
-```
-
-You might need to re-create your shell.
-
 1. Install dependencies:
 
    ```sh

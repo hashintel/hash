@@ -64,7 +64,6 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     mise install node yarn java && \
-    corepack enable && \
     yarn install --immutable && \
     yarn cache clean
 
@@ -82,14 +81,12 @@ FROM mise AS runner
 COPY --from=builder /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-integration-worker
 
-ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
 RUN mise install node yarn && \
     groupadd --system --gid 60000 hash && \
     useradd --system integrationworker -G hash && \
-    install -d -m 0775 -o integrationworker -g hash /log /home/integrationworker $COREPACK_HOME && \
-    corepack enable && corepack prepare --activate
+    install -d -m 0775 -o integrationworker -g hash /log /home/integrationworker && \
 
-ENTRYPOINT [ "yarn"]
+    ENTRYPOINT [ "yarn"]
 CMD ["start"]
 
 USER integrationworker:hash

@@ -64,7 +64,6 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     mise install node yarn java && \
-    corepack enable && \
     yarn install --immutable && \
     yarn cache clean
 
@@ -82,15 +81,12 @@ FROM mise AS runner
 COPY --from=builder /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-api
 
-ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
-
 RUN mise install node yarn && \
     groupadd --system --gid 60000 hash && \
     useradd --system api -G hash && \
-    install -d -m 0775 -o api -g hash /log /home/api $COREPACK_HOME officeParserTemp/tempfiles && \
-    corepack enable && corepack prepare --activate
+    install -d -m 0775 -o api -g hash /log /home/api officeParserTemp/tempfiles && \
 
-ENTRYPOINT [ "yarn"]
+    ENTRYPOINT [ "yarn"]
 CMD ["start"]
 
 USER api:hash
