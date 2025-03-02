@@ -83,7 +83,7 @@ jobs:
           install_args: node
         env:
           MISE_NODE_COREPACK: 1
-          GITHUB_TOKEN: ${{ inputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295 # v9
         if: github.event.inputs.repoCache != 'disabled'

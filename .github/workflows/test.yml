@@ -36,6 +36,8 @@ jobs:
         uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
         with:
           install_args: npm:turbo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Determine changed packages
         id: packages
@@ -170,7 +172,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
       - name: Run miri
-        if: always() && steps.tests.outputs.has-miri == 'true'
+        if: always() && steps.tests.outputs.has-rust == 'true'
         run: |
           turbo run test:miri --filter "${{ matrix.name }}"
 
@@ -224,17 +226,6 @@ jobs:
 
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
-
-          if [[ -f "${{ matrix.path }}/rust-toolchain.toml" ]]; then
-            RUST_TOOLCHAIN_FILE="${{ matrix.path }}/rust-toolchain.toml"
-          else
-            RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
-          fi
-          echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
-
-          if [[ $HAS_RUST = 'true' ]]; then
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
-          fi
 
       - name: Create temp files and folders
         run: mkdir -p var/logs

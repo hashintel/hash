@@ -31,6 +31,8 @@ jobs:
         uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
         with:
           install_args: npm:turbo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Determine changed packages
         id: packages
@@ -78,16 +80,6 @@ jobs:
 
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
-          if [[ $HAS_RUST = 'true' ]]; then
-            if [[ -f "${{ matrix.path }}/rust-toolchain.toml" ]]; then
-              RUST_TOOLCHAIN_FILE="${{ matrix.path }}/rust-toolchain.toml"
-            else
-              RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
-            fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
-            echo "has-rustfmt=$(yq '.toolchain.components | contains(["rustfmt"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
-            echo "has-clippy=$(yq '.toolchain.components | contains(["clippy"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
-          fi
 
       - name: Install Protobuf
         if: always() && steps.lints.outputs.has-rust == 'true'
