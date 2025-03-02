@@ -3,7 +3,6 @@ FROM alpine:3.21 AS mise
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
-ENV MISE_VERBOSE=1
 ENV PATH="/mise/shims:$PATH"
 
 RUN apk add --no-cache curl bash && \

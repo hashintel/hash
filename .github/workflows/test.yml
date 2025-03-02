@@ -154,7 +154,7 @@ jobs:
         with:
           tool: just@1.34.0,cargo-hack@0.6.30,cargo-nextest@0.9.72,cargo-llvm-cov@0.6.11
 
-      - name: Warm up repo
+      - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -271,7 +271,7 @@ jobs:
         with:
           tool: just@1.34.0,cargo-hack@0.6.30,cargo-nextest@0.9.72,cargo-llvm-cov@0.6.11
 
-      - name: Warm up repo
+      - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
