@@ -46,17 +46,7 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
 ### Running HASH locally
 
-1. We use [mise-en-place](https://mise.jdx.dev/) to manage development tool versions consistently across our codebase. We recommend using `mise` to automatically install and manage the required development tools, but you can also install them manually.
-
-   If using `mise`, it will automatically install the correct versions of tools specified in `.config/mise` by running
-
-   ```sh
-   mise install
-   ```
-
-   If installing manually, you'll need to manually install them.
-
-1. In addition to the tools installed by `mise`, make sure you have, [Git](https://git-scm.com), [Rust](https://www.rust-lang.org), [Docker](https://docs.docker.com/get-docker/), and [Protobuf](https://github.com/protocolbuffers/protobuf). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
+1. Make sure you have, [Git](https://git-scm.com), [Rust](https://www.rust-lang.org), [Docker](https://docs.docker.com/get-docker/), and [Protobuf](https://github.com/protocolbuffers/protobuf). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
    Run each of these version commands and make sure the output is expected:
 
    ```sh
@@ -64,7 +54,7 @@ See the [respective section in the parent README](../README.md#hash) for descrip
    ## ≥ 2.17
 
    rustup --version
-   ## ≥ 1.27.1 (Required to match the toolchain as specified in `rust-toolchain.toml`)
+   ## ≥ 1.27.1 (Required to match the toolchain as specified in `rust-toolchain.toml`, lower versions most likely will work as well)
 
    docker --version
    ## ≥ 20.10
@@ -84,6 +74,22 @@ See the [respective section in the parent README](../README.md#hash) for descrip
    If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
 
 1. [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
+
+1. We use [mise-en-place](https://mise.jdx.dev/) to manage tool versions consistently across our codebase. We recommend using `mise` to automatically install and manage the required development tools:
+
+   ```sh
+   mise install
+   ```
+
+   It's also possible to install them manually, use the correct versions for these tools as specified in `.config/mise`.
+
+1. Enable [corepack](https://nodejs.org/api/corepack.html):
+
+   ```sh
+   corepack enable
+   ```
+
+   You might need to re-create your shell.
 
 1. Install dependencies:
 

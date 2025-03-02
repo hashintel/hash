@@ -3,6 +3,7 @@ FROM bitnami/minideb:bookworm AS mise
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
+ENV MISE_NODE_COREPACK=1
 ENV PATH="/mise/shims:$PATH"
 
 RUN apt-get update && \
@@ -84,10 +85,13 @@ WORKDIR /usr/local/src/apps/hash-ai-worker-ts
 ARG GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON
 ENV GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON}
 
-RUN mise install node yarn && \
+# Set a writable Corepack cache directory
+ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
+RUN mise install node && \
     groupadd --system --gid 60000 hash && \
     useradd --system tsworker -G hash && \
-    install -d -m 0775 -o tsworker -g hash /log /home/tsworker officeParserTemp/tempfiles && \
+    install -d -m 0775 -o tsworker -g hash /log /home/tsworker officeParserTemp/tempfiles $COREPACK_HOME && \
+    corepack prepare --activate && \
     if [ -n "$GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON" ]; then \
     echo $GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON > /tmp/google_workload_identity_federation_config.json && \
     export GOOGLE_APPLICATION_CREDENTIALS=/tmp/google_workload_identity_federation_config.json && \
@@ -101,5 +105,6 @@ CMD ["start"]
 
 USER tsworker:hash
 ENV NODE_ENV=production
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4100/health || exit 1

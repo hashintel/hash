@@ -3,6 +3,7 @@ FROM bitnami/minideb:bookworm AS mise
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
+ENV MISE_NODE_COREPACK=1
 ENV PATH="/mise/shims:$PATH"
 
 RUN apt-get update && \
@@ -63,7 +64,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install node yarn java && \
+    mise install node java && \
     yarn install --immutable && \
     yarn cache clean
 
@@ -81,10 +82,13 @@ FROM mise AS runner
 COPY --from=builder /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-api
 
-RUN mise install node yarn && \
+# Set a writable Corepack cache directory
+ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
+RUN mise install node && \
     groupadd --system --gid 60000 hash && \
     useradd --system api -G hash && \
-    install -d -m 0775 -o api -g hash /log /home/api officeParserTemp/tempfiles
+    install -d -m 0775 -o api -g hash /log /home/api officeParserTemp/tempfiles $COREPACK_HOME && \
+    corepack prepare --activate
 
 ENTRYPOINT [ "yarn"]
 CMD ["start"]

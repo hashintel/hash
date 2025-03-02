@@ -3,6 +3,7 @@ FROM bitnami/minideb:bookworm AS mise
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
+ENV MISE_NODE_COREPACK=1
 ENV PATH="/mise/shims:$PATH"
 
 RUN apt-get update && \
@@ -81,15 +82,19 @@ FROM mise AS runner
 COPY --from=builder /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-integration-worker
 
-RUN mise install node yarn && \
+# Set a writable Corepack cache directory
+ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
+RUN mise install node && \
     groupadd --system --gid 60000 hash && \
     useradd --system integrationworker -G hash && \
-    install -d -m 0775 -o integrationworker -g hash /log /home/integrationworker
+    install -d -m 0775 -o integrationworker -g hash /log /home/integrationworker $COREPACK_HOME && \
+    corepack prepare --activate
 
 ENTRYPOINT [ "yarn"]
 CMD ["start"]
 
 USER integrationworker:hash
 ENV NODE_ENV=production
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4300/health || exit 1
