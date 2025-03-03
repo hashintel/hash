@@ -133,7 +133,15 @@ jobs:
 
       - name: Print tools
         working-directory: ${{ matrix.path }}
-        run: mise ls
+        run: |
+          echo $PATH
+          mise ls
+          mise exec protoc -- protoc --version || true
+          mise which protoc
+          eval "$(mise activate bash)"
+          mise ls
+          mise exec protoc -- protoc --version || true
+          mise which protoc
 
       - name: Run clippy
         if: always() && steps.lints.outputs.has-rust == 'true'
