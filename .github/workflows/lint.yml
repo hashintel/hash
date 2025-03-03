@@ -134,8 +134,7 @@ jobs:
       - name: Print tools
         working-directory: ${{ matrix.path }}
         run: |
-          set -x
-
+          echo Default
           echo $PATH
           mise ls
           mise exec protoc -- protoc --version || true
@@ -143,15 +142,17 @@ jobs:
           which protoc || true
           /home/runner/.local/share/mise/shims/protoc --version || true
 
-          eval "$(mise activate bash)"
-          echo $PATH
-          mise ls
-          mise exec protoc -- protoc --version || true
-          mise which protoc || true
-          which protoc || true
-          /home/runner/.local/share/mise/shims/protoc --version || true
-
+          echo Shims
           eval "$(mise activate bash --shims)"
+          echo $PATH
+          mise ls
+          mise exec protoc -- protoc --version || true
+          mise which protoc || true
+          which protoc || true
+          /home/runner/.local/share/mise/shims/protoc --version || true
+
+          echo Activated
+          eval "$(mise activate bash)"
           echo $PATH
           mise ls
           mise exec protoc -- protoc --version || true
