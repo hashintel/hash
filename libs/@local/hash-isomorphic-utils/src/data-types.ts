@@ -13,7 +13,6 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { DataTypeConversionTargets as GraphApiDataTypeConversionTargets } from "@local/hash-graph-client";
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 
 import { add, divide, multiply, subtract } from "./numbers.js";
@@ -219,28 +218,12 @@ export const createConversionFunction = (
       evaluatedValue = evaluateExpression(conversion.expression, {
         self: evaluatedValue,
       });
+      console.log({ evaluatedValue });
     }
 
     return evaluatedValue;
   };
 };
-
-export type DataTypeConversionTargets = Omit<
-  GraphApiDataTypeConversionTargets,
-  "conversions"
-> & {
-  conversions: ConversionDefinition[];
-};
-
-/**
- * A map from a dataTypeId, to a map of target dataTypeIds, to conversion definitions.
- *
- * Each conversion definition contains (1) the target data type `title`, and (2) the `conversions`: steps required to convert to the target dataTypeId.
- */
-export type DataTypeConversionsMap = Record<
-  VersionedUrl,
-  Record<VersionedUrl, DataTypeConversionTargets>
->;
 
 const transformConstraint = (
   constraint: SingleValueConstraints & {

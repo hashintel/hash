@@ -245,38 +245,17 @@ export const DataTypesParents = ({
         <Typography variant="h5" mb={2}>
           Extends
         </Typography>
-        <Box
-          sx={{
-            width: 600,
-            borderRadius: 2,
-            position: "relative",
-            zIndex: 3,
+
+        <DataTypeSelector
+          allowSelectingAbstractTypes
+          dataTypes={dataTypeOptions}
+          hideHint
+          onSelect={(newParentTypeId) => {
+            addParent(newParentTypeId);
           }}
-        >
-          <Box
-            sx={({ palette }) => ({
-              background: palette.common.white,
-              border: `1px solid ${palette.gray[30]}`,
-              borderRadius: 2,
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: 600,
-            })}
-          >
-            <DataTypeSelector
-              allowSelectingAbstractTypes
-              dataTypes={dataTypeOptions}
-              handleScroll
-              hideHint
-              maxHeight={300}
-              onSelect={(newParentTypeId) => {
-                addParent(newParentTypeId);
-              }}
-              selectedDataTypeIds={directParentDataTypeIds}
-            />
-          </Box>
-        </Box>
+          placeholder="Select a data type to extend..."
+          selectedDataTypeIds={directParentDataTypeIds}
+        />
       </Box>
     );
   }
@@ -286,24 +265,26 @@ export const DataTypesParents = ({
       <Typography variant="h5" mb={2}>
         Extends
       </Typography>
-      <Stack direction="row" spacing={2}>
-        {parents.map((parent) => {
-          return (
-            <DataTypeParentCard
-              key={parent.dataType.$id}
-              isReadOnly={isReadOnly}
-              onClick={() => {
-                onDataTypeClick(parent.dataType.$id);
-              }}
-              onlyParent={parents.length === 1}
-              parent={parent}
-              onRemove={() => {
-                removeParent(parent.dataType.$id);
-              }}
-            />
-          );
-        })}
-      </Stack>
+      <Box sx={{ height: 48 }}>
+        <Stack direction="row" spacing={2}>
+          {parents.map((parent) => {
+            return (
+              <DataTypeParentCard
+                key={parent.dataType.$id}
+                isReadOnly={isReadOnly}
+                onClick={() => {
+                  onDataTypeClick(parent.dataType.$id);
+                }}
+                onlyParent={parents.length === 1}
+                parent={parent}
+                onRemove={() => {
+                  removeParent(parent.dataType.$id);
+                }}
+              />
+            );
+          })}
+        </Stack>
+      </Box>
     </Box>
   );
 };

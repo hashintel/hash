@@ -276,7 +276,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
 
         <DataTypeSelector
           allowSelectingAbstractTypes
-          handleScroll={false}
+          autoFocus={false}
           hideHint
           dataTypes={dataTypeOptions}
           onSelect={(dataTypeId) => {
@@ -301,6 +301,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
               [...itemIds, childId],
             );
           }}
+          placeholder="Choose expected array item type..."
           selectedDataTypeIds={selectedDataTypeIds}
         />
 

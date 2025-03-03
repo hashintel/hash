@@ -1,6 +1,5 @@
 import type {
   ArraySchema,
-  Conversions,
   DataType,
   SingleValueConstraints,
   StringConstraints,
@@ -8,7 +7,7 @@ import type {
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type {
-  BaseUrl,
+  DataTypeDirectConversionsMap,
   DataTypeMetadata,
 } from "@local/hash-graph-types/ontology";
 
@@ -54,18 +53,19 @@ export type DataTypeFormData = Pick<
 > & {
   allOf: VersionedUrl[];
   constraints: NullableSingleValueConstraints;
-  conversions: Record<BaseUrl, Conversions> | null;
+  conversions?: DataTypeDirectConversionsMap;
 };
 
 export const getDataTypeFromFormData = ({
   allOf,
   constraints,
+  conversions,
   label,
   ...rest
-}: DataTypeFormData): DistributiveOmit<
-  DataType,
-  "$id" | "$schema" | "kind"
-> => {
+}: DataTypeFormData): {
+  dataType: DistributiveOmit<DataType, "$id" | "$schema" | "kind">;
+  conversions?: DataTypeDirectConversionsMap;
+} => {
   let unNulledConstraints: SingleValueConstraints;
 
   switch (constraints.type) {
@@ -108,10 +108,13 @@ export const getDataTypeFromFormData = ({
   }
 
   return {
-    ...rest,
-    allOf: allOf.map((versionedUrl) => ({ $ref: versionedUrl })),
-    label: Object.keys(label ?? {}).length > 0 ? label : undefined,
-    ...unNulledConstraints,
+    dataType: {
+      ...rest,
+      allOf: allOf.map((versionedUrl) => ({ $ref: versionedUrl })),
+      label: Object.keys(label ?? {}).length > 0 ? label : undefined,
+      ...unNulledConstraints,
+    },
+    conversions,
   };
 };
 
@@ -135,7 +138,7 @@ export const getFormDataFromDataType = (dataTypeWithMetadata: {
     if (title === "Value") {
       return {
         allOf: [],
-        conversions: null,
+        conversions: {},
         description,
         label,
         title,
@@ -190,7 +193,7 @@ export const getFormDataFromDataType = (dataTypeWithMetadata: {
   return {
     allOf: allOf?.map(({ $ref }) => $ref) ?? [],
     abstract: !!abstract,
-    conversions: conversions ?? null,
+    conversions: conversions ?? {},
     description,
     label: label?.left?.length || label?.right?.length ? label : undefined,
     title,

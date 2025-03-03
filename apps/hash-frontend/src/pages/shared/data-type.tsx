@@ -120,6 +120,11 @@ export const DataType = ({
     defaultValue: [],
   });
 
+  const abstract = useWatch({
+    control,
+    name: "abstract",
+  });
+
   useEffect(() => {
     if (draftNewDataType) {
       reset(
@@ -226,7 +231,8 @@ export const DataType = ({
       return;
     }
 
-    const inputData = getDataTypeFromFormData(data);
+    const { dataType: inputDataType, conversions } =
+      getDataTypeFromFormData(data);
 
     if (isDraft) {
       if (!ownedById) {
@@ -235,7 +241,8 @@ export const DataType = ({
 
       const response = await createDataType({
         variables: {
-          dataType: inputData,
+          dataType: inputDataType,
+          conversions,
           ownedById,
         },
       });
@@ -255,7 +262,8 @@ export const DataType = ({
     const response = await updateDataType({
       variables: {
         dataTypeId: remoteDataType.schema.$id,
-        dataType: inputData,
+        dataType: inputDataType,
+        conversions,
       },
     });
 
@@ -317,7 +325,7 @@ export const DataType = ({
 
   return (
     <>
-      <NextSeo title={`${dataType.schema.title} | Data Type`} />
+      {!inSlide && <NextSeo title={`${dataType.schema.title} | Data Type`} />}
       <FormProvider {...formMethods}>
         <Box display="contents" component="form" onSubmit={handleSubmit}>
           <TopContextBar
@@ -403,10 +411,12 @@ export const DataType = ({
               <InheritedConstraintsProvider>
                 <DataTypeConstraints isReadOnly={isReadOnly} />
                 <DataTypeLabels isReadOnly={isReadOnly} />
-                <DataTypeConversions
-                  dataType={dataType.schema}
-                  isReadOnly={isReadOnly}
-                />
+                {!abstract && (
+                  <DataTypeConversions
+                    dataType={dataType.schema}
+                    isReadOnly={isReadOnly}
+                  />
+                )}
               </InheritedConstraintsProvider>
             </Stack>
           </TypeDefinitionContainer>

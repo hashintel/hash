@@ -19,7 +19,7 @@ export const AbstractConstraint = ({
   }
 
   return (
-    <Stack mt={3} gap={1}>
+    <Stack mt={2} gap={1}>
       <ItemLabel tooltip="You can disable assigning a data type directly to a property. This is useful if you want to create a parent type which isn't suitable for direct use (e.g. 'Length' can't be used directly, because 'Length: 4' doesn't make sense).">
         {abstract ? "Not assignable" : "Assignable"}
       </ItemLabel>
