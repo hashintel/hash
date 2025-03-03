@@ -127,12 +127,12 @@ jobs:
         run: turbo run lint:tsc --filter "${{ matrix.name }}"
 
       - name: Run rustfmt
-        if: always() && steps.lints.outputs.has-rustfmt == 'true'
+        if: always() && steps.lints.outputs.has-rust == 'true'
         working-directory: ${{ matrix.path }}
         run: just format --check
 
       - name: Run clippy
-        if: always() && steps.lints.outputs.has-clippy == 'true'
+        if: always() && steps.lints.outputs.has-rust == 'true'
         run: |
           pushd ${{ matrix.path }}
           just clippy --message-format=json \
@@ -153,7 +153,7 @@ jobs:
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@b56ba49b26e50535fa1e7f7db0f4f7b4bf65d80d # v3.28.10
-        if: always() && steps.lints.outputs.has-clippy == 'true'
+        if: always() && steps.lints.outputs.has-rust == 'true'
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
           category: ${{ matrix.name }}

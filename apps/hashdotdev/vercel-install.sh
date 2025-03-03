@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 echo "Changing dir to root"
 cd ../..
 
@@ -12,12 +14,6 @@ echo "Installing prerequisites"
 mise install node npm:turbo
 mise use --global yq
 mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
-
-# echo "Installing Rust"
-# curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
-# source "$HOME/.cargo/env"
-# # `rustup show` uses `rust-toolchain.toml` to install the correct toolchain.
-# for _ in {1..5}; do rustup show && break || sleep 5; done
 
 echo "Installing yarn dependencies"
 LEFTHOOK=0 yarn install --immutable

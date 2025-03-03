@@ -2,14 +2,6 @@
 
 set -euo pipefail
 
-touch ~/.bashrc
-
-# shellcheck disable=SC2016
-echo 'export PATH=/vercel/.local/bin:/usr/local/python/bin/:$PATH' >> ~/.bashrc
-
-# shellcheck disable=SC1090
-source ~/.bashrc
-
 echo "Changing dir to root"
 cd ../..
 
@@ -22,11 +14,9 @@ yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
 yum install -y mise
 
 echo "Installing prerequisites"
-yum install -y wget tar gzip
 mise install node npm:turbo java
-
-echo "Installing eget"
-curl https://zyedidia.github.io/eget.sh | sh
+mise use --global yq python
+mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
 
 
 # TODO: investigate why producing a pruned repo results in a broken Vercel build
@@ -42,12 +32,6 @@ curl https://zyedidia.github.io/eget.sh | sh
 #echo "Moving pruned repo back to root"
 #mv out/* .
 #rm out -r
-
-echo "Installing Rust"
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
-source "$HOME/.cargo/env"
-# `rustup show` uses `rust-toolchain.toml` to install the correct toolchain.
-for _ in {1..5}; do rustup show && break || sleep 5; done
 
 # Install the pruned dependencies
 
