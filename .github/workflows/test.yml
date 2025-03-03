@@ -110,6 +110,7 @@ jobs:
         uses: ./.github/actions/prune-repository
         with:
           scope: ${{ matrix.name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find test steps to run
         id: tests
@@ -216,6 +217,7 @@ jobs:
           scope: |
             ${{ matrix.name }}
             @apps/hash-external-services
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find test steps to run
         id: tests

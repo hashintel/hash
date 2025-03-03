@@ -61,6 +61,7 @@ jobs:
         uses: ./.github/actions/prune-repository
         with:
           scope: ${{ matrix.name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find lint steps to run
         id: lints

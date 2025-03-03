@@ -4,6 +4,8 @@ inputs:
   scope:
     description: "Scope to prune to"
     required: true
+  token:
+    required: true
 
 runs:
   using: "composite"
@@ -14,6 +16,7 @@ runs:
         install_args: npm:turbo
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
+        MISE_VERBOSE: 1
 
     - name: Prune repository
       shell: bash
