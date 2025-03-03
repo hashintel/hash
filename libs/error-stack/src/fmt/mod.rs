@@ -853,9 +853,11 @@ fn debug_attachments_invoke<'a>(
             ),
             #[cfg(any(feature = "std", feature = "hooks"))]
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => Some(
-                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context))
-                    .then(|| context.take_body())
-                    .unwrap_or_else(|| vec![attachment.to_string()]),
+                if Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context)) {
+                    context.take_body()
+                } else {
+                    vec![attachment.to_string()]
+                },
             ),
             #[cfg(any(feature = "std", feature = "hooks"))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {

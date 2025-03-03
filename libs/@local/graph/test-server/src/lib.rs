@@ -104,11 +104,7 @@ where
     SnapshotStore::new(store)
         .restore_snapshot(
             FramedRead::new(
-                StreamReader::new(
-                    snapshot
-                        .into_data_stream()
-                        .map_err(|err| io::Error::new(io::ErrorKind::Other, err)),
-                ),
+                StreamReader::new(snapshot.into_data_stream().map_err(io::Error::other)),
                 JsonLinesDecoder::default(),
             ),
             10_000,

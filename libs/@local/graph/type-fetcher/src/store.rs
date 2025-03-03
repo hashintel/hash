@@ -411,7 +411,7 @@ where
                         };
 
                         for referenced_ontology_type in self
-                            .collect_external_ontology_types(actor_id, &data_type, bypassed_types)
+                            .collect_external_ontology_types(actor_id, &*data_type, bypassed_types)
                             .await?
                         {
                             if !seen.contains(referenced_ontology_type.url()) {
@@ -422,7 +422,7 @@ where
 
                         fetched_ontology_types
                             .data_types
-                            .push((data_type, metadata));
+                            .push((*data_type, metadata));
                     }
                     FetchedOntologyType::PropertyType(property_type) => {
                         let metadata = PartialPropertyTypeMetadata {
@@ -435,7 +435,7 @@ where
                         for referenced_ontology_type in self
                             .collect_external_ontology_types(
                                 actor_id,
-                                &property_type,
+                                &*property_type,
                                 bypassed_types,
                             )
                             .await?
@@ -448,7 +448,7 @@ where
 
                         fetched_ontology_types
                             .property_types
-                            .push((property_type, metadata));
+                            .push((*property_type, metadata));
                     }
                     FetchedOntologyType::EntityType(entity_type) => {
                         let metadata = PartialEntityTypeMetadata {

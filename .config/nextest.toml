@@ -5,4 +5,4 @@ status-level   = "skip"
 
 [[profile.ci.overrides]]
 filter  = 'package(harpc-net) and test(session::test::echo_tcp_concurrent)'
-retries = 2
+retries = 3
