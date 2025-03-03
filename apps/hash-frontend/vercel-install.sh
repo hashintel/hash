@@ -17,6 +17,28 @@ eval "$(mise activate bash)"
 echo "Installing prerequisites"
 mise install node npm:turbo java
 mise use --global yq
+
+set -x
+set +e
+
+yq --version
+mise which yq
+which yq
+
+eval "$(mise activate bash)"
+yq --version
+mise which yq
+which yq
+
+eval "$(mise activate bash --shims)"
+yq --version
+mise which yq
+which yq
+
+set -e
+
+yq --version || true
+
 mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
 
 
