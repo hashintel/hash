@@ -33,7 +33,7 @@ const makeRequest = Effect.fn("makeRequest")(function* <E, R>(
 });
 
 const assertBody = (
-  cx: vitest.TaskContext<vitest.RunnerTestCase> & vitest.TestContext,
+  cx: vitest.TestContext,
   request: WireRequest.Request,
   bodyIs: (request: RequestBody.RequestBody) => boolean,
   body: string | number,
