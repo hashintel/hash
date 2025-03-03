@@ -1,29 +1,29 @@
 FROM debian:12.9-slim AS mise
 
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
 ENV MISE_NODE_COREPACK=1
 ENV PATH="/mise/shims:$PATH"
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends bash curl ca-certificates && \
-    curl https://mise.run | sh && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
-
 COPY .config/mise /etc/mise
 
-RUN eval "$(mise activate bash)"
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    curl https://mise.run | sh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    eval "$(mise activate bash)" && \
+    mise install node
 
 
 FROM mise AS base
 
 WORKDIR /app
 
-RUN mise install node npm:turbo && \
+RUN mise install npm:turbo && \
     mise use --global yq
 
 COPY . .
@@ -64,7 +64,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential musl-tools && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install node && \
+    mise install node npm:turbo && \
     mise use --global protoc && \
     yarn install --immutable && \
     yarn cache clean

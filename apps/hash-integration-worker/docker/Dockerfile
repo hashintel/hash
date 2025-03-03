@@ -1,39 +1,40 @@
 FROM debian:12.9-slim AS mise
 
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
 ENV MISE_NODE_COREPACK=1
+ENV MISE_VERBOSE=1
 ENV PATH="/mise/shims:$PATH"
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends bash curl ca-certificates && \
-    curl https://mise.run | sh && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 COPY .config/mise /etc/mise
 
-RUN eval "$(mise activate bash)"
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    curl https://mise.run | sh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    eval "$(mise activate bash)" && \
+    mise install node
 
 
 FROM mise AS base
 
 WORKDIR /app
 
-RUN mise install node npm:turbo && \
+RUN mise install npm:turbo && \
     mise use --global yq
 
 COPY . .
 
 RUN turbo prune --scope='@apps/hash-integration-worker' --docker && \
-    find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
+    find $(yq '.workspace.members' Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
     [ -f "/app/out/full/$1" ] || ( \
     mkdir -p "/app/out/full/$(dirname "$1")/src" && \
     echo > "/app/out/full/$(dirname "$1")/src/lib.rs" && \
-    printf "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
+    printf "[package]\nname = \"$(yq ".package.name" $1)\"" > "/app/out/full/$1" \
     )' _ {} \; && \
     cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
@@ -64,7 +65,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install node java && \
+    mise install node npm:turbo java && \
     yarn install --immutable && \
     yarn cache clean
 
@@ -84,8 +85,7 @@ WORKDIR /usr/local/src/apps/hash-integration-worker
 
 # Set a writable Corepack cache directory
 ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
-RUN mise install node && \
-    groupadd --system --gid 60000 hash && \
+RUN groupadd --system --gid 60000 hash && \
     useradd --system integrationworker -G hash && \
     install -d -m 0775 -o integrationworker -g hash /log /home/integrationworker $COREPACK_HOME && \
     corepack prepare --activate

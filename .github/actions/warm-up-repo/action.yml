@@ -19,14 +19,14 @@ runs:
         install_args: --jobs 1
       env:
         MISE_NODE_COREPACK: 1
+        MISE_VERBOSE: 1
         GITHUB_TOKEN: ${{ inputs.token }}
 
     - name: "Install Rust"
       shell: bash
       run: |
-        # extract components from the rust-toolchain.toml
-        COMPONENTS="$(yq -p toml '.toolchain.components[]' rust-toolchain.toml)"
-        TOOLCHAIN_CHANNEL="$(yq -p toml '.toolchain.channel' rust-toolchain.toml)"
+        COMPONENTS="$(yq '.toolchain.components[]' rust-toolchain.toml)"
+        TOOLCHAIN_CHANNEL="$(yq '.toolchain.channel' rust-toolchain.toml)"
         rustup toolchain install "$TOOLCHAIN_CHANNEL"
 
         for component in $COMPONENTS; do
