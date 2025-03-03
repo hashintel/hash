@@ -64,9 +64,6 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
    docker buildx version
    ## ≥ 0.10.4
-
-   protoc --version
-   ## ≥ 25
    ```
 
    If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.

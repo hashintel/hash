@@ -22,14 +22,12 @@ yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
 yum install -y mise
 
 echo "Installing prerequisites"
-yum install -y wget tar gzip jq
+yum install -y wget tar gzip
+mise install node npm:turbo java
 
 echo "Installing eget"
 curl https://zyedidia.github.io/eget.sh | sh
 
-# Setup TurboRepo and get a pruned src folder and lockfile
-echo "Installing turbo"
-mise install node npm:turbo java
 
 # TODO: investigate why producing a pruned repo results in a broken Vercel build
 #   update: Probably due to missing `patches/` folder, needs investigation

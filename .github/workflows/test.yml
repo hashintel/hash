@@ -10,7 +10,7 @@ on:
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
-  TURBO_REMOTE_ONLY: true
+  TURBO_CACHE: remote:rw
   NEXTEST_PROFILE: ci
 
 concurrency:
@@ -117,10 +117,6 @@ jobs:
         run: |
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
-
-      - name: Install Protobuf
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        run: sudo apt install protobuf-compiler
 
       - name: Install PDFium
         if: matrix.name == '@rust/chonky'
@@ -242,9 +238,6 @@ jobs:
         uses: taiki-e/install-action@3c8fc6eaa5fcff049bb133c1f540c6c2287a191f # v2.49.10
         with:
           tool: just@1.34.0,cargo-hack@0.6.30,cargo-nextest@0.9.72,cargo-llvm-cov@0.6.11
-
-      - name: Install Protobuf
-        run: sudo apt install protobuf-compiler
 
       - name: Install PDFium
         if: matrix.name == '@rust/chonky'

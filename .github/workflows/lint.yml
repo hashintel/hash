@@ -10,7 +10,7 @@ on:
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
-  TURBO_REMOTE_ONLY: true
+  TURBO_CACHE: remote:rw
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -81,10 +81,6 @@ jobs:
 
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
-
-      - name: Install Protobuf
-        if: always() && steps.lints.outputs.has-rust == 'true'
-        run: sudo apt install protobuf-compiler
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo

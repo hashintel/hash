@@ -64,8 +64,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential musl-tools && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install node npm:turbo && \
-    mise use --global protoc && \
+    mise install node npm:turbo protoc && \
     yarn install --immutable && \
     yarn cache clean
 
