@@ -81,14 +81,14 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
 
       - name: Install Node.js
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
         with:
-          node-version: 22
+          install_args: node
+        env:
+          MISE_NODE_COREPACK: 1
+          GITHUB_TOKEN: ${{ inputs.token }}
 
-      - name: Enable corepack
-        uses: ./.github/actions/enable-corepack
-
-      - uses: dawidd6/action-download-artifact@20319c5641d495c8a52e688b7dc5fada6c3a9fbc # v8
+      - uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295 # v9
         if: github.event.inputs.repoCache != 'disabled'
         continue-on-error: true
         with:

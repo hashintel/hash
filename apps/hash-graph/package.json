@@ -5,6 +5,7 @@
   "license": "AGPL-3",
   "scripts": {
     "build:docker": "docker buildx build --build-arg PROFILE=production --tag hash-graph --file docker/Dockerfile ../../ --load",
+    "build:docker:dev": "docker buildx build --build-arg PROFILE=dev --tag hash-graph --file docker/Dockerfile ../../ --load",
     "compile": "cargo build --bin hash-graph --all-features",
     "compile:release": "cargo build --bin hash-graph --all-features --release",
     "start": "../../target/release/hash-graph server",

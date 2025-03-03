@@ -128,11 +128,8 @@ impl SpiceDbOpenApi {
         }
 
         let stream_response = self.invoke_request(path, body).await?;
-        let stream_reader = StreamReader::new(
-            stream_response
-                .bytes_stream()
-                .map_err(|request_error| io::Error::new(io::ErrorKind::Other, request_error)),
-        );
+        let stream_reader =
+            StreamReader::new(stream_response.bytes_stream().map_err(io::Error::other));
         let framed_stream =
             FramedRead::new(stream_reader, JsonLinesDecoder::<StreamResult<R>>::new());
 
