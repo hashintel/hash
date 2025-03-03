@@ -9,7 +9,7 @@ echo "installing mise"
 yum install -y yum-utils
 yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
 yum install -y mise
-eval "$(mise activate bash)"
+eval "$(mise activate bash --shims)"
 
 echo "Installing prerequisites"
 mise install node npm:turbo java

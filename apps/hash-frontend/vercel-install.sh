@@ -12,32 +12,11 @@ echo "installing mise"
 yum install -y yum-utils
 yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
 yum install -y mise
-eval "$(mise activate bash)"
+eval "$(mise activate bash --shims)"
 
 echo "Installing prerequisites"
 mise install node npm:turbo java
 mise use --global yq
-
-set -x
-set +e
-
-yq --version
-mise which yq
-which yq
-
-eval "$(mise activate bash)"
-yq --version
-mise which yq
-which yq
-
-eval "$(mise activate bash --shims)"
-yq --version
-mise which yq
-which yq
-
-set -e
-
-yq --version || true
 
 mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
 
