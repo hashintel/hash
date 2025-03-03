@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-# shellcheck disable=SC1090
-source ~/.bashrc
-
 set -euo pipefail
+
+source "$HOME/.cargo/env"
 
 echo "Changing dir to root"
 cd ../..

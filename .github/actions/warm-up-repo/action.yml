@@ -22,6 +22,12 @@ runs:
         MISE_VERBOSE: 1
         GITHUB_TOKEN: ${{ inputs.token }}
 
+    - name: Show mise shims
+      shell: bash
+      run: |
+        ls -l /home/runner/.local/share/mise/shims
+        mise ls
+
     - name: "Install Rust"
       shell: bash
       run: |
