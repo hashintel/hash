@@ -16,6 +16,9 @@ yum install -y mise
 echo "Installing prerequisites"
 mise install node npm:turbo java
 mise use --global yq
+mise ls
+eval $(mise activate bash)
+mise ls
 yq '.toolchain.channel' rust-toolchain.toml
 mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
 
