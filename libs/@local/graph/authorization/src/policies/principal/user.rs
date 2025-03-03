@@ -11,8 +11,10 @@ use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use uuid::Uuid;
 
-use super::{InPrincipalConstraint, TeamPrincipalConstraint, TeamRoleId, WebRoleId, WebTeamRoleId};
-use crate::policies::{cedar::CedarEntityId, principal::web::WebPrincipalConstraint};
+use super::{InPrincipalConstraint, TeamPrincipalConstraint, role::RoleId};
+use crate::policies::{
+    cedar::CedarEntityId, principal::web::WebPrincipalConstraint, resource::EntityResource,
+};
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
@@ -66,39 +68,23 @@ impl CedarEntityId for UserId {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
-pub enum RoleId {
-    Web(WebRoleId),
-    WebTeam(WebTeamRoleId),
-    Team(TeamRoleId),
-}
-
-impl RoleId {
-    fn to_euid(&self) -> ast::EntityUID {
-        match self {
-            Self::Web(web_role_id) => web_role_id.to_euid(),
-            Self::WebTeam(web_team_role_id) => web_team_role_id.to_euid(),
-            Self::Team(team_role_id) => team_role_id.to_euid(),
-        }
-    }
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct User {
     pub id: UserId,
     pub roles: Vec<RoleId>,
+    pub entity: EntityResource<'static>,
 }
 
 impl User {
-    pub(crate) fn to_entity(&self) -> Result<ast::Entity, Box<dyn Error>> {
-        Ok(ast::Entity::new(
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+        ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
             self.roles.iter().map(RoleId::to_euid).collect(),
             iter::empty(),
             Extensions::none(),
-        )?)
+        )
+        .expect("User should be a valid Cedar entity")
     }
 }
 

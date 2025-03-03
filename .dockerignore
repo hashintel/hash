@@ -94,6 +94,8 @@ typings/
 blocks/**/.env
 .env.local
 .env.*.local
+**/mise*.local.toml
+**/mise/config*.local.toml
 
 # macOS directory file
 **/.DS_Store

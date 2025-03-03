@@ -6,8 +6,8 @@
 mod entity;
 mod entity_type;
 
-use alloc::sync::Arc;
-use core::{error::Error, str::FromStr as _};
+use alloc::{borrow::Cow, sync::Arc};
+use core::str::FromStr as _;
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
@@ -15,27 +15,48 @@ use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
-use self::entity_type::EntityTypeId;
 pub use self::{
     entity::{EntityResource, EntityResourceConstraint, EntityResourceFilter},
-    entity_type::{EntityTypeResource, EntityTypeResourceConstraint},
+    entity_type::{
+        EntityTypeId, EntityTypeResource, EntityTypeResourceConstraint, EntityTypeResourceFilter,
+    },
 };
 use crate::policies::cedar::CedarEntityId as _;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResourceId<'a> {
+    Entity(EntityUuid),
+    EntityType(Cow<'a, EntityTypeId>),
+}
+
+impl ResourceId<'_> {
+    pub(crate) fn to_euid(&self) -> ast::EntityUID {
+        match self {
+            Self::Entity(id) => id.to_euid(),
+            Self::EntityType(id) => id.to_euid(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum Resource<'a> {
     Entity(EntityResource<'a>),
     EntityType(EntityTypeResource<'a>),
 }
 
 impl Resource<'_> {
-    pub(crate) fn to_euid(&self) -> ast::EntityUID {
+    #[must_use]
+    pub const fn id(&self) -> ResourceId<'_> {
         match self {
-            Self::Entity(entity) => entity.id.to_euid(),
-            Self::EntityType(entity_type) => entity_type.id.to_euid(),
+            Self::Entity(entity) => ResourceId::Entity(entity.id),
+            Self::EntityType(entity_type) => ResourceId::EntityType(match &entity_type.id {
+                Cow::Borrowed(id) => Cow::Borrowed(*id),
+                Cow::Owned(id) => Cow::Borrowed(id),
+            }),
         }
     }
 
-    pub(crate) fn to_entity(&self) -> Result<ast::Entity, Box<dyn Error>> {
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
         match self {
             Self::Entity(entity) => entity.to_cedar_entity(),
             Self::EntityType(entity_type) => entity_type.to_cedar_entity(),
@@ -97,7 +118,7 @@ impl ResourceConstraint {
                 ast::Expr::val(true),
             ),
             Self::Entity(entity) => entity.to_cedar_resource_constraint(),
-            Self::EntityType(entity_type) => (entity_type.to_cedar(), ast::Expr::val(true)),
+            Self::EntityType(entity_type) => entity_type.to_cedar(),
         }
     }
 
@@ -192,7 +213,9 @@ impl ResourceConstraint {
             }
         } else if *resource_type == **EntityTypeId::entity_type() {
             let Some(in_resource) = in_resource else {
-                return Ok(Self::EntityType(EntityTypeResourceConstraint::Any {}));
+                return Ok(Self::EntityType(EntityTypeResourceConstraint::Any {
+                    filter: None,
+                }));
             };
 
             if *in_resource.entity_type() == **OwnedById::entity_type() {
@@ -201,6 +224,7 @@ impl ResourceConstraint {
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     )),
+                    filter: None,
                 }))
             } else {
                 bail!(InvalidResourceConstraint::UnexpectedEntityType(

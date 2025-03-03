@@ -28,15 +28,15 @@
     "@local/harpc-client": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-types": "0.0.0-private",
-    "effect": "3.13.2"
+    "effect": "3.13.4"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@vitest/coverage-istanbul": "2.1.9",
+    "@vitest/coverage-istanbul": "3.0.7",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
-    "vitest": "2.1.9"
+    "vitest": "3.0.7"
   }
 }

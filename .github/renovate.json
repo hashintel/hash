@@ -2,5 +2,18 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>hashintel/.github:renovate-config"],
   "description": "HASH public monorepo (hashintel/hash) Renovate configuration",
-  "dependencyDashboardOSVVulnerabilitySummary": "none"
+  "dependencyDashboardOSVVulnerabilitySummary": "none",
+  "packageRules": [
+    {
+      "matchManagers": ["cargo"],
+      "matchFileNames": ["libs/error-stack/Cargo.toml"],
+      "matchPackageNames": ["anyhow"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["pdfium-render"],
+      "enabled": false
+    }
+  ]
 }

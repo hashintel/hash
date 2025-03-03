@@ -599,7 +599,7 @@ impl fmt::Display for Property {
             fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
                 self.0
                     .write_str(&String::from_utf8_lossy(buf))
-                    .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
+                    .map_err(io::Error::other)?;
                 Ok(buf.len())
             }
 
