@@ -32,8 +32,8 @@ impl fmt::Display for FetcherError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum FetchedOntologyType {
-    DataType(DataType),
-    PropertyType(PropertyType),
+    DataType(Box<DataType>),
+    PropertyType(Box<PropertyType>),
     EntityType(Box<EntityType>),
 }
 

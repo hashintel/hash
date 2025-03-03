@@ -17,11 +17,12 @@ pub mod __private {
         //! The different tags [`ReportTag`] and [`ContextTag`] have a blanket implementation
         //! returning a concrete type. This type is then used to create a [`Report`].
         //!
-        //! [`ContextTag`] is implemented for `T: `[`Context`]s while [`ReportTag`] is implement for
-        //! [`Report`]s. Calling `my_report.__kind()` will always return a [`Reporter`] while
-        //! `my_context.__kind()` will return a [`ContextReporter`] so a [`Report`] has the highest
-        //! precedence when calling `.__kind()`. This will use an identity function when creating a
-        //! [`Report`] to ensure that no information will be lost.
+        //! [`ContextTag`] is implemented for <code>T: [Context]</code>s while [`ReportTag`] is
+        //! implement for [`Report`]s. Calling `my_report.__kind()` will always return a
+        //! [`Reporter`] while `my_context.__kind()` will return a [`ContextReporter`] so a
+        //! [`Report`] has the highest precedence when calling `.__kind()`. This will use an
+        //! identity function when creating a [`Report`] to ensure that no information will
+        //! be lost.
         //!
         //! Note: The methods on the tags are called `__kind` instead of `kind` to avoid misleading
         //! suggestions from the Rust compiler, when calling `kind`. It would suggest implementing a
@@ -329,7 +330,7 @@ macro_rules! bail {
 
 /// Ensures `$cond` is met, otherwise return an error.
 ///
-/// Shorthand for `if !$cond { `[`bail!(...)`]`) }`
+/// Shorthand for <code>if !$cond { [bail!(...)]) }</code>
 ///
 /// [`Report`]: crate::Report
 /// [`bail!(...)`]: bail
