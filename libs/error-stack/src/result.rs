@@ -4,7 +4,8 @@ use core::fmt;
 
 use crate::{Context, Report};
 
-/// [`Result`](std::result::Result)`<T, `[`Report<C>`](Report)`>`
+#[expect(rustdoc::invalid_html_tags, reason = "False positive")]
+/// <code>[Result](core::result::Result)<T, [Report<C>]></code>
 ///
 /// A reasonable return type to use throughout an application.
 ///

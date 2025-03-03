@@ -77,6 +77,6 @@ pub enum Actual {
 #[derive(Debug)]
 pub enum Expected {
     EntityType(Box<ClosedMultiEntityType>),
-    PropertyType(PropertyType),
-    DataType(DataType),
+    PropertyType(Box<PropertyType>),
+    DataType(Box<DataType>),
 }
