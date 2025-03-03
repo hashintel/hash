@@ -29,7 +29,7 @@ RUN mise install npm:turbo && \
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-api' --docker && \
-    find $(yq '.workspace.members' Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
+    find $(yq '.workspace.members' -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
     [ -f "/app/out/full/$1" ] || ( \
     mkdir -p "/app/out/full/$(dirname "$1")/src" && \
     echo > "/app/out/full/$(dirname "$1")/src/lib.rs" && \
@@ -74,7 +74,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/usr/local/src/target,sharing=locked \
     --mount=type=cache,target=/usr/local/src/.turbo/cache,sharing=locked \
-    yarn turbo build --filter '@apps/hash-api' --env-mode=loose
+    turbo build --filter '@apps/hash-api' --env-mode=loose
 
 
 FROM mise AS runner

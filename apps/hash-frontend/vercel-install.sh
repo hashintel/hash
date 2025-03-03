@@ -29,11 +29,7 @@ curl https://zyedidia.github.io/eget.sh | sh
 
 # Setup TurboRepo and get a pruned src folder and lockfile
 echo "Installing turbo"
-npm install -g "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
-
-# Enable corepack
-echo "Enable corepack"
-corepack enable
+mise install node npm:turbo java
 
 # TODO: investigate why producing a pruned repo results in a broken Vercel build
 #   update: Probably due to missing `patches/` folder, needs investigation
