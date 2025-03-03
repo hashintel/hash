@@ -69,11 +69,10 @@ pub mod __private {
 
 /// Creates a [`Report`] from the given parameters.
 ///
-/// The parameters may either be [`Context`] or a [`Report`]. The returned [`Report`] will use the
+/// The parameters may either be [`Error`] or a [`Report`]. The returned [`Report`] will use the
 /// the provided type as context.
 ///
 /// [`Report`]: crate::Report
-/// [`Context`]: crate::Context
 /// [`Error`]: core::error::Error
 ///
 /// # Examples
@@ -93,8 +92,6 @@ pub mod __private {
 /// # Ok(()) }
 /// # assert!(wrapper().unwrap_err().contains::<std::io::Error>());
 /// ```
-///
-/// Create a [`Report`] from [`Context`]:
 ///
 /// ```rust
 /// # fn has_permission(_: &u32, _: &u32) -> bool { true }
@@ -204,10 +201,10 @@ macro_rules! bail {
 
 /// Creates a [`Report`] and returns it as [`Result`].
 ///
-/// Shorthand for `return Err(report!(..))`.
+/// Shorthand for <code>return Err([report!(..)])</code>.
 ///
 /// [`Report`]: crate::Report
-/// [`report!(...)`]: report
+/// [report!(..)]: report
 ///
 /// # `unstable`
 ///
@@ -330,17 +327,16 @@ macro_rules! bail {
 
 /// Ensures `$cond` is met, otherwise return an error.
 ///
-/// Shorthand for <code>if !$cond { [bail!(...)]) }</code>
+/// Shorthand for <code>if !$cond { [bail!(..)]) }</code>
 ///
 /// [`Report`]: crate::Report
-/// [`bail!(...)`]: bail
+/// [bail!(..)]: bail
 ///
 /// # Examples
 ///
-/// Create a [`Report`] from [`Context`]:
+/// Create a [`Report`] from an [`Error`]:
 ///
-/// [`Report`]: crate::Report
-/// [`Context`]: crate::Context
+/// [`Error`]: core::error::Error
 ///
 /// ```rust
 /// # fn has_permission(_: &u32, _: &u32) -> bool { true }
