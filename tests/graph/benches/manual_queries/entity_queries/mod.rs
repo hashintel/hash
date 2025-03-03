@@ -303,9 +303,7 @@ fn read_groups(path: impl AsRef<Path>) -> Result<Vec<(String, JsonValue)>, Repor
                 entry
                     .path()
                     .file_stem()
-                    .ok_or_else(|| {
-                        io::Error::new(io::ErrorKind::Other, "File does not have a valid file name")
-                    })?
+                    .ok_or_else(|| io::Error::other("File does not have a valid file name"))?
                     .to_string_lossy()
                     .into_owned(),
                 serde_json::from_reader(File::open(entry.path())?).map_err(io::Error::from)?,
