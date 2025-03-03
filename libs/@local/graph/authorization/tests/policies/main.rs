@@ -12,7 +12,7 @@ use core::{error::Error, str::FromStr as _};
 use std::sync::LazyLock;
 
 use hash_graph_authorization::policies::{
-    ContextBuilder, Policy, PolicySet, Request, RequestContext,
+    ContextBuilder, PolicySet, Request, RequestContext,
     action::ActionId,
     principal::{
         ActorId,
@@ -23,7 +23,7 @@ use hash_graph_authorization::policies::{
         web::WebRoleId,
     },
     resource::{EntityResource, EntityTypeId, EntityTypeResource, ResourceId},
-    store::{MemoryPrincipalStore, PrincipalStore},
+    store::{MemoryPolicyStore, PolicyStore},
 };
 use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
 use type_system::url::VersionedUrl;
@@ -43,31 +43,29 @@ struct TestWeb {
 }
 
 impl TestWeb {
-    fn generate(
-        principal_store: &mut impl PrincipalStore,
-        context: &mut ContextBuilder,
-    ) -> (Self, Vec<Policy>) {
-        let web_id = principal_store.create_web();
-        let admin_role = principal_store.create_web_role(web_id);
-        let member_role = principal_store.create_web_role(web_id);
+    fn generate(policy_store: &mut impl PolicyStore, context: &mut ContextBuilder) -> Self {
+        let web_id = policy_store.create_web();
+        let admin_role = policy_store.create_web_role(web_id);
+        let member_role = policy_store.create_web_role(web_id);
 
-        let machine = TestMachine::generate(web_id, principal_store, context);
-        principal_store
+        let machine = TestMachine::generate(web_id, policy_store, context);
+        policy_store
             .assign_role(ActorId::Machine(machine.id), RoleId::Web(member_role))
             .expect("should be able to assign role");
 
-        let mut policies = permit_admin_web(web_id, admin_role);
-        policies.extend(permit_member_crud_web(web_id, member_role));
+        for policy in permit_admin_web(web_id, admin_role) {
+            policy_store.create_policy(policy);
+        }
+        for policy in permit_member_crud_web(web_id, member_role) {
+            policy_store.create_policy(policy);
+        }
 
-        (
-            Self {
-                id: web_id,
-                admin_role,
-                member_role,
-                machine,
-            },
-            policies,
-        )
+        Self {
+            id: web_id,
+            admin_role,
+            member_role,
+            machine,
+        }
     }
 }
 
@@ -79,10 +77,7 @@ struct TestUser {
 }
 
 impl TestUser {
-    fn generate(
-        principal_store: &mut impl PrincipalStore,
-        context: &mut ContextBuilder,
-    ) -> (Self, Vec<Policy>) {
+    fn generate(policy_store: &mut impl PolicyStore, context: &mut ContextBuilder) -> Self {
         static ENTITY_TYPES: LazyLock<[VersionedUrl; 2]> = LazyLock::new(|| {
             [
                 VersionedUrl::from_str("https://hash.ai/@h/types/entity-type/user/v/6")
@@ -92,20 +87,20 @@ impl TestUser {
             ]
         });
 
-        let (web, policies) = TestWeb::generate(principal_store, context);
-        let id = principal_store.create_user(web.id);
+        let web = TestWeb::generate(policy_store, context);
+        let id = policy_store.create_user(web.id);
         let entity = EntityResource {
             id: EntityUuid::new(id.into_uuid()),
             web_id: web.id,
             entity_type: Cow::Borrowed(ENTITY_TYPES.as_slice()),
         };
 
-        principal_store
+        policy_store
             .assign_role(ActorId::User(id), RoleId::Web(web.admin_role))
             .expect("should be able to assign role");
         context.add_entity(&entity);
 
-        (Self { web, id, entity }, policies)
+        Self { web, id, entity }
     }
 }
 
@@ -118,7 +113,7 @@ struct TestMachine {
 impl TestMachine {
     fn generate(
         web_id: OwnedById,
-        principal_store: &mut impl PrincipalStore,
+        policy_store: &mut impl PolicyStore,
         context: &mut ContextBuilder,
     ) -> Self {
         static ENTITY_TYPES: LazyLock<[VersionedUrl; 2]> = LazyLock::new(|| {
@@ -130,7 +125,7 @@ impl TestMachine {
             ]
         });
 
-        let id = principal_store.create_machine(web_id);
+        let id = policy_store.create_machine(web_id);
         let entity = EntityResource {
             id: EntityUuid::new(id.into_uuid()),
             web_id,
@@ -155,29 +150,30 @@ struct TestSystem {
 }
 
 impl TestSystem {
-    fn generate(
-        principal_store: &mut impl PrincipalStore,
-        context: &mut ContextBuilder,
-    ) -> (Self, Vec<Policy>) {
-        let (web, mut policies) = TestWeb::generate(principal_store, context);
-        policies.extend(permit_view_system_entities(web.id));
-        policies.extend(forbid_update_web_machine());
-        policies.extend(permit_view_ontology());
+    fn generate(policy_store: &mut impl PolicyStore, context: &mut ContextBuilder) -> Self {
+        let web = TestWeb::generate(policy_store, context);
+        for policy in permit_view_system_entities(web.id)
+            .into_iter()
+            .chain(forbid_update_web_machine())
+            .chain(permit_view_ontology())
+        {
+            policy_store.create_policy(policy);
+        }
 
-        let machine = TestMachine::generate(web.id, principal_store, context);
-        principal_store
+        let machine = TestMachine::generate(web.id, policy_store, context);
+        policy_store
             .assign_role(ActorId::Machine(machine.id), RoleId::Web(web.admin_role))
             .expect("should be able to assign role");
-        policies.extend(permit_instantiate(machine.id));
+        for policy in permit_instantiate(machine.id) {
+            policy_store.create_policy(policy);
+        }
 
-        let hash_ai_machine = TestMachine::generate(web.id, principal_store, context);
+        let hash_ai_machine = TestMachine::generate(web.id, policy_store, context);
 
-        let hash_instance_admins = principal_store.create_team();
-        let hash_instance_admins_admin_role =
-            principal_store.create_team_role(hash_instance_admins);
-        let hash_instance_admins_member_role =
-            principal_store.create_team_role(hash_instance_admins);
-        principal_store
+        let hash_instance_admins = policy_store.create_team();
+        let hash_instance_admins_admin_role = policy_store.create_team_role(hash_instance_admins);
+        let hash_instance_admins_member_role = policy_store.create_team_role(hash_instance_admins);
+        policy_store
             .assign_role(
                 ActorId::Machine(hash_ai_machine.id),
                 RoleId::Team(hash_instance_admins_admin_role),
@@ -192,33 +188,32 @@ impl TestSystem {
             ]),
         };
         context.add_entity(&hash_instance_entity);
-        policies.extend(permit_hash_instance_admins(
+        for policy in permit_hash_instance_admins(
             hash_instance_admins_admin_role,
             hash_instance_admins_member_role,
             hash_instance_entity.id,
-        ));
+        ) {
+            policy_store.create_policy(policy);
+        }
 
-        (
-            Self {
-                web,
-                machine,
-                hash_ai_machine,
-                hash_instance_admins,
-                hash_instance_admins_admin_role,
-                hash_instance_admins_member_role,
-                hash_instance_entity,
-            },
-            policies,
-        )
+        Self {
+            web,
+            machine,
+            hash_ai_machine,
+            hash_instance_admins,
+            hash_instance_admins_admin_role,
+            hash_instance_admins_member_role,
+            hash_instance_entity,
+        }
     }
 }
 
 #[test]
 fn instantiate() -> Result<(), Box<dyn Error>> {
     let mut context = ContextBuilder::default();
-    let mut principal_store = MemoryPrincipalStore::default();
+    let mut policy_store = MemoryPolicyStore::default();
 
-    let (system, system_policies) = TestSystem::generate(&mut principal_store, &mut context);
+    let system = TestSystem::generate(&mut policy_store, &mut context);
 
     let machine_type = EntityTypeResource {
         web_id: system.web.id,
@@ -236,13 +231,20 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
     };
     context.add_entity_type(&document_type);
 
-    principal_store.extend_context(&mut context, ActorId::Machine(system.machine.id));
-    principal_store.extend_context(&mut context, ActorId::Machine(system.hash_ai_machine.id));
+    policy_store.extend_context(&mut context, ActorId::Machine(system.machine.id));
+    policy_store.extend_context(&mut context, ActorId::Machine(system.hash_ai_machine.id));
     let context = context.build()?;
-    let policy_set = PolicySet::default().with_policies(&system_policies)?;
+
+    let system_machine_policy_set = PolicySet::default()
+        .with_policies(policy_store.get_policies(ActorId::Machine(system.machine.id)))?;
+    println!("system_machine_policy_set:\n{system_machine_policy_set:?}");
+
+    let system_web_machine_policy_set = PolicySet::default()
+        .with_policies(policy_store.get_policies(ActorId::Machine(system.web.machine.id)))?;
+    println!("system_web_machine_policy_set:\n{system_web_machine_policy_set:?}");
 
     // Only the system machine can instantiate a machine
-    assert!(!policy_set.evaluate(
+    assert!(!system_web_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(system.web.machine.id),
             action: ActionId::Instantiate,
@@ -251,7 +253,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(policy_set.evaluate(
+    assert!(system_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(system.machine.id),
             action: ActionId::Instantiate,
@@ -261,7 +263,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
         &context,
     )?);
 
-    assert!(policy_set.evaluate(
+    assert!(system_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(system.machine.id),
             action: ActionId::Instantiate,
@@ -270,7 +272,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(policy_set.evaluate(
+    assert!(system_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(system.machine.id),
             action: ActionId::Instantiate,
@@ -290,11 +292,11 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
 )]
 fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     let mut context = ContextBuilder::default();
-    let mut principal_store = MemoryPrincipalStore::default();
+    let mut policy_store = MemoryPolicyStore::default();
 
-    let (system, system_policies) = TestSystem::generate(&mut principal_store, &mut context);
+    let system = TestSystem::generate(&mut policy_store, &mut context);
 
-    let (user, user_policies) = TestUser::generate(&mut principal_store, &mut context);
+    let user = TestUser::generate(&mut policy_store, &mut context);
 
     let machine_type = EntityTypeResource {
         web_id: system.web.id,
@@ -327,17 +329,21 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     };
     context.add_entity(&web_entity);
 
-    principal_store.extend_context(&mut context, ActorId::User(user.id));
-    principal_store.extend_context(&mut context, ActorId::Machine(user.web.machine.id));
+    policy_store.extend_context(&mut context, ActorId::User(user.id));
+    policy_store.extend_context(&mut context, ActorId::Machine(user.web.machine.id));
     let context = context.build()?;
 
-    let policy_set = PolicySet::default()
-        .with_policies(&system_policies)?
-        .with_policies(&user_policies)?;
+    let user_policy_set =
+        PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id)))?;
+    println!("user_policy_set:\n{user_policy_set:?}");
 
-    eprintln!("context:\n{context:?}\npolicies:\n{policy_set:?}");
+    let user_machine_policy_set = PolicySet::default()
+        .with_policies(policy_store.get_policies(ActorId::Machine(user.web.machine.id)))?;
+    println!("user_machine_policy_set:\n{user_machine_policy_set:?}");
 
-    assert!(!policy_set.evaluate(
+    eprintln!("context:\n{context:?}");
+
+    assert!(!user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
             action: ActionId::Instantiate,
@@ -346,7 +352,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(policy_set.evaluate(
+    assert!(user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
             action: ActionId::Instantiate,
@@ -355,7 +361,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(policy_set.evaluate(
+    assert!(user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
             action: ActionId::Instantiate,
@@ -365,7 +371,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
         &context,
     )?);
 
-    assert!(policy_set.evaluate(
+    assert!(user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
             action: ActionId::View,
@@ -374,7 +380,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(policy_set.evaluate(
+    assert!(user_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(user.web.machine.id),
             action: ActionId::View,
@@ -383,7 +389,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(!policy_set.evaluate(
+    assert!(!user_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(system.machine.id),
             action: ActionId::View,
@@ -393,7 +399,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
         &context,
     )?);
 
-    assert!(policy_set.evaluate(
+    assert!(user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
             action: ActionId::Update,
@@ -402,7 +408,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(policy_set.evaluate(
+    assert!(user_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(user.web.machine.id),
             action: ActionId::Update,
@@ -411,7 +417,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(!policy_set.evaluate(
+    assert!(!user_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(system.machine.id),
             action: ActionId::Update,
@@ -431,19 +437,19 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
 )]
 fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     let mut context = ContextBuilder::default();
-    let mut principal_store = MemoryPrincipalStore::default();
+    let mut policy_store = MemoryPolicyStore::default();
 
-    let (system, system_policies) = TestSystem::generate(&mut principal_store, &mut context);
+    let system = TestSystem::generate(&mut policy_store, &mut context);
 
-    let (org_web, org_web_policies) = TestWeb::generate(&mut principal_store, &mut context);
-    let org_machine_id = principal_store.create_machine(org_web.id);
-    principal_store.assign_role(
+    let org_web = TestWeb::generate(&mut policy_store, &mut context);
+    let org_machine_id = policy_store.create_machine(org_web.id);
+    policy_store.assign_role(
         ActorId::Machine(org_machine_id),
         RoleId::Web(org_web.admin_role),
     )?;
 
-    let (user, user_policies) = TestUser::generate(&mut principal_store, &mut context);
-    principal_store.assign_role(ActorId::User(user.id), RoleId::Web(org_web.admin_role))?;
+    let user = TestUser::generate(&mut policy_store, &mut context);
+    policy_store.assign_role(ActorId::User(user.id), RoleId::Web(org_web.admin_role))?;
 
     let web_type = EntityTypeResource {
         web_id: org_web.id,
@@ -460,16 +466,28 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     };
     context.add_entity(&web_entity);
 
-    principal_store.extend_context(&mut context, ActorId::User(user.id));
-    principal_store.extend_context(&mut context, ActorId::Machine(user.web.machine.id));
-    principal_store.extend_context(&mut context, ActorId::Machine(org_web.machine.id));
+    policy_store.extend_context(&mut context, ActorId::User(user.id));
+    policy_store.extend_context(&mut context, ActorId::Machine(user.web.machine.id));
+    policy_store.extend_context(&mut context, ActorId::Machine(org_web.machine.id));
     let context = context.build()?;
-    let policy_set = PolicySet::default()
-        .with_policies(&system_policies)?
-        .with_policies(&org_web_policies)?
-        .with_policies(&user_policies)?;
 
-    assert!(policy_set.evaluate(
+    let org_machine_policy_set = PolicySet::default()
+        .with_policies(policy_store.get_policies(ActorId::Machine(org_web.machine.id)))?;
+    println!("org_machine_policy_set:\n{org_machine_policy_set:?}");
+
+    let user_policy_set =
+        PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id)))?;
+    println!("user_policy_set:\n{user_policy_set:?}");
+
+    let user_machine_policy_set = PolicySet::default()
+        .with_policies(policy_store.get_policies(ActorId::Machine(user.web.machine.id)))?;
+    println!("user_machine_policy_set:\n{user_machine_policy_set:?}");
+
+    let system_machine_policy_set = PolicySet::default()
+        .with_policies(policy_store.get_policies(ActorId::Machine(system.machine.id)))?;
+    println!("system_machine_policy_set:\n{system_machine_policy_set:?}");
+
+    assert!(org_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(org_web.machine.id),
             action: ActionId::View,
@@ -479,7 +497,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         &context,
     )?);
 
-    assert!(policy_set.evaluate(
+    assert!(user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
             action: ActionId::View,
@@ -488,7 +506,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(policy_set.evaluate(
+    assert!(org_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(org_web.machine.id),
             action: ActionId::View,
@@ -497,7 +515,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(!policy_set.evaluate(
+    assert!(!system_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(user.web.machine.id),
             action: ActionId::View,
@@ -506,7 +524,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(!policy_set.evaluate(
+    assert!(!system_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(system.web.machine.id),
             action: ActionId::View,
@@ -516,7 +534,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         &context,
     )?);
 
-    assert!(policy_set.evaluate(
+    assert!(user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
             action: ActionId::Update,
@@ -525,7 +543,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(policy_set.evaluate(
+    assert!(org_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(org_web.machine.id),
             action: ActionId::Update,
@@ -534,7 +552,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(!policy_set.evaluate(
+    assert!(!user_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(user.web.machine.id),
             action: ActionId::Update,
@@ -543,7 +561,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(!policy_set.evaluate(
+    assert!(!system_machine_policy_set.evaluate(
         &Request {
             actor: ActorId::Machine(system.web.machine.id),
             action: ActionId::Update,
@@ -559,20 +577,21 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
 #[test]
 fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
     let mut context = ContextBuilder::default();
-    let mut principal_store = MemoryPrincipalStore::default();
+    let mut policy_store = MemoryPolicyStore::default();
 
-    let (system, system_policies) = TestSystem::generate(&mut principal_store, &mut context);
+    let system = TestSystem::generate(&mut policy_store, &mut context);
 
-    let (user, user_policies) = TestUser::generate(&mut principal_store, &mut context);
+    let user = TestUser::generate(&mut policy_store, &mut context);
     println!("user: {user:?}");
 
-    principal_store.extend_context(&mut context, ActorId::User(user.id));
+    policy_store.extend_context(&mut context, ActorId::User(user.id));
     let context = context.build()?;
-    let policy_set = PolicySet::default()
-        .with_policies(&system_policies)?
-        .with_policies(&user_policies)?;
 
-    assert!(policy_set.evaluate(
+    let user_policy_set =
+        PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id)))?;
+    println!("user_policy_set:\n{user_policy_set:?}");
+
+    assert!(user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
             action: ActionId::View,
@@ -581,7 +600,7 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(!policy_set.evaluate(
+    assert!(!user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
             action: ActionId::Update,
@@ -597,23 +616,24 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
 #[test]
 fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
     let mut context = ContextBuilder::default();
-    let mut principal_store = MemoryPrincipalStore::default();
+    let mut policy_store = MemoryPolicyStore::default();
 
-    let (system, system_policies) = TestSystem::generate(&mut principal_store, &mut context);
+    let system = TestSystem::generate(&mut policy_store, &mut context);
 
-    let (user, user_policies) = TestUser::generate(&mut principal_store, &mut context);
-    principal_store.assign_role(
+    let user = TestUser::generate(&mut policy_store, &mut context);
+    policy_store.assign_role(
         ActorId::User(user.id),
         RoleId::Team(system.hash_instance_admins_admin_role),
     )?;
 
-    principal_store.extend_context(&mut context, ActorId::User(user.id));
+    policy_store.extend_context(&mut context, ActorId::User(user.id));
     let context = context.build()?;
-    let policy_set = PolicySet::default()
-        .with_policies(&system_policies)?
-        .with_policies(&user_policies)?;
 
-    assert!(policy_set.evaluate(
+    let user_policy_set =
+        PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id)))?;
+    println!("user_policy_set:\n{user_policy_set:?}");
+
+    assert!(user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
             action: ActionId::View,
@@ -622,7 +642,7 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
         },
         &context,
     )?);
-    assert!(policy_set.evaluate(
+    assert!(user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
             action: ActionId::Update,
