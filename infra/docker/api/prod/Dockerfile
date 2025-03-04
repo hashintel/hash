@@ -63,7 +63,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install node npm:turbo java && \
+    mise install node npm:turbo java biome cargo-binstall cargo:wasm-pack cargo:wasm-opt && \
     yarn install --immutable && \
     yarn cache clean
 
