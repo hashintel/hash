@@ -218,7 +218,6 @@ export const createConversionFunction = (
       evaluatedValue = evaluateExpression(conversion.expression, {
         self: evaluatedValue,
       });
-      console.log({ evaluatedValue });
     }
 
     return evaluatedValue;
