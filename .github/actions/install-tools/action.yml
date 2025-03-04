@@ -23,6 +23,7 @@ runs:
       run: |
         # corepack enable
         echo PROTOC="$(which protoc)" >> $GITHUB_ENV
+        echo MISE_ENV=ci >> $GITHUB_ENV
         mise ls
 
     - name: "Install Rust"
