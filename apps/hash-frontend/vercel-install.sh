@@ -12,12 +12,13 @@ echo "installing mise"
 yum install -y yum-utils
 yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
 yum install -y mise
-eval "$(mise activate bash --shims)"
 
 echo "Installing prerequisites"
 mise install node npm:turbo java biome cargo-binstall cargo:wasm-pack cargo:wasm-opt
 mise use --global yq
 mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
+
+eval "$(mise activate bash)"
 
 
 # TODO: investigate why producing a pruned repo results in a broken Vercel build
