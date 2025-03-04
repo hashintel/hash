@@ -166,7 +166,7 @@ jobs:
           export MISE_VERBOSE=1
           export RUST_BACKTRACE=1
           pushd ${{ matrix.path }}
-          export
+          export PROTOC=$(mise which protoc)
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
