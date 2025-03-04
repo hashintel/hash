@@ -195,7 +195,7 @@ jobs:
       - name: Validate package.json generated from Cargo.toml
         if: ${{ success() || failure() }}
         run: |
-          mise run sync-turborepo
+          mise sync-turborepo
           git --no-pager diff --exit-code --color '**/package.json'
 
       - name: Run yarn lint:constraints

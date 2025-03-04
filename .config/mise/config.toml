@@ -8,6 +8,7 @@ node        = { version = "22.14.0", postinstall = "corepack enable" }
 
 # Helper to install tools
 cargo-binstall = "1.10.22"
+uv             = "0.5.30"
 
 # Tools to compile the project
 'cargo:wasm-opt'  = "0.116.1"
@@ -15,30 +16,35 @@ cargo-binstall = "1.10.22"
 java              = "24"
 protoc            = "25.6"
 
+# CLI tools
+biome           = "1.9.5-nightly.ff02a0b"
+"pipx:sqlfluff" = "3.3.1"
+taplo           = "0.9.3"
+
 [tasks.sync-turborepo]
 description = "Sync the turborepo"
 run         = "cargo -Zscript run --manifest-path .github/scripts/rust/sync-turborepo.rs | xargs yarn fix:package-json"
 
 [tasks."lint:sqlfluff"]
 description = "Run SQLFluff linter"
-run         = "mise exec --env dev pipx:sqlfluff -- sqlfluff lint --warn-unused-ignores"
+run         = "sqlfluff lint --warn-unused-ignores"
 
 [tasks."fix:sqlfluff"]
 description = "Run SQLFluff linter"
-run         = "mise exec --env dev pipx:sqlfluff -- sqlfluff fix --warn-unused-ignores"
+run         = "sqlfluff fix --warn-unused-ignores"
 
 [tasks."lint:taplo"]
 description = "Run Taplo formatter"
-run         = "mise exec --env dev taplo -- taplo fmt --check"
+run         = "taplo fmt --check"
 
 [tasks."fix:taplo"]
 description = "Run Taplo formatter"
-run         = "mise exec --env dev taplo -- taplo fmt"
+run         = "taplo fmt"
 
 [tasks."lint:biome"]
 description = "Run Biome formatter"
-run         = "mise exec --env dev biome -- biome format"
+run         = "biome format"
 
 [tasks."fix:biome"]
 description = "Run Biome formatter"
-run         = "mise exec --env dev biome -- biome format --write"
+run         = "biome format --write"
