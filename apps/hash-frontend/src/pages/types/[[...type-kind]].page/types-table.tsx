@@ -319,7 +319,7 @@ export const TypesTable: FunctionComponent<{
         const row = rows[rowIndex];
 
         if (!row) {
-          throw new Error("link not found");
+          throw new Error("row not found");
         }
 
         const column = typesTableColumns[colIndex];

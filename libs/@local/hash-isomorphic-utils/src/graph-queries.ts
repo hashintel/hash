@@ -275,6 +275,7 @@ export const pageOrNotificationNotArchivedFilter: Filter = {
     },
   ],
 };
+
 export const mapGqlSubgraphFieldsFragmentToSubgraph = <
   RootType extends SubgraphRootType,
 >(

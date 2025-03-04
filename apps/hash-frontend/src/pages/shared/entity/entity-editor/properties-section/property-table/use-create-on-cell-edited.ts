@@ -20,13 +20,13 @@ export const useCreateOnCellEdited = () => {
     (rows: PropertyRow[]) => {
       const onCellEdited = (
         [colIndex, rowIndex]: Item,
-        newValue: EditableGridCell,
+        newValueCellOldType: EditableGridCell,
       ) => {
-        if (newValue.kind !== GridCellKind.Custom) {
+        if (newValueCellOldType.kind !== GridCellKind.Custom) {
           return;
         }
 
-        const newValueCell = newValue as ValueCell;
+        const newValueCell = newValueCellOldType as ValueCell;
 
         const key = propertyGridIndexes[colIndex];
         const row = rows[rowIndex];
@@ -44,7 +44,13 @@ export const useCreateOnCellEdited = () => {
 
         const updatedMetadata = cloneDeep(entity.metadata);
 
-        const { propertyKeyChain } = row;
+        const { propertyKeyChain, value: previousValue } = row;
+
+        const newValue = newValueCell.data.propertyRow.value;
+
+        if (previousValue === newValue) {
+          return;
+        }
 
         /**
          * we're reaching to the nested property by the property keys array

@@ -1,3 +1,3 @@
 export const formatNumber = (num: number) => {
-  return num.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
+  return num.toLocaleString(undefined, { maximumFractionDigits: 100 });
 };

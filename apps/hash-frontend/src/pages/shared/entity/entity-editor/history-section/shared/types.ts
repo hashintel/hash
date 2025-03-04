@@ -54,8 +54,17 @@ type DraftStatusChangeEvent = HistoryEventBase & {
   };
 };
 
+type ArchiveStatusChangeEvent = HistoryEventBase & {
+  type: "archive-status-change";
+  newArchiveStatus: boolean;
+  provenance: {
+    edition: EntityEditionProvenance;
+  };
+};
+
 export type HistoryEvent =
   | CreationEvent
   | PropertyUpdateEvent
   | TypeUpdateEvent
-  | DraftStatusChangeEvent;
+  | DraftStatusChangeEvent
+  | ArchiveStatusChangeEvent;

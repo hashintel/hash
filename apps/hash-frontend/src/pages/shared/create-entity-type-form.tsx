@@ -25,6 +25,7 @@ import {
 import { useEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { Button } from "../../shared/ui/button";
 import { useAuthenticatedUser } from "./auth-info-context";
+import { useSlideStack } from "./slide-stack";
 import { useGenerateTypeUrlsForUser } from "./use-generate-type-urls-for-user";
 import { WorkspaceContext } from "./workspace-context";
 
@@ -75,6 +76,8 @@ export const CreateEntityTypeForm = ({
     reValidateMode: "onSubmit",
     defaultValues: initialData,
   });
+
+  const { closeSlideStack } = useSlideStack();
 
   const title = watch("title");
   const titlePlural = watch("titlePlural");
@@ -217,6 +220,7 @@ export const CreateEntityTypeForm = ({
     afterSubmit?.();
 
     await router.push(nextUrl);
+    closeSlideStack();
   });
 
   const formItemWidth = `min(calc(100% - ${HELPER_TEXT_WIDTH + 52}px), 600px)`;

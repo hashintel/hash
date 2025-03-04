@@ -52,13 +52,21 @@ export const checkUserPermissionsOnDataTypeQuery = gql`
 `;
 
 export const createDataTypeMutation = gql`
-  mutation createDataType($ownedById: OwnedById!, $dataType: ConstructDataTypeParams!) {
-    createDataType(ownedById: $ownedById, dataType: $dataType)
+  mutation createDataType(
+    $ownedById: OwnedById!
+    $dataType: ConstructDataTypeParams!
+    $conversions: DataTypeDirectConversionsMap
+  ) {
+    createDataType(ownedById: $ownedById, dataType: $dataType, conversions: $conversions)
   }
 `;
 
 export const updateDataTypeMutation = gql`
-  mutation updateDataType($dataTypeId: VersionedUrl!, $dataType: ConstructDataTypeParams!) {
-    updateDataType(dataTypeId: $dataTypeId, dataType: $dataType)
+  mutation updateDataType(
+    $dataTypeId: VersionedUrl!
+    $dataType: ConstructDataTypeParams!
+    $conversions: DataTypeDirectConversionsMap
+  ) {
+    updateDataType(dataTypeId: $dataTypeId, dataType: $dataType, conversions: $conversions)
   }
 `;

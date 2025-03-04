@@ -1,5 +1,5 @@
-import { Box } from "@mui/material";
-import { Container, type SxProps, type Theme } from "@mui/system";
+import { Box, Container } from "@mui/material";
+import { type SxProps, type Theme } from "@mui/system";
 
 import { inSlideContainerStyles } from "./slide-styles";
 

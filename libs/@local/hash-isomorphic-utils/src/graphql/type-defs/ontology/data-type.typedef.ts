@@ -3,8 +3,9 @@ import { gql } from "apollo-server-express";
 export const dataTypeTypedef = gql`
   scalar ConstructDataTypeParams
   scalar DataTypeWithMetadata
+  scalar DataTypeDirectConversionsMap
+  scalar DataTypeFullConversionTargetsMap
 
-  scalar DataTypeConversionsMap
   scalar UserPermissionsOnDataType
 
   extend type Query {
@@ -30,7 +31,7 @@ export const dataTypeTypedef = gql`
 
     getDataTypeConversionTargets(
       dataTypeIds: [VersionedUrl!]!
-    ): DataTypeConversionsMap!
+    ): DataTypeFullConversionTargetsMap!
 
     """
     Check the requesting user's permissions on a data type
@@ -42,8 +43,8 @@ export const dataTypeTypedef = gql`
 
 
   extend type Mutation {
-    createDataType(ownedById: OwnedById!, dataType: ConstructDataTypeParams!): DataTypeWithMetadata!
-    updateDataType(dataTypeId: VersionedUrl!, dataType: ConstructDataTypeParams!): DataTypeWithMetadata!
+    createDataType(ownedById: OwnedById!, dataType: ConstructDataTypeParams!, conversions: DataTypeDirectConversionsMap): DataTypeWithMetadata!
+    updateDataType(dataTypeId: VersionedUrl!, dataType: ConstructDataTypeParams!, conversions: DataTypeDirectConversionsMap): DataTypeWithMetadata!
     archiveDataType(dataTypeId: VersionedUrl!): OntologyTemporalMetadata!
     unarchiveDataType(dataTypeId: VersionedUrl!): OntologyTemporalMetadata!
   }
