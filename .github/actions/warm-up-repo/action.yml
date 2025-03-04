@@ -25,7 +25,10 @@ runs:
     - name: Setup environment
       shell: bash
       run: |
-        echo "PROTOC=$(mise which protoc)" >> $GITHUB_ENV
+        corepack enable
+        echo PROTOC=$(mise which protoc) >> $GITHUB_ENV
+        ls -l /home/runner/.local/share/mise/shims
+        mise ls
 
     - name: "Install Rust"
       shell: bash
