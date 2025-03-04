@@ -5,8 +5,9 @@ _.file = [".env", ".env.local"]
 node        = { version = "22.14.0", postinstall = "corepack enable" }
 'npm:turbo' = "2.4.4"
 
-cargo-binstall = "1.10.22"
-protoc         = "25.6"
+cargo-binstall   = "1.10.22"
+'cargo:wasm-opt' = "0.116.1"
+protoc           = "25.6"
 
 java = "24"
 
