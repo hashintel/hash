@@ -6,42 +6,11 @@ inputs:
     default: ""
     description: "List of browsers separated by space, e.g. 'chrome firefox'"
     required: false
-  token:
-    required: true
 
 runs:
   using: composite
 
   steps:
-    - name: Install Tools
-      uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
-      with:
-        install_args: --jobs 1
-      env:
-        MISE_VERBOSE: 1
-        MISE_NODE_COREPACK: 1
-        GITHUB_TOKEN: ${{ inputs.token }}
-
-    - name: Setup environment
-      shell: bash
-      run: |
-        # corepack enable
-        echo PROTOC="$(which protoc)" >> $GITHUB_ENV
-        mise ls
-
-    - name: "Install Rust"
-      shell: bash
-      run: |
-        COMPONENTS="$(yq '.toolchain.components[]' rust-toolchain.toml)"
-        TOOLCHAIN_CHANNEL="$(yq '.toolchain.channel' rust-toolchain.toml)"
-        rustup toolchain install "$TOOLCHAIN_CHANNEL"
-
-        for component in $COMPONENTS; do
-          rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
-        done
-
-        echo "RUSTUP_TOOLCHAIN=$TOOLCHAIN_CHANNEL" >> $GITHUB_ENV
-
     - name: Install yarn dependencies
       uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
       env:

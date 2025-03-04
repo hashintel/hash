@@ -106,11 +106,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Install tools
+        uses: ./.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
           scope: ${{ matrix.name }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
 
       - name: Find test steps to run
         id: tests
@@ -129,11 +136,6 @@ jobs:
           mv $temp_dir/lib/* "${{ matrix.path }}/libs/"
           rm -rf $temp_dir
           echo "PDFIUM_DYNAMIC_LIB_PATH=$(pwd)/${{ matrix.path }}/libs/" >> $GITHUB_ENV
-
-      - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -207,13 +209,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Install tools
+        uses: ./.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
             @apps/hash-external-services
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
 
       - name: Find test steps to run
         id: tests
@@ -227,11 +236,6 @@ jobs:
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
-
-      - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Rust tools
         if: steps.tests.outputs.has-rust == 'true'

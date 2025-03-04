@@ -67,6 +67,11 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Install tools
+        uses: ./.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Prune repository
         if: steps.benches.outputs.create-baseline == 'true'
         uses: ./.github/actions/prune-repository
@@ -75,7 +80,10 @@ jobs:
             ${{ matrix.name }}
             @rust/hash-repo-chores
             @apps/hash-external-services
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Warm up repository
+        if: steps.benches.outputs.create-baseline == 'true'
+        uses: ./.github/actions/warm-up-repo
 
       - name: Find bench steps to run
         id: benches
@@ -88,12 +96,6 @@ jobs:
 
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
-
-      - name: Warm up repository
-        if: steps.benches.outputs.create-baseline == 'true'
-        uses: ./.github/actions/warm-up-repo
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
@@ -125,6 +127,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
+      - name: Install tools
+        uses: ./.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
@@ -132,12 +139,9 @@ jobs:
             ${{ matrix.name }}
             @rust/hash-repo-chores
             @apps/hash-external-services
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run head benches
         run: turbo run bench:unit --filter "${{ matrix.name }}"
@@ -193,6 +197,11 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Install tools
+        uses: ./.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Prune repository
         if: steps.benches.outputs.create-baseline == 'true'
         uses: ./.github/actions/prune-repository
@@ -201,7 +210,10 @@ jobs:
             ${{ matrix.name }}
             @rust/hash-repo-chores
             @apps/hash-external-services
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Warm up repository
+        if: steps.benches.outputs.create-baseline == 'true'
+        uses: ./.github/actions/warm-up-repo
 
       - name: Find bench steps to run
         id: benches
@@ -227,12 +239,6 @@ jobs:
         with:
           clean: false
           ref: ${{ github.event.pull_request.base.sha }}
-
-      - name: Warm up repository
-        if: steps.benches.outputs.create-baseline == 'true'
-        uses: ./.github/actions/warm-up-repo
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Rust dependencies
         if: steps.benches.outputs.has-rust == 'true'
@@ -266,6 +272,11 @@ jobs:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
+      - name: Install tools
+        uses: ./.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
@@ -273,12 +284,9 @@ jobs:
             ${{ matrix.name }}
             @rust/hash-repo-chores
             @apps/hash-external-services
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Launch external services
         run: |
