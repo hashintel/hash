@@ -134,6 +134,7 @@ jobs:
       - name: Run clippy
         if: always() && steps.lints.outputs.has-rust == 'true'
         run: |
+          pushd ${{ matrix.path }}
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
