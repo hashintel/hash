@@ -2,7 +2,7 @@
 _.file = [".env", ".env.local"]
 
 [tools]
-node        = "22.14.0"
+node        = { version = "22.14.0", postinstall = "corepack enable" }
 'npm:turbo' = "2.4.4"
 
 cargo-binstall = "1.10.22"

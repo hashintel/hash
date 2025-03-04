@@ -15,13 +15,11 @@ runs:
         install_args: --env ci --jobs 1
       env:
         MISE_VERBOSE: 1
-        MISE_NODE_COREPACK: 1
         GITHUB_TOKEN: ${{ inputs.token }}
 
     - name: Setup environment
       shell: bash
       run: |
-        # corepack enable
         echo MISE_ENV=ci >> $GITHUB_ENV
         echo PROTOC="$(mise which protoc)" >> $GITHUB_ENV
         mise ls
