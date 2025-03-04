@@ -2,11 +2,13 @@
 _.file = [".env", ".env.local"]
 
 [tools]
-java = "24"
-node = "22.14.0"
-
+node        = "22.14.0"
 'npm:turbo' = "2.4.4"
-protoc      = "25.6"
+
+cargo-binstall = "1.10.22"
+protoc         = "25.6"
+
+java = "24"
 
 [tasks.sync-turborepo]
 description = "Sync the turborepo"

@@ -2,3 +2,6 @@
 _.file = [".env.development", ".env.local.development"]
 
 NODE_ENV = "development"
+
+[tools]
+"cargo:wasm-pack" = "0.13.1"
