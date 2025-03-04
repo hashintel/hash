@@ -184,7 +184,7 @@ postgres-protocol        = { version = "=0.6.8", default-features = false }
 postgres-types           = { version = "=0.2.9", default-features = false }
 pretty_assertions        = { version = "=1.4.1", default-features = false, features = ["alloc"] }
 proc-macro-error2        = { version = "=2.0.1", default-features = false }
-proc-macro2              = { version = "=1.0.93", default-features = false }
+proc-macro2              = { version = "=1.0.94", default-features = false }
 prometheus-client        = { version = "=0.23.1", default-features = false }
 proptest                 = { version = "=1.6.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
 quote                    = { version = "=1.0.38", default-features = false }
