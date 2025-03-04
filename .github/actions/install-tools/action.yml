@@ -22,8 +22,8 @@ runs:
       shell: bash
       run: |
         # corepack enable
-        echo PROTOC="$(which protoc)" >> $GITHUB_ENV
         echo MISE_ENV=ci >> $GITHUB_ENV
+        echo PROTOC="$(mise which protoc)" >> $GITHUB_ENV
         mise ls
 
     - name: "Install Rust"
