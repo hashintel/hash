@@ -114,7 +114,7 @@ format *arguments:
 
 # Lint the code using `clippy`
 [no-cd]
-clippy *arguments
+clippy *arguments:
   @just in-pr cargo clippy --profile {{profile}} --all-features --all-targets --no-deps {{arguments}}
   @just not-in-pr cargo hack --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
 
@@ -125,7 +125,7 @@ build *arguments:
 
 # Run the test suite
 [no-cd]
-test *arguments
+test *arguments:
   cargo hack --optional-deps --feature-powerset nextest run {{arguments}}
   cargo test --all-features --doc
 
@@ -141,7 +141,7 @@ bench *arguments:
 
 # Run the test suite and generate a coverage report
 [no-cd]
-coverage *arguments
+coverage *arguments:
   cargo llvm-cov nextest --all-features --all-targets --cargo-profile coverage {{arguments}}
   cargo llvm-cov --all-features --profile coverage --doc {{arguments}}
 
