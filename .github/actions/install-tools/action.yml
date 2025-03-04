@@ -12,7 +12,7 @@ runs:
     - name: Install Tools
       uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
       with:
-        install_args: --jobs 1
+        install_args: --env ci --jobs 1
       env:
         MISE_VERBOSE: 1
         MISE_NODE_COREPACK: 1
