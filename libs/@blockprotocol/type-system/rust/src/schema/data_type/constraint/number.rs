@@ -1,4 +1,5 @@
 use alloc::collections::BTreeSet;
+use core::cmp;
 
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail, ensure};
 use hash_codec::numeric::Real;
@@ -15,14 +16,6 @@ use crate::{
         },
     },
 };
-
-#[expect(
-    clippy::trivially_copy_pass_by_ref,
-    reason = "Only used in serde skip_serializing_if"
-)]
-const fn is_false(value: &bool) -> bool {
-    !*value
-}
 
 #[derive(Debug, Error)]
 pub enum NumberValidationError {
@@ -73,18 +66,6 @@ pub enum NumberSchema {
     },
 }
 
-fn float_eq(lhs: &Real, rhs: &Real) -> bool {
-    lhs == rhs
-}
-
-fn float_less_eq(lhs: &Real, rhs: &Real) -> bool {
-    lhs <= rhs
-}
-
-fn float_less(lhs: &Real, rhs: &Real) -> bool {
-    lhs < rhs
-}
-
 fn float_multiple_of(lhs: &Real, rhs: &Real) -> bool {
     if *rhs == Real::from(0) {
         return false;
@@ -126,9 +107,9 @@ impl Constraint for NumberSchema {
                         .try_collect_reports()
                         .change_context_lazy(|| {
                             ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
-                                ValueConstraints::Typed(SingleValueConstraints::Number(
+                                ValueConstraints::Typed(Box::new(SingleValueConstraints::Number(
                                     Self::Constrained(constraints.clone()),
-                                )),
+                                ))),
                             )
                         })?;
 
@@ -136,9 +117,9 @@ impl Constraint for NumberSchema {
                     // should be caught by the schema validation, however, if this still happens
                     // we return an error as validating empty enum will always fail.
                     bail!(ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
-                        ValueConstraints::Typed(SingleValueConstraints::Number(Self::Constrained(
-                            constraints
-                        ))),
+                        ValueConstraints::Typed(Box::new(SingleValueConstraints::Number(
+                            Self::Constrained(constraints)
+                        ),)),
                     ))
                 }
 
@@ -202,7 +183,7 @@ impl ConstraintValidator<Real> for NumberSchema {
     fn is_valid(&self, value: &Real) -> bool {
         match self {
             Self::Constrained(constraints) => constraints.is_valid(value),
-            Self::Enum { r#enum } => r#enum.iter().any(|expected| float_eq(value, expected)),
+            Self::Enum { r#enum } => r#enum.iter().any(|expected| value == expected),
         }
     }
 
@@ -213,7 +194,7 @@ impl ConstraintValidator<Real> for NumberSchema {
                 .change_context(ConstraintError::ValueConstraint)?,
             Self::Enum { r#enum } => {
                 ensure!(
-                    r#enum.iter().any(|expected| float_eq(value, expected)),
+                    r#enum.iter().any(|expected| value == expected),
                     ConstraintError::InvalidEnumValue {
                         actual: Value::Number(value.clone()),
                         expected: r#enum
@@ -235,13 +216,15 @@ pub struct NumberConstraints {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
     pub minimum: Option<Real>,
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub exclusive_minimum: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
+    pub exclusive_minimum: Option<Real>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
     pub maximum: Option<Real>,
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub exclusive_maximum: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
+    pub exclusive_maximum: Option<Real>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
     pub multiple_of: Option<Real>,
@@ -254,48 +237,88 @@ impl Constraint for NumberConstraints {
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         let mut remainder = None::<Self>;
 
-        self.minimum = match self.minimum.as_ref().zip(other.minimum.as_ref()) {
-            Some((lhs, rhs)) => {
-                if float_less_eq(lhs, rhs) {
-                    other.minimum
-                } else {
-                    self.minimum
-                }
-            }
-            None => self.minimum.or(other.minimum),
-        };
-        self.exclusive_minimum = self.exclusive_minimum || other.exclusive_minimum;
-        self.maximum = match self.maximum.as_ref().zip(other.maximum.as_ref()) {
-            Some((lhs, rhs)) => {
-                if float_less_eq(lhs, rhs) {
-                    self.maximum
-                } else {
-                    other.maximum
-                }
-            }
-            None => self.maximum.or(other.maximum),
-        };
-        self.exclusive_maximum = self.exclusive_maximum || other.exclusive_maximum;
-        self.multiple_of = match self.multiple_of.as_ref().zip(other.multiple_of.as_ref()) {
-            Some((lhs, rhs)) if float_multiple_of(lhs, rhs) => self.multiple_of,
-            Some((lhs, rhs)) if float_multiple_of(rhs, lhs) => other.multiple_of,
-            Some((_, _)) => {
-                remainder.get_or_insert_default().multiple_of = other.multiple_of;
-                self.multiple_of
-            }
-            None => self.multiple_of.or(other.multiple_of),
+        // Handle minimum constraints - take the more restrictive one
+        self.minimum = match (self.minimum, other.minimum) {
+            (Some(lhs), Some(rhs)) => Some(cmp::max(lhs, rhs)),
+            (lhs, rhs) => lhs.or(rhs),
         };
 
-        if let Some((minimum, maximum)) = self.minimum.as_ref().zip(self.maximum.as_ref()) {
+        // Handle exclusive minimum constraints - take the more restrictive one
+        self.exclusive_minimum = match (self.exclusive_minimum, other.exclusive_minimum) {
+            (Some(lhs), Some(rhs)) => Some(cmp::max(lhs, rhs)),
+            (lhs, rhs) => lhs.or(rhs),
+        };
+
+        // Keep only the more restrictive of minimum and exclusive_minimum if both exist
+        if let Some((minimum, exclusive_minimum)) =
+            self.minimum.as_ref().zip(self.exclusive_minimum.as_ref())
+        {
+            if exclusive_minimum < minimum {
+                self.exclusive_minimum = None; // Regular minimum is more restrictive
+            } else {
+                self.minimum = None; // Exclusive minimum is more restrictive
+            }
+        }
+
+        // Handle maximum constraints - take the more restrictive one
+        self.maximum = match (self.maximum, other.maximum) {
+            (Some(lhs), Some(rhs)) => Some(cmp::min(lhs, rhs)),
+            (lhs, rhs) => lhs.or(rhs),
+        };
+
+        // Handle exclusive maximum constraints - take the more restrictive one
+        self.exclusive_maximum = match (self.exclusive_maximum, other.exclusive_maximum) {
+            (Some(lhs), Some(rhs)) => Some(cmp::min(lhs, rhs)),
+            (lhs, rhs) => lhs.or(rhs),
+        };
+
+        // Keep only the more restrictive of maximum and exclusive_maximum if both exist
+        if let Some((maximum, exclusive_maximum)) =
+            self.maximum.as_ref().zip(self.exclusive_maximum.as_ref())
+        {
+            if exclusive_maximum > maximum {
+                self.exclusive_maximum = None; // Regular maximum is more restrictive
+            } else {
+                self.maximum = None; // Exclusive maximum is more restrictive
+            }
+        }
+
+        // Handle multipleOf constraints
+        self.multiple_of = match (self.multiple_of, other.multiple_of) {
+            (Some(lhs), Some(rhs)) if float_multiple_of(&lhs, &rhs) => Some(lhs), /* lhs is more restrictive */
+            (Some(lhs), Some(rhs)) if float_multiple_of(&rhs, &lhs) => Some(rhs), /* rhs is more restrictive */
+            (Some(lhs), Some(rhs)) => {
+                // Neither is a multiple of the other, keep both separately
+                remainder.get_or_insert_default().multiple_of = Some(rhs);
+                Some(lhs)
+            }
+            (lhs, rhs) => lhs.or(rhs), // If only one exists, use it
+        };
+
+        // Validate that the resulting range is satisfiable
+        let min_value = self.minimum.as_ref().or(self.exclusive_minimum.as_ref());
+        let max_value = self.maximum.as_ref().or(self.exclusive_maximum.as_ref());
+
+        if let Some((minimum, maximum)) = min_value.zip(max_value) {
             ensure!(
-                float_less_eq(minimum, maximum),
+                match (
+                    self.exclusive_minimum.is_some(),
+                    self.exclusive_maximum.is_some(),
+                ) {
+                    (true, true) => minimum < maximum, // For exclusive bounds on both ends
+                    _ => minimum <= maximum,           // Otherwise
+                },
                 ResolveClosedDataTypeError::UnsatisfiableConstraint(ValueConstraints::Typed(
-                    SingleValueConstraints::Number(NumberSchema::Constrained(Self {
-                        minimum: self.minimum,
-                        maximum: self.maximum,
-                        ..Self::default()
-                    }),)
-                ),)
+                    Box::new(SingleValueConstraints::Number(NumberSchema::Constrained(
+                        Self {
+                            minimum: self.minimum,
+                            maximum: self.maximum,
+                            exclusive_minimum: self.exclusive_minimum,
+                            exclusive_maximum: self.exclusive_maximum,
+                            multiple_of: None,
+                        }
+                    )))
+                ))
             );
         }
 
@@ -308,15 +331,25 @@ impl ConstraintValidator<Real> for NumberConstraints {
 
     fn is_valid(&self, value: &Real) -> bool {
         if let Some(minimum) = &self.minimum {
-            if self.exclusive_minimum && float_less_eq(value, minimum) || float_less(value, minimum)
-            {
+            if value < minimum {
+                return false;
+            }
+        }
+
+        if let Some(exclusive_minimum) = &self.exclusive_minimum {
+            if value <= exclusive_minimum {
                 return false;
             }
         }
 
         if let Some(maximum) = &self.maximum {
-            if self.exclusive_maximum && float_less_eq(maximum, value) || float_less(maximum, value)
-            {
+            if value > maximum {
+                return false;
+            }
+        }
+
+        if let Some(exclusive_maximum) = &self.exclusive_maximum {
+            if value >= exclusive_maximum {
                 return false;
             }
         }
@@ -334,14 +367,7 @@ impl ConstraintValidator<Real> for NumberConstraints {
         let mut status = ReportSink::new();
 
         if let Some(minimum) = &self.minimum {
-            if self.exclusive_minimum {
-                if float_less_eq(value, minimum) {
-                    status.capture(NumberValidationError::ExclusiveMinimum {
-                        actual: value.clone(),
-                        expected: minimum.clone(),
-                    });
-                }
-            } else if float_less(value, minimum) {
+            if value < minimum {
                 status.capture(NumberValidationError::Minimum {
                     actual: value.clone(),
                     expected: minimum.clone(),
@@ -349,18 +375,29 @@ impl ConstraintValidator<Real> for NumberConstraints {
             }
         }
 
+        if let Some(exclusive_minimum) = &self.exclusive_minimum {
+            if value <= exclusive_minimum {
+                status.capture(NumberValidationError::ExclusiveMinimum {
+                    actual: value.clone(),
+                    expected: exclusive_minimum.clone(),
+                });
+            }
+        }
+
         if let Some(maximum) = &self.maximum {
-            if self.exclusive_maximum {
-                if float_less_eq(maximum, value) {
-                    status.capture(NumberValidationError::ExclusiveMaximum {
-                        actual: value.clone(),
-                        expected: maximum.clone(),
-                    });
-                }
-            } else if float_less(maximum, value) {
+            if value > maximum {
                 status.capture(NumberValidationError::Maximum {
                     actual: value.clone(),
                     expected: maximum.clone(),
+                });
+            }
+        }
+
+        if let Some(exclusive_maximum) = &self.exclusive_maximum {
+            if value >= exclusive_maximum {
+                status.capture(NumberValidationError::ExclusiveMaximum {
+                    actual: value.clone(),
+                    expected: exclusive_maximum.clone(),
                 });
             }
         }
@@ -428,16 +465,16 @@ mod tests {
     fn combine_with_non_conflicting_constraints() {
         let constraints1 = NumberConstraints {
             minimum: Some(Real::from(1)),
-            exclusive_minimum: false,
+            exclusive_minimum: None,
             maximum: Some(Real::from(10)),
-            exclusive_maximum: false,
+            exclusive_maximum: None,
             multiple_of: Some(Real::from(2)),
         };
         let constraints2 = NumberConstraints {
-            minimum: Some(Real::from(5)),
-            exclusive_minimum: true,
-            maximum: Some(Real::from(15)),
-            exclusive_maximum: true,
+            minimum: None,
+            exclusive_minimum: Some(Real::from(5)),
+            maximum: None,
+            exclusive_maximum: Some(Real::from(15)),
             multiple_of: Some(Real::from(4)),
         };
 
@@ -447,10 +484,10 @@ mod tests {
         else {
             panic!("Expected no remainder")
         };
-        assert_eq!(combined.minimum, Some(Real::from(5)));
-        assert!(combined.exclusive_minimum);
+        assert_eq!(combined.minimum, None);
+        assert_eq!(combined.exclusive_minimum, Some(Real::from(5)));
         assert_eq!(combined.maximum, Some(Real::from(10)));
-        assert!(combined.exclusive_maximum);
+        assert_eq!(combined.exclusive_maximum, None);
         assert_eq!(combined.multiple_of, Some(Real::from(4)));
     }
 
@@ -458,16 +495,16 @@ mod tests {
     fn combine_with_conflicting_constraints() {
         let constraints1 = NumberConstraints {
             minimum: Some(Real::from(6)),
-            exclusive_minimum: false,
+            exclusive_minimum: None,
             maximum: None,
-            exclusive_maximum: false,
+            exclusive_maximum: None,
             multiple_of: None,
         };
         let constraints2 = NumberConstraints {
             minimum: None,
-            exclusive_minimum: false,
+            exclusive_minimum: None,
             maximum: Some(Real::from(5)),
-            exclusive_maximum: false,
+            exclusive_maximum: None,
             multiple_of: None,
         };
 
@@ -488,9 +525,9 @@ mod tests {
             panic!("Expected combined constraints");
         };
         assert_eq!(combined.minimum, None);
-        assert!(!combined.exclusive_minimum);
+        assert_eq!(combined.exclusive_minimum, None);
         assert_eq!(combined.maximum, None);
-        assert!(!combined.exclusive_maximum);
+        assert_eq!(combined.exclusive_maximum, None);
         assert_eq!(combined.multiple_of, None);
     }
 
@@ -498,16 +535,16 @@ mod tests {
     fn combine_with_remainder() {
         let constraints1 = NumberConstraints {
             minimum: Some(Real::from(1)),
-            exclusive_minimum: false,
+            exclusive_minimum: None,
             maximum: Some(Real::from(10)),
-            exclusive_maximum: false,
+            exclusive_maximum: None,
             multiple_of: Some(Real::from(2)),
         };
         let constraints2 = NumberConstraints {
-            minimum: Some(Real::from(5)),
-            exclusive_minimum: true,
-            maximum: Some(Real::from(15)),
-            exclusive_maximum: true,
+            minimum: None,
+            exclusive_minimum: Some(Real::from(5)),
+            maximum: None,
+            exclusive_maximum: Some(Real::from(15)),
             multiple_of: Some(Real::from(3)),
         };
 
@@ -577,10 +614,8 @@ mod tests {
     fn simple_number_exclusive() {
         let number_schema = read_schema(&json!({
             "type": "number",
-            "minimum": 0.0,
-            "exclusiveMinimum": true,
-            "maximum": 10.0,
-            "exclusiveMaximum": true,
+            "exclusiveMinimum": 0.0,
+            "exclusiveMaximum": 10.0,
         }));
 
         check_constraints(&number_schema, json!(0.1));
@@ -613,15 +648,15 @@ mod tests {
 
     #[test]
     fn multiple_of() {
-        let number_schema = ValueConstraints::Typed(SingleValueConstraints::Number(
+        let number_schema = ValueConstraints::Typed(Box::new(SingleValueConstraints::Number(
             NumberSchema::Constrained(NumberConstraints {
                 minimum: None,
-                exclusive_minimum: false,
+                exclusive_minimum: None,
                 maximum: None,
-                exclusive_maximum: false,
+                exclusive_maximum: None,
                 multiple_of: Some(Real::from_natural(1, -1)),
             }),
-        ));
+        )));
 
         number_schema
             .validate_value(&Value::Number(Real::from_natural(1, -1)))
@@ -797,10 +832,8 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 5.0,
-                    "exclusiveMinimum": true,
-                    "maximum": 10.0,
-                    "exclusiveMaximum": true,
+                    "exclusiveMinimum": 5.0,
+                    "exclusiveMaximum": 10.0,
                 }),
                 json!({
                     "type": "number",
@@ -808,10 +841,8 @@ mod tests {
             ],
             [json!({
                 "type": "number",
-                "minimum": 5.0,
-                "exclusiveMinimum": true,
-                "maximum": 10.0,
-                "exclusiveMaximum": true,
+                "exclusiveMinimum": 5.0,
+                "exclusiveMaximum": 10.0,
             })],
         );
     }
@@ -822,25 +853,79 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 5.0,
-                    "exclusiveMinimum": true,
-                    "maximum": 10.0,
-                    "exclusiveMaximum": true,
+                    "exclusiveMinimum": 5.0,
+                    "exclusiveMaximum": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "exclusiveMinimum": 7.0,
+                    "exclusiveMaximum": 12.0,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "exclusiveMinimum": 7.0,
+                "exclusiveMaximum": 10.0,
+            })],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "exclusiveMinimum": 5.0,
+                    "exclusiveMaximum": 10.0,
                 }),
                 json!({
                     "type": "number",
                     "minimum": 7.0,
-                    "exclusiveMinimum": true,
-                    "maximum": 12.0,
-                    "exclusiveMaximum": true,
+                    "maximum": 8.0,
                 }),
             ],
             [json!({
                 "type": "number",
                 "minimum": 7.0,
-                "exclusiveMinimum": true,
-                "maximum": 10.0,
-                "exclusiveMaximum": true,
+                "maximum": 8.0,
+            })],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 5.0,
+                    "maximum": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "exclusiveMinimum": 7.0,
+                    "exclusiveMaximum": 8.0,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "exclusiveMinimum": 7.0,
+                "exclusiveMaximum": 8.0,
+            })],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 5.0,
+                    "maximum": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "exclusiveMinimum": 5.0,
+                    "exclusiveMaximum": 10.0,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "exclusiveMinimum": 5.0,
+                "exclusiveMaximum": 10.0,
             })],
         );
     }
@@ -1006,8 +1091,7 @@ mod tests {
                 json!({
                     "type": "number",
                     "minimum": 0.0,
-                    "maximum": 10.0,
-                    "exclusiveMaximum": true,
+                    "exclusiveMaximum": 10.0,
                 }),
                 json!({
                     "type": "number",

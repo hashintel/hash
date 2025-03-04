@@ -74,7 +74,7 @@ pub trait ConstraintValidator<V: ?Sized>: Constraint {
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum ValueConstraints {
-    Typed(SingleValueConstraints),
+    Typed(Box<SingleValueConstraints>),
     AnyOf(AnyOfConstraints),
 }
 
@@ -130,13 +130,16 @@ impl Constraint for ValueConstraints {
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         match (self, other) {
-            (Self::Typed(lhs), Self::Typed(rhs)) => lhs
-                .intersection(rhs)
-                .map(|(lhs, rhs)| (Self::Typed(lhs), rhs.map(Self::Typed))),
+            (Self::Typed(lhs), Self::Typed(rhs)) => lhs.intersection(*rhs).map(|(lhs, rhs)| {
+                (
+                    Self::Typed(Box::new(lhs)),
+                    rhs.map(|rhs| Self::Typed(Box::new(rhs))),
+                )
+            }),
             (Self::AnyOf(lhs), Self::Typed(rhs)) => {
                 let rhs = AnyOfConstraints {
                     any_of: vec![SingleValueSchema {
-                        constraints: rhs,
+                        constraints: *rhs,
                         description: None,
                         label: ValueLabel::default(),
                     }],
@@ -147,7 +150,7 @@ impl Constraint for ValueConstraints {
             (Self::Typed(lhs), Self::AnyOf(rhs)) => {
                 let lhs = AnyOfConstraints {
                     any_of: vec![SingleValueSchema {
-                        constraints: lhs,
+                        constraints: *lhs,
                         description: None,
                         label: ValueLabel::default(),
                     }],
