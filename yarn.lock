@@ -345,7 +345,6 @@ __metadata:
     "@aws-sdk/credential-provider-node": "npm:3.758.0"
     "@aws-sdk/s3-presigned-post": "npm:3.758.0"
     "@aws-sdk/s3-request-presigner": "npm:3.758.0"
-    "@biomejs/biome": "npm:1.9.5-nightly.ff02a0b"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
@@ -4235,97 +4234,6 @@ __metadata:
   version: 0.2.3
   resolution: "@bcoe/v8-coverage@npm:0.2.3"
   checksum: 10c0/6b80ae4cb3db53f486da2dc63b6e190a74c8c3cca16bb2733f234a0b6a9382b09b146488ae08e2b22cf00f6c83e20f3e040a2f7894f05c045c946d6a090b1d52
-  languageName: node
-  linkType: hard
-
-"@biomejs/biome@npm:1.9.5-nightly.ff02a0b":
-  version: 1.9.5-nightly.ff02a0b
-  resolution: "@biomejs/biome@npm:1.9.5-nightly.ff02a0b"
-  dependencies:
-    "@biomejs/cli-darwin-arm64": "npm:1.9.5-nightly.ff02a0b"
-    "@biomejs/cli-darwin-x64": "npm:1.9.5-nightly.ff02a0b"
-    "@biomejs/cli-linux-arm64": "npm:1.9.5-nightly.ff02a0b"
-    "@biomejs/cli-linux-arm64-musl": "npm:1.9.5-nightly.ff02a0b"
-    "@biomejs/cli-linux-x64": "npm:1.9.5-nightly.ff02a0b"
-    "@biomejs/cli-linux-x64-musl": "npm:1.9.5-nightly.ff02a0b"
-    "@biomejs/cli-win32-arm64": "npm:1.9.5-nightly.ff02a0b"
-    "@biomejs/cli-win32-x64": "npm:1.9.5-nightly.ff02a0b"
-  dependenciesMeta:
-    "@biomejs/cli-darwin-arm64":
-      optional: true
-    "@biomejs/cli-darwin-x64":
-      optional: true
-    "@biomejs/cli-linux-arm64":
-      optional: true
-    "@biomejs/cli-linux-arm64-musl":
-      optional: true
-    "@biomejs/cli-linux-x64":
-      optional: true
-    "@biomejs/cli-linux-x64-musl":
-      optional: true
-    "@biomejs/cli-win32-arm64":
-      optional: true
-    "@biomejs/cli-win32-x64":
-      optional: true
-  bin:
-    biome: bin/biome
-  checksum: 10c0/1a387dea9f06f439042001ac367e1120dc21f4b3a23b38e5a80f895112df713f21b9a78cd29aaa93627cd6890b11c100fbc0878aeb1e401ac64ad83b5bc58a8a
-  languageName: node
-  linkType: hard
-
-"@biomejs/cli-darwin-arm64@npm:1.9.5-nightly.ff02a0b":
-  version: 1.9.5-nightly.ff02a0b
-  resolution: "@biomejs/cli-darwin-arm64@npm:1.9.5-nightly.ff02a0b"
-  conditions: os=darwin & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@biomejs/cli-darwin-x64@npm:1.9.5-nightly.ff02a0b":
-  version: 1.9.5-nightly.ff02a0b
-  resolution: "@biomejs/cli-darwin-x64@npm:1.9.5-nightly.ff02a0b"
-  conditions: os=darwin & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@biomejs/cli-linux-arm64-musl@npm:1.9.5-nightly.ff02a0b":
-  version: 1.9.5-nightly.ff02a0b
-  resolution: "@biomejs/cli-linux-arm64-musl@npm:1.9.5-nightly.ff02a0b"
-  conditions: os=linux & cpu=arm64 & libc=musl
-  languageName: node
-  linkType: hard
-
-"@biomejs/cli-linux-arm64@npm:1.9.5-nightly.ff02a0b":
-  version: 1.9.5-nightly.ff02a0b
-  resolution: "@biomejs/cli-linux-arm64@npm:1.9.5-nightly.ff02a0b"
-  conditions: os=linux & cpu=arm64 & libc=glibc
-  languageName: node
-  linkType: hard
-
-"@biomejs/cli-linux-x64-musl@npm:1.9.5-nightly.ff02a0b":
-  version: 1.9.5-nightly.ff02a0b
-  resolution: "@biomejs/cli-linux-x64-musl@npm:1.9.5-nightly.ff02a0b"
-  conditions: os=linux & cpu=x64 & libc=musl
-  languageName: node
-  linkType: hard
-
-"@biomejs/cli-linux-x64@npm:1.9.5-nightly.ff02a0b":
-  version: 1.9.5-nightly.ff02a0b
-  resolution: "@biomejs/cli-linux-x64@npm:1.9.5-nightly.ff02a0b"
-  conditions: os=linux & cpu=x64 & libc=glibc
-  languageName: node
-  linkType: hard
-
-"@biomejs/cli-win32-arm64@npm:1.9.5-nightly.ff02a0b":
-  version: 1.9.5-nightly.ff02a0b
-  resolution: "@biomejs/cli-win32-arm64@npm:1.9.5-nightly.ff02a0b"
-  conditions: os=win32 & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@biomejs/cli-win32-x64@npm:1.9.5-nightly.ff02a0b":
-  version: 1.9.5-nightly.ff02a0b
-  resolution: "@biomejs/cli-win32-x64@npm:1.9.5-nightly.ff02a0b"
-  conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
@@ -8979,7 +8887,6 @@ __metadata:
   resolution: "@local/hash-isomorphic-utils@workspace:libs/@local/hash-isomorphic-utils"
   dependencies:
     "@apollo/client": "npm:3.10.5"
-    "@biomejs/biome": "npm:1.9.5-nightly.ff02a0b"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
@@ -9052,7 +8959,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
   dependencies:
-    "@biomejs/biome": "npm:1.9.5-nightly.ff02a0b"
     "@openapitools/openapi-generator-cli": "npm:2.16.3"
     "@types/node": "npm:22.13.8"
     axios: "npm:1.8.1"
@@ -16754,15 +16660,6 @@ __metadata:
   peerDependencies:
     "@tapjs/core": 2.1.6
   checksum: 10c0/c788e64ae9b0c729448aa07ebbbe8c7bb341a95639b4b57aaf7ebfd3a685a4e514b41df11df7e20396b91de6f82afe8009e19a5df90eb30aadaf788ba027aa82
-  languageName: node
-  linkType: hard
-
-"@taplo/cli@npm:0.7.0":
-  version: 0.7.0
-  resolution: "@taplo/cli@npm:0.7.0"
-  bin:
-    taplo: dist/cli.js
-  checksum: 10c0/c5a9a34502335731e405547fe24ba1a2f867fccdf8abe4d13e261e30fad6c18a2773a961981206166fde0c85b19accef40381c189c8c6ed4952c5b082c1d4996
   languageName: node
   linkType: hard
 
@@ -29374,12 +29271,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "hash@workspace:."
   dependencies:
-    "@biomejs/biome": "npm:1.9.5-nightly.ff02a0b"
     "@changesets/changelog-github": "npm:0.5.1"
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch"
     "@napi-rs/cli": "npm:2.18.4"
     "@sentry/cli": "npm:^2.39.1"
-    "@taplo/cli": "npm:0.7.0"
     "@yarnpkg/types": "npm:^4.0.0"
     lefthook: "npm:1.11.2"
     markdownlint-cli2: "npm:0.17.2"

@@ -4,4 +4,11 @@ _.file = [".env.development", ".env.local.development"]
 NODE_ENV = "development"
 
 [tools]
-"cargo:wasm-pack" = "0.13.1"
+
+# Tool installer
+uv = "0.5.30"
+
+# CLI tools
+biome           = "1.9.5-nightly.ff02a0b"
+"pipx:sqlfluff" = "3.3.1"
+taplo           = "0.9.3"

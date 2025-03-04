@@ -13,8 +13,8 @@ const fix = async (packageJsonPath: string, { lint }: { lint: boolean }) => {
   const sorted = sortPackageJson(contents);
 
   const { stdout: output } = await execa(
-    "biome",
-    ["format", `--stdin-file-path=${packageJsonPath}`],
+    "mise",
+    ["fix:biome", `--stdin-file-path=${packageJsonPath}`],
     {
       input: sorted,
       stripFinalNewline: false,

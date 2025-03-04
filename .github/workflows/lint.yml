@@ -237,14 +237,14 @@ jobs:
             exit 1
           fi
 
-      - name: Run yarn lint:format
+      - name: Run General formatter and linter
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:format; then
+          if ! mise lint:biome; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:biome` locally to apply autofixes.'
+            echo 'Try running `mise fix:biome` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -261,14 +261,14 @@ jobs:
             exit 1
           fi
 
-      - name: Run yarn lint:taplo
+      - name: Run TOML formatter and linter
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:taplo; then
+          if ! mise lint:taplo; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:taplo` locally to apply autofixes.'
+            echo 'Try running `mise fix:taplo` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -322,22 +322,14 @@ jobs:
             exit 1
           fi
 
-      - name: Install Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
-        with:
-          python-version: 3.12
-
-      - name: Install SQLFluff
-        run: pip install sqlfluff
-
       - name: Run SQL formatter and linter
         if: ${{ success() || failure() }}
         run: |
-          if ! sqlfluff lint --warn-unused-ignores; then
+          if ! mise lint:sqlfluff; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `sqlfluff fix` locally to apply autofixes.'
+            echo 'Try running `mise fix:sqlfluff` locally to apply autofixes.'
             echo 'Note, that SQLFluff does not come with `yarn install` and you may need to install it yourself.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
@@ -345,7 +337,7 @@ jobs:
 
       - name: Create SQLFluff annotations
         if: failure() && github.event.pull_request.head.repo.full_name == github.repository
-        run: sqlfluff lint --warn-unused-ignores --format github-annotation --write-output annotations.json --annotation-level failure --nofail
+        run: mise lint:sqlfluff --format github-annotation --write-output annotations.json --annotation-level failure --nofail
 
       - name: Annotate
         uses: yuzutech/annotations-action@0e061a6e3ac848299310b6429b60d67cafd4e7f8 # v0.5.0
