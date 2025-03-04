@@ -250,9 +250,7 @@ impl Constraint for NumberConstraints {
         };
 
         // Keep only the more restrictive of minimum and exclusive_minimum if both exist
-        if let Some((minimum, exclusive_minimum)) =
-            self.minimum.as_ref().zip(self.exclusive_minimum.as_ref())
-        {
+        if let (Some(minimum), Some(exclusive_minimum)) = (&self.minimum, &self.exclusive_minimum) {
             if exclusive_minimum < minimum {
                 self.exclusive_minimum = None; // Regular minimum is more restrictive
             } else {
@@ -273,9 +271,7 @@ impl Constraint for NumberConstraints {
         };
 
         // Keep only the more restrictive of maximum and exclusive_maximum if both exist
-        if let Some((maximum, exclusive_maximum)) =
-            self.maximum.as_ref().zip(self.exclusive_maximum.as_ref())
-        {
+        if let (Some(maximum), Some(exclusive_maximum)) = (&self.maximum, &self.exclusive_maximum) {
             if exclusive_maximum > maximum {
                 self.exclusive_maximum = None; // Regular maximum is more restrictive
             } else {
