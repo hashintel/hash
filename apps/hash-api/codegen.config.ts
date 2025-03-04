@@ -18,7 +18,7 @@ const config: CodegenConfig = {
         "../../libs/@local/hash-isomorphic-utils/src/graphql/queries/**/*.ts",
       ],
       hooks: {
-        afterOneFileWrite: ["mise fix:biome --vcs-use-ignore-file=false"],
+        afterOneFileWrite: ["biome format --write --vcs-use-ignore-file=false"],
       },
       config: {
         avoidOptionals: {
