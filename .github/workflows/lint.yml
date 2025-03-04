@@ -189,7 +189,7 @@ jobs:
       - name: Validate package.json generated from Cargo.toml
         if: ${{ success() || failure() }}
         run: |
-          mise sync-turborepo
+          cargo -Zscript run --manifest-path ".github/scripts/rust/sync-turborepo.rs" . | xargs yarn fix:package-json
           git --no-pager diff --exit-code --color '**/package.json'
 
       - name: Run yarn lint:constraints
@@ -231,10 +231,10 @@ jobs:
             exit 1
           fi
 
-      - name: Run General formatter and linter
+      - name: Run yarn lint:format
         if: ${{ success() || failure() }}
         run: |
-          if ! mise lint:biome; then
+          if ! yarn lint:format; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
@@ -255,14 +255,14 @@ jobs:
             exit 1
           fi
 
-      - name: Run TOML formatter and linter
+      - name: Run yarn lint:taplo
         if: ${{ success() || failure() }}
         run: |
-          if ! mise lint:taplo; then
+          if ! yarn lint:taplo; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `mise fix:taplo` locally to apply autofixes.'
+            echo 'Try running `yarn fix:taplo` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -317,11 +317,11 @@ jobs:
       - name: Run SQL formatter and linter
         if: ${{ success() || failure() }}
         run: |
-          if ! mise lint:sqlfluff; then
+          if ! sqlfluff lint --warn-unused-ignores; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `mise fix:sqlfluff` locally to apply autofixes.'
+            echo 'Try running `sqlfluff fix` locally to apply autofixes.'
             echo 'Note, that SQLFluff does not come with `yarn install` and you may need to install it yourself.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
@@ -329,7 +329,7 @@ jobs:
 
       - name: Create SQLFluff annotations
         if: failure() && github.event.pull_request.head.repo.full_name == github.repository
-        run: mise lint:sqlfluff --format github-annotation --write-output annotations.json --annotation-level failure --nofail
+        run: sqlfluff lint --warn-unused-ignores --format github-annotation --write-output annotations.json --annotation-level failure --nofail
 
       - name: Annotate
         uses: yuzutech/annotations-action@0e061a6e3ac848299310b6429b60d67cafd4e7f8 # v0.5.0

@@ -14,7 +14,7 @@ pre-commit:
     biome:
       tags: [frontend, style]
       glob: "*.{cjs,css,js,json,md,mdx,mjs,scss,ts,tsx,yml}"
-      run: mise fix:biome --staged || true
+      run: biome format --write --staged || true
       stage_fixed: true
     yarn:
       tags: [frontend, style]
@@ -24,7 +24,7 @@ pre-commit:
     sqlfluff:
       tags: [backend, style]
       glob: "*.sql"
-      run: mise fix:sqlfluff {staged_files} || true
+      run: sqlfluff fix {staged_files} || true
       stage_fixed: true
     rust:
       tags: [backend, style]
@@ -34,5 +34,5 @@ pre-commit:
     toml:
       tags: [backend, style]
       glob: "*.toml"
-      run: mise fix:taplo {staged_files} || true
+      run: taplo format {staged_files} || true
       stage_fixed: true

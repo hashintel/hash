@@ -26,31 +26,3 @@ just                   = "1.39.0"
 "npm:renovate"         = "39.166.0"
 "pipx:sqlfluff"        = "3.3.1"
 taplo                  = "0.9.3"
-
-[tasks.sync-turborepo]
-description = "Sync the turborepo"
-run         = "cargo -Zscript run --manifest-path .github/scripts/rust/sync-turborepo.rs | xargs yarn fix:package-json"
-
-[tasks."lint:sqlfluff"]
-description = "Run SQLFluff linter"
-run         = "sqlfluff lint --warn-unused-ignores"
-
-[tasks."fix:sqlfluff"]
-description = "Run SQLFluff linter"
-run         = "sqlfluff fix --warn-unused-ignores"
-
-[tasks."lint:taplo"]
-description = "Run Taplo formatter"
-run         = "taplo fmt --check"
-
-[tasks."fix:taplo"]
-description = "Run Taplo formatter"
-run         = "taplo fmt"
-
-[tasks."lint:biome"]
-description = "Run Biome formatter"
-run         = "biome format"
-
-[tasks."fix:biome"]
-description = "Run Biome formatter"
-run         = "biome format --write"
