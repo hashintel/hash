@@ -22,11 +22,10 @@ runs:
         MISE_VERBOSE: 1
         GITHUB_TOKEN: ${{ inputs.token }}
 
-    - name: Show mise shims
+    - name: Setup environment
       shell: bash
       run: |
-        ls -l /home/runner/.local/share/mise/shims
-        mise ls
+        echo "PROTOC=$(mise which protoc)" >> $GITHUB_ENV
 
     - name: "Install Rust"
       shell: bash

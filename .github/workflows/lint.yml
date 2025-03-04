@@ -131,42 +131,9 @@ jobs:
         working-directory: ${{ matrix.path }}
         run: just format --check
 
-      - name: Print tools
-        working-directory: ${{ matrix.path }}
-        run: |
-          echo Default
-          echo $PATH
-          mise ls
-          mise exec protoc -- protoc --version || true
-          mise which protoc || true
-          which protoc || true
-          /home/runner/.local/share/mise/shims/protoc --version || true
-
-          echo Shims
-          eval "$(mise activate bash --shims)"
-          echo $PATH
-          mise ls
-          mise exec protoc -- protoc --version || true
-          mise which protoc || true
-          which protoc || true
-          /home/runner/.local/share/mise/shims/protoc --version || true
-
-          echo Activated
-          eval "$(mise activate bash)"
-          echo $PATH
-          mise ls
-          mise exec protoc -- protoc --version || true
-          mise which protoc || true
-          which protoc || true
-          /home/runner/.local/share/mise/shims/protoc --version || true
-
       - name: Run clippy
         if: always() && steps.lints.outputs.has-rust == 'true'
         run: |
-          export MISE_VERBOSE=1
-          export RUST_BACKTRACE=1
-          pushd ${{ matrix.path }}
-          export PROTOC=$(mise which protoc)
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
