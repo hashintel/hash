@@ -163,7 +163,10 @@ jobs:
       - name: Run clippy
         if: always() && steps.lints.outputs.has-rust == 'true'
         run: |
+          export MISE_VERBOSE=1
+          export RUST_BACKTRACE=1
           pushd ${{ matrix.path }}
+          export
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
