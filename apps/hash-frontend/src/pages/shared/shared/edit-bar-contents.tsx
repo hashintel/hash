@@ -220,7 +220,8 @@ export const useFreezeScrollWhileTransitioning = () => {
 };
 
 export const EditBarContainer = styled(Box, {
-  shouldForwardProp: (prop) => prop !== "hasErrors",
+  shouldForwardProp: (prop) =>
+    prop !== "hasErrors" && prop !== "gentleErrorStyling",
 })<{ hasErrors?: boolean; gentleErrorStyling?: boolean }>(
   ({ hasErrors, theme, gentleErrorStyling }) => ({
     height: EDIT_BAR_HEIGHT,

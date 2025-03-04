@@ -319,13 +319,6 @@ export const Entity = ({
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
-  const isReadOnly =
-    !!proposedEntitySubgraph ||
-    (!draftLocalEntity &&
-      !getEntitySubgraphData?.getEntitySubgraph.userPermissionsOnEntities?.[
-        entityId
-      ]?.edit);
-
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
   const handleTypeChanges = useHandleTypeChanges({
@@ -339,6 +332,14 @@ export const Entity = ({
     () => (draftEntitySubgraph ? getRoots(draftEntitySubgraph)[0] : null),
     [draftEntitySubgraph],
   );
+
+  const isReadOnly =
+    !!draftEntity?.metadata.archived ||
+    !!proposedEntitySubgraph ||
+    (!draftLocalEntity &&
+      !getEntitySubgraphData?.getEntitySubgraph.userPermissionsOnEntities?.[
+        entityId
+      ]?.edit);
 
   const entityFromDb = useMemo(
     () => (dataFromDb ? getRoots(dataFromDb.entitySubgraph)[0] : null),
@@ -556,7 +557,10 @@ export const Entity = ({
 
             await validateEntity(changedEntity);
 
-            setIsDirty(true);
+            setIsDirty(
+              JSON.stringify(changedEntity.properties) !==
+                JSON.stringify(entityFromDb?.properties),
+            );
           }}
           validationReport={validationReport}
           mode={
@@ -680,7 +684,10 @@ export const Entity = ({
 
                 await validateEntity(changedEntity);
 
-                setIsDirty(true);
+                setIsDirty(
+                  JSON.stringify(changedEntity.properties) !==
+                    JSON.stringify(entityFromDb?.properties),
+                );
               }}
               validationReport={validationReport}
             />

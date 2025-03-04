@@ -51,7 +51,6 @@ export const DataTypeLabels = ({
       <Typography
         variant="smallTextParagraphs"
         sx={{
-          fontSize: 13,
           color: ({ palette }) => palette.gray[80],
         }}
       >
@@ -66,7 +65,6 @@ export const DataTypeLabels = ({
           component="p"
           variant="smallTextParagraphs"
           sx={{
-            fontSize: 13,
             color: ({ palette }) => palette.gray[80],
           }}
         >

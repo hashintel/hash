@@ -10,9 +10,10 @@ export type ExpectedValueSelectorContextValue = {
   handleEdit: (index?: number, id?: string) => void;
   handleCancelCustomBuilder: () => void;
   handleSave: () => void;
-  inputRef?: RefObject<HTMLInputElement | null | undefined>;
+  inputRef: RefObject<HTMLInputElement | null>;
   searchText: string;
   selectedDataTypeIds: VersionedUrl[];
+  textFieldRef: RefObject<HTMLDivElement | null>;
 };
 
 export const ExpectedValueSelectorContext =

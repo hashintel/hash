@@ -136,6 +136,12 @@ export const EventDetail = ({
             : "Live edition created from draft"}
         </span>
       );
+    case "archive-status-change":
+      return (
+        <span>
+          {event.newArchiveStatus ? "Entity archived" : "Entity unarchived"}
+        </span>
+      );
     default: {
       throw new Error("Unhandled history event type");
     }

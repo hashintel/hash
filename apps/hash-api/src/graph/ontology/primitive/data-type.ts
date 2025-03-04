@@ -18,12 +18,13 @@ import type {
 } from "@local/hash-graph-client";
 import type {
   ConstructDataTypeParams,
+  DataTypeConversionTargets,
+  DataTypeDirectConversionsMap,
   DataTypeMetadata,
   DataTypeWithMetadata,
   OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { DataTypeConversionTargets } from "@local/hash-isomorphic-utils/data-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -65,7 +66,7 @@ export const createDataType: ImpureGraphFunction<
     webShortname?: string;
     relationships: DataTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
-    conversions: Record<BaseUrl, Conversions>;
+    conversions?: DataTypeDirectConversionsMap | null;
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -102,7 +103,7 @@ export const createDataType: ImpureGraphFunction<
         ...ctx.provenance,
         ...params.provenance,
       },
-      conversions,
+      conversions: conversions ?? {},
     },
   );
 

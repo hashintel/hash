@@ -338,6 +338,11 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
               draftCell.data.propertyRow.value = newValue;
             });
 
+            if (value === newValue) {
+              onFinishedEditing();
+              return;
+            }
+
             onFinishedEditing(newCell);
           }}
           renderOption={({ key, ...itemProps }, item) => (

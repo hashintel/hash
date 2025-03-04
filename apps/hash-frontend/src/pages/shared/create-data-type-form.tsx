@@ -17,6 +17,7 @@ import { getDataTypeQuery } from "../../graphql/queries/ontology/data-type.queri
 import { Button } from "../../shared/ui/button";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { useDataTypesContext } from "./data-types-context";
+import { useSlideStack } from "./slide-stack";
 import { useGenerateTypeUrlsForUser } from "./use-generate-type-urls-for-user";
 import { WorkspaceContext } from "./workspace-context";
 
@@ -76,6 +77,8 @@ export const CreateDataTypeForm = ({
 
   const { dataTypes } = useDataTypesContext();
 
+  const { closeSlideStack } = useSlideStack();
+
   const parentType = extendsDataTypeId ? dataTypes?.[extendsDataTypeId] : null;
 
   if (!activeWorkspace) {
@@ -126,6 +129,7 @@ export const CreateDataTypeForm = ({
     afterSubmit?.();
 
     await router.push(nextUrl);
+    closeSlideStack();
   });
 
   const formItemWidth = `min(calc(100% - ${HELPER_TEXT_WIDTH + 52}px), 600px)`;

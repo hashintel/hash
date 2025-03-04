@@ -65,7 +65,12 @@ const migrate: MigrationFunction = async ({
         "A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000 of a second.",
       type: "number",
     },
-    conversions: {},
+    conversions: {
+      [secondDataType.metadata.recordId.baseUrl]: {
+        from: { expression: ["/", "self", { const: 1000, type: "number" }] },
+        to: { expression: ["*", "self", { const: 1000, type: "number" }] },
+      },
+    },
     webShortname: "h",
     migrationState,
   });
@@ -78,7 +83,12 @@ const migrate: MigrationFunction = async ({
         "A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000000 (1 millionth) of a second.",
       type: "number",
     },
-    conversions: {},
+    conversions: {
+      [secondDataType.metadata.recordId.baseUrl]: {
+        from: { expression: ["/", "self", { const: 1000000, type: "number" }] },
+        to: { expression: ["*", "self", { const: 1000000, type: "number" }] },
+      },
+    },
     webShortname: "h",
     migrationState,
   });
