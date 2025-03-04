@@ -21,7 +21,7 @@ use hash_graph_store::{
     },
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
-    query::{QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
+    query::{Ordering, QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -1436,7 +1436,7 @@ impl PostgresRecord for DataTypeWithMetadata {
             transaction_time: compiler.add_distinct_selection_with_ordering(
                 &DataTypeQueryPath::TransactionTime,
                 Distinctness::Distinct,
-                None,
+                Some((Ordering::Descending, None)),
             ),
             schema: compiler.add_selection_path(&DataTypeQueryPath::Schema(None)),
             edition_provenance: compiler

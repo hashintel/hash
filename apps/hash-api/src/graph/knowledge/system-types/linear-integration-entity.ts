@@ -308,7 +308,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
 
   const properties: SyncLinearDataWith["propertiesWithMetadata"] = {
     value: {
-      "https://hash.ai/@hash/types/property-type/linear-team-id/": {
+      "https://hash.ai/@h/types/property-type/linear-team-id/": {
         value: linearTeamIds.map((linearTeamId) => ({
           value: linearTeamId,
           metadata: {
@@ -328,7 +328,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     const [existingLinkEntity] = existingLinkEntities;
 
     const teamIdPath =
-      "https://hash.ai/@hash/types/property-type/linear-team-id/" satisfies keyof SyncLinearDataWithProperties as BaseUrl;
+      "https://hash.ai/@h/types/property-type/linear-team-id/" satisfies keyof SyncLinearDataWithProperties as BaseUrl;
 
     await updateEntity<SyncLinearDataWith>(context, authentication, {
       entity: existingLinkEntity,
@@ -338,7 +338,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
           path: [teamIdPath],
           property:
             properties.value[
-              "https://hash.ai/@hash/types/property-type/linear-team-id/"
+              "https://hash.ai/@h/types/property-type/linear-team-id/"
             ]!,
         },
       ],

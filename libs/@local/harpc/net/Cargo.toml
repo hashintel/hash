@@ -8,8 +8,8 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-harpc-codec = { workspace = true, public = true }
-
+harpc-codec         = { workspace = true, public = true }
+harpc-wire-protocol = { workspace = true, public = true }
 
 # Public third-party dependencies
 futures-core       = { workspace = true, public = true }
@@ -25,12 +25,12 @@ multiaddr          = { workspace = true, public = true }
 multistream-select = { workspace = true, public = true }
 prometheus-client  = { workspace = true, public = true }
 tokio              = { workspace = true, public = true, features = ["io-util", "macros"] }
+tokio-util         = { workspace = true, public = true, features = ["codec", "compat", "rt", "tracing"] }
 
 # Private workspace dependencies
-error-stack         = { workspace = true }
-harpc-types         = { workspace = true }
-harpc-wire-protocol = { workspace = true }
-hash-codec          = { workspace = true, features = ["harpc"] }
+error-stack = { workspace = true }
+harpc-types = { workspace = true }
+hash-codec  = { workspace = true, features = ["harpc"] }
 
 # Private third-party dependencies
 bytes            = { workspace = true }
@@ -45,7 +45,6 @@ serde            = { workspace = true, features = ["derive"] }
 tachyonix        = { workspace = true }
 thiserror        = { workspace = true }
 tokio-stream     = { workspace = true, features = ["time", "sync"] }
-tokio-util       = { workspace = true, features = ["codec", "compat", "rt", "tracing"] }
 tracing          = { workspace = true }
 
 [dev-dependencies]

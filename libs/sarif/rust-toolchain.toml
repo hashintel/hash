@@ -1,3 +1,0 @@
-[toolchain]
-channel = "nightly-2025-02-17"
-components = ['rustfmt', 'clippy', 'llvm-tools-preview', 'rust-analyzer', 'rustc-codegen-cranelift-preview']

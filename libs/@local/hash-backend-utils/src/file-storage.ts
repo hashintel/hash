@@ -65,12 +65,12 @@ export interface UploadableStorageProvider
     fileStorageProperties: Omit<File["propertiesWithMetadata"], "value"> & {
       value: Pick<
         File["propertiesWithMetadata"]["value"],
-        | "https://hash.ai/@hash/types/property-type/file-storage-bucket/"
-        | "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"
-        | "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"
-        | "https://hash.ai/@hash/types/property-type/file-storage-key/"
-        | "https://hash.ai/@hash/types/property-type/file-storage-provider/"
-        | "https://hash.ai/@hash/types/property-type/file-storage-region/"
+        | "https://hash.ai/@h/types/property-type/file-storage-bucket/"
+        | "https://hash.ai/@h/types/property-type/file-storage-endpoint/"
+        | "https://hash.ai/@h/types/property-type/file-storage-force-path-style/"
+        | "https://hash.ai/@h/types/property-type/file-storage-key/"
+        | "https://hash.ai/@h/types/property-type/file-storage-provider/"
+        | "https://hash.ai/@h/types/property-type/file-storage-region/"
       >;
     };
   }>;
@@ -121,7 +121,7 @@ export interface PresignedPutUpload {
 }
 
 const fileMimeTypeStartsWithToEntityTypeId: Record<string, VersionedUrl> = {
-  "image/": systemEntityTypes.image.entityTypeId,
+  "image/": systemEntityTypes.imageFile.entityTypeId,
   "application/pdf": systemEntityTypes.pdfDocument.entityTypeId,
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
     systemEntityTypes.docxDocument.entityTypeId,

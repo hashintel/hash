@@ -135,14 +135,14 @@ export const createPage: ImpureGraphFunction<
 
   const properties: (Canvas | Document)["propertiesWithMetadata"] = {
     value: {
-      "https://hash.ai/@hash/types/property-type/title/": {
+      "https://hash.ai/@h/types/property-type/title/": {
         value: title,
         metadata: {
           dataTypeId:
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
-      "https://hash.ai/@hash/types/property-type/fractional-index/": {
+      "https://hash.ai/@h/types/property-type/fractional-index/": {
         value: fractionalIndex,
         metadata: {
           dataTypeId:
@@ -151,7 +151,7 @@ export const createPage: ImpureGraphFunction<
       },
       ...(summary !== undefined
         ? {
-            "https://hash.ai/@hash/types/property-type/summary/": {
+            "https://hash.ai/@h/types/property-type/summary/": {
               value: summary,
               metadata: {
                 dataTypeId:
@@ -184,17 +184,17 @@ export const createPage: ImpureGraphFunction<
         type === "document"
           ? {
               indexPosition: {
-                "https://hash.ai/@hash/types/property-type/fractional-index/":
+                "https://hash.ai/@h/types/property-type/fractional-index/":
                   generateKeyBetween(null, null),
               },
             }
           : {
               canvasPosition: {
-                "https://hash.ai/@hash/types/property-type/x-position/": 0,
-                "https://hash.ai/@hash/types/property-type/y-position/": 0,
-                "https://hash.ai/@hash/types/property-type/width-in-pixels/": 500,
-                "https://hash.ai/@hash/types/property-type/height-in-pixels/": 200,
-                "https://hash.ai/@hash/types/property-type/rotation-in-rads/": 0,
+                "https://hash.ai/@h/types/property-type/x-position/": 0,
+                "https://hash.ai/@h/types/property-type/y-position/": 0,
+                "https://hash.ai/@h/types/property-type/width-in-pixels/": 500,
+                "https://hash.ai/@h/types/property-type/height-in-pixels/": 200,
+                "https://hash.ai/@h/types/property-type/rotation-in-rads/": 0,
               },
             },
     });

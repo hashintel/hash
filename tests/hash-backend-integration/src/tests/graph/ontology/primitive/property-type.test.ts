@@ -4,9 +4,12 @@ import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
+  archivePropertyType,
   createPropertyType,
   getPropertyTypeById,
+  getPropertyTypes,
   getPropertyTypeSubgraphById,
+  unarchivePropertyType,
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -15,6 +18,7 @@ import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology"
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
+  fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
@@ -163,6 +167,68 @@ describe("Property type CRU", () => {
       isOwnedOntologyElementMetadata(updatedPropertyType.metadata) &&
         updatedPropertyType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
+  });
+
+  it("can archive a property type", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    await archivePropertyType(graphContext, authentication, {
+      propertyTypeId: createdPropertyType.schema.$id,
+    });
+
+    const [archivedPropertyType] = await getPropertyTypes(
+      graphContext,
+      authentication,
+      {
+        filter: {
+          equal: [
+            { path: ["versionedUrl"] },
+            { parameter: createdPropertyType.schema.$id },
+          ],
+        },
+        temporalAxes: fullTransactionTimeAxis,
+      },
+    );
+
+    expect(
+      await getPropertyTypes(graphContext, authentication, {
+        filter: {
+          equal: [
+            { path: ["versionedUrl"] },
+            { parameter: createdPropertyType.schema.$id },
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+      }),
+    ).toHaveLength(0);
+
+    expect(
+      archivedPropertyType?.metadata.temporalVersioning.transactionTime.end
+        .kind,
+    ).toBe("exclusive");
+
+    await unarchivePropertyType(graphContext, authentication, {
+      propertyTypeId: createdPropertyType.schema.$id,
+    });
+
+    const [unarchivedEntityType] = await getPropertyTypes(
+      graphContext,
+      authentication,
+      {
+        filter: {
+          equal: [
+            { path: ["versionedUrl"] },
+            { parameter: createdPropertyType.schema.$id },
+          ],
+        },
+        temporalAxes: fullTransactionTimeAxis,
+      },
+    );
+
+    expect(
+      unarchivedEntityType?.metadata.temporalVersioning.transactionTime.end
+        .kind,
+    ).toBe("unbounded");
   });
 
   it.skip("can load an external type on demand", async () => {

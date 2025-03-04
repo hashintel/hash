@@ -17,11 +17,12 @@ pub mod __private {
         //! The different tags [`ReportTag`] and [`ContextTag`] have a blanket implementation
         //! returning a concrete type. This type is then used to create a [`Report`].
         //!
-        //! [`ContextTag`] is implemented for `T: `[`Context`]s while [`ReportTag`] is implement for
-        //! [`Report`]s. Calling `my_report.__kind()` will always return a [`Reporter`] while
-        //! `my_context.__kind()` will return a [`ContextReporter`] so a [`Report`] has the highest
-        //! precedence when calling `.__kind()`. This will use an identity function when creating a
-        //! [`Report`] to ensure that no information will be lost.
+        //! [`ContextTag`] is implemented for <code>T: [Context]</code>s while [`ReportTag`] is
+        //! implement for [`Report`]s. Calling `my_report.__kind()` will always return a
+        //! [`Reporter`] while `my_context.__kind()` will return a [`ContextReporter`] so a
+        //! [`Report`] has the highest precedence when calling `.__kind()`. This will use an
+        //! identity function when creating a [`Report`] to ensure that no information will
+        //! be lost.
         //!
         //! Note: The methods on the tags are called `__kind` instead of `kind` to avoid misleading
         //! suggestions from the Rust compiler, when calling `kind`. It would suggest implementing a
@@ -68,11 +69,10 @@ pub mod __private {
 
 /// Creates a [`Report`] from the given parameters.
 ///
-/// The parameters may either be [`Context`] or a [`Report`]. The returned [`Report`] will use the
+/// The parameters may either be [`Error`] or a [`Report`]. The returned [`Report`] will use the
 /// the provided type as context.
 ///
 /// [`Report`]: crate::Report
-/// [`Context`]: crate::Context
 /// [`Error`]: core::error::Error
 ///
 /// # Examples
@@ -92,8 +92,6 @@ pub mod __private {
 /// # Ok(()) }
 /// # assert!(wrapper().unwrap_err().contains::<std::io::Error>());
 /// ```
-///
-/// Create a [`Report`] from [`Context`]:
 ///
 /// ```rust
 /// # fn has_permission(_: &u32, _: &u32) -> bool { true }
@@ -203,10 +201,10 @@ macro_rules! bail {
 
 /// Creates a [`Report`] and returns it as [`Result`].
 ///
-/// Shorthand for `return Err(report!(..))`.
+/// Shorthand for <code>return Err([report!(..)])</code>.
 ///
 /// [`Report`]: crate::Report
-/// [`report!(...)`]: report
+/// [report!(..)]: report
 ///
 /// # `unstable`
 ///
@@ -329,17 +327,16 @@ macro_rules! bail {
 
 /// Ensures `$cond` is met, otherwise return an error.
 ///
-/// Shorthand for `if !$cond { `[`bail!(...)`]`) }`
+/// Shorthand for <code>if !$cond { [bail!(..)]) }</code>
 ///
 /// [`Report`]: crate::Report
-/// [`bail!(...)`]: bail
+/// [bail!(..)]: bail
 ///
 /// # Examples
 ///
-/// Create a [`Report`] from [`Context`]:
+/// Create a [`Report`] from an [`Error`]:
 ///
-/// [`Report`]: crate::Report
-/// [`Context`]: crate::Context
+/// [`Error`]: core::error::Error
 ///
 /// ```rust
 /// # fn has_permission(_: &u32, _: &u32) -> bool { true }

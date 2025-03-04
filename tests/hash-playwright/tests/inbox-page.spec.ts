@@ -39,14 +39,14 @@ const createNotification = async ({
     ownedById,
     properties: {
       value: {
-        "https://hash.ai/@hash/types/property-type/title/": {
+        "https://hash.ai/@h/types/property-type/title/": {
           value: targetEntityTitle,
           metadata: {
             dataTypeId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
-        "https://hash.ai/@hash/types/property-type/fractional-index/": {
+        "https://hash.ai/@h/types/property-type/fractional-index/": {
           value: "a0",
           metadata: {
             dataTypeId:
@@ -65,7 +65,7 @@ const createNotification = async ({
       ownedById,
       properties: {
         value: {
-          "https://hash.ai/@hash/types/property-type/graph-change-type/": {
+          "https://hash.ai/@h/types/property-type/graph-change-type/": {
             value: "create",
             metadata: {
               dataTypeId:
@@ -87,7 +87,7 @@ const createNotification = async ({
     ownedById,
     properties: {
       value: {
-        "https://hash.ai/@hash/types/property-type/entity-edition-id/": {
+        "https://hash.ai/@h/types/property-type/entity-edition-id/": {
           value:
             targetEntity.metadata.temporalVersioning.decisionTime.start.limit,
           metadata: {

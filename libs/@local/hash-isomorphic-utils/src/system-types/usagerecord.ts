@@ -113,7 +113,7 @@ export type {
  * The thing that something created.
  */
 export type Created = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/created/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/created/v/1"];
   properties: CreatedProperties;
   propertiesWithMetadata: CreatedPropertiesWithMetadata;
 };
@@ -125,16 +125,9 @@ export type CreatedOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The thing that something created.
  */
-export type CreatedProperties = CreatedProperties1 & CreatedProperties2;
-export type CreatedProperties1 = LinkProperties;
+export type CreatedProperties = LinkProperties & {};
 
-export type CreatedProperties2 = {};
-
-export type CreatedPropertiesWithMetadata = CreatedPropertiesWithMetadata1 &
-  CreatedPropertiesWithMetadata2;
-export type CreatedPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type CreatedPropertiesWithMetadata2 = {
+export type CreatedPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -151,7 +144,7 @@ export type CustomMetadataPropertyValueWithMetadata =
  * Something that was incurred in something else.
  */
 export type IncurredIn = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/incurred-in/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/incurred-in/v/1"];
   properties: IncurredInProperties;
   propertiesWithMetadata: IncurredInPropertiesWithMetadata;
 };
@@ -163,17 +156,9 @@ export type IncurredInOutgoingLinksByLinkEntityTypeId = {};
 /**
  * Something that was incurred in something else.
  */
-export type IncurredInProperties = IncurredInProperties1 &
-  IncurredInProperties2;
-export type IncurredInProperties1 = LinkProperties;
+export type IncurredInProperties = LinkProperties & {};
 
-export type IncurredInProperties2 = {};
-
-export type IncurredInPropertiesWithMetadata =
-  IncurredInPropertiesWithMetadata1 & IncurredInPropertiesWithMetadata2;
-export type IncurredInPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type IncurredInPropertiesWithMetadata2 = {
+export type IncurredInPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -198,9 +183,7 @@ export type OutputUnitCountPropertyValueWithMetadata =
  * The thing that something records usage of.
  */
 export type RecordsUsageOf = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/records-usage-of/v/1"];
   properties: RecordsUsageOfProperties;
   propertiesWithMetadata: RecordsUsageOfPropertiesWithMetadata;
 };
@@ -212,26 +195,19 @@ export type RecordsUsageOfOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The thing that something records usage of.
  */
-export type RecordsUsageOfProperties = RecordsUsageOfProperties1 &
-  RecordsUsageOfProperties2;
-export type RecordsUsageOfProperties1 = LinkProperties;
-
-export type RecordsUsageOfProperties2 = {};
+export type RecordsUsageOfProperties = LinkProperties & {};
 
 export type RecordsUsageOfPropertiesWithMetadata =
-  RecordsUsageOfPropertiesWithMetadata1 & RecordsUsageOfPropertiesWithMetadata2;
-export type RecordsUsageOfPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type RecordsUsageOfPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * The thing that something created.
  */
 export type Updated = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/updated/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/updated/v/1"];
   properties: UpdatedProperties;
   propertiesWithMetadata: UpdatedPropertiesWithMetadata;
 };
@@ -243,16 +219,9 @@ export type UpdatedOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The thing that something created.
  */
-export type UpdatedProperties = UpdatedProperties1 & UpdatedProperties2;
-export type UpdatedProperties1 = LinkProperties;
+export type UpdatedProperties = LinkProperties & {};
 
-export type UpdatedProperties2 = {};
-
-export type UpdatedPropertiesWithMetadata = UpdatedPropertiesWithMetadata1 &
-  UpdatedPropertiesWithMetadata2;
-export type UpdatedPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type UpdatedPropertiesWithMetadata2 = {
+export type UpdatedPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -261,7 +230,7 @@ export type UpdatedPropertiesWithMetadata2 = {
  * A record of usage of a service
  */
 export type UsageRecord = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/usage-record/v/2"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/usage-record/v/2"];
   properties: UsageRecordProperties;
   propertiesWithMetadata: UsageRecordPropertiesWithMetadata;
 };
@@ -283,27 +252,27 @@ export type UsageRecordOutgoingLinkAndTarget =
   | UsageRecordUpdatedLink;
 
 export type UsageRecordOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/created/v/1": UsageRecordCreatedLink;
-  "https://hash.ai/@hash/types/entity-type/incurred-in/v/1": UsageRecordIncurredInLink;
-  "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1": UsageRecordRecordsUsageOfLink;
-  "https://hash.ai/@hash/types/entity-type/updated/v/1": UsageRecordUpdatedLink;
+  "https://hash.ai/@h/types/entity-type/created/v/1": UsageRecordCreatedLink;
+  "https://hash.ai/@h/types/entity-type/incurred-in/v/1": UsageRecordIncurredInLink;
+  "https://hash.ai/@h/types/entity-type/records-usage-of/v/1": UsageRecordRecordsUsageOfLink;
+  "https://hash.ai/@h/types/entity-type/updated/v/1": UsageRecordUpdatedLink;
 };
 
 /**
  * A record of usage of a service
  */
 export type UsageRecordProperties = {
-  "https://hash.ai/@hash/types/property-type/custom-metadata/"?: CustomMetadataPropertyValue;
-  "https://hash.ai/@hash/types/property-type/input-unit-count/"?: InputUnitCountPropertyValue;
-  "https://hash.ai/@hash/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValue;
+  "https://hash.ai/@h/types/property-type/custom-metadata/"?: CustomMetadataPropertyValue;
+  "https://hash.ai/@h/types/property-type/input-unit-count/"?: InputUnitCountPropertyValue;
+  "https://hash.ai/@h/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValue;
 };
 
 export type UsageRecordPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@hash/types/property-type/custom-metadata/"?: CustomMetadataPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/input-unit-count/"?: InputUnitCountPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/custom-metadata/"?: CustomMetadataPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/input-unit-count/"?: InputUnitCountPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValueWithMetadata;
   };
 };
 

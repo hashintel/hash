@@ -22,19 +22,23 @@ import {
   CloseIcon,
   IconButton,
 } from "@hashintel/design-system";
-import type { MergedValueSchema } from "@local/hash-isomorphic-utils/data-types";
+import {
+  createFormattedValueParts,
+  type MergedValueSchema,
+} from "@local/hash-isomorphic-utils/data-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Tooltip, Typography } from "@mui/material";
 import { Box, Stack, type SxProps, type Theme } from "@mui/system";
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 
 import { TriangleExclamationRegularIcon } from "../../../../../shared/icons/triangle-exclamation-regular-icon";
 import { Button } from "../../../../../shared/ui";
 import { NumberOrTextInput } from "../../../number-or-text-input";
 import type { DataTypeFormData } from "../../data-type-form";
+import { ItemLabel } from "../../shared/item-label";
+import { useInheritedConstraints } from "../../shared/use-inherited-constraints";
 import type { InheritedConstraints } from "../types";
-import { ItemLabel } from "./item-label";
 
 const SaveButton = ({ onClick }: { onClick: () => void }) => (
   <Tooltip title="Save" placement="top">
@@ -128,6 +132,17 @@ const EnumItem = ({
     id: item,
   });
 
+  const { control } = useFormContext<DataTypeFormData>();
+
+  const ownLabel = useWatch({ control, name: "label" });
+
+  const inheritedLabel = useInheritedConstraints().label;
+
+  const label = {
+    left: ownLabel?.left ?? inheritedLabel?.left?.value,
+    right: ownLabel?.right ?? inheritedLabel?.right?.value,
+  };
+
   const isLastUnremovableItem = isOnlyItem && inheritedFromTitle;
 
   return (
@@ -170,7 +185,14 @@ const EnumItem = ({
             ml: inheritedFromTitle ? 0.5 : 0,
           }}
         >
-          {item}
+          {createFormattedValueParts({
+            inner: item.toString(),
+            schema: { label },
+          }).map(({ color, text }) => (
+            <span key={text} style={{ color }}>
+              {text}
+            </span>
+          ))}
         </Typography>
       </Stack>
       <Stack direction="row" alignItems="center" gap={0.2}>
@@ -292,13 +314,13 @@ export const EnumEditor = ({
 }: {
   ownEnum?: [string, ...string[]] | [number, ...number[]];
   ownFormat?: StringFormat;
-  ownMinLength?: number;
-  ownMaxLength?: number;
-  ownMinimum?: number;
-  ownMaximum?: number;
-  ownExclusiveMinimum?: boolean;
-  ownExclusiveMaximum?: boolean;
-  ownMultipleOf?: number;
+  ownMinLength: number | null;
+  ownMaxLength: number | null;
+  ownMinimum: number | null;
+  ownMaximum: number | null;
+  ownExclusiveMinimum: boolean | null;
+  ownExclusiveMaximum: boolean | null;
+  ownMultipleOf: number | null;
   inheritedConstraints: InheritedConstraints;
   type: "string" | "number";
 }) => {
@@ -557,10 +579,36 @@ export const EnumEditor = ({
     }
   }, [items, mergedSchema, setError, clearErrors]);
 
+  const hasConstraints = [
+    ownEnum,
+    ownFormat,
+    ownMinLength,
+    ownMaxLength,
+    ownMinimum,
+    ownMaximum,
+    ownExclusiveMinimum,
+    ownExclusiveMaximum,
+    ownMultipleOf,
+    inheritedConstraints.enum,
+    inheritedConstraints.format,
+  ].some((constraint) => constraint != null);
+
   return (
     <Stack>
       <Box>
         <ItemLabel tooltip={tooltip}>Permitted values</ItemLabel>
+        {hasConstraints && (
+          <Typography
+            variant="smallTextParagraphs"
+            sx={{
+              color: ({ palette }) => palette.gray[50],
+              fontSize: 13,
+              mb: 1,
+            }}
+          >
+            Values must meet the constraints listed above.
+          </Typography>
+        )}
         <Stack
           sx={{
             mt: 0.8,
@@ -575,6 +623,7 @@ export const EnumEditor = ({
               Any value meeting the constraints will be allowed.
             </Typography>
           )}
+
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}

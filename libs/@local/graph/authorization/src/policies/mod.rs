@@ -1,31 +1,32 @@
+pub mod action;
 pub mod error;
+pub mod principal;
+pub mod resource;
 
-pub(crate) use self::cedar::cedar_resource_type;
-pub use self::{
-    action::{ActionConstraint, ActionId},
-    principal::{
-        OrganizationId, OrganizationPrincipalConstraint, OrganizationRoleId, PrincipalConstraint,
-        UserId, UserPrincipalConstraint,
-    },
-    resource::{EntityResourceConstraint, ResourceConstraint},
-};
-mod action;
 mod cedar;
-mod principal;
-mod resource;
+mod context;
+mod set;
+mod validation;
 
 use alloc::{collections::BTreeMap, sync::Arc};
-use core::{error::Error, fmt, str::FromStr as _};
-use std::collections::HashMap;
+use core::{fmt, str::FromStr as _};
 
 use cedar::CedarEntityId as _;
-use cedar_policy_core::{
-    ast, entities::Entities, evaluator::Evaluator, extensions::Extensions,
-    parser::parse_policy_or_template_to_est_and_ast,
-};
+use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
 use error_stack::{Report, ResultExt as _};
-use hash_graph_types::knowledge::entity::EntityUuid;
 use uuid::Uuid;
+
+pub(crate) use self::cedar::cedar_resource_type;
+use self::{
+    action::{ActionConstraint, ActionId},
+    principal::{ActorId, PrincipalConstraint},
+    resource::{ResourceConstraint, ResourceId},
+};
+pub use self::{
+    context::{Context, ContextBuilder, ContextError},
+    set::{PolicyEvaluationError, PolicySet, PolicySetInsertionError},
+    validation::{PolicyValidationError, PolicyValidator},
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -69,7 +70,7 @@ impl fmt::Display for PolicyId {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Policy {
     pub id: PolicyId,
@@ -81,11 +82,14 @@ pub struct Policy {
     pub constraints: Option<()>,
 }
 
-pub struct User {
-    pub id: UserId,
+impl fmt::Debug for Policy {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}", self.to_cedar_template())
+    }
 }
 
 #[non_exhaustive]
+#[derive(Debug, Default)]
 pub struct RequestContext;
 
 impl RequestContext {
@@ -98,23 +102,25 @@ impl RequestContext {
     }
 }
 
-pub struct Request {
-    user: User,
-    action: ActionId,
-    resource: EntityUuid,
-    context: RequestContext,
+#[derive(Debug)]
+pub struct Request<'a> {
+    pub actor: ActorId,
+    pub action: ActionId,
+    pub resource: &'a ResourceId<'a>,
+    pub context: RequestContext,
 }
 
-impl Request {
-    pub(crate) fn to_cedar(&self) -> Result<ast::Request, Box<dyn Error>> {
-        Ok(ast::Request::new(
-            (self.user.id.to_euid(), None),
+impl Request<'_> {
+    pub(crate) fn to_cedar(&self) -> ast::Request {
+        ast::Request::new(
+            (self.actor.to_euid(), None),
             (self.action.to_euid(), None),
             (self.resource.to_euid(), None),
             self.context.to_cedar(),
-            None::<&ast::RequestSchemaAllPass>,
+            Some(PolicyValidator::schema()),
             Extensions::none(),
-        )?)
+        )
+        .expect("Request should be a valid Cedar request")
     }
 }
 
@@ -133,9 +139,26 @@ pub enum InvalidPolicy {
 }
 
 impl Policy {
-    pub(crate) fn try_from_cedar_template(
-        policy: &ast::Template,
+    pub(crate) fn try_from_cedar(
+        policy: &ast::StaticPolicy,
     ) -> Result<Self, Report<InvalidPolicy>> {
+        // let resource_filter = match policy.condition().expr_kind() {
+        //     ast::ExprKind::Lit(ast::Literal::Bool(true)) => None,
+        //     ast::ExprKind::BinaryApp {
+        //         op: ast::BinaryOp::Contains,
+        //         arg1,
+        //         arg2,
+        //     } => {
+        //         let resource_filter =
+        //             if arg1.expr_kind() == ast::ExprKind::Lit(ast::Literal::Bool(true)) {
+        //                 Some(arg2)
+        //             } else {
+        //                 None
+        //             };
+        //     }
+        //     _ => return Err(InvalidPolicy::InvalidSyntax.into()),
+        // };
+
         Ok(Self {
             id: PolicyId::new(
                 Uuid::from_str(policy.id().as_ref()).change_context(InvalidPolicy::InvalidId)?,
@@ -154,7 +177,8 @@ impl Policy {
         })
     }
 
-    pub(crate) fn to_cedar(&self) -> ast::Template {
+    pub(crate) fn to_cedar_template(&self) -> ast::Template {
+        let (resource_constraint, resource_expr) = self.resource.to_cedar();
         ast::Template::new(
             ast::PolicyID::from_string(self.id.to_string()),
             None,
@@ -165,9 +189,15 @@ impl Policy {
             },
             self.principal.to_cedar(),
             self.action.to_cedar(),
-            self.resource.to_cedar(),
-            ast::Expr::val(true),
+            resource_constraint,
+            resource_expr,
         )
+    }
+
+    pub(crate) fn to_cedar_static_policy(
+        &self,
+    ) -> Result<ast::StaticPolicy, Report<ast::UnexpectedSlotError>> {
+        Ok(self.to_cedar_template().try_into()?)
     }
 
     /// Parses a policy from a string.
@@ -182,31 +212,31 @@ impl Policy {
         text: &str,
         policy_id: Option<PolicyId>,
     ) -> Result<Self, Report<InvalidPolicy>> {
-        let (_, template) = parse_policy_or_template_to_est_and_ast(
-            Some(ast::PolicyID::from_string(
-                policy_id
-                    .unwrap_or_else(|| PolicyId::new(Uuid::new_v4()))
-                    .to_string(),
-            )),
-            text,
+        Self::try_from_cedar(
+            &parse_policy(
+                Some(ast::PolicyID::from_string(
+                    policy_id
+                        .unwrap_or_else(|| PolicyId::new(Uuid::new_v4()))
+                        .to_string(),
+                )),
+                text,
+            )
+            .change_context(InvalidPolicy::InvalidSyntax)
+            .attach_printable_lazy(|| text.to_owned())?,
         )
-        .change_context(InvalidPolicy::InvalidSyntax)?;
-        Self::try_from_cedar_template(&template)
     }
 
-    /// Evaluates the policy for the given request.
+    /// Parses multiple policies from a string.
     ///
     /// # Errors
     ///
-    /// - [`Error`] if the policy is invalid.
-    // TODO: Use `Report` instead of `Box<dyn Error>`
-    pub fn evaluate(&self, request: &Request) -> Result<bool, Box<dyn Error>> {
-        let cedar_policy = Arc::new(self.to_cedar());
-        let policy_id = cedar_policy.id().clone();
-        let policy = ast::Template::link(cedar_policy, policy_id, HashMap::new())?;
-        let entities = Entities::new();
-        let evaluator = Evaluator::new(request.to_cedar()?, &entities, Extensions::none());
-        Ok(evaluator.evaluate(&policy)?)
+    /// - [`InvalidPolicy::InvalidSyntax`] if the Cedar policy is invalid.
+    /// - [`InvalidPolicy`] if the Cedar policy cannot be converted to a [`Policy`].
+    pub fn parse_cedar_policies(text: &str) -> Result<Vec<Self>, Report<InvalidPolicy>> {
+        text.split_inclusive(';')
+            .filter(|policy| !policy.trim().is_empty())
+            .map(|policy| Self::parse_cedar_policy(policy, None))
+            .collect()
     }
 }
 
@@ -221,7 +251,10 @@ mod tests {
     use uuid::Uuid;
 
     use super::Policy;
-    use crate::test_utils::check_serialization;
+    use crate::{
+        policies::{PolicyValidator, set::PolicySet},
+        test_utils::check_serialization,
+    };
 
     #[track_caller]
     pub(crate) fn check_policy(
@@ -231,24 +264,37 @@ mod tests {
     ) -> Result<(), Box<dyn Error>> {
         check_serialization(policy, value);
 
-        let cedar_policy = policy.to_cedar();
-        assert_eq!(cedar_policy.to_string(), cedar_string.as_ref());
-        if !policy.principal.has_slot() && !policy.resource.has_slot() {
-            Policy::try_from_cedar_template(&cedar_policy)?;
+        assert_eq!(format!("{policy:?}"), cedar_string.as_ref());
+
+        let mut policy_set = PolicySet::default();
+        if policy.principal.has_slot() || policy.resource.has_slot() {
+            policy_set.add_template(policy)?;
+        } else {
+            let static_policy = policy.to_cedar_static_policy()?;
+            policy_set.add_policy(&Policy::try_from_cedar(&static_policy)?)?;
         }
+
+        PolicyValidator.validate_policy_set(&policy_set)?;
+
         Ok(())
     }
 
     mod serialization {
-        use core::error::Error;
+        use alloc::borrow::Cow;
+        use core::{error::Error, str::FromStr as _};
 
-        use hash_graph_types::knowledge::entity::EntityUuid;
+        use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
+        use type_system::url::VersionedUrl;
 
         use super::*;
         use crate::policies::{
-            ActionConstraint, ActionId, Effect, EntityResourceConstraint, PolicyId,
-            PrincipalConstraint, Request, RequestContext, ResourceConstraint, User, UserId,
-            UserPrincipalConstraint,
+            ActionConstraint, ActionId, ContextBuilder, Effect, PolicyId, PrincipalConstraint,
+            Request, RequestContext, ResourceConstraint,
+            principal::{
+                ActorId,
+                user::{User, UserId, UserPrincipalConstraint},
+            },
+            resource::{EntityResource, EntityResourceConstraint, ResourceId},
         };
 
         #[test]
@@ -267,7 +313,7 @@ mod tests {
                     actions: vec![ActionId::View],
                 },
                 resource: ResourceConstraint::Entity(EntityResourceConstraint::Exact {
-                    entity_uuid: Some(entity_uuid),
+                    id: Some(entity_uuid),
                 }),
                 constraints: None,
             };
@@ -287,7 +333,7 @@ mod tests {
                     },
                     "resource": {
                         "type": "entity",
-                        "entityUuid": entity_uuid,
+                        "id": entity_uuid,
                     },
                 }),
                 formatdoc!(
@@ -302,19 +348,47 @@ mod tests {
                 ),
             )?;
 
-            assert!(policy.evaluate(&Request {
-                user: User { id: user_id },
-                action: ActionId::View,
-                resource: entity_uuid,
-                context: RequestContext,
-            })?);
+            let user = User {
+                id: user_id,
+                roles: Vec::new(),
+                entity: EntityResource {
+                    web_id: OwnedById::new(user_id.into_uuid()),
+                    id: entity_uuid,
+                    entity_type: Cow::Owned(vec![
+                        VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,
+                        VersionedUrl::from_str(
+                            "https://hash.ai/@hash/types/entity-type/actor/v/2",
+                        )?,
+                    ]),
+                },
+            };
+            let resource_id = ResourceId::Entity(user.entity.id);
+            let context = ContextBuilder::default().with_user(&user).build()?;
 
-            assert!(!policy.evaluate(&Request {
-                user: User { id: user_id },
-                action: ActionId::ViewMetadata,
-                resource: entity_uuid,
-                context: RequestContext,
-            })?);
+            let actor_id = ActorId::User(user.id);
+
+            let mut policy_set = PolicySet::default();
+            policy_set.add_policy(&policy)?;
+
+            assert!(policy_set.evaluate(
+                &Request {
+                    actor: actor_id,
+                    action: ActionId::View,
+                    resource: &resource_id,
+                    context: RequestContext,
+                },
+                &context
+            )?);
+
+            assert!(!policy_set.evaluate(
+                &Request {
+                    actor: actor_id,
+                    action: ActionId::Update,
+                    resource: &resource_id,
+                    context: RequestContext,
+                },
+                &context
+            )?);
 
             Ok(())
         }

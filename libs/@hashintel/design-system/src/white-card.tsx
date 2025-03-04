@@ -59,18 +59,13 @@ export const WhiteCard = ({
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      {/**
-       * @todo refactor this to use `next/link` when a relative URL is passed
-       * into as the `href`, to avoid a flashing white screen when the user
-       * clicks on the entity's type.
-       * @see https://linear.app/hash/issue/H-3023
-       */}
       {(onClick ?? href) ? (
         <CardActionArea
-          {...(onClick ? { onClick } : { href })}
+          {...(href ? { href } : {})}
           LinkComponent={LinkComponent}
           disableRipple
           disableTouchRipple
+          onClick={onClick}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
           sx={[

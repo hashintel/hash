@@ -11,18 +11,21 @@ runs:
   using: composite
 
   steps:
-    - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+    - name: Install Tools
+      uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
       with:
-        node-version: 22 ## aligned with Node version on Vercel
-        # cache: yarn ## Currently disabled because of frequent timeouts
+        install_args: --jobs 1
+      env:
+        MISE_NODE_COREPACK: 1
+        GITHUB_TOKEN: ${{ inputs.token }}
 
     - name: Install WASM tools
-      uses: taiki-e/install-action@7bcfa52beaaa5899d991cea0399a67efc5e28171 # v2.48.12
+      uses: taiki-e/install-action@3c8fc6eaa5fcff049bb133c1f540c6c2287a191f # v2.49.10
       with:
         tool: wasm-pack@0.12.1
 
     - name: Install yarn dependencies
-      uses: nick-fields/retry@c97818ca39074beaea45180dba704f92496a0082 # v3.0.1
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
       env:
         LEFTHOOK: 0
       with:
@@ -34,12 +37,11 @@ runs:
         command: |
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
           export YARN_ENABLE_HARDENED_MODE=0
-          corepack enable
           yarn install --immutable
 
     - name: npx playwright install
       if: ${{ inputs.playwright-deps != '' }}
-      uses: nick-fields/retry@c97818ca39074beaea45180dba704f92496a0082 # v3.0.1
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
       with:
         max_attempts: 3
         timeout_minutes: 10

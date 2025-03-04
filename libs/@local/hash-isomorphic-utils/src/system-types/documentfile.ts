@@ -5,6 +5,8 @@
 import type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -41,6 +43,8 @@ import type {
   FileStorageRegionPropertyValueWithMetadata,
   FileURLPropertyValue,
   FileURLPropertyValueWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   MIMETypePropertyValue,
   MIMETypePropertyValueWithMetadata,
   NumberDataType,
@@ -59,11 +63,15 @@ import type {
   TextualContentPropertyValueWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -100,6 +108,8 @@ export type {
   FileStorageRegionPropertyValueWithMetadata,
   FileURLPropertyValue,
   FileURLPropertyValueWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   MIMETypePropertyValue,
   MIMETypePropertyValueWithMetadata,
   NumberDataType,
@@ -118,4 +128,6 @@ export type {
   TextualContentPropertyValueWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };

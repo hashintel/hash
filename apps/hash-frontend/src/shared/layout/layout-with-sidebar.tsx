@@ -111,6 +111,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
               backgroundColor: grayBackground
                 ? palette.gray[10]
                 : palette.common.white,
+              display: "flex",
               minHeight: "100%",
               flex: 1,
               width: "100%",

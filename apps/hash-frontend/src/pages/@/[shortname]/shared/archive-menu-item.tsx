@@ -22,7 +22,8 @@ import {
 
 export const ArchiveMenuItem: FunctionComponent<{
   item: Entity | EntityTypeWithMetadata;
-}> = ({ item }) => {
+  onItemChange: () => void;
+}> = ({ item, onItemChange }) => {
   const refetchEntityTypes = useFetchEntityTypes();
 
   const { closeContextMenu } = useContextBarActionsContext();
@@ -47,12 +48,14 @@ export const ArchiveMenuItem: FunctionComponent<{
     } else {
       throw new Error("Archiving entities is not yet supported.");
     }
+    onItemChange();
     closeContextMenu();
   }, [
     closeContextMenu,
     item,
     archiveEntityType,
     archivePage,
+    onItemChange,
     refetchEntityTypes,
   ]);
 

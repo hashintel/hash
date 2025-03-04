@@ -1,0 +1,50 @@
+namespace HASH {
+  entity Role  {
+  };
+
+  entity Web {
+  };
+
+  entity Team {
+  };
+
+  entity Entity in [Web] {
+    entity_types: Set<EntityType>,
+  };
+
+  entity EntityType in [Web] {
+    base_url: String,
+    version: Long,
+  };
+
+  entity User, Machine in [HASH::Web::Role, HASH::Team::Role, HASH::Web::Team::Role] {
+  };
+
+  action create, view, update appliesTo {
+    principal: [User, Machine],
+    resource: [Entity, EntityType],
+  };
+
+  action instantiate appliesTo {
+    principal: [User, Machine],
+    resource: [EntityType],
+  };
+}
+
+namespace HASH::Team {
+  entity Role in [HASH::Team] {
+  };
+}
+
+namespace HASH::Web {
+  entity Team in [HASH::Web] {
+  };
+
+  entity Role in [HASH::Web] {
+  };
+}
+
+namespace HASH::Web::Team {
+  entity Role in [HASH::Web::Team] {
+  };
+}

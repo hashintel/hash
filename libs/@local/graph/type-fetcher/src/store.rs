@@ -55,7 +55,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     account::AccountId,
-    knowledge::entity::{Entity, EntityId},
+    knowledge::entity::{ActorType, Entity, EntityId, OriginProvenance, OriginType},
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
@@ -411,7 +411,7 @@ where
                         };
 
                         for referenced_ontology_type in self
-                            .collect_external_ontology_types(actor_id, &data_type, bypassed_types)
+                            .collect_external_ontology_types(actor_id, &*data_type, bypassed_types)
                             .await?
                         {
                             if !seen.contains(referenced_ontology_type.url()) {
@@ -422,7 +422,7 @@ where
 
                         fetched_ontology_types
                             .data_types
-                            .push((data_type, metadata));
+                            .push((*data_type, metadata));
                     }
                     FetchedOntologyType::PropertyType(property_type) => {
                         let metadata = PartialPropertyTypeMetadata {
@@ -435,7 +435,7 @@ where
                         for referenced_ontology_type in self
                             .collect_external_ontology_types(
                                 actor_id,
-                                &property_type,
+                                &*property_type,
                                 bypassed_types,
                             )
                             .await?
@@ -448,7 +448,7 @@ where
 
                         fetched_ontology_types
                             .property_types
-                            .push((property_type, metadata));
+                            .push((*property_type, metadata));
                     }
                     FetchedOntologyType::EntityType(entity_type) => {
                         let metadata = PartialEntityTypeMetadata {
@@ -532,7 +532,11 @@ where
                             classification: metadata.classification,
                             relationships: DATA_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
-                            provenance: ProvidedOntologyEditionProvenance::default(),
+                            provenance: ProvidedOntologyEditionProvenance {
+                                actor_type: ActorType::Machine,
+                                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                                sources: Vec::new(),
+                            },
                             conversions: HashMap::new(),
                         }),
                 )
@@ -551,7 +555,11 @@ where
                             classification: metadata.classification,
                             relationships: PROPERTY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
-                            provenance: ProvidedOntologyEditionProvenance::default(),
+                            provenance: ProvidedOntologyEditionProvenance {
+                                actor_type: ActorType::Machine,
+                                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                                sources: Vec::new(),
+                            },
                         }),
                 )
                 .await?;
@@ -569,7 +577,11 @@ where
                             classification: metadata.classification,
                             relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
-                            provenance: ProvidedOntologyEditionProvenance::default(),
+                            provenance: ProvidedOntologyEditionProvenance {
+                                actor_type: ActorType::Machine,
+                                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                                sources: Vec::new(),
+                            },
                         }),
                 )
                 .await?;
@@ -617,7 +629,11 @@ where
                                 classification: metadata.classification,
                                 relationships: DATA_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
-                                provenance: ProvidedOntologyEditionProvenance::default(),
+                                provenance: ProvidedOntologyEditionProvenance {
+                                    actor_type: ActorType::Machine,
+                                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                                    sources: Vec::new(),
+                                },
                                 conversions: HashMap::new(),
                             }),
                     )
@@ -636,7 +652,11 @@ where
                                 classification: metadata.classification,
                                 relationships: PROPERTY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
-                                provenance: ProvidedOntologyEditionProvenance::default(),
+                                provenance: ProvidedOntologyEditionProvenance {
+                                    actor_type: ActorType::Machine,
+                                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                                    sources: Vec::new(),
+                                },
                             },
                         ),
                     )
@@ -655,7 +675,11 @@ where
                                 classification: metadata.classification,
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
-                                provenance: ProvidedOntologyEditionProvenance::default(),
+                                provenance: ProvidedOntologyEditionProvenance {
+                                    actor_type: ActorType::Machine,
+                                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                                    sources: Vec::new(),
+                                },
                             },
                         ),
                     )

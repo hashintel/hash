@@ -1,7 +1,10 @@
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  DataTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 
@@ -13,7 +16,7 @@ import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.qu
 
 export type DataTypesContextValue = {
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;
-  latestDataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;
+  latestDataTypes: Record<BaseUrl, DataTypeWithMetadata> | null;
   loading: boolean;
   refetch: () => void;
 };
@@ -44,7 +47,7 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
     }
 
     const all: Record<VersionedUrl, DataTypeWithMetadata> = {};
-    const latest: Record<VersionedUrl, DataTypeWithMetadata> = {};
+    const latest: Record<BaseUrl, DataTypeWithMetadata> = {};
 
     for (const versionToVertexMap of Object.values(
       data.queryDataTypes.vertices,
@@ -65,7 +68,7 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
       }
 
       if (highestVersion) {
-        latest[highestVersion.schema.$id] = highestVersion;
+        latest[highestVersion.metadata.recordId.baseUrl] = highestVersion;
       }
     }
 

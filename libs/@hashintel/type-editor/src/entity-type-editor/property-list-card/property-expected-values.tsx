@@ -4,6 +4,7 @@ import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { chipClasses, Tooltip } from "@mui/material";
 import { Stack } from "@mui/system";
 
+import { useCustomizationSettings } from "../../shared/customization-context";
 import { useDataTypesOptions } from "../../shared/data-types-options-context";
 import { usePropertyTypesOptions } from "../../shared/property-types-options-context";
 
@@ -19,6 +20,8 @@ export const PropertyExpectedValues = ({
   setAnimatingOutExpectedValue: (value: boolean) => void;
 }) => {
   const propertyTypes = usePropertyTypesOptions();
+
+  const { onNavigateToType } = useCustomizationSettings();
 
   const { getExpectedValueDisplay } = useDataTypesOptions();
 
@@ -83,6 +86,11 @@ export const PropertyExpectedValues = ({
             // eslint-disable-next-line react/no-array-index-key
             key={index}
             label={expectedValueOption.title}
+            onClick={() => {
+              if (expectedValueOption.$id && onNavigateToType) {
+                onNavigateToType("dataType", expectedValueOption.$id);
+              }
+            }}
             icon={
               <FontAwesomeIcon
                 icon={{

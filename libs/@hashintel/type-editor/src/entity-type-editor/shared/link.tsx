@@ -18,7 +18,7 @@ export const Link = ({
     if (onNavigateToType && props.href) {
       event.preventDefault();
       event.stopPropagation();
-      onNavigateToType(props.href as VersionedUrl);
+      onNavigateToType("entityType", props.href as VersionedUrl);
     }
     props.onClick?.(event);
   };
@@ -28,7 +28,7 @@ export const Link = ({
       if (onNavigateToType && props.href) {
         event.preventDefault();
         event.stopPropagation();
-        onNavigateToType(props.href as VersionedUrl);
+        onNavigateToType("entityType", props.href as VersionedUrl);
       }
     }
     props.onKeyDown?.(event);

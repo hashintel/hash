@@ -47,6 +47,7 @@ const ExpectedValueSelectorDropdown = () => {
     inputRef,
     searchText,
     selectedDataTypeIds,
+    textFieldRef,
   } = useExpectedValueSelectorContext();
 
   const { dataTypes } = useDataTypesOptions();
@@ -68,10 +69,17 @@ const ExpectedValueSelectorDropdown = () => {
     });
   }, [dataTypes]);
 
+  const dataTypeSelectorMenuRef = useRef<HTMLDivElement>(null);
+
   const [paperRef] = useOutsideClickRef((event) => {
-    if (!customExpectedValueBuilderOpen && event.target === inputRef?.current) {
+    if (!customExpectedValueBuilderOpen && event.target === inputRef.current) {
       return;
     }
+
+    if (dataTypeSelectorMenuRef.current?.contains(event.target as Node)) {
+      return;
+    }
+
     closeAutocomplete();
   }, autocompleteFocused);
 
@@ -86,57 +94,62 @@ const ExpectedValueSelectorDropdown = () => {
       {customExpectedValueBuilderOpen ? (
         <CustomExpectedValueBuilder />
       ) : (
-        <>
-          <DataTypeSelector
-            allowSelectingAbstractTypes
-            dataTypes={dataTypeOptions}
-            handleScroll
-            hideHint
-            maxHeight={300}
-            onSelect={(dataTypeId) => {
-              addDataType(dataTypeId);
-            }}
-            searchText={searchText}
-            selectedDataTypeIds={selectedDataTypeIds}
-          />
+        <DataTypeSelector
+          additionalMenuContent={{
+            height: 55,
+            element: (
+              <Button
+                variant="tertiary"
+                startIcon={<StyledPlusCircleIcon />}
+                sx={{
+                  width: "100%",
+                  height: 55,
+                  display: "flex",
+                  alignItems: "center",
+                  borderBottom: "none",
+                  borderLeft: "none",
+                  borderRight: "none",
+                }}
+                onMouseDown={(event) => {
+                  // prevent dropdown from closing
+                  event.preventDefault();
+                }}
+                onClick={() => {
+                  handleEdit();
+                }}
+              >
+                <Typography
+                  variant="smallTextLabels"
+                  sx={(theme) => ({
+                    color: theme.palette.gray[60],
+                    fontWeight: 500,
+                  })}
+                >
+                  Specify a custom expected value
+                </Typography>
 
-          <Button
-            variant="tertiary"
-            startIcon={<StyledPlusCircleIcon />}
-            sx={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              mt: 1,
-              borderBottom: "none",
-              borderLeft: "none",
-              borderRight: "none",
-            }}
-            onMouseDown={(event) => {
-              // prevent dropdown from closing
-              event.preventDefault();
-            }}
-            onClick={() => {
-              handleEdit();
-            }}
-          >
-            <Typography
-              variant="smallTextLabels"
-              sx={(theme) => ({
-                color: theme.palette.gray[60],
-                fontWeight: 500,
-              })}
-            >
-              Specify a custom expected value
-            </Typography>
-
-            <Chip
-              color="purple"
-              label="PROPERTY TYPE"
-              sx={{ ml: 1.5, "& span": { fontSize: 12 } }}
-            />
-          </Button>
-        </>
+                <Chip
+                  color="purple"
+                  label="PROPERTY TYPE"
+                  sx={{ ml: 1.5, "& span": { fontSize: 12 } }}
+                />
+              </Button>
+            ),
+          }}
+          allowSelectingAbstractTypes
+          dataTypes={dataTypeOptions}
+          externallyProvidedPopoverRef={dataTypeSelectorMenuRef}
+          externalSearchInput={{
+            focused: autocompleteFocused,
+            inputRef: textFieldRef,
+            searchText,
+          }}
+          hideHint
+          onSelect={(dataTypeId) => {
+            addDataType(dataTypeId);
+          }}
+          selectedDataTypeIds={selectedDataTypeIds}
+        />
       )}
     </Paper>
   );
@@ -217,6 +230,7 @@ export const ExpectedValueSelector = ({
   });
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const textFieldRef = useRef<HTMLDivElement>(null);
 
   const [inputValue, setInputValue] = useState("");
 
@@ -266,6 +280,7 @@ export const ExpectedValueSelector = ({
       },
       customExpectedValueBuilderOpen: creatingCustomExpectedValue,
       inputRef,
+      textFieldRef,
       handleEdit: (index?: number, id?: string) => {
         expectedValueSelectorFormMethods.setValue(
           "flattenedCustomExpectedValueList",
@@ -414,6 +429,7 @@ export const ExpectedValueSelector = ({
             <TextField
               {...inputProps}
               inputRef={inputRef}
+              ref={textFieldRef}
               label="Expected values"
               placeholder="Select acceptable values"
               disabled={isSubmitting}
@@ -422,7 +438,7 @@ export const ExpectedValueSelector = ({
               helperText={expectedValuesError?.message}
             />
           )}
-          sx={{ width: "70%" }}
+          sx={{ width: "100%" }}
           options={[]}
           componentsProps={{
             popper: {

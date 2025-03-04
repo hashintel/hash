@@ -1,5 +1,7 @@
-import type { PropertyProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type {
+  PropertyProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
@@ -52,7 +54,7 @@ const createClaim = async ({
   objectText: string;
   ownedById: OwnedById;
   propertyProvenance: PropertyProvenance;
-  provenance: EnforcedEntityEditionProvenance;
+  provenance: ProvidedEntityEditionProvenance;
   subjectText: string;
   userActorId: AccountId;
 }) => {
@@ -62,7 +64,7 @@ const createClaim = async ({
     {
       draft,
       entityUuid: generateUuid() as EntityUuid,
-      entityTypeIds: ["https://hash.ai/@hash/types/entity-type/claim/v/1"],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/claim/v/1"],
       ownedById,
       provenance,
       relationships: createDefaultAuthorizationRelationships({
@@ -79,7 +81,7 @@ const createClaim = async ({
               },
               value: claimText,
             },
-          "https://hash.ai/@hash/types/property-type/subject/": {
+          "https://hash.ai/@h/types/property-type/subject/": {
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -88,7 +90,7 @@ const createClaim = async ({
             value: subjectText,
           },
 
-          "https://hash.ai/@hash/types/property-type/object/": {
+          "https://hash.ai/@h/types/property-type/object/": {
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -114,7 +116,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   documentMetadata: Pick<DocumentData, "authors">;
   documentEntityId: EntityId;
   documentTitle: string;
-  provenance: EnforcedEntityEditionProvenance;
+  provenance: ProvidedEntityEditionProvenance;
   propertyProvenance: PropertyProvenance;
 }): Promise<ProposedEntity[]> => {
   const {
@@ -159,7 +161,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     };
 
     if (email) {
-      authorProperties["https://hash.ai/@hash/types/property-type/email/"] = [
+      authorProperties["https://hash.ai/@h/types/property-type/email/"] = [
         email,
       ];
       authorPropertyMetadata.value[systemDataTypes.email.dataTypeBaseUrl] = {
@@ -258,50 +260,64 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
 
     for (const affiliateName of affiliatedWith ?? []) {
       let institutionEntityId = institutionEntityIdByName[affiliateName];
+      let institutionProposedEntity = institutionEntityId
+        ? proposedEntities.find(
+            (entity) => entity.localEntityId === institutionEntityId,
+          )
+        : null;
+
       if (!institutionEntityId) {
         institutionEntityId = entityIdFromComponents(
           webId,
           generateUuid() as EntityUuid,
         );
+      }
 
+      if (!institutionProposedEntity) {
         const properties: InstitutionProperties = {
           "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
             affiliateName,
         };
 
-        /**
-         * Create a claim about the person being affiliated with the institution.
-         */
-        const authorToInstitutionClaim = await createClaim({
-          claimText: `${authorName} is affiliated with ${affiliateName}`,
-          creatorActorId: aiAssistantAccountId,
-          draft: createEntitiesAsDraft,
-          objectText: affiliateName,
-          ownedById: webId,
-          propertyProvenance,
-          provenance,
-          subjectText: authorName,
-          userActorId: userAuthentication.actorId,
-        });
-
-        authorProposedEntity.claims.isSubjectOf.push(
-          authorToInstitutionClaim.entityId,
-        );
-
-        proposedEntities.push({
+        institutionProposedEntity = {
           claims: {
             isSubjectOf: [],
-            isObjectOf: [authorToInstitutionClaim.entityId],
+            isObjectOf: [],
           },
           entityTypeIds: [systemEntityTypes.institution.entityTypeId],
           localEntityId: institutionEntityId,
           properties,
           propertyMetadata: nameOnlyPropertyMetadata,
           provenance,
-        });
+        };
+
+        proposedEntities.push(institutionProposedEntity);
 
         institutionEntityIdByName[affiliateName] = institutionEntityId;
       }
+
+      /**
+       * Create a claim about the person being affiliated with the institution.
+       */
+      const authorToInstitutionClaim = await createClaim({
+        claimText: `${authorName} is affiliated with ${affiliateName}`,
+        creatorActorId: aiAssistantAccountId,
+        draft: createEntitiesAsDraft,
+        objectText: affiliateName,
+        ownedById: webId,
+        propertyProvenance,
+        provenance,
+        subjectText: authorName,
+        userActorId: userAuthentication.actorId,
+      });
+
+      authorProposedEntity.claims.isSubjectOf.push(
+        authorToInstitutionClaim.entityId,
+      );
+
+      institutionProposedEntity.claims.isSubjectOf.push(
+        authorToInstitutionClaim.entityId,
+      );
 
       /**
        * Propose the link between the person and the institution entity

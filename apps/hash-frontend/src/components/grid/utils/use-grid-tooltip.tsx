@@ -1,10 +1,11 @@
 import type { DataEditorRef } from "@glideapps/glide-data-grid";
 import type { PopoverPosition } from "@mui/material";
-import { Box, Popover, Typography } from "@mui/material";
+import { Box, Popper, Typography } from "@mui/material";
+import type { VirtualElement } from "@popperjs/core";
 import { isEqual } from "lodash";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import type { RefObject } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWindowEventListener } from "rooks";
 
 import type {
@@ -33,10 +34,14 @@ export const useGridTooltip = (
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   // prevent tooltip from staying at the same position when user scrolls vertically
-  useWindowEventListener("scroll", () => {
-    popupState.close();
-    setGridTooltip(null);
-  });
+  useWindowEventListener(
+    "scroll",
+    () => {
+      popupState.close();
+      setGridTooltip(null);
+    },
+    { capture: true },
+  );
 
   useEffect(() => {
     const eventListener = (event: MouseEvent) => {
@@ -145,22 +150,35 @@ export const useGridTooltip = (
     ? gridRef.current?.getBounds(gridTooltip.colIndex, gridTooltip.rowIndex)
     : null;
 
+  const virtualElement: VirtualElement | null = useMemo(
+    () =>
+      bounds && tooltipPos
+        ? {
+            getBoundingClientRect: () => ({
+              width: bounds.width,
+              height: bounds.height,
+              top: tooltipPos.top,
+              left: tooltipPos.left,
+              bottom: tooltipPos.top + bounds.height,
+              right: tooltipPos.left + bounds.width,
+              x: tooltipPos.left,
+              y: tooltipPos.top,
+              toJSON: () => "",
+            }),
+          }
+        : null,
+    [bounds, tooltipPos],
+  );
+
   return {
     showTooltip,
     hideTooltip,
     tooltipElement: !gridTooltip ? null : (
-      <Popover
-        hideBackdrop
-        anchorReference="anchorPosition"
-        anchorPosition={tooltipPos}
-        open
-        transformOrigin={{ horizontal: "left", vertical: "bottom" }}
-        PaperProps={{
-          sx: {
-            p: 0,
-            borderRadius: 2,
-          },
-        }}
+      <Popper
+        anchorEl={virtualElement}
+        open={!!gridTooltip}
+        placement="top-start"
+        sx={{ zIndex: 100_000, borderRadius: 2 }}
       >
         {typeof gridTooltip.content === "string" ? (
           <Box
@@ -182,12 +200,16 @@ export const useGridTooltip = (
         ) : (
           <Box
             ref={tooltipRef}
-            sx={{ maxWidth: bounds?.width, borderRadius: 2 }}
+            sx={{
+              maxWidth: bounds?.width,
+              borderRadius: 2,
+              background: ({ palette }) => palette.common.white,
+            }}
           >
             {gridTooltip.content}
           </Box>
         )}
-      </Popover>
+      </Popper>
     ),
   };
 };

@@ -68,7 +68,7 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
             .inspect(|_| {
                 self.current_line += 1;
             })
-            .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?
+            .map_err(io::Error::other)?
             .filter(|line| !line.is_empty())
             .map(|line| {
                 serde_json::from_str(&line)
@@ -85,7 +85,7 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
             .inspect(|_| {
                 self.current_line += 1;
             })
-            .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?
+            .map_err(io::Error::other)?
             .filter(|line| !line.is_empty())
             .map(|line| {
                 serde_json::from_str(&line)

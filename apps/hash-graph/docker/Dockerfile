@@ -1,85 +1,101 @@
-# We require `alpine3.18` for `yq 4.33` which includes TOML support
-# The node version does not matter here as we only use it to install `turbo` and otherwise copy from this build stage
-FROM node:20-alpine3.18 AS base
+FROM bitnami/minideb:bookworm AS mise
+
+ENV MISE_DATA_DIR="/mise"
+ENV MISE_CACHE_DIR="/mise/cache"
+ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
+ENV MISE_NODE_COREPACK=1
+ENV PATH="/mise/shims:$PATH"
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends bash curl ca-certificates && \
+    curl https://mise.run | sh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
+COPY .config/mise /etc/mise
+
+RUN eval "$(mise activate bash)"
+
+
+FROM mise AS base
 
 WORKDIR /app
 
-COPY package.json .
-RUN apk add --no-cache jq yq && \
-    npm install -g "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+RUN mise install node && \
+    mise use --global yq npm:turbo@$(jq -r '.devDependencies.turbo' < package.json)
+
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-graph' --docker && \
-    yq --version && \
     find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
     [ -f "/app/out/full/$1" ] || ( \
     mkdir -p "/app/out/full/$(dirname "$1")/src" &&  \
     echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
-    echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
+    printf "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
     )' _ {} \; && \
     cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
 
-FROM node:22.12-alpine AS rust
+FROM mise AS rust
 
 WORKDIR /usr/local/
 
-ENV RUSTUP_HOME=/usr/local/rustup \
-    CARGO_HOME=/usr/local/cargo \
-    PATH=:$PATH:/usr/local/cargo/bin
+ENV MISE_CARGO_HOME="/usr/local/cargo" \
+    PATH="$PATH:/usr/local/cargo/bin"
 
-RUN apk add --no-cache gcc musl-dev bash protobuf-dev yq && \
-    wget -q -O- https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
+COPY rust-toolchain.toml .
+RUN mise use --global yq && \
+    mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml) && \
+    rm rust-toolchain.toml
 
-SHELL ["bash", "-c"]
 
-
-FROM rust AS installer
+FROM rust AS builder
 
 WORKDIR /usr/local/src/
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
+COPY --from=base /app/out/full/.yarn .yarn
 COPY --from=base /app/out/full/turbo.json turbo.json
 
-RUN corepack enable && \
-    yarn install --immutable --network-timeout 300000 && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential musl-tools && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    mise install node && \
+    mise use --global protoc && \
+    yarn install --immutable && \
     yarn cache clean
 
 COPY --from=base /app/out/full/ .
 
-
-FROM installer AS builder
-
-WORKDIR /usr/local/src/apps/hash-graph
-
 ARG PROFILE=production
 ARG ENABLE_TEST_SERVER=no
 
-COPY rust-toolchain.toml .
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/usr/local/src/target,sharing=locked \
-    FEATURES=(); \
+    FEATURES=() && \
     if [[ ${ENABLE_TEST_SERVER^^} == Y* || ${ENABLE_TEST_SERVER^^} == T* || $ENABLE_TEST_SERVER == 1 ]]; then \
     FEATURES+=("test-server"); \
-    fi; \
+    fi && \
     if [[ ${PROFILE} == dev ]]; then \
-    export RUSTFLAGS="$RUSTFLAGS -C debuginfo=line-tables-only"; \
+    export RUSTFLAGS="-C debuginfo=line-tables-only" && \
     export PROFILE=dev-llvm; \
-    fi; \
-    export RUSTUP_TOOLCHAIN="$(yq '.toolchain.channel' rust-toolchain.toml)"; \
-    FEATURES=${FEATURES[@]}; \
-    cargo install --path . --features "${FEATURES// /,}" --profile $PROFILE --locked;
+    fi && \
+    FEATURES=${FEATURES[@]} && \
+    rustup target add "$(uname -m)-unknown-linux-musl" && \
+    cargo install --target "$(uname -m)-unknown-linux-musl" --path apps/hash-graph --root /tmp --features "${FEATURES// /,}" --profile $PROFILE --locked && \
+    mkdir -p /out/etc && \
+    cp /tmp/bin/hash-graph /out/hash-graph && \
+    echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd && \
+    echo 'hash:x:60000:' > /out/etc/group && \
+    install -d -m 0775 -o 61000 -g 60000 /out/logs
 
-RUN mkdir -p /out/etc/ \
-    && echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd \
-    && echo 'hash:x:60000:' > /out/etc/group \
-    && install -d -m 0775 -o 61000 -g 60000 /out/logs \
-    && cp /usr/local/cargo/bin/hash-graph /out/hash-graph
 
-
-FROM scratch AS runtime
+FROM scratch AS runner
 
 COPY --from=builder /out/ /
 

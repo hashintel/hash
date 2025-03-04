@@ -260,6 +260,6 @@ export const useEntityTypeValue = (
     propertyTypes,
     updateCallback,
     publishDraft,
-    { loading: entityTypeUnavailable },
+    { loading: entityTypeUnavailable, refetch },
   ] as const;
 };

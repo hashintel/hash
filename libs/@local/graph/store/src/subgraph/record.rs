@@ -17,7 +17,6 @@ pub trait SubgraphRecord {
 impl SubgraphRecord for Entity {
     type VertexId = EntityVertexId;
 
-    #[must_use]
     fn vertex_id(&self, time_axis: TimeAxis) -> EntityVertexId {
         let ClosedTemporalBound::Inclusive(timestamp) = match time_axis {
             TimeAxis::DecisionTime => self
@@ -43,7 +42,6 @@ impl SubgraphRecord for Entity {
 impl SubgraphRecord for DataTypeWithMetadata {
     type VertexId = DataTypeVertexId;
 
-    #[must_use]
     fn vertex_id(&self, _time_axis: TimeAxis) -> DataTypeVertexId {
         let record_id = &self.metadata.record_id;
         DataTypeVertexId {
@@ -56,7 +54,6 @@ impl SubgraphRecord for DataTypeWithMetadata {
 impl SubgraphRecord for PropertyTypeWithMetadata {
     type VertexId = PropertyTypeVertexId;
 
-    #[must_use]
     fn vertex_id(&self, _time_axis: TimeAxis) -> PropertyTypeVertexId {
         let record_id = &self.metadata.record_id;
         PropertyTypeVertexId {
@@ -69,7 +66,6 @@ impl SubgraphRecord for PropertyTypeWithMetadata {
 impl SubgraphRecord for EntityTypeWithMetadata {
     type VertexId = EntityTypeVertexId;
 
-    #[must_use]
     fn vertex_id(&self, _time_axis: TimeAxis) -> EntityTypeVertexId {
         let record_id = &self.metadata.record_id;
         EntityTypeVertexId {

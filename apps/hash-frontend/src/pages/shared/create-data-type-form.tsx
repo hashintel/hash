@@ -17,6 +17,7 @@ import { getDataTypeQuery } from "../../graphql/queries/ontology/data-type.queri
 import { Button } from "../../shared/ui/button";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { useDataTypesContext } from "./data-types-context";
+import { useSlideStack } from "./slide-stack";
 import { useGenerateTypeUrlsForUser } from "./use-generate-type-urls-for-user";
 import { WorkspaceContext } from "./workspace-context";
 
@@ -76,6 +77,8 @@ export const CreateDataTypeForm = ({
 
   const { dataTypes } = useDataTypesContext();
 
+  const { closeSlideStack } = useSlideStack();
+
   const parentType = extendsDataTypeId ? dataTypes?.[extendsDataTypeId] : null;
 
   if (!activeWorkspace) {
@@ -102,6 +105,12 @@ export const CreateDataTypeForm = ({
       version: 1,
     });
 
+    const primitiveType =
+      parentType?.schema && "type" in parentType.schema
+        ? /** not sure what is going on with tsc inference here, something about the disjoint union of type: x options it complains about */
+          (parentType.schema.type as "boolean")
+        : ("string" as "boolean");
+
     const dataType: DataType = {
       $schema: DATA_TYPE_META_SCHEMA,
       kind: "dataType",
@@ -110,7 +119,7 @@ export const CreateDataTypeForm = ({
       allOf: parentId ? [{ $ref: parentId }] : undefined,
       title: data.title,
       description: data.description,
-      type: "string",
+      type: primitiveType,
     };
 
     const nextUrl = `${baseUrl}?draft=${encodeURIComponent(
@@ -120,6 +129,7 @@ export const CreateDataTypeForm = ({
     afterSubmit?.();
 
     await router.push(nextUrl);
+    closeSlideStack();
   });
 
   const formItemWidth = `min(calc(100% - ${HELPER_TEXT_WIDTH + 52}px), 600px)`;

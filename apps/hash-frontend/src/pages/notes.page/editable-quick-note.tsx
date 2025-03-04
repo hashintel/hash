@@ -15,8 +15,8 @@ import {
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   ArchivedPropertyValueWithMetadata,
-  QuickNoteProperties,
-} from "@local/hash-isomorphic-utils/system-types/quicknote";
+  NoteProperties,
+} from "@local/hash-isomorphic-utils/system-types/note";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
@@ -207,12 +207,12 @@ export const EditableQuickNote: FunctionComponent<{
       variables: {
         entityUpdate: {
           entityId: quickNoteEntity.metadata.recordId.entityId,
-          entityTypeIds: [systemEntityTypes.quickNote.entityTypeId],
+          entityTypeIds: [systemEntityTypes.note.entityTypeId],
           propertyPatches: [
             {
               op: "add",
               path: [
-                "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof QuickNoteProperties as BaseUrl,
+                "https://hash.ai/@h/types/property-type/archived/" satisfies keyof NoteProperties as BaseUrl,
               ],
               property: {
                 value: true,
@@ -247,7 +247,7 @@ export const EditableQuickNote: FunctionComponent<{
       variables: {
         entityUpdate: {
           entityId: blockCollectionEntityId,
-          entityTypeIds: [systemEntityTypes.quickNote.entityTypeId],
+          entityTypeIds: [systemEntityTypes.note.entityTypeId],
           propertyPatches: [],
         },
       },

@@ -1,4 +1,6 @@
-import { Box } from "@mui/material";
+import { Box, type SxProps, type Theme } from "@mui/material";
+
+import { inputStyles } from "../../shared/input-styles";
 
 export const NumberInput = ({
   id,
@@ -6,6 +8,7 @@ export const NumberInput = ({
   min,
   max,
   multipleOf,
+  sx,
   value,
   onChange,
   width = 120,
@@ -15,8 +18,9 @@ export const NumberInput = ({
   min?: number;
   max?: number;
   multipleOf?: number;
-  onChange: (value: number | undefined) => void;
-  value?: number;
+  onChange: (value: number | null) => void;
+  sx?: SxProps<Theme>;
+  value: number | null;
   width?: number;
 }) => {
   return (
@@ -28,25 +32,17 @@ export const NumberInput = ({
       min={min}
       max={max}
       type="number"
-      value={value?.toString()}
+      value={value != null ? value.toString() : ""}
       onChange={(event) => {
         const parsedValue = parseInt(event.target.value, 10);
 
         if (Number.isNaN(parsedValue)) {
-          onChange(undefined);
+          onChange(null);
         } else {
           onChange(parsedValue);
         }
       }}
-      sx={({ palette }) => ({
-        border: `1px solid ${palette.gray[30]}`,
-        borderRadius: 1,
-        fontSize: 14,
-        py: 1.2,
-        px: 1.5,
-        mt: 0.5,
-        width,
-      })}
+      sx={[inputStyles, { width }, ...(Array.isArray(sx) ? sx : [sx])]}
     />
   );
 };

@@ -4,15 +4,16 @@
 )]
 
 use alloc::sync::Arc;
-use core::{error::Error, fmt, str::FromStr as _};
+use core::{error::Error, fmt, iter, str::FromStr as _};
 use std::sync::LazyLock;
 
-use cedar_policy_core::ast;
+use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use uuid::Uuid;
 
+use super::{InPrincipalConstraint, TeamPrincipalConstraint, role::RoleId};
 use crate::policies::{
-    cedar::CedarEntityId, principal::organization::OrganizationPrincipalConstraint,
+    cedar::CedarEntityId, principal::web::WebPrincipalConstraint, resource::EntityResource,
 };
 
 #[derive(
@@ -66,7 +67,28 @@ impl CedarEntityId for UserId {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct User {
+    pub id: UserId,
+    pub roles: Vec<RoleId>,
+    pub entity: EntityResource<'static>,
+}
+
+impl User {
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+        ast::Entity::new(
+            self.id.to_euid(),
+            iter::empty(),
+            self.roles.iter().map(RoleId::to_euid).collect(),
+            iter::empty(),
+            Extensions::none(),
+        )
+        .expect("User should be a valid Cedar entity")
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged, rename_all_fields = "camelCase", deny_unknown_fields)]
 pub enum UserPrincipalConstraint {
     #[expect(
@@ -78,7 +100,8 @@ pub enum UserPrincipalConstraint {
         #[serde(deserialize_with = "Option::deserialize")]
         user_id: Option<UserId>,
     },
-    Organization(OrganizationPrincipalConstraint),
+    Web(WebPrincipalConstraint),
+    Team(TeamPrincipalConstraint),
 }
 
 impl UserPrincipalConstraint {
@@ -87,7 +110,8 @@ impl UserPrincipalConstraint {
         match self {
             Self::Any {} | Self::Exact { user_id: Some(_) } => false,
             Self::Exact { user_id: None } => true,
-            Self::Organization(organization) => organization.has_slot(),
+            Self::Web(web) => web.has_slot(),
+            Self::Team(team) => team.has_slot(),
         }
     }
 
@@ -101,7 +125,17 @@ impl UserPrincipalConstraint {
                 .map_or_else(ast::PrincipalConstraint::is_eq_slot, |user_id| {
                     ast::PrincipalConstraint::is_eq(Arc::new(user_id.to_euid()))
                 }),
-            Self::Organization(organization) => organization.to_cedar_in_type::<UserId>(),
+            Self::Web(web) => web.to_cedar_in_type::<UserId>(),
+            Self::Team(team) => team.to_cedar_in_type::<UserId>(),
+        }
+    }
+}
+
+impl From<InPrincipalConstraint> for UserPrincipalConstraint {
+    fn from(value: InPrincipalConstraint) -> Self {
+        match value {
+            InPrincipalConstraint::Web(web) => Self::Web(web),
+            InPrincipalConstraint::Team(team) => Self::Team(team),
         }
     }
 }
@@ -110,14 +144,15 @@ impl UserPrincipalConstraint {
 mod tests {
     use core::error::Error;
 
+    use hash_graph_types::owned_by_id::OwnedById;
     use serde_json::json;
     use uuid::Uuid;
 
-    use super::OrganizationPrincipalConstraint;
+    use super::{UserId, WebPrincipalConstraint};
     use crate::{
         policies::{
-            OrganizationId, OrganizationRoleId, PrincipalConstraint, UserId,
-            principal::{UserPrincipalConstraint, tests::check_principal},
+            PrincipalConstraint,
+            principal::{UserPrincipalConstraint, tests::check_principal, web::WebRoleId},
         },
         test_utils::check_deserialization_error,
     };
@@ -125,7 +160,7 @@ mod tests {
     #[test]
     fn any() -> Result<(), Box<dyn Error>> {
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Any {}),
+            PrincipalConstraint::User(UserPrincipalConstraint::Any {}),
             json!({
                 "type": "user",
             }),
@@ -147,7 +182,7 @@ mod tests {
     fn exact() -> Result<(), Box<dyn Error>> {
         let user_id = UserId::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Exact {
+            PrincipalConstraint::User(UserPrincipalConstraint::Exact {
                 user_id: Some(user_id),
             }),
             json!({
@@ -158,7 +193,7 @@ mod tests {
         )?;
 
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Exact { user_id: None }),
+            PrincipalConstraint::User(UserPrincipalConstraint::Exact { user_id: None }),
             json!({
                 "type": "user",
                 "userId": null,
@@ -180,29 +215,25 @@ mod tests {
 
     #[test]
     fn organization() -> Result<(), Box<dyn Error>> {
-        let organization_id = OrganizationId::new(Uuid::new_v4());
+        let web_id = OwnedById::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Organization(
-                OrganizationPrincipalConstraint::InOrganization {
-                    organization_id: Some(organization_id),
-                },
+            PrincipalConstraint::User(UserPrincipalConstraint::Web(
+                WebPrincipalConstraint::InWeb { id: Some(web_id) },
             )),
             json!({
                 "type": "user",
-                "organizationId": organization_id,
+                "id": web_id,
             }),
-            format!(r#"principal is HASH::User in HASH::Organization::"{organization_id}""#),
+            format!(r#"principal is HASH::User in HASH::Web::"{web_id}""#),
         )?;
 
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Organization(
-                OrganizationPrincipalConstraint::InOrganization {
-                    organization_id: None,
-                },
+            PrincipalConstraint::User(UserPrincipalConstraint::Web(
+                WebPrincipalConstraint::InWeb { id: None },
             )),
             json!({
                 "type": "user",
-                "organizationId": null,
+                "id": null,
             }),
             "principal is HASH::User in ?principal",
         )?;
@@ -210,7 +241,7 @@ mod tests {
         check_deserialization_error::<PrincipalConstraint>(
             json!({
                 "type": "user",
-                "organizationId": organization_id,
+                "id": web_id,
                 "additional": "unexpected",
             }),
             "data did not match any variant of untagged enum UserPrincipalConstraint",
@@ -221,31 +252,27 @@ mod tests {
 
     #[test]
     fn organization_role() -> Result<(), Box<dyn Error>> {
-        let organization_role_id = OrganizationRoleId::new(Uuid::new_v4());
+        let web_role_id = WebRoleId::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Organization(
-                OrganizationPrincipalConstraint::InRole {
-                    organization_role_id: Some(organization_role_id),
+            PrincipalConstraint::User(UserPrincipalConstraint::Web(
+                WebPrincipalConstraint::InRole {
+                    role_id: Some(web_role_id),
                 },
             )),
             json!({
                 "type": "user",
-                "organizationRoleId": organization_role_id,
+                "roleId": web_role_id,
             }),
-            format!(
-                r#"principal is HASH::User in HASH::Organization::Role::"{organization_role_id}""#
-            ),
+            format!(r#"principal is HASH::User in HASH::Web::Role::"{web_role_id}""#),
         )?;
 
         check_principal(
-            &PrincipalConstraint::User(UserPrincipalConstraint::Organization(
-                OrganizationPrincipalConstraint::InRole {
-                    organization_role_id: None,
-                },
+            PrincipalConstraint::User(UserPrincipalConstraint::Web(
+                WebPrincipalConstraint::InRole { role_id: None },
             )),
             json!({
                 "type": "user",
-                "organizationRoleId": null,
+                "roleId": null,
             }),
             "principal is HASH::User in ?principal",
         )?;
@@ -253,7 +280,7 @@ mod tests {
         check_deserialization_error::<PrincipalConstraint>(
             json!({
                 "type": "user",
-                "organizationRoleId": organization_role_id,
+                "webRoleId": web_role_id,
                 "additional": "unexpected",
             }),
             "data did not match any variant of untagged enum UserPrincipalConstraint",

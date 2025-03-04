@@ -11,8 +11,8 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 import type { DataTypeRootType } from "@local/hash-subgraph/types";
 import type { Theme } from "@mui/material";
-import { Box, Container, Typography } from "@mui/material";
-import { GlobalStyles, Stack } from "@mui/system";
+import { Box, Container, Stack } from "@mui/material";
+import { GlobalStyles } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo } from "react";
@@ -35,47 +35,55 @@ import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { Link } from "../../shared/ui/link";
 import { useUserPermissionsOnDataType } from "../../shared/use-user-permissions-on-data-type";
 import { DataTypeConstraints } from "./data-type/data-type-constraints";
+import { DataTypeConversions } from "./data-type/data-type-conversions";
 import {
   type DataTypeFormData,
   getDataTypeFromFormData,
   getFormDataFromDataType,
 } from "./data-type/data-type-form";
 import { DataTypeHeader } from "./data-type/data-type-header";
+import { DataTypeLabels } from "./data-type/data-type-labels";
 import { DataTypesParents } from "./data-type/data-type-parents";
+import { InheritedConstraintsProvider } from "./data-type/shared/use-inherited-constraints";
 import { useDataTypesContext } from "./data-types-context";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
 import { NotFound } from "./not-found";
+import { inSlideContainerStyles } from "./shared/slide-styles";
+import { TypeEditorSkeleton } from "./shared/type-editor-skeleton";
 import {
   TypeDefinitionContainer,
   typeHeaderContainerStyles,
 } from "./shared/type-editor-styling";
+import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 
 type DataTypeProps = {
-  inSlide?: boolean;
+  isInSlide?: boolean;
   ownedById?: OwnedById | null;
   draftNewDataType?: BpDataTypeWithMetadata | null;
   dataTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
+  onDataTypeUpdated: (dataType: DataTypeWithMetadata) => void;
 };
 
 export const DataType = ({
-  inSlide,
+  isInSlide: inSlide,
   ownedById,
   draftNewDataType,
   dataTypeBaseUrl,
   requestedVersion,
+  onDataTypeUpdated,
 }: DataTypeProps) => {
   const router = useRouter();
 
-  const { refetch } = useDataTypesContext();
+  const { refetch: refetchAllDataTypes } = useDataTypesContext();
 
   const [createDataType] = useMutation<
     CreateDataTypeMutation,
     CreateDataTypeMutationVariables
   >(createDataTypeMutation, {
     onCompleted() {
-      refetch();
+      refetchAllDataTypes();
     },
   });
 
@@ -83,8 +91,9 @@ export const DataType = ({
     UpdateDataTypeMutation,
     UpdateDataTypeMutationVariables
   >(updateDataTypeMutation, {
-    onCompleted() {
-      refetch();
+    onCompleted(data) {
+      refetchAllDataTypes();
+      onDataTypeUpdated(data.updateDataType);
     },
   });
 
@@ -111,28 +120,42 @@ export const DataType = ({
     defaultValue: [],
   });
 
+  const abstract = useWatch({
+    control,
+    name: "abstract",
+  });
+
   useEffect(() => {
     if (draftNewDataType) {
-      reset(getFormDataFromDataType(draftNewDataType.schema));
+      reset(
+        getFormDataFromDataType({
+          schema: draftNewDataType.schema,
+          metadata: {},
+        }),
+      );
     }
   }, [draftNewDataType, reset]);
 
-  const { loading: loadingRemoteDataType, data: remoteDataTypeData } = useQuery<
-    QueryDataTypesQuery,
-    QueryDataTypesQueryVariables
-  >(queryDataTypesQuery, {
-    variables: {
-      constrainsValuesOn: { outgoing: 255 },
-      filter: {
-        equal: [{ path: ["baseUrl"] }, { parameter: dataTypeBaseUrl }],
+  const {
+    loading: loadingRemoteDataType,
+    data: remoteDataTypeData,
+    refetch: refetchRemoteType,
+  } = useQuery<QueryDataTypesQuery, QueryDataTypesQueryVariables>(
+    queryDataTypesQuery,
+    {
+      variables: {
+        constrainsValuesOn: { outgoing: 255 },
+        filter: {
+          equal: [{ path: ["baseUrl"] }, { parameter: dataTypeBaseUrl }],
+        },
+        includeArchived: true,
+        inheritsFrom: { outgoing: 255 },
+        latestOnly: false,
       },
-      includeArchived: true,
-      inheritsFrom: { outgoing: 255 },
-      latestOnly: false,
+      skip: !!draftNewDataType,
+      fetchPolicy: "cache-and-network",
     },
-    skip: !!draftNewDataType,
-    fetchPolicy: "cache-and-network",
-  });
+  );
 
   const { remoteDataType, latestVersionNumber: latestVersion } = useMemo<{
     remoteDataType: DataTypeWithMetadata | null;
@@ -183,7 +206,7 @@ export const DataType = ({
 
   useEffect(() => {
     if (remoteDataType) {
-      formMethods.reset(getFormDataFromDataType(remoteDataType.schema));
+      formMethods.reset(getFormDataFromDataType(remoteDataType));
     }
   }, [remoteDataType, formMethods]);
 
@@ -208,7 +231,8 @@ export const DataType = ({
       return;
     }
 
-    const inputData = getDataTypeFromFormData(data);
+    const { dataType: inputDataType, conversions } =
+      getDataTypeFromFormData(data);
 
     if (isDraft) {
       if (!ownedById) {
@@ -217,7 +241,8 @@ export const DataType = ({
 
       const response = await createDataType({
         variables: {
-          dataType: inputData,
+          dataType: inputDataType,
+          conversions,
           ownedById,
         },
       });
@@ -237,16 +262,17 @@ export const DataType = ({
     const response = await updateDataType({
       variables: {
         dataTypeId: remoteDataType.schema.$id,
-        dataType: inputData,
+        dataType: inputDataType,
+        conversions,
       },
     });
 
     if (!!response.errors?.length || !response.data) {
       throw new Error("Could not update data type");
     }
-
-    void router.push(response.data.updateDataType.schema.$id);
   });
+
+  const { pushToSlideStack } = useSlideStack();
 
   if (
     !draftNewDataType &&
@@ -282,7 +308,7 @@ export const DataType = ({
   }
 
   if (loadingUserPermissions || loadingRemoteDataType) {
-    return null;
+    return <TypeEditorSkeleton />;
   }
 
   if (!dataType || !userPermissions) {
@@ -299,7 +325,7 @@ export const DataType = ({
 
   return (
     <>
-      <NextSeo title={`${dataType.schema.title} | Data Type`} />
+      {!inSlide && <NextSeo title={`${dataType.schema.title} | Data Type`} />}
       <FormProvider {...formMethods}>
         <Box display="contents" component="form" onSubmit={handleSubmit}>
           <TopContextBar
@@ -318,10 +344,13 @@ export const DataType = ({
               },
               {
                 title: dataType.schema.title,
-                href: "#",
                 id: dataType.schema.$id,
               },
             ]}
+            onItemUnarchived={() => {
+              void refetchRemoteType();
+              refetchAllDataTypes();
+            }}
             scrollToTop={() => {}}
             sx={{ bgcolor: "white" }}
           />
@@ -349,37 +378,46 @@ export const DataType = ({
                     : undefined
               }
               key={dataType.schema.$id} // reset edit bar state when the data type changes
+              gentleErrorStyling={parents.length === 0}
             />
           )}
 
           <Box sx={typeHeaderContainerStyles}>
-            <Container>
+            <Container sx={inSlide ? inSlideContainerStyles : {}}>
               <DataTypeHeader
                 currentVersion={currentVersion}
                 dataTypeSchema={dataType.schema}
-                hideOpenInNew={!inSlide}
                 isDraft={isDraft}
                 isReadOnly={isReadOnly}
-                isPreviewSlide={inSlide}
+                isInSlide={inSlide}
                 latestVersion={latestVersion}
               />
             </Container>
           </Box>
 
-          <TypeDefinitionContainer>
+          <TypeDefinitionContainer inSlide={inSlide}>
             <Stack spacing={6.5}>
-              <Box>
-                <Typography variant="h5" mb={2}>
-                  Extends
-                </Typography>
-                <DataTypesParents isReadOnly={isReadOnly} />
-              </Box>
-              <Box>
-                <Typography variant="h5" mb={2}>
-                  Constraints
-                </Typography>
+              <DataTypesParents
+                dataTypeBaseUrl={dataType.metadata.recordId.baseUrl}
+                isReadOnly={isReadOnly}
+                onDataTypeClick={(dataTypeId) => {
+                  pushToSlideStack({
+                    kind: "dataType",
+                    itemId: dataTypeId,
+                  });
+                }}
+              />
+
+              <InheritedConstraintsProvider>
                 <DataTypeConstraints isReadOnly={isReadOnly} />
-              </Box>
+                <DataTypeLabels isReadOnly={isReadOnly} />
+                {!abstract && (
+                  <DataTypeConversions
+                    dataType={dataType.schema}
+                    isReadOnly={isReadOnly}
+                  />
+                )}
+              </InheritedConstraintsProvider>
             </Stack>
           </TypeDefinitionContainer>
         </Box>

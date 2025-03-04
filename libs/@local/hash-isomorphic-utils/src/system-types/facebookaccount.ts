@@ -14,6 +14,8 @@ import type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -26,15 +28,15 @@ export type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };
 
 /**
  * A Facebook account.
  */
 export type FacebookAccount = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/facebook-account/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/facebook-account/v/1"];
   properties: FacebookAccountProperties;
   propertiesWithMetadata: FacebookAccountPropertiesWithMetadata;
 };
@@ -46,19 +48,10 @@ export type FacebookAccountOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A Facebook account.
  */
-export type FacebookAccountProperties = FacebookAccountProperties1 &
-  FacebookAccountProperties2;
-export type FacebookAccountProperties1 = ServiceAccountProperties;
-
-export type FacebookAccountProperties2 = {};
+export type FacebookAccountProperties = ServiceAccountProperties & {};
 
 export type FacebookAccountPropertiesWithMetadata =
-  FacebookAccountPropertiesWithMetadata1 &
-    FacebookAccountPropertiesWithMetadata2;
-export type FacebookAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type FacebookAccountPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  ServiceAccountPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

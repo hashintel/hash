@@ -20,10 +20,10 @@ import type { Subgraph } from "@local/hash-subgraph";
 import { isEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { Box, Stack, useTheme } from "@mui/material";
-import type { ReactElement, RefObject } from "react";
+import type { ReactElement } from "react";
 import { memo, useCallback, useMemo, useState } from "react";
 
-import type { EntityEditorProps } from "../@/[shortname]/entities/[entity-uuid].page/entity-editor";
+import type { EntityEditorProps } from "./entity/entity-editor";
 import type {
   DynamicNodeSizing,
   GraphVisualizerProps,
@@ -82,7 +82,6 @@ export const EntityGraphVisualizer = memo(
     entities?: T[];
     onEntityClick?: (
       entityId: EntityId,
-      containerRef?: RefObject<HTMLDivElement | null>,
       options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">,
     ) => void;
     onEntityTypeClick?: (entityTypeId: VersionedUrl) => void;
@@ -264,9 +263,9 @@ export const EntityGraphVisualizer = memo(
     const onNodeClick = useCallback<
       NonNullable<GraphVisualizerProps<DynamicNodeSizing>["onNodeSecondClick"]>
     >(
-      ({ nodeId, screenContainerRef }) => {
+      ({ nodeId }) => {
         if (isEntityId(nodeId)) {
-          onEntityClick?.(nodeId, screenContainerRef);
+          onEntityClick?.(nodeId);
         } else {
           onEntityTypeClick?.(nodeId as VersionedUrl);
         }
@@ -277,8 +276,8 @@ export const EntityGraphVisualizer = memo(
     const onEdgeClick = useCallback<
       NonNullable<GraphVisualizerProps<DynamicNodeSizing>["onEdgeClick"]>
     >(
-      ({ edgeData, screenContainerRef }) => {
-        onEntityClick?.(edgeData.source as EntityId, screenContainerRef, {
+      ({ edgeData }) => {
+        onEntityClick?.(edgeData.source as EntityId, {
           defaultOutgoingLinkFilters: {
             linkedTo: new Set([edgeData.target]),
             linkTypes: new Set([edgeData.edgeTypeId!]),

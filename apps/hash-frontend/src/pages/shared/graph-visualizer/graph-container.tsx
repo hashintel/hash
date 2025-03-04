@@ -124,7 +124,10 @@ export const GraphContainer = memo(
     );
 
     return (
-      <FullScreenContextProvider fullScreenMode={fullScreenMode}>
+      <FullScreenContextProvider
+        fullScreenMode={fullScreenMode}
+        graphContainerRef={containerRef}
+      >
         <Box
           ref={containerRef}
           sx={{

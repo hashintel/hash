@@ -1,4 +1,4 @@
-import { Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { AbstractConstraint } from "./data-type-constraints/abstract-constraint";
@@ -7,7 +7,7 @@ import { ConstraintText } from "./data-type-constraints/shared/constraint-text";
 import { StringConstraints } from "./data-type-constraints/string-constraints";
 import type { InheritedConstraints } from "./data-type-constraints/types";
 import type { DataTypeFormData } from "./data-type-form";
-import { useInheritedConstraints } from "./use-inherited-constraints";
+import { useInheritedConstraints } from "./shared/use-inherited-constraints";
 
 const Constraint = ({
   inheritedConstraints,
@@ -16,7 +16,14 @@ const Constraint = ({
 }: {
   inheritedConstraints: InheritedConstraints;
   isReadOnly: boolean;
-  type: "string" | "number" | "boolean" | "null" | "array" | "object";
+  type:
+    | "string"
+    | "number"
+    | "boolean"
+    | "null"
+    | "array"
+    | "object"
+    | "anything";
 }) => {
   switch (type) {
     case "string":
@@ -33,6 +40,13 @@ const Constraint = ({
           isReadOnly={isReadOnly}
         />
       );
+    case "anything": {
+      return (
+        <Typography variant="smallTextParagraphs">
+          It can be <ConstraintText text="anything" />.
+        </Typography>
+      );
+    }
     default:
       return (
         <Typography variant="smallTextParagraphs">
@@ -46,6 +60,7 @@ const Constraint = ({
                   : `a ${type}`
             }
           />
+          .
         </Typography>
       );
   }
@@ -65,14 +80,19 @@ export const DataTypeConstraints = ({
   const type = inheritedConstraints.type?.value ?? ownConstraints.type;
 
   return (
-    <Stack gap={1}>
-      <Constraint
-        inheritedConstraints={inheritedConstraints}
-        isReadOnly={isReadOnly}
-        type={type}
-      />
+    <Box>
+      <Typography variant="h5" mb={2}>
+        Constraints
+      </Typography>
+      <Stack gap={1}>
+        <Constraint
+          inheritedConstraints={inheritedConstraints}
+          isReadOnly={isReadOnly}
+          type={type}
+        />
 
-      <AbstractConstraint isReadOnly={isReadOnly} />
-    </Stack>
+        <AbstractConstraint isReadOnly={isReadOnly} />
+      </Stack>
+    </Box>
   );
 };

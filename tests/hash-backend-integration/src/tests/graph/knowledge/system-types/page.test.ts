@@ -248,10 +248,10 @@ describe("Page", () => {
         block: testBlock2,
         position: {
           indexPosition: {
-            "https://hash.ai/@hash/types/property-type/fractional-index/":
+            "https://hash.ai/@h/types/property-type/fractional-index/":
               generateKeyBetween(
                 testBlockLink1.properties[
-                  "https://hash.ai/@hash/types/property-type/fractional-index/"
+                  "https://hash.ai/@h/types/property-type/fractional-index/"
                 ],
                 null,
               ),
@@ -269,10 +269,10 @@ describe("Page", () => {
         block: testBlock3,
         position: {
           indexPosition: {
-            "https://hash.ai/@hash/types/property-type/fractional-index/":
+            "https://hash.ai/@h/types/property-type/fractional-index/":
               generateKeyBetween(
                 testBlockLink2.properties[
-                  "https://hash.ai/@hash/types/property-type/fractional-index/"
+                  "https://hash.ai/@h/types/property-type/fractional-index/"
                 ],
                 null,
               ),
@@ -300,7 +300,7 @@ describe("Page", () => {
     firstKey = generateKeyBetween(
       null,
       testBlockLink1.properties[
-        "https://hash.ai/@hash/types/property-type/fractional-index/"
+        "https://hash.ai/@h/types/property-type/fractional-index/"
       ],
     );
 
@@ -308,8 +308,7 @@ describe("Page", () => {
       linkEntityId: testBlockLink3.metadata.recordId.entityId,
       position: {
         indexPosition: {
-          "https://hash.ai/@hash/types/property-type/fractional-index/":
-            firstKey,
+          "https://hash.ai/@h/types/property-type/fractional-index/": firstKey,
         },
       },
     });
@@ -332,7 +331,7 @@ describe("Page", () => {
       linkEntityId: testBlockLink1.metadata.recordId.entityId,
       position: {
         indexPosition: {
-          "https://hash.ai/@hash/types/property-type/fractional-index/":
+          "https://hash.ai/@h/types/property-type/fractional-index/":
             generateKeyBetween(null, firstKey),
         },
       },

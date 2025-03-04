@@ -13,7 +13,6 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { DataTypeConversionTargets as GraphApiDataTypeConversionTargets } from "@local/hash-graph-client";
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 
 import { add, divide, multiply, subtract } from "./numbers.js";
@@ -70,7 +69,7 @@ export type FormattedValuePart = {
   text: string;
 };
 
-const createFormattedParts = ({
+export const createFormattedValueParts = ({
   inner,
   schema,
 }: {
@@ -111,11 +110,14 @@ export const formatDataValue = (
   const { type } = schema;
 
   if (type === "null") {
-    return createFormattedParts({ inner: "Null", schema });
+    return createFormattedValueParts({ inner: "Null", schema });
   }
 
   if (type === "boolean") {
-    return createFormattedParts({ inner: value ? "True" : "False", schema });
+    return createFormattedValueParts({
+      inner: value ? "True" : "False",
+      schema,
+    });
   }
 
   if (type === "array") {
@@ -155,10 +157,10 @@ export const formatDataValue = (
   }
 
   if (typeof value === "object" && value) {
-    return createFormattedParts({ inner: JSON.stringify(value), schema });
+    return createFormattedValueParts({ inner: JSON.stringify(value), schema });
   }
 
-  return createFormattedParts({ inner: String(value), schema });
+  return createFormattedValueParts({ inner: String(value), schema });
 };
 
 type Context = {
@@ -221,23 +223,6 @@ export const createConversionFunction = (
     return evaluatedValue;
   };
 };
-
-export type DataTypeConversionTargets = Omit<
-  GraphApiDataTypeConversionTargets,
-  "conversions"
-> & {
-  conversions: ConversionDefinition[];
-};
-
-/**
- * A map from a dataTypeId, to a map of target dataTypeIds, to conversion definitions.
- *
- * Each conversion definition contains (1) the target data type `title`, and (2) the `conversions`: steps required to convert to the target dataTypeId.
- */
-export type DataTypeConversionsMap = Record<
-  VersionedUrl,
-  Record<VersionedUrl, DataTypeConversionTargets>
->;
 
 const transformConstraint = (
   constraint: SingleValueConstraints & {

@@ -1,8 +1,10 @@
 import type {
+  Conversions,
   DataType,
   SingleValueConstraints,
   StringFormat,
 } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export type InheritedConstraint<T> = {
   from: DataType;
@@ -27,4 +29,9 @@ export type InheritedConstraints = {
   pattern?: InheritedConstraint<string>[];
   format?: InheritedConstraint<StringFormat>;
   enum?: InheritedConstraint<[string, ...string[]] | [number, ...number[]]>;
+  label?: {
+    left?: InheritedConstraint<string>;
+    right?: InheritedConstraint<string>;
+  };
+  conversions?: Record<BaseUrl, InheritedConstraint<Conversions>>;
 };

@@ -1,8 +1,8 @@
-import type { GraphApi } from "@local/hash-graph-client";
-import {
-  type EnforcedEntityEditionProvenance,
-  Entity,
-} from "@local/hash-graph-sdk/entity";
+import type {
+  GraphApi,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
@@ -99,7 +99,7 @@ export const createGraphChangeNotification = async (
       machineActorId: webMachineActorId,
     });
 
-  const provenance: EnforcedEntityEditionProvenance = {
+  const provenance: ProvidedEntityEditionProvenance = {
     actorType: "machine",
     origin: {
       type: "api",
@@ -118,7 +118,7 @@ export const createGraphChangeNotification = async (
       ownedById: notifiedUserAccountId as OwnedById,
       properties: {
         value: {
-          "https://hash.ai/@hash/types/property-type/graph-change-type/": {
+          "https://hash.ai/@h/types/property-type/graph-change-type/": {
             value: operation,
             metadata: {
               dataTypeId:
@@ -152,7 +152,7 @@ export const createGraphChangeNotification = async (
       },
       properties: {
         value: {
-          "https://hash.ai/@hash/types/property-type/entity-edition-id/": {
+          "https://hash.ai/@h/types/property-type/entity-edition-id/": {
             value: changedEntityEditionId,
             metadata: {
               dataTypeId:

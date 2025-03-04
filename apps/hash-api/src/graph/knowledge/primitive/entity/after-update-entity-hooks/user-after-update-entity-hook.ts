@@ -16,7 +16,7 @@ export const userAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
       getDefinedPropertyFromPatchesGetter<UserProperties>(propertyPatches);
 
     const updatedEmails = getNewValueForPath(
-      "https://hash.ai/@hash/types/property-type/email/",
+      "https://hash.ai/@h/types/property-type/email/",
     );
 
     const { shortname, displayName } = simplifyProperties(

@@ -52,7 +52,7 @@ const NotesPage: NextPageWithLayout = () => {
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
-              systemEntityTypes.quickNote.entityTypeId,
+              systemEntityTypes.note.entityTypeId,
               { ignoreParents: true },
             ),
             {

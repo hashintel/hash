@@ -18,12 +18,13 @@ import type {
 } from "@local/hash-graph-client";
 import type {
   ConstructDataTypeParams,
+  DataTypeConversionTargets,
+  DataTypeDirectConversionsMap,
   DataTypeMetadata,
   DataTypeWithMetadata,
   OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { DataTypeConversionTargets } from "@local/hash-isomorphic-utils/data-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -65,11 +66,11 @@ export const createDataType: ImpureGraphFunction<
     webShortname?: string;
     relationships: DataTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
-    conversions: Record<BaseUrl, Conversions>;
+    conversions?: DataTypeDirectConversionsMap | null;
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname, provenance, conversions } = params;
+  const { ownedById, webShortname, conversions } = params;
 
   const shortname =
     webShortname ??
@@ -98,8 +99,11 @@ export const createDataType: ImpureGraphFunction<
       schema,
       ownedById,
       relationships: params.relationships,
-      provenance,
-      conversions,
+      provenance: {
+        ...ctx.provenance,
+        ...params.provenance,
+      },
+      conversions: conversions ?? {},
     },
   );
 
@@ -220,10 +224,10 @@ export const updateDataType: ImpureGraphFunction<
     conversions: Record<BaseUrl, Conversions>;
   },
   Promise<DataTypeWithMetadata>
-> = async ({ graphApi }, { actorId }, params) => {
-  const { dataTypeId, schema, provenance, conversions } = params;
+> = async (ctx, { actorId }, params) => {
+  const { dataTypeId, schema, conversions } = params;
 
-  const { data: metadata } = await graphApi.updateDataType(actorId, {
+  const { data: metadata } = await ctx.graphApi.updateDataType(actorId, {
     typeToUpdate: dataTypeId,
     schema: {
       $schema: DATA_TYPE_META_SCHEMA,
@@ -231,7 +235,10 @@ export const updateDataType: ImpureGraphFunction<
       ...schema,
     },
     relationships: params.relationships,
-    provenance,
+    provenance: {
+      ...ctx.provenance,
+      ...params.provenance,
+    },
     conversions,
   });
 
@@ -273,13 +280,13 @@ export const archiveDataType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is unarchiving the data type
  */
 export const unarchiveDataType: ImpureGraphFunction<
-  UnarchiveDataTypeParams,
+  Omit<UnarchiveDataTypeParams, "provenance">,
   Promise<OntologyTemporalMetadata>
-> = async ({ graphApi }, { actorId }, params) => {
-  const { data: temporalMetadata } = await graphApi.unarchiveDataType(
-    actorId,
-    params,
-  );
+> = async ({ graphApi, provenance }, { actorId }, params) => {
+  const { data: temporalMetadata } = await graphApi.unarchiveDataType(actorId, {
+    ...params,
+    provenance,
+  });
 
   return temporalMetadata;
 };

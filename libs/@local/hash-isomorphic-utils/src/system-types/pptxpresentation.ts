@@ -7,6 +7,8 @@ import type { ObjectMetadata } from "@local/hash-graph-client";
 import type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -38,6 +40,8 @@ import type {
   FileStorageRegionPropertyValueWithMetadata,
   FileURLPropertyValue,
   FileURLPropertyValueWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   MIMETypePropertyValue,
   MIMETypePropertyValueWithMetadata,
   NumberDataType,
@@ -61,11 +65,15 @@ import type {
   TextualContentPropertyValueWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -97,6 +105,8 @@ export type {
   FileStorageRegionPropertyValueWithMetadata,
   FileURLPropertyValue,
   FileURLPropertyValueWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   MIMETypePropertyValue,
   MIMETypePropertyValueWithMetadata,
   NumberDataType,
@@ -120,15 +130,15 @@ export type {
   TextualContentPropertyValueWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };
 
 /**
  * A Microsoft PowerPoint presentation.
  */
 export type PPTXPresentation = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/pptx-presentation/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/pptx-presentation/v/1"];
   properties: PPTXPresentationProperties;
   propertiesWithMetadata: PPTXPresentationPropertiesWithMetadata;
 };
@@ -140,19 +150,10 @@ export type PPTXPresentationOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A Microsoft PowerPoint presentation.
  */
-export type PPTXPresentationProperties = PPTXPresentationProperties1 &
-  PPTXPresentationProperties2;
-export type PPTXPresentationProperties1 = PresentationFileProperties;
-
-export type PPTXPresentationProperties2 = {};
+export type PPTXPresentationProperties = PresentationFileProperties & {};
 
 export type PPTXPresentationPropertiesWithMetadata =
-  PPTXPresentationPropertiesWithMetadata1 &
-    PPTXPresentationPropertiesWithMetadata2;
-export type PPTXPresentationPropertiesWithMetadata1 =
-  PresentationFilePropertiesWithMetadata;
-
-export type PPTXPresentationPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  PresentationFilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

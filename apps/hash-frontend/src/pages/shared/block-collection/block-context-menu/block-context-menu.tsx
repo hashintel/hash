@@ -20,7 +20,7 @@ import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { ForwardRefRenderFunction } from "react";
-import { forwardRef, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useMemo, useRef } from "react";
 import { useKey } from "rooks";
 
 import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
@@ -28,7 +28,7 @@ import { useUserBlocks } from "../../../../blocks/user-blocks";
 import { useUsers } from "../../../../components/hooks/use-users";
 import { getBlockDomId } from "../../../../shared/get-block-dom-id";
 import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
-import { EditEntitySlideOver } from "../../../@/[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
+import { useSlideStack } from "../../slide-stack";
 import { useBlockContext } from "../block-context";
 import { BlockContextMenuItem } from "./block-context-menu-item";
 import { BlockListMenuContent } from "./block-list-menu-content";
@@ -52,14 +52,11 @@ const BlockContextMenu: ForwardRefRenderFunction<
   ref,
 ) => {
   const {
-    blockSubgraph,
     setBlockSubgraph,
     blockSelectDataModalIsOpen,
     setBlockSelectDataModalIsOpen,
   } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
-
-  const [entityEditorOpen, setEntityEditorOpen] = useState(false);
 
   const { users: _users } = useUsers();
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
@@ -91,6 +88,22 @@ const BlockContextMenu: ForwardRefRenderFunction<
   );
 
   const entityId = blockEntity?.metadata.recordId.entityId ?? null;
+
+  const { pushToSlideStack } = useSlideStack();
+
+  const handleEntityModalSubmit = useCallback(async () => {
+    if (!blockEntity || !blockEntity.blockChildEntity) {
+      return;
+    }
+
+    const { recordId, entityTypeIds } = blockEntity.blockChildEntity.metadata;
+    const newBlockSubgraph = await fetchBlockSubgraph(
+      entityTypeIds,
+      recordId.entityId,
+    );
+
+    setBlockSubgraph(newBlockSubgraph.subgraph);
+  }, [blockEntity, fetchBlockSubgraph, setBlockSubgraph]);
 
   const menuItems = useMemo(() => {
     /**
@@ -151,7 +164,15 @@ const BlockContextMenu: ForwardRefRenderFunction<
         key: "edit-block",
         title: "Edit Block",
         icon: <FontAwesomeIcon icon={faPenToSquare} />,
-        onClick: () => setEntityEditorOpen(true),
+        onClick: () => {
+          if (blockEntity?.blockChildEntity) {
+            pushToSlideStack({
+              kind: "entity",
+              itemId: blockEntity.blockChildEntity.metadata.recordId.entityId,
+              onEntityDbChange: () => handleEntityModalSubmit(),
+            });
+          }
+        },
       },
       {
         key: "configure",
@@ -200,16 +221,18 @@ const BlockContextMenu: ForwardRefRenderFunction<
 
     return items;
   }, [
-    blockEntity,
-    currentComponentId,
-    entityId,
-    deleteBlock,
-    openConfigMenu,
-    setBlockSelectDataModalIsOpen,
-    popupState,
+    blockEntity?.blockChildEntity,
+    blockSchemaHasHasQueryLink,
     canSwap,
     compatibleBlocks,
-    blockSchemaHasHasQueryLink,
+    currentComponentId,
+    deleteBlock,
+    entityId,
+    handleEntityModalSubmit,
+    openConfigMenu,
+    popupState,
+    pushToSlideStack,
+    setBlockSelectDataModalIsOpen,
   ]);
 
   useKey(["Escape"], () => {
@@ -228,21 +251,6 @@ const BlockContextMenu: ForwardRefRenderFunction<
     }
   });
 
-  const handleEntityModalSubmit = async () => {
-    if (!blockEntity || !blockEntity.blockChildEntity) {
-      return;
-    }
-
-    const { recordId, entityTypeIds } = blockEntity.blockChildEntity.metadata;
-    const newBlockSubgraph = await fetchBlockSubgraph(
-      entityTypeIds,
-      recordId.entityId,
-    );
-
-    setBlockSubgraph(newBlockSubgraph.subgraph);
-    setEntityEditorOpen(false);
-  };
-
   return (
     <>
       {blockSchemaHasHasQueryLink ? (
@@ -251,21 +259,6 @@ const BlockContextMenu: ForwardRefRenderFunction<
           onClose={() => setBlockSelectDataModalIsOpen(false)}
         />
       ) : null}
-      {blockSubgraph && (
-        // @todo replace this with EntityEditorSlideStack
-        <EditEntitySlideOver
-          open={entityEditorOpen}
-          onClose={() => setEntityEditorOpen(false)}
-          onEntityClick={() => {
-            throw new Error(`Not yet implemented – please contact us.`);
-          }}
-          entitySubgraph={
-            /** @todo add timeProjection & resolvedTimeProjection properly */
-            blockSubgraph
-          }
-          onSubmit={handleEntityModalSubmit}
-        />
-      )}
       <Menu
         {...bindMenu(popupState)}
         ref={ref}

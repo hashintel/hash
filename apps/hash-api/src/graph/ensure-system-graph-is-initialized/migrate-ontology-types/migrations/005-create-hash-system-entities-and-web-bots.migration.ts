@@ -33,7 +33,7 @@ const migrate: MigrationFunction = async ({
    * which are required to be able to retrieve and update entities in later migration scripts.
    */
 
-  const { name, websiteUrl } = owningWebs.hash;
+  const { name, websiteUrl } = owningWebs.h;
 
   const currentMachineEntityTypeId = getCurrentHashSystemEntityTypeId({
     entityTypeKey: "machine",
@@ -54,7 +54,7 @@ const migrate: MigrationFunction = async ({
     context,
     name,
     websiteUrl,
-    webShortname: "hash",
+    webShortname: "h",
     machineEntityTypeId: currentMachineEntityTypeId,
     organizationEntityTypeId: currentOrganizationEntityTypeId,
   });

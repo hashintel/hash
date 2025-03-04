@@ -59,7 +59,7 @@ export const callDecode = Effect.fn("callDecode")(function* (
 });
 
 export const expectArrayBuffer = (
-  cx: vitest.TaskContext<vitest.RunnerTestCase> & vitest.TestContext,
+  cx: vitest.TestContext,
   value: ArrayBufferLike,
 ): ArrayBuffer => {
   cx.expect(value).toBeInstanceOf(ArrayBuffer);

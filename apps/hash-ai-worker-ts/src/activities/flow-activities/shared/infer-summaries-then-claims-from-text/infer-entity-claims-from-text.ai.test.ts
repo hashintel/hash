@@ -31,7 +31,7 @@ test(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+        "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -69,7 +69,7 @@ test(
           summary:
             "MOLTEN VENTURES PLC is a technology investment company that invests in early-stage technology businesses.",
           entityTypeIds: [
-            "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+            "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
           ],
         },
       ],
@@ -98,9 +98,7 @@ test(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: [
-        "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
-      ],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/graphics-card/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
     });
@@ -136,7 +134,7 @@ test(
           name: "GeForce RTX 4090",
           summary: "The GeForce RTX 4090 is a high-end graphics card.",
           entityTypeIds: [
-            "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
+            "https://hash.ai/@h/types/entity-type/graphics-card/v/1",
           ],
         },
       ],

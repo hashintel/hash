@@ -54,6 +54,7 @@ import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { DataTypesContextProvider } from "./shared/data-types-context";
 import { maintenanceRoute } from "./shared/maintenance";
 import { setSentryUser } from "./shared/sentry";
+import { SlideStackProvider } from "./shared/slide-stack";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
 
 const clientSideEmotionCache = createEmotionCache();
@@ -118,18 +119,20 @@ const App: FunctionComponent<AppProps> = ({
                           <DataTypesContextProvider>
                             <FileUploadsProvider>
                               <SidebarContextProvider>
-                                <ErrorBoundary
-                                  beforeCapture={(scope) => {
-                                    scope.setTag("error-boundary", "_app");
-                                  }}
-                                  fallback={(props) =>
-                                    getLayoutWithSidebar(
-                                      <ErrorFallback {...props} />,
-                                    )
-                                  }
-                                >
-                                  {getLayout(<Component {...pageProps} />)}
-                                </ErrorBoundary>
+                                <SlideStackProvider>
+                                  <ErrorBoundary
+                                    beforeCapture={(scope) => {
+                                      scope.setTag("error-boundary", "_app");
+                                    }}
+                                    fallback={(props) =>
+                                      getLayoutWithSidebar(
+                                        <ErrorFallback {...props} />,
+                                      )
+                                    }
+                                  >
+                                    {getLayout(<Component {...pageProps} />)}
+                                  </ErrorBoundary>
+                                </SlideStackProvider>
                               </SidebarContextProvider>
                             </FileUploadsProvider>
                           </DataTypesContextProvider>

@@ -7,11 +7,15 @@ import { ValueChip } from "./value-chip";
 export const ClickableCellChip = ({
   fontSize,
   icon,
+  hideArrow,
+  isType,
   label,
   onClick,
 }: {
   fontSize: number;
+  hideArrow?: boolean;
   icon?: ReactElement;
+  isType?: boolean;
   label: string;
   onClick: () => void;
 }) => {
@@ -36,16 +40,19 @@ export const ClickableCellChip = ({
           fontSize,
           fontWeight: 500,
         }}
+        type={isType}
       >
         {label}
       </ValueChip>
-      <ArrowUpRightIcon
-        sx={{
-          fontSize: fontSize - 1,
-          color: ({ palette }) => palette.blue[70],
-          ml: 0.5,
-        }}
-      />
+      {!hideArrow && (
+        <ArrowUpRightIcon
+          sx={{
+            fontSize: fontSize - 1,
+            color: ({ palette }) => palette.blue[70],
+            ml: 0.5,
+          }}
+        />
+      )}
     </Box>
   );
 };

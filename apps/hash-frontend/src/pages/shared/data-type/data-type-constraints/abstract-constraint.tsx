@@ -2,8 +2,8 @@ import { Checkbox, Stack, Typography } from "@mui/material";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import type { DataTypeFormData } from "../data-type-form";
+import { ItemLabel } from "../shared/item-label";
 import { ConstraintText } from "./shared/constraint-text";
-import { ItemLabel } from "./shared/item-label";
 
 export const AbstractConstraint = ({
   isReadOnly,
@@ -19,7 +19,7 @@ export const AbstractConstraint = ({
   }
 
   return (
-    <Stack mt={1} gap={1}>
+    <Stack mt={2} gap={1}>
       <ItemLabel tooltip="You can disable assigning a data type directly to a property. This is useful if you want to create a parent type which isn't suitable for direct use (e.g. 'Length' can't be used directly, because 'Length: 4' doesn't make sense).">
         {abstract ? "Not assignable" : "Assignable"}
       </ItemLabel>

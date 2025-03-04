@@ -20,7 +20,7 @@ const createTestEntity = (): GraphApiEntity => ({
   metadata: {
     archived: false,
     confidence: 0.5,
-    entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
+    entityTypeIds: ["https://hash.ai/@h/types/entity-type/person/v/1"],
     provenance: {
       createdAtDecisionTime: "2001-01-01T00:00:00Z",
       createdAtTransactionTime: "2001-01-01T00:00:00Z",
@@ -29,6 +29,10 @@ const createTestEntity = (): GraphApiEntity => ({
       firstNonDraftCreatedAtTransactionTime: "2001-01-01T00:00:00Z",
       edition: {
         createdById: "4ed14962-7132-4453-8fc5-39b5c2131d45",
+        actorType: "machine",
+        origin: {
+          type: "api",
+        },
       },
     },
     temporalVersioning: {

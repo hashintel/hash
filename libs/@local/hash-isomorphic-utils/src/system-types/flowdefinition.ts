@@ -34,9 +34,7 @@ export type {
  * The definition of a HASH flow.
  */
 export type FlowDefinition = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/flow-definition/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-definition/v/1"];
   properties: FlowDefinitionProperties;
   propertiesWithMetadata: FlowDefinitionPropertiesWithMetadata;
 };
@@ -51,9 +49,9 @@ export type FlowDefinitionOutgoingLinksByLinkEntityTypeId = {};
 export type FlowDefinitionProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
-  "https://hash.ai/@hash/types/property-type/output-definitions/": OutputDefinitionsPropertyValue;
-  "https://hash.ai/@hash/types/property-type/step-definitions/": StepDefinitionsPropertyValue;
-  "https://hash.ai/@hash/types/property-type/trigger-definition/": TriggerDefinitionPropertyValue;
+  "https://hash.ai/@h/types/property-type/output-definitions/": OutputDefinitionsPropertyValue;
+  "https://hash.ai/@h/types/property-type/step-definitions/": StepDefinitionsPropertyValue;
+  "https://hash.ai/@h/types/property-type/trigger-definition/": TriggerDefinitionPropertyValue;
 };
 
 export type FlowDefinitionPropertiesWithMetadata = {
@@ -61,9 +59,9 @@ export type FlowDefinitionPropertiesWithMetadata = {
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/output-definitions/": OutputDefinitionsPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/step-definitions/": StepDefinitionsPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/trigger-definition/": TriggerDefinitionPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/output-definitions/": OutputDefinitionsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/step-definitions/": StepDefinitionsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/trigger-definition/": TriggerDefinitionPropertyValueWithMetadata;
   };
 };
 
@@ -91,14 +89,14 @@ export type StepDefinitionsPropertyValueWithMetadata = {
  * The trigger definition of a flow.
  */
 export type TriggerDefinitionPropertyValue = {
-  "https://hash.ai/@hash/types/property-type/output-definitions/"?: OutputDefinitionsPropertyValue;
-  "https://hash.ai/@hash/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValue;
+  "https://hash.ai/@h/types/property-type/output-definitions/"?: OutputDefinitionsPropertyValue;
+  "https://hash.ai/@h/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValue;
 };
 
 export type TriggerDefinitionPropertyValueWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@hash/types/property-type/output-definitions/"?: OutputDefinitionsPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/output-definitions/"?: OutputDefinitionsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValueWithMetadata;
   };
 };

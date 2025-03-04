@@ -2,6 +2,6 @@
 protocol = "sparse"
 
 [unstable]
+cargo-lints       = true
+codegen-backend   = true
 public-dependency = true
-cargo-lints = true
-codegen-backend = true

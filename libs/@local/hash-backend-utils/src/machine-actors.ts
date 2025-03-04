@@ -1,6 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type {
+  GraphApi,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
@@ -140,7 +142,7 @@ export const createMachineActorEntity = async (
     ],
   );
 
-  const provenance: EnforcedEntityEditionProvenance = {
+  const provenance: ProvidedEntityEditionProvenance = {
     actorType: "machine",
     origin: {
       type: "api",
@@ -167,7 +169,7 @@ export const createMachineActorEntity = async (
                   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               },
             },
-          "https://hash.ai/@hash/types/property-type/machine-identifier/": {
+          "https://hash.ai/@h/types/property-type/machine-identifier/": {
             value: identifier,
             metadata: {
               dataTypeId:
@@ -256,7 +258,7 @@ export const createWebMachineActor = async (
   ]);
 
   const systemAccountId = await getMachineActorId(context, authentication, {
-    identifier: "hash",
+    identifier: "h",
   });
 
   await createMachineActorEntity(context, {

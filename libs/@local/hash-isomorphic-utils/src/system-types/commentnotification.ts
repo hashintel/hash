@@ -41,6 +41,8 @@ import type {
   BrowserPluginSettingsPropertiesWithMetadata,
   BrowserPluginTabPropertyValue,
   BrowserPluginTabPropertyValueWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   Comment,
   CommentAuthoredByLink,
   CommentHasParentLink,
@@ -61,6 +63,8 @@ import type {
   DisplayNamePropertyValueWithMetadata,
   DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EnabledFeatureFlagsPropertyValue,
@@ -141,11 +145,13 @@ import type {
   HasTextPropertiesWithMetadata,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
-  ImagePropertiesWithMetadata,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
+  ImageFilePropertiesWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -248,9 +254,12 @@ import type {
   TriggeredByUserPropertiesWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
+  UserHasCoverImageLink,
   UserHasLink,
   UserHasServiceAccountLink,
   UserIsMemberOfLink,
@@ -299,6 +308,8 @@ export type {
   BrowserPluginSettingsPropertiesWithMetadata,
   BrowserPluginTabPropertyValue,
   BrowserPluginTabPropertyValueWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   Comment,
   CommentAuthoredByLink,
   CommentHasParentLink,
@@ -319,6 +330,8 @@ export type {
   DisplayNamePropertyValueWithMetadata,
   DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EnabledFeatureFlagsPropertyValue,
@@ -399,11 +412,13 @@ export type {
   HasTextPropertiesWithMetadata,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
-  ImagePropertiesWithMetadata,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
+  ImageFilePropertiesWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -506,9 +521,12 @@ export type {
   TriggeredByUserPropertiesWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
+  UserHasCoverImageLink,
   UserHasLink,
   UserHasServiceAccountLink,
   UserIsMemberOfLink,
@@ -525,7 +543,7 @@ export type {
  */
 export type CommentNotification = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/comment-notification/v/6",
+    "https://hash.ai/@h/types/entity-type/comment-notification/v/6",
   ];
   properties: CommentNotificationProperties;
   propertiesWithMetadata: CommentNotificationPropertiesWithMetadata;
@@ -549,32 +567,23 @@ export type CommentNotificationOutgoingLinkAndTarget =
   | CommentNotificationTriggeredByUserLink;
 
 export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": CommentNotificationOccurredInBlockLink;
-  "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": CommentNotificationOccurredInEntityLink;
-  "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
-  "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1": CommentNotificationTriggeredByCommentLink;
-  "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-block/v/1": CommentNotificationOccurredInBlockLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-entity/v/2": CommentNotificationOccurredInEntityLink;
+  "https://hash.ai/@h/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
+  "https://hash.ai/@h/types/entity-type/triggered-by-comment/v/1": CommentNotificationTriggeredByCommentLink;
+  "https://hash.ai/@h/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
 };
 
 /**
  * A notification related to a comment.
  */
-export type CommentNotificationProperties = CommentNotificationProperties1 &
-  CommentNotificationProperties2;
-export type CommentNotificationProperties1 = NotificationProperties;
-
-export type CommentNotificationProperties2 = {};
+export type CommentNotificationProperties = NotificationProperties & {};
 
 export type CommentNotificationPropertiesWithMetadata =
-  CommentNotificationPropertiesWithMetadata1 &
-    CommentNotificationPropertiesWithMetadata2;
-export type CommentNotificationPropertiesWithMetadata1 =
-  NotificationPropertiesWithMetadata;
-
-export type CommentNotificationPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  NotificationPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 export type CommentNotificationRepliedToCommentLink = {
   linkEntity: RepliedToComment;
@@ -596,7 +605,7 @@ export type CommentNotificationTriggeredByUserLink = {
  */
 export type RepliedToComment = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1",
+    "https://hash.ai/@h/types/entity-type/replied-to-comment/v/1",
   ];
   properties: RepliedToCommentProperties;
   propertiesWithMetadata: RepliedToCommentPropertiesWithMetadata;
@@ -609,29 +618,20 @@ export type RepliedToCommentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The comment that something replied to.
  */
-export type RepliedToCommentProperties = RepliedToCommentProperties1 &
-  RepliedToCommentProperties2;
-export type RepliedToCommentProperties1 = LinkProperties;
-
-export type RepliedToCommentProperties2 = {};
+export type RepliedToCommentProperties = LinkProperties & {};
 
 export type RepliedToCommentPropertiesWithMetadata =
-  RepliedToCommentPropertiesWithMetadata1 &
-    RepliedToCommentPropertiesWithMetadata2;
-export type RepliedToCommentPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type RepliedToCommentPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * A comment that triggered something.
  */
 export type TriggeredByComment = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1",
+    "https://hash.ai/@h/types/entity-type/triggered-by-comment/v/1",
   ];
   properties: TriggeredByCommentProperties;
   propertiesWithMetadata: TriggeredByCommentPropertiesWithMetadata;
@@ -644,19 +644,10 @@ export type TriggeredByCommentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A comment that triggered something.
  */
-export type TriggeredByCommentProperties = TriggeredByCommentProperties1 &
-  TriggeredByCommentProperties2;
-export type TriggeredByCommentProperties1 = LinkProperties;
-
-export type TriggeredByCommentProperties2 = {};
+export type TriggeredByCommentProperties = LinkProperties & {};
 
 export type TriggeredByCommentPropertiesWithMetadata =
-  TriggeredByCommentPropertiesWithMetadata1 &
-    TriggeredByCommentPropertiesWithMetadata2;
-export type TriggeredByCommentPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type TriggeredByCommentPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

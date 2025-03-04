@@ -36,7 +36,10 @@ export type CustomizationOptions = {
    *  A callback to provide custom handling a user clicking a link to another type.
    *  If defined, default anchor behavior will be prevented on click.
    */
-  onNavigateToType?: (url: VersionedUrl) => void;
+  onNavigateToType?: (
+    kind: "entityType" | "dataType",
+    url: VersionedUrl,
+  ) => void;
 };
 
 export type EntityTypeEditorProps = {

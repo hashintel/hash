@@ -11,7 +11,7 @@ import {
   EditBarContainer,
   EditBarContents,
   useFreezeScrollWhileTransitioning,
-} from "../../@/[shortname]/shared/edit-bar";
+} from "../shared/edit-bar-contents";
 
 const useFrozenValue = <T extends number | boolean | object>(value: T): T => {
   const { dirtyFields } = useEntityTypeFormState<EntityTypeEditorFormData>();
@@ -26,10 +26,12 @@ const useFrozenValue = <T extends number | boolean | object>(value: T): T => {
 };
 
 export const EditBarTypeEditor = ({
+  gentleErrorStyling,
   currentVersion,
   discardButtonProps,
   errorMessage,
 }: {
+  gentleErrorStyling: boolean;
   currentVersion: number;
   discardButtonProps: Partial<ButtonProps>;
   errorMessage?: string;
@@ -57,7 +59,10 @@ export const EditBarTypeEditor = ({
 
   return (
     <EditBarCollapse in={collapseIn} ref={ref}>
-      <EditBarContainer hasErrors={!!errorMessage}>
+      <EditBarContainer
+        hasErrors={!!errorMessage}
+        gentleErrorStyling={gentleErrorStyling}
+      >
         <EditBarContents
           hideConfirm={!!errorMessage}
           icon={
@@ -74,12 +79,17 @@ export const EditBarTypeEditor = ({
               frozenVersion === 0 ? "Discard this type" : "Discard changes",
             disabled: frozenSubmitting,
             sx: errorMessage
-              ? {
-                  borderColor: "white",
+              ? ({ palette }) => ({
+                  borderColor: gentleErrorStyling
+                    ? palette.gray[30]
+                    : palette.common.white,
+                  color: gentleErrorStyling ? palette.gray[50] : undefined,
                   "&:hover": {
-                    backgroundColor: ({ palette }) => palette.red[50],
+                    backgroundColor: gentleErrorStyling
+                      ? palette.gray[50]
+                      : palette.red[50],
                   },
-                }
+                })
               : undefined,
             ...frozenDiscardButtonProps,
           }}

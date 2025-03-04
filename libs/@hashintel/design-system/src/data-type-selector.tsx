@@ -15,12 +15,13 @@ import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-pat
 import {
   Box,
   outlinedInputClasses,
+  Popper,
   Stack,
   TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { MouseEventHandler } from "react";
+import type { MouseEventHandler, ReactNode, RefObject } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getIconForDataType } from "./data-type-selector/icons";
@@ -55,7 +56,6 @@ const isDataType = (
   return "$id" in dataType;
 };
 
-const defaultMaxHeight = 500;
 const inputHeight = 48;
 const hintHeight = 36;
 
@@ -348,17 +348,21 @@ const DataTypeFlatView = (props: {
 
   return (
     <Box
+      component="button"
       ref={ref}
       onClick={
         dataType.abstract && !allowSelectingAbstractTypes
           ? undefined
-          : () => onSelect(dataType.$id)
+          : (event) => {
+              event.stopPropagation();
+              onSelect(dataType.$id);
+            }
       }
       sx={({ palette, transitions }) => ({
         cursor: "pointer",
         px: 2.5,
         py: 1.5,
-        background: selected ? palette.blue[20] : undefined,
+        background: selected ? palette.blue[20] : palette.common.white,
         borderRadius: 1,
         border: `1px solid ${selected ? palette.blue[30] : palette.gray[30]}`,
         "&:hover": {
@@ -456,6 +460,7 @@ const DataTypeTreeView = (props: {
     <>
       <Stack
         ref={ref}
+        tabIndex={0}
         direction="row"
         justifyContent="space-between"
         onClick={defaultAction}
@@ -554,63 +559,66 @@ const DataTypeTreeView = (props: {
 };
 
 export type DataTypeSelectorProps = {
+  additionalMenuContent?: {
+    element: ReactNode;
+    height: number;
+  };
   allowSelectingAbstractTypes?: boolean;
+  autoFocus?: boolean;
   dataTypes: DataTypeForSelector[];
-  handleScroll?: boolean;
+  /**
+   * If the parent needs to listen for clicks outside the menu, it should provide a ref that will be attached to the popover.
+   */
+  externallyProvidedPopoverRef?: RefObject<HTMLDivElement | null>;
+  /**
+   * If the parent is providing its own search input, this object is required,
+   */
+  externalSearchInput?: {
+    /**
+     * Whether the search input is focused (determines whether the menu is open)
+     */
+    focused: boolean;
+    /**
+     * The ref to the search input (determines the width of the menu and the element it is anchored to)
+     */
+    inputRef: RefObject<HTMLInputElement | HTMLDivElement | null>;
+    /**
+     * The search text (needed to filter the data types)
+     */
+    searchText: string;
+  };
   hideHint?: boolean;
-  maxHeight?: number;
+  placeholder?: string;
   onSelect: (dataTypeId: VersionedUrl) => void;
-  searchText?: string;
   selectedDataTypeIds?: VersionedUrl[];
 };
 
+const maxMenuHeight = 300;
+
 export const DataTypeSelector = (props: DataTypeSelectorProps) => {
   const {
+    additionalMenuContent,
     allowSelectingAbstractTypes,
+    autoFocus = true,
     dataTypes,
+    externallyProvidedPopoverRef,
+    externalSearchInput,
     hideHint,
-    handleScroll,
-    maxHeight: maxHeightFromProps,
     onSelect,
-    searchText: externallyControlledSearchText,
+    placeholder,
     selectedDataTypeIds,
   } = props;
 
+  const [textFieldFocused, setTextFieldFocused] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
-  const [availableHeight, setAvailableHeight] = useState<number | undefined>();
+  const popoverRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const updateAvailableHeight = () => {
-      if (!containerRef.current || !handleScroll) {
-        return;
-      }
-
-      const rect = containerRef.current.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-      const bottomSpace = windowHeight - rect.top;
-
-      // Add a small buffer (20px) to prevent touching the bottom of the window
-      const maxAvailableHeight = bottomSpace - 20;
-
-      setAvailableHeight(
-        Math.min(maxHeightFromProps ?? defaultMaxHeight, maxAvailableHeight),
-      );
-    };
-
-    updateAvailableHeight();
-    window.addEventListener("resize", updateAvailableHeight);
-
-    return () => {
-      window.removeEventListener("resize", updateAvailableHeight);
-    };
-  }, [handleScroll, maxHeightFromProps]);
-
-  const maxHeight =
-    !availableHeight || !handleScroll ? undefined : availableHeight;
+  const textFieldRef = useRef<HTMLDivElement>(null);
 
   const [localSearchText, setLocalSearchText] = useState("");
 
-  const searchText = externallyControlledSearchText ?? localSearchText;
+  const searchText = externalSearchInput?.searchText ?? localSearchText;
 
   const { flattenedDataTypes, latestVersionByBaseUrl } = useMemo(() => {
     const flattened: DataTypeForSelector[] = [];
@@ -656,7 +664,13 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
     return flattenedDataTypes.filter(
       (dataType) =>
         (allowSelectingAbstractTypes || !dataType.abstract) &&
-        dataType.title.toLowerCase().includes(searchText.toLowerCase()),
+        (dataType.title.toLowerCase().includes(searchText.toLowerCase()) ||
+          dataType.label?.left
+            ?.toLowerCase()
+            .includes(searchText.toLowerCase()) ||
+          dataType.label?.right
+            ?.toLowerCase()
+            .includes(searchText.toLowerCase())),
     );
   }, [allowSelectingAbstractTypes, dataTypes, flattenedDataTypes, searchText]);
 
@@ -676,103 +690,142 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
   }, [dataTypesToDisplay, searchText]);
 
   return (
-    <Stack ref={containerRef} sx={{ maxHeight: availableHeight }}>
-      {externallyControlledSearchText === undefined && (
+    <Stack ref={containerRef} sx={{ maxHeight: maxMenuHeight }}>
+      {externalSearchInput === undefined && (
         <TextField
-          autoFocus
+          autoComplete="off"
+          autoFocus={autoFocus}
           value={localSearchText}
           onChange={(event) => setLocalSearchText(event.target.value)}
-          placeholder="Start typing to filter options..."
+          onFocus={() => setTextFieldFocused(true)}
+          onBlur={(event) => {
+            const isMenuClick = popoverRef.current?.contains(
+              event.relatedTarget as Node,
+            );
+
+            if (!isMenuClick) {
+              setTextFieldFocused(false);
+            }
+          }}
+          placeholder={placeholder ?? "Start typing to filter options..."}
+          ref={textFieldRef}
           sx={{
-            borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
             height: inputHeight,
-            "*": {
-              border: "none",
-              boxShadow: "none",
-              borderRadius: 0,
-            },
+            maxWidth: 500,
+            border: ({ palette }) => `1px solid ${palette.gray[30]}`,
+            borderRadius: 1,
             [`.${outlinedInputClasses.root} input`]: {
               fontSize: 14,
+            },
+            [`.${outlinedInputClasses.notchedOutline}`]: {
+              border: "none",
             },
           }}
         />
       )}
-      {!hideHint && (
-        <Stack direction="row" sx={{ height: hintHeight, px: 2, pt: 1.5 }}>
-          <Typography
-            sx={{
-              fontSize: 11,
-              fontWeight: 500,
-              color: ({ palette }) => palette.gray[80],
-              mr: 1,
-              textTransform: "uppercase",
-            }}
-          >
-            Choose data type
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: 11,
-              fontWeight: 500,
-              color: ({ palette }) => palette.gray[50],
-            }}
-          >
-            How are you representing this value?
-          </Typography>
-        </Stack>
-      )}
-
-      <Stack
-        gap={1}
+      <Popper
+        anchorEl={externalSearchInput?.inputRef.current ?? textFieldRef.current}
+        open={externalSearchInput?.focused ?? textFieldFocused}
+        ref={externallyProvidedPopoverRef ?? popoverRef}
         sx={{
-          maxHeight: maxHeight
-            ? maxHeight -
-              (hideHint ? 0 : hintHeight) -
-              (externallyControlledSearchText !== undefined ? 0 : inputHeight)
-            : undefined,
-          overflowY:
-            sortedDataTypes.length && availableHeight && handleScroll
-              ? "scroll"
-              : undefined,
-          px: 2,
-          pb: 1.5,
-          pt: 1.5,
+          zIndex: 1300,
         }}
       >
-        {!sortedDataTypes.length && (
-          <Typography
-            sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }}
-          >
-            No options found...
-          </Typography>
-        )}
-        {sortedDataTypes.map((dataType) => {
-          if (searchText) {
-            return (
-              <DataTypeFlatView
-                allowSelectingAbstractTypes={allowSelectingAbstractTypes}
-                key={dataType.$id}
-                dataType={dataType}
-                latestVersionByBaseUrl={latestVersionByBaseUrl}
-                onSelect={onSelect}
-                selectedDataTypeIds={selectedDataTypeIds}
-              />
-            );
-          }
+        <Box
+          sx={({ palette }) => ({
+            background: palette.common.white,
+            border: `1px solid ${palette.gray[20]}`,
+            borderRadius: 1,
+            maxHeight: maxMenuHeight,
+            width:
+              externalSearchInput?.inputRef.current?.clientWidth ??
+              textFieldRef.current?.clientWidth,
+          })}
+        >
+          {!hideHint && (
+            <Stack direction="row" sx={{ height: hintHeight, px: 2, pt: 1.5 }}>
+              <Typography
+                sx={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: ({ palette }) => palette.gray[80],
+                  mr: 1,
+                  textTransform: "uppercase",
+                }}
+              >
+                Choose data type
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: ({ palette }) => palette.gray[50],
+                }}
+              >
+                How are you representing this value?
+              </Typography>
+            </Stack>
+          )}
 
-          return (
-            <DataTypeTreeView
-              allowSelectingAbstractTypes={allowSelectingAbstractTypes}
-              key={dataType.$id}
-              dataType={dataType}
-              latestVersionByBaseUrl={latestVersionByBaseUrl}
-              isOnlyRoot={dataTypes.length === 1}
-              onSelect={onSelect}
-              selectedDataTypeIds={selectedDataTypeIds}
-            />
-          );
-        })}
-      </Stack>
+          <Stack
+            gap={1}
+            sx={{
+              maxHeight:
+                maxMenuHeight -
+                (hideHint ? 0 : hintHeight) -
+                (additionalMenuContent?.height ?? 0),
+              overflowY: sortedDataTypes.length ? "scroll" : undefined,
+              px: 2,
+              pb: 1.5,
+              pt: 1.5,
+            }}
+          >
+            {!sortedDataTypes.length && (
+              <Typography
+                sx={{
+                  color: ({ palette }) => palette.gray[50],
+                  fontSize: 14,
+                }}
+              >
+                No options found...
+              </Typography>
+            )}
+            {sortedDataTypes.map((dataType) => {
+              if (searchText) {
+                return (
+                  <DataTypeFlatView
+                    allowSelectingAbstractTypes={allowSelectingAbstractTypes}
+                    key={dataType.$id}
+                    dataType={dataType}
+                    latestVersionByBaseUrl={latestVersionByBaseUrl}
+                    onSelect={(dataTypeId) => {
+                      onSelect(dataTypeId);
+                      setTextFieldFocused(false);
+                    }}
+                    selectedDataTypeIds={selectedDataTypeIds}
+                  />
+                );
+              }
+
+              return (
+                <DataTypeTreeView
+                  allowSelectingAbstractTypes={allowSelectingAbstractTypes}
+                  key={dataType.$id}
+                  dataType={dataType}
+                  latestVersionByBaseUrl={latestVersionByBaseUrl}
+                  isOnlyRoot={dataTypes.length === 1}
+                  onSelect={(dataTypeId) => {
+                    onSelect(dataTypeId);
+                    setTextFieldFocused(false);
+                  }}
+                  selectedDataTypeIds={selectedDataTypeIds}
+                />
+              );
+            })}
+          </Stack>
+          {additionalMenuContent?.element}
+        </Box>
+      </Popper>
     </Stack>
   );
 };

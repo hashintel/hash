@@ -14,6 +14,8 @@ import type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -26,15 +28,15 @@ export type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };
 
 /**
  * An Instagram account.
  */
 export type InstagramAccount = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/instagram-account/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/instagram-account/v/1"];
   properties: InstagramAccountProperties;
   propertiesWithMetadata: InstagramAccountPropertiesWithMetadata;
 };
@@ -46,19 +48,10 @@ export type InstagramAccountOutgoingLinksByLinkEntityTypeId = {};
 /**
  * An Instagram account.
  */
-export type InstagramAccountProperties = InstagramAccountProperties1 &
-  InstagramAccountProperties2;
-export type InstagramAccountProperties1 = ServiceAccountProperties;
-
-export type InstagramAccountProperties2 = {};
+export type InstagramAccountProperties = ServiceAccountProperties & {};
 
 export type InstagramAccountPropertiesWithMetadata =
-  InstagramAccountPropertiesWithMetadata1 &
-    InstagramAccountPropertiesWithMetadata2;
-export type InstagramAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type InstagramAccountPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  ServiceAccountPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
