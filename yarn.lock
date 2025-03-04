@@ -736,7 +736,7 @@ __metadata:
     "@types/prismjs": "npm:1.26.5"
     "@types/react": "npm:19.0.10"
     "@types/react-dom": "npm:19.0.4"
-    "@types/react-html-parser": "npm:2.0.6"
+    "@types/react-html-parser": "npm:2.0.7"
     "@types/unist": "npm:3.0.3"
     axios: "npm:1.8.1"
     babel-loader: "npm:9.2.1"
@@ -17987,7 +17987,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/htmlparser2@npm:*":
+"@types/htmlparser2@npm:^3.9.0":
   version: 3.10.7
   resolution: "@types/htmlparser2@npm:3.10.7"
   dependencies:
@@ -18417,13 +18417,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-html-parser@npm:2.0.6":
-  version: 2.0.6
-  resolution: "@types/react-html-parser@npm:2.0.6"
+"@types/react-html-parser@npm:2.0.7":
+  version: 2.0.7
+  resolution: "@types/react-html-parser@npm:2.0.7"
   dependencies:
-    "@types/htmlparser2": "npm:*"
+    "@types/htmlparser2": "npm:^3.9.0"
     "@types/react": "npm:*"
-  checksum: 10c0/c736d07f5ecbcd1144b920af03e988621215cb7b031d6c7d60832d494d4d79d0af3f522c7abec2dd29d0dbecbc924f6bd261d07c645799d2c2a158ad1e4e2ae6
+  checksum: 10c0/712bc24c08d517f5bf5050330e7a0aa415d47969f70e34b47bbc97be9a7f5c3887bb3b978b2a8da95a3a0240ead11a482fd8d48b27a4b608bb78122056451405
   languageName: node
   linkType: hard
 
