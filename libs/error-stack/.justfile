@@ -12,24 +12,17 @@ repo := `git rev-parse --show-toplevel`
 
 [private]
 clippy *arguments:
-  @just install-cargo-hack
-
   @CLIPPY_CONF_DIR={{repo}} just in-pr cargo clippy --profile {{profile}} --all-features --all-targets --no-deps {{arguments}}
   @CLIPPY_CONF_DIR={{repo}} just not-in-pr cargo hack --optional-deps --feature-powerset {{cargo-hack-groups}} --ignore-unknown-features clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
 
 [private]
 test *arguments:
-  @just install-cargo-nextest
-
   RUST_BACKTRACE=1 cargo nextest run --all-features --all-targets {{arguments}}
   RUST_BACKTRACE=1 cargo nextest run --no-default-features --all-targets {{arguments}}
   RUST_BACKTRACE=1 cargo test --all-features --doc {{arguments}}
 
 [private]
 coverage *arguments:
-  @just install-cargo-nextest
-  @just install-llvm-cov
-
   RUST_BACKTRACE=1 cargo llvm-cov nextest --workspace --all-features --all-targets --cargo-profile coverage {{arguments}}
   RUST_BACKTRACE=1 cargo llvm-cov --workspace --all-features --profile coverage --doc {{arguments}}
 
@@ -53,6 +46,5 @@ coverage *arguments:
 
 # Runs the test suite and asks to update the snapshots if they don't match.
 update-snapshots:
-  @just install-cargo-insta
   @INSTA_FORCE_PASS=1 INSTA_UPDATE=new UPDATE_EXPECT=1 just test
   @cargo insta review

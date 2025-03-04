@@ -17,9 +17,15 @@ java              = "24"
 protoc            = "25.6"
 
 # CLI tools
-biome           = "1.9.5-nightly.ff02a0b"
-"pipx:sqlfluff" = "3.3.1"
-taplo           = "0.9.3"
+biome                  = "1.9.5-nightly.ff02a0b"
+"cargo:cargo-hack"     = "0.6.35"
+"cargo:cargo-insta"    = "1.42.1"
+"cargo:cargo-llvm-cov" = "0.6.16"
+"cargo:cargo-nextest"  = "0.9.80"
+just                   = "1.39.0"
+"npm:renovate"         = "39.166.0"
+"pipx:sqlfluff"        = "3.3.1"
+taplo                  = "0.9.3"
 
 [tasks.sync-turborepo]
 description = "Sync the turborepo"

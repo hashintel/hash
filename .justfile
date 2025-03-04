@@ -95,31 +95,6 @@ in-ci +command:
 
 
 ######################################################################
-## Install scripts
-######################################################################
-
-[private]
-install-cargo-tool tool install version:
-  @`{{tool}} --version | grep -q "{{version}}" || cargo install "{{install}}" --version "{{version}}" --locked --force`
-
-[private]
-install-cargo-hack:
-  @just install-cargo-tool 'cargo hack' cargo-hack 0.6.30
-
-[private]
-install-cargo-nextest:
-  @just install-cargo-tool 'cargo nextest' cargo-nextest 0.9.72
-
-[private]
-install-llvm-cov:
-  @just install-cargo-tool 'cargo llvm-cov' cargo-llvm-cov 0.6.11
-
-[private]
-install-cargo-insta:
-  @just install-cargo-tool 'cargo insta' cargo-insta 1.39.0
-
-
-######################################################################
 ## Predefined commands
 ######################################################################
 
@@ -139,7 +114,7 @@ format *arguments:
 
 # Lint the code using `clippy`
 [no-cd]
-clippy *arguments: install-cargo-hack
+clippy *arguments
   @just in-pr cargo clippy --profile {{profile}} --all-features --all-targets --no-deps {{arguments}}
   @just not-in-pr cargo hack --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
 
@@ -150,7 +125,7 @@ build *arguments:
 
 # Run the test suite
 [no-cd]
-test *arguments: install-cargo-nextest install-cargo-hack
+test *arguments
   cargo hack --optional-deps --feature-powerset nextest run {{arguments}}
   cargo test --all-features --doc
 
@@ -166,7 +141,7 @@ bench *arguments:
 
 # Run the test suite and generate a coverage report
 [no-cd]
-coverage *arguments: install-llvm-cov
+coverage *arguments
   cargo llvm-cov nextest --all-features --all-targets --cargo-profile coverage {{arguments}}
   cargo llvm-cov --all-features --profile coverage --doc {{arguments}}
 

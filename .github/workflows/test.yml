@@ -137,12 +137,6 @@ jobs:
           rm -rf $temp_dir
           echo "PDFIUM_DYNAMIC_LIB_PATH=$(pwd)/${{ matrix.path }}/libs/" >> $GITHUB_ENV
 
-      - name: Install Rust tools
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@3c8fc6eaa5fcff049bb133c1f540c6c2287a191f # v2.49.10
-        with:
-          tool: just@1.34.0,cargo-hack@0.6.30,cargo-nextest@0.9.72,cargo-llvm-cov@0.6.11
-
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
@@ -236,12 +230,6 @@ jobs:
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
-
-      - name: Install Rust tools
-        if: steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@3c8fc6eaa5fcff049bb133c1f540c6c2287a191f # v2.49.10
-        with:
-          tool: just@1.34.0,cargo-hack@0.6.30,cargo-nextest@0.9.72,cargo-llvm-cov@0.6.11
 
       - name: Install PDFium
         if: matrix.name == '@rust/chonky'
