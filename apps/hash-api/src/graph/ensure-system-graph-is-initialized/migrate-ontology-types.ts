@@ -2,6 +2,7 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 
 import { isProdEnv } from "../../lib/env-config";
@@ -39,6 +40,15 @@ export const migrateOntologyTypes = async (params: {
     dataTypeVersions: {},
   };
 
+  const migrationsCompleted: string[] = [];
+
+  try {
+    const hashInstance = await getHashInstance(params.context, authentication);
+    migrationsCompleted.push(...(hashInstance.migrationsCompleted ?? []));
+  } catch {
+    // HASH Instance entity not available, this may be the first time the instance is being initialized
+  }
+
   for (const migrationFileName of migrationFileNames) {
     if (migrationFileName.endsWith(".migration.ts")) {
       /**
@@ -57,7 +67,20 @@ export const migrateOntologyTypes = async (params: {
       // Expect the default export of a migration file to be of type `MigrationFunction`
       const migrationFunction = module.default as MigrationFunction;
 
-      /** @todo: consider persisting which migration files have been run */
+      const migrationNumber = migrationFileName.split("-")[0];
+
+      if (!migrationNumber) {
+        throw new Error(
+          `Migration file ${migrationFileName} has an invalid name. Migration files must be formatted as '{number}-{name}.migration.ts'`,
+        );
+      }
+
+      if (migrationsCompleted.includes(migrationNumber)) {
+        params.logger.info(
+          `Skipping migration ${migrationFileName} as it has already been processed`,
+        );
+        continue;
+      }
 
       migrationState = await migrationFunction({
         ...params,
@@ -65,7 +88,35 @@ export const migrateOntologyTypes = async (params: {
         migrationState,
       });
 
-      params.logger.debug(`Processed migration ${migrationFileName}`);
+      migrationsCompleted.push(migrationNumber);
+
+      params.logger.info(`Processed migration ${migrationFileName}`);
     }
   }
+
+  // const hashInstance = await getHashInstance(params.context, authentication);
+
+  // await hashInstance.entity.patch(params.context.graphApi, authentication, {
+  //   propertyPatches: [
+  //     {
+  //       op: "add",
+  //       path: [systemPropertyTypes.migrationsCompleted.propertyTypeBaseUrl],
+  //       property: {
+  //         value: migrationsCompleted.map((migration) => ({
+  //           value: migration,
+  //           metadata: {
+  //             dataTypeId:
+  //               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+  //           },
+  //         })),
+  //       } satisfies MigrationsCompletedPropertyValueWithMetadata,
+  //     },
+  //   ],
+  //   provenance: {
+  //     actorType: "machine",
+  //     origin: {
+  //       type: "migration",
+  //     },
+  //   } satisfies ProvidedEntityEditionProvenance,
+  // });
 };

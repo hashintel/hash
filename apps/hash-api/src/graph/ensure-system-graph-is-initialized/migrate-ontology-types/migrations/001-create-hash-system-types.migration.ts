@@ -31,6 +31,11 @@ const blockProtocolDataTypeIds = [
   "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
 ] as const;
 
+const blockProtocolEntityTypeIds = [
+  "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
+  "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1",
+];
+
 const migrate: MigrationFunction = async ({
   context,
   authentication,
@@ -1791,10 +1796,10 @@ const migrate: MigrationFunction = async ({
     });
 
   /**
-   * Ensure the primitive BP data types are loaded
+   * Ensure the primitive BP data and entity types are loaded
    */
-  await Promise.all(
-    blockProtocolDataTypeIds.map(async (dataTypeId) => {
+  await Promise.all([
+    ...blockProtocolDataTypeIds.map(async (dataTypeId) => {
       const existingDataType = await context.graphApi
         .getDataTypes(authentication.actorId, {
           filter: {
@@ -1813,8 +1818,26 @@ const migrate: MigrationFunction = async ({
         dataTypeId,
       });
     }),
-  );
+    ...blockProtocolEntityTypeIds.map(async (entityTypeId) => {
+      const existingEntityType = await context.graphApi
+        .getEntityTypes(authentication.actorId, {
+          filter: {
+            equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+          },
+          includeDrafts: false,
+          temporalAxes: fullTransactionTimeAxis,
+        })
+        .then((response) => response.data.entityTypes);
 
+      if (existingEntityType.length > 0) {
+        return;
+      }
+
+      return context.graphApi.loadExternalEntityType(authentication.actorId, {
+        entityTypeId,
+      });
+    }),
+  ]);
   return migrationState;
 };
 
