@@ -55,9 +55,10 @@ impl CedarEntityId for OwnedById {
     }
 }
 
+#[derive(Debug)]
 pub struct WebRole {
-    pub web_id: OwnedById,
     pub id: WebRoleId,
+    pub web_id: OwnedById,
 }
 
 impl WebRole {
@@ -172,6 +173,36 @@ impl CedarEntityId for WebTeamId {
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+    }
+}
+
+#[derive(Debug)]
+pub struct WebTeamRole {
+    pub id: WebTeamRoleId,
+    pub web_id: OwnedById,
+    pub team_id: WebTeamId,
+}
+
+impl WebTeamRole {
+    pub(crate) fn to_cedar_entities(&self) -> [ast::Entity; 2] {
+        [
+            ast::Entity::new(
+                self.team_id.to_euid(),
+                iter::empty(),
+                HashSet::from([self.web_id.to_euid()]),
+                iter::empty(),
+                Extensions::none(),
+            )
+            .expect("web team role should be a valid Cedar entity"),
+            ast::Entity::new(
+                self.id.to_euid(),
+                iter::empty(),
+                HashSet::from([self.team_id.to_euid()]),
+                iter::empty(),
+                Extensions::none(),
+            )
+            .expect("web team role should be a valid Cedar entity"),
+        ]
     }
 }
 

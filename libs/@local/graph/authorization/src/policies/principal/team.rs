@@ -1,8 +1,8 @@
 use alloc::sync::Arc;
-use core::{error::Error, fmt, str::FromStr as _};
+use core::{error::Error, fmt, iter, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::ast;
+use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use uuid::Uuid;
 
@@ -116,6 +116,24 @@ impl CedarEntityId for TeamRoleId {
     }
 }
 
+#[derive(Debug)]
+pub struct TeamRole {
+    pub id: TeamRoleId,
+    pub team_id: TeamId,
+}
+
+impl TeamRole {
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+        ast::Entity::new(
+            self.id.to_euid(),
+            iter::empty(),
+            HashSet::from([self.team_id.to_euid()]),
+            iter::empty(),
+            Extensions::none(),
+        )
+        .expect("team role should be a valid Cedar entity")
+    }
+}
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged, rename_all_fields = "camelCase", deny_unknown_fields)]
 pub enum TeamPrincipalConstraint {

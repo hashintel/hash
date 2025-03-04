@@ -8,7 +8,7 @@ use hash_graph_authorization::policies::{
     principal::{
         PrincipalConstraint,
         machine::{MachineId, MachinePrincipalConstraint},
-        team::TeamRoleId,
+        team::TeamId,
         user::UserPrincipalConstraint,
         web::WebRoleId,
     },
@@ -93,16 +93,15 @@ pub(crate) fn permit_admin_web(web_id: OwnedById, admin_role: WebRoleId) -> Vec<
 }
 
 pub(crate) fn permit_hash_instance_admins(
-    admin_role: TeamRoleId,
-    member_role: TeamRoleId,
+    team_id: TeamId,
     hash_instance_entity_id: EntityUuid,
 ) -> Vec<Policy> {
     const POLICIES: &str = include_str!("permit-hash-instance-admins.cedar");
 
+    #[expect(clippy::literal_string_with_formatting_args)]
     let policies = Policy::parse_cedar_policies(
         &POLICIES
-            .replace("{admin_role_id}", &admin_role.to_string())
-            .replace("{member_role_id}", &member_role.to_string())
+            .replace("{team_id}", &team_id.to_string())
             .replace("{entity_id}", &hash_instance_entity_id.to_string()),
     )
     .expect("should be a valid policy");
