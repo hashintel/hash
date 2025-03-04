@@ -1,5 +1,4 @@
-import { Box } from "@mui/material";
-import { Container } from "@mui/system";
+import { Box, Container } from "@mui/material";
 import type { PropsWithChildren } from "react";
 
 import { inSlideContainerStyles } from "../shared/slide-styles";

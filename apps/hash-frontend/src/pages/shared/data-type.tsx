@@ -35,6 +35,7 @@ import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { Link } from "../../shared/ui/link";
 import { useUserPermissionsOnDataType } from "../../shared/use-user-permissions-on-data-type";
 import { DataTypeConstraints } from "./data-type/data-type-constraints";
+import { DataTypeConversions } from "./data-type/data-type-conversions";
 import {
   type DataTypeFormData,
   getDataTypeFromFormData,
@@ -43,6 +44,7 @@ import {
 import { DataTypeHeader } from "./data-type/data-type-header";
 import { DataTypeLabels } from "./data-type/data-type-labels";
 import { DataTypesParents } from "./data-type/data-type-parents";
+import { InheritedConstraintsProvider } from "./data-type/shared/use-inherited-constraints";
 import { useDataTypesContext } from "./data-types-context";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
 import { NotFound } from "./not-found";
@@ -118,9 +120,19 @@ export const DataType = ({
     defaultValue: [],
   });
 
+  const abstract = useWatch({
+    control,
+    name: "abstract",
+  });
+
   useEffect(() => {
     if (draftNewDataType) {
-      reset(getFormDataFromDataType(draftNewDataType.schema));
+      reset(
+        getFormDataFromDataType({
+          schema: draftNewDataType.schema,
+          metadata: {},
+        }),
+      );
     }
   }, [draftNewDataType, reset]);
 
@@ -194,7 +206,7 @@ export const DataType = ({
 
   useEffect(() => {
     if (remoteDataType) {
-      formMethods.reset(getFormDataFromDataType(remoteDataType.schema));
+      formMethods.reset(getFormDataFromDataType(remoteDataType));
     }
   }, [remoteDataType, formMethods]);
 
@@ -219,7 +231,8 @@ export const DataType = ({
       return;
     }
 
-    const inputData = getDataTypeFromFormData(data);
+    const { dataType: inputDataType, conversions } =
+      getDataTypeFromFormData(data);
 
     if (isDraft) {
       if (!ownedById) {
@@ -228,7 +241,8 @@ export const DataType = ({
 
       const response = await createDataType({
         variables: {
-          dataType: inputData,
+          dataType: inputDataType,
+          conversions,
           ownedById,
         },
       });
@@ -248,7 +262,8 @@ export const DataType = ({
     const response = await updateDataType({
       variables: {
         dataTypeId: remoteDataType.schema.$id,
-        dataType: inputData,
+        dataType: inputDataType,
+        conversions,
       },
     });
 
@@ -310,7 +325,7 @@ export const DataType = ({
 
   return (
     <>
-      <NextSeo title={`${dataType.schema.title} | Data Type`} />
+      {!inSlide && <NextSeo title={`${dataType.schema.title} | Data Type`} />}
       <FormProvider {...formMethods}>
         <Box display="contents" component="form" onSubmit={handleSubmit}>
           <TopContextBar
@@ -393,8 +408,16 @@ export const DataType = ({
                 }}
               />
 
-              <DataTypeConstraints isReadOnly={isReadOnly} />
-              <DataTypeLabels isReadOnly={isReadOnly} />
+              <InheritedConstraintsProvider>
+                <DataTypeConstraints isReadOnly={isReadOnly} />
+                <DataTypeLabels isReadOnly={isReadOnly} />
+                {!abstract && (
+                  <DataTypeConversions
+                    dataType={dataType.schema}
+                    isReadOnly={isReadOnly}
+                  />
+                )}
+              </InheritedConstraintsProvider>
             </Stack>
           </TypeDefinitionContainer>
         </Box>

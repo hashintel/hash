@@ -1,6 +1,6 @@
 import type { DataTypeWithMetadata } from "@blockprotocol/graph";
-import type { OntologyTemporalMetadata } from "@local/hash-graph-client/dist/api.d";
-import type { DataTypeConversionsMap } from "@local/hash-isomorphic-utils/data-types";
+import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
+import type { DataTypeFullConversionTargetsMap } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
   defaultDataTypeAuthorizationRelationships,
@@ -115,7 +115,7 @@ export const getDataType: ResolverFn<
   );
 
 export const getDataTypeConversionTargetsResolver: ResolverFn<
-  Promise<DataTypeConversionsMap>,
+  Promise<DataTypeFullConversionTargetsMap>,
   Record<string, never>,
   GraphQLContext,
   QueryGetDataTypeConversionTargetsArgs
@@ -133,7 +133,7 @@ export const createDataTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationCreateDataTypeArgs
 > = async (_, params, { dataSources, authentication, provenance }) => {
-  const { ownedById, dataType } = params;
+  const { ownedById, conversions, dataType } = params;
 
   const createdDataType = await createDataType(
     {
@@ -145,7 +145,7 @@ export const createDataTypeResolver: ResolverFn<
       ownedById,
       schema: dataType,
       relationships: defaultDataTypeAuthorizationRelationships,
-      conversions: {},
+      conversions: conversions ?? {},
     },
   );
 

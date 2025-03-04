@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, type SxProps, type Theme } from "@mui/material";
 
 import { inputStyles } from "../../shared/input-styles";
 
@@ -8,6 +8,7 @@ export const NumberInput = ({
   min,
   max,
   multipleOf,
+  sx,
   value,
   onChange,
   width = 120,
@@ -18,6 +19,7 @@ export const NumberInput = ({
   max?: number;
   multipleOf?: number;
   onChange: (value: number | null) => void;
+  sx?: SxProps<Theme>;
   value: number | null;
   width?: number;
 }) => {
@@ -40,7 +42,7 @@ export const NumberInput = ({
           onChange(parsedValue);
         }
       }}
-      sx={[inputStyles, { width }]}
+      sx={[inputStyles, { width }, ...(Array.isArray(sx) ? sx : [sx])]}
     />
   );
 };

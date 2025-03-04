@@ -5,6 +5,8 @@ import type {
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph";
 import type {
+  ConversionDefinition,
+  Conversions,
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
@@ -27,6 +29,7 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ClosedMultiEntityTypeMap,
+  DataTypeConversionTargets as GraphApiDataTypeConversionTargets,
   EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
   GetClosedMultiEntityTypeResponseDefinitions,
   OntologyEditionProvenance as OntologyEditionProvenanceGraphApi,
@@ -101,7 +104,35 @@ export type ConstructDataTypeParams = DistributiveOmit<
   "$id" | "kind" | "$schema"
 >;
 
-export type DataTypeMetadata = OntologyElementMetadata;
+export type DataTypeConversionTargets = Omit<
+  GraphApiDataTypeConversionTargets,
+  "conversions"
+> & {
+  conversions: ConversionDefinition[];
+};
+
+/**
+ * A map from a dataTypeId, to a map of target dataTypeIds, to conversion definitions.
+ * This is ALL the possible conversion targets of a data type, derived from the ones it directly has a conversion defined to in its record,
+ * as well as any onward conversions that are possible (i.e. because a direct target can be converted to something else).
+ *
+ * Each conversion definition contains (1) the target data type `title`, and (2) the `conversions`: steps required to convert to the target dataTypeId.
+ */
+export type DataTypeFullConversionTargetsMap = Record<
+  VersionedUrl,
+  Record<VersionedUrl, DataTypeConversionTargets>
+>;
+
+/**
+ * The conversions that are directly defined for a data type, and stored in its record.
+ *
+ * This does not represent all the data types a data type is convertible to, as it may be transitively convertible to others via one of its targets.
+ */
+export type DataTypeDirectConversionsMap = Record<BaseUrl, Conversions>;
+
+export type DataTypeMetadata = OntologyElementMetadata & {
+  conversions?: DataTypeDirectConversionsMap;
+};
 export type PropertyTypeMetadata = OntologyElementMetadata;
 export type EntityTypeMetadata = OntologyElementMetadata;
 
@@ -109,7 +140,7 @@ export type DataTypeWithMetadata = Subtype<
   DataTypeWithMetadataBp,
   {
     schema: DataType;
-    metadata: OntologyElementMetadata;
+    metadata: DataTypeMetadata;
   }
 >;
 

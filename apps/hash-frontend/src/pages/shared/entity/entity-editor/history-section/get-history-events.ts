@@ -59,6 +59,18 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
       );
     }
 
+    const previousEntityEdition = getEntityRevision(
+      subgraph,
+      diffData.input.firstEntityId,
+      diffData.input.firstDecisionTime as Timestamp,
+    );
+
+    if (!previousEntityEdition) {
+      throw new Error(
+        `Could not find entity with id ${diffData.input.firstEntityId} in subgraph`,
+      );
+    }
+
     /**
      * The original edition is not included in the diffs, so the 0-based index needs +2 to get the nth edition with base 1
      */
@@ -70,6 +82,21 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
       changedEntityEdition.metadata.temporalVersioning.decisionTime.start.limit;
 
     const editionProvenance = changedEntityEdition.metadata.provenance.edition;
+
+    if (
+      changedEntityEdition.metadata.archived !==
+      previousEntityEdition.metadata.archived
+    ) {
+      events.push({
+        type: "archive-status-change",
+        newArchiveStatus: changedEntityEdition.metadata.archived,
+        provenance: {
+          edition: editionProvenance,
+        },
+        number: `${editionNumber}.${subChangeNumber++}`,
+        timestamp,
+      });
+    }
 
     if (diffData.diff.entityTypeIds) {
       const upgradedFromEntityTypeIds: VersionedUrl[] = [];

@@ -22,18 +22,22 @@ import {
   CloseIcon,
   IconButton,
 } from "@hashintel/design-system";
-import type { MergedValueSchema } from "@local/hash-isomorphic-utils/data-types";
+import {
+  createFormattedValueParts,
+  type MergedValueSchema,
+} from "@local/hash-isomorphic-utils/data-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Tooltip, Typography } from "@mui/material";
 import { Box, Stack, type SxProps, type Theme } from "@mui/system";
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 
 import { TriangleExclamationRegularIcon } from "../../../../../shared/icons/triangle-exclamation-regular-icon";
 import { Button } from "../../../../../shared/ui";
 import { NumberOrTextInput } from "../../../number-or-text-input";
 import type { DataTypeFormData } from "../../data-type-form";
 import { ItemLabel } from "../../shared/item-label";
+import { useInheritedConstraints } from "../../shared/use-inherited-constraints";
 import type { InheritedConstraints } from "../types";
 
 const SaveButton = ({ onClick }: { onClick: () => void }) => (
@@ -128,6 +132,17 @@ const EnumItem = ({
     id: item,
   });
 
+  const { control } = useFormContext<DataTypeFormData>();
+
+  const ownLabel = useWatch({ control, name: "label" });
+
+  const inheritedLabel = useInheritedConstraints().label;
+
+  const label = {
+    left: ownLabel?.left ?? inheritedLabel?.left?.value,
+    right: ownLabel?.right ?? inheritedLabel?.right?.value,
+  };
+
   const isLastUnremovableItem = isOnlyItem && inheritedFromTitle;
 
   return (
@@ -170,7 +185,14 @@ const EnumItem = ({
             ml: inheritedFromTitle ? 0.5 : 0,
           }}
         >
-          {item}
+          {createFormattedValueParts({
+            inner: item.toString(),
+            schema: { label },
+          }).map(({ color, text }) => (
+            <span key={text} style={{ color }}>
+              {text}
+            </span>
+          ))}
         </Typography>
       </Stack>
       <Stack direction="row" alignItems="center" gap={0.2}>

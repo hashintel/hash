@@ -24,6 +24,7 @@ import type {
   BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
+  DataTypeConversionTargets,
   DataTypeWithMetadata,
   EntityTypeResolveDefinitions,
   EntityTypeWithMetadata,
@@ -44,7 +45,6 @@ import {
   isEntityVertex,
 } from "@local/hash-subgraph";
 
-import type { DataTypeConversionTargets } from "./data-types.js";
 import { systemEntityTypes, systemPropertyTypes } from "./ontology-type-ids.js";
 
 const restrictedPropertyBaseUrls: string[] = [
@@ -220,28 +220,28 @@ export const mapGraphApiEntityTypesToEntityTypes = (
 ) => entityTypes as EntityTypeWithMetadata[];
 
 export const mapGraphApiClosedEntityTypesToClosedEntityTypes = (
-  entityTypes: GraphApiClosedEntityType[],
-) => entityTypes as ClosedEntityType[];
+  closedEntityTypes: GraphApiClosedEntityType[],
+) => closedEntityTypes as ClosedEntityType[];
 
 export const mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions =
-  (entityType: GraphApiEntityTypeResolveDefinitions) =>
-    entityType as EntityTypeResolveDefinitions;
+  (entityTypeResolveDefinitions: GraphApiEntityTypeResolveDefinitions) =>
+    entityTypeResolveDefinitions as EntityTypeResolveDefinitions;
 
 export const mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType = (
-  entityType: GraphApiClosedMultiEntityType,
-) => entityType as ClosedMultiEntityType;
+  closedMultiEntityType: GraphApiClosedMultiEntityType,
+) => closedMultiEntityType as ClosedMultiEntityType;
 
 export const mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes = (
-  entityTypes: GraphApiClosedMultiEntityType[],
-) => entityTypes as ClosedMultiEntityType[];
+  closedMultiEntityTypes: GraphApiClosedMultiEntityType[],
+) => closedMultiEntityTypes as ClosedMultiEntityType[];
 
 export const mapGraphApiPropertyTypesToPropertyTypes = (
-  entityTypes: GraphApiPropertyTypeWithMetadata[],
-) => entityTypes as PropertyTypeWithMetadata[];
+  propertyTypes: GraphApiPropertyTypeWithMetadata[],
+) => propertyTypes as PropertyTypeWithMetadata[];
 
 export const mapGraphApiDataTypesToDataTypes = (
-  entityTypes: GraphApiDataTypeWithMetadata[],
-) => entityTypes as DataTypeWithMetadata[];
+  dataTypes: GraphApiDataTypeWithMetadata[],
+) => dataTypes as DataTypeWithMetadata[];
 
 export const mapGraphApiDataTypeConversions = (
   conversions: Record<

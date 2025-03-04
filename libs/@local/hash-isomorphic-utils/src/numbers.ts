@@ -26,7 +26,7 @@ export const divide = (numerator: number, denominator: number): number => {
   }
 
   if (denominator === 0) {
-    throw new Error("Cannot divide by zero");
+    return 0;
   }
 
   const commonDivisor = greatestCommonDivisor(numerator, denominator);
