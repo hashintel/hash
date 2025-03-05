@@ -85,7 +85,7 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Log in to Sentry
-        run: yarn sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
+        run: sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
 
       - name: Build sourcemaps
         run: turbo run sentry:sourcemaps --env-mode=loose --filter "${{ matrix.name }}"
