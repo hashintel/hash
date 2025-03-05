@@ -4,9 +4,6 @@
 //! operations with arbitrary precision, suitable for financial calculations and
 //! scientific computing where precision is critical.
 //!
-//! The implementation is backed by the `dashu_float` crate's `DBig` type for
-//! arbitrary-precision floating-point arithmetic.
-//!
 //! # Features
 //!
 //! - Mathematical operations with arbitrary precision
