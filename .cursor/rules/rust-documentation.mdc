@@ -3,6 +3,7 @@ description: Rust Documentation Practices
 globs: "**/*.rs"
 alwaysApply: false
 ---
+
 # Rust Documentation Practices
 
 ## Documentation Structure
@@ -71,7 +72,11 @@ pub fn validate_unique(values: &[String]) -> Result<(), Report<ValidationError>>
 - Keep examples minimal but complete
 - Include error handling in examples
 - Use comment-based error handling for brevity when appropriate
-- Include assertions to ensure correctness
+- Include assertions to demonstrate expected behavior
+- Doc comments should follow high-quality standards like those in crates such as `time`, `jiff`, or `serde`
+- Never mention variable types in doc comments when that information is already available in function signatures
+- Ensure all code examples compile and function correctly
+- Use `# ` comments to hide necessary setup code from documentation display
 
 ```rust
 /// # Examples
@@ -94,7 +99,7 @@ pub fn validate_unique(values: &[String]) -> Result<(), Report<ValidationError>>
 - For structs, document each field with field-level doc comments
 - For enums, document each variant
 - Include examples for non-trivial instantiation
-- Prefer describing arguments and return values in the main description text rather than using separate sections
+- Describe arguments and return values in the main description rather than in separate sections
 
 ```rust
 /// A unique identifier for an entity in the system.
@@ -220,12 +225,6 @@ pub trait EntityStore: Send + Sync {
 
 ## Tooling Integration
 
-- Add `#[cfg_attr(doc, doc = "...")]` for conditional documentation when appropriate
-- Use `#[doc(hidden)]` for items that are public for technical reasons but not part of the public API
-- Support rustdoc search with descriptive wording
-
-## Documentation Testing
-
-- Ensure all code examples in documentation compile and run correctly
-- Include tests for error cases in examples when appropriate
-- Use `# ` comments to hide necessary setup code from docs
+- Use `#[cfg_attr(doc, doc = "...")]` for conditional documentation when appropriate
+- Apply `#[doc(hidden)]` for items that are public for technical reasons but not part of the public API
+- Support rustdoc search with descriptive wording in documentation

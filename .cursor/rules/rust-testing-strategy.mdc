@@ -3,19 +3,24 @@ description: Rust Testing strategy
 globs: "**/*.rs"
 alwaysApply: false
 ---
-# Rust Testing strategy
+# Rust Testing Strategy
 
-## Commands to run to check if everything is working
+## Verification Commands
 
-- As a general rule when changing Rust code, we should run clippy:
+- When modifying Rust code, run clippy to detect issues:
   ```bash
   cargo clippy --all-features --all-targets --workspace --no-deps
   ```
-- If the `hash-graph-api` crate has changed or any representation which would affect the public interface, we also need to regenerate the OpenAPI specs:
+
+- If changes affect the `hash-graph-api` crate or any representation influencing the public interface, regenerate the OpenAPI specifications:
   ```bash
   cd libs/@local/graph/api
   cargo run --bin openapi-spec-generator
   ```
-- For testing itself, we use `cargo-nextest` for normal tests and the default test suite for doc-tests.
-- For simplicity, we should just run all tests
-- Seeding the data base is possible by using yarn: [package.json](mdc:package.json)
+
+## Test Execution
+
+- Use `cargo-nextest` for running unit and integration tests
+- Use the default test runner for documentation tests
+- For comprehensive verification, run the complete test suite
+- Database seeding can be performed using yarn comman the project's package.json

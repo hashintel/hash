@@ -11,7 +11,7 @@ alwaysApply: false
 - Prefer `derive_more` over manual trait implementations
 - Feature flags in this codebase use the `#[cfg(feature = "...")]` pattern
 - Invoke `cargo clippy` with `--all-features` and `--all-targets` from the root
-- User `rustfmt` to format the code
+- Use `rustfmt` to format the code
 - Use `#[expect(lint, reason = "...")]` over `#[allow(lint)]`
 
 ## Type System
@@ -41,6 +41,64 @@ fn get_data(
 }
 ```
 
+## Function Arguments
+
+- Functions should **never** take more than 7 arguments. If a function requires more than 7 arguments, encapsulate related parameters in a struct.
+- Functions that use data immutably should take a reference to the data, while functions that modify data should take a mutable reference. Never take ownership of data unless the function explicitly consumes it.
+- Make functions `const` whenever possible.
+- Prefer the following argument types when applicable:
+  * `impl AsRef<str>` instead of `&str` or `&String`
+  * `impl AsRef<Path>` instead of `&Path` or `&PathBuf`
+  * `impl IntoIterator<Item = &T>` when only iterating over the data
+  * `&[T]` instead of `&Vec<T>`
+  * `&mut [T]` instead of `&mut Vec<T>` when the function doesn't need to resize the vector
+  * `impl Into<Cow<T>>` instead of `Cow<T>`
+  * `impl Into<Arc<T>>` instead of `Arc<T>`
+  * `impl Into<Rc<T>>` instead of `Rc<T>`
+  * `impl Into<Box<T>>` instead of `Box<T>`
+
+## `From` and `Into`
+
+- Generally prefer `From` implementations over `Into` implementations. The Rust compiler will automatically derive `Into` from `From`, but not vice versa.
+- When converting between types, prefer using the `from` method over `into` for clarity. The `from` method makes the target type explicit in the code, while `into` requires type inference.
+- For wrapper types like `Cow`, `Arc`, `Rc`, `Report`, and `Box`, prefer using explicit constructors (e.g., `Cow::from`, `Arc::new`) instead of `.into()`. This improves readability by clearly indicating the target type.
+
+
+## Smart Pointers
+
+- When cloning smart pointers such as `Arc` and `Rc`, **always** use `Arc::clone(&pointer)` and `Rc::clone(&pointer)` instead of `pointer.clone()`. This explicitly indicates you're cloning the reference, not the underlying data.
+
+## Instrumentation
+
+- Annotate functions that perform significant work with `#[tracing::instrument]`
+- Use `tracing` macros (e.g., `trace!`, `debug!`, `info!`, `warn!`, `error!`) instead of `println!` or `eprintln!` for logging
+
+## Allocations
+
+- Minimize allocations when possible. For example, reuse a `Vec` in a loop instead of creating a new one in each iteration.
+- Prefer borrowed data over owned data where appropriate.
+- Balance performance and readability—if an allocation makes code significantly more readable or maintainable, the trade-off may be worthwhile.
+
+## Types
+
+- Use newtypes when a value should carry specific semantics beyond its underlying type. This improves type safety and code clarity.
+
+For example:
+```rust
+struct UserId(u64);  // instead of `type UserId = u64;` or `u64`
+```
+
+## Naming Conventions
+
+When suggesting names for variables, functions, or types:
+
+- Do not prefix test-function names with `test_`, this would otherwise result in `test::test_<name>` names.
+- Provide a concise list of naming options with brief explanations of why each fits the context
+- Choose names of appropriate length—avoid names that are too long or too short
+- Avoid abbreviations unless they are widely recognized in the domain (e.g., `Http` or `Json` is acceptable, but `Ctx` instead of `Context` is not)
+- Do not suffix names with their types (e.g., use `users` instead of `usersList`)
+- Do not repeat the type name in variable names (e.g., use `user` instead of `userUser`)
+
 ## Crate Preferences
 
 - Use `similar_asserts` for test assertions
@@ -49,6 +107,6 @@ fn get_data(
 - Use `tracing` macros, not `log` macros
 - Prefer `tracing::instrument` for function instrumentation
 
-## Libraries and components
+## Libraries and Components
 
-- Integrations with third-party systems should be abstracted behind traits
+- Abstract integrations with third-party systems behind traits to maintain clean separation of concerns
