@@ -1,0 +1,32 @@
+---
+description: Rust Tracing Practices
+globs: "**/*.rs"
+alwaysApply: false
+---
+ # Rust Tracing Practices
+
+## Event Recording
+
+- Use level-specific macros: `info!`, `debug!`, `trace!`, `warn!`, `error!`
+- Provide structured data as named arguments when possible
+- Follow a consistent format for messages, starting with verbs
+- Add context with key-value pairs for automated processing:
+
+```rust
+tracing::info!(user_id = user.id, action = "login", "User logged in successfully");
+tracing::error!(error = %e, user_id = user.id, "Failed to authenticate user");
+```
+
+## Instrumentation
+
+- Use `#[tracing::instrument]` attribute on functions to automatically create spans
+- Include `err` parameter to capture error returns
+- Skip sensitive parameters with `skip(password)` or large parameters with `skip_all`
+- Add custom fields with `fields(request_id = req.id())`
+
+```rust
+#[tracing::instrument(level = "debug", err, skip(password), fields(user_id = user.id))]
+async fn authenticate_user(user: &User, password: &[u8]) -> Result<AuthToken, AuthError> {
+    // Implementation
+}
+```

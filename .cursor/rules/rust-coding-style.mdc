@@ -1,0 +1,54 @@
+---
+description: Rust Coding Style
+globs: "**/*.rs"
+alwaysApply: false
+---
+# Rust Coding Style
+
+## Project-Specific Patterns
+
+- Use the 2024 edition of Rust
+- Prefer `derive_more` over manual trait implementations
+- Feature flags in this codebase use the `#[cfg(feature = "...")]` pattern
+- Invoke `cargo clippy` with `--all-features` and `--all-targets` from the root
+- User `rustfmt` to format the code
+- Use `#[expect(lint, reason = "...")]` over `#[allow(lint)]`
+
+## Type System
+
+- Create strong types with newtype patterns for domain entities
+- Implement `hash_graph_types` traits for custom domain types
+- Consider visibility carefully (avoid unnecessary `pub`)
+
+```rust
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, derive_more::Display)]
+pub struct UserId(Uuid);
+```
+
+## Async Patterns
+
+- Use `impl Future<Output = T> + Send` in trait definitions
+- When returning futures from trait methods, use the async_trait pattern:
+
+```rust
+fn get_data(
+    &self,
+    id: String,
+) -> impl Future<Output = Result<Data, Report<DataError>>> + Send {
+    async move {
+        // Implementation
+    }
+}
+```
+
+## Crate Preferences
+
+- Use `similar_asserts` for test assertions
+- Use `insta` for snapshot tests
+- Use `test_log` for better test output (`#[test_log::test]`)
+- Use `tracing` macros, not `log` macros
+- Prefer `tracing::instrument` for function instrumentation
+
+## Libraries and components
+
+- Integrations with third-party systems should be abstracted behind traits

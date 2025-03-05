@@ -1,0 +1,60 @@
+---
+description: Rust Error Handling
+globs: "**/*.rs"
+alwaysApply: false
+---
+# Rust Error Handling Practices
+
+## Error Handling
+
+- Use error-stack (`Report<MyError>`) instead of anyhow or eyre for error handling
+- Use `Box<dyn Error>` only in tests or prototyping code
+- Use concrete error types with `Report<E>`, not `Report<Box<dyn Error>>`
+- Use error-stack macros for early returns:
+  - `ensure!(condition, MyError::SomeVariant)` (from `error_stack::ensure`)
+  - `bail!(MyError::SomeVariant)`
+- Import `Error` from `core::error::` instead of `std::error::`
+
+## Error Definition
+
+- Use `derive_more` for error traits, not thiserror:
+  ```rust
+  #[derive(Debug, derive_more::Display)]
+  #[display("Operation failed: {_variant}")]
+  pub enum MyCustomError {
+      #[display("Resource `{id}` not found")]
+      NotFound { id: String },
+      #[display("Operation timed out after {seconds}s")]
+      Timeout { seconds: u64 },
+  }
+
+  impl Error for MyCustomError {}
+  ```
+
+## Documentation
+
+- Always document errors with "# Errors" sections
+- Link error variants with `[`VariantName`]: ErrorType::VariantName`
+- Document panics with "# Panics" sections
+- Add concise "# Example" sections when possible:
+  ```rust
+  /// Does something important
+  ///
+  /// # Errors
+  ///
+  /// - [`NotFound`] if the resource doesn't exist
+  /// - [`Timeout`] if the operation times out
+  ///
+  /// [`NotFound`]: MyCustomError::NotFound
+  /// [`Timeout`]: MyCustomError::Timeout
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// let calculation = do_something()?;
+  ///
+  /// assert!(calculation);
+  /// # Ok::<(), Box<dyn core::error::Error>>(())
+  /// ```
+  ```
+- Avoid "# Parameters" and "# Returns" sections
