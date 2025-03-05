@@ -24,6 +24,7 @@ cedar-policy-core      = { workspace = true }
 cedar-policy-validator = { workspace = true }
 derive-where           = { workspace = true }
 derive_more            = { workspace = true, features = ["display", "error", "from"] }
+either                 = { workspace = true }
 futures                = { workspace = true }
 postgres-types         = { workspace = true, features = ["derive", "with-uuid-1"], optional = true }
 serde                  = { workspace = true, features = ["derive", "unstable"] }

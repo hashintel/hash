@@ -55,13 +55,6 @@ impl Resource<'_> {
             }),
         }
     }
-
-    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
-        match self {
-            Self::Entity(entity) => entity.to_cedar_entity(),
-            Self::EntityType(entity_type) => entity_type.to_cedar_entity(),
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
