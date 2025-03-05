@@ -16,7 +16,7 @@ use hash_graph_store::{
     entity_type::{
         ArchiveEntityTypeParams, ClosedDataTypeDefinition, CountEntityTypesParams,
         CreateEntityTypeParams, EntityTypeQueryPath, EntityTypeResolveDefinitions, EntityTypeStore,
-        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
+        GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
         GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
         GetEntityTypesResponse, IncludeEntityTypeOption, UnarchiveEntityTypeParams,
         UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
@@ -1071,48 +1071,63 @@ where
     async fn get_closed_multi_entity_types(
         &self,
         actor_id: AccountId,
-        params: GetClosedMultiEntityTypeParams,
-    ) -> Result<GetClosedMultiEntityTypeResponse, Report<QueryError>> {
-        let entity_type_ids = params
-            .entity_type_ids
-            .iter()
-            .map(EntityTypeUuid::from_url)
-            .collect::<Vec<_>>();
-        let response = self
-            .get_entity_types(
-                actor_id,
-                GetEntityTypesParams {
-                    filter: Filter::In(
-                        FilterExpression::Path {
-                            path: EntityTypeQueryPath::OntologyId,
-                        },
-                        ParameterList::EntityTypeIds(&entity_type_ids),
-                    ),
-                    temporal_axes: params.temporal_axes,
-                    include_drafts: params.include_drafts,
-                    after: None,
-                    limit: None,
-                    include_count: false,
-                    include_entity_types: Some(params.include_resolved.map_or(
-                        IncludeEntityTypeOption::Closed,
-                        IncludeEntityTypeOption::from,
-                    )),
-                    include_web_ids: false,
-                    include_edition_created_by_ids: false,
-                },
-            )
-            .await
-            .change_context(QueryError)?;
+        params: GetClosedMultiEntityTypesParams,
+    ) -> Result<GetClosedMultiEntityTypesResponse, Report<QueryError>> {
+        let mut response = GetClosedMultiEntityTypesResponse {
+            entity_types: Vec::new(),
+            definitions: None,
+        };
 
-        Ok(GetClosedMultiEntityTypeResponse {
-            entity_type: ClosedMultiEntityType::from_multi_type_closed_schema(
+        for entity_type_ids_batch in params.entity_type_ids {
+            let entity_type_ids = entity_type_ids_batch
+                .iter()
+                .map(EntityTypeUuid::from_url)
+                .collect::<Vec<_>>();
+
+            let entity_types_response = self
+                .get_entity_types(
+                    actor_id,
+                    GetEntityTypesParams {
+                        filter: Filter::In(
+                            FilterExpression::Path {
+                                path: EntityTypeQueryPath::OntologyId,
+                            },
+                            ParameterList::EntityTypeIds(&entity_type_ids),
+                        ),
+                        temporal_axes: params.temporal_axes.clone(),
+                        include_drafts: params.include_drafts,
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                        include_entity_types: Some(params.include_resolved.map_or(
+                            IncludeEntityTypeOption::Closed,
+                            IncludeEntityTypeOption::from,
+                        )),
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
+                    },
+                )
+                .await
+                .change_context(QueryError)?;
+
+            response.entity_types.push(
+                ClosedMultiEntityType::from_multi_type_closed_schema(
+                    entity_types_response
+                        .closed_entity_types
+                        .expect("Response should include closed entity types"),
+                )
+                .change_context(QueryError)?,
+            );
+
+            if let Some(definitions) = entity_types_response.definitions {
                 response
-                    .closed_entity_types
-                    .expect("Response should include closed entity types"),
-            )
-            .change_context(QueryError)?,
-            definitions: response.definitions,
-        })
+                    .definitions
+                    .get_or_insert_default()
+                    .extend_one(definitions);
+            }
+        }
+
+        Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip(self))]

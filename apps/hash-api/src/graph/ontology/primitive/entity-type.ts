@@ -6,8 +6,8 @@ import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
   EntityTypePermission,
-  GetClosedMultiEntityTypeParams,
-  GetClosedMultiEntityTypeResponse as GetClosedMultiEntityTypeResponseGraphApi,
+  GetClosedMultiEntityTypesParams,
+  GetClosedMultiEntityTypesResponse as GetClosedMultiEntityTypesResponseGraphApi,
   GetEntityTypesParams,
   GetEntityTypeSubgraphParams,
   ModifyRelationshipOperation,
@@ -29,7 +29,7 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   mapGraphApiClosedEntityTypesToClosedEntityTypes,
-  mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType,
+  mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes,
   mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
   mapGraphApiEntityTypesToEntityTypes,
   mapGraphApiSubgraphToSubgraph,
@@ -247,23 +247,23 @@ export const getClosedEntityTypes: ImpureGraphFunction<
   }));
 };
 
-export type GetClosedMultiEntityTypeResponse = Omit<
-  GetClosedMultiEntityTypeResponseGraphApi,
-  "entityType" | "definitions"
+export type GetClosedMultiEntityTypesResponse = Omit<
+  GetClosedMultiEntityTypesResponseGraphApi,
+  "entityTypes" | "definitions"
 > & {
-  entityType: ClosedMultiEntityType;
+  entityTypes: ClosedMultiEntityType[];
   definitions?: EntityTypeResolveDefinitions;
 };
 
-export const getClosedMultiEntityType: ImpureGraphFunction<
-  GetClosedMultiEntityTypeParams,
-  Promise<GetClosedMultiEntityTypeResponse>
+export const getClosedMultiEntityTypes: ImpureGraphFunction<
+  GetClosedMultiEntityTypesParams,
+  Promise<GetClosedMultiEntityTypesResponse>
 > = async ({ graphApi }, { actorId }, request) =>
   graphApi
-    .getClosedMultiEntityType(actorId, request)
+    .getClosedMultiEntityTypes(actorId, request)
     .then(({ data: response }) => ({
-      entityType: mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType(
-        response.entityType,
+      entityTypes: mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes(
+        response.entityTypes,
       ),
       definitions: response.definitions
         ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(

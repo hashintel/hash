@@ -61,7 +61,7 @@ use hash_graph_store::{
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
-        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
+        GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
         GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
         GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
         UpdateEntityTypesParams,
@@ -648,8 +648,8 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
     async fn get_closed_multi_entity_types(
         &self,
         actor_id: AccountId,
-        params: GetClosedMultiEntityTypeParams,
-    ) -> Result<GetClosedMultiEntityTypeResponse, Report<QueryError>> {
+        params: GetClosedMultiEntityTypesParams,
+    ) -> Result<GetClosedMultiEntityTypesResponse, Report<QueryError>> {
         self.store
             .get_closed_multi_entity_types(actor_id, params)
             .await

@@ -7,7 +7,7 @@ import {
   archiveEntityType,
   createEntityType,
   getClosedEntityTypes,
-  getClosedMultiEntityType,
+  getClosedMultiEntityTypes,
   getEntityTypeById,
   getEntityTypes,
   getEntityTypeSubgraph,
@@ -389,20 +389,24 @@ describe("Entity type CRU", () => {
       },
     )) as [ClosedEntityTypeWithMetadata, ...ClosedEntityTypeWithMetadata[]];
 
-    const { entityType: closedMultiEntityType, definitions } =
-      await getClosedMultiEntityType(graphContext, authentication, {
-        entityTypeIds: [
+    const {
+      entityTypes: [closedMultiEntityType],
+      definitions,
+    } = await getClosedMultiEntityTypes(graphContext, authentication, {
+      entityTypeIds: [
+        [
           systemEntityTypes.user.entityTypeId,
           systemEntityTypes.actor.entityTypeId,
         ],
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includeResolved: "resolved",
-      });
+      ],
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includeResolved: "resolved",
+    });
 
     // It's not specified how `required` is ordered, so we need to sort it before comparing
-    if (closedMultiEntityType.required) {
-      closedMultiEntityType.required.sort();
+    if (closedMultiEntityType!.required) {
+      closedMultiEntityType!.required.sort();
     }
 
     const allOf = atLeastOne(

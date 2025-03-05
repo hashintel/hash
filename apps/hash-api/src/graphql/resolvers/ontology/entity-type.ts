@@ -16,7 +16,7 @@ import {
   archiveEntityType,
   checkPermissionsOnEntityType,
   createEntityType,
-  getClosedMultiEntityType,
+  getClosedMultiEntityTypes,
   getEntityTypeSubgraph,
   getEntityTypeSubgraphById,
   unarchiveEntityType,
@@ -24,14 +24,14 @@ import {
   updateEntityTypes,
 } from "../../../graph/ontology/primitive/entity-type";
 import type {
-  GetClosedMultiEntityTypeResponse,
+  GetClosedMultiEntityTypesResponse,
   MutationArchiveEntityTypeArgs,
   MutationCreateEntityTypeArgs,
   MutationUnarchiveEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
   MutationUpdateEntityTypesArgs,
   QueryCheckUserPermissionsOnEntityTypeArgs,
-  QueryGetClosedMultiEntityTypeArgs,
+  QueryGetClosedMultiEntityTypesArgs,
   QueryGetEntityTypeArgs,
   QueryQueryEntityTypesArgs,
   ResolverFn,
@@ -151,15 +151,15 @@ export const getEntityTypeResolver: ResolverFn<
     ),
   );
 
-export const getClosedMultiEntityTypeResolver: ResolverFn<
-  Promise<GetClosedMultiEntityTypeResponse>,
+export const getClosedMultiEntityTypesResolver: ResolverFn<
+  Promise<GetClosedMultiEntityTypesResponse>,
   Record<string, never>,
   GraphQLContext,
-  QueryGetClosedMultiEntityTypeArgs
+  QueryGetClosedMultiEntityTypesArgs
 > = async (_, args, graphQLContext) => {
   const { entityTypeIds, includeDrafts, includeArchived } = args;
 
-  const { entityType, definitions } = await getClosedMultiEntityType(
+  const { entityTypes, definitions } = await getClosedMultiEntityTypes(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     {
@@ -179,7 +179,7 @@ export const getClosedMultiEntityTypeResolver: ResolverFn<
   }
 
   return {
-    closedMultiEntityType: entityType,
+    closedMultiEntityTypes: entityTypes,
     definitions,
   };
 };

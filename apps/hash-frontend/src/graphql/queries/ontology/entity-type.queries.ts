@@ -54,17 +54,17 @@ export const queryEntityTypesQuery = gql`
 `;
 
 export const getClosedMultiEntityTypeQuery = gql`
-  query getClosedMultiEntityType(
-    $entityTypeIds: [VersionedUrl!]!
+  query getClosedMultiEntityTypes(
+    $entityTypeIds: [[VersionedUrl!]!]!
     $includeArchived: Boolean = false
     $includeDrafts: Boolean = false
   ) {
-    getClosedMultiEntityType(
+    getClosedMultiEntityTypes(
       entityTypeIds: $entityTypeIds
       includeArchived: $includeArchived
       includeDrafts: $includeDrafts
     ) {
-      closedMultiEntityType
+      closedMultiEntityTypes
       definitions
     }
   }

@@ -33,7 +33,7 @@ export const useHandleTypeChanges = ({
   ) => void;
   setDraftLinksToArchive: Dispatch<SetStateAction<EntityId[]>>;
 }) => {
-  const { getClosedMultiEntityType } = useGetClosedMultiEntityType();
+  const { getClosedMultiEntityTypes } = useGetClosedMultiEntityType();
 
   return useCallback(
     async (change: {
@@ -57,7 +57,7 @@ export const useHandleTypeChanges = ({
         throw new Error("Entity not found in subgraph");
       }
 
-      const newTypeDetails = await getClosedMultiEntityType(entityTypeIds);
+      const newTypeDetails = await getClosedMultiEntityTypes(entityTypeIds);
 
       const outgoingLinks = getOutgoingLinksForEntity(
         entitySubgraph,
@@ -76,7 +76,11 @@ export const useHandleTypeChanges = ({
         }
       }
 
-      setDraftEntityTypesDetails(newTypeDetails);
+      setDraftEntityTypesDetails({
+        closedMultiEntityType: newTypeDetails.closedMultiEntityTypes[0]!,
+        closedMultiEntityTypesDefinitions:
+          newTypeDetails.closedMultiEntityTypesDefinitions,
+      });
 
       setDraftEntitySubgraph((prev) =>
         createDraftEntitySubgraph({
@@ -101,7 +105,7 @@ export const useHandleTypeChanges = ({
     },
     [
       entitySubgraph,
-      getClosedMultiEntityType,
+      getClosedMultiEntityTypes,
       setDraftEntityTypesDetails,
       setDraftEntitySubgraph,
       setDraftLinksToArchive,

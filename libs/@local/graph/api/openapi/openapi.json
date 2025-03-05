@@ -2103,7 +2103,7 @@
           "Graph",
           "EntityType"
         ],
-        "operationId": "get_closed_multi_entity_type",
+        "operationId": "get_closed_multi_entity_types",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -2119,7 +2119,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetClosedMultiEntityTypeParams"
+                "$ref": "#/components/schemas/GetClosedMultiEntityTypesParams"
               }
             }
           },
@@ -2131,7 +2131,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetClosedMultiEntityTypeResponse"
+                  "$ref": "#/components/schemas/GetClosedMultiEntityTypesResponse"
                 }
               }
             }
@@ -5759,7 +5759,7 @@
           }
         ]
       },
-      "GetClosedMultiEntityTypeParams": {
+      "GetClosedMultiEntityTypesParams": {
         "type": "object",
         "required": [
           "entityTypeIds",
@@ -5770,7 +5770,10 @@
           "entityTypeIds": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/VersionedUrl"
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
             }
           },
           "includeDrafts": {
@@ -5790,10 +5793,10 @@
         },
         "additionalProperties": false
       },
-      "GetClosedMultiEntityTypeResponse": {
+      "GetClosedMultiEntityTypesResponse": {
         "type": "object",
         "required": [
-          "entityType"
+          "entityTypes"
         ],
         "properties": {
           "definitions": {
@@ -5803,8 +5806,11 @@
               }
             ]
           },
-          "entityType": {
-            "$ref": "#/components/schemas/ClosedMultiEntityType"
+          "entityTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClosedMultiEntityType"
+            }
           }
         }
       },

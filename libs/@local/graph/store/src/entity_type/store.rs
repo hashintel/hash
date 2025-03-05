@@ -145,6 +145,16 @@ pub struct EntityTypeResolveDefinitions {
     pub entity_types: HashMap<VersionedUrl, PartialEntityType>,
 }
 
+impl Extend<Self> for EntityTypeResolveDefinitions {
+    fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
+        for definitions in iter {
+            self.data_types.extend(definitions.data_types);
+            self.property_types.extend(definitions.property_types);
+            self.entity_types.extend(definitions.entity_types);
+        }
+    }
+}
+
 impl EntityTypeResolveDefinitions {
     #[must_use]
     pub fn is_empty(&self) -> bool {
@@ -184,8 +194,8 @@ pub enum IncludeResolvedEntityTypeOption {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetClosedMultiEntityTypeParams {
-    pub entity_type_ids: Vec<VersionedUrl>,
+pub struct GetClosedMultiEntityTypesParams {
+    pub entity_type_ids: Vec<Vec<VersionedUrl>>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
@@ -195,8 +205,8 @@ pub struct GetClosedMultiEntityTypeParams {
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct GetClosedMultiEntityTypeResponse {
-    pub entity_type: ClosedMultiEntityType,
+pub struct GetClosedMultiEntityTypesResponse {
+    pub entity_types: Vec<ClosedMultiEntityType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub definitions: Option<EntityTypeResolveDefinitions>,
@@ -317,7 +327,7 @@ pub trait EntityTypeStore {
         params: GetEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<GetEntityTypesResponse, Report<QueryError>>> + Send;
 
-    /// Get the [`ClosedMultiEntityType`] specified by the [`GetClosedMultiEntityTypeParams`].
+    /// Get the [`ClosedMultiEntityType`] specified by the [`GetClosedMultiEntityTypesParams`].
     ///
     /// # Errors
     ///
@@ -325,8 +335,8 @@ pub trait EntityTypeStore {
     fn get_closed_multi_entity_types(
         &self,
         actor_id: AccountId,
-        params: GetClosedMultiEntityTypeParams,
-    ) -> impl Future<Output = Result<GetClosedMultiEntityTypeResponse, Report<QueryError>>> + Send;
+        params: GetClosedMultiEntityTypesParams,
+    ) -> impl Future<Output = Result<GetClosedMultiEntityTypesResponse, Report<QueryError>>> + Send;
 
     /// Update the definition of an existing [`EntityType`].
     ///

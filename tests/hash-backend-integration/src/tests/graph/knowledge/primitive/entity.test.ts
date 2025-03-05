@@ -14,7 +14,7 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createEntityType,
-  getClosedMultiEntityType,
+  getClosedMultiEntityTypes,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -319,24 +319,24 @@ describe("Entity CRU", () => {
       expect(entityTypeFromResponse).toBeDefined();
 
       const {
-        entityType: entityTypeFromGraph,
+        entityTypes: [entityTypeFromGraph],
         definitions: definitionsFromGraph,
-      } = await getClosedMultiEntityType(
+      } = await getClosedMultiEntityTypes(
         graphContext,
         { actorId: testUser.accountId },
         {
-          entityTypeIds: entity.metadata.entityTypeIds,
+          entityTypeIds: [entity.metadata.entityTypeIds],
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: false,
           includeResolved: "resolved",
         },
       );
 
-      if (entityTypeFromResponse.required && entityTypeFromGraph.required) {
+      if (entityTypeFromResponse.required && entityTypeFromGraph!.required) {
         // The `required` field is not sorted, so we need to sort it before comparing
         entityTypeFromResponse.required =
           entityTypeFromResponse.required.sort();
-        entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
+        entityTypeFromGraph!.required = entityTypeFromGraph!.required.sort();
       }
 
       for (const [id, schema] of Object.entries(
