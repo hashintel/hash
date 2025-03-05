@@ -67,8 +67,8 @@ const migrate: MigrationFunction = async ({
     },
     conversions: {
       [secondDataType.metadata.recordId.baseUrl]: {
-        from: { expression: ["/", "self", { const: 1000, type: "number" }] },
-        to: { expression: ["*", "self", { const: 1000, type: "number" }] },
+        from: { expression: ["*", "self", { const: 1000, type: "number" }] },
+        to: { expression: ["/", "self", { const: 1000, type: "number" }] },
       },
     },
     webShortname: "h",
@@ -85,8 +85,8 @@ const migrate: MigrationFunction = async ({
     },
     conversions: {
       [secondDataType.metadata.recordId.baseUrl]: {
-        from: { expression: ["/", "self", { const: 1000000, type: "number" }] },
-        to: { expression: ["*", "self", { const: 1000000, type: "number" }] },
+        from: { expression: ["*", "self", { const: 1000000, type: "number" }] },
+        to: { expression: ["/", "self", { const: 1000000, type: "number" }] },
       },
     },
     webShortname: "h",
@@ -103,8 +103,8 @@ const migrate: MigrationFunction = async ({
     },
     conversions: {
       [secondDataType.metadata.recordId.baseUrl]: {
-        from: { expression: ["*", "self", { const: 60, type: "number" }] },
-        to: { expression: ["/", "self", { const: 60, type: "number" }] },
+        from: { expression: ["/", "self", { const: 60, type: "number" }] },
+        to: { expression: ["*", "self", { const: 60, type: "number" }] },
       },
     },
     webShortname: "h",
@@ -121,8 +121,8 @@ const migrate: MigrationFunction = async ({
     },
     conversions: {
       [secondDataType.metadata.recordId.baseUrl]: {
-        from: { expression: ["*", "self", { const: 3600, type: "number" }] },
-        to: { expression: ["/", "self", { const: 3600, type: "number" }] },
+        from: { expression: ["/", "self", { const: 3600, type: "number" }] },
+        to: { expression: ["*", "self", { const: 3600, type: "number" }] },
       },
     },
     webShortname: "h",
@@ -139,8 +139,8 @@ const migrate: MigrationFunction = async ({
     },
     conversions: {
       [secondDataType.metadata.recordId.baseUrl]: {
-        from: { expression: ["*", "self", { const: 86400, type: "number" }] },
-        to: { expression: ["/", "self", { const: 86400, type: "number" }] },
+        from: { expression: ["/", "self", { const: 86400, type: "number" }] },
+        to: { expression: ["*", "self", { const: 86400, type: "number" }] },
       },
     },
     webShortname: "h",
@@ -156,8 +156,8 @@ const migrate: MigrationFunction = async ({
     },
     conversions: {
       [secondDataType.metadata.recordId.baseUrl]: {
-        from: { expression: ["*", "self", { const: 604800, type: "number" }] },
-        to: { expression: ["/", "self", { const: 604800, type: "number" }] },
+        from: { expression: ["/", "self", { const: 604800, type: "number" }] },
+        to: { expression: ["*", "self", { const: 604800, type: "number" }] },
       },
     },
     webShortname: "h",
@@ -174,8 +174,8 @@ const migrate: MigrationFunction = async ({
     },
     conversions: {
       [secondDataType.metadata.recordId.baseUrl]: {
-        from: { expression: ["*", "self", { const: 2629800, type: "number" }] },
-        to: { expression: ["/", "self", { const: 2629800, type: "number" }] },
+        from: { expression: ["/", "self", { const: 2629800, type: "number" }] },
+        to: { expression: ["*", "self", { const: 2629800, type: "number" }] },
       },
     },
     webShortname: "h",
@@ -193,9 +193,9 @@ const migrate: MigrationFunction = async ({
     conversions: {
       [secondDataType.metadata.recordId.baseUrl]: {
         from: {
-          expression: ["*", "self", { const: 31557600, type: "number" }],
+          expression: ["/", "self", { const: 31557600, type: "number" }],
         },
-        to: { expression: ["/", "self", { const: 31557600, type: "number" }] },
+        to: { expression: ["*", "self", { const: 31557600, type: "number" }] },
       },
     },
     webShortname: "h",
