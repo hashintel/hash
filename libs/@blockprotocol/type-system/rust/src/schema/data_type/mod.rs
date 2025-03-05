@@ -274,7 +274,7 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Null),
+                    ValueConstraints::Typed(Box::new(SingleValueConstraints::Null)),
                 ),
                 DataType::Boolean {
                     r#type: _,
@@ -283,7 +283,7 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Boolean),
+                    ValueConstraints::Typed(Box::new(SingleValueConstraints::Boolean)),
                 ),
                 DataType::Number {
                     r#type: _,
@@ -293,9 +293,9 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Number(
+                    ValueConstraints::Typed(Box::new(SingleValueConstraints::Number(
                         NumberSchema::Constrained(constraints),
-                    )),
+                    ))),
                 ),
                 DataType::NumberEnum {
                     r#type: _,
@@ -305,9 +305,9 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Number(NumberSchema::Enum {
-                        r#enum,
-                    })),
+                    ValueConstraints::Typed(Box::new(SingleValueConstraints::Number(
+                        NumberSchema::Enum { r#enum },
+                    ))),
                 ),
                 DataType::String {
                     r#type: _,
@@ -317,9 +317,9 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::String(
+                    ValueConstraints::Typed(Box::new(SingleValueConstraints::String(
                         StringSchema::Constrained(constraints),
-                    )),
+                    ))),
                 ),
                 DataType::StringEnum {
                     r#type: _,
@@ -329,9 +329,9 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::String(StringSchema::Enum {
-                        r#enum,
-                    })),
+                    ValueConstraints::Typed(Box::new(SingleValueConstraints::String(
+                        StringSchema::Enum { r#enum },
+                    ))),
                 ),
                 DataType::Object {
                     r#type: _,
@@ -340,7 +340,7 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Object),
+                    ValueConstraints::Typed(Box::new(SingleValueConstraints::Object)),
                 ),
                 DataType::Array {
                     r#type: _,
@@ -350,9 +350,9 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Array(
-                        ArraySchema::Constrained(constraints),
-                    )),
+                    ValueConstraints::Typed(Box::new(SingleValueConstraints::Array(
+                        ArraySchema::Constrained(Box::new(constraints)),
+                    ))),
                 ),
                 DataType::Tuple {
                     r#type: _,
@@ -362,8 +362,8 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Array(ArraySchema::Tuple(
-                        constraints,
+                    ValueConstraints::Typed(Box::new(SingleValueConstraints::Array(
+                        ArraySchema::Tuple(constraints),
                     ))),
                 ),
                 DataType::AnyOf {

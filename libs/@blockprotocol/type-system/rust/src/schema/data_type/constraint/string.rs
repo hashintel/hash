@@ -261,9 +261,9 @@ impl Constraint for StringSchema {
                         .try_collect_reports()
                         .change_context_lazy(|| {
                             ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
-                                ValueConstraints::Typed(SingleValueConstraints::String(
+                                ValueConstraints::Typed(Box::new(SingleValueConstraints::String(
                                     Self::Constrained(constraints.clone()),
-                                )),
+                                ))),
                             )
                         })?;
 
@@ -271,8 +271,8 @@ impl Constraint for StringSchema {
                     // should be caught by the schema validation, however, if this still happens
                     // we return an error as validating empty enum will always fail.
                     bail!(ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
-                        ValueConstraints::Typed(SingleValueConstraints::String(Self::Constrained(
-                            constraints
+                        ValueConstraints::Typed(Box::new(SingleValueConstraints::String(
+                            Self::Constrained(constraints),
                         ))),
                     ))
                 }
@@ -398,18 +398,18 @@ impl Constraint for StringConstraints {
                 ensure!(
                     lhs == rhs,
                     ResolveClosedDataTypeError::IncompatibleConstraints(
-                        ValueConstraints::Typed(SingleValueConstraints::String(
+                        ValueConstraints::Typed(Box::new(SingleValueConstraints::String(
                             StringSchema::Constrained(Self {
                                 format: Some(lhs),
                                 ..Self::default()
                             }),
-                        )),
-                        ValueConstraints::Typed(SingleValueConstraints::String(
+                        ))),
+                        ValueConstraints::Typed(Box::new(SingleValueConstraints::String(
                             StringSchema::Constrained(Self {
                                 format: Some(rhs),
                                 ..Self::default()
                             }),
-                        ))
+                        ))),
                     )
                 );
                 Some(lhs)
@@ -428,12 +428,14 @@ impl Constraint for StringConstraints {
             ensure!(
                 min_length <= max_length,
                 ResolveClosedDataTypeError::UnsatisfiableConstraint(ValueConstraints::Typed(
-                    SingleValueConstraints::String(StringSchema::Constrained(Self {
-                        min_length: Some(min_length),
-                        max_length: Some(max_length),
-                        ..Self::default()
-                    }),)
-                ),)
+                    Box::new(SingleValueConstraints::String(StringSchema::Constrained(
+                        Self {
+                            min_length: Some(min_length),
+                            max_length: Some(max_length),
+                            ..Self::default()
+                        }
+                    ))),
+                ))
             );
         }
 

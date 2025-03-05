@@ -30,7 +30,7 @@ impl From<AnyOfConstraints> for ValueConstraints {
             && constraints.any_of[0].description.is_none()
             && constraints.any_of[0].label.is_empty()
         {
-            Self::Typed(constraints.any_of.remove(0).constraints)
+            Self::Typed(Box::new(constraints.any_of.remove(0).constraints))
         } else {
             Self::AnyOf(constraints)
         }
