@@ -262,11 +262,7 @@ mod tests {
         let mut decoder = JsonLinesDecoder::<TestItem>::new();
 
         // Partial JSON (no closing brace)
-        #[expect(
-            clippy::string_lit_as_bytes,
-            reason = "BytesMut::from requires &[u8] slice"
-        )]
-        let mut buffer = BytesMut::from(r#"{"id":1,"name":"test"#.as_bytes());
+        let mut buffer = BytesMut::from(br#"{"id":1,"name":"test"#.as_slice());
 
         // Should return None (not enough data)
         assert!(
@@ -277,12 +273,21 @@ mod tests {
         );
 
         // Complete the JSON with correct structure and add newline
-        buffer.extend_from_slice(r#""}#.as_bytes());
+        buffer.extend_from_slice(br#""}"#);
         buffer.extend_from_slice(b"\n");
 
         // Now should decode successfully
-        let decoded_item = decoder.decode(&mut buffer).expect("Failed to decode").expect("No item decoded");
-        assert_eq!(TestItem { id: 1, name: "test".to_owned() }, decoded_item);
+        let decoded_item = decoder
+            .decode(&mut buffer)
+            .expect("Failed to decode")
+            .expect("No item decoded");
+        assert_eq!(
+            TestItem {
+                id: 1,
+                name: "test".to_owned()
+            },
+            decoded_item
+        );
     }
 
     #[test]
@@ -299,8 +304,7 @@ mod tests {
     fn test_decode_malformed_json() {
         // Setup
         let mut decoder = JsonLinesDecoder::<TestItem>::new();
-        #[expect(clippy::string_lit_as_bytes, reason = "BytesMut::from requires &[u8] slice")]
-        let mut buffer = BytesMut::from(r#"{"id":1,"name":test}"#.as_bytes());
+        let mut buffer = BytesMut::from(br#"{"id":1,"name":test}"#.as_slice());
         buffer.extend_from_slice(b"\n");
 
         // Attempt to decode malformed JSON
