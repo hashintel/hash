@@ -1,3 +1,19 @@
+//! High-precision numeric types based on arbitrary precision floating-point arithmetic.
+//!
+//! This module provides the [`Real`] type which offers high-precision arithmetic
+//! operations with arbitrary precision, suitable for financial calculations and
+//! scientific computing where precision is critical.
+//!
+//! The implementation is backed by the `dashu_float` crate's `DBig` type for
+//! arbitrary-precision floating-point arithmetic.
+//!
+//! # Features
+//!
+//! - Mathematical operations with arbitrary precision
+//! - Conversions to and from standard Rust numeric types
+//! - Serde serialization/deserialization support (with "serde" feature)
+//! - PostgreSQL compatibility (with "postgres" feature)
+
 #[cfg(feature = "postgres")]
 use core::error::Error;
 #[cfg(feature = "serde")]
@@ -13,16 +29,44 @@ use postgres_types::{FromSql, IsNull, ToSql, Type};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, de};
 
+/// Error that occurs when a value cannot be converted to a [`Real`].
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("Could not convert to a Real: {_0}")]
 pub struct ConversionError(dashu_base::ConversionError);
 
+/// A high-precision real number type backed by the `dashu_float::DBig` arbitrary-precision floating
+/// point.
+///
+/// `Real` provides:
+/// - High-precision numeric representation with a minimum precision of 64 bits
+/// - Mathematical operations with arbitrary-precision results
+/// - Conversions to and from standard Rust numeric types (i32, f32, f64)
+/// - Optional serialization/deserialization via Serde when the "serde" feature is enabled
+/// - Optional PostgreSQL integration when the "postgres" feature is enabled
+///
+/// # Examples
+///
+/// ```
+/// use hash_codec::numeric::Real;
+///
+/// let value = Real::from_natural(42, 0);
+/// let maybe_int = value.to_i32(); // Some(42)
+/// let float_val = value.to_f64(); // 42.0
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Real(dashu_float::DBig);
 
 const MIN_PRECISION: usize = 64;
 
 impl Real {
+    /// Creates a new `Real` from a natural number with given significand and exponent.
+    ///
+    /// Constructs a value representing: `significand * 10^exponent`
+    ///
+    /// # Arguments
+    ///
+    /// * `significand` - The significand (mantissa) of the real number
+    /// * `exponent` - The power of 10 to multiply the significand by
     #[must_use]
     pub const fn from_natural(significand: u32, exponent: isize) -> Self {
         #[expect(clippy::as_underscore, reason = "Type type differs between platforms")]
@@ -331,5 +375,55 @@ impl ops::Rem for &Real {
 
     fn rem(self, rhs: Self) -> Real {
         Real((&self.0).rem(&rhs.0))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_natural() {
+        let real = Real::from_natural(42, 0);
+        assert_eq!(real.to_i32(), Some(42));
+        assert!(
+            (real.to_f64() - 42.0).abs() < f64::EPSILON,
+            "Expected real.to_f64() to be approximately 42.0"
+        );
+    }
+
+    #[test]
+    fn test_operations() {
+        let value1 = Real::from_natural(10, 0);
+        let value2 = Real::from_natural(5, 0);
+
+        // Addition
+        let sum = value1.clone() + value2.clone();
+        assert_eq!(sum.to_i32(), Some(15));
+
+        // Subtraction
+        let diff = value1.clone() - value2.clone();
+        assert_eq!(diff.to_i32(), Some(5));
+
+        // Multiplication
+        let product = value1.clone() * value2.clone();
+        assert_eq!(product.to_i32(), Some(50));
+
+        // Division
+        let quotient = value1 / value2;
+        assert_eq!(quotient.to_i32(), Some(2));
+    }
+
+    #[test]
+    fn test_ordering() {
+        let value1 = Real::from_natural(10, 0);
+        let value2 = Real::from_natural(5, 0);
+        let value3 = Real::from_natural(10, 0);
+
+        assert!(value1 > value2);
+        assert!(value2 < value1);
+        assert_eq!(value1, value3);
+        assert!(value1 >= value3);
+        assert!(value1 <= value3);
     }
 }

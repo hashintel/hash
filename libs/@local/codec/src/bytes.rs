@@ -7,14 +7,33 @@ use error_stack::{Report, ResultExt as _};
 use serde::{Serialize, de::DeserializeOwned};
 use tokio_util::codec::{Decoder, Encoder, LinesCodec};
 
+/// Encodes types as JSON lines.
+///
+/// This encoder serializes values to JSON and appends a newline character,
+/// creating a stream of JSON lines that can be efficiently processed.
+///
+/// # Errors
+///
+/// Encoding can fail with `Report<io::Error>` in these cases:
+/// - if serialization to JSON fails
+/// - if writing to the buffer fails
 #[derive_where(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct JsonLinesEncoder<T> {
+    /// Phantom data to track the type parameter
     _marker: PhantomData<fn() -> T>,
 }
 
 impl<T: Serialize + Send + Sync + 'static> Encoder<T> for JsonLinesEncoder<T> {
     type Error = Report<io::Error>;
 
+    /// Encodes a value as a JSON line.
+    ///
+    /// Serializes the item to JSON and appends a newline character.
+    ///
+    /// # Errors
+    ///
+    /// - if serialization to JSON fails
+    /// - if writing to the buffer fails
     fn encode(&mut self, item: T, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let mut writer = dst.writer();
         serde_json::to_writer(&mut writer, &item)
@@ -25,14 +44,41 @@ impl<T: Serialize + Send + Sync + 'static> Encoder<T> for JsonLinesEncoder<T> {
     }
 }
 
+/// Decodes JSON lines into typed values.
+///
+/// This decoder reads lines from a byte stream, parses each line as JSON,
+/// and converts it to the specified type.
+///
+/// # Examples
+///
+/// ```
+/// use bytes::BytesMut;
+/// use hash_codec::bytes::JsonLinesDecoder;
+/// use serde::Deserialize;
+/// use tokio_util::codec::Decoder;
+///
+/// #[derive(Debug, Deserialize)]
+/// struct TestData {
+///     value: String,
+/// }
+///
+/// let mut decoder = JsonLinesDecoder::<TestData>::new();
+/// let mut buffer = BytesMut::from(r#"{"value":"test"}"#.as_bytes());
+/// let result = decoder.decode(&mut buffer);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 #[derive_where(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct JsonLinesDecoder<T> {
+    /// The underlying line decoder
     lines: LinesCodec,
+    /// Current line number for error reporting
     current_line: usize,
+    /// Phantom data to track the type parameter
     _marker: PhantomData<fn() -> T>,
 }
 
 impl<T> JsonLinesDecoder<T> {
+    /// Creates a new JSON lines decoder with default configuration.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -42,6 +88,11 @@ impl<T> JsonLinesDecoder<T> {
         }
     }
 
+    /// Creates a new JSON lines decoder with a maximum line length.
+    ///
+    /// # Arguments
+    ///
+    /// * `max_length` - The maximum allowed line length
     #[must_use]
     pub fn with_max_length(max_length: usize) -> Self {
         Self {
@@ -51,6 +102,7 @@ impl<T> JsonLinesDecoder<T> {
         }
     }
 
+    /// Returns the maximum line length that this decoder will accept.
     #[must_use]
     pub fn max_length(&self) -> usize {
         self.lines.max_length()
@@ -62,6 +114,13 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
     type Error = Report<io::Error>;
     type Item = T;
 
+    /// Decodes a JSON line into a value of type `T`.
+    ///
+    /// # Errors
+    ///
+    /// - if reading the line fails
+    /// - if the JSON content is invalid
+    /// - if the JSON doesn't match type `T`
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<T>, Self::Error> {
         self.lines
             .decode(src)
@@ -79,6 +138,13 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
             .transpose()
     }
 
+    /// Decodes any remaining data when the stream has ended.
+    ///
+    /// # Errors
+    ///
+    /// - if reading the line fails
+    /// - if the JSON content is invalid
+    /// - if the JSON doesn't match type `T`
     fn decode_eof(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         self.lines
             .decode_eof(buf)
@@ -94,5 +160,154 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
                     .attach_printable_lazy(|| line.clone())
             })
             .transpose()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde::{Deserialize, Serialize};
+
+    use super::*;
+
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    struct TestItem {
+        id: u32,
+        name: String,
+    }
+
+    #[test]
+    fn test_encode_decode_single_item() {
+        // Setup
+        let test_item = TestItem {
+            id: 1,
+            name: "test".to_owned(),
+        };
+        let mut encoder = JsonLinesEncoder::<TestItem>::default();
+        let mut decoder = JsonLinesDecoder::<TestItem>::new();
+        let mut buffer = BytesMut::new();
+
+        // Encode
+        encoder
+            .encode(test_item.clone(), &mut buffer)
+            .expect("Failed to encode");
+
+        // Decode
+        let decoded_item = decoder
+            .decode(&mut buffer)
+            .expect("Failed to decode")
+            .expect("No item decoded");
+
+        // Verify
+        assert_eq!(test_item, decoded_item);
+        assert!(
+            decoder
+                .decode(&mut buffer)
+                .expect("Failed to decode")
+                .is_none(),
+            "Should have no more items"
+        );
+    }
+
+    #[test]
+    fn test_encode_decode_multiple_items() {
+        // Setup
+        let test_items = vec![
+            TestItem {
+                id: 1,
+                name: "one".to_owned(),
+            },
+            TestItem {
+                id: 2,
+                name: "two".to_owned(),
+            },
+            TestItem {
+                id: 3,
+                name: "three".to_owned(),
+            },
+        ];
+
+        let mut encoder = JsonLinesEncoder::<TestItem>::default();
+        let mut decoder = JsonLinesDecoder::<TestItem>::new();
+        let mut buffer = BytesMut::new();
+
+        // Encode all items
+        for item in &test_items {
+            encoder
+                .encode(item.clone(), &mut buffer)
+                .expect("Failed to encode");
+        }
+
+        // Decode and verify each item
+        for expected_item in &test_items {
+            let decoded_item = decoder
+                .decode(&mut buffer)
+                .expect("Failed to decode")
+                .expect("No item decoded");
+            assert_eq!(expected_item, &decoded_item);
+        }
+
+        // Verify we've consumed everything
+        assert!(
+            decoder
+                .decode(&mut buffer)
+                .expect("Failed to decode")
+                .is_none(),
+            "Should have no more items"
+        );
+    }
+
+    #[test]
+    fn test_decode_incomplete_data() {
+        // Setup
+        let mut decoder = JsonLinesDecoder::<TestItem>::new();
+
+        // Partial JSON (no closing brace)
+        #[expect(
+            clippy::string_lit_as_bytes,
+            reason = "BytesMut::from requires &[u8] slice"
+        )]
+        let mut buffer = BytesMut::from(r#"{"id":1,"name":"test"#.as_bytes());
+
+        // Should return None (not enough data)
+        assert!(
+            decoder
+                .decode(&mut buffer)
+                .expect("Failed to decode")
+                .is_none()
+        );
+
+        // Complete the JSON with correct structure and add newline
+        buffer.extend_from_slice(r#""}#.as_bytes());
+        buffer.extend_from_slice(b"\n");
+
+        // Now should decode successfully
+        let decoded_item = decoder.decode(&mut buffer).expect("Failed to decode").expect("No item decoded");
+        assert_eq!(TestItem { id: 1, name: "test".to_owned() }, decoded_item);
+    }
+
+    #[test]
+    fn test_max_length() {
+        // Setup
+        let max_length = 20;
+        let decoder = JsonLinesDecoder::<TestItem>::with_max_length(max_length);
+
+        // Verify max length is set correctly
+        assert_eq!(max_length, decoder.max_length());
+    }
+
+    #[test]
+    fn test_decode_malformed_json() {
+        // Setup
+        let mut decoder = JsonLinesDecoder::<TestItem>::new();
+        #[expect(clippy::string_lit_as_bytes, reason = "BytesMut::from requires &[u8] slice")]
+        let mut buffer = BytesMut::from(r#"{"id":1,"name":test}"#.as_bytes());
+        buffer.extend_from_slice(b"\n");
+
+        // Attempt to decode malformed JSON
+        let result = decoder.decode(&mut buffer);
+
+        // Should return an error and discard it since we only care that it errors
+        let _: error_stack::Report<std::io::Error> =
+            result.expect_err("Expected a JSON parsing error");
     }
 }
