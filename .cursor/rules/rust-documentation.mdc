@@ -24,7 +24,7 @@ alwaysApply: false
 ### Error Documentation
 
 - Always document errors with an "# Errors" section for fallible functions
-- List each error variant with a bullet point starting with "if"
+- List each error variant with a bullet point
 - Link error variants with Rust's reference syntax `[`VariantName`]` for actual error types
 - For errors coming from external crates or generated via `Error::custom()`, use a simple description without links
 
@@ -48,7 +48,7 @@ For custom errors created at runtime (like validation errors):
 ```rust
 /// # Errors
 ///
-/// - if the input contains duplicate values
+/// - Returns a validation error if the input contains duplicate values
 pub fn validate_unique(values: &[String]) -> Result<(), Report<ValidationError>> {
 ```
 
