@@ -407,30 +407,79 @@ where
         Ok(())
     }
 
-    // #[tracing::instrument(level = "info", skip(self, entities))]
+    /// Resolves and builds closed type hierarchies for multiple sets of entity types.
+    ///
+    /// This function takes multiple sets of entity type IDs (each represented as a
+    /// `HashSet<VersionedUrl>`) and constructs a nested map structure representing the closed
+    /// type hierarchies for each combination of entity types within each set.
+    ///
+    /// # Algorithm
+    ///
+    /// 1. Collects all unique entity type IDs that need resolution
+    /// 2. Retrieves closed type information for all entity types in a single database query
+    /// 3. For each set of entity types, builds a nested hierarchy where:
+    ///    - The first entity type (sorted alphabetically) serves as the root of the hierarchy
+    ///    - Each subsequent entity type creates a deeper level in the hierarchy
+    ///    - Each level combines the schema information from all types in its path
+    ///
+    /// # Errors
+    ///
+    /// Returns a `QueryError` if:
+    /// - Database operations fail when retrieving closed entity type information
+    /// - Type resolution fails due to invalid entity type references
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # async fn example(store: &PostgresStore) -> Result<(), Box<dyn std::error::Error>> {
+    /// use std::collections::{HashMap, HashSet};
+    ///
+    /// use hash_graph::ontology::VersionedUrl;
+    ///
+    /// // Create sets of entity type IDs
+    /// let type_set_1: HashSet<VersionedUrl> = [
+    ///     "https://example.com/types/Person/1".parse()?,
+    ///     "https://example.com/types/Employee/1".parse()?,
+    /// ]
+    /// .into_iter()
+    /// .collect();
+    ///
+    /// let type_set_2: HashSet<VersionedUrl> = ["https://example.com/types/Organization/1".parse()?]
+    ///     .into_iter()
+    ///     .collect();
+    ///
+    /// // Resolve closed type hierarchies
+    /// let resolved_types = store
+    ///     .resolve_closed_multi_entity_types([&type_set_1, &type_set_2])
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     async fn resolve_closed_multi_entity_types(
         &self,
-        entities: impl IntoIterator<Item = &Entity> + Send,
+        entity_type_id_lists: impl IntoIterator<Item = impl IntoIterator<Item = &VersionedUrl>> + Send,
     ) -> Result<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>, Report<QueryError>> {
+        // Collect all unique entity type IDs that need resolution
         let mut entity_type_ids_to_resolve = HashSet::<&VersionedUrl>::new();
-        let all_multi_entity_type_ids = entities
+        let all_multi_entity_type_ids = entity_type_id_lists
             .into_iter()
-            .map(|entity| {
-                entity_type_ids_to_resolve.extend(entity.metadata.entity_type_ids.iter());
-                entity
-                    .metadata
-                    .entity_type_ids
-                    .iter()
-                    .collect::<BTreeSet<_>>()
+            .map(|entity_type_ids| {
+                entity_type_ids
+                    .into_iter()
+                    .inspect(|id| {
+                        entity_type_ids_to_resolve.insert(id);
+                    })
+                    .collect::<BTreeSet<&VersionedUrl>>()
             })
-            .collect::<Vec<_>>();
+            .collect::<Vec<BTreeSet<&VersionedUrl>>>();
 
-        let (entity_type_references, entity_type_uuids): (Vec<_>, Vec<_>) =
-            entity_type_ids_to_resolve
-                .into_iter()
-                .map(|entity_type_id| (EntityTypeUuid::from_url(entity_type_id), entity_type_id))
-                .unzip();
+        // Convert entity type IDs to database-specific UUID references
+        let (entity_type_references, entity_type_uuids) = entity_type_ids_to_resolve
+            .into_iter()
+            .map(|entity_type_id| (EntityTypeUuid::from_url(entity_type_id), entity_type_id))
+            .collect::<(Vec<_>, Vec<_>)>();
 
+        // Fetch all closed entity types in a single database query for efficiency
         let closed_types = entity_type_uuids
             .into_iter()
             .zip(
@@ -439,22 +488,26 @@ where
             )
             .collect::<HashMap<_, _>>();
 
+        // Build the nested hierarchical structure for each set of entity types
         let mut resolved_entity_types = HashMap::<VersionedUrl, ClosedMultiEntityTypeMap>::new();
         for entity_multi_type_ids in &all_multi_entity_type_ids {
+            // Get the first entity type to serve as the root of the hierarchy
             let mut entity_type_id_iter = entity_multi_type_ids.iter();
             let Some(first_entity_type_id) = entity_type_id_iter.next() else {
-                continue;
+                continue; // Skip empty sets
             };
+
+            // Create or retrieve the entry for the first entity type
             let (_, ref mut map) = resolved_entity_types
                 .raw_entry_mut()
-                .from_key(*first_entity_type_id)
+                .from_key(first_entity_type_id)
                 .or_insert_with(|| {
                     (
                         (*first_entity_type_id).clone(),
                         ClosedMultiEntityTypeMap {
                             schema: ClosedMultiEntityType::from_closed_schema(
                                 closed_types
-                                    .get(*first_entity_type_id)
+                                    .get(first_entity_type_id)
                                     .expect(
                                         "The entity type was already resolved, so it should be \
                                          present in the closed types",
@@ -466,17 +519,19 @@ where
                     )
                 });
 
+            // Process remaining entity types in the set, creating a nested structure
             for entity_type_id in entity_type_id_iter {
+                // For each additional entity type, create a deeper level in the hierarchy
                 let (_, new_map) = map
                     .inner
                     .raw_entry_mut()
-                    .from_key(*entity_type_id)
+                    .from_key(entity_type_id)
                     .or_insert_with(|| {
                         let mut closed_parent = map.schema.clone();
                         closed_parent
                             .add_closed_entity_type(
                                 closed_types
-                                    .get(*entity_type_id)
+                                    .get(entity_type_id)
                                     .expect(
                                         "The entity type was already resolved, so it should be \
                                          present in the closed types",
@@ -792,7 +847,9 @@ where
                 closed_multi_entity_types: if params.include_entity_types.is_some() {
                     Some(
                         self.resolve_closed_multi_entity_types(
-                            root_entities.iter().map(|(entity, _)| entity),
+                            root_entities
+                                .iter()
+                                .map(|(entity, _)| &entity.metadata.entity_type_ids),
                         )
                         .await?,
                     )
@@ -1526,8 +1583,14 @@ where
                 )]
                 closed_multi_entity_types: if params.include_entity_types.is_some() {
                     Some(
-                        self.resolve_closed_multi_entity_types(subgraph.vertices.entities.values())
-                            .await?,
+                        self.resolve_closed_multi_entity_types(
+                            subgraph
+                                .vertices
+                                .entities
+                                .values()
+                                .map(|entity| &entity.metadata.entity_type_ids),
+                        )
+                        .await?,
                     )
                 } else {
                     None

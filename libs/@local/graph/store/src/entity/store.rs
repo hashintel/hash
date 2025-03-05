@@ -186,11 +186,39 @@ pub struct GetEntitiesParams<'a> {
     pub include_type_titles: bool,
 }
 
+/// A recursive map structure representing a hierarchical combination of entity types.
+///
+/// This data structure stores the schema information for a combination of entity types,
+/// organized in a tree-like structure. Each level in the hierarchy represents the addition
+/// of one more entity type to the combination.
+///
+/// # Structure
+///
+/// - `schema`: Contains the combined closed type information for all entity types in the current
+///   path of the hierarchy
+/// - `inner`: Maps from additional entity types to deeper levels in the hierarchy, where each
+///   deeper level represents the schema when that entity type is added to the current combination
+///
+/// # Example Hierarchy
+///
+/// For entity types A, B, and C, the structure might look like:
+/// ```text
+/// A (schema: closed type for A)
+/// └── B (schema: combined closed type for A+B)
+///     └── C (schema: combined closed type for A+B+C)
+/// ```
+///
+/// This allows efficient lookup of type information for any combination of entity types
+/// by traversing the hierarchy from root to leaf, accumulating type constraints along the way.
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct ClosedMultiEntityTypeMap {
+    /// The combined schema information for all entity types in the current path.
     pub schema: ClosedMultiEntityType,
+
+    /// Maps from additional entity types to deeper levels in the hierarchy.
+    /// Each entry represents adding one more entity type to the current combination.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub inner: HashMap<VersionedUrl, Self>,
 }
