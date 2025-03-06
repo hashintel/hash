@@ -106,7 +106,6 @@
     "ws": "8.18.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.5-nightly.ff02a0b",
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@graphql-codegen/cli": "^5.0.3",
     "@graphql-codegen/introspection": "2.2.3",

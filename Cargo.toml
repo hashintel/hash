@@ -2,6 +2,9 @@
 default-members = [
     "apps/hash-graph",
 ]
+exclude = [
+    ".github/scripts/rust",
+]
 members = [
     "apps/hash-graph",
     "libs/@blockprotocol/type-system/rust",

@@ -10,7 +10,7 @@ on:
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
-  TURBO_REMOTE_ONLY: true
+  TURBO_CACHE: remote:rw
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -28,7 +28,11 @@ jobs:
           fetch-depth: 2
 
       - name: Install turbo
-        uses: ./.github/actions/install-turbo
+        uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
+        with:
+          install_args: node npm:turbo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Determine changed packages
         id: packages
@@ -67,8 +71,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Install turbo
-        uses: ./.github/actions/install-turbo
+      - name: Install tools
+        uses: ./.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -77,11 +83,9 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Sentry
-        run: yarn sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
+        run: sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
 
       - name: Build sourcemaps
         run: turbo run sentry:sourcemaps --env-mode=loose --filter "${{ matrix.name }}"

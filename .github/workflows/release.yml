@@ -16,10 +16,13 @@ jobs:
         with:
           token: ${{ secrets.MACHINE_USER_TOKEN }}
 
-      - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+      - name: Install tools
+        uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
 
       - name: Create Release Pull Request or Publish to npm
         uses: changesets/action@c8bada60c408975afd1a20b3db81d6eee6789308 # v1.4.9

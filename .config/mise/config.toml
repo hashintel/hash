@@ -1,3 +1,32 @@
+[env]
+_.file = [".env", ".env.local"]
+
 [tools]
-java = '24'
-node = '22.14.0'
+# Basic tools
+node        = { version = "22.14.0", postinstall = "corepack enable" }
+'npm:turbo' = "2.4.4"
+
+# Helper to install tools
+cargo-binstall = "1.10.22"
+uv             = "0.5.30"
+
+# Tools to compile the project
+'cargo:wasm-opt'  = "0.116.1"
+"cargo:wasm-pack" = "0.13.1"
+java              = "24"
+protoc            = "25.6"
+
+# CLI tools
+biome                  = "1.9.5-nightly.ff02a0b"
+"cargo:cargo-hack"     = "0.6.35"
+"cargo:cargo-insta"    = "1.42.1"
+"cargo:cargo-llvm-cov" = "0.6.16"
+"cargo:cargo-nextest"  = "0.9.80"
+just                   = "1.39.0"
+markdownlint-cli2      = "0.17.2"
+"npm:@napi-rs/cli"     = "2.18.4"
+"npm:@redocly/cli"     = "1.32.1"
+"npm:renovate"         = "39.166.0"
+"pipx:sqlfluff"        = "3.3.1"
+sentry-cli             = "2.41.1"
+taplo                  = "0.9.3"

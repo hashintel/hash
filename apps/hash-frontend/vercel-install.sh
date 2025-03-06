@@ -2,14 +2,6 @@
 
 set -euo pipefail
 
-touch ~/.bashrc
-
-# shellcheck disable=SC2016
-echo 'export PATH=/vercel/.local/bin:/usr/local/python/bin/:$PATH' >> ~/.bashrc
-
-# shellcheck disable=SC1090
-source ~/.bashrc
-
 echo "Changing dir to root"
 cd ../..
 
@@ -20,20 +12,13 @@ echo "installing mise"
 yum install -y yum-utils
 yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
 yum install -y mise
+eval "$(mise activate bash --shims)"
 
 echo "Installing prerequisites"
-yum install -y wget tar gzip jq
+mise install node npm:turbo java biome npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt
+mise use --global yq
+mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
 
-echo "Installing eget"
-curl https://zyedidia.github.io/eget.sh | sh
-
-# Setup TurboRepo and get a pruned src folder and lockfile
-echo "Installing turbo"
-npm install -g "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
-
-# Enable corepack
-echo "Enable corepack"
-corepack enable
 
 # TODO: investigate why producing a pruned repo results in a broken Vercel build
 #   update: Probably due to missing `patches/` folder, needs investigation
@@ -48,11 +33,6 @@ corepack enable
 #echo "Moving pruned repo back to root"
 #mv out/* .
 #rm out -r
-
-echo "Installing Rust"
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
-source "$HOME/.cargo/env"
-rustup toolchain install --profile minimal
 
 # Install the pruned dependencies
 

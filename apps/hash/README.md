@@ -64,9 +64,6 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
    docker buildx version
    ## ≥ 0.10.4
-
-   protoc --version
-   ## ≥ 25
    ```
 
    If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
@@ -82,14 +79,6 @@ See the [respective section in the parent README](../README.md#hash) for descrip
    ```
 
    It's also possible to install them manually, use the correct versions for these tools as specified in `.config/mise`.
-
-1. Enable [corepack](https://nodejs.org/api/corepack.html):
-
-   ```sh
-   corepack enable
-   ```
-
-   You might need to re-create your shell.
 
 1. Install dependencies:
 
