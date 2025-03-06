@@ -141,27 +141,6 @@ impl Validator<DataType> for DataTypeValidator {
 impl Validator<ClosedDataType> for DataTypeValidator {
     type Error = ValidateDataTypeError;
 
-    /// Validates a closed data type.
-    ///
-    /// Closed data types have already been validated during the closure process,
-    /// so this implementation simply wraps the value in a `Valid` container.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use type_system::schema::{DataTypeValidator, OntologyTypeResolver};
-    /// use type_system::{Valid, Validator};
-    ///
-    /// // Typically, you would create a closed data type using an OntologyTypeResolver
-    /// // and then validate it:
-    /// # /*
-    /// let resolver = OntologyTypeResolver::new(...);
-    /// let closed_data_type = resolver.resolve_data_type(&data_type_ref)?;
-    ///
-    /// let validator = DataTypeValidator;
-    /// let valid_closed_data_type = validator.validate_ref(&closed_data_type)?;
-    /// # */
-    /// ```
     fn validate_ref<'v>(
         &self,
         value: &'v ClosedDataType,
