@@ -238,7 +238,7 @@ jobs:
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `mise fix:biome` locally to apply autofixes.'
+            echo 'Try running `yarn fix:biome` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -344,7 +344,6 @@ jobs:
     needs: [setup, package, global]
     if: always()
     runs-on: ubuntu-latest
-    environment: dev
     steps:
       - name: Check setup script
         run: |
