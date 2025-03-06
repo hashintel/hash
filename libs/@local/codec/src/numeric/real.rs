@@ -392,9 +392,10 @@ impl ops::Rem for &Real {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "serde")]
     use serde_json::json;
 
-    use super::Real;
+    use super::*;
 
     #[test]
     fn from_natural() {
@@ -442,6 +443,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "serde")]
     fn serialization_deserialization() {
         let original = Real::from_natural(123, 0);
 
@@ -457,6 +459,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "serde")]
     fn deserialize_float_string() {
         // Test deserializing from a float string
         let value: Real = serde_json::from_value(json!(123.456))
@@ -469,6 +472,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "serde")]
     fn deserialize_integer_string() {
         // Test deserializing from an integer string
         let value: Real = serde_json::from_value(json!(42))
