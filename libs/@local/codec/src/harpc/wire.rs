@@ -1,16 +1,14 @@
 use core::marker::PhantomData;
 use std::io;
 
+use bytes::BytesMut;
 use error_stack::{Report, ResultExt as _};
 use harpc_wire_protocol::{
     codec::{Buffer, Decode, Encode},
     request::Request,
     response::Response,
 };
-use tokio_util::{
-    bytes::BytesMut,
-    codec::{Decoder, Encoder},
-};
+use tokio_util::codec::{Decoder, Encoder};
 
 /// Codec for encoding and decoding HaRPC (HASH RPC) wire protocol messages.
 ///
@@ -132,7 +130,13 @@ pub type ResponseCodec = ProtocolCodec<Response>;
 
 #[cfg(test)]
 mod tests {
-    use harpc_types::response_kind::ResponseKind;
+    use bytes::Bytes;
+    use harpc_types::{
+        procedure::{ProcedureDescriptor, ProcedureId},
+        response_kind::ResponseKind,
+        subsystem::{SubsystemDescriptor, SubsystemId},
+        version::Version,
+    };
     use harpc_wire_protocol::{
         payload::Payload,
         protocol::{Protocol, ProtocolVersion},
@@ -152,12 +156,13 @@ mod tests {
             header::ResponseHeader,
         },
     };
-    use tokio_util::bytes::BytesMut;
 
     use super::*;
 
     fn get_request_id() -> RequestId {
-        RequestIdProducer::new().produce()
+        // Create a new RequestId using the producer
+        let producer = RequestIdProducer::new();
+        producer.produce()
     }
 
     fn create_test_request() -> Request {
@@ -170,12 +175,12 @@ mod tests {
                 flags: RequestFlags::from(RequestFlag::BeginOfRequest),
             },
             body: RequestBody::Begin(RequestBegin {
-                subsystem: harpc_types::subsystem::SubsystemDescriptor {
-                    id: harpc_types::subsystem::SubsystemId::new(0x01_02),
-                    version: harpc_types::version::Version { major: 1, minor: 0 },
+                subsystem: SubsystemDescriptor {
+                    id: SubsystemId::new(1),
+                    version: Version { major: 0, minor: 1 },
                 },
-                procedure: harpc_types::procedure::ProcedureDescriptor {
-                    id: harpc_types::procedure::ProcedureId::new(0x03_04),
+                procedure: ProcedureDescriptor {
+                    id: ProcedureId::new(2),
                 },
                 payload: Payload::from_static(&[1, 2, 3, 4]),
             }),
@@ -210,7 +215,7 @@ mod tests {
         // Encode the request
         codec
             .encode(request.clone(), &mut buffer)
-            .expect("Failed to encode request");
+            .expect("should successfully encode request");
 
         // Verify buffer has enough data (at least the header)
         assert!(
@@ -221,8 +226,8 @@ mod tests {
         // Decode the request
         let decoded = codec
             .decode(&mut buffer)
-            .expect("Failed to decode")
-            .expect("No request decoded");
+            .expect("should successfully decode")
+            .expect("should have a decoded request");
 
         // Verify decoded request matches original
         assert_eq!(request.header.request_id, decoded.header.request_id);
@@ -255,7 +260,7 @@ mod tests {
         // Encode the response
         codec
             .encode(response.clone(), &mut buffer)
-            .expect("Failed to encode response");
+            .expect("should successfully encode response");
 
         // Verify buffer has enough data (at least the header)
         assert!(
@@ -266,8 +271,8 @@ mod tests {
         // Decode the response
         let decoded = codec
             .decode(&mut buffer)
-            .expect("Failed to decode")
-            .expect("No response decoded");
+            .expect("should successfully decode")
+            .expect("should have a decoded response");
 
         // Verify decoded response matches original
         assert_eq!(response.header.request_id, decoded.header.request_id);
@@ -299,7 +304,7 @@ mod tests {
         // Encode the request
         codec
             .encode(request, &mut buffer)
-            .expect("Failed to encode request");
+            .expect("should successfully encode request");
 
         // Save the full buffer
         let full_buffer = buffer.clone();
@@ -310,7 +315,7 @@ mod tests {
         // Try to decode from partial buffer (should return None)
         let result = codec
             .decode(&mut partial_buffer)
-            .expect("Failed to handle partial decode");
+            .expect("should handle partial decode without error");
 
         assert!(
             result.is_none(),
@@ -324,11 +329,189 @@ mod tests {
         // Try to decode from header-only buffer (should return None)
         let result = codec
             .decode(&mut header_only_buffer)
-            .expect("Failed to handle header-only decode");
+            .expect("should handle header-only decode without error");
 
         assert!(
             result.is_none(),
             "Partial decode should return None when buffer has incomplete payload"
         );
+    }
+
+    #[test]
+    fn zero_length_payload() {
+        // Setup
+        let mut codec = RequestCodec::new();
+        let mut buffer = BytesMut::new();
+
+        // Create a request with empty payload
+        let mut request = create_test_request();
+        if let RequestBody::Begin(begin) = &mut request.body {
+            begin.payload = Payload::from_static(&[]);
+        }
+
+        // Remember the request ID for verification
+        let request_id = request.header.request_id;
+        let subsystem_id;
+        let procedure_id;
+        let version;
+
+        if let RequestBody::Begin(begin) = &request.body {
+            subsystem_id = begin.subsystem.id;
+            procedure_id = begin.procedure.id;
+            version = begin.subsystem.version;
+        } else {
+            panic!("Unexpected request body type");
+        }
+
+        // Encode the request
+        codec
+            .encode(request, &mut buffer)
+            .expect("should successfully encode empty payload request");
+
+        // Decode the request
+        let decoded = codec
+            .decode(&mut buffer)
+            .expect("should successfully decode")
+            .expect("should have a decoded request");
+
+        // Verify decoded request has empty payload and matches original
+        assert_eq!(
+            decoded.header.request_id, request_id,
+            "Request ID should match"
+        );
+
+        if let RequestBody::Begin(begin) = &decoded.body {
+            assert_eq!(
+                begin.subsystem.id, subsystem_id,
+                "Subsystem ID should match"
+            );
+            assert_eq!(
+                begin.procedure.id, procedure_id,
+                "Procedure ID should match"
+            );
+            assert_eq!(begin.subsystem.version, version, "Version should match");
+            assert_eq!(
+                begin.payload.as_ref().len(),
+                0,
+                "Decoded request should have empty payload"
+            );
+        } else {
+            panic!("Decoded request body should be Begin");
+        }
+    }
+
+    #[test]
+    fn large_payload() {
+        // Create a request with a large payload (10KB)
+        let mut request = create_test_request();
+        let large_payload = vec![0xAA; 10_000];
+
+        if let RequestBody::Begin(begin) = &mut request.body {
+            // Use Payload::new with Bytes
+            begin.payload = Payload::new(Bytes::from(large_payload));
+        }
+
+        // Remember the request ID for verification
+        let request_id = request.header.request_id;
+
+        // Setup
+        let mut codec = RequestCodec::new();
+        let mut buffer = BytesMut::new();
+
+        // Encode the request
+        codec
+            .encode(request, &mut buffer)
+            .expect("should successfully encode request with large payload");
+
+        // Decode the request
+        let decoded = codec
+            .decode(&mut buffer)
+            .expect("should successfully decode")
+            .expect("should have a decoded request");
+
+        // Verify decoded request has correct large payload
+        assert_eq!(
+            decoded.header.request_id, request_id,
+            "Request ID should match"
+        );
+
+        if let RequestBody::Begin(begin) = &decoded.body {
+            assert_eq!(
+                begin.payload.as_ref().len(),
+                10_000,
+                "Decoded request should have 10000 bytes payload"
+            );
+            assert_eq!(
+                begin.payload.as_ref()[0],
+                0xAA,
+                "Payload should contain the expected data"
+            );
+        } else {
+            panic!("Decoded request body should be Begin");
+        }
+    }
+
+    #[test]
+    #[expect(
+        clippy::missing_asserts_for_indexing,
+        reason = "we assert buffer.len() > 31 before indexing"
+    )]
+    fn invalid_length_marker() {
+        // Setup
+        let mut codec = RequestCodec::new();
+        let request = create_test_request();
+
+        // Encode the request to get a valid byte buffer
+        let mut buffer = BytesMut::new();
+        codec
+            .encode(request, &mut buffer)
+            .expect("should successfully encode request");
+
+        // Ensure buffer is long enough before indexing
+        assert!(
+            buffer.len() > 31,
+            "Buffer should be longer than 31 bytes to access indices 30 and 31"
+        );
+
+        // Buffer now contains a valid request, corrupt the length marker
+        // The length marker is at bytes 30 and 31
+        // Set it to an impossibly large value that would exceed the actual buffer
+        buffer[30] = 0xFF;
+        buffer[31] = 0xFF;
+
+        // Attempt to decode with the corrupted length
+        let result = codec.decode(&mut buffer);
+
+        // The decode should return Ok(None) because we're handling incomplete data scenarios
+        // by returning None rather than an error, as is common in streaming decoders
+        assert!(
+            result.is_ok(),
+            "Should not return an error for corrupt length"
+        );
+        assert!(
+            result.expect("should be Ok").is_none(),
+            "Should return None for corrupt length"
+        );
+
+        // The buffer should remain untouched since we couldn't decode it
+        assert!(
+            !buffer.is_empty(),
+            "Buffer should not be consumed when length is invalid"
+        );
+    }
+
+    #[test]
+    fn decode_empty_buffer() {
+        // Setup
+        let mut codec = RequestCodec::new();
+        let mut buffer = BytesMut::new();
+
+        // Try to decode from empty buffer
+        let result = codec
+            .decode(&mut buffer)
+            .expect("should handle empty buffer without error");
+
+        // Should return None for empty buffer
+        assert!(result.is_none(), "Empty buffer should result in None");
     }
 }

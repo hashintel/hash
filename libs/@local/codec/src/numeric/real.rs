@@ -375,8 +375,9 @@ impl ops::Rem for &Real {
     }
 }
 
+#[cfg(test)]
 mod tests {
-    use super::Real;
+    use super::*;
 
     #[test]
     fn from_natural() {
@@ -421,5 +422,61 @@ mod tests {
         assert_eq!(value1, value3);
         assert!(value1 >= value3);
         assert!(value1 <= value3);
+    }
+
+    #[test]
+    fn serialization_deserialization() {
+        let original = Real::from_natural(123, 0);
+
+        // Serialize to string
+        let serialized = serde_json::to_string(&original).expect("Failed to serialize Real");
+
+        // Deserialize from string
+        let deserialized: Real =
+            serde_json::from_str(&serialized).expect("Failed to deserialize Real");
+
+        // Verify they're equal
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn deserialize_float_string() {
+        // Test deserializing from a float string
+        let value: Real =
+            serde_json::from_str("123.456").expect("Failed to deserialize float string");
+
+        assert!(
+            (value.to_f64() - 123.456).abs() < 0.000_001,
+            "Expected value.to_f64() to be approximately 123.456"
+        );
+    }
+
+    #[test]
+    fn deserialize_integer_string() {
+        // Test deserializing from an integer string
+        let value: Real = serde_json::from_str("42").expect("Failed to deserialize integer string");
+
+        assert_eq!(value.to_i32(), Some(42));
+    }
+
+    #[test]
+    fn integer_conversion_limits() {
+        // Test values that are beyond i32 range
+        let large_value = Real::from(i64::MAX);
+        assert_eq!(large_value.to_i32(), None); // Should be None as it's too large for i32
+
+        let neg_large_value = Real::from(i64::MIN);
+        assert_eq!(neg_large_value.to_i32(), None); // Should be None as it's too small for i32
+    }
+
+    #[test]
+    fn conversion_errors() {
+        // Test trying to convert a complex mathematical structure to a simple type
+
+        // Creating a value that's too large for f32
+        let large_value = Real::try_from(f64::MAX).expect("Failed to convert f64::MAX to Real");
+
+        // Should fail to give an accurate result
+        assert!(large_value.to_f32().is_infinite());
     }
 }

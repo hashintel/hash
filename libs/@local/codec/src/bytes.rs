@@ -191,20 +191,20 @@ mod tests {
         // Encode
         encoder
             .encode(test_item.clone(), &mut buffer)
-            .expect("Failed to encode");
+            .expect("should successfully encode");
 
         // Decode
         let decoded_item = decoder
             .decode(&mut buffer)
-            .expect("Failed to decode")
-            .expect("No item decoded");
+            .expect("should successfully decode")
+            .expect("should have a decoded item");
 
         // Verify
         assert_eq!(test_item, decoded_item);
         assert!(
             decoder
                 .decode(&mut buffer)
-                .expect("Failed to decode")
+                .expect("should successfully decode")
                 .is_none(),
             "Should have no more items"
         );
@@ -216,18 +216,17 @@ mod tests {
         let test_items = vec![
             TestItem {
                 id: 1,
-                name: "one".to_owned(),
+                name: "item1".to_owned(),
             },
             TestItem {
                 id: 2,
-                name: "two".to_owned(),
+                name: "item2".to_owned(),
             },
             TestItem {
                 id: 3,
-                name: "three".to_owned(),
+                name: "item3".to_owned(),
             },
         ];
-
         let mut encoder = JsonLinesEncoder::<TestItem>::default();
         let mut decoder = JsonLinesDecoder::<TestItem>::new();
         let mut buffer = BytesMut::new();
@@ -236,26 +235,20 @@ mod tests {
         for item in &test_items {
             encoder
                 .encode(item.clone(), &mut buffer)
-                .expect("Failed to encode");
+                .expect("should successfully encode");
         }
 
-        // Decode and verify each item
-        for expected_item in &test_items {
-            let decoded_item = decoder
-                .decode(&mut buffer)
-                .expect("Failed to decode")
-                .expect("No item decoded");
-            assert_eq!(expected_item, &decoded_item);
+        // Decode all items
+        let mut decoded_items = Vec::new();
+        while let Some(item) = decoder
+            .decode(&mut buffer)
+            .expect("should successfully decode")
+        {
+            decoded_items.push(item);
         }
 
-        // Verify we've consumed everything
-        assert!(
-            decoder
-                .decode(&mut buffer)
-                .expect("Failed to decode")
-                .is_none(),
-            "Should have no more items"
-        );
+        // Verify
+        assert_eq!(test_items, decoded_items);
     }
 
     #[test]
@@ -263,33 +256,26 @@ mod tests {
         // Setup
         let mut decoder = JsonLinesDecoder::<TestItem>::new();
 
-        // Partial JSON (no closing brace)
-        let mut buffer = BytesMut::from(br#"{"id":1,"name":"test"#.as_slice());
+        // Create incomplete JSON (missing closing quote and brace)
+        let mut buffer = BytesMut::from(&br#"{"id":1,"name":"incomplete"#[..]);
 
-        // Should return None (not enough data)
-        assert!(
-            decoder
-                .decode(&mut buffer)
-                .expect("Failed to decode")
-                .is_none()
-        );
-
-        // Complete the JSON with correct structure and add newline
-        buffer.extend_from_slice(br#""}"#);
-        buffer.extend_from_slice(b"\n");
-
-        // Now should decode successfully
-        let decoded_item = decoder
+        // Without a newline, the decoder should return None
+        let result = decoder
             .decode(&mut buffer)
-            .expect("Failed to decode")
-            .expect("No item decoded");
-        assert_eq!(
-            TestItem {
-                id: 1,
-                name: "test".to_owned()
-            },
-            decoded_item
-        );
+            .expect("should handle incomplete data without error");
+        assert!(result.is_none(), "Should not decode without newline");
+
+        // Add the closing quote, brace, and newline
+        buffer.extend_from_slice(b"\"}\n");
+
+        // Now it should decode successfully
+        let result = decoder
+            .decode(&mut buffer)
+            .expect("should successfully decode");
+        assert!(result.is_some(), "Should decode complete data");
+        let item = result.expect("should have a decoded item");
+        assert_eq!(item.id, 1);
+        assert_eq!(item.name, "incomplete");
     }
 
     #[test]
@@ -298,22 +284,89 @@ mod tests {
         let max_length = 20;
         let decoder = JsonLinesDecoder::<TestItem>::with_max_length(max_length);
 
-        // Verify max length is set correctly
-        assert_eq!(max_length, decoder.max_length());
+        // Verify max length setting
+        assert_eq!(decoder.max_length(), max_length);
     }
 
     #[test]
     fn decode_malformed_json() {
         // Setup
         let mut decoder = JsonLinesDecoder::<TestItem>::new();
-        let mut buffer = BytesMut::from(br#"{"id":1,"name":test}"#.as_slice());
-        buffer.extend_from_slice(b"\n");
 
-        // Attempt to decode malformed JSON
+        // Create malformed JSON (invalid syntax with missing quotes around name)
+        // The malformed part is that "name" is missing quotes - should be "name":"value"
+        let mut buffer = BytesMut::from(&b"{\"id\":1,name:\"test\"}\n"[..]);
+
+        // Try to decode the malformed JSON
         let result = decoder.decode(&mut buffer);
 
-        // Should return an error and discard it since we only care that it errors
-        let _: error_stack::Report<std::io::Error> =
-            result.expect_err("Expected a JSON parsing error");
+        // Expect an error for malformed JSON
+        assert!(result.is_err(), "Should return error for malformed JSON");
+        let err = result.expect_err("should have an error for malformed JSON");
+
+        // The error should contain a message about invalid JSON syntax
+        // The actual error message contains "key must be a string"
+        let err_string = format!("{err:?}");
+        assert!(
+            err_string.contains("key must be a string"),
+            "Error should indicate JSON parsing failure: {err_string}"
+        );
+    }
+
+    #[test]
+    fn decode_empty_buffer() {
+        // Setup
+        let mut decoder = JsonLinesDecoder::<TestItem>::new();
+        let mut buffer = BytesMut::new();
+
+        // Decode should return None for empty buffer
+        let result = decoder
+            .decode(&mut buffer)
+            .expect("should handle empty buffer without error");
+        assert!(result.is_none(), "Should return None for empty buffer");
+    }
+
+    #[test]
+    fn decode_eof_with_partial_data() {
+        // Setup
+        let mut decoder = JsonLinesDecoder::<TestItem>::new();
+        let mut buffer = BytesMut::from(&br#"{"id":1,"name":"incomplete"}"#[..]);
+
+        // Call decode_eof - should return the item even without a newline
+        let result = decoder
+            .decode_eof(&mut buffer)
+            .expect("should successfully decode at EOF");
+        assert!(result.is_some(), "Should decode partial data at EOF");
+        let item = result.expect("should have a decoded item");
+        assert_eq!(item.id, 1);
+        assert_eq!(item.name, "incomplete");
+    }
+
+    #[test]
+    fn decode_with_very_large_input() {
+        // Setup
+        let mut decoder = JsonLinesDecoder::<TestItem>::new();
+
+        // Create a large name (10KB)
+        let large_name = "x".repeat(10_000);
+        let test_item = TestItem {
+            id: 999,
+            name: large_name.clone(),
+        };
+
+        // Serialize to JSON manually
+        let mut json =
+            serde_json::to_string(&test_item).expect("should successfully serialize test item");
+        json.push('\n');
+        let mut buffer = BytesMut::from(json.as_bytes());
+
+        // Decode
+        let result = decoder
+            .decode(&mut buffer)
+            .expect("should successfully decode large input");
+        assert!(result.is_some(), "Should decode large input");
+        let item = result.expect("should have a decoded item");
+        assert_eq!(item.id, 999);
+        assert_eq!(item.name, large_name);
     }
 }

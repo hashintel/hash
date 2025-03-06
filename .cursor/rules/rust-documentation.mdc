@@ -165,6 +165,33 @@ pub trait EntityStore: Send + Sync {
 //! ```
 ```
 
+## Code Comments
+
+### Inline Comments
+
+- Place comments on separate lines above the code they describe, not on the same line
+- Use descriptive comments to explain "why", not just "what" the code does
+- For complex algorithms, add comments explaining the approach
+- Comments should not simply restate what is obvious from the code itself
+
+```rust
+// Bad:
+let result = calculate_sum(values); // Calculate the sum of values
+
+// Good:
+// Calculate the weighted sum to prioritize recent values
+let result = calculate_sum(values);
+```
+
+### Test Documentation
+
+For guidance on structuring test documentation and writing assertions, refer to the [Rust Testing Strategy](.cursor/rules/rust-testing-strategy.mdc) file.
+
+Key points:
+- Document test scenarios with clear comments
+- Use descriptive function names that explain the test scenario
+- Follow the project's assertion formatting standards
+
 ## Project-Specific Patterns
 
 ### Performance Notes
@@ -201,3 +228,4 @@ pub trait EntityStore: Send + Sync {
 - Use `#[cfg_attr(doc, doc = "...")]` for conditional documentation when appropriate
 - Apply `#[doc(hidden)]` for items that are public for technical reasons but not part of the public API
 - Support rustdoc search with descriptive wording in documentation
+- Use `cargo doc --no-deps --all-features` to verify documentation

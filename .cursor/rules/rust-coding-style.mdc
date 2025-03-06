@@ -10,7 +10,8 @@ alwaysApply: false
 - Use the 2024 edition of Rust
 - Prefer `derive_more` over manual trait implementations
 - Feature flags in this codebase use the `#[cfg(feature = "...")]` pattern
-- Invoke `cargo clippy` with `--all-features` and `--all-targets` from the root
+- Invoke `cargo clippy` with `--all-features`, `--all-targets`, and `--no-deps` from the root
+- Use `cargo doc --no-deps --all-features` for checking documentation
 - Use `rustfmt` to format the code
 - Use `#[expect(lint, reason = "...")]` over `#[allow(lint)]`
 
@@ -109,3 +110,24 @@ When suggesting names for variables, functions, or types:
 ## Libraries and Components
 
 - Abstract integrations with third-party systems behind traits to maintain clean separation of concerns
+
+## Comments and Assertions
+
+- Do not add comments after a line of code; place comments on separate lines above the code they describe
+- When using assertions, include descriptive messages using the optional description parameter rather than adding a comment
+- All `expect()` messages should follow the format "should ..." to clearly indicate the expected behavior
+
+For example:
+```rust
+// Bad:
+assert_eq!(result, expected); // This should match the expected value
+
+// Good:
+assert_eq!(result, expected, "Values should match expected output");
+
+// Bad:
+some_value.expect("The value is not None"); // This should never happen
+
+// Good:
+some_value.expect("should contain a valid value");
+```
