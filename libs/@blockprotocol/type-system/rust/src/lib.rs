@@ -223,12 +223,6 @@
 //!
 //! - `postgres` - Enables PostgreSQL integration
 //! - `utoipa` - Enables OpenAPI schema generation
-//!
-//! ## WebAssembly Support
-//!
-//! The crate includes WebAssembly support, allowing validation logic to run in browsers
-//! and other JavaScript environments. The WebAssembly interface uses TypeScript-compatible
-//! type definitions via the `tsify` crate.
 
 extern crate alloc;
 
