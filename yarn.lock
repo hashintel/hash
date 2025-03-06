@@ -12496,6 +12496,7 @@ __metadata:
   resolution: "@rust/hash-codec@workspace:libs/@local/codec"
   dependencies:
     "@rust/error-stack": "npm:0.5.0"
+    "@rust/harpc-types": "npm:0.0.0-private"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
