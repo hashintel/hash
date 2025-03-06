@@ -22,7 +22,7 @@ use crate::{
 /// A closed data type combines its own constraints with those inherited from parent
 /// data types (via `allOf` references). It represents the complete set of constraints
 /// and metadata that apply to a particular data type after resolution.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedDataType {
@@ -167,7 +167,7 @@ impl DataTypeResolveData {
 
     /// Returns an iterator over all inheritance relationships with their depths.
     ///
-    /// The iterator yields pairs of (DataTypeUuid, InheritanceDepth) for all
+    /// The iterator yields pairs of ([`DataTypeUuid`], [`InheritanceDepth`]) for all
     /// data types that this data type inherits from.
     pub fn inheritance_depths(&self) -> impl Iterator<Item = (DataTypeUuid, InheritanceDepth)> {
         self.inheritance_depths
