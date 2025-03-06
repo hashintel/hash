@@ -50,5 +50,5 @@ Types can reference other types, creating a graph of type dependencies:
 For detailed usage examples and API documentation, run:
 
 ```sh
-cargo doc --open
+cargo doc --all-features --open
 ```
