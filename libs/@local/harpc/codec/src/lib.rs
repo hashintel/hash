@@ -19,6 +19,17 @@ pub trait Codec: Encoder + Decoder {}
 
 impl<T> Codec for T where T: Encoder + Decoder {}
 
+/// A codec that separates encoding and decoding into two separate components.
+///
+/// This struct allows you to combine any encoder and decoder into a single codec
+/// that implements both the `Encoder` and `Decoder` traits. This is useful when
+/// you want to use different implementations for encoding and decoding while
+/// still using the structure as a unified codec.
+///
+/// # Type Parameters
+///
+/// * `E` - The encoder component type
+/// * `D` - The decoder component type
 pub struct SplitCodec<E, D> {
     pub encoder: E,
     pub decoder: D,

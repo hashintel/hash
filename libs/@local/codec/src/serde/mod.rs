@@ -1,3 +1,17 @@
+//! Serialization and deserialization utilities for various types.
+//!
+//! This module provides specialized serde implementations for various data types
+//! and common serialization/deserialization patterns used throughout the HASH platform.
+//!
+//! The module includes:
+//! - [`constant`]: Types that enforce constant values during deserialization
+//! - [`string_hash_map`]: Optimized string-keyed hash map serialization
+//! - [`unique_vec`]: Utilities for deserializing vectors with unique elements
+//! - Time format utilities for consistent date/time serialization
+//!
+//! Many utilities here are designed to improve validation during deserialization
+//! to ensure data integrity.
+
 #![expect(
     clippy::ref_option,
     reason = "serde requires &Option<_> not Option<&_>"
@@ -46,7 +60,8 @@ pub mod regex {
     /// - If the deserialization of the string fails.
     /// - If the regex pattern is invalid.
     pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Regex, D::Error> {
-        Regex::new(&String::deserialize(deserializer)?).map_err(serde::de::Error::custom)
+        let pattern = String::deserialize(deserializer)?;
+        Regex::new(&pattern).map_err(serde::de::Error::custom)
     }
 
     pub mod option {
