@@ -17,8 +17,8 @@ The Block Protocol Type System defines a structured approach to typing data. It 
 The type system is built around three primary concepts:
 
 1. **Data Types** - Primitive types like strings, numbers, booleans, arrays, and objects
-2. **Property Types** - Reusable definitions of properties with their own schema
-3. **Entity Types** - Definitions of entities with their property and relationship requirements
+1. **Property Types** - Reusable definitions of properties with their own schema
+1. **Entity Types** - Definitions of entities with their property and relationship requirements
 
 ### Validation
 
@@ -47,6 +47,6 @@ Types can reference other types, creating a graph of type dependencies:
 
 For detailed usage examples and API documentation, run:
 
-```
+```sh
 cargo doc --open
 ```

@@ -12,12 +12,31 @@ alwaysApply: false
 - Begin doc comments with a single-line summary of the item's purpose
 - Include a blank line after the summary line for longer documentation
 - Structure complex documentation with Markdown headers
+- Always use intra-doc links (`[`Item`]`) whenever referencing other items in the codebase
+- Prefer inline descriptions over section headers for parameters and return values
 
 ```rust
 /// Retrieves an entity by its UUID.
 ///
 /// Loads the entity from the store and verifies access permissions for the
-/// requesting account.
+/// requesting account. Returns an [`Entity`] object if found.
+```
+
+## Intra-Doc Links
+
+- Use intra-doc links (Rust's reference syntax) liberally to improve user experience
+- Link to every type, trait, function, or other item you mention in documentation
+- Use the full path for items from other modules: `[`crate::module::Item`]`
+- When referring to items in the current module, just use `[`Item`]`
+- Add reference link definitions at the bottom of the doc comment if needed
+
+```rust
+/// Updates the [`User`] in the system based on provided changes.
+///
+/// This process uses the [`UserUpdateStrategy`] to determine which fields to update
+/// and applies validations defined in [`validation::user`].
+///
+/// [`validation::user`]: crate::validation::user
 ```
 
 ## Special Documentation Sections
@@ -31,6 +50,9 @@ alwaysApply: false
 
 ```rust
 /// Creates a new web in the system.
+///
+/// This function registers a new web with the given parameters and ensures its
+/// uniqueness in the system.
 ///
 /// # Errors
 ///
@@ -47,6 +69,8 @@ pub fn create_web(&mut self) -> Result<WebId, Report<WebError>> {
 For custom errors created at runtime (like validation errors):
 
 ```rust
+/// Validates that all input values are unique.
+///
 /// # Errors
 ///
 /// - Returns a validation error if the input contains duplicate values
@@ -93,6 +117,22 @@ pub fn validate_unique(values: &[String]) -> Result<(), Report<ValidationError>>
 
 ## API Documentation
 
+### Function Documentation
+
+- Describe what the function does and why you would use it
+- Document parameters and return values inline as part of the main description
+- Avoid explicit "Parameters" and "Returns" sections
+- Use clear language about what the function returns
+- Link to relevant types using intra-doc links
+
+```rust
+/// Processes the input elements and returns a filtered collection.
+///
+/// Takes a collection of `input` elements, applies the `filter_fn` predicate
+/// to each, and returns a [`Vec`] containing only the elements that passed
+/// the filter condition.
+```
+
 ### Type Documentation
 
 - Document the purpose of the type and its invariants
@@ -105,6 +145,7 @@ pub fn validate_unique(values: &[String]) -> Result<(), Report<ValidationError>>
 /// A unique identifier for an entity in the system.
 ///
 /// This is a combination of the entity UUID and the web it belongs to.
+/// Used throughout the API to precisely reference entities.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EntityId {
     /// The UUID of the entity
@@ -123,8 +164,15 @@ pub struct EntityId {
 
 ```rust
 /// Represents a store for entity data.
+///
+/// Implementers of this trait provide storage and retrieval capabilities
+/// for [`Entity`] instances in the system. All implementations must ensure
+/// thread safety and handle concurrent access appropriately.
 pub trait EntityStore: Send + Sync {
     /// Retrieves an entity by its ID.
+    ///
+    /// Looks up the entity with the given `id` in the store and returns
+    /// it if found. 
     ///
     /// # Errors
     ///

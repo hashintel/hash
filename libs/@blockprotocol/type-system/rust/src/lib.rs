@@ -28,10 +28,187 @@
 //!
 //! ## Core Components
 //!
-//! - `Value` - A JSON-compatible value representation used throughout the system
-//! - `Validator` - A trait for implementing validation logic
-//! - `Valid<T>` - A wrapper that guarantees a value has been validated
-//! - `schema` module - Contains the definitions for data, property, and entity types
+//! - [`Value`] - A JSON-compatible value representation used throughout the system
+//! - [`Validator`] - A trait for implementing validation logic
+//! - [`Valid<T>`] - A wrapper that guarantees a value has been validated
+//! - [`schema`] module - Contains the definitions for data, property, and entity types
+//!
+//! ## Comprehensive Guide: Working with Types
+//!
+//! ### Creating and Validating Types
+//!
+//! The typical workflow for working with the type system follows these steps:
+//!
+//! ```
+//! use serde_json::json;
+//! use type_system::{
+//!     schema::{DataType, DataTypeValidator},
+//!     Valid, Validator, Value
+//! };
+//!
+//! // 1. Define a Type
+//! let number_type_json = json!({
+//!     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+//!     "kind": "dataType",
+//!     "$id": "https://example.com/types/data-type/positive-number/v/1",
+//!     "title": "Positive Number",
+//!     "description": "A number greater than zero",
+//!     "type": "number",
+//!     "exclusiveMinimum": 0,
+//!     "allOf": [
+//!        { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1" }
+//!     ]
+//! });
+//!
+//! // 2. Parse and create the type
+//! let number_type = serde_json::from_value::<DataType>(number_type_json)
+//!     .expect("Failed to parse data type");
+//!
+//! // 3. Create a validator
+//! let validator = DataTypeValidator;
+//!
+//! // 4. Validate the type definition itself
+//! let valid_number_type = validator.validate(number_type)
+//!     .expect("Type definition should be valid");
+//!
+//! // 5. Later, validate values against this type
+//! // (This would typically be done using a ClosedDataType - see below)
+//! ```
+//!
+//! ### Type Resolution
+//!
+//! Most non-trivial types reference other types. These references need to be resolved
+//! before validation:
+//!
+//! ```
+//! # use std::{
+//! #     collections::{BTreeSet, HashMap},
+//! #     sync::Arc,
+//! # };
+//! #
+//! # use serde_json::json;
+//! # use type_system::{
+//! #     Value,
+//! #     schema::{
+//! #         ClosedDataType, DataType, DataTypeReference, DataTypeUuid, InheritanceDepth,
+//! #         OntologyTypeResolver,
+//! #     },
+//! # };
+//! #
+//! # use crate::type_system::schema::ConstraintValidator;
+//! #
+//! # let number_type: DataType = serde_json::from_value(json!({
+//! #     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+//! #     "kind": "dataType",
+//! #     "type": "number",
+//! #     "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+//! #     "title": "Number",
+//! #     "description": "A numerical value",
+//! # }))?;
+//! let data_type_uuid = DataTypeUuid::from_url(&number_type.id);
+//!
+//! // Create a resolver with access to all available types
+//! let mut resolver = OntologyTypeResolver::default();
+//! resolver.add_unresolved_data_type(data_type_uuid, Arc::new(number_type.clone()));
+//!
+//! // Resolve references to create a closed (fully resolved) type
+//! let data_type_metadata = resolver.resolve_data_type_metadata(data_type_uuid)?;
+//! let closed_data_type = ClosedDataType::from_resolve_data(number_type, &data_type_metadata)?;
+//!
+//! // Now you can validate values against the closed type
+//! for constraint in closed_data_type.all_of {
+//!     assert!(constraint.is_valid(&Value::Number(42_i32.into())));
+//! }
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
+//!
+//! ### Type Validation Best Practices
+//!
+//! 1. **Separate Type Definition from Value Validation**
+//!    - First validate your type definitions
+//!    - Then use those validated types to validate values
+//!
+//! 2. **Handle Type Resolution Carefully**
+//!    - The type system supports recursive references
+//!    - Use [`schema::OntologyTypeResolver`] to handle reference resolution
+//!    - Cache resolved types when validating multiple values
+//!
+//! 3. **Use the Type Safety Guarantees**
+//!    - The [`Valid<T>`] wrapper ensures values have been validated
+//!    - Use pattern matching or deref to access the inner value
+//!    - Return [`Valid<T>`] from functions to propagate type safety
+//!
+//! ### Testing Types
+//!
+//! The crate provides special utilities for testing type definitions:
+//!
+//! ```
+//! use serde_json::json;
+//! use type_system::{
+//!     Value, Valid, Validator,
+//!     schema::{DataType, DataTypeValidator, ClosedDataType}
+//! };
+//!
+//! # // This shows how you might write tests for type validation
+//! # fn test_example() {
+//! // Define a simple data type for testing
+//! let data_type_json = json!({
+//!     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+//!     "kind": "dataType",
+//!     "type": "number",
+//!     "$id": "https://example.com/types/data-type/positive-number/v/1",
+//!     "title": "Positive Number",
+//!     "description": "A number greater than zero",
+//!     "exclusiveMinimum": 0,
+//!     "allOf": [
+//!         { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1" }
+//!     ]
+//! });
+//!
+//! // Test the type definition itself
+//! let data_type: DataType = serde_json::from_value(data_type_json)
+//!     .expect("Should parse data type definition");
+//!
+//! let validator = DataTypeValidator;
+//! let valid_type = validator.validate(data_type)
+//!     .expect("Type definition should be valid");
+//!
+//! // For testing value validation, you would normally use a ClosedDataType
+//! // Here's a simple example of how value validation might be tested:
+//! #
+//! # // In a real test, you would use a properly resolved ClosedDataType
+//! # // This is just for illustrative purposes
+//! # let constraint_validator = {
+//! #     struct NumberValidator;
+//! #     impl Validator<Value> for NumberValidator {
+//! #         type Error = &'static str;
+//! #         fn validate_ref<'v>(&self, value: &'v Value) -> Result<&'v Valid<Value>, Self::Error> {
+//! #             match value {
+//! #                 Value::Number(n) => {
+//! #                     if let Some(i) = n.to_i32() {
+//! #                         if i > 0 {
+//! #                             return Ok(Valid::new_ref_unchecked(value));
+//! #                         }
+//! #                     }
+//! #                     Err("Value must be a positive number")
+//! #                 },
+//! #                 _ => Err("Value must be a number")
+//! #             }
+//! #         }
+//! #     }
+//! #     NumberValidator
+//! # };
+//! #
+//! let valid_value = Value::Number(5_i32.into());
+//! let invalid_value = Value::Number((-1_i32).into());
+//!
+//! // Test validation
+//! let validated = constraint_validator.validate_ref(&valid_value)
+//!     .expect("Positive number should validate");
+//! assert!(constraint_validator.validate_ref(&invalid_value).is_err(),
+//!     "Negative number should fail validation");
+//! # }
+//! ```
 //!
 //! ## Validation Flow
 //!
@@ -40,7 +217,7 @@
 //! 1. Define types (data types, property types, entity types)
 //! 2. Create validators for those types
 //! 3. Validate input data against those types
-//! 4. Use the resulting `Valid<T>` wrapper to ensure type safety
+//! 4. Use the resulting [`Valid<T>`] wrapper to ensure type safety
 //!
 //! ## Features
 //!
@@ -50,7 +227,8 @@
 //! ## WebAssembly Support
 //!
 //! The crate includes WebAssembly support, allowing validation logic to run in browsers
-//! and other JavaScript environments.
+//! and other JavaScript environments. The WebAssembly interface uses TypeScript-compatible
+//! type definitions via the `tsify` crate.
 
 extern crate alloc;
 

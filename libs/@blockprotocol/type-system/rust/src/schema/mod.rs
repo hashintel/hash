@@ -51,6 +51,15 @@
 //! - [`PropertyTypeValidator`] validates property values against property types
 //! - [`EntityTypeValidator`] validates entity instances against entity types
 //!
+//! The validation process typically follows this pattern:
+//!
+//! 1. Parse the type definition from JSON/YAML using `serde`
+//! 2. Create a validator for the type
+//! 3. Validate input data against the type
+//! 4. Receive a [`Valid<T>`] wrapper for type-safe operations on validated data
+//!
+//! [`Valid<T>`]: crate::Valid
+//!
 //! # Resolution and Closure
 //!
 //! The type system supports references between types, requiring resolution:
