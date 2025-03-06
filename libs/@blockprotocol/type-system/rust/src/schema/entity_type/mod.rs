@@ -1,3 +1,120 @@
+//! # Entity Types
+//!
+//! This module defines entity types in the Block Protocol Type System. Entity types represent
+//! the highest level of abstraction in the type system and define the complete structure and
+//! constraints for entities in the graph.
+//!
+//! ## Core Concepts
+//!
+//! An [`EntityType`] defines:
+//!
+//! - A unique identifier (`$id`) as a [`VersionedUrl`]
+//! - A title, optional plural title, and description
+//! - Required and optional properties using [`PropertyType`] references
+//! - Links to other entity types, defining the entity graph structure
+//! - Inheritance from other entity types via `all_of` references
+//! - Optional display metadata like `label_property` and `icon`
+//!
+//! ## Entity Type Structure
+//!
+//! Entity types combine several key elements:
+//!
+//! 1. **Properties** - References to property types that define the entity's data structure
+//! 2. **Links** - References to other entity types that this entity can link to
+//! 3. **Inheritance** - References to parent entity types whose structure is inherited
+//!
+//! ## Inheritance and Composition
+//!
+//! Entity types support inheritance through the `all_of` field, which allows an entity type
+//! to extend one or more parent entity types. The resulting entity type includes:
+//!
+//! - All properties from parent entity types
+//! - All links from parent entity types
+//! - Additional properties and links defined directly on the entity type
+//!
+//! ## Resolution and Closure
+//!
+//! Entity types can reference property types, data types, and other entity types, creating
+//! a complex graph of dependencies. The [`ClosedEntityType`] represents an entity type with
+//! all references resolved, ready for validation.
+//!
+//! ## Validation Process
+//!
+//! The [`EntityTypeValidator`] validates entities against entity types:
+//!
+//! 1. It ensures all required properties are present
+//! 2. It validates each property value against its property type
+//! 3. It validates links against their link constraints
+//! 4. It applies constraints inherited from parent entity types
+//!
+//! ## Example
+//!
+//! A Person entity type with properties and links:
+//!
+//! ```
+//! use serde_json::json;
+//! use type_system::{
+//!     schema::EntityType,
+//!     url::BaseUrl,
+//! };
+//!
+//! // Define a Person entity type with properties and links
+//! let person_json = json!({
+//!     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+//!     "kind": "entityType",
+//!     "type": "object",
+//!     "$id": "https://example.com/types/entity-type/person/v/1",
+//!     "title": "Person",
+//!     "description": "A human being",
+//!     "properties": {
+//!         "https://example.com/types/property-type/name/": {
+//!             "$ref": "https://example.com/types/property-type/name/v/1"
+//!         },
+//!         "https://example.com/types/property-type/email/": {
+//!             "$ref": "https://example.com/types/property-type/email/v/1"
+//!         },
+//!         "https://example.com/types/property-type/age/": {
+//!             "$ref": "https://example.com/types/property-type/age/v/1"
+//!         }
+//!     },
+//!     "required": ["https://example.com/types/property-type/name/"],
+//!     "links": {
+//!         "https://example.com/types/entity-type/friend-of/v/1": {
+//!             "type": "array",
+//!             "items": {
+//!                 "oneOf": [
+//!                     { "$ref": "https://example.com/types/entity-type/person/v/1" }
+//!                 ]
+//!             }
+//!         }
+//!     }
+//! });
+//!
+//! // Parse the entity type
+//! let person = serde_json::from_value::<EntityType>(person_json).expect("Failed to parse entity type");
+//!
+//! // Check basic metadata
+//! assert_eq!(person.id.to_string(), "https://example.com/types/entity-type/person/v/1");
+//! assert_eq!(person.title, "Person");
+//!
+//! // Examine properties
+//! let properties = &person.constraints.properties;
+//! assert_eq!(properties.len(), 3);
+//!
+//! // Check if a specific property exists
+//! let name_url = BaseUrl::new("https://example.com/types/property-type/name/".to_string())
+//!     .expect("Should create a valid BaseUrl");
+//! assert!(properties.contains_key(&name_url), "Should contain the name property");
+//!
+//! // Check required properties
+//! let required = &person.constraints.required;
+//! assert!(required.contains(&name_url), "Name property should be required");
+//!
+//! // Check links
+//! let links = &person.constraints.links;
+//! assert_eq!(links.len(), 1, "Should have exactly one link type");
+//! ```
+
 pub use self::{
     closed::{
         ClosedEntityType, ClosedEntityTypeMetadata, ClosedMultiEntityType, EntityTypeResolveData,

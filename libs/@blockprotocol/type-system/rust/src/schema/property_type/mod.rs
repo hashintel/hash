@@ -1,3 +1,89 @@
+//! # Property Types
+//!
+//! This module defines property types in the Block Protocol Type System. Property types
+//! are reusable definitions that specify the structure and constraints for properties
+//! that can be attached to entities.
+//!
+//! ## Core Concepts
+//!
+//! A [`PropertyType`] defines:
+//!
+//! - A unique identifier (`id`) as a [`VersionedUrl`]
+//! - A title and optional plural title
+//! - A description of the property's purpose
+//! - A set of possible value structures via `one_of`
+//!
+//! ## Property Value Structures
+//!
+//! Property types can reference three different value structures:
+//!
+//! 1. **Data Type References** - Direct references to data types (e.g., a string or number)
+//! 2. **Property Type Objects** - Object structures with nested property type references
+//! 3. **Arrays of Property Values** - Collections of property values
+//!
+//! This flexibility allows for complex property definitions, from simple primitive values
+//! to nested structures and arrays.
+//!
+//! ## Example Use Cases
+//!
+//! - **Simple Properties**: A "name" property referencing a text data type
+//! - **Complex Properties**: A "contact" property with nested "email" and "phone" properties
+//! - **Array Properties**: A "tags" property containing an array of text values
+//!
+//! ## Validation Process
+//!
+//! The [`PropertyTypeValidator`] validates values against property types:
+//!
+//! 1. It checks if the value matches any of the `one_of` possibilities
+//! 2. For data type references, it delegates to the data type validator
+//! 3. For object structures, it validates each property against its definition
+//! 4. For arrays, it validates each item against the array item definition
+//!
+//! ## Type Resolution
+//!
+//! Property types can reference both data types and other property types, creating
+//! a network of dependencies that must be resolved during validation.
+//!
+//! ## Example
+//!
+//! A property type with multiple possible value types:
+//!
+//! ```
+//! use serde_json::json;
+//! use type_system::schema::PropertyType;
+//!
+//! // Define a property type that can be either a string or a number
+//! let user_id_json = json!({
+//!   "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+//!   "kind": "propertyType",
+//!   "$id": "https://example.com/types/property-type/user-id/v/1",
+//!   "title": "User ID",
+//!   "description": "An identifier for a user, which can be either a string or a number",
+//!   "oneOf": [
+//!     { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" },
+//!     { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1" }
+//!   ]
+//! });
+//!
+//! // Parse the property type
+//! let user_id = serde_json::from_value::<PropertyType>(user_id_json).expect("Failed to parse property type");
+//!
+//! // Check basic properties
+//! assert_eq!(user_id.id.to_string(), "https://example.com/types/property-type/user-id/v/1");
+//! assert_eq!(user_id.title, "User ID");
+//!
+//! // This property type accepts multiple data types via oneOf
+//! assert_eq!(user_id.one_of.len(), 2);
+//!
+//! // Demonstrate how to check data type references
+//! let data_refs = user_id.data_type_references();
+//! assert_eq!(data_refs.len(), 2);
+//!
+//! // Check there are no nested property types
+//! let property_refs = user_id.property_type_references();
+//! assert!(property_refs.is_empty());
+//! ```
+
 pub use self::{
     reference::PropertyTypeReference,
     validation::{PropertyTypeValidationError, PropertyTypeValidator},

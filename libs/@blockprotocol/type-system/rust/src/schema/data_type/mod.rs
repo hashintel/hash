@@ -1,3 +1,89 @@
+//! # Data Types
+//!
+//! This module defines the foundation of the Block Protocol Type System: data types.
+//! Data types specify the structure and constraints for values, similar to JSON Schema.
+//!
+//! ## Core Concepts
+//!
+//! A [`DataType`] defines:
+//!
+//! - A unique identifier (`$id`) as a [`VersionedUrl`]
+//! - The expected value type (string, number, boolean, null, array, object)
+//! - Constraints that values must satisfy (min/max, pattern, format, etc.)
+//! - Inheritance from other data types via `all_of` references
+//!
+//! ## Data Type Variants
+//!
+//! The system supports these primary data type variants:
+//!
+//! - `Null` - Represents the absence of a value
+//! - `Boolean` - True/false values
+//! - `Number` - Numeric values with optional constraints
+//! - `String` - Text values with optional constraints
+//! - `Array` - Ordered collections with item constraints
+//! - `Object` - Key-value structures
+//! - `AnyOf` - Union types representing one of several possible types
+//!
+//! ## Validation Process
+//!
+//! The [`DataTypeValidator`] is responsible for validating values against data types:
+//!
+//! 1. It checks that the value matches the expected type
+//! 2. It verifies all constraints are satisfied
+//! 3. It applies inherited constraints from referenced types
+//!
+//! ## Type Resolution
+//!
+//! Data types can reference other data types through `all_of`, creating a graph of dependencies.
+//! The [`ClosedDataType`] represents a data type with all references resolved, ready for
+//! validation.
+//!
+//! ## Example
+//!
+//! A data type with inheritance might be defined as:
+//!
+//! ```
+//! use serde_json::json;
+//! use type_system::schema::DataType;
+//!
+//! // Define a parent text data type
+//! let text_type_json = json!({
+//!     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+//!     "kind": "dataType",
+//!     "type": "string",
+//!     "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+//!     "title": "Text",
+//!     "description": "An ordered sequence of characters"
+//! });
+//!
+//! // Define an email type that inherits from text but adds constraints
+//! let email_type_json = json!({
+//!     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+//!     "kind": "dataType",
+//!     "type": "string",
+//!     "$id": "https://example.com/types/data-type/email/v/1",
+//!     "title": "Email",
+//!     "description": "An email address",
+//!     "format": "email",
+//!     "allOf": [
+//!         { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" }
+//!     ]
+//! });
+//!
+//! // Parse the data types
+//! let text_type = serde_json::from_value::<DataType>(text_type_json).expect("Failed to parse text type");
+//! let email_type = serde_json::from_value::<DataType>(email_type_json).expect("Failed to parse email type");
+//!
+//! // Check the inheritance relationship
+//! assert_eq!(text_type.id.to_string(), "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1");
+//! assert_eq!(email_type.id.to_string(), "https://example.com/types/data-type/email/v/1");
+//!
+//! // The email type inherits from the text type via allOf
+//! assert_eq!(email_type.all_of.len(), 1);
+//! let inherited_ref = email_type.all_of.iter().next().expect("Should have at least one inherited type");
+//! assert_eq!(inherited_ref.url, text_type.id);
+//! ```
+
 mod constraint;
 mod conversion;
 
