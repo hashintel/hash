@@ -1,6 +1,8 @@
 # Block Protocol Type System
 
-This crate implements the Block Protocol type system in Rust. It provides the foundation for defining, validating, and working with typed data in the HASH ecosystem.
+This crate implements the Block Protocol type system in Rust. It provides the foundation for defining, validating, and working with typed data in the HASH ecosystem. For details on the type system design, see the [Block Protocol Type System RFC](https://github.com/blockprotocol/blockprotocol/blob/main/rfcs/text/0352-graph-type-system.md).
+
+The corresponding TypeScript implementation can be found in the [`@blockprotocol/type-system`](../typescript) package. This crate is used to generate the TypeScript typings from the Rust implementation.
 
 ## Overview
 

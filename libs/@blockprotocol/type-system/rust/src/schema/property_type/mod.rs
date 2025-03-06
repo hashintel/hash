@@ -149,7 +149,7 @@ impl PropertyType {
     ///
     /// # Returns
     ///
-    /// A HashSet containing references to all data types directly or indirectly referenced
+    /// A [`HashSet`] containing references to all data types directly or indirectly referenced
     /// by this property type.
     ///
     /// # Examples
@@ -191,7 +191,7 @@ impl PropertyType {
     ///
     /// # Returns
     ///
-    /// A HashSet containing references to all property types directly or indirectly referenced
+    /// A [`HashSet`] containing references to all property types directly or indirectly referenced
     /// by this property type.
     ///
     /// # Examples
@@ -439,10 +439,8 @@ impl PropertyValueSchema for &PropertyType {
 }
 
 impl PropertyValueSchema for OneOfSchema<PropertyValues> {
-    /// Returns the possible property value structures from the OneOfSchema's `possibilities` field.
-    ///
-    /// For a [`OneOfSchema<PropertyValues>`], the possible value structures are stored
-    /// directly in its `possibilities` field.
+    /// Returns the possible property value structures from the [`OneOfSchema::possibilities`]
+    /// field.
     fn possibilities(&self) -> &[PropertyValues] {
         &self.possibilities
     }
