@@ -5,6 +5,53 @@
     expect(unreachable_pub, reason = "Used in the generated TypeScript types")
 )]
 
+//! # Block Protocol Type System
+//!
+//! This crate implements the [Block Protocol](https://blockprotocol.org) type system in Rust.
+//! It provides a comprehensive foundation for defining, validating, and working with typed data
+//! within the HASH ecosystem.
+//!
+//! ## Architecture Overview
+//!
+//! The type system is built around three core type abstractions, which form a hierarchical
+//! relationship:
+//!
+//! 1. **Data Types** - Define the structure and constraints for primitive values like strings,
+//!    numbers, booleans, as well as complex types like arrays and objects.
+//!
+//! 2. **Property Types** - Define reusable properties with their own validation schema. Property
+//!    types can reference data types or compose other property types.
+//!
+//! 3. **Entity Types** - Define complete entity structures with property and relationship
+//!    requirements. Entity types can inherit from other entity types and define links to other
+//!    entities.
+//!
+//! ## Core Components
+//!
+//! - `Value` - A JSON-compatible value representation used throughout the system
+//! - `Validator` - A trait for implementing validation logic
+//! - `Valid<T>` - A wrapper that guarantees a value has been validated
+//! - `schema` module - Contains the definitions for data, property, and entity types
+//!
+//! ## Validation Flow
+//!
+//! The validation process typically follows this pattern:
+//!
+//! 1. Define types (data types, property types, entity types)
+//! 2. Create validators for those types
+//! 3. Validate input data against those types
+//! 4. Use the resulting `Valid<T>` wrapper to ensure type safety
+//!
+//! ## Features
+//!
+//! - `postgres` - Enables PostgreSQL integration
+//! - `utoipa` - Enables OpenAPI schema generation
+//!
+//! ## WebAssembly Support
+//!
+//! The crate includes WebAssembly support, allowing validation logic to run in browsers
+//! and other JavaScript environments.
+
 extern crate alloc;
 
 pub mod url;
@@ -30,6 +77,28 @@ use hash_codec::numeric::Real;
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::Serialize as _;
 
+/// A JSON-compatible value type that can represent any valid JSON structure.
+///
+/// This enum is the fundamental data unit in the type system and is used throughout
+/// the validation process. It's designed to work well with serde for serialization/deserialization
+/// and can be used in both Rust and WebAssembly contexts.
+///
+/// # Examples
+///
+/// ```
+/// use std::collections::HashMap;
+///
+/// use type_system::Value;
+///
+/// // Create a simple string value
+/// let string_value = Value::String("Hello, world!".to_string());
+///
+/// // Create a more complex object value
+/// let mut obj = HashMap::new();
+/// obj.insert("greeting".to_string(), Value::String("Hello".to_string()));
+/// obj.insert("count".to_string(), Value::Number(42_i32.into()));
+/// let object_value = Value::Object(obj);
+/// ```
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -79,7 +148,40 @@ impl ToSql for Value {
     }
 }
 
+/// A trait for validating values against a schema or constraint.
+///
+/// The `Validator` trait is a core abstraction in the type system that enables validation
+/// of values against their respective schemas. Implementations of this trait handle the
+/// specific validation logic for different types (data types, property types, entity types).
+///
+/// The trait uses the `Valid<V>` wrapper to guarantee that values passing validation
+/// satisfy all constraints defined by the validator.
+///
+/// # Examples
+///
+/// ```
+/// use type_system::{Valid, Validator, Value};
+///
+/// // A simple validator that ensures a string value has a certain prefix
+/// struct PrefixValidator {
+///     prefix: String,
+/// }
+///
+/// impl Validator<Value> for PrefixValidator {
+///     type Error = &'static str;
+///
+///     fn validate_ref<'v>(&self, value: &'v Value) -> Result<&'v Valid<Value>, Self::Error> {
+///         if let Value::String(s) = value {
+///             if s.starts_with(&self.prefix) {
+///                 return Ok(Valid::new_ref_unchecked(value));
+///             }
+///         }
+///         Err("Value must be a string with the correct prefix")
+///     }
+/// }
+/// ```
 pub trait Validator<V>: Sync {
+    /// The error type returned when validation fails
     type Error;
 
     /// Validates a reference and return [`&Valid<V>`] if it is valid.
@@ -120,6 +222,40 @@ where
     }
 }
 
+/// A wrapper type that guarantees a value has been validated against a validator.
+///
+/// The `Valid<T>` type is a zero-cost abstraction that provides static guarantees
+/// that a value has passed validation. This is used throughout the type system to
+/// ensure type safety when working with validated data.
+///
+/// # Examples
+///
+/// ```
+/// use type_system::{Valid, Validator, Value};
+///
+/// // Example implementation of a simple validator
+/// struct AlwaysValidValidator;
+///
+/// impl Validator<Value> for AlwaysValidValidator {
+///     type Error = &'static str;
+///
+///     fn validate_ref<'v>(&self, value: &'v Value) -> Result<&'v Valid<Value>, Self::Error> {
+///         // This validator considers all values valid
+///         Ok(Valid::new_ref_unchecked(value))
+///     }
+/// }
+///
+/// // Using the validator to produce a Valid<Value>
+/// let validator = AlwaysValidValidator;
+/// let value = Value::String("example".to_string());
+///
+/// let valid_value = validator.validate(value).unwrap();
+///
+/// // Once validated, you can access the inner value with deref operators
+/// if let Value::String(s) = &*valid_value {
+///     assert_eq!(s, "example");
+/// }
+/// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct Valid<T> {
