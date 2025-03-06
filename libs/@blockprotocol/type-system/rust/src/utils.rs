@@ -3,6 +3,11 @@ mod wasm {
     use serde::{Deserialize, Serialize};
     use tsify::Tsify;
 
+    /// Sets up better error messages for WebAssembly panics.
+    ///
+    /// When compiled to WebAssembly, this function configures the panic hook
+    /// to provide more detailed error messages in the browser console when
+    /// Rust code panics. This should be called during initialization.
     #[cfg(debug_assertions)]
     pub fn set_panic_hook() {
         // When the `console_error_panic_hook` feature is enabled, we can call the

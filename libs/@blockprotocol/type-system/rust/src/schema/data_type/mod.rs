@@ -540,8 +540,13 @@ pub struct DataType {
     pub constraints: ValueConstraints,
 }
 
+/// Represents the type of relationship between data types.
+///
+/// Currently, only inheritance relationships are defined, representing
+/// the "is-a" relationship between data types.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DataTypeEdge {
+    /// Indicates that one data type inherits from another.
     Inheritance,
 }
 

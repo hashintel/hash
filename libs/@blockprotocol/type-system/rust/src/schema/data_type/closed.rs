@@ -17,7 +17,12 @@ use crate::{
     url::VersionedUrl,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// A fully resolved data type with all inherited constraints and metadata.
+///
+/// A closed data type combines its own constraints with those inherited from parent
+/// data types (via `allOf` references). It represents the complete set of constraints
+/// and metadata that apply to a particular data type after resolution.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedDataType {
@@ -38,6 +43,11 @@ pub struct ClosedDataType {
     pub r#abstract: bool,
 }
 
+/// Errors that can occur when resolving a data type into a closed form.
+///
+/// These errors represent various issues that may arise during the resolution process,
+/// such as ambiguous or missing metadata, incompatible or unsatisfiable constraints,
+/// or constraint validation failures.
 #[derive(Debug, Error)]
 pub enum ResolveClosedDataTypeError {
     #[error(
@@ -111,6 +121,11 @@ pub struct DataTypeResolveData {
 }
 
 impl DataTypeResolveData {
+    /// Adds an edge from this data type to a target data type.
+    ///
+    /// Records an inheritance relationship between this data type and the target,
+    /// storing both the target reference and the inheritance depth. If an edge to
+    /// the same target already exists, the minimum depth is kept.
     pub fn add_edge(
         &mut self,
         edge: DataTypeEdge,
@@ -131,6 +146,11 @@ impl DataTypeResolveData {
         }
     }
 
+    /// Extends this resolve data with edges from another resolve data instance.
+    ///
+    /// Merges inheritance relationships from the other instance into this one,
+    /// offsetting the depths by the specified amount. For duplicate edges, the
+    /// minimum depth is preserved.
     pub fn extend_edges(&mut self, depth_offset: u16, other: &Self) {
         for (target_id, (relative_depth, schema)) in &other.inheritance_depths {
             let absolut_depth = InheritanceDepth::new(relative_depth.inner() + depth_offset);
@@ -145,6 +165,10 @@ impl DataTypeResolveData {
         }
     }
 
+    /// Returns an iterator over all inheritance relationships with their depths.
+    ///
+    /// The iterator yields pairs of (DataTypeUuid, InheritanceDepth) for all
+    /// data types that this data type inherits from.
     pub fn inheritance_depths(&self) -> impl Iterator<Item = (DataTypeUuid, InheritanceDepth)> {
         self.inheritance_depths
             .iter()
@@ -199,6 +223,10 @@ impl DataTypeResolveData {
         Ok(found_schema_data.map(|(_, schema)| schema))
     }
 
+    /// Returns an iterator over all constraints from inherited data types.
+    ///
+    /// The iterator yields constraints in order of inheritance depth, with
+    /// shallower inheritance (lower depth values) coming first.
     pub fn constraints(&self) -> impl Iterator<Item = &ValueConstraints> {
         self.ordered_schemas()
             .map(|(_, schema)| &schema.constraints)
