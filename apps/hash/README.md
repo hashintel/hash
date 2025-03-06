@@ -80,6 +80,8 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
    It's also possible to install them manually, use the correct versions for these tools as specified in `.config/mise`.
 
+   After [installing mise](https://mise.jdx.dev/getting-started.html#installing-mise-cli) you will also need to set it to [automatically activate](https://mise.jdx.dev/getting-started.html#activate-mise) in your shell.
+
 1. Install dependencies:
 
    ```sh
