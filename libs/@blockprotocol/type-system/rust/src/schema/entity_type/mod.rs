@@ -95,6 +95,8 @@ pub struct EntityTypeDisplayMetadata {
 /// - Inheritance from other entity types via `all_of` references
 /// - Optional display metadata like `label_property` and `icon`
 ///
+/// [`PropertyType`]: crate::schema::PropertyType
+///
 /// ## Entity Type Structure
 ///
 /// Entity types combine several key elements:

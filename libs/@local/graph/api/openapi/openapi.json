@@ -9012,6 +9012,7 @@
       },
       "PropertyValueType": {
         "type": "string",
+        "description": "Categorizes property value structures by their basic structural type.\n\nThis enum provides a simple classification of the different kinds of property\nvalue structures in the Block Protocol type system. It's used by the\n[`PropertyValues::property_value_type`] method to indicate which variant a particular property\nvalue represents.",
         "enum": [
           "value",
           "array",
