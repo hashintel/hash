@@ -377,7 +377,9 @@ impl ops::Rem for &Real {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use serde_json::json;
+
+    use super::Real;
 
     #[test]
     fn from_natural() {
@@ -428,12 +430,12 @@ mod tests {
     fn serialization_deserialization() {
         let original = Real::from_natural(123, 0);
 
-        // Serialize to string
-        let serialized = serde_json::to_string(&original).expect("Failed to serialize Real");
+        // Serialize to value
+        let json_value = json!(original);
 
-        // Deserialize from string
+        // Deserialize from value
         let deserialized: Real =
-            serde_json::from_str(&serialized).expect("Failed to deserialize Real");
+            serde_json::from_value(json_value).expect("should deserialize Real successfully");
 
         // Verify they're equal
         assert_eq!(original, deserialized);
@@ -442,8 +444,8 @@ mod tests {
     #[test]
     fn deserialize_float_string() {
         // Test deserializing from a float string
-        let value: Real =
-            serde_json::from_str("123.456").expect("Failed to deserialize float string");
+        let value: Real = serde_json::from_value(json!(123.456))
+            .expect("should deserialize float value successfully");
 
         assert!(
             (value.to_f64() - 123.456).abs() < 0.000_001,
@@ -454,7 +456,8 @@ mod tests {
     #[test]
     fn deserialize_integer_string() {
         // Test deserializing from an integer string
-        let value: Real = serde_json::from_str("42").expect("Failed to deserialize integer string");
+        let value: Real = serde_json::from_value(json!(42))
+            .expect("should deserialize integer value successfully");
 
         assert_eq!(value.to_i32(), Some(42));
     }

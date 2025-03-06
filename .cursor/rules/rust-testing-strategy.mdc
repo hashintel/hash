@@ -69,6 +69,21 @@ alwaysApply: false
   - The expected outcome
   - Why the outcome is expected
 - Consider adding custom test utilities to simplify common testing patterns
+- Use the `json!` macro from `serde_json` instead of constructing JSON as raw strings
+
+```rust
+// Bad:
+let json_str = "{\"name\":\"value\",\"nested\":{\"key\":42}}";
+
+// Good:
+use serde_json::json;
+let json_value = json!({
+    "name": "value",
+    "nested": {
+        "key": 42
+    }
+});
+```
 
 ## Integration With Other Practices
 
