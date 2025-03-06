@@ -84,7 +84,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_const_bool_serialize() {
+    fn const_bool_serialize() {
         // Test serialization
         let value = ConstBool::<true>;
         let serialized = to_value(value).expect("Failed to serialize ConstBool<true>");
@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn test_const_bool_deserialize_success() {
+    fn const_bool_deserialize_success() {
         // Test successful deserialization
         let value: ConstBool<true> =
             from_value(json!(true)).expect("Failed to deserialize ConstBool<true>");
@@ -108,7 +108,7 @@ mod tests {
     }
 
     #[test]
-    fn test_const_bool_deserialize_failure() {
+    fn const_bool_deserialize_failure() {
         // Test failed deserialization
         let result = from_value::<ConstBool<true>>(json!(false));
         let _: serde_json::Error = result.expect_err("ConstBool<true> should reject false value");

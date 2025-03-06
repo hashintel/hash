@@ -1,0 +1,6 @@
+---
+description: Apply new rules
+globs: 
+alwaysApply: true
+---
+The user might ask to improve certain aspects on rules, such as a best-practice guideline. These guidelines are defined in `.cursor/rules/*.mdc`. Suggest adding new guidelines to these files to improve the code quality as we go.

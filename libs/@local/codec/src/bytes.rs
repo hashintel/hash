@@ -19,7 +19,8 @@ use tokio_util::codec::{Decoder, Encoder, LinesCodec};
 /// - if writing to the buffer fails
 #[derive_where(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct JsonLinesEncoder<T> {
-    /// Phantom data to track the type parameter
+    /// We use PhantomData with fn() -> T instead of just T to ensure the encoder
+    /// doesn't impose any bounds on T unnecessarily (making it covariant rather than invariant)
     _marker: PhantomData<fn() -> T>,
 }
 
@@ -73,7 +74,8 @@ pub struct JsonLinesDecoder<T> {
     lines: LinesCodec,
     /// Current line number for error reporting
     current_line: usize,
-    /// Phantom data to track the type parameter
+    /// We use PhantomData with fn() -> T instead of just T to ensure the decoder
+    /// doesn't impose any bounds on T unnecessarily (making it covariant rather than invariant)
     _marker: PhantomData<fn() -> T>,
 }
 
@@ -176,7 +178,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_decode_single_item() {
+    fn encode_decode_single_item() {
         // Setup
         let test_item = TestItem {
             id: 1,
@@ -209,7 +211,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_decode_multiple_items() {
+    fn encode_decode_multiple_items() {
         // Setup
         let test_items = vec![
             TestItem {
@@ -257,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_incomplete_data() {
+    fn decode_incomplete_data() {
         // Setup
         let mut decoder = JsonLinesDecoder::<TestItem>::new();
 
@@ -291,7 +293,7 @@ mod tests {
     }
 
     #[test]
-    fn test_max_length() {
+    fn max_length() {
         // Setup
         let max_length = 20;
         let decoder = JsonLinesDecoder::<TestItem>::with_max_length(max_length);
@@ -301,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_malformed_json() {
+    fn decode_malformed_json() {
         // Setup
         let mut decoder = JsonLinesDecoder::<TestItem>::new();
         let mut buffer = BytesMut::from(br#"{"id":1,"name":test}"#.as_slice());

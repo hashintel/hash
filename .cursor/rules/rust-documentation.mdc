@@ -167,33 +167,6 @@ pub trait EntityStore: Send + Sync {
 
 ## Project-Specific Patterns
 
-### Error-Stack Integration
-
-- Link to error types defined using error-stack
-- Document how errors propagate through the system
-- Use the `Report<E>` naming convention consistently
-
-```rust
-/// # Error Handling
-///
-/// This function returns a `Report<WebError>` that contains context about where
-/// and why the error occurred. Errors from lower-level operations are wrapped
-/// with appropriate context using `.change_context()`.
-```
-
-### Authorization Documentation
-
-- Document authorization requirements for functions that require them
-- Specify which permissions are needed for which operations
-
-```rust
-/// Creates a new entity.
-///
-/// # Authorization
-///
-/// Requires the `CreateEntity` permission on the web.
-```
-
 ### Performance Notes
 
 - Add "# Performance" sections for performance-critical functions

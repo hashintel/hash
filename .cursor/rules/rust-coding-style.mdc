@@ -27,8 +27,7 @@ pub struct UserId(Uuid);
 
 ## Async Patterns
 
-- Use `impl Future<Output = T> + Send` in trait definitions
-- When returning futures from trait methods, use the async_trait pattern:
+- Use `impl Future<Output = T> + Send` in trait definitions:
 
 ```rust
 fn get_data(

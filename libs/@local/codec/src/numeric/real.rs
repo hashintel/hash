@@ -375,12 +375,11 @@ impl ops::Rem for &Real {
     }
 }
 
-#[cfg(test)]
 mod tests {
-    use super::*;
+    use super::Real;
 
     #[test]
-    fn test_from_natural() {
+    fn from_natural() {
         let real = Real::from_natural(42, 0);
         assert_eq!(real.to_i32(), Some(42));
         assert!(
@@ -390,7 +389,7 @@ mod tests {
     }
 
     #[test]
-    fn test_operations() {
+    fn operations() {
         let value1 = Real::from_natural(10, 0);
         let value2 = Real::from_natural(5, 0);
 
@@ -412,7 +411,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ordering() {
+    fn ordering() {
         let value1 = Real::from_natural(10, 0);
         let value2 = Real::from_natural(5, 0);
         let value3 = Real::from_natural(10, 0);

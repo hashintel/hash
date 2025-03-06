@@ -36,7 +36,11 @@ use tokio_util::{
 /// let response_codec = ResponseCodec::new();
 /// ```
 #[derive(Debug)]
-pub struct ProtocolCodec<T>(PhantomData<fn() -> *const T>);
+pub struct ProtocolCodec<T>(
+    // We use PhantomData with fn() -> *const T to ensure proper variance for the type parameter
+    // without assuming ownership or other constraints on T
+    PhantomData<fn() -> *const T>,
+);
 
 impl<T> ProtocolCodec<T> {
     /// Creates a new protocol codec for encoding and decoding HaRPC messages.
@@ -195,7 +199,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_decode_request() {
+    fn encode_decode_request() {
         // Setup
         let mut codec = RequestCodec::new();
         let mut buffer = BytesMut::new();
@@ -240,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_decode_response() {
+    fn encode_decode_response() {
         // Setup
         let mut codec = ResponseCodec::new();
         let mut buffer = BytesMut::new();
@@ -284,7 +288,7 @@ mod tests {
     }
 
     #[test]
-    fn test_partial_decode() {
+    fn partial_decode() {
         // Setup
         let mut codec = RequestCodec::new();
         let mut buffer = BytesMut::new();
