@@ -172,7 +172,7 @@ pub trait EntityStore: Send + Sync {
     /// Retrieves an entity by its ID.
     ///
     /// Looks up the entity with the given `id` in the store and returns
-    /// it if found. 
+    /// it if found.
     ///
     /// # Errors
     ///
@@ -184,6 +184,55 @@ pub trait EntityStore: Send + Sync {
     fn get_entity(&self, id: EntityId) -> Result<Entity, Report<StoreError>>;
 
     // Additional methods...
+}
+
+```### Trait Documentation
+
+- Document the purpose and contract of the trait
+- Document each method, even if it seems self-explanatory
+- Specify implementation requirements in the trait documentation
+
+```rust
+/// Represents a store for entity data.
+///
+/// Implementers of this trait provide storage and retrieval capabilities
+/// for [`Entity`] instances in the system. All implementations must ensure
+/// thread safety and handle concurrent access appropriately.
+pub trait EntityStore: Send + Sync {
+    /// Retrieves an entity by its ID.
+    ///
+    /// Looks up the entity with the given `id` in the store and returns
+    /// it if found.
+    ///
+    /// # Errors
+    ///
+    /// - [`NotFound`] if the entity does not exist
+    /// - [`DatabaseError`] if the operation fails
+    ///
+    /// [`NotFound`]: StoreError::NotFound
+    /// [`DatabaseError`]: StoreError::Database
+    fn get_entity(&self, id: EntityId) -> Result<Entity, Report<StoreError>>;
+
+    // Additional methods...
+}
+```
+
+### Trait Implementation Documentation
+
+- Don't create documentation for trait implementations unless it adds more information than the trait documentation itself
+- Only document trait implementations when:
+  - The implementation has specific behavior beyond the trait's definition
+  - There are performance considerations users should be aware of
+  - The implementation has different failure modes or edge cases
+  - The implementation provides additional functionality beyond the trait contract
+
+```rust
+// Good Practice (No redundant docs)
+// No documentation here since it doesn't add any new information
+impl Default for Config {
+    fn default() -> Self {
+        // implementation...
+    }
 }
 ```
 
