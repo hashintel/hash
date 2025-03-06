@@ -2941,6 +2941,7 @@ dependencies = [
  "derive-where",
  "derive_more 2.0.1",
  "error-stack",
+ "harpc-types",
  "harpc-wire-protocol",
  "postgres-types",
  "regex",
