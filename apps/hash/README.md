@@ -207,24 +207,6 @@ Transactional emails templates are located in the following locations:
 To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app.
 Note that you will need valid AWS credentials for this email transporter to work.
 
-## Integration with the Block Protocol
-
-HASH is built around the open [Block Protocol](https://blockprotocol.org) ([@blockprotocol/blockprotocol](https://github.com/blockprotocol/blockprotocol) on GitHub).
-
-### Using blocks
-
-Blocks published to the [Þ Hub](https://blockprotocol.org/hub) can be run within HASH via the 'insert block' (aka. 'slash') menu.
-
-While running the app in development mode, you can also test local blocks out in HASH by going to any page, clicking on the menu next to an empty block, and pasting in the URL to your block's distribution folder (i.e. the one containing `block-metadata.json`, `block-schema.json`, and the block's code). If you need a way of serving your folder, try [`serve`](https://github.com/vercel/serve).
-
-### HASH blocks
-
-The code pertaining to HASH-developed blocks can be found in the [`/blocks` directory](https://github.com/hashintel/hash/tree/main/blocks) in the root of this monorepo.
-
-### Creating new blocks
-
-See the [Developing Blocks](https://blockprotocol.org/docs/developing-blocks) page in the [Þ Docs](https://blockprotocol.org/docs) for instructions on developing and publishing your own blocks.
-
 ## Development
 
 [//]: # "TODO: Pointers to where to update/modify code"

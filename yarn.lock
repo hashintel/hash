@@ -308,7 +308,7 @@ __metadata:
     eslint: "npm:9.20.1"
     exponential-backoff: "npm:3.1.2"
     googleapis: "npm:133.0.0"
-    gpt-tokenizer: "npm:2.8.1"
+    gpt-tokenizer: "npm:2.9.0"
     is-docker: "npm:3.0.0"
     jsdom: "npm:24.1.3"
     llamaindex: "npm:0.8.37"
@@ -316,7 +316,7 @@ __metadata:
     md5: "npm:2.3.0"
     mime-types: "npm:2.1.35"
     officeparser: "npm:4.2.0"
-    openai: "npm:4.86.1"
+    openai: "npm:4.86.2"
     openai-chat-tokens: "npm:0.2.8"
     papaparse: "npm:5.5.2"
     pdf2json: "npm:3.1.5"
@@ -432,7 +432,7 @@ __metadata:
     nanoid: "npm:3.3.8"
     nodemailer: "npm:6.10.0"
     oembed-providers: "npm:1.0.20241022"
-    openai: "npm:4.86.1"
+    openai: "npm:4.86.2"
     rimraf: "npm:6.0.1"
     ts-json-schema-generator: "npm:1.5.1"
     tsx: "npm:4.19.3"
@@ -833,7 +833,7 @@ __metadata:
     sass-loader: "npm:13.3.3"
     source-map-loader: "npm:3.0.2"
     style-loader: "npm:3.3.4"
-    terser-webpack-plugin: "npm:5.3.12"
+    terser-webpack-plugin: "npm:5.3.13"
     ts-loader: "npm:9.5.2"
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
     type-fest: "npm:3.13.1"
@@ -8855,11 +8855,13 @@ __metadata:
     "@sentry/browser": "npm:7.120.3"
     "@sindresorhus/slugify": "npm:1.1.2"
     "@temporalio/workflow": "npm:1.11.7"
+    "@types/big.js": "npm:6.2.2"
     "@types/lodash-es": "npm:4.17.12"
     "@types/node": "npm:22.13.9"
     "@types/pluralize": "npm:0.0.33"
     "@vitest/coverage-istanbul": "npm:3.0.7"
     apollo-server-express: "npm:3.9.0"
+    big.js: "npm:6.2.2"
     eslint: "npm:9.20.1"
     fix-esm-import-path: "npm:1.10.1"
     fractional-indexing: "npm:2.1.0"
@@ -16887,6 +16889,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/big.js@npm:6.2.2":
+  version: 6.2.2
+  resolution: "@types/big.js@npm:6.2.2"
+  checksum: 10c0/8f8472dfc1ef61c492e6841e86f8b9b97e5b024136bf7964e582a6a80ba73d4dbfd6cc23ed3b9d8fea69c7f30834fffd1c88e7fb981811f5c6ca608380b5ad67
+  languageName: node
+  linkType: hard
+
 "@types/body-parser@npm:*":
   version: 1.19.5
   resolution: "@types/body-parser@npm:1.19.5"
@@ -20885,6 +20894,13 @@ __metadata:
   version: 1.6.52
   resolution: "big-integer@npm:1.6.52"
   checksum: 10c0/9604224b4c2ab3c43c075d92da15863077a9f59e5d4205f4e7e76acd0cd47e8d469ec5e5dba8d9b32aa233951893b29329ca56ac80c20ce094b4a647a66abae0
+  languageName: node
+  linkType: hard
+
+"big.js@npm:6.2.2":
+  version: 6.2.2
+  resolution: "big.js@npm:6.2.2"
+  checksum: 10c0/58d204f6a1a92508dc2eb98d964e2cc6dabb37a3d9fc8a1f0b77a34dead7c11e17b173d9a6df2d5a7a0f78d5c80853a9ce6df29852da59ab10b088e981195165
   languageName: node
   linkType: hard
 
@@ -28426,10 +28442,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"gpt-tokenizer@npm:2.8.1, gpt-tokenizer@npm:^2.6.2":
-  version: 2.8.1
-  resolution: "gpt-tokenizer@npm:2.8.1"
-  checksum: 10c0/07229cca5a5ab8db0e1165b27f6ce400bf3509f1ab8946b2c3cddb51470e3bd1f3a56f750d564ee47a38885376bc9340291bfaec07858fdfb385f0445cf48e7e
+"gpt-tokenizer@npm:2.9.0, gpt-tokenizer@npm:^2.6.2":
+  version: 2.9.0
+  resolution: "gpt-tokenizer@npm:2.9.0"
+  checksum: 10c0/3733fbf045f81e71c475d0f2327e648600f5662079ef403a495efaed96fb20526877ee7f27dbee29ba73e8fa795b3405f07357fb4214abb84c5aae5be7ea902b
   languageName: node
   linkType: hard
 
@@ -36537,9 +36553,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openai@npm:4.86.1, openai@npm:^4.73.1":
-  version: 4.86.1
-  resolution: "openai@npm:4.86.1"
+"openai@npm:4.86.2, openai@npm:^4.73.1":
+  version: 4.86.2
+  resolution: "openai@npm:4.86.2"
   dependencies:
     "@types/node": "npm:^18.11.18"
     "@types/node-fetch": "npm:^2.6.4"
@@ -36558,7 +36574,7 @@ __metadata:
       optional: true
   bin:
     openai: bin/cli
-  checksum: 10c0/68e7d2ebd3cfae41e00dc05b3a2f5f9901e4e97de527408bdaa3fe30b93e4e63e68afb61f14f9606737b394136dd61ce09e21a64fa074a1b16be41377b4b1e52
+  checksum: 10c0/5cce259ba87e03d80cd24617152200e93b1bf1e3d92b7f69b3afae01d39f7fe19a40b9736d1846618774da0757506433361ebec5db8faae7bed2903c86ce8a2e
   languageName: node
   linkType: hard
 
@@ -43012,9 +43028,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"terser-webpack-plugin@npm:5.3.12, terser-webpack-plugin@npm:^5.3.1, terser-webpack-plugin@npm:^5.3.11":
-  version: 5.3.12
-  resolution: "terser-webpack-plugin@npm:5.3.12"
+"terser-webpack-plugin@npm:5.3.13, terser-webpack-plugin@npm:^5.3.1, terser-webpack-plugin@npm:^5.3.11":
+  version: 5.3.13
+  resolution: "terser-webpack-plugin@npm:5.3.13"
   dependencies:
     "@jridgewell/trace-mapping": "npm:^0.3.25"
     jest-worker: "npm:^27.4.5"
@@ -43030,7 +43046,7 @@ __metadata:
       optional: true
     uglify-js:
       optional: true
-  checksum: 10c0/b37e21bf4258603456617a88f81fa123c684f9bcd928719ada94d6b713cb3f7d726d69e642f565f67fac04ba7cab9179ebe5d5b8e2c4961afc9a7a8759ee580e
+  checksum: 10c0/87e3f0d1202c7bd6b62aa596ac373541a451cd0bfa0c622797c17be30d2399c791b7719571b39b23252d75460608e2d1ea30071c31e758fea9800cb2e172b744
   languageName: node
   linkType: hard
 

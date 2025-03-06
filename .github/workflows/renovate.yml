@@ -56,7 +56,7 @@ jobs:
     steps:
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@a1b77a09293a4366e48a5067a86692ac6e94fdc0 # v3.1.0
+        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
@@ -67,7 +67,7 @@ jobs:
 
       - name: Get token
         id: app-token
-        uses: actions/create-github-app-token@0d564482f06ca65fa9e77e2510873638c82206f2 # v1
+        uses: actions/create-github-app-token@21cfef2b496dd8ef5b904c159339626a10ad380e # v1
         with:
           app-id: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_ID }}
           private-key: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_PRIVATE_KEY }}

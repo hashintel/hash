@@ -437,35 +437,44 @@ export const EnumEditor = ({
     );
   }
 
-  const mergedSchema: MergedValueSchema = useMemo(
-    () => ({
+  const mergedSchema: MergedValueSchema = useMemo(() => {
+    /**
+     * For tracking the data type form state, we use exclusiveMinimum and exclusiveMaximum as booleans,
+     * but externally (and in current JSON Schema drafts), they are numbers.
+     */
+    const shouldBeExclusiveMinimum =
+      ownExclusiveMinimum ?? !!inheritedConstraints.minimum?.value.exclusive;
+    const shouldBeExclusiveMaximum =
+      ownExclusiveMaximum ?? !!inheritedConstraints.maximum?.value.exclusive;
+
+    const minimum = ownMinimum ?? inheritedConstraints.minimum?.value.value;
+    const maximum = ownMaximum ?? inheritedConstraints.maximum?.value.value;
+
+    return {
       format: ownFormat ?? inheritedConstraints.format?.value,
-      minimum: ownMinimum ?? inheritedConstraints.minimum?.value.value,
-      maximum: ownMaximum ?? inheritedConstraints.maximum?.value.value,
-      exclusiveMinimum:
-        ownExclusiveMinimum ?? inheritedConstraints.minimum?.value.exclusive,
-      exclusiveMaximum:
-        ownExclusiveMaximum ?? inheritedConstraints.maximum?.value.exclusive,
+      minimum: shouldBeExclusiveMinimum ? undefined : minimum,
+      maximum: shouldBeExclusiveMaximum ? undefined : maximum,
+      exclusiveMinimum: shouldBeExclusiveMinimum ? minimum : undefined,
+      exclusiveMaximum: shouldBeExclusiveMaximum ? maximum : undefined,
       multipleOf: ownMultipleOf
         ? [ownMultipleOf]
         : inheritedConstraints.multipleOf?.map(({ value }) => value),
       minLength: ownMinLength ?? inheritedConstraints.minLength?.value,
       maxLength: ownMaxLength ?? inheritedConstraints.maxLength?.value,
       type,
-    }),
-    [
-      ownFormat,
-      ownMinLength,
-      ownMaxLength,
-      ownMinimum,
-      ownMaximum,
-      ownExclusiveMinimum,
-      ownExclusiveMaximum,
-      ownMultipleOf,
-      inheritedConstraints,
-      type,
-    ],
-  );
+    };
+  }, [
+    ownFormat,
+    ownMinLength,
+    ownMaxLength,
+    ownMinimum,
+    ownMaximum,
+    ownExclusiveMinimum,
+    ownExclusiveMaximum,
+    ownMultipleOf,
+    inheritedConstraints,
+    type,
+  ]);
 
   useEffect(() => {
     for (const [index, value] of (items ?? []).entries()) {

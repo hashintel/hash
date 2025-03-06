@@ -153,7 +153,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@a1b77a09293a4366e48a5067a86692ac6e94fdc0 # v3.1.0
+        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -302,7 +302,7 @@ jobs:
       - name: Authenticate Vault
         id: secrets
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: hashicorp/vault-action@a1b77a09293a4366e48a5067a86692ac6e94fdc0 # v3.1.0
+        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}

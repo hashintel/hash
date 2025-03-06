@@ -1,3 +1,5 @@
+use core::fmt;
+
 use cedar_policy_core::ast;
 
 use super::{
@@ -6,7 +8,7 @@ use super::{
 };
 use crate::policies::cedar::CedarEntityId as _;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(
     tag = "type",
     content = "id",
@@ -25,6 +27,16 @@ impl RoleId {
             Self::Web(web_role_id) => web_role_id.to_euid(),
             Self::WebTeam(web_team_role_id) => web_team_role_id.to_euid(),
             Self::Team(team_role_id) => team_role_id.to_euid(),
+        }
+    }
+}
+
+impl fmt::Display for RoleId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Web(web_role_id) => fmt::Display::fmt(web_role_id, fmt),
+            Self::WebTeam(web_team_role_id) => fmt::Display::fmt(web_team_role_id, fmt),
+            Self::Team(team_role_id) => fmt::Display::fmt(team_role_id, fmt),
         }
     }
 }

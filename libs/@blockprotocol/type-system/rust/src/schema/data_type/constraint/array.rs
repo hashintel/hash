@@ -153,7 +153,7 @@ mod wasm {
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum ArraySchema {
-    Constrained(ArrayConstraints),
+    Constrained(Box<ArrayConstraints>),
     Tuple(TupleConstraints),
 }
 
@@ -164,10 +164,10 @@ impl Constraint for ArraySchema {
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         Ok(match (self, other) {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => {
-                let (combined, remainder) = lhs.intersection(rhs)?;
+                let (combined, remainder) = lhs.intersection(*rhs)?;
                 (
-                    Self::Constrained(combined),
-                    remainder.map(Self::Constrained),
+                    Self::Constrained(Box::new(combined)),
+                    remainder.map(|remainder| Self::Constrained(Box::new(remainder))),
                 )
             }
             (Self::Tuple(lhs), Self::Constrained(rhs)) => {
