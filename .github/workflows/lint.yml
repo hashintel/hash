@@ -344,7 +344,6 @@ jobs:
     needs: [setup, package, global]
     if: always()
     runs-on: ubuntu-latest
-    environment: dev
     steps:
       - name: Check setup script
         run: |
