@@ -122,7 +122,7 @@ derive-where             = { version = "=1.2.7", default-features = false, featu
 derive_more              = { version = "=2.0.1", default-features = false }
 dotenv-flow              = { version = "=0.16.2", default-features = false }
 ecow                     = { version = "=0.2.3", default-features = false }
-either                   = { version = "=1.14.0", default-features = false }
+either                   = { version = "=1.15.0", default-features = false }
 email_address            = { version = "=0.2.9", default-features = false }
 enumflags2               = { version = "=0.7.11", default-features = false }
 erased-serde             = { version = "=0.4.6", default-features = false }
