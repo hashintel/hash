@@ -60,7 +60,8 @@ pub mod regex {
     /// - If the deserialization of the string fails.
     /// - If the regex pattern is invalid.
     pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Regex, D::Error> {
-        Regex::new(&String::deserialize(deserializer)?).map_err(serde::de::Error::custom)
+        let pattern = String::deserialize(deserializer)?;
+        Regex::new(&pattern).map_err(serde::de::Error::custom)
     }
 
     pub mod option {

@@ -4,6 +4,17 @@
 //! operations with arbitrary precision, suitable for financial calculations and
 //! scientific computing where precision is critical.
 //!
+//! # Performance
+//!
+//! Operations on [`Real`] have different performance characteristics compared to primitive numeric
+//! types:
+//! - Basic operations (addition, multiplication) are O(n) where n is the number of digits
+//! - Division and square root are O(n²) operations
+//! - Memory usage scales linearly with precision
+//!
+//! For performance-critical code paths where arbitrary precision isn't required,
+//! consider using primitive numeric types like `f64` instead.
+//!
 //! # Features
 //!
 //! - Mathematical operations with arbitrary precision
@@ -31,17 +42,21 @@ use serde::{Deserialize, Serialize, de};
 #[display("Could not convert to a Real: {_0}")]
 pub struct ConversionError(dashu_base::ConversionError);
 
-/// A high-precision real number type backed by the `dashu_float::DBig` arbitrary-precision floating
-/// point.
+/// A high-precision real number type.
 ///
-/// `Real` provides:
-/// - High-precision numeric representation with a minimum precision of 64 bits
-/// - Mathematical operations with arbitrary-precision results
-/// - Conversions to and from standard Rust numeric types (i32, f32, f64)
-/// - Optional serialization/deserialization via Serde when the "serde" feature is enabled
-/// - Optional PostgreSQL integration when the "postgres" feature is enabled
+/// The `Real` type is a wrapper around `dashu_float::DBig` that provides arbitrary-precision
+/// decimal floating-point arithmetic. It's designed for cases where exact decimal
+/// representation is required or when standard floating-point types would introduce rounding
+/// errors.
 ///
-/// # Examples
+/// # Performance
+///
+/// - Basic operations (add, subtract, multiply): O(n) where n is the precision
+/// - Division: O(n²) in worst case
+/// - Memory usage: Scales with precision of the number
+/// - Consider using native float types (f32/f64) for performance-critical code paths
+///
+/// # Example
 ///
 /// ```
 /// use hash_codec::numeric::Real;

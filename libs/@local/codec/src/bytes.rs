@@ -12,6 +12,12 @@ use tokio_util::codec::{Decoder, Encoder, LinesCodec};
 /// This encoder serializes values to JSON and appends a newline character,
 /// creating a stream of JSON lines that can be efficiently processed.
 ///
+/// # Performance
+///
+/// - Time complexity: O(n) where n is the size of the serialized JSON
+/// - Memory usage: Limited to temporary buffers during serialization
+/// - Optimized for streaming: Writes directly to the output buffer without intermediate allocations
+///
 /// # Errors
 ///
 /// Encoding can fail with `Report<io::Error>` in these cases:
@@ -49,6 +55,12 @@ impl<T: Serialize + Send + Sync + 'static> Encoder<T> for JsonLinesEncoder<T> {
 ///
 /// This decoder reads lines from a byte stream, parses each line as JSON,
 /// and converts it to the specified type.
+///
+/// # Performance
+///
+/// - Time complexity: O(n) where n is the input size
+/// - Memory usage: Scales with individual line length, not total input size
+/// - Security note: Use `with_max_length` to limit memory consumption for untrusted inputs
 ///
 /// # Examples
 ///
@@ -92,6 +104,16 @@ impl<T> JsonLinesDecoder<T> {
 
     /// Creates a new JSON lines decoder with a maximum line length.
     ///
+    /// Limits the maximum length of a line to protect against memory exhaustion attacks
+    /// and ensure more consistent performance.
+    ///
+    /// # Security & Performance
+    ///
+    /// Setting an appropriate `max_length` is important for:
+    /// - Preventing unbounded memory usage when processing untrusted input
+    /// - Protecting against denial of service attacks
+    /// - Ensuring consistent performance when processing variable-sized data
+    ///
     /// # Arguments
     ///
     /// * `max_length` - The maximum allowed line length
@@ -117,6 +139,11 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
     type Item = T;
 
     /// Decodes a JSON line into a value of type `T`.
+    ///
+    /// # Performance
+    ///
+    /// This method has time complexity dependent on the length of the line being decoded.
+    /// JSON parsing complexity is approximately O(n) where n is the length of the input string.
     ///
     /// # Errors
     ///

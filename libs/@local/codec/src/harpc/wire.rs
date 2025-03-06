@@ -19,6 +19,13 @@ use tokio_util::codec::{Decoder, Encoder};
 /// The HaRPC protocol uses a fixed-size header (32 bytes) followed by a variable-length
 /// payload. The header contains the message length in bytes 30-31 (big-endian encoded).
 ///
+/// # Performance
+///
+/// - Encoding: O(n) time complexity where n is the size of the message
+/// - Decoding: O(1) time complexity for header inspection, O(n) for payload decoding
+/// - Memory usage scales linearly with the message size
+/// - Header parsing is optimized with fixed-offset access
+///
 /// # Type Parameters
 ///
 /// * `T` - The type of message to encode/decode, generally a `Request` or `Response`
@@ -42,6 +49,11 @@ pub struct ProtocolCodec<T>(
 
 impl<T> ProtocolCodec<T> {
     /// Creates a new protocol codec for encoding and decoding HaRPC messages.
+    ///
+    /// # Performance
+    ///
+    /// This is a `const fn` with O(1) time and space complexity.
+    /// No heap allocations are performed during initialization.
     #[must_use]
     pub const fn new() -> Self {
         Self(PhantomData)
@@ -56,6 +68,11 @@ where
     type Error = Report<io::Error>;
 
     /// Encodes a protocol message into the destination buffer.
+    ///
+    /// # Performance
+    ///
+    /// Time complexity is O(n) where n is the size of the message being encoded.
+    /// Space complexity depends on the implementation of `T::encode()`.
     ///
     /// # Errors
     ///
@@ -80,6 +97,13 @@ where
     /// The HaRPC protocol uses a 32-byte header with the message length encoded
     /// in big-endian format at bytes 30-31. This method checks if a complete
     /// message is available in the buffer before decoding.
+    ///
+    /// # Performance
+    ///
+    /// - Header inspection: O(1) time complexity
+    /// - Message extraction: O(1) time complexity (uses `split_to`)
+    /// - Actual decoding: O(n) time complexity where n is the size of the message
+    /// - This method avoids unnecessary copying of data
     ///
     /// # Returns
     ///

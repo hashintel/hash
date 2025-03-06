@@ -185,7 +185,7 @@ let result = calculate_sum(values);
 
 ### Test Documentation
 
-For guidance on structuring test documentation and writing assertions, refer to the [Rust Testing Strategy](.cursor/rules/rust-testing-strategy.mdc) file.
+For guidance on structuring test documentation and writing assertions, refer to the [Rust Testing Strategy](mdc:.cursor/rules/rust-testing-strategy.mdc) file.
 
 Key points:
 - Document test scenarios with clear comments
@@ -208,6 +208,21 @@ Key points:
 /// where n is the number of entities matching the filter. For large result
 /// sets, consider using the streaming version instead.
 ```
+
+- Apply performance documentation when:
+  * **Processing variable-sized inputs** - Document how performance scales with input size
+  * **In hot paths** - Document components used in performance-critical code paths
+  * **Complex algorithms** - Document non-obvious time or space complexity
+  * **Public APIs** - Document performance characteristics of public interfaces
+  * **Resource-intensive operations** - Document memory usage, I/O, or CPU consumption
+  * **Operations with tradeoffs** - Document performance vs. correctness/convenience tradeoffs
+
+- Skip performance documentation when:
+  * The performance characteristics are obvious (e.g., simple getters/setters)
+  * The component is an internal implementation detail with predictable characteristics
+  * The component uses well-documented standard library features with no special usage patterns
+  * The code is not performance-sensitive and prioritizes other aspects (safety, correctness)
+
 
 ### Async Documentation
 
