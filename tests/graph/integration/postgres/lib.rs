@@ -61,10 +61,10 @@ use hash_graph_store::{
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
-        GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
-        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-        GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-        UpdateEntityTypesParams,
+        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams,
+        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
+        IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{InsertionError, QueryError, UpdateError},
     pool::StorePool,
@@ -75,6 +75,7 @@ use hash_graph_store::{
         UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::ConflictBehavior,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
@@ -90,7 +91,10 @@ use hash_graph_types::{
 use hash_tracing::logging::env_filter;
 use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
-use type_system::schema::{DataType, EntityType, PropertyType};
+use type_system::{
+    schema::{DataType, EntityType, PropertyType},
+    url::VersionedUrl,
+};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper<A: AuthorizationApi> {
@@ -645,13 +649,24 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         Ok(response)
     }
 
-    async fn get_closed_multi_entity_types(
+    async fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: AccountId,
-        params: GetClosedMultiEntityTypesParams,
-    ) -> Result<GetClosedMultiEntityTypesResponse, Report<QueryError>> {
+        entity_type_ids: I,
+        temporal_axes: QueryTemporalAxesUnresolved,
+        include_resolved: Option<IncludeResolvedEntityTypeOption>,
+    ) -> Result<GetClosedMultiEntityTypesResponse, Report<QueryError>>
+    where
+        I: IntoIterator<Item = J> + Send,
+        J: IntoIterator<Item = VersionedUrl> + Send,
+    {
         self.store
-            .get_closed_multi_entity_types(actor_id, params)
+            .get_closed_multi_entity_types(
+                actor_id,
+                entity_type_ids,
+                temporal_axes,
+                include_resolved,
+            )
             .await
     }
 

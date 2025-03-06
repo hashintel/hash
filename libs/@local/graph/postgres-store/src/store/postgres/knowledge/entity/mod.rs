@@ -1,6 +1,6 @@
 mod query;
 mod read;
-use alloc::{borrow::Cow, collections::BTreeSet};
+use alloc::borrow::Cow;
 use core::{borrow::Borrow as _, iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
@@ -17,13 +17,13 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::{
     entity::{
-        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, EmptyEntityTypes,
-        EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
+        CountEntitiesParams, CreateEntityParams, EmptyEntityTypes, EntityQueryPath,
+        EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
         EntityValidationReport, EntityValidationType, GetEntitiesParams, GetEntitiesResponse,
         GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
         UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
-    entity_type::{EntityTypeQueryPath, IncludeEntityTypeOption},
+    entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, Parameter, ParameterList},
     query::{QueryResult as _, Read, ReadPaginated, Sorting as _},
@@ -407,153 +407,6 @@ where
         Ok(())
     }
 
-    /// Resolves and builds closed type hierarchies for multiple sets of entity types.
-    ///
-    /// This function takes multiple sets of entity type IDs (each represented as a
-    /// `HashSet<VersionedUrl>`) and constructs a nested map structure representing the closed
-    /// type hierarchies for each combination of entity types within each set.
-    ///
-    /// # Algorithm
-    ///
-    /// 1. Collects all unique entity type IDs that need resolution
-    /// 2. Retrieves closed type information for all entity types in a single database query
-    /// 3. For each set of entity types, builds a nested hierarchy where:
-    ///    - The first entity type (sorted alphabetically) serves as the root of the hierarchy
-    ///    - Each subsequent entity type creates a deeper level in the hierarchy
-    ///    - Each level combines the schema information from all types in its path
-    ///
-    /// # Errors
-    ///
-    /// Returns a `QueryError` if:
-    /// - Database operations fail when retrieving closed entity type information
-    /// - Type resolution fails due to invalid entity type references
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # async fn example(store: &PostgresStore) -> Result<(), Box<dyn std::error::Error>> {
-    /// use std::collections::{HashMap, HashSet};
-    ///
-    /// use hash_graph::ontology::VersionedUrl;
-    ///
-    /// // Create sets of entity type IDs
-    /// let type_set_1: HashSet<VersionedUrl> = [
-    ///     "https://example.com/types/Person/1".parse()?,
-    ///     "https://example.com/types/Employee/1".parse()?,
-    /// ]
-    /// .into_iter()
-    /// .collect();
-    ///
-    /// let type_set_2: HashSet<VersionedUrl> = ["https://example.com/types/Organization/1".parse()?]
-    ///     .into_iter()
-    ///     .collect();
-    ///
-    /// // Resolve closed type hierarchies
-    /// let resolved_types = store
-    ///     .resolve_closed_multi_entity_types([&type_set_1, &type_set_2])
-    ///     .await?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    async fn resolve_closed_multi_entity_types(
-        &self,
-        entity_type_id_lists: impl IntoIterator<Item = impl IntoIterator<Item = &VersionedUrl>> + Send,
-    ) -> Result<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>, Report<QueryError>> {
-        // Collect all unique entity type IDs that need resolution
-        let mut entity_type_ids_to_resolve = HashSet::<&VersionedUrl>::new();
-        let all_multi_entity_type_ids = entity_type_id_lists
-            .into_iter()
-            .map(|entity_type_ids| {
-                entity_type_ids
-                    .into_iter()
-                    .inspect(|id| {
-                        entity_type_ids_to_resolve.insert(id);
-                    })
-                    .collect::<BTreeSet<&VersionedUrl>>()
-            })
-            .collect::<Vec<BTreeSet<&VersionedUrl>>>();
-
-        // Convert entity type IDs to database-specific UUID references
-        let (entity_type_references, entity_type_uuids) = entity_type_ids_to_resolve
-            .into_iter()
-            .map(|entity_type_id| (EntityTypeUuid::from_url(entity_type_id), entity_type_id))
-            .collect::<(Vec<_>, Vec<_>)>();
-
-        // Fetch all closed entity types in a single database query for efficiency
-        let closed_types = entity_type_uuids
-            .into_iter()
-            .zip(
-                self.get_closed_entity_types(&entity_type_references)
-                    .await?,
-            )
-            .collect::<HashMap<_, _>>();
-
-        // Build the nested hierarchical structure for each set of entity types
-        let mut resolved_entity_types = HashMap::<VersionedUrl, ClosedMultiEntityTypeMap>::new();
-        for entity_multi_type_ids in &all_multi_entity_type_ids {
-            // Get the first entity type to serve as the root of the hierarchy
-            let mut entity_type_id_iter = entity_multi_type_ids.iter();
-            let Some(first_entity_type_id) = entity_type_id_iter.next() else {
-                continue; // Skip empty sets
-            };
-
-            // Create or retrieve the entry for the first entity type
-            let (_, ref mut map) = resolved_entity_types
-                .raw_entry_mut()
-                .from_key(first_entity_type_id)
-                .or_insert_with(|| {
-                    (
-                        (*first_entity_type_id).clone(),
-                        ClosedMultiEntityTypeMap {
-                            schema: ClosedMultiEntityType::from_closed_schema(
-                                closed_types
-                                    .get(first_entity_type_id)
-                                    .expect(
-                                        "The entity type was already resolved, so it should be \
-                                         present in the closed types",
-                                    )
-                                    .clone(),
-                            ),
-                            inner: HashMap::new(),
-                        },
-                    )
-                });
-
-            // Process remaining entity types in the set, creating a nested structure
-            for entity_type_id in entity_type_id_iter {
-                // For each additional entity type, create a deeper level in the hierarchy
-                let (_, new_map) = map
-                    .inner
-                    .raw_entry_mut()
-                    .from_key(entity_type_id)
-                    .or_insert_with(|| {
-                        let mut closed_parent = map.schema.clone();
-                        closed_parent
-                            .add_closed_entity_type(
-                                closed_types
-                                    .get(entity_type_id)
-                                    .expect(
-                                        "The entity type was already resolved, so it should be \
-                                         present in the closed types",
-                                    )
-                                    .clone(),
-                            )
-                            .expect("The entity type was constructed before so it has to be valid");
-                        (
-                            (*entity_type_id).clone(),
-                            ClosedMultiEntityTypeMap {
-                                schema: closed_parent,
-                                inner: HashMap::new(),
-                            },
-                        )
-                    });
-                *map = new_map;
-            }
-        }
-
-        Ok(resolved_entity_types)
-    }
-
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn get_entities_impl(
         &self,
@@ -846,12 +699,19 @@ where
                 )]
                 closed_multi_entity_types: if params.include_entity_types.is_some() {
                     Some(
-                        self.resolve_closed_multi_entity_types(
+                        self.get_closed_multi_entity_types(
+                            actor_id,
                             root_entities
                                 .iter()
-                                .map(|(entity, _)| &entity.metadata.entity_type_ids),
+                                .map(|(entity, _)| entity.metadata.entity_type_ids.clone()),
+                            QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(None, None),
+                            },
+                            None,
                         )
-                        .await?,
+                        .await?
+                        .entity_types,
                     )
                 } else {
                     None
@@ -1583,14 +1443,21 @@ where
                 )]
                 closed_multi_entity_types: if params.include_entity_types.is_some() {
                     Some(
-                        self.resolve_closed_multi_entity_types(
+                        self.get_closed_multi_entity_types(
+                            actor_id,
                             subgraph
                                 .vertices
                                 .entities
                                 .values()
-                                .map(|entity| &entity.metadata.entity_type_ids),
+                                .map(|entity| entity.metadata.entity_type_ids.clone()),
+                            QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(None, None),
+                            },
+                            None,
                         )
-                        .await?,
+                        .await?
+                        .entity_types,
                     )
                 } else {
                     None

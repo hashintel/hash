@@ -9,11 +9,13 @@ use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
 use hash_graph_types::{
     knowledge::entity::{Entity, EntityId},
-    ontology::{DataTypeLookup, DataTypeWithMetadata, PropertyTypeWithMetadata},
+    ontology::{
+        DataTypeLookup, DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+    },
 };
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    schema::{DataTypeReference, DataTypeUuid, PropertyTypeUuid},
+    schema::{DataTypeReference, DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
@@ -223,6 +225,18 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
                 path: PropertyTypeQueryPath::OntologyId,
             },
             ParameterList::PropertyTypeIds(property_type_ids),
+        )
+    }
+}
+
+impl<'p> Filter<'p, EntityTypeWithMetadata> {
+    #[must_use]
+    pub const fn for_entity_type_uuids(entity_type_ids: &'p [EntityTypeUuid]) -> Self {
+        Filter::In(
+            FilterExpression::Path {
+                path: EntityTypeQueryPath::OntologyId,
+            },
+            ParameterList::EntityTypeIds(entity_type_ids),
         )
     }
 }

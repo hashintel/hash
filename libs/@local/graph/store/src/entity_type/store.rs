@@ -16,14 +16,12 @@ use hash_graph_types::{
 };
 use serde::{Deserialize, Serialize};
 use type_system::{
-    schema::{
-        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, EntityType, PartialEntityType,
-        PropertyType,
-    },
+    schema::{ClosedDataType, ClosedEntityType, EntityType, PartialEntityType, PropertyType},
     url::VersionedUrl,
 };
 
 use crate::{
+    entity::ClosedMultiEntityTypeMap,
     error::{InsertionError, QueryError, UpdateError},
     filter::Filter,
     query::ConflictBehavior,
@@ -197,7 +195,6 @@ pub enum IncludeResolvedEntityTypeOption {
 pub struct GetClosedMultiEntityTypesParams {
     pub entity_type_ids: Vec<Vec<VersionedUrl>>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
     #[serde(default)]
     pub include_resolved: Option<IncludeResolvedEntityTypeOption>,
 }
@@ -206,7 +203,7 @@ pub struct GetClosedMultiEntityTypesParams {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct GetClosedMultiEntityTypesResponse {
-    pub entity_types: Vec<ClosedMultiEntityType>,
+    pub entity_types: HashMap<VersionedUrl, ClosedMultiEntityTypeMap>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub definitions: Option<EntityTypeResolveDefinitions>,
@@ -327,16 +324,36 @@ pub trait EntityTypeStore {
         params: GetEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<GetEntityTypesResponse, Report<QueryError>>> + Send;
 
-    /// Get the [`ClosedMultiEntityType`] specified by the [`GetClosedMultiEntityTypesParams`].
+    /// Resolves and builds closed type hierarchies for multiple sets of entity types.
+    ///
+    /// This function takes multiple sets of entity type IDs (each represented as a
+    /// `HashSet<VersionedUrl>`) and constructs a nested map structure representing the closed
+    /// type hierarchies for each combination of entity types within each set.
+    ///
+    /// # Algorithm
+    ///
+    /// 1. Collects all unique entity type IDs that need resolution
+    /// 2. Retrieves closed type information for all entity types in a single database query
+    /// 3. For each set of entity types, builds a nested hierarchy where:
+    ///    - The first entity type (sorted alphabetically) serves as the root of the hierarchy
+    ///    - Each subsequent entity type creates a deeper level in the hierarchy
+    ///    - Each level combines the schema information from all types in its path
     ///
     /// # Errors
     ///
-    /// - if the requested [`EntityType`] doesn't exist.
-    fn get_closed_multi_entity_types(
+    /// Returns a `QueryError` if:
+    /// - Database operations fail when retrieving closed entity type information
+    /// - Type resolution fails due to invalid entity type references
+    fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: AccountId,
-        params: GetClosedMultiEntityTypesParams,
-    ) -> impl Future<Output = Result<GetClosedMultiEntityTypesResponse, Report<QueryError>>> + Send;
+        entity_type_ids: I,
+        temporal_axes: QueryTemporalAxesUnresolved,
+        include_resolved: Option<IncludeResolvedEntityTypeOption>,
+    ) -> impl Future<Output = Result<GetClosedMultiEntityTypesResponse, Report<QueryError>>> + Send
+    where
+        I: IntoIterator<Item = J> + Send,
+        J: IntoIterator<Item = VersionedUrl> + Send;
 
     /// Update the definition of an existing [`EntityType`].
     ///

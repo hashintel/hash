@@ -814,14 +814,18 @@ where
         .await
         .map_err(report_to_response)?;
 
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization
+    // and better error reporting.
+    let params = GetClosedMultiEntityTypesParams::deserialize(&request)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
+
     let response = store
         .get_closed_multi_entity_types(
             actor_id,
-            // Manually deserialize the query from a JSON value to allow borrowed deserialization
-            // and better error reporting.
-            GetClosedMultiEntityTypesParams::deserialize(&request)
-                .map_err(Report::from)
-                .map_err(report_to_response)?,
+            params.entity_type_ids,
+            params.temporal_axes,
+            params.include_resolved,
         )
         .await
         .map_err(report_to_response)
