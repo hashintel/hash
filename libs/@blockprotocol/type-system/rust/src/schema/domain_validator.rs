@@ -50,6 +50,7 @@ impl DomainValidator {
     /// # Panics
     ///
     /// Panics if the regex is missing the "shortname" or "kind" named capture groups.
+    #[must_use]
     pub fn new(regex: Regex) -> Self {
         regex
             .capture_names()
