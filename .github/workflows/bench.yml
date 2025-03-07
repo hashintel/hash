@@ -183,6 +183,8 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration) }}
       fail-fast: false
+    env:
+      HASH_GRAPH_PG_DATABASE: graph
     if: needs.setup.outputs.integration != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
@@ -220,13 +222,7 @@ jobs:
 
       - name: Launch external services
         if: github.event_name == 'pull_request'
-        run: |
-          turbo codegen --filter '@apps/hash-external-services'
-
-          SERVICES="hydra kratos redis spicedb"
-
-          echo "Running services: $SERVICES"
-          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
+        run: yarn external-services:test up hydra kratos redis spicedb temporal-ui --wait
 
       - name: Run base benches
         if: github.event_name == 'pull_request'
@@ -266,13 +262,7 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Launch external services
-        run: |
-          turbo codegen --filter '@apps/hash-external-services'
-
-          SERVICES="hydra kratos redis spicedb"
-
-          echo "Running services: $SERVICES"
-          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
+        run: yarn external-services:test up hydra kratos redis spicedb temporal-ui --wait
 
       - name: Run head benches
         run: turbo run bench:integration --filter "${{ matrix.name }}"
