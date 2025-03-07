@@ -57,11 +57,12 @@ impl BaseUrl {
         if !url.ends_with('/') {
             return Err(ParseBaseUrlError::MissingTrailingSlash);
         }
-        // TODO: Propagate more useful errors
-        if Url::parse(url)
-            .map_err(|err| ParseBaseUrlError::UrlParseError(err.to_string()))?
-            .cannot_be_a_base()
-        {
+        // Parse the URL, propagating specific error information
+        let parsed_url =
+            Url::parse(url).map_err(|err| ParseBaseUrlError::UrlParseError(err.to_string()))?;
+
+        // Check if the URL can be used as a base URL
+        if parsed_url.cannot_be_a_base() {
             Err(ParseBaseUrlError::CannotBeABase)
         } else {
             Ok(())
@@ -169,6 +170,16 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 
 // TODO: can we impl Tsify to turn this into a type: template string
 //  if we can then we should delete wasm::VersionedUrlPatch
+/// A versioned URL representing a specific version of an ontology type.
+///
+/// This consists of a base URL (the type's identifier) and a version number.
+/// Versioned URLs are used throughout the type system to uniquely identify
+/// specific versions of data types, property types, and entity types.
+///
+/// # Format
+///
+/// The string representation follows the pattern: `{base_url}v/{version}`,
+/// for example: `https://example.com/types/data-type/text/v/1`
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct VersionedUrl {
     pub base_url: BaseUrl,
@@ -318,7 +329,58 @@ impl ToSchema<'_> for VersionedUrl {
 mod tests {
     use super::*;
 
-    // TODO: add some unit tests for base URL
+    #[test]
+    fn base_url_valid() {
+        // Test valid base URLs
+        let valid_urls = [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/list/",
+            "https://example.com/types/",
+            "https://subdomain.example.org/path/to/resources/",
+        ];
+
+        for url_str in valid_urls {
+            let result = BaseUrl::new(url_str.to_owned());
+            assert!(result.is_ok(), "URL '{url_str}' should be valid");
+
+            let base_url = result.expect("should create a valid BaseUrl");
+            assert_eq!(base_url.as_str(), url_str);
+            assert_eq!(base_url.to_string(), url_str);
+        }
+    }
+
+    #[test]
+    fn base_url_invalid() {
+        // Test URLs without trailing slash
+        let result = BaseUrl::new("https://example.com/types".to_owned());
+        assert!(matches!(
+            result,
+            Err(ParseBaseUrlError::MissingTrailingSlash)
+        ));
+
+        // Test non-URL strings
+        let result = BaseUrl::new("not-a-url/".to_owned());
+        assert!(matches!(result, Err(ParseBaseUrlError::UrlParseError(_))));
+
+        // Test URLs that are too long (> 2048 chars)
+        let long_url = format!("https://example.com/{}long/", "a".repeat(2030));
+        let result = BaseUrl::new(long_url);
+        assert!(matches!(result, Err(ParseBaseUrlError::TooLong)));
+    }
+
+    #[test]
+    fn base_url_serialization() {
+        // Test serialization and deserialization
+        let url_str = "https://example.com/types/";
+        let base_url = BaseUrl::new(url_str.to_owned()).expect("should create a valid BaseUrl");
+
+        let serialized = serde_json::to_string(&base_url).expect("should serialize to JSON");
+        let expected = format!("\"{url_str}\"");
+        assert_eq!(serialized, expected);
+
+        let deserialized: BaseUrl =
+            serde_json::from_str(&serialized).expect("should deserialize from JSON");
+        assert_eq!(deserialized.as_str(), url_str);
+    }
 
     #[test]
     fn versioned_url() {

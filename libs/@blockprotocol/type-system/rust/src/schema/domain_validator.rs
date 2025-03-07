@@ -5,7 +5,12 @@ use regex::{Captures, Regex};
 
 use crate::schema::{DataType, EntityType, PropertyType};
 
-#[derive(Debug)]
+/// Error returned when a URL fails domain validation.
+///
+/// This error occurs when a type's URL doesn't match the expected pattern
+/// defined by the domain validator regex, indicating it's from an unsupported
+/// or invalid domain.
+#[derive(Debug, Clone)]
 pub struct DomainValidationError;
 
 impl Error for DomainValidationError {}
@@ -36,12 +41,16 @@ struct ShortNameAndKind<'a> {
 pub struct DomainValidator(Regex);
 
 impl DomainValidator {
-    #[must_use]
-    /// Creates a new `DomainValidator`
+    /// Creates a new domain validator from a regex pattern.
+    ///
+    /// Initializes a validator that uses the provided regex to validate URLs against domain
+    /// constraints. The regex must contain named capture groups for "shortname" and "kind"
+    /// which will be used to extract and validate these components.
     ///
     /// # Panics
     ///
-    /// - If the "shortname" or "kind" named capture groups are missing
+    /// Panics if the regex is missing the "shortname" or "kind" named capture groups.
+    #[must_use]
     pub fn new(regex: Regex) -> Self {
         regex
             .capture_names()
@@ -56,6 +65,10 @@ impl DomainValidator {
         Self(regex)
     }
 
+    /// Validates if a URL string matches the domain pattern.
+    ///
+    /// Checks whether the provided URL string conforms to the domain pattern defined
+    /// by this validator's regex. Returns true if the URL is valid according to the pattern.
     #[must_use]
     pub fn validate_url(&self, url: &str) -> bool {
         self.0.is_match(url)
