@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@openapitools/openapi-generator-cli": "2.17.0",
-    "axios": "1.8.1"
+    "axios": "1.8.2"
   },
   "devDependencies": {
     "@local/tsconfig": "0.0.0-private",
