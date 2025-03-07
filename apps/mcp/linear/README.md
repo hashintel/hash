@@ -45,8 +45,8 @@ See [this issue](https://github.com/anthropics/claude-code/issues/374).
 Cursor executes MCP servers from outside the context of the repository, which means that it does not load environment variables, and needs an absolute path.
 
 1. Right-click on `dist/main.js` and 'Copy path' (if `dist/main.js` is missing, you need to run `yarn build` in this folder)
-1. `Settings -> Cursor Settings -> MCP -> Add MCP server`
-2. Add with the following settings:
+2. `Settings -> Cursor Settings -> MCP -> Add MCP server`
+3. Add with the following settings:
    - `name`: `Linear`
    - `type`: `command`
    - `command`: `env MCP_LINEAR_API_KEY=YOUR_INTEGRATION_SECRET node /absolute/path/to/hash/apps/mcp/linear/dist/main.js`
