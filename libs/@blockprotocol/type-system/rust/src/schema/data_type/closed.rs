@@ -26,6 +26,8 @@ pub struct ClosedDataType {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     pub description: String,
     #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
     pub label: ValueLabel,
@@ -95,6 +97,7 @@ impl ClosedDataType {
             id: data_type.id.clone(),
             title: data_type.title.clone(),
             title_plural: data_type.title_plural.clone(),
+            icon: data_type.icon.clone(),
             description: data_type.description.clone(),
             label,
             all_of: ValueConstraints::fold_intersections(
