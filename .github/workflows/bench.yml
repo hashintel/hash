@@ -62,18 +62,20 @@ jobs:
     if: needs.setup.outputs.unit != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout
+      - name: Checkout base branch
+        if: github.event_name == 'pull_request'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          fetch-depth: 2
+          ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Install tools
+        if: github.event_name == 'pull_request'
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prune repository
-        if: steps.benches.outputs.create-baseline == 'true'
+        if: github.event_name == 'pull_request'
         uses: ./.github/actions/prune-repository
         with:
           scope: |
@@ -82,41 +84,29 @@ jobs:
             @apps/hash-external-services
 
       - name: Warm up repository
-        if: steps.benches.outputs.create-baseline == 'true'
+        if: github.event_name == 'pull_request'
         uses: ./.github/actions/warm-up-repo
 
-      - name: Find bench steps to run
-        id: benches
-        run: |
-          if [[ "${{ github.event_name == 'pull_request' }}" == 'true' ]]; then
-            echo "create-baseline=true" | tee -a $GITHUB_OUTPUT
-          else
-            echo "create-baseline=false" | tee -a $GITHUB_OUTPUT
-          fi
-
-          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
-
-      - name: Checkout base branch
-        if: steps.benches.outputs.create-baseline == 'true'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          clean: false
-          ref: ${{ github.event.pull_request.base.sha }}
-
       - name: Cache Rust dependencies
-        if: steps.benches.outputs.has-rust == 'true'
+        if: github.event_name == 'pull_request'
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
           workspaces: ${{ matrix.path }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Run base benches
-        if: steps.benches.outputs.create-baseline == 'true'
+        if: github.event_name == 'pull_request'
         run: turbo run bench:unit --filter "${{ matrix.name }}"
 
       - name: Checkout head branch
-        if: steps.benches.outputs.create-baseline == 'true'
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          clean: false
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Checkout
+        if: github.event_name != 'pull_request'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -141,7 +131,7 @@ jobs:
         run: turbo run bench:unit --filter "${{ matrix.name }}"
 
       - name: Analyze benchmarks
-        if: steps.benches.outputs.create-baseline == 'true'
+        if: github.event_name == 'pull_request'
         run: |
           TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
@@ -153,6 +143,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
+        if: github.event.pull_request.head.repo.full_name == github.repository
         uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
         with:
           exportToken: true
@@ -165,10 +156,11 @@ jobs:
             aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
 
       - name: Upload benchmark results
+        if: github.event.pull_request.head.repo.full_name == github.repository
         run: turbo run upload-benchmarks --env-mode=loose -- --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
 
       - name: Upload benchmark summary
-        if: steps.benches.outputs.create-baseline == 'true'
+        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
