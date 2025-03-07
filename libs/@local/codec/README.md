@@ -46,10 +46,10 @@ codec
 ## Design Principles
 
 1. **Type Safety**: Strong typing with comprehensive validation
-1. **Efficiency**: Minimal allocations and optimized processing for streaming data
-1. **Error Clarity**: Detailed error reporting with context
-1. **Modularity**: Components can be used independently through feature flags
-1. **Testing**: Extensive test coverage with property-based testing where appropriate
+2. **Efficiency**: Minimal allocations and optimized processing for streaming data
+3. **Error Clarity**: Detailed error reporting with context
+4. **Modularity**: Components can be used independently through feature flags
+5. **Testing**: Extensive test coverage with property-based testing where appropriate
 
 ## Feature Flags
 
