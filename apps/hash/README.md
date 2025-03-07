@@ -146,8 +146,6 @@ See the [respective section in the parent README](../README.md#hash) for descrip
    - `alice@example.com`, `bob@example.com` – regular users
    - `admin@example.com` – an admin
 
-10. Create an account
-
 If you need to run the browser plugin locally, see the `README.md` in the `apps/plugin-browser` directory.
 
 #### Resetting the local database
