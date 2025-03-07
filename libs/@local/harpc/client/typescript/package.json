@@ -32,24 +32,24 @@
     "@libp2p/tcp": "10.1.6",
     "@multiformats/dns": "1.0.6",
     "@multiformats/multiaddr": "12.4.0",
-    "effect": "3.13.6",
+    "effect": "3.13.7",
     "it-stream-types": "2.0.2",
     "libp2p": "2.8.0",
     "multiformats": "13.3.2",
     "uint8arraylist": "2.4.8"
   },
   "devDependencies": {
-    "@effect/platform": "0.77.6",
-    "@effect/platform-node": "0.73.6",
-    "@effect/vitest": "0.19.4",
+    "@effect/platform": "0.77.7",
+    "@effect/platform-node": "0.73.7",
+    "@effect/vitest": "0.19.5",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@rust/harpc-wire-protocol": "0.0.0-private",
     "@types/node": "22.13.9",
-    "@vitest/coverage-istanbul": "3.0.7",
+    "@vitest/coverage-istanbul": "3.0.8",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
-    "vitest": "3.0.7"
+    "vitest": "3.0.8"
   }
 }
