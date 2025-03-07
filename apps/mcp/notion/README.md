@@ -1,32 +1,27 @@
-# Linear MCP Server
+# Notion MCP Server
 
-Model Context Protocol (MCP) server for retrieving Linear issue information. [Read more about MCP](https://modelcontextprotocol.io/introduction).
+Model Context Protocol (MCP) server for searching for and retrieving Notion documents. [Read more about MCP](https://modelcontextprotocol.io/introduction).
 
 ## Tools
 
-### List issues
-
-- List issues in the current sprint:
-  - Title
-  - Description
-  - Assignee name (if any)
-  - State (e.g. In Progress)
-
-### Get issue details
-
-- Get a single issue (including threaded comments)
-
-### Add comment to issue
-
-- Add a comment to an issue
+- Search Notion pages by title
+- Retrieve Notion page content as markdown
 
 ## Installation
 
 ### Prerequisites
 
-1. Generate an API Key in Linear `Settings -> Security & access`
+1. If you are a HASH employee:
+   - Get the shared Notion MCP API key
+2. If you are setting up a new Notion integration
+   - Create a [Notion integration](https://www.notion.so/profile/integrations)
+   - Ensure the integration can 'Read content' (the MCP Server does not require anything else)
+   - Copy the API key
 
-2. The `yarn build` command must have been run for the MCP Server to work when adding to the client.
+**Note**: the integration can only access pages which have been specifically shared with it, via the context menu in Notion.
+Sharing a page will also automatically share its children (direct and indirect).
+
+3. The `yarn build` command must have been run for the MCP Server to work when adding to the client.
    This should happen automatically after running `yarn` (via the `postinstall` script), but if you have any issues, run `yarn build`.
 
 ### Claude Code
@@ -37,19 +32,19 @@ If you move to a different directory, the MCP server will not be there and will 
 
 See [this issue](https://github.com/anthropics/claude-code/issues/374).
 
-1. Set `MCP_LINEAR_API_KEY=YOUR_INTEGRATION_SECRET` in the root `.env.local`
-2. `claude mcp add linear yarn workspace @apps/linear-mcp start`
+1. Set `MCP_NOTION_API_KEY=YOUR_INTEGRATION_SECRET` in the root `.env.local`
+2. `claude mcp add notion yarn workspace @apps/notion-mcp start`
 
 ### Cursor
 
-Cursor executes MCP servers from outside the context of the repository, which means that it does not load environment variables, and needs an absolute path.
+Cursor executes MCP servers from outside the context of the repository, which means that it does not load environment variables automatically, and needs an absolute path.
 
 1. Right-click on `dist/main.js` and 'Copy path' (if `dist/main.js` is missing, you need to run `yarn build` in this folder)
 1. `Settings -> Cursor Settings -> MCP -> Add MCP server`
 2. Add with the following settings:
-   - `name`: `Linear`
+   - `name`: `Notion`
    - `type`: `command`
-   - `command`: `env MCP_LINEAR_API_KEY=YOUR_INTEGRATION_SECRET node /absolute/path/to/hash/apps/mcp/linear/dist/main.js`
+   - `command`: `env MCP_NOTION_API_KEY=YOUR_INTEGRATION_SECRET node /absolute/path/to/hash/apps/mcp/notion/dist/main.js`
 
 ## Development
 

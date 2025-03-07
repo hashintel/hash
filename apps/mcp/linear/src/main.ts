@@ -13,14 +13,14 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 
 import { hydrateIssue } from "./main/populate-linear-resources.js";
 
-config();
+config({ path: "../../../.env.local", silent: true });
 
-if (!process.env.LINEAR_API_KEY) {
-  throw new Error("LINEAR_API_KEY is not set");
+if (!process.env.MCP_LINEAR_API_KEY) {
+  throw new Error("MCP_LINEAR_API_KEY is not set");
 }
 
 const linear = new LinearClient({
-  apiKey: process.env.LINEAR_API_KEY,
+  apiKey: process.env.MCP_LINEAR_API_KEY,
 });
 
 const GetIssueRequestSchema = z.object({

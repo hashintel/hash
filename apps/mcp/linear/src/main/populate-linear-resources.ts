@@ -43,6 +43,7 @@ type HydratedIssue = {
   id: string;
   title: string;
   description?: string;
+  priority?: string;
   assignee: {
     tag: string;
     name: string;
@@ -73,10 +74,29 @@ export const hydrateIssue = async ({
     rootComments.map((comment) => hydrateComment(comment)),
   );
 
+  let priority: string | undefined;
+  switch (issue.priority) {
+    case 1:
+      priority = "Urgent";
+      break;
+    case 2:
+      priority = "High";
+      break;
+    case 3:
+      priority = "Normal";
+      break;
+    case 4:
+      priority = "Low";
+      break;
+    default:
+      priority = undefined;
+  }
+
   return {
     id: issue.identifier,
     title: issue.title,
     description: issue.description,
+    priority,
     assignee: assignee
       ? {
           tag: assignee.displayName,
