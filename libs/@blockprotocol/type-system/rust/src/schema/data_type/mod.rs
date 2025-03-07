@@ -142,6 +142,8 @@ mod raw {
         title: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         title_plural: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        icon: Option<String>,
         #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
         all_of: BTreeSet<DataTypeReference>,
 
@@ -379,6 +381,7 @@ mod raw {
                 id: base.id,
                 title: base.title,
                 title_plural: base.title_plural,
+                icon: base.icon,
                 description: metadata.description,
                 label: metadata.label,
                 all_of: base.all_of,
@@ -400,6 +403,8 @@ pub struct DataType {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     pub description: String,
     #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
     pub label: ValueLabel,

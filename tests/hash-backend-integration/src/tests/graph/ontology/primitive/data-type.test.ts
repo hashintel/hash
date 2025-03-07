@@ -52,6 +52,7 @@ const dataTypeSchema: ConstructDataTypeParams = {
   title: "Text",
   titlePlural: "Texts",
   description: "A string of text.",
+  icon: "📝",
   type: "string",
   allOf: [
     {
@@ -129,6 +130,7 @@ describe("Data type CRU", () => {
     expect(createdDataType.schema.title).toBe(dataTypeSchema.title);
     expect(createdDataType.schema.titlePlural).toBe(dataTypeSchema.titlePlural);
     expect(createdDataType.schema.description).toBe(dataTypeSchema.description);
+    expect(createdDataType.schema.icon).toBe(dataTypeSchema.icon);
     expect(createdDataType.schema.allOf).toBe(dataTypeSchema.allOf);
   });
 
@@ -148,6 +150,7 @@ describe("Data type CRU", () => {
 
   const updatedTitle = "New text!";
   const updatedTitlePlural = "New texts!";
+  const updatedIcon = "📄";
   it("can update a data type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdDataType.metadata) &&
@@ -162,6 +165,7 @@ describe("Data type CRU", () => {
         ...dataTypeSchema,
         title: updatedTitle,
         titlePlural: updatedTitlePlural,
+        icon: updatedIcon,
       },
       relationships: [{ relation: "viewer", subject: { kind: "public" } }],
       conversions: {},
@@ -176,6 +180,7 @@ describe("Data type CRU", () => {
     // Verify both title and titlePlural were updated correctly
     expect(updatedDataType.schema.title).toBe(updatedTitle);
     expect(updatedDataType.schema.titlePlural).toBe(updatedTitlePlural);
+    expect(updatedDataType.schema.icon).toBe(updatedIcon);
   });
 
   it("can archive a data type", async () => {
