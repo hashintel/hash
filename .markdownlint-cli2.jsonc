@@ -30,6 +30,7 @@
   ],
   "ignores": [
     "**/LICENSE*.md",
-    "node_modules/**"
+    "node_modules/**",
+    "target/**"
   ]
 }
