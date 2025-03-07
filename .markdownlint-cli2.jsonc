@@ -12,14 +12,24 @@
     },
     "no-alt-text": false,
     "no-bare-urls": false,
-    "no-duplicate-heading": { "siblings_only": true },
+    "no-duplicate-heading": {
+      "siblings_only": true
+    },
     "no-emphasis-as-heading": false,
     "no-inline-html": false,
     "no-trailing-punctuation": false,
-    "ol-prefix": { "style": "one" },
+    "ol-prefix": {
+      "style": "ordered"
+    },
     "single-title": false
   },
   "gitignore": true,
-  "globs": ["*.md", "**/*.md"],
-  "ignores": ["**/LICENSE*.md"]
+  "globs": [
+    "*.md",
+    "**/*.md"
+  ],
+  "ignores": [
+    "**/LICENSE*.md",
+    "node_modules/**"
+  ]
 }

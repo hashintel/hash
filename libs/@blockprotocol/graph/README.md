@@ -36,7 +36,7 @@ If you want to roll your own block template or embedding application,
 you can use this package to construct a handler for graph module messages.
 
 1. `yarn add @blockprotocol/graph` or `npm install @blockprotocol/graph`
-1. Follow the instructions to use the graph module as a [block](#blocks) or an [embedding application](#embedding-applications)
+2. Follow the instructions to use the graph module as a [block](#blocks) or an [embedding application](#embedding-applications)
 
 ### Blocks
 
@@ -64,8 +64,8 @@ It is not currently possible to wrap multiple blocks with a single handler.
 To create a `GraphEmbedderHandler`, pass the constructor:
 
 1. An `element` wrapping your block
-1. `callbacks` to respond to messages from the block
-1. The starting values for the following messages:
+2. `callbacks` to respond to messages from the block
+3. The starting values for the following messages:
 
 - `blockEntitySubgraph`: the graph rooted at the block entity
 - `readonly`: whether or not the block should be in 'readonly' mode

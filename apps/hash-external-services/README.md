@@ -20,9 +20,9 @@ As with other external services, the arguments passed after the script name are 
 These will be migrated into semantic folders in the future. For example, within the `apps` folder:
 
 1. `hash-external-services/kratos` → `hash-authentication`
-1. `hash-external-services/opensearch` → `hash-search`
-1. `hash-external-services/postgres` → `hash-database`
-1. `hash-external-services/temporal` → `hash-executor`
+2. `hash-external-services/opensearch` → `hash-search`
+3. `hash-external-services/postgres` → `hash-database`
+4. `hash-external-services/temporal` → `hash-executor`
 
 ## Database Backups
 
