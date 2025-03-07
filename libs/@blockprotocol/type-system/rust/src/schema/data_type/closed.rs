@@ -264,7 +264,7 @@ mod tests {
         number.label.right = Some("f64".to_owned());
         number.icon = Some("\u{1f522}".to_owned());
 
-        let mut integer = ensure_validation::<DataType, _>(
+        let integer = ensure_validation::<DataType, _>(
             json!({
               "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
               "kind": "dataType",
@@ -281,9 +281,8 @@ mod tests {
         )
         .await
         .into_inner();
-        integer.icon = None;
 
-        let mut unsigned = ensure_validation::<DataType, _>(
+        let unsigned = ensure_validation::<DataType, _>(
             json!({
               "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
               "kind": "dataType",
@@ -300,9 +299,8 @@ mod tests {
         )
         .await
         .into_inner();
-        unsigned.icon = None;
 
-        let mut unsigned_int = ensure_validation::<DataType, _>(
+        let unsigned_int = ensure_validation::<DataType, _>(
             json!({
               "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
               "kind": "dataType",
@@ -319,9 +317,8 @@ mod tests {
         )
         .await
         .into_inner();
-        unsigned_int.icon = None;
 
-        let mut small = ensure_validation::<DataType, _>(
+        let small = ensure_validation::<DataType, _>(
             json!({
               "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
               "kind": "dataType",
@@ -329,6 +326,7 @@ mod tests {
               "title": "Small number",
               "description": "A small number",
               "label": { "right": "i8" },
+              "icon": "\u{1f539}",
               "allOf": [{ "$ref": number.id }],
               "type": "number",
               "maximum": 255.0,
@@ -339,9 +337,8 @@ mod tests {
         )
         .await
         .into_inner();
-        small.icon = Some("\u{1f539}".to_owned());
 
-        let mut unsigned_small_int = ensure_validation::<DataType, _>(
+        let unsigned_small_int = ensure_validation::<DataType, _>(
             json!({
               "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
               "kind": "dataType",
@@ -358,7 +355,6 @@ mod tests {
         )
         .await
         .into_inner();
-        unsigned_small_int.icon = None;
 
         DataTypeDefinitions {
             value,
