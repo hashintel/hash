@@ -19,6 +19,9 @@
     "title": {
       "type": "string"
     },
+    "titlePlural": {
+      "type": "string"
+    },
     "description": {
       "type": "string"
     },

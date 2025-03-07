@@ -50,6 +50,7 @@ let testUser2: User;
 
 const dataTypeSchema: ConstructDataTypeParams = {
   title: "Text",
+  titlePlural: "Texts",
   description: "A string of text.",
   type: "string",
   allOf: [
@@ -124,6 +125,11 @@ describe("Data type CRU", () => {
       ],
       conversions: {},
     });
+
+    expect(createdDataType.schema.title).toBe(dataTypeSchema.title);
+    expect(createdDataType.schema.titlePlural).toBe(dataTypeSchema.titlePlural);
+    expect(createdDataType.schema.description).toBe(dataTypeSchema.description);
+    expect(createdDataType.schema.allOf).toBe(dataTypeSchema.allOf);
   });
 
   it("can read a data type", async () => {
@@ -141,6 +147,7 @@ describe("Data type CRU", () => {
   });
 
   const updatedTitle = "New text!";
+  const updatedTitlePlural = "New texts!";
   it("can update a data type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdDataType.metadata) &&
@@ -151,7 +158,11 @@ describe("Data type CRU", () => {
 
     const updatedDataType = await updateDataType(graphContext, authentication, {
       dataTypeId: createdDataType.schema.$id,
-      schema: { ...dataTypeSchema, title: updatedTitle },
+      schema: {
+        ...dataTypeSchema,
+        title: updatedTitle,
+        titlePlural: updatedTitlePlural,
+      },
       relationships: [{ relation: "viewer", subject: { kind: "public" } }],
       conversions: {},
       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
@@ -161,6 +172,10 @@ describe("Data type CRU", () => {
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
         updatedDataType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
+
+    // Verify both title and titlePlural were updated correctly
+    expect(updatedDataType.schema.title).toBe(updatedTitle);
+    expect(updatedDataType.schema.titlePlural).toBe(updatedTitlePlural);
   });
 
   it("can archive a data type", async () => {
