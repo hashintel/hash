@@ -67,13 +67,13 @@
     "@types/lodash-es": "4.17.12",
     "@types/node": "22.13.9",
     "@types/pluralize": "0.0.33",
-    "@vitest/coverage-istanbul": "3.0.7",
+    "@vitest/coverage-istanbul": "3.0.8",
     "eslint": "9.20.1",
     "graphql": "16.10.0",
     "next": "15.2.1",
     "react": "19.0.0",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
-    "vitest": "3.0.7"
+    "vitest": "3.0.8"
   }
 }
