@@ -50,7 +50,7 @@ If creating a new GPT, once you have created an action and given it some OAuth v
 Developing HashGPT involves making changes in two places:
 
 1. The custom GPT via [the OpenAI interface](https://chat.openai.com) – here you can edit the GPT's instructions and available actions.
-1. The endpoints available to the GPT to call, in this folder.
+2. The endpoints available to the GPT to call, in this folder.
 
 Any change in one place will likely involve a change in the other – **note particularly the following**:
 
@@ -78,9 +78,9 @@ fetch("http://localhost:5001/gpt/upsert-gpt-oauth-client", {
 For example, to update the GPT's instructions, you would do the following:
 
 1. Edit the instructions in the OpenAI interface
-1. Click 'Save'
-1. Copy the new redirect URI ("Callback URL" in the edit interface)
-1. Follow the above steps to update the OAuth2 client in HASH
+2. Click 'Save'
+3. Copy the new redirect URI ("Callback URL" in the edit interface)
+4. Follow the above steps to update the OAuth2 client in HASH
 
 _Existing_ OAuth2 tokens will continue to work, because the redirect URI is only used as part of the initial consent flow.
 So you can skip updating the redirect URI if you are iterating on the GPT locally, until you need to test a new OAuth2 flow.
@@ -96,8 +96,8 @@ The action's definition includes an OpenAPI schema for the endpoints, which is g
 If you edit the endpoints, you will need to
 
 1. Regenerate the schema: `yarn workspace @apps/hash-api generate-hash-gpt-schema`
-1. Edit the action in the OpenAI interface, with the new schema – updating the `servers.url` field with the host you are testing
-1. Follow the steps above to update the OAuth2 client in HASH with the GPT's redirect URI, which will have changed after step 2
+2. Edit the action in the OpenAI interface, with the new schema – updating the `servers.url` field with the host you are testing
+3. Follow the steps above to update the OAuth2 client in HASH with the GPT's redirect URI, which will have changed after step 2
 
 When pasting in the new schema, you may see the following error:
 
@@ -114,14 +114,14 @@ If you add **new** endpoints, you must edit the generation script to include the
 Note that:
 
 1. any internal `$ref` links in the schema must point to `components.schemas` (see existing examples of moving the definitions in the generation script) – they cannot point to definitions elsewhere in the JSON.
-1. at the time of writing (Feb 2023) OpenAI does not support circular references in the schema.
+2. at the time of writing (Feb 2023) OpenAI does not support circular references in the schema.
 
 ### Choosing where to iterate
 
 The GPT's behavior can be influenced in two key ways:
 
 1. Via its `Instructions` in the OpenAI interface
-1. Via the descriptions in the action schema
+2. Via the descriptions in the action schema
 
 If we want to change how a specific endpoint is used or understood by the GPT, default to updating the action schema.
 This has the advantage of being committed and version controlled, versus the OpenAI interface which is not (at least publicly).
@@ -134,14 +134,14 @@ The OAuth2 and API endpoints relied on by the GPT must be accessible over the pu
 
 One way of exposing a locally-running API to the internet is via [ngrok](https://ngrok.com/). This is a tool which creates a secure tunnel to your localhost, and provides a public URL which can be used to access it:
 
-1. sign up for ngrok (free tier is sufficient), then ‘Create edge’. Make a note of the (1) domain and (2) id for your edge
-1. install the ngrok CLI.
-1. run `ngrok tunnel --label edge=[your_edge_id] http://localhost:5001`
+1. sign up for ngrok (free tier is sufficient), then 'Create edge'. Make a note of the (1) domain and (2) id for your edge
+2. install the ngrok CLI.
+3. run `ngrok tunnel --label edge=[your_edge_id] http://localhost:5001`
 
 The **domain** for your edge should be used for the following values in the GPT:
 
 1. `servers.url` in the action schema
-1. in the OAuth configuration for the action:
+2. in the OAuth configuration for the action:
    - Authorization URL: `[domain]/oauth2/auth`
    - Token URL: `[domain]/oauth2/token`
 
@@ -159,11 +159,11 @@ This is because a CSRF cookie will be set in response to the initial request to 
 In practice this means that **the OAuth2 flow cannot be completed when the entry point is the ngrok tunnel**, because the frontend is on a different domain. Instead, to successfully authenticate with a locally-running app do the following:
 
 1. Open DevTools and ensure you are recording network requests
-1. Trigger the OAuth2 flow from the GPT – when viewing an action you can click 'Test' against any endpoint to do so
-1. You should end up on the frontend signin screen – **don't bother to sign in**. From here:
+2. Trigger the OAuth2 flow from the GPT – when viewing an action you can click 'Test' against any endpoint to do so
+3. You should end up on the frontend signin screen – **don't bother to sign in**. From here:
    1. Clear your `localhost` cookies (they will interfere with subsequent steps otherwise)
-   1. From the network request log, copy the path that GPT directed you to, i.e. `[your-tunnel-domain]/[path]`. It will start with `/oauth2/auth` and contain query params.
-1. Now visit `http://localhost:5001/[path]` in your browser. You should be successfully sent through the OAuth2 flow (signin, grant consent) and back to the GPT.
+   2. From the network request log, copy the path that GPT directed you to, i.e. `[your-tunnel-domain]/[path]`. It will start with `/oauth2/auth` and contain query params.
+4. Now visit `http://localhost:5001/[path]` in your browser. You should be successfully sent through the OAuth2 flow (signin, grant consent) and back to the GPT.
 
 Once you have completed the OAuth2 flow, the GPT will have an access token which it can use to make authenticated requests to the HASH API.
 
@@ -177,7 +177,7 @@ Currently this is simply `read` – different or more granular scopes will invol
 The GPT can be used in two modes:
 
 1. Having clicked to 'Edit GPT', you will be in a 'Preview' mode which provides debug information about the API calls the GPT is making, and also allows you to manually trigger specific endpoints by clicking on the action and then clicking 'Test' against an endpoint
-1. The normal mode reached by simply clicking on the GPT's name in the ChatGPT sidebar. This will show the calls being made but not the responses.
+2. The normal mode reached by simply clicking on the GPT's name in the ChatGPT sidebar. This will show the calls being made but not the responses.
 
 ## Deployment
 

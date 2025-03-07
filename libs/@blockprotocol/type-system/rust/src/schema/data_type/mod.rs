@@ -389,36 +389,204 @@ mod raw {
     }
 }
 
+/// The foundation of the type system and represent primitive value types.
+///
+/// ## Core Concepts
+///
+/// A [`DataType`] defines:
+///
+/// - A unique identifier (`$id`) as a [`VersionedUrl`]
+/// - The expected value type (string, number, boolean, null, array, object)
+/// - Constraints that values must satisfy (min/max, pattern, format, etc.)
+/// - Inheritance from other data types via `all_of` references
+///
+/// ## Data Type Variants
+///
+/// The system supports these primary data type variants:
+///
+/// - `Null` - Represents the absence of a value
+/// - `Boolean` - True/false values
+/// - `Number` - Numeric values with optional constraints
+/// - `String` - Text values with optional constraints
+/// - `Array` - Ordered collections with item constraints
+/// - `Object` - Key-value structures
+/// - `AnyOf` - Union types representing one of several possible types
+///
+/// ## Validation Process
+///
+/// The [`DataTypeValidator`] is responsible for validating values against data types:
+///
+/// 1. It checks that the value matches the expected type
+/// 2. It verifies all constraints are satisfied
+/// 3. It applies inherited constraints from referenced types
+///
+/// ## Type Resolution
+///
+/// Data types can reference other data types through `all_of`, creating a graph of dependencies.
+/// The [`ClosedDataType`] represents a data type with all references resolved, ready for
+/// validation.
+///
+/// ## Example
+///
+/// A data type with inheritance might be defined as:
+///
+/// ```
+/// use serde_json::json;
+/// use type_system::schema::DataType;
+///
+/// // Define a parent text data type
+/// let text_type_json = json!({
+///     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+///     "kind": "dataType",
+///     "type": "string",
+///     "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+///     "title": "Text",
+///     "description": "An ordered sequence of characters"
+/// });
+///
+/// // Define an email type that inherits from text but adds constraints
+/// let email_type_json = json!({
+///     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+///     "kind": "dataType",
+///     "type": "string",
+///     "$id": "https://example.com/types/data-type/email/v/1",
+///     "title": "Email",
+///     "description": "An email address",
+///     "format": "email",
+///     "allOf": [
+///         { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" }
+///     ]
+/// });
+///
+/// // Parse the data types
+/// let text_type = serde_json::from_value::<DataType>(text_type_json).expect("Failed to parse text type");
+/// let email_type = serde_json::from_value::<DataType>(email_type_json).expect("Failed to parse email type");
+///
+/// // Check the inheritance relationship
+/// assert_eq!(text_type.id.to_string(), "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1");
+/// assert_eq!(email_type.id.to_string(), "https://example.com/types/data-type/email/v/1");
+///
+/// // The email type inherits from the text type via allOf
+/// assert_eq!(email_type.all_of.len(), 1);
+/// let inherited_ref = email_type.all_of.iter().next().expect("Should have at least one inherited type");
+/// assert_eq!(inherited_ref.url, text_type.id);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", from = "raw::DataType")]
 pub struct DataType {
+    /// The schema URL identifying this as a data type.
+    ///
+    /// This field must be set to `"https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"`.
     #[serde(rename = "$schema")]
     pub schema: DataTypeSchemaTag,
+
+    /// The kind of type, must be set to `"dataType"`.
     pub kind: DataTypeTag,
+
+    /// The unique identifier for this data type.
+    ///
+    /// This should be a versioned URL in the format:
+    /// `https://example.com/types/data-type/name/v/1`
     #[serde(rename = "$id")]
     pub id: VersionedUrl,
+
+    /// The human-readable name of the data type.
+    ///
+    /// This should be concise and descriptive, e.g., "Positive Integer" or "Email Address".
     pub title: String,
+
+    /// Optional plural form of the title.
+    ///
+    /// For data types representing collections, e.g., "Positive Integers".
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
+
+    /// A detailed description of the data type's purpose and constraints.
+    ///
+    /// This should provide comprehensive information about what the data type represents
+    /// and any specific rules or conventions that apply to values of this type.
     pub description: String,
+
+    /// Optional display labels for UI rendering.
+    ///
+    /// This can specify labels to be shown on the left and/or right sides of
+    /// values of this type in user interfaces.
     #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
     pub label: ValueLabel,
-    // Lexicographically ordered so we have a deterministic order for inheriting parent
-    // schemas.
+
+    /// References to parent data types from which this type inherits.
+    ///
+    /// All data types (except the core 'value' type) must inherit from at least
+    /// one parent type. Types are processed in lexicographical order for
+    /// deterministic inheritance behavior.
     #[serde(skip_serializing_if = "BTreeSet::is_empty")]
     pub all_of: BTreeSet<DataTypeReference>,
 
+    /// Whether this data type is abstract.
+    ///
+    /// Abstract types cannot be directly instantiated but serve as base types
+    /// for other data types to inherit from.
     pub r#abstract: bool,
+
+    /// The constraints that apply to values of this data type.
+    ///
+    /// This includes type-specific constraints such as:
+    /// - String constraints (pattern, minLength, format, etc.)
+    /// - Number constraints (minimum, maximum, multipleOf, etc.)
+    /// - Array constraints (minItems, maxItems, items, etc.)
+    /// - Object constraints
+    /// - Union type definitions (anyOf)
     #[serde(flatten)]
     pub constraints: ValueConstraints,
 }
 
+/// Represents the type of relationship between data types.
+///
+/// Currently, only inheritance relationships are defined, representing
+/// the "is-a" relationship between data types.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DataTypeEdge {
+    /// Indicates that one data type inherits from another.
     Inheritance,
 }
 
 impl DataType {
+    /// Returns an iterator over the data type's references to other data types.
+    ///
+    /// This method is useful for traversing the type hierarchy, such as when building
+    /// a resolver or dependency graph of types.
+    ///
+    /// # Returns
+    ///
+    /// An iterator yielding pairs of references and their relationship to this type.
+    /// Currently, all relationships are `DataTypeEdge::Inheritance` since data types
+    /// can only reference other data types through inheritance.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use serde_json::json;
+    /// use type_system::schema::{DataType, DataTypeEdge};
+    ///
+    /// let data_type = serde_json::from_value::<DataType>(json!({
+    ///     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+    ///     "kind": "dataType",
+    ///     "$id": "https://example.com/types/data-type/my-text/v/1",
+    ///     "title": "My Text",
+    ///     "description": "A custom text type",
+    ///     "type": "string",
+    ///     "allOf": [
+    ///         { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" }
+    ///     ]
+    /// })).expect("Failed to parse data type");
+    ///
+    /// // Iterate through references
+    /// for (reference, edge_type) in data_type.data_type_references() {
+    ///     assert_eq!(reference.url.to_string(),
+    ///                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1");
+    ///     assert!(matches!(edge_type, DataTypeEdge::Inheritance));
+    /// }
+    /// ```
     pub fn data_type_references(&self) -> impl Iterator<Item = (&DataTypeReference, DataTypeEdge)> {
         self.all_of
             .iter()

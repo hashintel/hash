@@ -2,5 +2,5 @@ allow-expect-in-tests              = true
 allow-print-in-tests               = true
 allow-renamed-params-for           = ["core::fmt::Debug", "core::fmt::Display", "core::fmt::LowerHex", "core::fmt::UpperHex", "futures_sink::Sink", "serde::de::Visitor", ".."]
 avoid-breaking-exported-api        = false
-doc-valid-idents                   = ["HaRPC", "SpiceDB", "OpenAPI", "PostgreSQL", "HashQL", ".."]
+doc-valid-idents                   = ["BlockProtocol", "HaRPC", "HashQL", "SpiceDB", "OpenAPI", "PostgreSQL", ".."]
 suppress-restriction-lint-in-const = true

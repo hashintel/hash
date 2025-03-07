@@ -70,9 +70,9 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
    If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
 
-1. [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
+2. [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
 
-1. We use [mise-en-place](https://mise.jdx.dev/) to manage tool versions consistently across our codebase. We recommend using `mise` to automatically install and manage the required development tools:
+3. We use [mise-en-place](https://mise.jdx.dev/) to manage tool versions consistently across our codebase. We recommend using `mise` to automatically install and manage the required development tools:
 
    ```sh
    mise install
@@ -82,13 +82,13 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
    After [installing mise](https://mise.jdx.dev/getting-started.html#installing-mise-cli) you will also need to set it to [automatically activate](https://mise.jdx.dev/getting-started.html#activate-mise) in your shell.
 
-1. Install dependencies:
+4. Install dependencies:
 
    ```sh
    yarn install
    ```
 
-1. Ensure Docker is running.
+5. Ensure Docker is running.
    If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
    Alternatively, you can use this command to check Docker:
 
@@ -96,7 +96,7 @@ See the [respective section in the parent README](../README.md#hash) for descrip
    docker run hello-world
    ```
 
-1. If you need to test or develop AI-related features, you will need to create an `.env.local` file in the repository root with the following values:
+6. If you need to test or develop AI-related features, you will need to create an `.env.local` file in the repository root with the following values:
 
    ```sh
    OPENAI_API_KEY=your-open-ai-api-key                                      # required for most AI features
@@ -108,7 +108,7 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
    **Note on environment files:** `.env.local` is not committed to the repo – **put any secrets that should remain secret here.** The default environment variables are taken from `.env`, extended by `.env.development`, and finally by `.env.local`. If you want to overwrite values specified in `.env` or `.env.development`, you can add them to `.env.local`. Do **not** change any other `.env` files unless you intend to change the defaults for development or testing.
 
-1. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
+7. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
 
    ```sh
    yarn external-services up --wait
@@ -116,13 +116,13 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
    1. You can optionally force a rebuild of the Docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
 
-   1. You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
+   2. You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
 
-   1. When using `yarn external-services:offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
+   3. When using `yarn external-services:offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
 
-   1. You can also run the Graph API and AI Temporal worker outside of Docker – this is useful if they are changing frequently and you want to avoid rebuilding the Docker containers. To do so, _stop them_ in Docker and then run `yarn dev:graph` and `yarn workspace @apps/hash-ai-worker-ts dev` respectively in separate terminals.
+   4. You can also run the Graph API and AI Temporal worker outside of Docker – this is useful if they are changing frequently and you want to avoid rebuilding the Docker containers. To do so, _stop them_ in Docker and then run `yarn dev:graph` and `yarn workspace @apps/hash-ai-worker-ts dev` respectively in separate terminals.
 
-1. Launch app services:
+8. Launch app services:
 
    ```sh
    yarn start
@@ -141,7 +141,7 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
    See `package.json` → `scripts` for details and more options.
 
-1. Log in
+9. Log in
 
    There are three users seeded automatically for development. Their passwords are all `password`.
 
@@ -157,14 +157,14 @@ If you need to reset the local database, to clear out test data or because it ha
 1. The slow option – rebuild in Docker
 
    1. In the Docker UI (or via CLI at your preference), stop and delete the `hash-external-services` container
-   1. In 'Volumes', search 'hash-external-services' and delete the volumes shown
-   1. Run `yarn external-services up --wait` to rebuild the services
+   2. In 'Volumes', search 'hash-external-services' and delete the volumes shown
+   3. Run `yarn external-services up --wait` to rebuild the services
 
-1. The fast option – reset the database via the Graph API
+2. The fast option – reset the database via the Graph API
 
    1. Run the Graph API in test mode by running `yarn dev:graph:test-server`
-   1. Run `yarn graph:reset-database` to reset the database
-   1. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or signin will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
+   2. Run `yarn graph:reset-database` to reset the database
+   3. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or signin will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
 
 #### External services test mode
 
@@ -315,10 +315,10 @@ New local packages should follow these rules:
    - beginning with `@local/` for non-published JavaScript dependencies
    - identical to their `npm` name for published JavaScript dependencies
    - begin with `@rust/` for Rust dependencies
-1. Things which are executed belong in `apps/`, and are named `@apps/app-name
-1. Packages which aren't published to `npm` should have `"private": true` in their `package.json`
-1. All TypeScript packages should be `"type": "module"`
-1. ESLint and TypeScript configuration should all extend the base configs (see existing examples in other packages). Don't modify or override anything unless necessary.
+2. Things which are executed belong in `apps/`, and are named `@apps/app-name
+3. Packages which aren't published to `npm` should have `"private": true` in their `package.json`
+4. All TypeScript packages should be `"type": "module"`
+5. ESLint and TypeScript configuration should all extend the base configs (see existing examples in other packages). Don't modify or override anything unless necessary.
 
 Read the next section to understand how to configure compilation for packages.
 
@@ -327,12 +327,12 @@ Read the next section to understand how to configure compilation for packages.
 The package resolution setup is designed to meet two goals:
 
 1. Enable the local dependency graph for any application to be executed directly as TypeScript code during development, whilst
-1. Enabling it to be run as transpiled JavaScript in production.
+2. Enabling it to be run as transpiled JavaScript in production.
 
 This is achieved by maintaining two parallel exports definitions for each package:
 
 1. The `exports` field in `package.json` should point to the transpiled JavaScript (and `typesVersions` to the type definition files)
-1. The `paths` map in the base TSConfig should map the same import paths to their TypeScript source
+2. The `paths` map in the base TSConfig should map the same import paths to their TypeScript source
 
 During development (e.g. running `yarn dev` for an application), the `paths` override will be in effect, meaning that the source TypeScript
 is being run directly, and modifying any dependent file in the repo will trigger a reload of the application (assuming `tsx watch` or equivalent is used).
@@ -349,12 +349,12 @@ For `webpack`, this is automated by adding the `TsconfigPathsPlugin` to the conf
 New packages which are to be built as JavaScript, whether as an app or dependency, must follow these rules:
 
 1. They must have a `tsconfig.json` which extends the base config and sets `"module": "NodeNext"` and `"moduleResolution": "NodeNext"`
-1. Imports within a package must use relative imports and not the package's name (they will not be resolved when built otherwise)
-1. Relative imports within a package must have a `.js` file extension (`tsc` will enforce this)
-1. They must have a `tsconfig.build.json` which overrides the `paths` field (`"paths": {}`)
-1. They must have a `build` command which uses this file (typically `rimraf ./dist/ && tsc -p tsconfig.build.json`)
-1. They must specify the paths exposed to consumers in `exports` and `typesVersions` in `package.json`, and `paths` in the base TSConfig
-1. They must have a `turbo.json` which extends the root and specifies the `outputs` for caching (see existing examples)
+2. Imports within a package must use relative imports and not the package's name (they will not be resolved when built otherwise)
+3. Relative imports within a package must have a `.js` file extension (`tsc` will enforce this)
+4. They must have a `tsconfig.build.json` which overrides the `paths` field (`"paths": {}`)
+5. They must have a `build` command which uses this file (typically `rimraf ./dist/ && tsc -p tsconfig.build.json`)
+6. They must specify the paths exposed to consumers in `exports` and `typesVersions` in `package.json`, and `paths` in the base TSConfig
+7. They must have a `turbo.json` which extends the root and specifies the `outputs` for caching (see existing examples)
 
 ### Authoring Patches
 
