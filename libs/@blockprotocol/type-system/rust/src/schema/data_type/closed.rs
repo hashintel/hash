@@ -31,6 +31,8 @@ pub struct ClosedDataType {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     pub description: String,
     #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
     pub label: ValueLabel,
@@ -92,19 +94,33 @@ impl ClosedDataType {
         data_type: DataType,
         resolve_data: &DataTypeResolveData,
     ) -> Result<Self, Report<ResolveClosedDataTypeError>> {
+        let metadata_schema = if data_type.label.is_empty() || data_type.icon.is_none() {
+            resolve_data.find_metadata_schema()?
+        } else {
+            None
+        };
+
         let label = if data_type.label.is_empty() {
-            resolve_data
-                .find_metadata_schema()?
+            metadata_schema
                 .map(|schema| schema.label.clone())
                 .unwrap_or_default()
         } else {
             data_type.label
         };
 
+        let icon = if data_type.icon.is_none() {
+            metadata_schema
+                .map(|schema| schema.icon.clone())
+                .unwrap_or_default()
+        } else {
+            data_type.icon.clone()
+        };
+
         Ok(Self {
             id: data_type.id.clone(),
             title: data_type.title.clone(),
             title_plural: data_type.title_plural.clone(),
+            icon,
             description: data_type.description.clone(),
             label,
             all_of: ValueConstraints::fold_intersections(
@@ -204,6 +220,7 @@ impl DataTypeResolveData {
                         cmp::Ordering::Equal => {
                             if stored_schema.description != found_schema.description
                                 || stored_schema.label != found_schema.label
+                                || stored_schema.icon != found_schema.icon
                             {
                                 bail!(ResolveClosedDataTypeError::AmbiguousMetadata);
                             }
@@ -273,6 +290,7 @@ mod tests {
         .await
         .into_inner();
         number.label.right = Some("f64".to_owned());
+        number.icon = Some("\u{1f522}".to_owned());
 
         let integer = ensure_validation::<DataType, _>(
             json!({
@@ -336,6 +354,7 @@ mod tests {
               "title": "Small number",
               "description": "A small number",
               "label": { "right": "i8" },
+              "icon": "\u{1f539}",
               "allOf": [{ "$ref": number.id }],
               "type": "number",
               "maximum": 255.0,
@@ -382,6 +401,7 @@ mod tests {
         assert_eq!(value.title_plural, defs.value.title_plural);
         assert_eq!(value.description, defs.value.description);
         assert_eq!(value.label, defs.value.label);
+        assert_eq!(value.icon, defs.value.icon);
         assert_eq!(value.r#abstract, defs.value.r#abstract);
         assert_eq!(json!(value.all_of), json!([defs.value.constraints]));
     }
@@ -392,6 +412,7 @@ mod tests {
         assert_eq!(number.title_plural, defs.number.title_plural);
         assert_eq!(number.description, defs.number.description);
         assert_eq!(number.label, defs.number.label);
+        assert_eq!(number.icon, defs.number.icon);
         assert_eq!(number.r#abstract, defs.number.r#abstract);
         assert_eq!(json!(number.all_of), json!([defs.number.constraints]));
     }
@@ -402,6 +423,7 @@ mod tests {
         assert_eq!(integer.title_plural, defs.integer.title_plural);
         assert_eq!(integer.description, defs.integer.description);
         assert_eq!(integer.label, defs.number.label);
+        assert_eq!(integer.icon, defs.number.icon);
         assert_eq!(integer.r#abstract, defs.integer.r#abstract);
         assert_eq!(json!(integer.all_of), json!([defs.integer.constraints]));
     }
@@ -412,6 +434,7 @@ mod tests {
         assert_eq!(unsigned.title_plural, defs.unsigned.title_plural);
         assert_eq!(unsigned.description, defs.unsigned.description);
         assert_eq!(unsigned.label, defs.number.label);
+        assert_eq!(unsigned.icon, defs.number.icon);
         assert_eq!(unsigned.r#abstract, defs.unsigned.r#abstract);
         assert_eq!(json!(unsigned.all_of), json!([defs.unsigned.constraints]));
     }
@@ -422,6 +445,7 @@ mod tests {
         assert_eq!(unsigned_int.title_plural, defs.unsigned_int.title_plural);
         assert_eq!(unsigned_int.description, defs.unsigned_int.description);
         assert_eq!(unsigned_int.label, defs.number.label);
+        assert_eq!(unsigned_int.icon, defs.number.icon);
         assert_eq!(unsigned_int.r#abstract, defs.unsigned_int.r#abstract);
         assert_eq!(
             json!(unsigned_int.all_of),
@@ -442,6 +466,7 @@ mod tests {
         assert_eq!(small.title_plural, defs.small.title_plural);
         assert_eq!(small.description, defs.small.description);
         assert_eq!(small.label, defs.small.label);
+        assert_eq!(small.icon, defs.small.icon);
         assert_eq!(small.r#abstract, defs.small.r#abstract);
         assert_eq!(json!(small.all_of), json!([defs.small.constraints]));
     }
@@ -461,6 +486,7 @@ mod tests {
             defs.unsigned_small_int.description
         );
         assert_eq!(unsigned_small_int.label, defs.small.label);
+        assert_eq!(unsigned_small_int.icon, defs.small.icon);
         assert_eq!(
             unsigned_small_int.r#abstract,
             defs.unsigned_small_int.r#abstract

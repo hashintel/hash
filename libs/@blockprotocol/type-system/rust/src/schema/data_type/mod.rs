@@ -142,6 +142,8 @@ mod raw {
         title: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         title_plural: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        icon: Option<String>,
         #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
         all_of: BTreeSet<DataTypeReference>,
 
@@ -379,6 +381,7 @@ mod raw {
                 id: base.id,
                 title: base.title,
                 title_plural: base.title_plural,
+                icon: base.icon,
                 description: metadata.description,
                 label: metadata.label,
                 all_of: base.all_of,
@@ -500,6 +503,12 @@ pub struct DataType {
     /// For data types representing collections, e.g., "Positive Integers".
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
+
+    /// Optional display icon for UI rendering.
+    ///
+    /// This can specify an icon to be shown next to the value of this type in user interface.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
 
     /// A detailed description of the data type's purpose and constraints.
     ///

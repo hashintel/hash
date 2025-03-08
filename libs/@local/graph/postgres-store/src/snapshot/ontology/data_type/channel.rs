@@ -92,6 +92,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                     },
                     title: String::new(),
                     title_plural: None,
+                    icon: None,
                     description: String::new(),
                     label: ValueLabel::default(),
                     all_of: Vec::new(),

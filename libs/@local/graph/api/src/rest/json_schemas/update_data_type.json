@@ -12,6 +12,8 @@
       "enum": ["dataType"]
     },
     "title": { "type": "string" },
+    "titlePlural": { "type": "string" },
+    "icon": { "type": "string" },
     "description": { "type": "string" },
     "type": {
       "oneOf": [
