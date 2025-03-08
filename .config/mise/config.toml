@@ -14,7 +14,7 @@ uv             = "0.6.5"
 'cargo:wasm-opt'  = "0.116.1"
 "cargo:wasm-pack" = "0.13.1"
 java              = "24"
-protoc            = "25.6"
+protoc            = "30.0"
 
 # CLI tools
 biome                  = "1.9.5-nightly.ff02a0b"
