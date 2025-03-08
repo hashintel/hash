@@ -3,20 +3,20 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { useCallback } from "react";
 
 import type {
-  GetClosedMultiEntityTypeQuery,
-  GetClosedMultiEntityTypeQueryVariables,
+  GetClosedMultiEntityTypesQuery,
+  GetClosedMultiEntityTypesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getClosedMultiEntityTypeQuery } from "../../graphql/queries/ontology/entity-type.queries";
 
 export const useGetClosedMultiEntityType = () => {
   const [getMultiEntityType, { loading }] = useLazyQuery<
-    GetClosedMultiEntityTypeQuery,
-    GetClosedMultiEntityTypeQueryVariables
+    GetClosedMultiEntityTypesQuery,
+    GetClosedMultiEntityTypesQueryVariables
   >(getClosedMultiEntityTypeQuery, {
     fetchPolicy: "cache-first",
   });
 
-  const getClosedMultiEntityType = useCallback(
+  const getClosedMultiEntityTypes = useCallback(
     async (newEntityTypeIds: VersionedUrl[]) => {
       const response = await getMultiEntityType({
         variables: {
@@ -32,11 +32,11 @@ export const useGetClosedMultiEntityType = () => {
         );
       }
 
-      const { closedMultiEntityType, definitions } =
-        response.data.getClosedMultiEntityType;
+      const { closedMultiEntityTypes, definitions } =
+        response.data.getClosedMultiEntityTypes;
 
       return {
-        closedMultiEntityType,
+        closedMultiEntityTypes,
         closedMultiEntityTypesDefinitions: definitions,
       };
     },
@@ -44,7 +44,7 @@ export const useGetClosedMultiEntityType = () => {
   );
 
   return {
-    getClosedMultiEntityType,
+    getClosedMultiEntityTypes,
     loading,
   };
 };

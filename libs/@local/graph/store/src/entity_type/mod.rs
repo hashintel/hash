@@ -4,7 +4,7 @@ pub use self::{
     store::{
         ArchiveEntityTypeParams, ClosedDataTypeDefinition, CountEntityTypesParams,
         CreateEntityTypeParams, EntityTypeResolveDefinitions, EntityTypeStore,
-        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
+        GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
         GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
         GetEntityTypesResponse, IncludeEntityTypeOption, IncludeResolvedEntityTypeOption,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,

@@ -13,7 +13,7 @@ import { useEntityEditor } from "../entity-editor-context";
 import type { EntityTypeChangeDetails } from "./entity-type-change-modal";
 
 export const useGetTypeChangeDetails = () => {
-  const { getClosedMultiEntityType } = useGetClosedMultiEntityType();
+  const { getClosedMultiEntityTypes } = useGetClosedMultiEntityType();
 
   const {
     closedMultiEntityType: currentClosedType,
@@ -27,9 +27,10 @@ export const useGetTypeChangeDetails = () => {
       Pick<EntityTypeChangeDetails, "linkChanges" | "propertyChanges">
     > => {
       const {
-        closedMultiEntityType: proposedClosedMultiType,
+        closedMultiEntityTypes: proposedClosedMultiTypes,
         closedMultiEntityTypesDefinitions: proposedDefinitions,
-      } = await getClosedMultiEntityType(newEntityTypeIds);
+      } = await getClosedMultiEntityTypes(newEntityTypeIds);
+      const proposedClosedMultiType = proposedClosedMultiTypes[0]!;
 
       const changeDetails: Pick<
         EntityTypeChangeDetails,
@@ -288,6 +289,6 @@ export const useGetTypeChangeDetails = () => {
 
       return changeDetails;
     },
-    [currentClosedType, currentDefinitions, getClosedMultiEntityType],
+    [currentClosedType, currentDefinitions, getClosedMultiEntityTypes],
   );
 };
