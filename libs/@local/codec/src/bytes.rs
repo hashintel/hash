@@ -1,3 +1,46 @@
+//! JSON lines encoding and decoding for streaming data processing.
+//!
+//! This module provides encoders and decoders for processing streams of JSON data
+//! using the JSON Lines format (also known as NDJSON - Newline Delimited JSON).
+//! Each JSON value is serialized on a separate line, making it ideal for streaming
+//! and processing large volumes of data incrementally.
+//!
+//! # Key Components
+//!
+//! - [`JsonLinesEncoder`]: Serializes values to JSON and appends newlines
+//! - [`JsonLinesDecoder`]: Reads newline-delimited JSON and deserializes into typed values
+//!
+//! # Examples
+//!
+//! ```
+//! use bytes::BytesMut;
+//! use hash_codec::bytes::{JsonLinesDecoder, JsonLinesEncoder};
+//! use serde::{Deserialize, Serialize};
+//! use tokio_util::codec::{Decoder, Encoder};
+//!
+//! #[derive(Debug, Serialize, Deserialize, PartialEq)]
+//! struct Message {
+//!     id: u32,
+//!     content: String,
+//! }
+//!
+//! // Create encoder and buffer
+//! let mut encoder = JsonLinesEncoder::<Message>::default();
+//! let mut buffer = BytesMut::new();
+//!
+//! // Encode a message
+//! let message = Message {
+//!     id: 1,
+//!     content: "Hello".to_string(),
+//! };
+//! encoder.encode(message, &mut buffer)?;
+//!
+//! // Decode the message
+//! let mut decoder = JsonLinesDecoder::<Message>::new();
+//! let decoded = decoder.decode(&mut buffer)?;
+//! # Ok::<_, Box<dyn std::error::Error>>(())
+//! ```
+
 use core::marker::PhantomData;
 use std::io::{self, Write as _};
 

@@ -1,3 +1,47 @@
+//! # Type Resolution and Closure
+//!
+//! This module provides the infrastructure for resolving references between types in the Block
+//! Protocol Type System. It handles the process of "closing" types by resolving all their
+//! dependencies.
+//!
+//! ## Core Concepts
+//!
+//! - **Type Resolution**: The process of following references between types to build a complete
+//!   type graph. For example, an entity type might reference property types, which reference data
+//!   types.
+//!
+//! - **Closed Types**: Types with all references resolved, ready for validation. A closed type
+//!   contains the complete set of constraints derived from all referenced types.
+//!
+//! - **Inheritance Depth**: Tracks how deep in the inheritance hierarchy a type is, to prevent
+//!   circular references and limit excessive nesting.
+//!
+//! ## The Resolver
+//!
+//! The [`OntologyTypeResolver`] is the central component of this module. It:
+//!
+//! 1. Maintains a cache of known types (data types and entity types)
+//! 2. Resolves references between types on demand
+//! 3. Caches resolved (closed) types for performance
+//! 4. Detects missing or circular references
+//!
+//! ## Resolution Process
+//!
+//! The resolution process typically follows these steps:
+//!
+//! 1. Add unresolved types to the resolver
+//! 2. Request resolution of a specific type
+//! 3. The resolver recursively resolves all references
+//! 4. The resolver returns a closed type with all dependencies resolved
+//!
+//! ## Error Handling
+//!
+//! The resolver handles several error cases:
+//!
+//! - Unknown type IDs that cannot be found
+//! - Missing schemas that are referenced but not available
+//! - Circular references that would cause infinite recursion
+
 use alloc::sync::Arc;
 #[cfg(feature = "postgres")]
 use core::error::Error;

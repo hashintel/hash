@@ -82,6 +82,120 @@ pub struct EntityTypeDisplayMetadata {
     pub icon: Option<String>,
 }
 
+/// Defines the structure of entities with properties and links.
+///
+/// ## Core Concepts
+///
+/// An [`EntityType`] defines:
+///
+/// - A unique identifier (`$id`) as a [`VersionedUrl`]
+/// - A title, optional plural title, and description
+/// - Required and optional properties using [`PropertyType`] references
+/// - Links to other entity types, defining the entity graph structure
+/// - Inheritance from other entity types via `all_of` references
+/// - Optional display metadata like `label_property` and `icon`
+///
+/// [`PropertyType`]: crate::schema::PropertyType
+///
+/// ## Entity Type Structure
+///
+/// Entity types combine several key elements:
+///
+/// 1. **Properties** - References to property types that define the entity's data structure
+/// 2. **Links** - References to other entity types that this entity can link to
+/// 3. **Inheritance** - References to parent entity types whose structure is inherited
+///
+/// ## Inheritance and Composition
+///
+/// Entity types support inheritance through the `all_of` field, which allows an entity type
+/// to extend one or more parent entity types. The resulting entity type includes:
+///
+/// - All properties from parent entity types
+/// - All links from parent entity types
+/// - Additional properties and links defined directly on the entity type
+///
+/// ## Resolution and Closure
+///
+/// Entity types can reference property types, data types, and other entity types, creating
+/// a complex graph of dependencies. The [`ClosedEntityType`] represents an entity type with
+/// all references resolved, ready for validation.
+///
+/// ## Validation Process
+///
+/// The [`EntityTypeValidator`] validates entities against entity types:
+///
+/// 1. It ensures all required properties are present
+/// 2. It validates each property value against its property type
+/// 3. It validates links against their link constraints
+/// 4. It applies constraints inherited from parent entity types
+///
+/// ## Example
+///
+/// A Person entity type with properties and links:
+///
+/// ```
+/// use serde_json::json;
+/// use type_system::{
+///     schema::EntityType,
+///     url::BaseUrl,
+/// };
+///
+/// // Define a Person entity type with properties and links
+/// let person_json = json!({
+///     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+///     "kind": "entityType",
+///     "type": "object",
+///     "$id": "https://example.com/types/entity-type/person/v/1",
+///     "title": "Person",
+///     "description": "A human being",
+///     "properties": {
+///         "https://example.com/types/property-type/name/": {
+///             "$ref": "https://example.com/types/property-type/name/v/1"
+///         },
+///         "https://example.com/types/property-type/email/": {
+///             "$ref": "https://example.com/types/property-type/email/v/1"
+///         },
+///         "https://example.com/types/property-type/age/": {
+///             "$ref": "https://example.com/types/property-type/age/v/1"
+///         }
+///     },
+///     "required": ["https://example.com/types/property-type/name/"],
+///     "links": {
+///         "https://example.com/types/entity-type/friend-of/v/1": {
+///             "type": "array",
+///             "items": {
+///                 "oneOf": [
+///                     { "$ref": "https://example.com/types/entity-type/person/v/1" }
+///                 ]
+///             }
+///         }
+///     }
+/// });
+///
+/// // Parse the entity type
+/// let person = serde_json::from_value::<EntityType>(person_json).expect("Failed to parse entity type");
+///
+/// // Check basic metadata
+/// assert_eq!(person.id.to_string(), "https://example.com/types/entity-type/person/v/1");
+/// assert_eq!(person.title, "Person");
+///
+/// // Examine properties
+/// let properties = &person.constraints.properties;
+/// assert_eq!(properties.len(), 3);
+///
+/// // Check if a specific property exists
+/// let name_url = BaseUrl::new("https://example.com/types/property-type/name/".to_string())
+///     .expect("Should create a valid BaseUrl");
+/// assert!(properties.contains_key(&name_url), "Should contain the name property");
+///
+/// // Check required properties
+/// let required = &person.constraints.required;
+/// assert!(required.contains(&name_url), "Name property should be required");
+///
+/// // Check links
+/// let links = &person.constraints.links;
+/// assert_eq!(links.len(), 1, "Should have exactly one link type");
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -157,6 +271,61 @@ pub enum EntityTypeToPropertyTypeEdge {
 }
 
 impl EntityType {
+    /// Returns an iterator over all entity type references used by this entity type.
+    ///
+    /// This method collects all references to other entity types from:
+    ///
+    /// 1. Inheritance relationships via the `all_of` field (parent entity types)
+    /// 2. Link relationships via the `links` field (link types)
+    /// 3. Link destination constraints (allowed destination entity types for links)
+    ///
+    /// Each reference is paired with an [`EntityTypeToEntityTypeEdge`] value indicating
+    /// the relationship type between this entity type and the referenced entity type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use type_system::schema::{EntityType, EntityTypeToEntityTypeEdge};
+    /// use serde_json::json;
+    ///
+    /// let entity_type_json = json!({
+    ///     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    ///     "kind": "entityType",
+    ///     "type": "object",
+    ///     "$id": "https://example.com/types/entity-type/person/v/1",
+    ///     "title": "Person",
+    ///     "description": "A human being",
+    ///     "properties": {},
+    ///     "links": {
+    ///         "https://example.com/types/entity-type/friend-of/v/1": {
+    ///             "type": "array",
+    ///             "items": {
+    ///                 "oneOf": [
+    ///                     { "$ref": "https://example.com/types/entity-type/person/v/1" }
+    ///                 ]
+    ///             }
+    ///         }
+    ///     }
+    /// });
+    ///
+    /// let entity_type = serde_json::from_value::<EntityType>(entity_type_json)
+    ///     .expect("Failed to parse entity type");
+    ///
+    /// for (reference, edge_type) in entity_type.entity_type_references() {
+    ///     // Process each reference based on its relationship type
+    ///     match edge_type {
+    ///         EntityTypeToEntityTypeEdge::Inheritance => {
+    ///             // Handle inheritance reference
+    ///         },
+    ///         EntityTypeToEntityTypeEdge::Link => {
+    ///             // Handle link type reference
+    ///         },
+    ///         EntityTypeToEntityTypeEdge::LinkDestination => {
+    ///             // Handle link destination reference
+    ///         }
+    ///     }
+    /// }
+    /// ```
     pub fn entity_type_references(
         &self,
     ) -> impl Iterator<Item = (&EntityTypeReference, EntityTypeToEntityTypeEdge)> {
@@ -179,6 +348,41 @@ impl EntityType {
             ))
     }
 
+    /// Returns an iterator over all property type references used by this entity type.
+    ///
+    /// This method collects all references to property types from the `properties` field
+    /// of the entity type's constraints. It handles both direct property references and
+    /// array property references, returning each with an [`EntityTypeToPropertyTypeEdge::Property`]
+    /// marker to indicate the relationship type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use type_system::schema::{EntityType, EntityTypeToPropertyTypeEdge};
+    /// use serde_json::json;
+    ///
+    /// let entity_type_json = json!({
+    ///     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    ///     "kind": "entityType",
+    ///     "type": "object",
+    ///     "$id": "https://example.com/types/entity-type/person/v/1",
+    ///     "title": "Person",
+    ///     "description": "A human being",
+    ///     "properties": {
+    ///         "https://example.com/types/property-type/name/": {
+    ///             "$ref": "https://example.com/types/property-type/name/v/1"
+    ///         }
+    ///     }
+    /// });
+    ///
+    /// let entity_type = serde_json::from_value::<EntityType>(entity_type_json)
+    ///     .expect("Failed to parse entity type");
+    ///
+    /// for (reference, edge_type) in entity_type.property_type_references() {
+    ///     assert!(matches!(edge_type, EntityTypeToPropertyTypeEdge::Property));
+    ///     // Process each property type reference
+    /// }
+    /// ```
     pub fn property_type_references(
         &self,
     ) -> impl Iterator<Item = (&PropertyTypeReference, EntityTypeToPropertyTypeEdge)> {
@@ -193,6 +397,56 @@ impl EntityType {
         })
     }
 
+    /// Returns an iterator over link entity types and their allowed destination entity types.
+    ///
+    /// This method extracts the link structure from the entity type, mapping each link type
+    /// to its allowed destination entity types. The returned iterator yields pairs where:
+    ///
+    /// - The first element is a reference to the link entity type
+    /// - The second element is an optional slice of allowed destination entity types (None if there
+    ///   are no constraints on destinations)
+    ///
+    /// This mapping is useful for understanding the graph structure defined by the entity type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use type_system::schema::EntityType;
+    /// use serde_json::json;
+    ///
+    /// let entity_type_json = json!({
+    ///     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    ///     "kind": "entityType",
+    ///     "type": "object",
+    ///     "$id": "https://example.com/types/entity-type/person/v/1",
+    ///     "title": "Person",
+    ///     "description": "A human being",
+    ///     "properties": {},
+    ///     "links": {
+    ///         "https://example.com/types/entity-type/friend-of/v/1": {
+    ///             "type": "array",
+    ///             "items": {
+    ///                 "oneOf": [
+    ///                     { "$ref": "https://example.com/types/entity-type/person/v/1" }
+    ///                 ]
+    ///             }
+    ///         }
+    ///     }
+    /// });
+    ///
+    /// let entity_type = serde_json::from_value::<EntityType>(entity_type_json)
+    ///     .expect("Failed to parse entity type");
+    ///
+    /// for (link_type, destination_types) in entity_type.link_mappings() {
+    ///     // Process each link type and its destination constraints
+    ///     println!("Link type: {}", link_type.url);
+    ///     if let Some(destinations) = destination_types {
+    ///         println!("Allowed destinations: {}", destinations.len());
+    ///     } else {
+    ///         println!("No destination constraints");
+    ///     }
+    /// }
+    /// ```
     pub fn link_mappings(
         &self,
     ) -> impl Iterator<Item = (&EntityTypeReference, Option<&[EntityTypeReference]>)> {

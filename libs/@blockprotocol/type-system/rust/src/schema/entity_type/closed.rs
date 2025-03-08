@@ -35,6 +35,10 @@ pub struct ClosedEntityTypeMetadata {
 }
 
 impl ClosedEntityTypeMetadata {
+    /// Determines if this entity type represents a link in the knowledge graph.
+    ///
+    /// Checks if any entity types in the `all_of` collection inherit from the
+    /// BlockProtocol base Link entity type.
     #[must_use]
     pub fn is_link(&self) -> bool {
         self.all_of.iter().any(|entity_type| {
@@ -81,11 +85,20 @@ pub enum ResolveClosedEntityTypeError {
 }
 
 impl ClosedEntityType {
-    /// Create a closed entity type from an entity type and its resolve data.
+    /// Creates a closed entity type from an entity type and its resolve data.
+    ///
+    /// A closed entity type is a fully resolved version that includes all inherited properties
+    /// and constraints. This method takes a source `schema` entity type and the `resolve_data`
+    /// containing inheritance relationships, resolving the entity type by recursively following
+    /// its inheritance tree.
     ///
     /// # Errors
     ///
-    /// Returns an error if the entity type references unknown schema in `allOf`.
+    /// - [`UnknownSchemas`] if the entity type references unknown schemas in `allOf`
+    /// - [`InheritanceDepthOverflow`] if the inheritance hierarchy is too deep
+    ///
+    /// [`UnknownSchemas`]: ResolveClosedEntityTypeError::UnknownSchemas
+    /// [`InheritanceDepthOverflow`]: ResolveClosedEntityTypeError::InheritanceDepthOverflow
     pub fn from_resolve_data(
         mut schema: EntityType,
         resolve_data: &EntityTypeResolveData,
@@ -154,6 +167,10 @@ pub struct ClosedMultiEntityType {
 }
 
 impl ClosedMultiEntityType {
+    /// Creates a new multi-entity type from a single closed entity type.
+    ///
+    /// Initializes a new [`ClosedMultiEntityType`] containing a single entity type's metadata
+    /// and constraints.
     #[must_use]
     pub fn from_closed_schema(closed_schemas: ClosedEntityType) -> Self {
         Self {
@@ -169,17 +186,19 @@ impl ClosedMultiEntityType {
         }
     }
 
-    pub fn is_link(&self) -> bool {
-        self.all_of.iter().any(ClosedEntityTypeMetadata::is_link)
-    }
-
-    /// Creates a closed entity type from multiple closed entity types.
+    /// Creates a closed multi-entity type from multiple closed entity types.
     ///
-    /// This results in a closed entity type which is used for entities with multiple types.
+    /// Combines multiple closed entity types into a single entity by merging their properties,
+    /// constraints, and link definitions. Takes an iterator of closed entity types and builds
+    /// a composite type that satisfies all input types simultaneously.
     ///
     /// # Errors
     ///
-    /// Returns an error if the entity types have incompatible properties.
+    /// - [`EmptySchema`] if no schemas are provided in the iterator
+    /// - [`IncompatibleProperty`] if entity types have conflicting property definitions
+    ///
+    /// [`EmptySchema`]: ResolveClosedEntityTypeError::EmptySchema
+    /// [`IncompatibleProperty`]: ResolveClosedEntityTypeError::IncompatibleProperty
     pub fn from_multi_type_closed_schema(
         closed_schemas: impl IntoIterator<Item = ClosedEntityType>,
     ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
@@ -195,11 +214,16 @@ impl ClosedMultiEntityType {
         Ok(closed_schema)
     }
 
-    /// Adds a new closed entity type to the multi entity type.
+    /// Adds a new closed entity type to this multi-entity type.
+    ///
+    /// Extends the current multi-entity type by incorporating another closed entity type,
+    /// merging properties, required fields, and link definitions while maintaining compatibility.
     ///
     /// # Errors
     ///
-    /// Returns an error if the entity types have incompatible properties.
+    /// - [`IncompatibleProperty`] if there are property definition conflicts
+    ///
+    /// [`IncompatibleProperty`]: ResolveClosedEntityTypeError::IncompatibleProperty
     pub fn add_closed_entity_type(
         &mut self,
         schema: ClosedEntityType,
@@ -232,6 +256,14 @@ impl ClosedMultiEntityType {
 
         Ok(())
     }
+
+    /// Determines if this multi-entity type represents a link in the knowledge graph.
+    ///
+    /// Delegates to [`ClosedEntityTypeMetadata::is_link`] to check each entity type in the
+    /// `all_of` collection.
+    pub fn is_link(&self) -> bool {
+        self.all_of.iter().any(ClosedEntityTypeMetadata::is_link)
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -245,6 +277,11 @@ pub struct EntityTypeResolveData {
 }
 
 impl EntityTypeResolveData {
+    /// Adds an inheritance edge from this entity type to a target entity type.
+    ///
+    /// Inheritance edges represent "is-a" relationships between entity types. When added,
+    /// this method stores the target entity type reference and its inheritance depth,
+    /// using the minimum depth value if an edge to the same target already exists.
     pub fn add_entity_type_inheritance_edge(
         &mut self,
         target: Arc<EntityType>,
@@ -262,6 +299,11 @@ impl EntityTypeResolveData {
         }
     }
 
+    /// Adds a link edge from this entity type to a target entity type.
+    ///
+    /// Link edges represent relationships where this entity type can link to instances
+    /// of the target entity type. This method stores the target entity type ID and its
+    /// depth, using the minimum depth value if an edge to the same target already exists.
     pub fn add_entity_type_link_edge(&mut self, target_id: EntityTypeUuid, depth: u16) {
         let depth = InheritanceDepth::new(depth);
         match self.links.entry(target_id) {
@@ -274,6 +316,11 @@ impl EntityTypeResolveData {
         }
     }
 
+    /// Adds a link destination edge from this entity type to a target entity type.
+    ///
+    /// Link destination edges indicate that this entity type can be the destination of
+    /// links from the target entity type. This method stores the target entity type ID
+    /// and its depth, using the minimum depth value if an edge to the same target already exists.
     pub fn add_entity_type_link_destination_edge(&mut self, target_id: EntityTypeUuid, depth: u16) {
         let depth = InheritanceDepth::new(depth);
         match self.link_destinations.entry(target_id) {
@@ -286,6 +333,11 @@ impl EntityTypeResolveData {
         }
     }
 
+    /// Adds a property type edge from this entity type to a property type.
+    ///
+    /// Property type edges connect entity types to their property definitions. This method
+    /// stores the property type ID and its depth, using the minimum depth value if an edge
+    /// to the same property already exists.
     pub fn add_property_type_edge(
         &mut self,
         edge: EntityTypeToPropertyTypeEdge,
@@ -305,6 +357,11 @@ impl EntityTypeResolveData {
         }
     }
 
+    /// Extends this resolve data with edges from another resolve data instance.
+    ///
+    /// Used during inheritance resolution, this method adds all edges from the `other`
+    /// instance to this one, offsetting depths by the specified amount. For duplicate
+    /// edges, the minimum depth is preserved.
     pub fn extend_edges(&mut self, depth_offset: u16, other: &Self) {
         for (target_id, (relative_depth, schema)) in &other.inheritance_depths {
             let absolut_depth = InheritanceDepth::new(relative_depth.inner() + depth_offset);
@@ -352,22 +409,26 @@ impl EntityTypeResolveData {
         }
     }
 
+    /// Returns an iterator over all inheritance relationships with their depths.
     pub fn inheritance_depths(&self) -> impl Iterator<Item = (EntityTypeUuid, InheritanceDepth)> {
         self.inheritance_depths
             .iter()
             .map(|(id, (depth, _))| (*id, *depth))
     }
 
+    /// Returns an iterator over all link relationships with their depths.
     pub fn links(&self) -> impl Iterator<Item = (EntityTypeUuid, InheritanceDepth)> {
         self.links.iter().map(|(id, depth)| (*id, *depth))
     }
 
+    /// Returns an iterator over all link destination relationships with their depths.
     pub fn link_destinations(&self) -> impl Iterator<Item = (EntityTypeUuid, InheritanceDepth)> {
         self.link_destinations
             .iter()
             .map(|(id, depth)| (*id, *depth))
     }
 
+    /// Returns an iterator over all property relationships with their depths.
     pub fn properties(&self) -> impl Iterator<Item = (PropertyTypeUuid, InheritanceDepth)> {
         self.properties.iter().map(|(id, depth)| (*id, *depth))
     }
