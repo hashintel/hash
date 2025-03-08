@@ -503,7 +503,7 @@ pub struct DataType {
     /// For data types representing collections, e.g., "Positive Integers".
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
-  
+
     /// Optional display icon for UI rendering.
     ///
     /// This can specify an icon to be shown next to the value of this type in user interface.
