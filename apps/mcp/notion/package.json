@@ -17,6 +17,8 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "@local/eslint": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "@modelcontextprotocol/sdk": "1.6.1",
     "@notionhq/client": "2.2.14",
     "dotenv-flow": "3.3.0",

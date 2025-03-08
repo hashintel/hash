@@ -781,6 +781,8 @@ __metadata:
   resolution: "@apps/linear-mcp@workspace:apps/mcp/linear"
   dependencies:
     "@linear/sdk": "npm:6.0.0"
+    "@local/eslint": "npm:0.0.0-private"
+    "@local/tsconfig": "npm:0.0.0-private"
     "@modelcontextprotocol/sdk": "npm:1.6.1"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/node": "npm:22.13.9"
@@ -802,6 +804,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@apps/notion-mcp@workspace:apps/mcp/notion"
   dependencies:
+    "@local/eslint": "npm:0.0.0-private"
+    "@local/tsconfig": "npm:0.0.0-private"
     "@modelcontextprotocol/sdk": "npm:1.6.1"
     "@notionhq/client": "npm:2.2.14"
     "@types/dotenv-flow": "npm:3.3.3"
