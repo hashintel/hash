@@ -13,7 +13,7 @@ use petgraph::{
     graph::{DiGraph, NodeIndex},
     visit::EdgeRef as _,
 };
-use tracing::{debug, info, instrument, warn};
+use tracing::{debug, info, instrument, trace, warn};
 
 /// Errors that can occur during dependency diagram generation.
 #[derive(Debug, derive_more::Display)]
@@ -212,8 +212,6 @@ fn extract_workspace_crates(metadata: &cargo_metadata::Metadata) -> WorkspaceCra
 
     // Create a set of workspace crate names for filtering dependencies
     let mut workspace_crates = WorkspaceCrateSet::default();
-
-    // Add all workspace crate names to the set
     for package in &metadata.packages {
         if workspace_member_ids.contains(&package.id) {
             workspace_crates.insert(package.name.clone());
@@ -262,7 +260,6 @@ fn create_glob_set(
 
     let mut builder = GlobSetBuilder::new();
 
-    // Add all patterns to the builder
     for pattern in patterns {
         debug!(
             pattern,
@@ -316,12 +313,11 @@ fn process_dependencies(
     include_dev_deps: bool,
     include_build_deps: bool,
 ) -> CrateDependencyMap {
+    trace!(count = metadata.packages.len(), "Processing packages");
+
     // Create a mapping of crate names to their dependencies with type information
     // Using BTreeMap to ensure consistent ordering for deterministic output
     let mut crate_deps = CrateDependencyMap::default();
-
-    // Process workspace packages and gather their dependencies
-    debug!(count = metadata.packages.len(), "Processing packages");
 
     for package in &metadata.packages {
         // Only process workspace packages
@@ -340,14 +336,14 @@ fn process_dependencies(
             debug!(crate_name = %name, "Crate matched include pattern");
         }
 
-        debug!(name = %name, "Processing crate");
+        trace!(name = %name, "Processing crate");
 
         // Store dependencies categorized by type
         let mut normal_deps = Vec::new();
         let mut dev_deps = Vec::new();
         let mut build_deps = Vec::new();
 
-        debug!(count = package.dependencies.len(), "Found dependencies");
+        trace!(count = package.dependencies.len(), "Found dependencies");
 
         for dep in &package.dependencies {
             let dep_name = &dep.name;
@@ -355,11 +351,11 @@ fn process_dependencies(
             // Process dependency based on its kind
             match dep.kind {
                 DependencyKind::Development if !include_dev_deps => {
-                    debug!(dependency = %dep_name, "Skipping dev dependency");
+                    trace!(dependency = %dep_name, "Skipping dev dependency");
                     continue;
                 }
                 DependencyKind::Build if !include_build_deps => {
-                    debug!(dependency = %dep_name, "Skipping build dependency");
+                    trace!(dependency = %dep_name, "Skipping build dependency");
                     continue;
                 }
                 _ => {}
@@ -368,8 +364,6 @@ fn process_dependencies(
             // Only include workspace dependencies (excluding external crates)
             if workspace_crates.contains(dep_name) {
                 debug!(dependency = %dep_name, kind = ?dep.kind, "Adding workspace dependency");
-
-                // Add to the appropriate dependency list based on kind
                 match dep.kind {
                     DependencyKind::Development => dev_deps.push(dep_name.clone()),
                     DependencyKind::Build => build_deps.push(dep_name.clone()),
@@ -379,7 +373,6 @@ fn process_dependencies(
         }
 
         // Combine all dependencies with their type information
-        // Using with_capacity for better performance since we know the total size
         let total_deps = normal_deps.len() + dev_deps.len() + build_deps.len();
         let mut dependencies = Vec::with_capacity(total_deps);
 
@@ -393,9 +386,9 @@ fn process_dependencies(
         dependencies.extend(build_deps.into_iter().map(|dep| (dep, "build".to_owned())));
 
         if dependencies.is_empty() {
-            debug!(crate_name = %name, "No dependencies found");
+            trace!(crate_name = %name, "No dependencies found");
         } else {
-            debug!(crate_name = %name, dependency_count = dependencies.len(), "Adding crate with dependencies");
+            trace!(crate_name = %name, dependency_count = dependencies.len(), "Adding crate with dependencies");
         }
 
         // Add the crate to the dependency map (with or without dependencies)
@@ -429,7 +422,6 @@ fn build_dependency_graph(
     crate_deps: &CrateDependencyMap,
     exclude_globset: Option<&GlobSet>,
 ) -> (DependencyGraph, BTreeMap<String, NodeIndex>) {
-    // Build a directed graph of dependencies using petgraph
     let mut graph = DependencyGraph::new();
     // Using BTreeMap for deterministic indexing
     let mut node_indices = BTreeMap::new();
@@ -453,7 +445,6 @@ fn build_dependency_graph(
         }
 
         debug!(crate_name, "Adding crate to graph");
-        // Use to_owned() instead of clone() for &str conversions
         let node_idx = graph.add_node(crate_name.to_owned());
         node_indices.insert(crate_name.to_owned(), node_idx);
         included_count += 1;
@@ -897,7 +888,6 @@ fn graph_to_mermaid(
     );
     let mut mermaid = vec![
         "graph TD".to_owned(),
-        "    %% Configure the diagram".to_owned(),
         "    linkStyle default stroke-width:1.5px".to_owned(),
         "    classDef default stroke-width:1px".to_owned(),
         "    classDef root stroke-width:3px".to_owned(),
@@ -927,10 +917,7 @@ fn graph_to_mermaid(
             .expect("node should have a weight (crate name)");
         let node_id = node_to_id[&node_idx];
 
-        // Check if this is the root crate
         let is_root = Some(crate_name.as_str()) == root_crate;
-
-        // Determine whether to create a link based on the link_mode parameter
         let create_link = match link_mode {
             LinkMode::All => true,
             LinkMode::NonRoots => !is_root,
@@ -951,26 +938,6 @@ fn graph_to_mermaid(
         // Apply the root class if this is the root crate
         if is_root {
             mermaid.push(format!("    class {node_id} root"));
-        }
-
-        // Apply additional classes for styling based on crate name pattern or role
-        // Root class is already applied above, so we only need to apply dev/build classes for
-        // non-root
-        if !is_root {
-            if crate_name.ends_with("-test-server")
-                || crate_name.ends_with("-test-data")
-                || crate_name.ends_with("-tests")
-                || crate_name.contains("test")
-            {
-                mermaid.push(format!("    class {node_id} dev"));
-            } else if crate_name.ends_with("-build")
-                || crate_name.contains("build")
-                || crate_name.ends_with("-codegen")
-                || crate_name.contains("macro")
-                || crate_name.contains("proc-macro")
-            {
-                mermaid.push(format!("    class {node_id} build"));
-            }
         }
     }
 

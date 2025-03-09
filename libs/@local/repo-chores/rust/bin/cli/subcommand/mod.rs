@@ -24,7 +24,7 @@ impl Subcommand {
                 Ok(())
             }
             Self::Benches(args) => benches::run(args).await,
-            Self::DependencyDiagram(args) => dependency_diagram::run(args),
+            Self::DependencyDiagram(args) => Ok(dependency_diagram::run(args)?),
         }
     }
 }

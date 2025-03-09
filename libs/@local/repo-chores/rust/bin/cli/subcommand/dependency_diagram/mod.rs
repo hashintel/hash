@@ -1,4 +1,3 @@
-use core::error::Error;
 use std::{fs, io::Write as _, path::PathBuf};
 
 use clap::Parser;
@@ -94,7 +93,7 @@ fn output_diagram(
     output_path: Option<&PathBuf>,
 ) -> Result<(), Report<DependencyDiagramError>> {
     // Output to stdout if no output file is specified
-    if output_path.is_none() {
+    let Some(output_path) = output_path else {
         // Output the diagram to stdout
         debug!(
             diagram_lines = diagram.lines().count(),
@@ -106,10 +105,7 @@ fn output_diagram(
             .write_all(diagram.as_bytes())
             .change_context(DependencyDiagramError::FileWrite)?;
         return Ok(());
-    }
-
-    // If we reach here, we have an output file specified
-    let output_path = output_path.expect("should have output path (checked earlier)");
+    };
 
     debug!(
         path = %output_path.display(),
@@ -118,12 +114,10 @@ fn output_diagram(
         "Writing diagram to file"
     );
 
-    // Write the diagram to the output file
-    let mut file = fs::File::create(output_path)
+    fs::File::create(output_path)
         .change_context(DependencyDiagramError::FileWrite)
-        .attach_printable_lazy(|| output_path.display().to_string())?;
-
-    file.write_all(diagram.as_bytes())
+        .attach_printable_lazy(|| output_path.display().to_string())?
+        .write_all(diagram.as_bytes())
         .change_context(DependencyDiagramError::FileWrite)?;
 
     info!(path = %output_path.display(), "Mermaid diagram written successfully");
@@ -135,28 +129,22 @@ fn output_diagram(
 ///
 /// This is the main entry point for the diagram subcommand. It orchestrates the entire
 /// process of generating a Mermaid dependency diagram:
-/// 1. Converts CLI arguments to a diagram configuration
-/// 2. Generates the diagram using the library function
-/// 3. Outputs the diagram to stdout or a file
+///
+///  1. Converts CLI arguments to a diagram configuration
+///  2. Generates the diagram using the library function
+///  3. Outputs the diagram to stdout or a file
 ///
 /// # Errors
 ///
-/// - [`DependencyDiagramError::CargoMetadata`] if gathering cargo metadata fails
-/// - [`DependencyDiagramError::GlobPattern`] if creating glob patterns fails
-/// - [`DependencyDiagramError::FileWrite`] if writing the output file fails
-#[instrument(
-    level = "debug",
-    skip(args),
-    fields(
-        root = ?args.root,
-        include = ?args.include,
-        exclude = ?args.exclude,
-        root_deps_only = args.root_deps_only,
-        include_dev_deps = args.include_dev_deps,
-        include_build_deps = args.include_build_deps
-    )
-)]
-pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
+/// - [`CargoMetadata`] if gathering cargo metadata fails
+/// - [`GlobPattern`] if creating glob patterns fails
+/// - [`FileWrite`] if writing the output file fails
+///
+/// [`CargoMetadata`]: DependencyDiagramError::CargoMetadata
+/// [`GlobPattern`]: DependencyDiagramError::GlobPattern
+/// [`FileWrite`]: DependencyDiagramError::FileWrite
+#[instrument(level = "debug")]
+pub(super) fn run(args: Args) -> Result<(), Report<DependencyDiagramError>> {
     info!(
         root_crate = ?args.root,
         include_patterns = ?args.include,
@@ -172,10 +160,6 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
         "Generating dependency diagram"
     );
 
-    // Use the provided link_mode or the default
-    let link_mode = args.link_mode.unwrap_or_default();
-
-    // Convert the CLI args to a diagram configuration
     let config = DependencyDiagramConfig {
         root: args.root.clone(),
         root_deps_only: args.root_deps_only,
@@ -185,13 +169,10 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
         include_dev_deps: args.include_dev_deps,
         include_build_deps: args.include_build_deps,
         exclude: args.exclude.clone(),
-        link_mode,
+        link_mode: args.link_mode.unwrap_or_default(),
     };
 
-    // Generate the diagram using the library function
     let diagram = dependency_diagram::generate_dependency_diagram(&config)?;
-
-    // Output the diagram
     output_diagram(&diagram, args.output.as_ref())?;
 
     Ok(())

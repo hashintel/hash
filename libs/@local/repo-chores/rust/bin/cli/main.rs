@@ -23,11 +23,9 @@ struct Args {
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let args = Args::parse();
 
-    // Initialize tracing with the config from command line arguments
     let handle = Handle::current();
     let _log_guard =
         init_tracing(args.tracing_config, &handle).expect("should be able to initialize tracing");
 
-    // Run the selected subcommand
     args.subcommand.run().await
 }
