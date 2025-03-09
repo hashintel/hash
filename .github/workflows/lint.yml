@@ -186,6 +186,11 @@ jobs:
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+
       - name: Validate package.json generated from Cargo.toml
         if: ${{ success() || failure() }}
         run: |
