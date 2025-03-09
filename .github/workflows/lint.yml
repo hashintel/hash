@@ -186,11 +186,22 @@ jobs:
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+
       - name: Validate package.json generated from Cargo.toml
         if: ${{ success() || failure() }}
         run: |
           cargo -Zscript run --manifest-path ".github/scripts/rust/sync-turborepo.rs" . | xargs yarn fix:package-json
           git --no-pager diff --exit-code --color '**/package.json'
+
+      - name: Validate Dependency Diagrams
+        if: ${{ success() || failure() }}
+        run: |
+          yarn doc:dependency-diagram
+          git --no-pager diff --exit-code --color '**/docs/dependency-diagram.mmd'
 
       - name: Run yarn lint:constraints
         if: ${{ success() || failure() }}

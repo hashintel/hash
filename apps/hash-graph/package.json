@@ -8,6 +8,7 @@
     "build:docker:dev": "docker buildx build --build-arg PROFILE=dev --tag hash-graph --file docker/Dockerfile ../../ --load",
     "compile": "cargo build --bin hash-graph --all-features",
     "compile:release": "cargo build --bin hash-graph --all-features --release",
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "start": "../../target/release/hash-graph server",
     "start:healthcheck": "../../target/release/hash-graph server --healthcheck --wait --timeout 600 --logging-console-level=warn",
     "start:migrate": "../../target/release/hash-graph migrate --user postgres --password postgres",

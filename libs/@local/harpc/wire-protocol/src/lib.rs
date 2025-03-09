@@ -9,6 +9,9 @@
 //! wire and that the protocol is well defined.
 //!
 //! An illustration of the protocol can be seen in the `docs/` folder of the project.
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![cfg_attr(test, feature(async_fn_track_caller))]
 #![feature(associated_type_defaults, never_type, exhaustive_patterns)]
 

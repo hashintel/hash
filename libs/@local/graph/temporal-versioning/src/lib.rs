@@ -1,3 +1,8 @@
+//! # HASH Graph Temporal Versioning
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+
 mod axis;
 mod bounds;
 mod interval;

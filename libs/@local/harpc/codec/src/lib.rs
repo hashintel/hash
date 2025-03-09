@@ -1,3 +1,7 @@
+//! # HaRPC Codec
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     macro_metavar_expr,
     error_generic_member_access,

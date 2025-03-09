@@ -5,6 +5,7 @@
   "license": "AGPL-3",
   "scripts": {
     "build:cli": "cargo build --bin codec --features cli --release --target-dir dist",
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root harpc-wire-protocol --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "test:miri": "just miri",

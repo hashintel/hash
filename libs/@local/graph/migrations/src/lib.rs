@@ -1,3 +1,7 @@
+//! # HASH Graph Migrations
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(impl_trait_in_assoc_type, return_type_notation, never_type)]
 #![expect(clippy::future_not_send)]
 

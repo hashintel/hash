@@ -5,17 +5,18 @@
     "postinstall": {
       "cache": false
     },
-
     // Development commands
     "dev": {
       "cache": false,
       "persistent": true,
       "dependsOn": ["codegen"]
     },
-
     // Build commands
     "codegen": {
       "dependsOn": ["^build"]
+    },
+    "doc:dependency-diagram": {
+      "dependsOn": ["@local/repo-chores#build"]
     },
     "build": {
       "dependsOn": ["codegen"]
@@ -29,7 +30,6 @@
     "compile:release": {
       "cache": false
     },
-
     // Run commands
     "start:migrate": {
       "cache": false,
@@ -44,7 +44,6 @@
       "cache": false,
       "dependsOn": ["start:migrate"]
     },
-
     "start:test:migrate": {
       "cache": false,
       "dependsOn": ["build", "^start:test:healthcheck"]
@@ -58,7 +57,6 @@
       "cache": false,
       "dependsOn": ["compile"]
     },
-
     // Test commands
     "test:unit": {
       "dependsOn": ["codegen"],
@@ -69,7 +67,6 @@
       "env": ["TEST_COVERAGE"]
     },
     "test:miri": {},
-
     // Benchmarks
     "bench:unit": {
       "dependsOn": ["codegen"],
@@ -79,7 +76,6 @@
       "dependsOn": ["codegen", "^start:healthcheck"],
       "cache": false
     },
-
     // Linting and formatting
     "lint": {
       "dependsOn": ["codegen"]
@@ -103,18 +99,15 @@
   "globalDependencies": [
     // Changing any `turbo.json` file will trigger a full rebuild
     "**/turbo.json",
-
     // Changing workflows should trigger a full rebuild so it's checked in CI
     ".github/actions/**",
     ".github/scripts/**",
     ".github/workflows/**",
-
     // Dot-files
     ".*",
     ".cargo/**",
     ".config/**",
     ".yarn/**",
-
     // Manifest files
     "*.lock",
     ".config/mise/**",
@@ -123,7 +116,6 @@
     "pyproject.toml",
     "rust-toolchain.toml",
     "yarn*",
-
     // External services
     "apps/hash-external-services/**"
   ],

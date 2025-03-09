@@ -27,6 +27,7 @@ derive_more           = { workspace = true, features = ["display", "error"] }
 opentelemetry-otlp    = { workspace = true, features = ["trace", "grpc-tonic"] }
 opentelemetry_sdk     = { workspace = true, features = ["rt-tokio"] }
 sentry                = { workspace = true }
+simple-mermaid        = { workspace = true }
 tracing               = { workspace = true }
 tracing-error         = { workspace = true }
 tracing-opentelemetry = { workspace = true }

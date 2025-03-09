@@ -1,6 +1,9 @@
 {
   "extends": ["//"],
   "tasks": {
+    "doc:dependency-diagram": {
+      "outputs": ["docs/dependency-diagram.mmd"]
+    },
     "start": {
       "dependsOn": ["@apps/hash-graph#start:migrate"]
     },

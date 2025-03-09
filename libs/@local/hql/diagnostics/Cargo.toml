@@ -20,9 +20,10 @@ text-size = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-anstyle-yansi = { workspace = true }
-serde_with    = { workspace = true, optional = true, features = ["std", "macros"] }
-thiserror     = { workspace = true }
+anstyle-yansi  = { workspace = true }
+serde_with     = { workspace = true, optional = true, features = ["std", "macros"] }
+simple-mermaid = { workspace = true }
+thiserror      = { workspace = true }
 
 [dev-dependencies]
 jsonptr    = "0.7.0"

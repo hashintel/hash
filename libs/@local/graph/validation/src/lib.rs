@@ -1,3 +1,7 @@
+//! # HASH Graph Validation
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(extend_one)]
 #![feature(hash_raw_entry)]
 

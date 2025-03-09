@@ -22,6 +22,7 @@ hash-codec = { workspace = true, features = ["serde"] }
 derive-where      = { workspace = true }
 postgres-protocol = { workspace = true, optional = true }
 serde             = { workspace = true, features = ["derive"] }
+simple-mermaid    = { workspace = true }
 tracing           = { workspace = true, optional = true }
 
 [features]

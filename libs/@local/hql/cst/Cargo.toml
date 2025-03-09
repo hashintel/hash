@@ -21,6 +21,7 @@ json-number = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
+simple-mermaid = { workspace = true }
 
 [lints]
 workspace = true

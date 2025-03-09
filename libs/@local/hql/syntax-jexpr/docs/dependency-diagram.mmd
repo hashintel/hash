@@ -1,0 +1,22 @@
+graph TD
+    %% Configure the diagram
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[hql-syntax-jexpr]
+    class 0 root
+    1[<a href="../hql_span/index.html">hql-span</a>]
+    2[<a href="../hql_diagnostics/index.html">hql-diagnostics</a>]
+    3[<a href="../hql_cst/index.html">hql-cst</a>]
+    4[<a href="../error_stack/index.html">error-stack</a>]
+    0 --> 2
+    0 --> 3
+    2 --> 1
+    2 --> 4
+    3 --> 1

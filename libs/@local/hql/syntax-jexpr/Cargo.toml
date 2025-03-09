@@ -19,12 +19,13 @@ text-size = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-ecow          = { workspace = true }
-hifijson      = { workspace = true, features = ["alloc"] }
-json-number   = { workspace = true }
-logos         = { workspace = true, features = ["export_derive"] }
-unicode-ident = { workspace = true }
-winnow        = { workspace = true, features = ["std"] }
+ecow           = { workspace = true }
+hifijson       = { workspace = true, features = ["alloc"] }
+json-number    = { workspace = true }
+logos          = { workspace = true, features = ["export_derive"] }
+simple-mermaid = { workspace = true }
+unicode-ident  = { workspace = true }
+winnow         = { workspace = true, features = ["std"] }
 
 [lints]
 workspace = true
