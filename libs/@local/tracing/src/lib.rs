@@ -1,4 +1,4 @@
-//! # Hash Tracing
+//! # HASH Tracing
 //!
 //! Tracing and logging utilities for the HASH platform.
 //!

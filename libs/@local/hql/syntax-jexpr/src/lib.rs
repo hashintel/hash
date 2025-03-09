@@ -1,4 +1,4 @@
-//! # HaRPC HQL Syntax J-Expr
+//! # HashQL J-Expr syntax
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]

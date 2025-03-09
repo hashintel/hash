@@ -1,4 +1,4 @@
-//! # Hash Repo Chores
+//! # HASH Repo Chores
 //!
 //! This crate contains a collection of utilities for managing and analyzing repositories.
 //!
