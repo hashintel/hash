@@ -17,6 +17,7 @@
     "upload-benchmarks": "cargo run -- benches upload"
   },
   "dependencies": {
-    "@rust/error-stack": "0.5.0"
+    "@rust/error-stack": "0.5.0",
+    "@rust/hash-tracing": "0.0.0-private"
   }
 }
