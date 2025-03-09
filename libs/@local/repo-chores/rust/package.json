@@ -4,11 +4,17 @@
   "private": true,
   "license": "AGPL-3",
   "scripts": {
-    "analyze-benchmarks": "../../../../target/debug/repo-chores-cli benches analyze",
+    "analyze-benchmarks": "cargo run -- benches analyze",
     "build": "cargo build",
+    "diagram": "cargo run -- diagram --include-dev-deps --include-build-deps",
+    "diagram:exclude-test": "cargo run -- diagram --include-dev-deps --include-build-deps --exclude '*-test*'",
+    "diagram:file": "cargo run -- diagram --include-dev-deps --include-build-deps --output graph.mmd",
+    "diagram:include-graph": "cargo run -- diagram --include-dev-deps --include-build-deps --include '*-graph*'",
+    "diagram:root-deps": "cargo run -- diagram --include-dev-deps --include-build-deps --root hash-graph --root-deps-only",
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-repo-chores --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
-    "upload-benchmarks": "../../../../target/debug/repo-chores-cli benches upload"
+    "upload-benchmarks": "cargo run -- benches upload"
   },
   "dependencies": {
     "@rust/error-stack": "0.5.0"

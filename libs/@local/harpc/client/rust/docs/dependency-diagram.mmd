@@ -1,0 +1,45 @@
+graph TD
+    %% Configure the diagram
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[harpc-client]
+    class 0 root
+    1[<a href="../harpc_types/index.html">harpc-types</a>]
+    2[<a href="../harpc_tower/index.html">harpc-tower</a>]
+    3[<a href="../harpc_system/index.html">harpc-system</a>]
+    4[<a href="../harpc_net/index.html">harpc-net</a>]
+    5[<a href="../harpc_codec/index.html">harpc-codec</a>]
+    6[<a href="../error_stack/index.html">error-stack</a>]
+    7[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    8[<a href="../hash_codec/index.html">hash-codec</a>]
+    9[<a href="../harpc_server/index.html">harpc-server</a>]
+    10[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
+    11[<a href="../hash_graph/index.html">hash-graph</a>]
+    12[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    13[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
+    class 13 dev
+    0 --> 3
+    2 -.-> 4
+    2 --> 4
+    3 --> 2
+    4 -.-> 5
+    4 --> 8
+    4 --> 5
+    5 --> 1
+    5 --> 6
+    7 -.-> 1
+    7 --> 1
+    7 --> 6
+    8 --> 7
+    9 -.-> 0
+    10 --> 9
+    12 -.-> 10
+    13 --> 10
+    11 --> 13

@@ -192,6 +192,12 @@ jobs:
           cargo -Zscript run --manifest-path ".github/scripts/rust/sync-turborepo.rs" . | xargs yarn fix:package-json
           git --no-pager diff --exit-code --color '**/package.json'
 
+      - name: Validate Dependency Diagrams
+        if: ${{ success() || failure() }}
+        run: |
+          yarn doc:dependency-diagram
+          git --no-pager diff --exit-code --color '**/docs/dependency-diagram.mmd'
+
       - name: Run yarn lint:constraints
         if: ${{ success() || failure() }}
         run: |

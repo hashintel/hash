@@ -2,6 +2,7 @@ use core::error::Error;
 
 mod benches;
 mod completions;
+mod dependency_diagram;
 
 /// Subcommand for the program.
 #[derive(Debug, clap::Subcommand)]
@@ -10,6 +11,9 @@ pub(super) enum Subcommand {
     Completions(completions::Args),
     /// Tooling around benchmarks for the repository.
     Benches(benches::Args),
+    /// Generate a dependency diagram in Mermaid format.
+    #[clap(name = "dependency-diagram")]
+    DependencyDiagram(dependency_diagram::Args),
 }
 
 impl Subcommand {
@@ -20,6 +24,7 @@ impl Subcommand {
                 Ok(())
             }
             Self::Benches(args) => benches::run(args).await,
+            Self::DependencyDiagram(args) => dependency_diagram::run(args),
         }
     }
 }

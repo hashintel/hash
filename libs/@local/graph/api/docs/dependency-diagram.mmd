@@ -1,0 +1,76 @@
+graph TD
+    %% Configure the diagram
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[hash-graph-api]
+    class 0 root
+    1[<a href="../type_system/index.html">type-system</a>]
+    2[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    3[<a href="../hash_status/index.html">hash-status</a>]
+    4[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
+    5[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    6[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
+    7[<a href="../hash_graph_type_defs/index.html">hash-graph-type-defs</a>]
+    8[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    9[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    10[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    11[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
+    12[<a href="../hash_codec/index.html">hash-codec</a>]
+    13[<a href="../harpc_types/index.html">harpc-types</a>]
+    14[<a href="../harpc_tower/index.html">harpc-tower</a>]
+    15[<a href="../harpc_system/index.html">harpc-system</a>]
+    16[<a href="../harpc_server/index.html">harpc-server</a>]
+    17[<a href="../harpc_codec/index.html">harpc-codec</a>]
+    18[<a href="../harpc_client/index.html">harpc-client</a>]
+    19[<a href="../error_stack/index.html">error-stack</a>]
+    20[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    class 20 dev
+    21[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    22[<a href="../harpc_net/index.html">harpc-net</a>]
+    23[<a href="../hash_graph/index.html">hash-graph</a>]
+    24[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    25[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
+    class 25 dev
+    0 --> 6
+    0 --> 7
+    0 --> 10
+    0 --> 16
+    1 -.-> 20
+    1 --> 12
+    2 --> 5
+    4 --> 9
+    5 --> 1
+    5 --> 8
+    6 --> 9
+    7 --> 3
+    8 --> 12
+    9 --> 2
+    9 --> 11
+    10 --> 3
+    10 --> 4
+    11 --> 5
+    12 --> 21
+    14 -.-> 22
+    14 --> 22
+    15 --> 14
+    16 -.-> 5
+    16 -.-> 18
+    17 --> 13
+    17 --> 19
+    18 --> 15
+    21 -.-> 13
+    21 --> 13
+    21 --> 19
+    22 -.-> 17
+    22 --> 12
+    22 --> 17
+    24 -.-> 0
+    25 --> 0
+    23 --> 25

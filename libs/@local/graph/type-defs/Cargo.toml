@@ -25,7 +25,7 @@ serde_json = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-serde = { workspace = true, features = ['derive'] }
-
+serde          = { workspace = true, features = ['derive'] }
+simple-mermaid = { workspace = true }
 [lints]
 workspace = true

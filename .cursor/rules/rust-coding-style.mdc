@@ -46,7 +46,7 @@ fn get_data(
 - Functions should **never** take more than 7 arguments. If a function requires more than 7 arguments, encapsulate related parameters in a struct.
 - Functions that use data immutably should take a reference to the data, while functions that modify data should take a mutable reference. Never take ownership of data unless the function explicitly consumes it.
 - Make functions `const` whenever possible.
-- Prefer the following argument types when applicable:
+- Prefer the following argument types when applicable, but only if this does not reduce performance:
   * `impl AsRef<str>` instead of `&str` or `&String`
   * `impl AsRef<Path>` instead of `&Path` or `&PathBuf`
   * `impl IntoIterator<Item = &T>` when only iterating over the data
@@ -56,6 +56,7 @@ fn get_data(
   * `impl Into<Arc<T>>` instead of `Arc<T>`
   * `impl Into<Rc<T>>` instead of `Rc<T>`
   * `impl Into<Box<T>>` instead of `Box<T>`
+- Never use `impl Into<Option<_>>` as from reading the caller site, it's not visible that `None` could potentially be passed
 
 ## `From` and `Into`
 

@@ -1,0 +1,77 @@
+graph TD
+    %% Configure the diagram
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[hash-graph]
+    class 0 root
+    1[<a href="../type_system/index.html">type-system</a>]
+    2[<a href="../hash_tracing/index.html">hash-tracing</a>]
+    3[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    4[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    5[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
+    6[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
+    class 6 dev
+    7[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    8[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    9[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
+    10[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
+    11[<a href="../hash_codec/index.html">hash-codec</a>]
+    12[<a href="../harpc_server/index.html">harpc-server</a>]
+    13[<a href="../harpc_codec/index.html">harpc-codec</a>]
+    14[<a href="../error_stack/index.html">error-stack</a>]
+    15[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    class 15 dev
+    16[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    17[<a href="../hash_status/index.html">hash-status</a>]
+    18[<a href="../hash_graph_type_defs/index.html">hash-graph-type-defs</a>]
+    19[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
+    20[<a href="../harpc_types/index.html">harpc-types</a>]
+    21[<a href="../harpc_tower/index.html">harpc-tower</a>]
+    22[<a href="../harpc_system/index.html">harpc-system</a>]
+    23[<a href="../harpc_client/index.html">harpc-client</a>]
+    24[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    25[<a href="../harpc_net/index.html">harpc-net</a>]
+    0 --> 2
+    0 --> 6
+    1 -.-> 15
+    1 --> 11
+    2 --> 14
+    3 --> 4
+    4 --> 1
+    4 --> 16
+    5 --> 7
+    6 --> 10
+    7 --> 3
+    7 --> 9
+    8 --> 17
+    8 --> 19
+    9 --> 4
+    10 --> 5
+    10 --> 18
+    10 --> 8
+    10 --> 12
+    11 --> 24
+    12 -.-> 4
+    12 -.-> 23
+    13 --> 20
+    13 --> 14
+    16 --> 11
+    18 --> 17
+    19 --> 7
+    21 -.-> 25
+    21 --> 25
+    22 --> 21
+    23 --> 22
+    24 -.-> 20
+    24 --> 20
+    24 --> 14
+    25 -.-> 13
+    25 --> 11
+    25 --> 13

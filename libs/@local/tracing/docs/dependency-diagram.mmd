@@ -1,0 +1,25 @@
+graph TD
+    %% Configure the diagram
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[hash-tracing]
+    class 0 root
+    1[<a href="../error_stack/index.html">error-stack</a>]
+    2[<a href="../hash_graph/index.html">hash-graph</a>]
+    3[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    4[<a href="../hash_graph_migrations/index.html">hash-graph-migrations</a>]
+    5[<a href="../hash_repo_chores/index.html">hash-repo-chores</a>]
+    6[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    0 --> 1
+    2 --> 0
+    3 -.-> 0
+    4 --> 0
+    5 --> 0
+    6 -.-> 5

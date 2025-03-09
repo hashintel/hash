@@ -1,0 +1,52 @@
+graph TD
+    %% Configure the diagram
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[hash-graph-validation]
+    class 0 root
+    1[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    class 1 dev
+    2[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    3[<a href="../type_system/index.html">type-system</a>]
+    4[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    5[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    6[<a href="../error_stack/index.html">error-stack</a>]
+    7[<a href="../hash_codec/index.html">hash-codec</a>]
+    8[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    9[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
+    10[<a href="../harpc_types/index.html">harpc-types</a>]
+    11[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    12[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
+    13[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    14[<a href="../hash_graph/index.html">hash-graph</a>]
+    15[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    16[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
+    class 16 dev
+    17[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    0 --> 5
+    2 --> 7
+    3 -.-> 1
+    3 --> 7
+    4 --> 3
+    4 --> 2
+    5 --> 8
+    5 --> 9
+    7 --> 11
+    8 --> 4
+    9 --> 4
+    11 -.-> 10
+    11 --> 10
+    11 --> 6
+    13 --> 0
+    15 -.-> 12
+    16 --> 12
+    12 --> 13
+    17 -.-> 13
+    14 --> 16

@@ -23,6 +23,7 @@
     "dev:backend:realtime": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-realtime' --",
     "dev:backend:search-loader": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-search-loader' --",
     "dev:frontend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-frontend' --",
+    "doc:dependency-diagram": "CARGO_TERM_PROGRESS_WHEN=never turbo run doc:dependency-diagram",
     "start": "CARGO_TERM_PROGRESS_WHEN=never turbo run start start:healthcheck --filter @apps/hash-graph --filter @rust/type-fetcher --filter @apps/hash-api --filter @apps/hash-ai-worker-ts --filter @apps/hash-integration-worker --filter @apps/hash-frontend --env-mode=loose",
     "start:graph": "CARGO_TERM_PROGRESS_WHEN=never turbo run start start:healthcheck --filter @apps/hash-graph --filter @rust/hash-graph-type-fetcher --env-mode=loose",
     "start:backend": "CARGO_TERM_PROGRESS_WHEN=never turbo run start start:healthcheck --filter @apps/hash-api --env-mode=loose",

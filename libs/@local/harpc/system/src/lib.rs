@@ -1,3 +1,7 @@
+//! # HaRPC System
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(never_type, marker_trait_attr)]
 
 use harpc_types::{
