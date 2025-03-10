@@ -15,7 +15,7 @@ pub struct PropertyWithMetadataArray {
 
 impl PropertyWithMetadataArray {
     #[must_use]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.value.is_empty() && self.metadata.is_empty()
     }
 }
