@@ -47,6 +47,28 @@ const AddCommentToIssueRequestSchema = z.object({
   }),
 });
 
+const CreateIssueRequestSchema = z.object({
+  title: z.string({ description: "The title of the issue to create" }),
+  assigneeId: z
+    .string({
+      description:
+        "The id of the user to assign the issue to. If the parent issue has an assignee, this MUST be the same as the parent issue's assignee.",
+    })
+    .optional(),
+  teamId: z.string({
+    description:
+      "The id of the team to assign the issue to (MUST be the same as the parent issue).",
+  }),
+  description: z.string({
+    description:
+      "The description of the issue to create. MUST be formatted as a ProseMirror document. Use checklists for todo items.",
+  }),
+  parentIssueUuid: z.string({
+    description:
+      "The uuid of the parent issue this is a sub-issue of (not the H-XXXX format).",
+  }),
+});
+
 const tools = [
   {
     name: "list_issues",
@@ -63,6 +85,11 @@ const tools = [
     description: "Add a comment to an issue",
     inputSchema: zodToJsonSchema(AddCommentToIssueRequestSchema),
   },
+  {
+    name: "create_issue",
+    description: "Create a new issue in Linear",
+    inputSchema: zodToJsonSchema(CreateIssueRequestSchema),
+  },
 ] as const;
 
 type ToolName = (typeof tools)[number]["name"];
@@ -78,7 +105,7 @@ const server = new Server(
       tools: {},
       prompts: {},
     },
-  },
+  }
 );
 
 server.setRequestHandler(ListToolsRequestSchema, () => {
@@ -104,8 +131,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       const hydratedIssues = await Promise.all(
         issues.nodes.map(async (issue) =>
-          hydrateIssue({ issue, includeComments: false }),
-        ),
+          hydrateIssue({ issue, includeComments: false })
+        )
       );
 
       return {
@@ -140,7 +167,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case "add_comment_to_issue": {
       const args = AddCommentToIssueRequestSchema.parse(
-        request.params.arguments,
+        request.params.arguments
       );
 
       await linear.createComment({
@@ -171,6 +198,39 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       return {
         content: [{ type: "text", text: "Comment added successfully." }],
+      };
+    }
+
+    case "create_issue": {
+      const args = CreateIssueRequestSchema.parse(request.params.arguments);
+
+      const issueCreateInput = {
+        assigneeId: args.assigneeId,
+        description: args.description,
+        parentId: args.parentIssueUuid,
+        teamId: args.teamId,
+        title: args.title,
+      };
+
+      const issue = await linear.createIssue(issueCreateInput);
+
+      if (!issue.success || !issue.issue) {
+        throw new Error("Failed to create issue");
+      }
+
+      const createdIssue = await linear.issue((await issue.issue).id);
+      const hydratedIssue = await hydrateIssue({
+        issue: createdIssue,
+        includeComments: false,
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(hydratedIssue, null, 2),
+          },
+        ],
       };
     }
 
