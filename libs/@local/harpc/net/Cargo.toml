@@ -42,6 +42,7 @@ libp2p-stream    = { workspace = true }
 pin-project-lite = { workspace = true }
 scc              = { workspace = true }
 serde            = { workspace = true, features = ["derive"] }
+simple-mermaid   = { workspace = true }
 tachyonix        = { workspace = true }
 thiserror        = { workspace = true }
 tokio-stream     = { workspace = true, features = ["time", "sync"] }

@@ -11,6 +11,10 @@
     "upload-benchmarks": {
       "dependsOn": ["build"],
       "cache": false
+    },
+    "doc:dependency-diagram": {
+      "dependsOn": ["build"],
+      "cache": false
     }
   }
 }

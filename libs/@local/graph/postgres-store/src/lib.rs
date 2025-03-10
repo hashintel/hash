@@ -1,5 +1,7 @@
 //! The entity-graph query-layer for the HASH datastore
-
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 // Not required, reason: code quality
 // Not required, reason: Simpler than using blanket implementations
 #![feature(trait_alias)]

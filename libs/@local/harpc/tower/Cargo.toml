@@ -27,6 +27,7 @@ futures          = { workspace = true }
 pin-project      = { workspace = true }
 pin-project-lite = { workspace = true }
 serde            = { workspace = true, features = ["derive"] }
+simple-mermaid   = { workspace = true }
 thiserror        = { workspace = true }
 tokio            = { workspace = true, features = ["time"] }
 tower            = { workspace = true, features = ["util"] }

@@ -8,11 +8,13 @@ alwaysApply: false
 ## Verification Commands
 
 - When modifying Rust code, run clippy to detect issues:
+
   ```bash
   cargo clippy --all-features --all-targets --workspace --no-deps
   ```
 
 - If changes affect the `hash-graph-api` crate or any representation influencing the public interface, regenerate the OpenAPI specifications:
+
   ```bash
   cd libs/@local/graph/api
   cargo run --bin openapi-spec-generator
@@ -41,11 +43,13 @@ alwaysApply: false
 
 - Use descriptive assertion messages that explain the expected behavior
 - All assertion messages (including `expect()`, `unwrap()` and `assert*()`) should follow the "should..." format:
+
   ```rust
   // Good examples:
   value.expect("should contain a valid configuration");
   assert_eq!(result, expected, "Result should match the expected value");
   ```
+
 - Use `expect()` or `expect_err()` with clear messages instead of `unwrap()` or `unwrap_err()`
 - Prefer `assert_eq!` with custom messages over bare assertions when comparing values
 - When testing errors, assert on specific error types or message contents, not just that an error occurred

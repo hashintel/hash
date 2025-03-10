@@ -1,3 +1,7 @@
+//! # HashQL J-Expr syntax
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(assert_matches, new_range_api, box_into_boxed_slice)]
 
 use alloc::sync::Arc;

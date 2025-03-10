@@ -18,10 +18,11 @@ enumflags2 = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-base64     = { version = "0.22.1", optional = true }
-serde      = { workspace = true, features = ["derive"], optional = true }
-serde_json = { workspace = true, optional = true }
-thiserror  = { workspace = true }
+base64         = { version = "0.22.1", optional = true }
+serde          = { workspace = true, features = ["derive"], optional = true }
+serde_json     = { workspace = true, optional = true }
+simple-mermaid = { workspace = true }
+thiserror      = { workspace = true }
 
 [dev-dependencies]
 expect-test     = { workspace = true }
