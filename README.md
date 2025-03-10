@@ -217,6 +217,10 @@ Browse the HASH [development roadmap] for more information about currently in-fl
 
 ## [![a](/.github/assets/gh_icon_repo-structure_20px-base.svg)][gh-repo-structure] &nbsp; About this repository
 
+<details>
+  <summary> &nbsp; Repository structure</summary>
+
+### Repository structure
 This repository's contents is divided across several primary sections:
 
 - [**`/apps`**](/apps) contains the primary code powering our runnable [applications](https://github.com/hashintel/hash/tree/main/apps#applications)
@@ -225,6 +229,130 @@ This repository's contents is divided across several primary sections:
 - [**`/infra`**](/infra) houses deployment scripts, utilities and other [infrastructure](https://github.com/hashintel/hash/tree/main/infra#infrastructure) useful in running our apps
 - [**`/libs`**](/libs) contains [libraries](https://github.com/hashintel/hash/tree/main/libs#libraries) including npm packages and Rust crates
 - [**`/tests`**](/tests) contains end-to-end and integration tests that span across one or more apps, blocks or libs
+
+</details>
+
+<details>
+  <summary> &nbsp; Environment variables</summary>
+
+### Environment variables
+
+Here's a list of possible environment variables. Everything that's necessary already has a default value.
+
+You **do not** need to set any environment variables to run the application.
+
+#### General API server environment variables
+
+- `NODE_ENV`: ("development" or "production") the runtime environment. Controls
+  default logging levels and output formatting.
+- `PORT`: the port number the API will listen on.
+
+#### AWS configuration
+
+If you want to use AWS for file uploads or emails, you will need to have it configured:
+
+- `AWS_REGION`: The region, eg. `us-east-1`
+- `AWS_ACCESS_KEY_ID`: Your AWS access key
+- `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
+- `AWS_S3_UPLOADS_BUCKET`: The name of the bucket to use for file uploads (if you want to use S3 for file uploads), eg: `my_uploads_bucket`
+- `AWS_S3_UPLOADS_ACCESS_KEY_ID`: (optional) the AWS access key ID to use for file uploads. Must be provided along with the secret access key if the API is not otherwise authorized to access the bucket (e.g. via an IAM role).
+- `AWS_S3_UPLOADS_SECRET_ACCESS_KEY`: (optional) the AWS secret access key to use for file uploads.
+- `AWS_S3_UPLOADS_ENDPOINT`: (optional) the endpoint to use for S3 operations. If not, the AWS S3 default for the given region is used. Useful if you are using a different S3-compatible storage provider.
+- `AWS_S3_UPLOADS_FORCE_PATH_STYLE`: (optional) set `true` if your S3 setup requires path-style rather than virtual hosted-style S3 requests.
+
+For some in-browser functionality (e.g. document previewing), you must configure a Access-Control-Allow-Origin header on your bucket to be something other than '\*'.
+
+#### File uploads
+
+By default, files are uploaded locally, which is **not** recommended for production use. It is also possible to upload files on AWS S3.
+
+- `FILE_UPLOAD_PROVIDER`: Which type of provider is used for file uploads. Possible values `LOCAL_FILE_SYSTEM`, or `AWS_S3`. If choosing S3, then you need to configure the `AWS_S3_UPLOADS_` variables above.
+- `LOCAL_FILE_UPLOAD_PATH`: Relative path to store uploaded files if using the local file system storage provider. Default is `var/uploads` (the `var` folder is the folder normally used for application data)
+
+#### Email
+
+During development, the dummy email transporter writes emails to a local folder.
+
+- `HASH_EMAIL_TRANSPORTER`: `dummy` or `aws`. If set to dummy, the local dummy email transporter will be used during development instead of aws (default: `dummy`)
+- `DUMMY_EMAIL_TRANSPORTER_FILE_PATH`: Default is `var/api/dummy-email-transporter/email-dumps.yml`
+- `DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD`: `true` or `false` (default: `true`)
+
+#### OpenSearch
+
+**NOTE: OpenSearch is currently disabled by default, and is presently unmaintained.**
+
+- `HASH_OPENSEARCH_ENABLED`: whether OpenSearch is used or not. `true` or `false`. (default: `false`).
+- `HASH_OPENSEARCH_HOST`: the hostname of the OpenSearch cluster to connect to. (default: `localhost`)
+- `HASH_OPENSEARCH_PASSWORD`: the password to use when making the connection. (default: `admin`)
+- `HASH_OPENSEARCH_PORT`: the port number that the cluster accepts (default: `9200`)
+- `HASH_OPENSEARCH_USERNAME`: the username to connect to the cluster as. (default: `admin`)
+- `HASH_OPENSEARCH_HTTPS_ENABLED`: (optional) set to "1" to connect to the cluster
+  over an HTTPS connection.
+
+#### Postgres
+
+- `POSTGRES_PORT` (default: `5432`)
+
+Various services also have their own configuration.
+
+The Postgres superuser is configured through:
+
+- `POSTGRES_USER` (default: `postgres`)
+- `POSTGRES_PASSWORD` (default: `postgres`)
+
+The Postgres information for Kratos is configured through:
+
+- `HASH_KRATOS_PG_USER` (default: `kratos`)
+- `HASH_KRATOS_PG_PASSWORD` (default: `kratos`)
+- `HASH_KRATOS_PG_DATABASE` (default: `kratos`)
+
+The Postgres information for Temporal is configured through:
+
+- `HASH_TEMPORAL_PG_USER` (default: `temporal`)
+- `HASH_TEMPORAL_PG_PASSWORD` (default: `temporal`)
+- `HASH_TEMPORAL_PG_DATABASE` (default: `temporal`)
+- `HASH_TEMPORAL_VISIBILITY_PG_DATABASE` (default: `temporal_visibility`)
+
+The Postgres information for the graph query layer is configured through:
+
+- `HASH_GRAPH_PG_USER` (default: `graph`)
+- `HASH_GRAPH_PG_PASSWORD` (default: `graph`)
+- `HASH_GRAPH_PG_DATABASE` (default: `graph`)
+
+#### Redis
+
+- `HASH_REDIS_HOST` (default: `localhost`)
+- `HASH_REDIS_PORT` (default: `6379`)
+
+#### Statsd
+
+If the service should report metrics to a StatsD server, the following variables must be set.
+
+- `STATSD_ENABLED`: Set to "1" if the service should report metrics to a StatsD server.
+- `STATSD_HOST`: the hostname of the StatsD server.
+- `STATSD_PORT`: (default: 8125) the port number the StatsD server is listening on.
+
+#### Snowplow telemetry
+
+- `HASH_TELEMETRY_ENABLED`: whether Snowplow is used or not. `true` or `false`. (default: `false`)
+- `HASH_TELEMETRY_HTTPS`: set to "1" to connect to the Snowplow over an HTTPS connection. `true` or `false`. (default: `false`)
+- `HASH_TELEMETRY_DESTINATION`: the hostname of the Snowplow tracker endpoint to connect to. (required)
+- `HASH_TELEMETRY_APP_ID`: ID used to differentiate application by. Can be any string. (default: `hash-workspace-app`)
+
+#### Others
+
+- `FRONTEND_URL`: URL of the frontend website for links (default: `http://localhost:3000`)
+- `NOTIFICATION_POLL_INTERVAL`: the interval in milliseconds at which the frontend will poll for new notifications, or 0 for no polling. (default: `10_000`)
+- `HASH_INTEGRATION_QUEUE_NAME` The name of the Redis queue which updates to entities are published to
+- `HASH_REALTIME_PORT`: Realtime service listening port. (default: `3333`)
+- `HASH_SEARCH_LOADER_PORT`: (default: `3838`)
+- `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the search loader service (default: `search`)
+- `API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
+- `SESSION_SECRET`: The secret used to sign sessions (default: `secret`)
+- `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
+- `BLOCK_PROTOCOL_API_KEY`: the api key for fetching blocks from the [Þ Hub](https://blockprotocol.org/hub). Generate a key at https://blockprotocol.org/settings/api-keys.
+
+</details>
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
 
