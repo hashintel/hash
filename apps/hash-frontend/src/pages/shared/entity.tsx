@@ -181,7 +181,7 @@ export const Entity = ({
     | undefined
   >();
 
-  const { getClosedMultiEntityType } = useGetClosedMultiEntityType();
+  const { getClosedMultiEntityTypes } = useGetClosedMultiEntityType();
 
   useEffect(() => {
     if (
@@ -206,14 +206,18 @@ export const Entity = ({
         throw new Error("No entity type ids found");
       }
 
-      void getClosedMultiEntityType(entityTypeIds).then((result) => {
-        setDraftEntityTypesDetails(result);
+      void getClosedMultiEntityTypes(entityTypeIds).then((result) => {
+        setDraftEntityTypesDetails({
+          closedMultiEntityType: result.closedMultiEntityTypes[0]!,
+          closedMultiEntityTypesDefinitions:
+            result.closedMultiEntityTypesDefinitions,
+        });
       });
     }
   }, [
     draftLocalEntity,
     draftEntityTypesDetails,
-    getClosedMultiEntityType,
+    getClosedMultiEntityTypes,
     proposedEntitySubgraph,
   ]);
 

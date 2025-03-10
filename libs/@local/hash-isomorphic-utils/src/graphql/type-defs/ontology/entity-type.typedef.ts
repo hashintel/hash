@@ -8,8 +8,8 @@ export const entityTypeTypedef = gql`
   scalar Filter
   scalar UserPermissionsOnEntityType
 
-  type GetClosedMultiEntityTypeResponse {
-    closedMultiEntityType: ClosedMultiEntityType!
+  type GetClosedMultiEntityTypesResponse {
+    closedMultiEntityTypes: [ClosedMultiEntityType!]!
     definitions: ClosedMultiEntityTypesDefinitions!
   }
 
@@ -41,11 +41,11 @@ export const entityTypeTypedef = gql`
       includeArchived: Boolean = false
     ): Subgraph!
 
-    getClosedMultiEntityType(
-      entityTypeIds: [VersionedUrl!]!
+    getClosedMultiEntityTypes(
+      entityTypeIds: [[VersionedUrl!]!]!
       includeArchived: Boolean = false
       includeDrafts: Boolean = false
-    ): GetClosedMultiEntityTypeResponse!
+    ): GetClosedMultiEntityTypesResponse!
 
     """
     Check the requesting user's permissions on an entity type

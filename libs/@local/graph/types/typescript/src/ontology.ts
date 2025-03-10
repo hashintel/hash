@@ -31,7 +31,7 @@ import type {
   ClosedMultiEntityTypeMap,
   DataTypeConversionTargets as GraphApiDataTypeConversionTargets,
   EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
-  GetClosedMultiEntityTypeResponseDefinitions,
+  GetClosedMultiEntityTypesResponseDefinitions,
   OntologyEditionProvenance as OntologyEditionProvenanceGraphApi,
 } from "@local/hash-graph-client";
 
@@ -207,7 +207,7 @@ export interface ClosedDataTypeDefinition {
 }
 
 export type ClosedMultiEntityTypesDefinitions = Subtype<
-  GetClosedMultiEntityTypeResponseDefinitions,
+  GetClosedMultiEntityTypesResponseDefinitions,
   {
     dataTypes: { [key: VersionedUrl]: ClosedDataTypeDefinition };
     entityTypes: { [key: VersionedUrl]: PartialEntityType };
