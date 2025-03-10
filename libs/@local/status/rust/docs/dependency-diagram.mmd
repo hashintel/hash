@@ -10,18 +10,18 @@ graph TD
     %% ---> : Build dependency
     0[hash-status]
     class 0 root
-    1[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
-    2[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
-    3[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
-    4[<a href="../hash_graph_type_defs/index.html">hash-graph-type-defs</a>]
-    5[<a href="../hash_graph/index.html">hash-graph</a>]
-    6[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    7[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    2 --> 0
-    4 --> 0
+    1[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    2[<a href="../hash_graph/index.html">hash-graph</a>]
+    3[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
+    4[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
+    5[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    6[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    7[<a href="../hash_graph_type_defs/index.html">hash-graph-type-defs</a>]
+    2 --> 4
+    1 --> 0
+    4 --> 3
+    3 --> 7
     6 -.-> 1
+    5 -.-> 3
     3 --> 1
-    1 --> 2
-    7 -.-> 2
-    5 --> 3
-    1 --> 4
+    7 --> 0

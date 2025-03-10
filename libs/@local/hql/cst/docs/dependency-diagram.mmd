@@ -8,9 +8,9 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[hql-cst]
-    class 0 root
+    0[<a href="../hql_syntax_jexpr/index.html">hql-syntax-jexpr</a>]
     1[<a href="../hql_span/index.html">hql-span</a>]
-    2[<a href="../hql_syntax_jexpr/index.html">hql-syntax-jexpr</a>]
-    0 --> 1
-    2 --> 0
+    2[hql-cst]
+    class 2 root
+    2 --> 1
+    0 --> 2

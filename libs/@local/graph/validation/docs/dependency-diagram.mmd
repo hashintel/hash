@@ -8,42 +8,42 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[hash-graph-validation]
-    class 0 root
-    1[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
-    2[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    3[<a href="../type_system/index.html">type-system</a>]
-    4[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    5[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
-    6[<a href="../error_stack/index.html">error-stack</a>]
-    7[<a href="../hash_codec/index.html">hash-codec</a>]
-    8[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    9[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
-    10[<a href="../harpc_types/index.html">harpc-types</a>]
-    11[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    12[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
-    13[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
-    14[<a href="../hash_graph/index.html">hash-graph</a>]
-    15[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    16[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
-    17[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    0 --> 5
-    2 --> 7
+    0[<a href="../hash_graph/index.html">hash-graph</a>]
+    1[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
+    2[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
+    3[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    4[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    5[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    6[hash-graph-validation]
+    class 6 root
+    7[<a href="../error_stack/index.html">error-stack</a>]
+    8[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    9[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    10[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    11[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    12[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
+    13[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    14[<a href="../type_system/index.html">type-system</a>]
+    15[<a href="../harpc_types/index.html">harpc-types</a>]
+    16[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    17[<a href="../hash_codec/index.html">hash-codec</a>]
+    12 --> 1
+    5 --> 14
+    14 --> 17
+    8 --> 6
+    10 --> 17
+    9 --> 2
+    9 --> 13
+    6 --> 9
+    5 --> 10
+    16 --> 7
+    16 --> 15
+    16 -.-> 15
+    17 --> 16
+    0 --> 12
+    13 --> 5
+    4 -.-> 8
+    14 -.-> 11
+    1 --> 8
+    2 --> 5
     3 -.-> 1
-    3 --> 7
-    4 --> 3
-    4 --> 2
-    5 --> 8
-    5 --> 9
-    7 --> 11
-    8 --> 4
-    9 --> 4
-    11 -.-> 10
-    11 --> 10
-    11 --> 6
-    13 --> 0
-    15 -.-> 12
-    16 --> 12
-    12 --> 13
-    17 -.-> 13
-    14 --> 16

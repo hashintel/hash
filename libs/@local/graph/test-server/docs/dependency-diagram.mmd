@@ -8,64 +8,64 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[hash-graph-test-server]
-    class 0 root
-    1[<a href="../hash_status/index.html">hash-status</a>]
-    2[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    3[<a href="../hash_graph_type_defs/index.html">hash-graph-type-defs</a>]
-    4[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
-    5[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
-    6[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
-    7[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
-    8[<a href="../hash_codec/index.html">hash-codec</a>]
-    9[<a href="../error_stack/index.html">error-stack</a>]
-    10[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
-    11[<a href="../type_system/index.html">type-system</a>]
-    12[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    13[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    14[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
-    15[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
-    16[<a href="../harpc_types/index.html">harpc-types</a>]
-    17[<a href="../harpc_tower/index.html">harpc-tower</a>]
-    18[<a href="../harpc_system/index.html">harpc-system</a>]
-    19[<a href="../harpc_server/index.html">harpc-server</a>]
-    20[<a href="../harpc_codec/index.html">harpc-codec</a>]
-    21[<a href="../harpc_client/index.html">harpc-client</a>]
-    22[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    23[<a href="../harpc_net/index.html">harpc-net</a>]
-    24[<a href="../hash_graph/index.html">hash-graph</a>]
-    0 --> 7
-    2 --> 11
-    2 --> 12
-    3 --> 1
-    4 --> 13
-    4 --> 6
-    5 --> 1
-    5 --> 14
-    6 --> 2
-    7 --> 15
-    7 --> 3
-    7 --> 5
-    7 --> 19
-    8 --> 22
+    0[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    1[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    2[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    3[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    4[hash-graph-test-server]
+    class 4 root
+    5[<a href="../hash_graph_type_defs/index.html">hash-graph-type-defs</a>]
+    6[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
+    7[<a href="../error_stack/index.html">error-stack</a>]
+    8[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    9[<a href="../harpc_client/index.html">harpc-client</a>]
+    10[<a href="../harpc_codec/index.html">harpc-codec</a>]
+    11[<a href="../harpc_net/index.html">harpc-net</a>]
+    12[<a href="../harpc_server/index.html">harpc-server</a>]
+    13[<a href="../harpc_system/index.html">harpc-system</a>]
+    14[<a href="../harpc_tower/index.html">harpc-tower</a>]
+    15[<a href="../harpc_types/index.html">harpc-types</a>]
+    16[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    17[<a href="../hash_codec/index.html">hash-codec</a>]
+    18[<a href="../hash_graph/index.html">hash-graph</a>]
+    19[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
+    20[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
+    21[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
+    22[<a href="../type_system/index.html">type-system</a>]
+    23[<a href="../hash_status/index.html">hash-status</a>]
+    24[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    4 --> 19
+    9 --> 13
+    10 --> 7
+    10 --> 15
+    11 --> 10
+    11 --> 17
     11 -.-> 10
-    11 --> 8
-    12 --> 8
-    13 --> 2
-    14 --> 4
-    15 --> 4
-    17 -.-> 23
-    17 --> 23
-    18 --> 17
-    19 -.-> 2
-    19 -.-> 21
-    20 --> 16
-    20 --> 9
-    21 --> 18
-    22 -.-> 16
-    22 --> 16
-    22 --> 9
-    23 -.-> 20
-    23 --> 8
-    23 --> 20
-    24 --> 0
+    12 -.-> 9
+    12 -.-> 8
+    13 --> 14
+    14 --> 11
+    14 -.-> 11
+    16 --> 7
+    16 --> 15
+    16 -.-> 15
+    17 --> 16
+    18 --> 4
+    24 --> 8
+    19 --> 12
+    19 --> 0
+    19 --> 5
+    19 --> 6
+    20 --> 8
+    5 --> 23
+    6 --> 1
+    8 --> 2
+    8 --> 22
+    21 --> 1
+    22 -.-> 3
+    22 --> 17
+    0 --> 21
+    0 --> 23
+    1 --> 20
+    1 --> 24
+    2 --> 17

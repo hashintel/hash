@@ -11,7 +11,7 @@ use error_stack::{Report, ResultExt as _};
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use petgraph::{
     graph::{DiGraph, NodeIndex},
-    visit::EdgeRef as _,
+    visit::{Bfs, EdgeRef as _},
 };
 use tracing::{debug, info, instrument, trace, warn};
 
@@ -524,7 +524,7 @@ fn build_dependency_graph(
 
 /// Filters the graph to show only dependencies of a specific root crate.
 ///
-/// Uses breadth-first search to find all transitive dependencies of the root crate
+/// Uses Petgraph's breadth-first search to find all transitive dependencies of the root crate
 /// and creates a new filtered graph containing only those dependencies. The resulting
 /// graph includes the root crate and all its direct and indirect dependencies.
 ///
@@ -548,10 +548,10 @@ fn build_dependency_graph(
 /// where n is the number of nodes and e is the number of edges in the graph.
 #[instrument(level = "debug", skip(graph, node_indices))]
 fn filter_to_root_dependencies(
-    graph: &DependencyGraph,
+    graph: &mut DependencyGraph,
     node_indices: &BTreeMap<String, NodeIndex>,
     root_crate: &str,
-) -> Result<DependencyGraph, Report<DependencyDiagramError>> {
+) -> Result<(), Report<DependencyDiagramError>> {
     debug!(
         root_crate,
         "Filtering to show only dependencies of root crate"
@@ -559,82 +559,45 @@ fn filter_to_root_dependencies(
 
     // Find the node index for the root crate
     if let Some(&root_idx) = node_indices.get(root_crate) {
-        // Create a new graph for the filtered result
-        let mut filtered = DependencyGraph::new();
-        let mut filtered_indices = BTreeMap::new();
-
-        // First add the root crate
-        let root_node_name = graph
-            .node_weight(root_idx)
-            .expect("should exist in graph")
-            .clone();
-        let new_root_idx = filtered.add_node(root_node_name);
-        filtered_indices.insert(root_idx, new_root_idx);
-
-        // Breadth-first traversal to find all dependencies
-        let mut visited = BTreeSet::new();
-        let mut queue = VecDeque::new();
-
-        // Start with the root crate
-        queue.push_back(root_idx);
-        visited.insert(root_idx);
-
         debug!("Starting breadth-first traversal from root crate");
-        let mut nodes_added = 1; // Root node already added
-        let mut edges_added = 0;
 
-        while let Some(current_idx) = queue.pop_front() {
-            let current_name = graph
-                .node_weight(current_idx)
-                .expect("should exist in graph");
-            debug!(crate_name = %current_name, "Processing dependencies");
+        // Use a copy of the graph for traversal since we'll modify the original
+        let graph_copy = graph.clone();
 
-            // Get all outgoing edges (dependencies)
-            for edge in graph.edges(current_idx) {
-                let dep_idx = edge.target();
-                let dep_name = graph
-                    .node_weight(dep_idx)
-                    .expect("should exist in graph")
-                    .clone();
+        // Use Petgraph's Bfs to find all nodes reachable from root
+        let mut bfs = Bfs::new(&graph_copy, root_idx);
+        let mut reachable = BTreeSet::new();
 
-                // Add the dependency node to the filtered graph if not already added
-                let dep_filtered_idx = if let Some(&idx) = filtered_indices.get(&dep_idx) {
-                    debug!(crate_name = %dep_name, "Dependency already in filtered graph");
-                    idx
-                } else {
-                    debug!(crate_name = %dep_name, "Adding dependency to filtered graph");
-                    let new_idx = filtered.add_node(dep_name.clone());
-                    filtered_indices.insert(dep_idx, new_idx);
-                    nodes_added += 1;
-                    new_idx
-                };
+        // Add root to reachable set
+        reachable.insert(root_idx);
 
-                // Add the edge to the filtered graph
-                if let Some(&from_idx) = filtered_indices.get(&current_idx) {
-                    let edge_weight = edge.weight().clone();
-                    debug!(
-                        from = %current_name,
-                        to = %dep_name,
-                        dep_type = %edge_weight,
-                        "Adding edge to filtered graph"
-                    );
-                    filtered.add_edge(from_idx, dep_filtered_idx, edge_weight);
-                    edges_added += 1;
-                }
-
-                // Add to queue if not visited
-                if visited.insert(dep_idx) {
-                    debug!(crate_name = %dep_name, "Adding dependency to BFS queue");
-                    queue.push_back(dep_idx);
-                }
-            }
+        // Add all nodes reachable from root via BFS traversal
+        while let Some(node) = bfs.next(&graph_copy) {
+            debug!(
+                node_idx = ?node,
+                node_name = %graph_copy.node_weight(node).expect("should exist in graph"),
+                "Adding node to reachable set"
+            );
+            reachable.insert(node);
         }
 
+        let nodes_before = graph.node_count();
+        let edges_before = graph.edge_count();
+
+        // Retain only the nodes reachable from root
+        graph.retain_nodes(|_, idx| reachable.contains(&idx));
+
+        let nodes_after = graph.node_count();
+        let edges_after = graph.edge_count();
+
         debug!(
-            nodes_added,
-            edges_added, "Finished filtering graph to root crate dependencies"
+            nodes_kept = nodes_after,
+            nodes_removed = nodes_before - nodes_after,
+            edges_kept = edges_after,
+            edges_removed = edges_before - edges_after,
+            "Finished filtering graph to root crate dependencies"
         );
-        Ok(filtered)
+        Ok(())
     } else {
         Err(Report::new(DependencyDiagramError::RootCrateNotFound(
             root_crate.to_owned(),
@@ -644,7 +607,7 @@ fn filter_to_root_dependencies(
 
 /// Filters the graph to show dependencies and dependents of a specific root crate.
 ///
-/// Uses breadth-first search to find:
+/// Uses Petgraph's breadth-first search to find:
 /// 1. All transitive dependencies of the root crate (crates that the root depends on)
 /// 2. All transitive dependents of the root crate (crates that depend on the root)
 ///
@@ -671,10 +634,10 @@ fn filter_to_root_dependencies(
 /// where n is the number of nodes and e is the number of edges in the graph.
 #[instrument(level = "debug", skip(graph, node_indices))]
 fn filter_to_root_dependencies_and_dependents(
-    graph: &DependencyGraph,
+    graph: &mut DependencyGraph,
     node_indices: &BTreeMap<String, NodeIndex>,
     root_crate: &str,
-) -> Result<DependencyGraph, Report<DependencyDiagramError>> {
+) -> Result<(), Report<DependencyDiagramError>> {
     debug!(
         root_crate,
         "Filtering to show dependencies and dependents of root crate"
@@ -682,148 +645,98 @@ fn filter_to_root_dependencies_and_dependents(
 
     // Find the node index for the root crate
     if let Some(&root_idx) = node_indices.get(root_crate) {
-        // Create a new graph for the filtered result
-        let mut filtered = DependencyGraph::new();
-        let mut filtered_indices = BTreeMap::new();
+        // Use a copy of the graph for traversal since we'll modify the original
+        let graph_copy = graph.clone();
 
-        // First add the root crate
-        let root_node_name = graph
-            .node_weight(root_idx)
-            .expect("should exist in graph")
-            .clone();
-        let new_root_idx = filtered.add_node(root_node_name);
-        filtered_indices.insert(root_idx, new_root_idx);
+        // Set to track all nodes we want to keep
+        let mut nodes_to_keep = BTreeSet::new();
 
-        // Set up for breadth-first traversal
-        let mut visited = BTreeSet::new();
-        let mut queue = VecDeque::new();
-
-        // Start with the root crate
-        queue.push_back(root_idx);
-        visited.insert(root_idx);
+        // Add root to the set
+        nodes_to_keep.insert(root_idx);
 
         debug!("Starting breadth-first traversal for dependencies of root crate");
-        let mut nodes_added = 1; // Root node already added
-        let mut edges_added = 0;
 
-        // BFS to find all dependencies (outgoing edges from root)
-        while let Some(current_idx) = queue.pop_front() {
-            let current_name = graph
-                .node_weight(current_idx)
-                .expect("should exist in graph");
-            debug!(crate_name = %current_name, "Processing dependencies");
-
-            // Process all outgoing edges (dependencies)
-            for edge in graph.edges(current_idx) {
-                let dep_idx = edge.target();
-                let dep_name = graph
-                    .node_weight(dep_idx)
-                    .expect("should exist in graph")
-                    .clone();
-
-                // Add the dependency node to the filtered graph if not already added
-                let dep_filtered_idx = if let Some(&idx) = filtered_indices.get(&dep_idx) {
-                    debug!(crate_name = %dep_name, "Dependency already in filtered graph");
-                    idx
-                } else {
-                    debug!(crate_name = %dep_name, "Adding dependency to filtered graph");
-                    let new_idx = filtered.add_node(dep_name.clone());
-                    filtered_indices.insert(dep_idx, new_idx);
-                    nodes_added += 1;
-                    new_idx
-                };
-
-                // Add the edge to the filtered graph
-                if let Some(&from_idx) = filtered_indices.get(&current_idx) {
-                    let edge_weight = edge.weight().clone();
-                    debug!(
-                        from = %current_name,
-                        to = %dep_name,
-                        dep_type = %edge_weight,
-                        "Adding edge to filtered graph"
-                    );
-                    filtered.add_edge(from_idx, dep_filtered_idx, edge_weight);
-                    edges_added += 1;
-                }
-
-                // Add to queue if not visited
-                if visited.insert(dep_idx) {
-                    debug!(crate_name = %dep_name, "Adding dependency to BFS queue");
-                    queue.push_back(dep_idx);
-                }
-            }
+        // First BFS: Find all dependencies (outgoing edges)
+        let mut deps_bfs = Bfs::new(&graph_copy, root_idx);
+        while let Some(node) = deps_bfs.next(&graph_copy) {
+            debug!(
+                node_idx = ?node,
+                node_name = %graph_copy.node_weight(node).expect("should exist in graph"),
+                "Adding dependency to keep set"
+            );
+            nodes_to_keep.insert(node);
         }
-
-        // BFS to find all dependents (crates that depend on the root - incoming edges)
-        // Reset visited set and queue for the second traversal
-        visited.clear();
-        queue.clear();
-        queue.push_back(root_idx);
-        visited.insert(root_idx);
 
         debug!("Starting breadth-first traversal for dependents of root crate");
 
-        // This second BFS is to find all dependents (crates that depend on the root)
+        // Second traversal: Find all dependents (crates depending on our crates)
+        // For dependents, we need a custom approach since petgraph's Bfs doesn't
+        // directly support traversing incoming edges
+        let mut queue = VecDeque::new();
+        let mut dependents_visited = BTreeSet::new();
+
+        queue.push_back(root_idx);
+        dependents_visited.insert(root_idx);
+
         while let Some(current_idx) = queue.pop_front() {
-            let current_name = graph
+            let current_name = graph_copy
                 .node_weight(current_idx)
                 .expect("should exist in graph");
+
             debug!(crate_name = %current_name, "Processing dependents");
 
-            // Find all incoming edges to the current node (crates that depend on it)
-            // We need to iterate over all edges to find ones that target the current node
-            for edge in graph.edge_references() {
+            // For each edge in the graph, check if it points to current node
+            for edge in graph_copy.edge_references() {
                 let from_idx = edge.source();
                 let to_idx = edge.target();
 
-                // Skip if this edge doesn't point to the current node
+                // Skip if edge doesn't point to current node
                 if to_idx != current_idx {
                     continue;
                 }
 
-                let from_name = graph
+                let from_name = graph_copy
                     .node_weight(from_idx)
-                    .expect("should exist in graph")
-                    .clone();
+                    .expect("should exist in graph");
 
-                // Add the dependent node to the filtered graph if not already added
-                let from_filtered_idx = if let Some(&idx) = filtered_indices.get(&from_idx) {
-                    debug!(crate_name = %from_name, "Dependent already in filtered graph");
-                    idx
-                } else {
-                    debug!(crate_name = %from_name, "Adding dependent to filtered graph");
-                    let new_idx = filtered.add_node(from_name.clone());
-                    filtered_indices.insert(from_idx, new_idx);
-                    nodes_added += 1;
-                    new_idx
-                };
+                debug!(
+                    from = %from_name,
+                    to = %current_name,
+                    "Adding dependent to keep set"
+                );
 
-                // Add the edge to the filtered graph (from the dependent to the current node)
-                if let Some(&to_idx) = filtered_indices.get(&current_idx) {
-                    let edge_weight = edge.weight().clone();
-                    debug!(
-                        from = %from_name,
-                        to = %current_name,
-                        dep_type = %edge_weight,
-                        "Adding incoming edge to filtered graph"
-                    );
-                    filtered.add_edge(from_filtered_idx, to_idx, edge_weight);
-                    edges_added += 1;
-                }
+                // Add the dependent node to our keep set
+                nodes_to_keep.insert(from_idx);
 
-                // Add to queue if not visited
-                if visited.insert(from_idx) {
-                    debug!(crate_name = %from_name, "Adding dependent to BFS queue");
+                // Process this node next if not already visited
+                if dependents_visited.insert(from_idx) {
                     queue.push_back(from_idx);
                 }
             }
         }
 
+        let nodes_before = graph.node_count();
+        let edges_before = graph.edge_count();
+
         debug!(
-            nodes_added,
-            edges_added, "Finished filtering graph to root crate dependencies and dependents"
+            nodes_to_keep = nodes_to_keep.len(),
+            "Removing nodes not related to root crate"
         );
-        Ok(filtered)
+
+        // Retain only the nodes in our keep set
+        graph.retain_nodes(|_, n_idx| nodes_to_keep.contains(&n_idx));
+
+        let nodes_after = graph.node_count();
+        let edges_after = graph.edge_count();
+
+        debug!(
+            nodes_kept = nodes_after,
+            nodes_removed = nodes_before - nodes_after,
+            edges_kept = edges_after,
+            edges_removed = edges_before - edges_after,
+            "Finished filtering graph to root crate dependencies and dependents"
+        );
+        Ok(())
     } else {
         Err(Report::new(DependencyDiagramError::RootCrateNotFound(
             root_crate.to_owned(),
@@ -1091,8 +1004,11 @@ pub fn generate_dependency_diagram(
         }
     }
 
+    // Create a filtered graph as needed
+    let mut filtered_graph = graph.clone();
+
     // Filter graph if needed based on the selected mode
-    let filtered_graph = if config.root_deps_only {
+    if config.root_deps_only {
         // Filter to show only dependencies of the root crate
         // Safe because root_deps_only requires root to be set and we checked existence above
         let root_crate = config
@@ -1100,7 +1016,7 @@ pub fn generate_dependency_diagram(
             .as_ref()
             .expect("should have a root crate when root_deps_only is true");
 
-        filter_to_root_dependencies(&graph, &node_indices, root_crate)?
+        filter_to_root_dependencies(&mut filtered_graph, &node_indices, root_crate)?;
     } else if config.root_deps_and_dependents {
         // Filter to show both dependencies and dependents of the root crate
         // Safe because root_deps_and_dependents requires root to be set and we checked existence
@@ -1110,10 +1026,10 @@ pub fn generate_dependency_diagram(
             .as_ref()
             .expect("should have a root crate when root_deps_and_dependents is true");
 
-        filter_to_root_dependencies_and_dependents(&graph, &node_indices, root_crate)?
+        filter_to_root_dependencies_and_dependents(&mut filtered_graph, &node_indices, root_crate)?;
     } else {
         debug!("Using complete dependency graph (no filtering)");
-        graph
+        // No filtering needed, filtered_graph is already a clone of the original
     };
 
     // Convert the graph to a mermaid diagram
