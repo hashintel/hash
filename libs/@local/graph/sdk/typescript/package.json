@@ -28,7 +28,7 @@
     "@local/harpc-client": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-types": "0.0.0-private",
-    "effect": "3.13.7"
+    "effect": "3.13.8"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
