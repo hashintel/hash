@@ -14,6 +14,8 @@ This crate mainly creates a CLI interface to the graph crates defined in the [`l
 
 1. In order to set up the database, first the database has to be started:
 
+<!-- markdownlint-disable no-blanks-blockquote -->
+
 > [!IMPORTANT]  
 > At the moment, the _Graph_ starts the services it depends on differently to the rest of the codebase.
 >
