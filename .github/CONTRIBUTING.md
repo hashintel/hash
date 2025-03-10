@@ -28,7 +28,7 @@ To ascertain the license and contributing policy for any given project, check ou
 
 ### Tests
 
-All externally-contributed pull requests which modify code should be covered by one or more unit tests, at minimum.
+All externally-contributed pull requests which modify code should, at minimum, be covered by one or more unit tests (colocated alongside the code). Other kinds of tests, including integration tests (found in the [`/tests` directory](/tests)) may also be required.
 
 Please see the [`/tests` README](/tests/README.md) for more information about testing in HASH.
 
