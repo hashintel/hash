@@ -3,6 +3,7 @@
 [development roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [running your own instance]: https://hash.dev/docs/get-started/setup#local-hash?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[sign in]: https://app.hash.ai/signin?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
 <!-- markdownlint-disable link-fragments -->
 
@@ -43,6 +44,14 @@ This is HASH's _public monorepo_ which contains our public code, docs, and other
 The only current "officially supported" way of trying HASH right now is by signing up for and using the hosted platform at [app.hash.ai]
 
 [Create an account] to get started.
+
+### Sign in
+
+[Sign in] to access your account.
+
+### Skip the queue
+
+When you first create an account you may be placed on a waitlist. To jump the queue, once signed in, follow the instructions shown in your HASH dashboard. All submissions are reviewed by a member of the team.
 
 </details>
     
