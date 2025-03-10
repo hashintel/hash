@@ -5,8 +5,62 @@ on:
     types: [review_requested]
 
 jobs:
+  check-conditions:
+    runs-on: ubuntu-24.04
+    outputs:
+      should_review: ${{ steps.set-output.outputs.should_review }}
+    steps:
+      - name: Check if review is requested for hashdotai
+        id: check-reviewer
+        run: |
+          echo "Requested reviewer: ${{ github.event.requested_reviewer.login }}"
+          if [[ "${{ github.event.requested_reviewer.login }}" == "hashdotai" ]]; then
+            echo "✅ Review requested for hashdotai"
+            echo "is_hashdotai=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Review not requested for hashdotai"
+            echo "is_hashdotai=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if PR author is a maintainer
+        id: check-maintainer
+        if: steps.check-reviewer.outputs.is_hashdotai == 'true'
+        run: |
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          REPO="${{ github.repository }}"
+          
+          echo "Checking if $PR_AUTHOR is a maintainer on $REPO"
+          
+          # Get the permission level of the PR author
+          PERMISSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/$REPO/collaborators/$PR_AUTHOR/permission" | \
+            jq -r '.permission')
+          
+          echo "Permission level for $PR_AUTHOR: $PERMISSION"
+          
+          # Check if the permission level indicates maintainer status (admin or write)
+          if [[ "$PERMISSION" == "admin" || "$PERMISSION" == "write" ]]; then
+            echo "✅ $PR_AUTHOR is a maintainer (permission: $PERMISSION)"
+            echo "is_maintainer=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ $PR_AUTHOR is not a maintainer (permission: $PERMISSION)"
+            echo "is_maintainer=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set final output
+        id: set-output
+        run: |
+          if [[ "${{ steps.check-reviewer.outputs.is_hashdotai }}" == "true" && "${{ steps.check-maintainer.outputs.is_maintainer }}" == "true" ]]; then
+            echo "✅ All conditions met - will run Claude review"
+            echo "should_review=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Conditions not met - will skip Claude review"
+            echo "should_review=false" >> $GITHUB_OUTPUT
+          fi
+
   review:
-    if: github.event.requested_reviewer.login == 'hashdotai' && contains(fromJSON('["hashintel"]'), github.event.pull_request.user.team)
+    needs: check-conditions
+    if: needs.check-conditions.outputs.should_review == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
