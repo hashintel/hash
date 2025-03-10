@@ -16,7 +16,8 @@ harpc-tower = { workspace = true, public = true }
 harpc-types = { workspace = true }
 
 # Private third-party dependencies
-frunk = "0.4.3"
+frunk          = "0.4.3"
+simple-mermaid = { workspace = true }
 
 [lints]
 workspace = true

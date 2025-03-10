@@ -1,3 +1,7 @@
+//! # HaRPC Server
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(never_type, impl_trait_in_assoc_type, error_generic_member_access)]
 
 extern crate alloc;

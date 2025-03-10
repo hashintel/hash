@@ -25,6 +25,7 @@ alwaysApply: false
 ## Error Definition
 
 - Use `derive_more` for error traits, not thiserror:
+
   ```rust
   #[derive(Debug, derive_more::Display)]
   #[display("Operation failed: {_variant}")]
@@ -57,6 +58,7 @@ alwaysApply: false
 For comprehensive guidance on documenting errors, refer to the [Rust Documentation Practices](.cursor/rules/rust-documentation.mdc) file.
 
 Key points to remember:
+
 - Document errors with an "# Errors" section for all fallible functions
 - Link error variants with proper reference syntax
 - Document potential panics with a "# Panics" section
@@ -66,6 +68,7 @@ Key points to remember:
 For guidance on testing error conditions, refer to the [Rust Testing Strategy](.cursor/rules/rust-testing-strategy.mdc) file.
 
 Key points:
+
 - Write tests for each error case in your code
 - Assert on specific error types or message contents
 - Use `expect_err()` with clear messages following the "should..." format

@@ -1,3 +1,7 @@
+//! # HaRPC Net
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     never_type,
     trait_alias,

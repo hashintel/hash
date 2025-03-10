@@ -24,6 +24,6 @@
     "single-title": false
   },
   "gitignore": true,
-  "globs": ["*.md", "**/*.md"],
+  "globs": ["*.md", "**/*.md", "**/*.mdc"],
   "ignores": ["**/LICENSE*.md", "node_modules/**", "target/**"]
 }
