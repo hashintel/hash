@@ -128,6 +128,7 @@ When reviewing a Pull Request, follow these steps to provide comprehensive feedb
 ## 1. Initial Information Gathering
 
 Always collect the following information first:
+
 - PR content (description, title, etc.)
 - Diff changes (show ALL the changes – don't pipe them into head. Don't use --name-only)
 - Existing comments and conversation
@@ -135,6 +136,7 @@ Always collect the following information first:
 Use the following commands:
 
 **1a. View PR metadata, description, general comments and changed files**
+
 ```bash
 gh pr view
 gh pr view <PR_NUMBER> --comments
@@ -142,6 +144,7 @@ gh pr diff <PR_NUMBER>
 ```
 
 **1b. View comments on the diff**
+
 ```
 gh api \
   -H "Accept: application/vnd.github+json" \
@@ -177,6 +180,7 @@ If requirements from the Linear ticket have been missed or misinterpreted:
 4. Assign the new ticket to the same user as the original ticket
 
 The ProseMirror document should be structured as:
+
 ```json
 {
   "type": "doc",
@@ -230,6 +234,7 @@ The ProseMirror document should be structured as:
 ## 5. Submit PR Review
 
 - Where you highlight specific code issues, add comments for each via:
+
 ```sh
 gh pr review [PR-NUMBER] --comment --body "Your comment" --path path/to/file.ext --line 42
 ```
@@ -240,7 +245,9 @@ gh pr review [PR-NUMBER] --comment --body "Your comment" --path path/to/file.ext
   - DON'T include a summary of changes if the review already has one in its description.
   - Mention if you've created a Linear ticket with TODOs, and provide its number. You must create the Linear ticket before submitting your review. e.g. "I've added outstanding requirements in H-1234"
 - Submit your review via
+
 ```
-gh pr review [PR-NUMBER] [--comment | --request-changes] --body "Your review text, formatted as Markdown"
+gh pr review [PR-NUMBER] [--comment | --request-changes] --body "Your review text"
 ```
+
 - Don't use `--approve`: use `--request-changes` if you think the PR is not ready to merge, use `--comment` if you're providing non-blocking feedback.

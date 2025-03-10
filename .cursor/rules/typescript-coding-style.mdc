@@ -1,0 +1,6 @@
+---
+description: TypeScript coding style – check when working on TypeScript files
+globs: *.ts, *.tsx
+alwaysApply: false
+---
+- Prefer 'const myFunc = () => {}' over function declarations

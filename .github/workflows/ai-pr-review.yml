@@ -22,7 +22,7 @@ jobs:
             echo "is_hashdotai=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Check if PR author is a maintainer
+      - name: Check PR author
         id: check-maintainer
         if: steps.check-reviewer.outputs.is_hashdotai == 'true'
         run: |
@@ -36,14 +36,12 @@ jobs:
             "https://api.github.com/repos/$REPO/collaborators/$PR_AUTHOR/permission" | \
             jq -r '.permission')
           
-          echo "Permission level for $PR_AUTHOR: $PERMISSION"
-          
           # Check if the permission level indicates maintainer status (admin or write)
           if [[ "$PERMISSION" == "admin" || "$PERMISSION" == "write" ]]; then
-            echo "✅ $PR_AUTHOR is a maintainer (permission: $PERMISSION)"
+            echo "✅ $PR_AUTHOR is a maintainer"
             echo "is_maintainer=true" >> $GITHUB_OUTPUT
           else
-            echo "❌ $PR_AUTHOR is not a maintainer (permission: $PERMISSION)"
+            echo "❌ $PR_AUTHOR is not a maintainer"
             echo "is_maintainer=false" >> $GITHUB_OUTPUT
           fi
 
@@ -51,10 +49,10 @@ jobs:
         id: set-output
         run: |
           if [[ "${{ steps.check-reviewer.outputs.is_hashdotai }}" == "true" && "${{ steps.check-maintainer.outputs.is_maintainer }}" == "true" ]]; then
-            echo "✅ All conditions met - will run Claude review"
+            echo "✅ All conditions met - will run AI review"
             echo "should_review=true" >> $GITHUB_OUTPUT
           else
-            echo "❌ Conditions not met - will skip Claude review"
+            echo "❌ Conditions not met - will skip AI review"
             echo "should_review=false" >> $GITHUB_OUTPUT
           fi
 
@@ -71,7 +69,7 @@ jobs:
       - name: Install Claude Code
         run: npm install -g -y @anthropic-ai/claude-code
       
-      - name: Run Claude Code PR Review
+      - name: Run AI Code PR Review
         run: claude code -p 'please review PR ${{ github.event.pull_request.number }}, following the instructions in CLAUDE.md. Follow each numbered instruction for PR reviews in CLAUDE.md exactly.'
         env:
           GH_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
