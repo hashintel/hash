@@ -8,13 +8,13 @@ node        = { version = "22.14.0", postinstall = "corepack enable" }
 
 # Helper to install tools
 cargo-binstall = "1.10.22"
-uv             = "0.5.30"
+uv             = "0.6.5"
 
 # Tools to compile the project
 'cargo:wasm-opt'  = "0.116.1"
 "cargo:wasm-pack" = "0.13.1"
 java              = "24"
-protoc            = "25.6"
+protoc            = "30.0"
 
 # CLI tools
 biome                  = "1.9.5-nightly.ff02a0b"
