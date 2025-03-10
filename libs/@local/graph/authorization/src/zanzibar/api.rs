@@ -103,6 +103,24 @@ where
             .await
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn get_account_group_relations(
+        &self,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
+    ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
+        self.backend
+            .read_relations::<(AccountGroupId, AccountGroupRelationAndSubject)>(
+                RelationshipFilter::from_resource(account_group),
+                consistency,
+            )
+            .await
+            .change_context(ReadError)?
+            .map_ok(|(_, relation)| relation)
+            .try_collect()
+            .await
+    }
+
     #[tracing::instrument(level = "info", skip(self, relationships))]
     async fn modify_account_group_relations(
         &mut self,

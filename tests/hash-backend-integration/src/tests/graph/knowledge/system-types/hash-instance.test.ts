@@ -1,6 +1,7 @@
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   addHashInstanceAdmin,
+  getHashInstanceGroupMembers,
   removeHashInstanceAdmin,
 } from "@apps/hash-api/src/graph/knowledge/system-types/hash-instance";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
@@ -64,6 +65,22 @@ describe("Hash Instance", () => {
   });
 
   it("can add a hash instance admin", async () => {
+    expect(
+      await getHashInstanceGroupMembers(
+        graphContext,
+        {
+          actorId: systemAccountId,
+        },
+        {},
+      ),
+    ).not.toContain(testHashInstanceAdmin.accountId);
+
+    expect(
+      await isUserHashInstanceAdmin(graphContext, authentication, {
+        userAccountId: testHashInstanceAdmin.accountId,
+      }),
+    ).toBeFalsy();
+
     await addHashInstanceAdmin(
       graphContext,
       { actorId: systemAccountId },
@@ -71,12 +88,24 @@ describe("Hash Instance", () => {
         user: testHashInstanceAdmin,
       },
     );
+  });
 
+  it("can get the hash instance group members", async () => {
     expect(
       await isUserHashInstanceAdmin(graphContext, authentication, {
         userAccountId: testHashInstanceAdmin.accountId,
       }),
     ).toBeTruthy();
+
+    expect(
+      await getHashInstanceGroupMembers(
+        graphContext,
+        {
+          actorId: systemAccountId,
+        },
+        {},
+      ),
+    ).toContain(testHashInstanceAdmin.accountId);
   });
 
   it("can remove a hash instance admin", async () => {
@@ -87,6 +116,16 @@ describe("Hash Instance", () => {
         user: testHashInstanceAdmin,
       },
     );
+
+    expect(
+      await getHashInstanceGroupMembers(
+        graphContext,
+        {
+          actorId: systemAccountId,
+        },
+        {},
+      ),
+    ).not.toContain(testHashInstanceAdmin.accountId);
 
     expect(
       await isUserHashInstanceAdmin(graphContext, authentication, {
