@@ -22,11 +22,11 @@ We also have a developer website at [hash.dev], containing developer tutorials, 
 
 This repository is HASH's public monorepo. It contains [many different](README.md) projects, the vast majority of which are open-source, in line with [our commitment as a company]. While each project has its own [license](LICENSE.md), our contribution policies are consistent across this whole repository.
 
-### Licensing
+### Licenses
 
-To ascertain the license and contributing policy for any given project, check out the `LICENSE.md` and `CONTRIBUTING.md` files in its root.
+To ascertain the license and contributing policy for any given project, check out the `LICENSE.md` and `CONTRIBUTING.md` files in its root (or the license information in the file itself, which takes precedence where present).
 
-### Testing
+### Tests
 
 All externally-contributed pull requests which modify code should be covered by one or more unit tests, at minimum.
 
@@ -154,6 +154,62 @@ Then run `yarn install` to remove the patch.
 You can then safely remove the patch file from `.yarn/patches`.
 
 > Yarn currently does not provide a command to remove a patch, so you will need to do this manually.
+
+</details>
+
+### Common issues
+
+<details>
+  <summary> &nbsp; eslint `parserOptions.project`</summary>
+
+### eslint `parserOptions.project`
+
+There is a mismatch between VSCode's eslint plugin and the eslint cli tool. Specifically the option
+`parserOptions.project` is not interpreted the same way as reported
+[here](https://github.com/typescript-eslint/typescript-eslint/issues/251). If VSCode complains about
+a file not being "on the project" underlining an import statement, try to add the following to the
+plugin's settings:
+
+```json
+"eslint.workingDirectories": [
+  { "directory": "apps/hash-api", "!cwd": true }
+]
+```
+
+</details>
+
+<details>
+  <summary> &nbsp; Services not launched because ports busy</summary>
+
+### Services are not launched because ports are reported as busy
+
+Make sure that ports 3000, 3333, 3838, 5001, 5432, 6379 and 9200 are not used by any other processes.
+You can test this by running:
+
+```sh
+lsof -n -i:PORT_NUMBER
+```
+
+> **TODO:** replace `lsof` with `npx ??? A,B,...N` for a better DX.
+> Suggestions welcome!
+
+</details>
+
+<details>
+  <summary> &nbsp; User registration fails (WSL users)</summary>
+
+### User Registration failing (WSL users)
+
+If you're running the application on Windows through Windows Subsystem for Linux (WSL) you might need to
+change the registration url in `apps/hash-external-services/docker-compose.yml` from
+`http://host.docker.internal:5001/kratos-after-registration` to `http://{WSL_IP}:5001/kratos-after-registration`,
+where `WSL_IP` is the IP address you get by running:
+
+```sh
+wsl hostname -I
+```
+
+The `kratos` and `kratos-migrate` services will need to be restarted/rebuilt for the change to take effect.
 
 </details>
 
