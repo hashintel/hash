@@ -120,3 +120,127 @@ cargo clippy --all-features --package <package-name>
 ```
 
 For Rust packages, you can add features as needed with `--all-features`, specific features like `--features=foo,bar`, or use `cargo-hack` with `--feature-powerset` for comprehensive feature testing.
+
+# PR Review Guide
+
+When reviewing a Pull Request, follow these steps to provide comprehensive feedback:
+
+## 1. Initial Information Gathering
+
+Always collect the following information first:
+- PR content (description, title, etc.)
+- Diff changes (show ALL the changes – don't pipe them into head. Don't use --name-only)
+- Existing comments and conversation
+
+Use the following commands:
+
+**1a. View PR metadata, description, general comments and changed files**
+```bash
+gh pr view
+gh pr view <PR_NUMBER> --comments
+gh pr diff <PR_NUMBER>
+```
+
+**1b. View comments on the diff**
+```
+gh api \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  /repos/OWNER/REPO/pulls/PULL_NUMBER/comments
+```
+
+## 2. Check Referenced Linear Issues
+
+- Look for Linear issue references in the PR title or description (format: H-XXXX)
+- Fetch each referenced Linear issue to understand the original requirements
+- Use these requirements as the baseline for your review
+
+```bash
+# Example of fetching a Linear issue
+mcp__linear__get_issue --issueId "H-XXXX"
+```
+
+## 3. Provide Code Quality Feedback
+
+- Post specific code quality comments directly on the diff
+- Be precise about the location and nature of issues
+- Include suggestions for improvement when possible
+- Reference relevant code standards from the repository
+
+## 4. Handle Missed Requirements
+
+If requirements from the Linear ticket have been missed or misinterpreted:
+
+1. Create a new Linear ticket as a sub-issue of the original
+2. Format the task description as a ProseMirror document
+3. Include a checklist of specific TODOs
+4. Assign the new ticket to the same user as the original ticket
+
+The ProseMirror document should be structured as:
+```json
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "This ticket tracks remaining tasks from H-XXXX that were not addressed in PR #YYY."
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "content": [
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "TODO item 1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "TODO item 2"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## 5. Submit PR Review
+
+- Where you highlight specific code issues, add comments for each via:
+```sh
+gh pr review [PR-NUMBER] --comment --body "Your comment" --path path/to/file.ext --line 42
+```
+
+- After adding specific code comments, draft a general review:
+  - Summarize your key findings and recommendations
+  - DON'T put a title on your review. Just launch straight into your comments.
+  - DON'T include a summary of changes if the review already has one in its description.
+  - Mention if you've created a Linear ticket with TODOs, and provide its number. You must create the Linear ticket before submitting your review. e.g. "I've added outstanding requirements in H-1234"
+- Submit your review via
+```
+gh pr review [PR-NUMBER] [--comment | --request-changes] --body "Your review text, formatted as Markdown"
+```
+- Don't use `--approve`: use `--request-changes` if you think the PR is not ready to merge, use `--comment` if you're providing non-blocking feedback.

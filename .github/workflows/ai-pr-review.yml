@@ -1,0 +1,23 @@
+name: AI PR Review
+
+on:
+  pull_request_review_requested:
+    types: [review_requested]
+
+jobs:
+  review:
+    if: github.event.requested_reviewer.login == 'hashdotai' && contains(fromJSON('["hashintel"]'), github.event.pull_request.user.team)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 2
+      
+      - name: Install Claude Code
+        run: npm install -g -y @anthropic-ai/claude-code
+      
+      - name: Run Claude Code PR Review
+        run: claude code -p 'please review PR ${{ github.event.pull_request.number }}, following the instructions in CLAUDE.md. Follow each numbered instruction for PR reviews in CLAUDE.md exactly.'
+        env:
+          GH_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
