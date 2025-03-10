@@ -239,7 +239,7 @@ fn extract_workspace_crates(metadata: &cargo_metadata::Metadata) -> WorkspaceCra
 ///
 /// This function compiles all glob patterns into a single optimized matcher,
 /// which provides O(1) matching time regardless of the number of patterns.
-#[instrument(level = "debug", skip(patterns))]
+#[instrument(level = "debug")]
 fn create_glob_set(
     patterns: &[String],
     is_include: bool,
@@ -253,7 +253,6 @@ fn create_glob_set(
     }
 
     debug!(
-        patterns = ?patterns,
         "Creating {} glob set",
         if is_include { "include" } else { "exclude" }
     );
@@ -304,7 +303,10 @@ fn create_glob_set(
 ///
 /// This function has O(n * m) complexity where n is the number of packages
 /// in the workspace and m is the average number of dependencies per package.
-#[instrument(level = "debug", skip(metadata, workspace_crates, include_globset))]
+#[instrument(
+    level = "debug",
+    skip(metadata, workspace_crates, include_globset, workspace_member_ids)
+)]
 fn process_dependencies(
     metadata: &cargo_metadata::Metadata,
     workspace_crates: &WorkspaceCrateSet,
@@ -313,7 +315,7 @@ fn process_dependencies(
     include_dev_deps: bool,
     include_build_deps: bool,
 ) -> CrateDependencyMap {
-    trace!(count = metadata.packages.len(), "Processing packages");
+    debug!(count = metadata.packages.len(), "Processing packages");
 
     // Create a mapping of crate names to their dependencies with type information
     // Using BTreeMap to ensure consistent ordering for deterministic output
@@ -363,7 +365,7 @@ fn process_dependencies(
 
             // Only include workspace dependencies (excluding external crates)
             if workspace_crates.contains(dep_name) {
-                debug!(dependency = %dep_name, kind = ?dep.kind, "Adding workspace dependency");
+                trace!(dependency = %dep_name, kind = ?dep.kind, "Adding workspace dependency");
                 match dep.kind {
                     DependencyKind::Development => dev_deps.push(dep_name.clone()),
                     DependencyKind::Build => build_deps.push(dep_name.clone()),
@@ -417,7 +419,7 @@ fn process_dependencies(
 ///
 /// This function has O(n + e) complexity, where n is the number of crates and
 /// e is the number of dependencies between them.
-#[instrument(level = "debug", skip(crate_deps, exclude_globset))]
+#[instrument(level = "debug", skip(crate_deps, exclude_globset), fields(crate_count = crate_deps.keys().count()))]
 fn build_dependency_graph(
     crate_deps: &CrateDependencyMap,
     exclude_globset: Option<&GlobSet>,
@@ -552,10 +554,7 @@ fn filter_to_root_dependencies(
     node_indices: &BTreeMap<String, NodeIndex>,
     root_crate: &str,
 ) -> Result<(), Report<DependencyDiagramError>> {
-    debug!(
-        root_crate,
-        "Filtering to show only dependencies of root crate"
-    );
+    debug!("Filtering to show only dependencies of root crate");
 
     // Find the node index for the root crate
     if let Some(&root_idx) = node_indices.get(root_crate) {
@@ -638,10 +637,7 @@ fn filter_to_root_dependencies_and_dependents(
     node_indices: &BTreeMap<String, NodeIndex>,
     root_crate: &str,
 ) -> Result<(), Report<DependencyDiagramError>> {
-    debug!(
-        root_crate,
-        "Filtering to show dependencies and dependents of root crate"
-    );
+    debug!("Filtering to show dependencies and dependents of root crate");
 
     // Find the node index for the root crate
     if let Some(&root_idx) = node_indices.get(root_crate) {
@@ -784,21 +780,17 @@ fn filter_to_root_dependencies_and_dependents(
 ///
 /// For large graphs with many nodes, deduplication of transitive edges can become
 /// computationally expensive. Consider disabling it for very large graphs.
-#[instrument(level = "debug", skip(graph))]
+#[instrument(level = "debug", skip(graph), fields(
+    node_count = graph.node_count(),
+    edge_count = graph.edge_count(),
+))]
 fn graph_to_mermaid(
     graph: &DependencyGraph,
     root_crate: Option<&str>,
     dedup_transitive: bool,
     link_mode: LinkMode,
 ) -> String {
-    debug!(
-        node_count = graph.node_count(),
-        edge_count = graph.edge_count(),
-        root_crate = ?root_crate,
-        dedup_transitive,
-        link_mode = ?link_mode,
-        "Generating Mermaid diagram"
-    );
+    debug!("Generating Mermaid diagram");
     let mut mermaid = vec![
         "graph TD".to_owned(),
         "    linkStyle default stroke-width:1.5px".to_owned(),
@@ -812,23 +804,14 @@ fn graph_to_mermaid(
         "    %% ---> : Build dependency".to_owned(),
     ];
 
-    // First, create a mapping of node indices to sanitized IDs for Mermaid
-    // Using BTreeMap for stable ordering
-    let mut node_to_id = BTreeMap::new();
-    for node_idx in graph.node_indices() {
-        let _crate_name = graph
-            .node_weight(node_idx)
-            .expect("node should have a weight (crate name)");
-        // Use the node index as a simple, unique ID for the node in the diagram
-        node_to_id.insert(node_idx, node_idx.index());
-    }
+    // Each node will use its index directly as its ID in the Mermaid diagram
 
     // Create nodes for all crates in the graph
     for node_idx in graph.node_indices() {
         let crate_name = graph
             .node_weight(node_idx)
             .expect("node should have a weight (crate name)");
-        let node_id = node_to_id[&node_idx];
+        let node_id = node_idx.index();
 
         let is_root = Some(crate_name.as_str()) == root_crate;
         let create_link = match link_mode {
@@ -898,8 +881,8 @@ fn graph_to_mermaid(
             continue;
         }
 
-        let from_id = node_to_id[&from_idx];
-        let to_id = node_to_id[&to_idx];
+        let from_id = from_idx.index();
+        let to_id = to_idx.index();
         let to_name = graph
             .node_weight(to_idx)
             .expect("node should have a weight (crate name)");
@@ -993,7 +976,7 @@ pub fn generate_dependency_diagram(
     );
 
     // Build dependency graph
-    let (graph, node_indices) = build_dependency_graph(&crate_deps, exclude_globset.as_ref());
+    let (mut graph, node_indices) = build_dependency_graph(&crate_deps, exclude_globset.as_ref());
 
     // Check if the root crate exists when specified
     if let Some(root) = &config.root {
@@ -1004,9 +987,6 @@ pub fn generate_dependency_diagram(
         }
     }
 
-    // Create a filtered graph as needed
-    let mut filtered_graph = graph.clone();
-
     // Filter graph if needed based on the selected mode
     if config.root_deps_only {
         // Filter to show only dependencies of the root crate
@@ -1016,7 +996,7 @@ pub fn generate_dependency_diagram(
             .as_ref()
             .expect("should have a root crate when root_deps_only is true");
 
-        filter_to_root_dependencies(&mut filtered_graph, &node_indices, root_crate)?;
+        filter_to_root_dependencies(&mut graph, &node_indices, root_crate)?;
     } else if config.root_deps_and_dependents {
         // Filter to show both dependencies and dependents of the root crate
         // Safe because root_deps_and_dependents requires root to be set and we checked existence
@@ -1026,15 +1006,15 @@ pub fn generate_dependency_diagram(
             .as_ref()
             .expect("should have a root crate when root_deps_and_dependents is true");
 
-        filter_to_root_dependencies_and_dependents(&mut filtered_graph, &node_indices, root_crate)?;
+        filter_to_root_dependencies_and_dependents(&mut graph, &node_indices, root_crate)?;
     } else {
         debug!("Using complete dependency graph (no filtering)");
         // No filtering needed, filtered_graph is already a clone of the original
-    };
+    }
 
     // Convert the graph to a mermaid diagram
     let diagram = graph_to_mermaid(
-        &filtered_graph,
+        &graph,
         config.root.as_deref(),
         !config.no_dedup_transitive,
         config.link_mode,
