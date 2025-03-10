@@ -77,6 +77,49 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
 %}
 
+### Add account group member
+POST http://127.0.0.1:4000/account_groups/{{account_group_id}}/members/{{account_id}}
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 201, "Response status is not 204");
+    });
+%}
+
+### Get account group members
+GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/members
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.length === 2, "Unexpected number of account group members");
+    });
+%}
+
+### Remove account group member
+DELETE http://127.0.0.1:4000/account_groups/{{account_group_id}}/members/{{account_id}}
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 204, "Response status is not 204");
+    });
+%}
+
+### Get account group members
+GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/members
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.length === 1, "Unexpected number of account group members");
+    });
+%}
+
 ### Get all data types
 POST http://127.0.0.1:4000/data-types/query
 Content-Type: application/json
