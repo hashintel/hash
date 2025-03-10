@@ -15,7 +15,7 @@ pub struct ArrayMetadata {
 
 impl ArrayMetadata {
     #[must_use]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.confidence.is_none() && self.provenance.is_empty()
     }
 }
