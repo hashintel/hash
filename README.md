@@ -200,12 +200,26 @@ yarn external-services:test up
 <details>
   <summary> &nbsp; Deploying HASH to the cloud</summary>
 
+##### Sending emails
+
+Email-sending in HASH is handled by either Kratos (in the case of authentication-related emails) or through the HASH API Email Transport (for everything else).
+
+To use `AwsSesEmailTransporter`, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app. Valid AWS credentials are required for this email transporter to work.
+
+Transactional emails templates are located in the following locations:
+
+- Kratos emails in [`./../../apps/hash-external-services/kratos/templates/`](./../../apps/hash-external-services/kratos/templates/). This directory contains the following templates:
+  - [`recovery_code`](./../../apps/hash-external-services/kratos/templates/recovery_code) - Email templates for the account recovery flow using a code for the UI.
+    - When an email belongs to a registered HASH user, it will use the `valid` template, otherwise the `invalid` template is used.
+  - [`verification_code`](./../../apps/hash-external-services/kratos/templates/verification_code) - Email verification templates for the account registration flow using a code for the UI.
+    - When an email belongs to a registered HASH user, it will use the `valid` template, otherwise the `invalid` template is used.
+- HASH emails in [`../hash-api/src/email/index.ts`](../hash-api/src/email/index.ts)
+
 ### Deploying HASH to the cloud
 
 To deploy HASH in the cloud, follow the instructions contained in the root [`/infra` directory](https://github.com/hashintel/hash/tree/main/infra).
 
 </details>
-
 
 ## [![a](/.github/assets/gh_icon_examples_20px-base.svg)][gh-examples] &nbsp; Examples
 
