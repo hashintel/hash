@@ -98,13 +98,15 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
    It's also possible to install them manually, use the correct versions for these tools as specified in `.config/mise`.
 
-4. Install dependencies:
+   After [installing mise](https://mise.jdx.dev/getting-started.html#installing-mise-cli) you will also need to set it to [automatically activate](https://mise.jdx.dev/getting-started.html#activate-mise) in your shell.
+
+5. Install dependencies:
 
    ```sh
    yarn install
    ```
 
-5. Ensure Docker is running.
+6. Ensure Docker is running.
    If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
    Alternatively, you can use this command to check Docker:
 
@@ -112,7 +114,7 @@ When you first create an account you may be placed on a waitlist. To jump the qu
    docker run hello-world
    ```
 
-6. If you need to test or develop AI-related features, you will need to create an `.env.local` file in the repository root with the following values:
+7. If you need to test or develop AI-related features, you will need to create an `.env.local` file in the repository root with the following values:
 
    ```sh
    OPENAI_API_KEY=your-open-ai-api-key                                      # required for most AI features
@@ -124,7 +126,7 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
    **Note on environment files:** `.env.local` is not committed to the repo – **put any secrets that should remain secret here.** The default environment variables are taken from `.env`, extended by `.env.development`, and finally by `.env.local`. If you want to overwrite values specified in `.env` or `.env.development`, you can add them to `.env.local`. Do **not** change any other `.env` files unless you intend to change the defaults for development or testing.
 
-7. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
+8. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
 
    ```sh
    yarn external-services up --wait
@@ -138,7 +140,7 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
    4. You can also run the Graph API and AI Temporal worker outside of Docker – this is useful if they are changing frequently and you want to avoid rebuilding the Docker containers. To do so, _stop them_ in Docker and then run `yarn dev:graph` and `yarn workspace @apps/hash-ai-worker-ts dev` respectively in separate terminals.
 
-8. Launch app services:
+9. Launch app services:
 
    ```sh
    yarn start
@@ -157,7 +159,7 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
    See `package.json` → `scripts` for details and more options.
 
-9. Log in
+10. Log in
 
    When the HASH API is started, three users are automatically seeded for development purposes. Their passwords are all `password`.
 
