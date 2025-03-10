@@ -21,8 +21,7 @@ This crate mainly creates a CLI interface to the graph crates defined in the [`l
 >
 > **Before running the following command:**
 >
-> 1. Ensure you tear down any existing `external-services` that were started as outlined in the ["Getting Started"](/README.md#--getting-started) section of the root README.
-> 2. Ensure you call `deployment-down` before trying to run the `external-services`.
+> Before trying to run the `external-services`, ensure you call `deployment-down` to tear down any existing [external services](/apps/hash-external-services) that were started, as outlined in the ["Getting Started"](/README.md#--getting-started) section of the root README.
 >
 > _In the future we plan to address this by revisiting the way the services are orchestrated, while still allowing for local non-container-based development._
 
