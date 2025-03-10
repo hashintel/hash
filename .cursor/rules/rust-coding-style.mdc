@@ -46,23 +46,23 @@ fn get_data(
 - Functions should **never** take more than 7 arguments. If a function requires more than 7 arguments, encapsulate related parameters in a struct.
 - Functions that use data immutably should take a reference to the data, while functions that modify data should take a mutable reference. Never take ownership of data unless the function explicitly consumes it.
 - Make functions `const` whenever possible.
-- Prefer the following argument types when applicable:
-  * `impl AsRef<str>` instead of `&str` or `&String`
-  * `impl AsRef<Path>` instead of `&Path` or `&PathBuf`
-  * `impl IntoIterator<Item = &T>` when only iterating over the data
-  * `&[T]` instead of `&Vec<T>`
-  * `&mut [T]` instead of `&mut Vec<T>` when the function doesn't need to resize the vector
-  * `impl Into<Cow<T>>` instead of `Cow<T>`
-  * `impl Into<Arc<T>>` instead of `Arc<T>`
-  * `impl Into<Rc<T>>` instead of `Rc<T>`
-  * `impl Into<Box<T>>` instead of `Box<T>`
+- Prefer the following argument types when applicable, but only if this does not reduce performance:
+  - `impl AsRef<str>` instead of `&str` or `&String`
+  - `impl AsRef<Path>` instead of `&Path` or `&PathBuf`
+  - `impl IntoIterator<Item = &T>` when only iterating over the data
+  - `&[T]` instead of `&Vec<T>`
+  - `&mut [T]` instead of `&mut Vec<T>` when the function doesn't need to resize the vector
+  - `impl Into<Cow<T>>` instead of `Cow<T>`
+  - `impl Into<Arc<T>>` instead of `Arc<T>`
+  - `impl Into<Rc<T>>` instead of `Rc<T>`
+  - `impl Into<Box<T>>` instead of `Box<T>`
+- Never use `impl Into<Option<_>>` as from reading the caller site, it's not visible that `None` could potentially be passed
 
 ## `From` and `Into`
 
 - Generally prefer `From` implementations over `Into` implementations. The Rust compiler will automatically derive `Into` from `From`, but not vice versa.
 - When converting between types, prefer using the `from` method over `into` for clarity. The `from` method makes the target type explicit in the code, while `into` requires type inference.
 - For wrapper types like `Cow`, `Arc`, `Rc`, `Report`, and `Box`, prefer using explicit constructors (e.g., `Cow::from`, `Arc::new`) instead of `.into()`. This improves readability by clearly indicating the target type.
-
 
 ## Smart Pointers
 
@@ -84,6 +84,7 @@ fn get_data(
 - Use newtypes when a value should carry specific semantics beyond its underlying type. This improves type safety and code clarity.
 
 For example:
+
 ```rust
 struct UserId(u64);  // instead of `type UserId = u64;` or `u64`
 ```
@@ -114,15 +115,15 @@ When suggesting names for variables, functions, or types:
 - Never use a prelude `use crate::prelude::*`
 - Prefer explicit imports to make dependencies clear and improve code readability
 - We prefer `core` over `alloc` over `std` for imports to minimize dependencies
-  * Use `core` for functionality that doesn't require allocation
-  * Use `alloc` when you need allocation but not OS-specific features
-  * Only use `std` when necessary for OS interactions or when using `core`/`alloc` would be unnecessarily complex
+  - Use `core` for functionality that doesn't require allocation
+  - Use `alloc` when you need allocation but not OS-specific features
+  - Only use `std` when necessary for OS interactions or when using `core`/`alloc` would be unnecessarily complex
 - Prefer qualified imports (`use foo::Bar; let x = Bar::new()`) over fully qualified paths (`let x = foo::Bar::new()`) for frequently used types
 - Use `pub use` re-exports in module roots to create a clean public API
 - Avoid importing items with the same name from different modules; use qualified imports
 - Import traits using `use module::Trait as _;` when you only need the trait's methods and not the trait name itself
-  * This pattern brings trait methods into scope without name conflicts
-  * Use this especially for extension traits or when implementing foreign traits on local types
+  - This pattern brings trait methods into scope without name conflicts
+  - Use this especially for extension traits or when implementing foreign traits on local types
 
 ```rust
 // Good - Importing a trait just for its methods:
@@ -206,6 +207,7 @@ use std::fs::File;  // OS-specific functionality requires std
 - All `expect()` messages should follow the format "should ..." to clearly indicate the expected behavior
 
 For example:
+
 ```rust
 // Bad:
 assert_eq!(result, expected); // This should match the expected value

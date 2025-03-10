@@ -20,7 +20,7 @@ Commit messages should:
 
 ### Good commit messages:
 
-```
+```text
 Add feature flags to Real type tests that require `serde`
 Update performance documentation guidelines
 Fix PostgreSQL integration type reference issues
@@ -29,7 +29,7 @@ Improve error handling in token validation
 
 ### Avoid semantic prefixes:
 
-```
+```text
 // Don't use these formats
 fix: add feature flags to tests
 feat: implement new logging system

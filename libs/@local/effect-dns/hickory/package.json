@@ -11,6 +11,7 @@
     "build": "rimraf dist && yarn build:release && tsc --build tsconfig.build.json",
     "build:debug": "napi build dist --platform --js=impl.js --dts=impl.d.ts",
     "build:release": "napi build dist --platform --release --js=impl.js --dts=impl.d.ts",
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root effect-dns-hickory --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
