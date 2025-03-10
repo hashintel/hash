@@ -1,16 +1,6 @@
 //! # HASH Graph API
 //!
-//! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(
-    impl_trait_in_assoc_type,
-    never_type,
-    return_type_notation,
-    error_generic_member_access
-)]
-//! # Graph API
-//!
-//! This crate provides the REST and RPC APIs for the HASH Graph.
+//! This crate provides the REST and HaRPC APIs for the HASH Graph.
 //!
 //! ## OpenAPI Documentation
 //!
@@ -23,6 +13,15 @@
 //!
 //! This will generate the OpenAPI specification in the `openapi/` directory, which can be used
 //! to generate client SDKs or to document the API.
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![feature(
+    impl_trait_in_assoc_type,
+    never_type,
+    return_type_notation,
+    error_generic_member_access
+)]
 
 extern crate alloc;
 
