@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `/tests` directory contains HASH tests which for one reason or another aren't inlined with the code they correspond to (e.g. unit tests). This includes end-to-end tests, integration tests, and load tests.
+The `/tests` directory contains HASH tests which for one reason or another aren't inlined with the code they correspond to (e.g. unit tests). This includes integration tests, load tests, and performance benchmarks. In the future, end-to-end tests will also be stored here.
 
 This `README` additionally includes helpful information about testing in HASH.
 
