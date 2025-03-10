@@ -38,7 +38,7 @@ use hash_graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+        OntologyTemporalMetadata,
     },
 };
 use hash_status::StatusCode;
@@ -47,6 +47,7 @@ use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{
     Valid, Validator as _,
+    ontology::provenance::OntologyOwnership,
     schema::{
         ClosedDataType, ConversionDefinition, Conversions, DataType, DataTypeEdge,
         DataTypeResolveData, DataTypeUuid, DataTypeValidator, InheritanceDepth,
@@ -60,7 +61,7 @@ use crate::store::{
     postgres::{
         AsClient, PostgresStore, TraversalContext,
         crud::QueryRecordDecode,
-        ontology::{PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData},
+        ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{
             Distinctness, InsertStatementBuilder, PostgresRecord, ReferenceTable, SelectCompiler,
             Table, rows::DataTypeConversionsRow,
@@ -407,9 +408,7 @@ where
 
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
             let data_type_id = DataTypeUuid::from_url(&parameters.schema.id);
-            if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
-                &parameters.classification
-            {
+            if let OntologyOwnership::Local { owned_by_id } = &parameters.ownership {
                 transaction
                     .authorization_api
                     .check_web_permission(
@@ -442,7 +441,7 @@ where
             if let Some((_ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
                     &parameters.schema.id,
-                    &parameters.classification,
+                    &parameters.ownership,
                     parameters.conflict_behavior,
                     &provenance,
                 )
@@ -465,7 +464,7 @@ where
                 ));
                 inserted_data_type_metadata.push(DataTypeMetadata {
                     record_id,
-                    classification: parameters.classification,
+                    ownership: parameters.ownership,
                     temporal_versioning,
                     provenance,
                     conversions: parameters.conversions,
@@ -876,7 +875,7 @@ where
             ));
             updated_data_type_metadata.push(DataTypeMetadata {
                 record_id,
-                classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                ownership: OntologyOwnership::Local { owned_by_id },
                 temporal_versioning,
                 provenance,
                 conversions: parameters.conversions,
@@ -1390,10 +1389,8 @@ impl QueryRecordDecode for DataTypeWithMetadata {
             schema: row.get::<_, Json<_>>(indices.schema).0,
             metadata: DataTypeMetadata {
                 record_id,
-                classification: row
-                    .get::<_, Json<PostgresOntologyTypeClassificationMetadata>>(
-                        indices.additional_metadata,
-                    )
+                ownership: row
+                    .get::<_, Json<PostgresOntologyOwnership>>(indices.additional_metadata)
                     .0
                     .into(),
                 temporal_versioning: OntologyTemporalMetadata {

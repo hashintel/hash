@@ -41,18 +41,18 @@ use hash_graph_types::{
     account::EditionCreatedById,
     ontology::{
         EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        ProvidedOntologyEditionProvenance,
+        OntologyTypeMetadata, OntologyTypeReference, ProvidedOntologyEditionProvenance,
     },
-    owned_by_id::OwnedById,
 };
 use hash_map::HashMap;
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
+    ontology::provenance::OntologyOwnership,
     schema::{DomainValidator, EntityType, EntityTypeUuid, ValidateOntologyType as _},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -481,7 +481,7 @@ where
 
                 Ok(CreateEntityTypeParams {
                     schema,
-                    classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                    ownership: OntologyOwnership::Local { owned_by_id },
                     relationships: relationships.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: provenance.clone(),
@@ -681,7 +681,7 @@ where
                         actor_id,
                         CreateEntityTypeParams {
                             schema: *schema,
-                            classification: OntologyTypeClassificationMetadata::External {
+                            ownership: OntologyOwnership::Remote {
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                             relationships,

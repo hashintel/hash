@@ -540,10 +540,12 @@ mod tests {
     use hash_graph_types::{
         knowledge::entity::{DraftId, EntityUuid},
         ontology::{DataTypeLookup, DataTypeWithMetadata},
-        owned_by_id::OwnedById,
     };
     use serde_json::json;
-    use type_system::schema::{ClosedDataType, ConversionExpression, DataTypeReference};
+    use type_system::{
+        schema::{ClosedDataType, ConversionExpression, DataTypeReference},
+        web::OwnedById,
+    };
     use uuid::Uuid;
 
     use super::*;

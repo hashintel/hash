@@ -17,9 +17,8 @@ use hash_graph_types::{
         link::LinkData,
         property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
-    owned_by_id::OwnedById,
 };
-use type_system::{schema::EntityType, url::VersionedUrl};
+use type_system::{schema::EntityType, url::VersionedUrl, web::OwnedById};
 use uuid::Uuid;
 
 use crate::util::{StoreWrapper, seed};

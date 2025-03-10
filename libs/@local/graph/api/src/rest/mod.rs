@@ -74,7 +74,6 @@ use hash_graph_types::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
         PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
     },
-    owned_by_id::OwnedById,
 };
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
@@ -85,6 +84,7 @@ use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
     schema::DomainValidator,
     url::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,

@@ -75,7 +75,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
             .start_send_unpin(OntologyTypeMetadata {
                 ontology_id: ontology_id.into(),
                 record_id: data_type.metadata.record_id,
-                classification: data_type.metadata.classification,
+                ownership: data_type.metadata.ownership,
                 temporal_versioning: data_type.metadata.temporal_versioning,
                 provenance: data_type.metadata.provenance,
             })

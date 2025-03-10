@@ -1,11 +1,8 @@
 use core::error::Error;
 
-use hash_graph_types::{
-    account::{AccountGroupId, AccountId},
-    owned_by_id::OwnedById,
-};
+use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
-use type_system::schema::PropertyTypeUuid;
+use type_system::{schema::PropertyTypeUuid, web::OwnedById};
 use uuid::Uuid;
 
 use crate::{

@@ -5,10 +5,12 @@ use futures::{Stream, TryStreamExt as _};
 use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
+use type_system::{
+    schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
+    web::OwnedById,
+};
 
 use crate::{
     AuthorizationApi,

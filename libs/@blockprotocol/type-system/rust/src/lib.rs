@@ -229,10 +229,11 @@
 
 extern crate alloc;
 
-pub mod url;
-
+pub mod ontology;
 pub mod schema;
+pub mod url;
 mod utils;
+pub mod web;
 
 use alloc::sync::Arc;
 #[cfg(feature = "postgres")]

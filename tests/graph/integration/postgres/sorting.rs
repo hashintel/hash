@@ -19,17 +19,17 @@ use hash_graph_store::{
     },
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::{
-    knowledge::{
-        entity::{
-            ActorType, EntityUuid, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
-        },
-        property::{PropertyObject, PropertyWithMetadataObject},
+use hash_graph_types::knowledge::{
+    entity::{
+        ActorType, EntityUuid, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
     },
-    owned_by_id::OwnedById,
+    property::{PropertyObject, PropertyWithMetadataObject},
 };
 use pretty_assertions::assert_eq;
-use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
+use type_system::{
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
+};
 use uuid::Uuid;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};

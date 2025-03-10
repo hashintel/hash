@@ -60,7 +60,6 @@ use hash_graph_types::{
         },
     },
     ontology::{DataTypeLookup, EntityTypeWithMetadata, OntologyTypeProvider},
-    owned_by_id::OwnedById,
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use hash_status::StatusCode;
@@ -74,6 +73,7 @@ use type_system::{
         InheritanceDepth, OntologyTypeUuid,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
 };
 use uuid::Uuid;
 

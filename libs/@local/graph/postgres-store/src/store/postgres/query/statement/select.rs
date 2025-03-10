@@ -1203,11 +1203,11 @@ mod tests {
     }
 
     mod predefined {
-        use hash_graph_types::{
-            knowledge::entity::{EntityId, EntityUuid},
-            owned_by_id::OwnedById,
+        use hash_graph_types::knowledge::entity::{EntityId, EntityUuid};
+        use type_system::{
+            url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+            web::OwnedById,
         };
-        use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
         use super::*;
 

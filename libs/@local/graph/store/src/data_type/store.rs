@@ -10,11 +10,12 @@ use hash_graph_types::{
     account::AccountId,
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance,
+        ProvidedOntologyEditionProvenance,
     },
 };
 use serde::{Deserialize, Serialize};
 use type_system::{
+    ontology::provenance::OntologyOwnership,
     schema::{ConversionDefinition, Conversions, DataType},
     url::{BaseUrl, VersionedUrl},
 };
@@ -35,7 +36,7 @@ use crate::{
 )]
 pub struct CreateDataTypeParams<R> {
     pub schema: DataType,
-    pub classification: OntologyTypeClassificationMetadata,
+    pub ownership: OntologyOwnership,
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     pub provenance: ProvidedOntologyEditionProvenance,

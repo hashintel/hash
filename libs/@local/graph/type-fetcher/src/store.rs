@@ -58,19 +58,20 @@ use hash_graph_types::{
     knowledge::entity::{ActorType, Entity, EntityId, OriginProvenance, OriginType},
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
-        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
-        PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
+        OntologyTypeMetadata, OntologyTypeReference, PartialDataTypeMetadata,
+        PartialEntityTypeMetadata, PartialPropertyTypeMetadata, PropertyTypeMetadata,
+        ProvidedOntologyEditionProvenance,
     },
-    owned_by_id::OwnedById,
 };
 use hash_temporal_client::TemporalClient;
 use tarpc::context;
 use tokio::net::ToSocketAddrs;
 use tracing::Instrument as _;
 use type_system::{
+    ontology::provenance::OntologyOwnership,
     schema::{DataType, DomainValidator, EntityType, EntityTypeReference, PropertyType},
     url::VersionedUrl,
+    web::OwnedById,
 };
 
 use crate::fetcher::{FetchedOntologyType, FetcherClient};
@@ -405,9 +406,7 @@ where
                     FetchedOntologyType::DataType(data_type) => {
                         let metadata = PartialDataTypeMetadata {
                             record_id: data_type.id().clone().into(),
-                            classification: OntologyTypeClassificationMetadata::External {
-                                fetched_at,
-                            },
+                            ownership: OntologyOwnership::Remote { fetched_at },
                         };
 
                         for referenced_ontology_type in self
@@ -427,9 +426,7 @@ where
                     FetchedOntologyType::PropertyType(property_type) => {
                         let metadata = PartialPropertyTypeMetadata {
                             record_id: property_type.id().clone().into(),
-                            classification: OntologyTypeClassificationMetadata::External {
-                                fetched_at,
-                            },
+                            ownership: OntologyOwnership::Remote { fetched_at },
                         };
 
                         for referenced_ontology_type in self
@@ -453,9 +450,7 @@ where
                     FetchedOntologyType::EntityType(entity_type) => {
                         let metadata = PartialEntityTypeMetadata {
                             record_id: entity_type.id().clone().into(),
-                            classification: OntologyTypeClassificationMetadata::External {
-                                fetched_at,
-                            },
+                            ownership: OntologyOwnership::Remote { fetched_at },
                         };
 
                         for referenced_ontology_type in self
@@ -529,7 +524,7 @@ where
                         .into_iter()
                         .map(|(schema, metadata)| CreateDataTypeParams {
                             schema,
-                            classification: metadata.classification,
+                            ownership: metadata.ownership,
                             relationships: DATA_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance {
@@ -552,7 +547,7 @@ where
                         .into_iter()
                         .map(|(schema, metadata)| CreatePropertyTypeParams {
                             schema,
-                            classification: metadata.classification,
+                            ownership: metadata.ownership,
                             relationships: PROPERTY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance {
@@ -574,7 +569,7 @@ where
                         .into_iter()
                         .map(|(schema, metadata)| CreateEntityTypeParams {
                             schema,
-                            classification: metadata.classification,
+                            ownership: metadata.ownership,
                             relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance {
@@ -626,7 +621,7 @@ where
                             .into_iter()
                             .map(|(schema, metadata)| CreateDataTypeParams {
                                 schema,
-                                classification: metadata.classification,
+                                ownership: metadata.ownership,
                                 relationships: DATA_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance {
@@ -649,7 +644,7 @@ where
                         fetched_ontology_types.property_types.into_iter().map(
                             |(schema, metadata)| CreatePropertyTypeParams {
                                 schema,
-                                classification: metadata.classification,
+                                ownership: metadata.ownership,
                                 relationships: PROPERTY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance {
@@ -672,7 +667,7 @@ where
                         fetched_ontology_types.entity_types.into_iter().map(
                             |(schema, metadata)| CreateEntityTypeParams {
                                 schema,
-                                classification: metadata.classification,
+                                ownership: metadata.ownership,
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance {

@@ -10,17 +10,18 @@ use hash_graph_types::{
     account::{AccountId, EditionCreatedById},
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance,
+        ProvidedOntologyEditionProvenance,
     },
-    owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize};
 use type_system::{
+    ontology::provenance::OntologyOwnership,
     schema::{
         ClosedDataType, ClosedEntityType, ClosedMultiEntityType, EntityType, PartialEntityType,
         PropertyType,
     },
     url::VersionedUrl,
+    web::OwnedById,
 };
 
 use crate::{
@@ -39,7 +40,7 @@ use crate::{
 )]
 pub struct CreateEntityTypeParams<R> {
     pub schema: EntityType,
-    pub classification: OntologyTypeClassificationMetadata,
+    pub ownership: OntologyOwnership,
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     pub provenance: ProvidedOntologyEditionProvenance,

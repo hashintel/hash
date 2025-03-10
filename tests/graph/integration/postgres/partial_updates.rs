@@ -14,21 +14,18 @@ use hash_graph_store::{
     },
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::{
-    knowledge::{
-        entity::{ActorType, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
-        property::{
-            PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyProvenance,
-            PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
-            ValueMetadata,
-        },
+use hash_graph_types::knowledge::{
+    entity::{ActorType, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
+    property::{
+        PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyProvenance,
+        PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
     },
-    owned_by_id::OwnedById,
 };
 use pretty_assertions::assert_eq;
 use type_system::{
     Value,
     url::{BaseUrl, VersionedUrl},
+    web::OwnedById,
 };
 
 use crate::{DatabaseApi, DatabaseTestWrapper};

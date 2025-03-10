@@ -141,8 +141,8 @@ impl From<InPrincipalConstraint> for UserPrincipalConstraint {
 mod tests {
     use core::error::Error;
 
-    use hash_graph_types::owned_by_id::OwnedById;
     use serde_json::json;
+    use type_system::web::OwnedById;
     use uuid::Uuid;
 
     use super::{UserId, WebPrincipalConstraint};

@@ -49,7 +49,6 @@ use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityId, EntityUuid},
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    owned_by_id::OwnedById,
 };
 use hash_status::StatusCode;
 use postgres_types::ToSql;
@@ -58,6 +57,7 @@ use tokio_postgres::error::SqlState;
 use type_system::{
     schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
     url::VersionedUrl,
+    web::OwnedById,
 };
 
 use crate::{

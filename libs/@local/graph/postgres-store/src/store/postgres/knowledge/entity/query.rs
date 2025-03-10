@@ -2,18 +2,18 @@ use hash_graph_store::{
     entity::EntityQueryPath,
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
 };
-use hash_graph_types::{
-    knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityProvenance, EntityRecordId, EntityUuid},
-        link::LinkData,
-        property::PropertyMetadataObject,
-    },
-    owned_by_id::OwnedById,
+use hash_graph_types::knowledge::{
+    entity::{Entity, EntityId, EntityMetadata, EntityProvenance, EntityRecordId, EntityUuid},
+    link::LinkData,
+    property::PropertyMetadataObject,
 };
 use serde::Deserialize as _;
 use tokio_postgres::Row;
 use tracing::instrument;
-use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
+use type_system::{
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
+};
 use uuid::Uuid;
 
 use crate::store::postgres::{

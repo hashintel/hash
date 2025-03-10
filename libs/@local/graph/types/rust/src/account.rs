@@ -3,6 +3,7 @@ use core::fmt;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
+use type_system::web::OwnedById;
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};
 use uuid::Uuid;
@@ -36,6 +37,11 @@ impl fmt::Display for AccountId {
     }
 }
 
+impl From<AccountId> for OwnedById {
+    fn from(account_id: AccountId) -> Self {
+        Self::new(account_id.into_uuid())
+    }
+}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -62,6 +68,12 @@ impl AccountGroupId {
 impl fmt::Display for AccountGroupId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl From<AccountGroupId> for OwnedById {
+    fn from(account_group_id: AccountGroupId) -> Self {
+        Self::new(account_group_id.into_uuid())
     }
 }
 

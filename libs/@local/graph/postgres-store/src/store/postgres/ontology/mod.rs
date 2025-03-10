@@ -15,19 +15,17 @@ use hash_graph_store::{
     query::{Ordering, Sorting as _, VersionedUrlSorting},
     subgraph::temporal_axes::QueryTemporalAxes,
 };
-use hash_graph_types::{
-    ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeClassificationMetadata,
-        PropertyTypeWithMetadata,
-    },
-    owned_by_id::OwnedById,
+use hash_graph_types::ontology::{
+    DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
 };
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
 use type_system::{
+    ontology::provenance::OntologyOwnership,
     schema::OntologyTypeUuid,
     url::{BaseUrl, VersionedUrl},
+    web::OwnedById,
 };
 
 use crate::store::{
@@ -199,7 +197,7 @@ impl_ontology_cursor!(EntityTypeWithMetadata, EntityTypeQueryPath);
 
 #[derive(Deserialize)]
 #[serde(untagged)]
-enum PostgresOntologyTypeClassificationMetadata {
+enum PostgresOntologyOwnership {
     Owned {
         web_id: OwnedById,
     },
@@ -209,15 +207,13 @@ enum PostgresOntologyTypeClassificationMetadata {
     },
 }
 
-impl From<PostgresOntologyTypeClassificationMetadata> for OntologyTypeClassificationMetadata {
-    fn from(value: PostgresOntologyTypeClassificationMetadata) -> Self {
+impl From<PostgresOntologyOwnership> for OntologyOwnership {
+    fn from(value: PostgresOntologyOwnership) -> Self {
         match value {
-            PostgresOntologyTypeClassificationMetadata::Owned { web_id } => Self::Owned {
+            PostgresOntologyOwnership::Owned { web_id } => Self::Local {
                 owned_by_id: web_id,
             },
-            PostgresOntologyTypeClassificationMetadata::External { fetched_at } => {
-                Self::External { fetched_at }
-            }
+            PostgresOntologyOwnership::External { fetched_at } => Self::Remote { fetched_at },
         }
     }
 }

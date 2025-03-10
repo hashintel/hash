@@ -4,21 +4,19 @@ use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _, PatchEntityParams};
 use hash_graph_temporal_versioning::ClosedTemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::{
-    knowledge::{
-        entity::{
-            ActorType, EntityId, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
-        },
-        property::{
-            Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
-            PropertyWithMetadataObject,
-        },
+use hash_graph_types::knowledge::{
+    entity::{ActorType, EntityId, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
+    property::{
+        Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
+        PropertyWithMetadataObject,
     },
-    owned_by_id::OwnedById,
 };
 use pretty_assertions::assert_eq;
 use time::Duration;
-use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
+use type_system::{
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
+};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 

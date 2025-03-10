@@ -71,21 +71,22 @@ mod tests {
         },
         ontology::{
             DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
-            OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
-            OntologyTypeProvider, ProvidedOntologyEditionProvenance,
+            OntologyProvenance, OntologyTemporalMetadata, OntologyTypeProvider,
+            ProvidedOntologyEditionProvenance,
         },
-        owned_by_id::OwnedById,
     };
     use serde::Deserialize as _;
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{
+        ontology::provenance::OntologyOwnership,
         schema::{
             ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConversionExpression,
             DataType, DataTypeReference, DataTypeUuid, EntityType, EntityTypeUuid,
             OntologyTypeResolver, PropertyType,
         },
         url::{BaseUrl, OntologyTypeRecordId, VersionedUrl},
+        web::OwnedById,
     };
     use uuid::Uuid;
 
@@ -96,7 +97,7 @@ mod tests {
         DataTypeWithMetadata {
             metadata: DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(schema.id.clone()),
-                classification: OntologyTypeClassificationMetadata::Owned {
+                ownership: OntologyOwnership::Local {
                     owned_by_id: OwnedById::new(actor.into_uuid()),
                 },
                 temporal_versioning: OntologyTemporalMetadata {

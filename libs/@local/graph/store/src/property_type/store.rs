@@ -8,12 +8,14 @@ use hash_graph_types::{
     Embedding,
     account::AccountId,
     ontology::{
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, PropertyTypeMetadata,
-        PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
+        OntologyTemporalMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
+        ProvidedOntologyEditionProvenance,
     },
 };
 use serde::{Deserialize, Serialize};
-use type_system::{schema::PropertyType, url::VersionedUrl};
+use type_system::{
+    ontology::provenance::OntologyOwnership, schema::PropertyType, url::VersionedUrl,
+};
 
 use crate::{
     error::{InsertionError, QueryError, UpdateError},
@@ -31,7 +33,7 @@ use crate::{
 )]
 pub struct CreatePropertyTypeParams<R> {
     pub schema: PropertyType,
-    pub classification: OntologyTypeClassificationMetadata,
+    pub ownership: OntologyOwnership,
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     pub provenance: ProvidedOntologyEditionProvenance,

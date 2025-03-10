@@ -71,11 +71,10 @@ use hash_graph_types::{
             },
         },
     },
-    owned_by_id::OwnedById,
 };
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
-use type_system::url::VersionedUrl;
+use type_system::{url::VersionedUrl, web::OwnedById};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{

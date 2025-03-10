@@ -9,7 +9,10 @@ use hash_graph_temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, T
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    web::OwnedById,
+};
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};
 use uuid::Uuid;
@@ -32,7 +35,6 @@ use crate::{
             PropertyPatchOperation, PropertyWithMetadata,
         },
     },
-    owned_by_id::OwnedById,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]

@@ -9,10 +9,10 @@ use futures::{
     channel::mpsc::{self, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use hash_graph_types::ontology::{
-    OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+use hash_graph_types::ontology::{OntologyProvenance, OntologyTemporalMetadata};
+use type_system::{
+    ontology::provenance::OntologyOwnership, schema::OntologyTypeUuid, url::OntologyTypeRecordId,
 };
-use type_system::{schema::OntologyTypeUuid, url::OntologyTypeRecordId};
 
 use crate::{
     snapshot::{SnapshotRestoreError, ontology::OntologyTypeMetadataRowBatch},
@@ -33,7 +33,7 @@ pub struct OntologyTypeMetadataSender {
 pub struct OntologyTypeMetadata {
     pub ontology_id: OntologyTypeUuid,
     pub record_id: OntologyTypeRecordId,
-    pub classification: OntologyTypeClassificationMetadata,
+    pub ownership: OntologyOwnership,
     pub temporal_versioning: OntologyTemporalMetadata,
     pub provenance: OntologyProvenance,
 }
@@ -62,8 +62,8 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
         mut self: Pin<&mut Self>,
         metadata: OntologyTypeMetadata,
     ) -> Result<(), Self::Error> {
-        match metadata.classification {
-            OntologyTypeClassificationMetadata::Owned { owned_by_id } => {
+        match metadata.ownership {
+            OntologyOwnership::Local { owned_by_id } => {
                 self.owned_metadata
                     .start_send(OntologyOwnedMetadataRow {
                         ontology_id: metadata.ontology_id,
@@ -72,7 +72,7 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send owned metadata")?;
             }
-            OntologyTypeClassificationMetadata::External { fetched_at } => {
+            OntologyOwnership::Remote { fetched_at } => {
                 self.external_metadata
                     .start_send(OntologyExternalMetadataRow {
                         ontology_id: metadata.ontology_id,

@@ -12,7 +12,6 @@ use hash_graph_types::{
         property::{PropertyMetadataObject, PropertyObject, PropertyProvenance},
     },
     ontology::OntologyEditionProvenance,
-    owned_by_id::OwnedById,
 };
 use postgres_types::ToSql;
 use time::OffsetDateTime;
@@ -23,6 +22,7 @@ use type_system::{
         EntityTypeUuid, InheritanceDepth, OntologyTypeUuid, PropertyType, PropertyTypeUuid,
     },
     url::{BaseUrl, OntologyTypeVersion},
+    web::OwnedById,
 };
 
 use crate::store::postgres::query::Table;

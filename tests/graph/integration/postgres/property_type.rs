@@ -13,10 +13,9 @@ use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, property_type};
 use hash_graph_types::{
     knowledge::entity::{ActorType, OriginProvenance, OriginType},
-    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
-    owned_by_id::OwnedById,
+    ontology::ProvidedOntologyEditionProvenance,
 };
-use type_system::schema::PropertyType;
+use type_system::{ontology::provenance::OntologyOwnership, schema::PropertyType, web::OwnedById};
 
 use crate::{DatabaseTestWrapper, property_type_relationships};
 
@@ -35,7 +34,7 @@ async fn insert() {
         api.account_id,
         CreatePropertyTypeParams {
             schema: age_pt,
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: property_type_relationships(),
@@ -66,7 +65,7 @@ async fn query() {
         api.account_id,
         CreatePropertyTypeParams {
             schema: favorite_quote_pt.clone(),
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: property_type_relationships(),
@@ -134,7 +133,7 @@ async fn update() {
         api.account_id,
         CreatePropertyTypeParams {
             schema: user_id_pt_v1.clone(),
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: property_type_relationships(),

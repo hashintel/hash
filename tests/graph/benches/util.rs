@@ -27,15 +27,18 @@ use hash_graph_store::{
 use hash_graph_types::{
     account::AccountId,
     knowledge::entity::{ActorType, OriginProvenance, OriginType},
-    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
-    owned_by_id::OwnedById,
+    ontology::ProvidedOntologyEditionProvenance,
 };
 use hash_repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
 use tracing_flame::FlameLayer;
 use tracing_subscriber::{prelude::*, registry::Registry};
-use type_system::schema::{DataType, EntityType, PropertyType};
+use type_system::{
+    ontology::provenance::OntologyOwnership,
+    schema::{DataType, EntityType, PropertyType},
+    web::OwnedById,
+};
 
 type Pool = PostgresStorePool;
 pub type Store<A> = <Pool as StorePool>::Store<'static, A>;
@@ -305,7 +308,7 @@ pub async fn seed<D, P, E, C, A>(
                 account_id,
                 CreateDataTypeParams {
                     schema: data_type.clone(),
-                    classification: OntologyTypeClassificationMetadata::Owned {
+                    ownership: OntologyOwnership::Local {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                     relationships: [DataTypeRelationAndSubject::Viewer {
@@ -361,7 +364,7 @@ pub async fn seed<D, P, E, C, A>(
                 account_id,
                 CreatePropertyTypeParams {
                     schema: property_type.clone(),
-                    classification: OntologyTypeClassificationMetadata::Owned {
+                    ownership: OntologyOwnership::Local {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                     relationships: [PropertyTypeRelationAndSubject::Viewer {
@@ -415,7 +418,7 @@ pub async fn seed<D, P, E, C, A>(
                 account_id,
                 CreateEntityTypeParams {
                     schema: entity_type.clone(),
-                    classification: OntologyTypeClassificationMetadata::Owned {
+                    ownership: OntologyOwnership::Local {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                     relationships: [EntityTypeRelationAndSubject::Viewer {

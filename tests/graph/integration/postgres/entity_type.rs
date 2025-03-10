@@ -12,10 +12,9 @@ use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity_type, property_type};
 use hash_graph_types::{
     knowledge::entity::{ActorType, OriginProvenance, OriginType},
-    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
-    owned_by_id::OwnedById,
+    ontology::ProvidedOntologyEditionProvenance,
 };
-use type_system::schema::EntityType;
+use type_system::{ontology::provenance::OntologyOwnership, schema::EntityType, web::OwnedById};
 
 use crate::{DatabaseTestWrapper, entity_type_relationships};
 
@@ -53,7 +52,7 @@ async fn insert() {
         api.account_id,
         CreateEntityTypeParams {
             schema: person_et,
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: entity_type_relationships(),
@@ -88,7 +87,7 @@ async fn query() {
         api.account_id,
         CreateEntityTypeParams {
             schema: organization_et.clone(),
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: entity_type_relationships(),
@@ -176,7 +175,7 @@ async fn update() {
         api.account_id,
         CreateEntityTypeParams {
             schema: page_et_v1.clone(),
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: entity_type_relationships(),

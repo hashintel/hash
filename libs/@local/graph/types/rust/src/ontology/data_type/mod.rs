@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use type_system::{
+    ontology::provenance::OntologyOwnership,
     schema::{Conversions, DataType},
     url::{BaseUrl, OntologyTypeRecordId, VersionedUrl},
 };
@@ -17,15 +18,14 @@ use utoipa::{
 
 use super::OntologyTypeReference;
 use crate::ontology::{
-    OntologyProvenance, OntologyTemporalMetadata, OntologyType, OntologyTypeClassificationMetadata,
-    OntologyTypeWithMetadata,
+    OntologyProvenance, OntologyTemporalMetadata, OntologyType, OntologyTypeWithMetadata,
 };
 
 /// A [`DataTypeMetadata`] that has not yet been fully resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialDataTypeMetadata {
     pub record_id: OntologyTypeRecordId,
-    pub classification: OntologyTypeClassificationMetadata,
+    pub ownership: OntologyOwnership,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -33,7 +33,7 @@ pub struct PartialDataTypeMetadata {
 pub struct DataTypeMetadata {
     pub record_id: OntologyTypeRecordId,
     #[serde(flatten)]
-    pub classification: OntologyTypeClassificationMetadata,
+    pub ownership: OntologyOwnership,
     pub temporal_versioning: OntologyTemporalMetadata,
     pub provenance: OntologyProvenance,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]

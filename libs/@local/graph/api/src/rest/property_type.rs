@@ -34,24 +34,22 @@ use hash_graph_store::{
     },
     query::ConflictBehavior,
 };
-use hash_graph_types::{
-    ontology::{
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
-        OntologyTypeReference, PropertyTypeEmbedding, PropertyTypeMetadata,
-        PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
+use hash_graph_types::ontology::{
+    OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference, PropertyTypeEmbedding,
+    PropertyTypeMetadata, PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
 };
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
+    ontology::provenance::OntologyOwnership,
     schema::{
         DomainValidator, PropertyType, PropertyTypeUuid, PropertyValueType,
         ValidateOntologyType as _,
     },
     url::{OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -235,7 +233,7 @@ where
 
                     Ok(CreatePropertyTypeParams {
                         schema,
-                        classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                        ownership: OntologyOwnership::Local { owned_by_id },
                         relationships: relationships.clone(),
                         conflict_behavior: ConflictBehavior::Fail,
                         provenance: provenance.clone(),
@@ -347,7 +345,7 @@ where
                         actor_id,
                         CreatePropertyTypeParams {
                             schema,
-                            classification: OntologyTypeClassificationMetadata::External {
+                            ownership: OntologyOwnership::Remote {
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                             relationships,

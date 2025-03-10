@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use type_system::{
+    ontology::provenance::OntologyOwnership,
     schema::PropertyType,
     url::{OntologyTypeRecordId, VersionedUrl},
 };
@@ -12,8 +13,8 @@ use utoipa::{
 use crate::{
     Embedding,
     ontology::{
-        OntologyProvenance, OntologyTemporalMetadata, OntologyType,
-        OntologyTypeClassificationMetadata, OntologyTypeReference, OntologyTypeWithMetadata,
+        OntologyProvenance, OntologyTemporalMetadata, OntologyType, OntologyTypeReference,
+        OntologyTypeWithMetadata,
     },
 };
 
@@ -21,7 +22,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialPropertyTypeMetadata {
     pub record_id: OntologyTypeRecordId,
-    pub classification: OntologyTypeClassificationMetadata,
+    pub ownership: OntologyOwnership,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -29,7 +30,7 @@ pub struct PartialPropertyTypeMetadata {
 pub struct PropertyTypeMetadata {
     pub record_id: OntologyTypeRecordId,
     #[serde(flatten)]
-    pub classification: OntologyTypeClassificationMetadata,
+    pub ownership: OntologyOwnership,
     pub temporal_versioning: OntologyTemporalMetadata,
     pub provenance: OntologyProvenance,
 }

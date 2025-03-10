@@ -3,9 +3,9 @@ use core::error::Error;
 use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityUuid,
-    owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize};
+use type_system::web::OwnedById;
 use uuid::Uuid;
 
 use crate::{

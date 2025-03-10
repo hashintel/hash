@@ -11,8 +11,8 @@ use core::str::FromStr as _;
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
-use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
-use type_system::url::VersionedUrl;
+use hash_graph_types::knowledge::entity::EntityUuid;
+use type_system::{url::VersionedUrl, web::OwnedById};
 use uuid::Uuid;
 
 pub use self::{
@@ -237,10 +237,10 @@ impl ResourceConstraint {
 mod tests {
     use core::error::Error;
 
-    use hash_graph_types::owned_by_id::OwnedById;
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
+    use type_system::web::OwnedById;
     use uuid::Uuid;
 
     use super::ResourceConstraint;

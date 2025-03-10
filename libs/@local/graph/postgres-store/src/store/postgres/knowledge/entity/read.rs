@@ -13,13 +13,10 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
 };
-use hash_graph_types::{
-    knowledge::entity::{EntityEditionId, EntityId, EntityUuid},
-    owned_by_id::OwnedById,
-};
+use hash_graph_types::knowledge::entity::{EntityEditionId, EntityId, EntityUuid};
 use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
-use type_system::{schema::OntologyTypeUuid, url::BaseUrl};
+use type_system::{schema::OntologyTypeUuid, url::BaseUrl, web::OwnedById};
 
 use crate::store::postgres::{
     AsClient, PostgresStore,

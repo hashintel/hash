@@ -28,9 +28,11 @@ use error_stack::Report;
 use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    owned_by_id::OwnedById,
 };
-use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
+use type_system::{
+    schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
+    web::OwnedById,
+};
 
 use crate::{
     backend::{

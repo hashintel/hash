@@ -8,8 +8,8 @@ use core::{borrow::Borrow, error::Error};
 use error_stack::Report;
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
 use type_system::{
+    ontology::provenance::OntologyOwnership,
     schema::{DataTypeReference, EntityTypeReference, PropertyTypeReference},
     url::{OntologyTypeRecordId, VersionedUrl},
 };
@@ -27,26 +27,12 @@ pub use self::{
         OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
     },
 };
-use crate::owned_by_id::OwnedById;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OntologyTemporalMetadata {
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(untagged)]
-pub enum OntologyTypeClassificationMetadata {
-    #[serde(rename_all = "camelCase")]
-    Owned { owned_by_id: OwnedById },
-    #[serde(rename_all = "camelCase")]
-    External {
-        #[serde(with = "hash_codec::serde::time")]
-        fetched_at: OffsetDateTime,
-    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -87,11 +73,11 @@ impl OntologyTypeMetadata {
     }
 
     #[must_use]
-    pub const fn classification(&self) -> &OntologyTypeClassificationMetadata {
+    pub const fn ownership(&self) -> &OntologyOwnership {
         match self {
-            Self::DataType(metadata) => &metadata.classification,
-            Self::PropertyType(metadata) => &metadata.classification,
-            Self::EntityType(metadata) => &metadata.classification,
+            Self::DataType(metadata) => &metadata.ownership,
+            Self::PropertyType(metadata) => &metadata.ownership,
+            Self::EntityType(metadata) => &metadata.ownership,
         }
     }
 

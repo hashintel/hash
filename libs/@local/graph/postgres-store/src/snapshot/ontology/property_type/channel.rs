@@ -82,7 +82,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
             .start_send_unpin(OntologyTypeMetadata {
                 ontology_id: ontology_id.into(),
                 record_id: property_type.metadata.record_id,
-                classification: property_type.metadata.classification,
+                ownership: property_type.metadata.ownership,
                 temporal_versioning: property_type.metadata.temporal_versioning,
                 provenance: property_type.metadata.provenance,
             })

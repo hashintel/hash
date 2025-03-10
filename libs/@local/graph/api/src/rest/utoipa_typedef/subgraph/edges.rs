@@ -245,11 +245,11 @@ mod tests {
     use hash_graph_temporal_versioning::{
         ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
     };
-    use hash_graph_types::{
-        knowledge::entity::{EntityId, EntityUuid},
-        owned_by_id::OwnedById,
+    use hash_graph_types::knowledge::entity::{EntityId, EntityUuid};
+    use type_system::{
+        url::{BaseUrl, OntologyTypeVersion},
+        web::OwnedById,
     };
-    use type_system::url::{BaseUrl, OntologyTypeVersion};
     use uuid::Uuid;
 
     use crate::rest::utoipa_typedef::subgraph::Edges;

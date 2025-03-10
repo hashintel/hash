@@ -18,15 +18,15 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::{
-    knowledge::{
-        entity::{ActorType, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
-        link::LinkData,
-        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
-    },
-    owned_by_id::OwnedById,
+use hash_graph_types::knowledge::{
+    entity::{ActorType, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
+    link::LinkData,
+    property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
 };
-use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
+use type_system::{
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
+};
 
 use crate::DatabaseTestWrapper;
 

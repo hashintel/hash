@@ -22,11 +22,10 @@ use hash_graph_types::{
         },
         property::{PropertyObject, PropertyWithMetadataObject},
     },
-    owned_by_id::OwnedById,
 };
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
-use type_system::schema::EntityType;
+use type_system::{schema::EntityType, web::OwnedById};
 use uuid::Uuid;
 
 use crate::util::{Store, StoreWrapper, seed, setup, setup_subscriber};

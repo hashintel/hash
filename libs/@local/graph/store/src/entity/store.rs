@@ -15,10 +15,9 @@ use hash_graph_types::{
             PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
         },
     },
-    owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize};
-use type_system::{schema::ClosedMultiEntityType, url::VersionedUrl};
+use type_system::{schema::ClosedMultiEntityType, url::VersionedUrl, web::OwnedById};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     ToSchema,

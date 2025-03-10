@@ -32,11 +32,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use hash_graph_types::{
     account::{AccountGroupId, AccountId, EditionArchivedById},
-    ontology::{
-        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata,
-    },
-    owned_by_id::OwnedById,
+    ontology::{OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata},
 };
 use hash_temporal_client::TemporalClient;
 use postgres_types::Json;
@@ -44,12 +40,14 @@ use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     Valid,
+    ontology::provenance::OntologyOwnership,
     schema::{
         ClosedDataType, ClosedEntityType, Conversions, DataType, DataTypeReference,
         DataTypeResolveData, DataTypeUuid, EntityType, EntityTypeReference, EntityTypeResolveData,
         EntityTypeUuid, OntologyTypeUuid, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
 };
 
 pub use self::{
@@ -414,7 +412,7 @@ where
     async fn create_ontology_owned_metadata(
         &self,
         ontology_id: OntologyTypeUuid,
-        owned_by_id: OwnedById,
+        web_id: OwnedById,
     ) -> Result<(), Report<InsertionError>> {
         let query = "
                 INSERT INTO ontology_owned_metadata (
@@ -424,7 +422,7 @@ where
             ";
 
         self.as_client()
-            .query(query, &[&ontology_id, &owned_by_id])
+            .query(query, &[&ontology_id, &web_id])
             .await
             .change_context(InsertionError)?;
 
@@ -877,12 +875,12 @@ where
     async fn create_ontology_metadata(
         &self,
         ontology_id: &VersionedUrl,
-        classification: &OntologyTypeClassificationMetadata,
+        ownership: &OntologyOwnership,
         on_conflict: ConflictBehavior,
         provenance: &OntologyProvenance,
     ) -> Result<Option<(OntologyTypeUuid, OntologyTemporalMetadata)>, Report<InsertionError>> {
-        match classification {
-            OntologyTypeClassificationMetadata::Owned { owned_by_id } => {
+        match ownership {
+            OntologyOwnership::Local { owned_by_id } => {
                 self.create_base_url(&ontology_id.base_url, on_conflict, OntologyLocation::Owned)
                     .await?;
                 let ontology_id = self.create_ontology_id(ontology_id, on_conflict).await?;
@@ -900,7 +898,7 @@ where
                     Ok(None)
                 }
             }
-            OntologyTypeClassificationMetadata::External { fetched_at } => {
+            OntologyOwnership::Remote { fetched_at } => {
                 self.create_base_url(
                     &ontology_id.base_url,
                     ConflictBehavior::Skip,
