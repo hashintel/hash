@@ -34,14 +34,16 @@ const hydrateComment = async (comment: Comment): Promise<HydratedComment> => {
     replies: await Promise.all(
       children.nodes
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-        .map(hydrateComment),
+        .map(hydrateComment)
     ),
   };
 };
 
 type HydratedIssue = {
   id: string;
+  uuid: string;
   title: string;
+  teamId?: string;
   description?: string;
   priority?: string;
   assignee: {
@@ -71,7 +73,7 @@ export const hydrateIssue = async ({
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
   const comments = await Promise.all(
-    rootComments.map((comment) => hydrateComment(comment)),
+    rootComments.map((comment) => hydrateComment(comment))
   );
 
   let priority: string | undefined;
@@ -92,9 +94,13 @@ export const hydrateIssue = async ({
       priority = undefined;
   }
 
+  const team = await issue.team;
+
   return {
     id: issue.identifier,
+    uuid: issue.id,
     title: issue.title,
+    teamId: team?.id,
     description: issue.description,
     priority,
     assignee: assignee
