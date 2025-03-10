@@ -148,7 +148,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@b56ba49b26e50535fa1e7f7db0f4f7b4bf65d80d # v3.28.10
+        uses: github/codeql-action/upload-sarif@6bb031afdd8eb862ea3fc1848194185e076637e5 # v3.28.11
         if: always() && steps.lints.outputs.has-rust == 'true'
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
@@ -186,11 +186,22 @@ jobs:
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+
       - name: Validate package.json generated from Cargo.toml
         if: ${{ success() || failure() }}
         run: |
           cargo -Zscript run --manifest-path ".github/scripts/rust/sync-turborepo.rs" . | xargs yarn fix:package-json
           git --no-pager diff --exit-code --color '**/package.json'
+
+      - name: Validate Dependency Diagrams
+        if: ${{ success() || failure() }}
+        run: |
+          yarn doc:dependency-diagram
+          git --no-pager diff --exit-code --color '**/docs/dependency-diagram.mmd'
 
       - name: Run yarn lint:constraints
         if: ${{ success() || failure() }}

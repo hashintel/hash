@@ -100,7 +100,7 @@ pub fn validate_unique(values: &[String]) -> Result<(), Report<ValidationError>>
 - Doc comments should follow high-quality standards like those in crates such as `time`, `jiff`, or `serde`
 - Never mention variable types in doc comments when that information is already available in function signatures
 - Ensure all code examples compile and function correctly
-- Use `# ` comments to hide necessary setup code from documentation display
+- Use `#` comments to hide necessary setup code from documentation display
 
 ```rust
 /// # Examples
@@ -285,6 +285,7 @@ let result = calculate_sum(values);
 For guidance on structuring test documentation and writing assertions, refer to the [Rust Testing Strategy](mdc:.cursor/rules/rust-testing-strategy.mdc) file.
 
 Key points:
+
 - Document test scenarios with clear comments
 - Use descriptive function names that explain the test scenario
 - Follow the project's assertion formatting standards
@@ -307,19 +308,18 @@ Key points:
 ```
 
 - Apply performance documentation when:
-  * **Processing variable-sized inputs** - Document how performance scales with input size
-  * **In hot paths** - Document components used in performance-critical code paths
-  * **Complex algorithms** - Document non-obvious time or space complexity
-  * **Public APIs** - Document performance characteristics of public interfaces
-  * **Resource-intensive operations** - Document memory usage, I/O, or CPU consumption
-  * **Operations with tradeoffs** - Document performance vs. correctness/convenience tradeoffs
+  - **Processing variable-sized inputs** - Document how performance scales with input size
+  - **In hot paths** - Document components used in performance-critical code paths
+  - **Complex algorithms** - Document non-obvious time or space complexity
+  - **Public APIs** - Document performance characteristics of public interfaces
+  - **Resource-intensive operations** - Document memory usage, I/O, or CPU consumption
+  - **Operations with tradeoffs** - Document performance vs. correctness/convenience tradeoffs
 
 - Skip performance documentation when:
-  * The performance characteristics are obvious (e.g., simple getters/setters)
-  * The component is an internal implementation detail with predictable characteristics
-  * The component uses well-documented standard library features with no special usage patterns
-  * The code is not performance-sensitive and prioritizes other aspects (safety, correctness)
-
+  - The performance characteristics are obvious (e.g., simple getters/setters)
+  - The component is an internal implementation detail with predictable characteristics
+  - The component uses well-documented standard library features with no special usage patterns
+  - The code is not performance-sensitive and prioritizes other aspects (safety, correctness)
 
 ### Async Documentation
 

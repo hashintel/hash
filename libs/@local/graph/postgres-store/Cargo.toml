@@ -43,6 +43,7 @@ regex          = { workspace = true }
 semver         = { workspace = true, features = ["serde"] }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
+simple-mermaid = { workspace = true }
 time           = { workspace = true }
 tracing        = { workspace = true }
 utoipa         = { workspace = true, optional = true, features = ["uuid"] }
