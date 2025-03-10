@@ -5,7 +5,10 @@
   "license": "AGPL-3",
   "type": "module",
   "scripts": {
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-type-defs --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
+    "fix:clippy": "just clippy --fix",
     "fix:eslint": "eslint --fix .",
+    "lint:clippy": "just clippy",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
   },

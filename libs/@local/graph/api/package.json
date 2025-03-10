@@ -5,6 +5,7 @@
   "license": "AGPL-3",
   "scripts": {
     "codegen:generate-openapi-specs": "cargo run --bin openapi-spec-generator",
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-api --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc && yarn codegen:generate-openapi-specs && git --no-pager diff --exit-code --color openapi"
   },
   "dependencies": {

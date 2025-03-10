@@ -12794,6 +12794,7 @@ __metadata:
   resolution: "@rust/hash-repo-chores@workspace:libs/@local/repo-chores/rust"
   dependencies:
     "@rust/error-stack": "npm:0.5.0"
+    "@rust/hash-tracing": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 

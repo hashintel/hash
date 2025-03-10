@@ -1,8 +1,13 @@
 // Attribution: *Heavily* inspired by the Google Cloud API Error Model
 //  https://cloud.google.com/apis/design/errors
 
+//! # Status
+//!
 //! Defines a logical status and error model that is suitable for different programming
 //! environments, including REST APIs and RPC APIs.
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 
 mod status_code;
 

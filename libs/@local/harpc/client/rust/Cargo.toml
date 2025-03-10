@@ -22,14 +22,15 @@ harpc-net   = { workspace = true }
 harpc-types = { workspace = true }
 
 # Private third-party dependencies
-bytes        = { workspace = true }
-derive-where = { workspace = true }
-derive_more  = { workspace = true, features = ["display"] }
-futures      = { workspace = true }
-multiaddr    = { workspace = true }
-serde        = { workspace = true, features = ["derive"] }
-thiserror    = { workspace = true }
-tokio-util   = { workspace = true }
+bytes          = { workspace = true }
+derive-where   = { workspace = true }
+derive_more    = { workspace = true, features = ["display"] }
+futures        = { workspace = true }
+multiaddr      = { workspace = true }
+serde          = { workspace = true, features = ["derive"] }
+simple-mermaid = { workspace = true }
+thiserror      = { workspace = true }
+tokio-util     = { workspace = true }
 
 [lints]
 workspace = true
