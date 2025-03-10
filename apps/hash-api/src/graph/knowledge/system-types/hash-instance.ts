@@ -4,6 +4,7 @@ import {
   getHashInstance,
   getHashInstanceFromEntity,
 } from "@local/hash-backend-utils/hash-instance";
+import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { HASHInstance as HashInstanceEntity } from "@local/hash-isomorphic-utils/system-types/hashinstance";
@@ -175,6 +176,40 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
     entityAdmin.subjectId,
     params.user.accountId,
   );
+};
+
+/**
+ * Get all members of the hash instance admin group.
+ *
+ * Requires the user to have the `administrator` role over the hash instance.
+ */
+export const getHashInstanceGroupMembers: ImpureGraphFunction<
+  Record<string, never>,
+  Promise<AccountId[]>
+> = async (ctx, authentication) => {
+  const hashInstance = await getHashInstance(ctx, authentication);
+
+  const entityPermissions = await ctx.graphApi
+    .getEntityAuthorizationRelationships(
+      authentication.actorId,
+      hashInstance.entity.metadata.recordId.entityId,
+    )
+    .then((resp) => resp.data);
+
+  const entityAdmin = entityPermissions.find(
+    (permission) => permission.relation === "administrator",
+  )?.subject;
+
+  if (!entityAdmin || !("subjectId" in entityAdmin)) {
+    throw new Error("No administrator role over HASH Instance entity.");
+  }
+
+  const { data: relations } = await ctx.graphApi.getAccountGroupRelations(
+    authentication.actorId,
+    entityAdmin.subjectId,
+  );
+
+  return relations.map((relation) => relation.subject.subjectId as AccountId);
 };
 
 /**

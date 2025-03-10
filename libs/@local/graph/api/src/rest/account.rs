@@ -87,7 +87,7 @@ impl RoutedResource for AccountResource {
                                 "/permissions/:permission",
                                 get(check_account_group_permission::<A>),
                             )
-                            .route("/members", get(get_account_group_relations::<A>))
+                            .route("/relations", get(get_account_group_relations::<A>))
                             .route(
                                 "/members/:account_id",
                                 post(add_account_group_member::<A>)
@@ -414,7 +414,7 @@ where
 
 #[utoipa::path(
     get,
-    path = "/account_groups/{account_group_id}/members",
+    path = "/account_groups/{account_group_id}/relations",
     tag = "Account Group",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),

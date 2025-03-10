@@ -57,56 +57,6 @@
         }
       }
     },
-    "/account_groups/{account_group_id}/members": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Account Group"
-        ],
-        "operationId": "get_account_group_relations",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          },
-          {
-            "name": "account_group_id",
-            "in": "path",
-            "description": "The ID of the account group to get relations from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountGroupId"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of members and administrators of the account group",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AccountGroupRelationAndSubject"
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied"
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
     "/account_groups/{account_group_id}/members/{account_id}": {
       "post": {
         "tags": [
@@ -249,6 +199,56 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Internal error occurred"
+          }
+        }
+      }
+    },
+    "/account_groups/{account_group_id}/relations": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "get_account_group_relations",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to get relations from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of members and administrators of the account group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountGroupRelationAndSubject"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
           },
           "500": {
             "description": "Internal error occurred"

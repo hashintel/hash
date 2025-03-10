@@ -89,7 +89,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Get account group members
-GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/members
+GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/relations
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
@@ -110,7 +110,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Get account group members
-GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/members
+GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/relations
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
