@@ -1,0 +1,38 @@
+{
+  "name": "@apps/linear-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server for basic Linear operations",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "bin": "./dist/index.js",
+  "scripts": {
+    "build": "rimraf dist && tsc --build && shx chmod +x dist/*.js",
+    "dev": "chokidar 'dist/main.js' -c 'chmod +x dist/main.js' & tsc --noCheck --watch & yarn inspector & shx chmod +x dist/*.js",
+    "fix:eslint": "eslint --fix .",
+    "inspector": "npx @modelcontextprotocol/inspector dist/main.js",
+    "postinstall": "yarn build",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@linear/sdk": "6.0.0",
+    "@local/eslint": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@modelcontextprotocol/sdk": "1.6.1",
+    "dotenv-flow": "3.3.0",
+    "zod": "3.24.2",
+    "zod-to-json-schema": "3.24.3"
+  },
+  "devDependencies": {
+    "@types/dotenv-flow": "3.3.3",
+    "@types/node": "22.13.10",
+    "chokidar-cli": "3.0.0",
+    "eslint": "9.20.1",
+    "rimraf": "6.0.1",
+    "shx": "0.3.4",
+    "tsx": "4.19.3",
+    "typescript": "5.7.3"
+  }
+}
