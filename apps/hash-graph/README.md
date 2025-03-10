@@ -14,11 +14,15 @@ This crate mainly creates a CLI interface to the graph crates defined in the [`l
 
 1. In order to set up the database, first the database has to be started:
 
-> **CAUTION:** At the moment, the graph starts the services it depends on differently to the rest of the codebase.
+> [!IMPORTANT]  
+> At the moment, the _Graph_ starts the services it depends on differently to the rest of the codebase.
 >
-> **Before running the following command, ensure you tear down any existing `external-services` that were started as outlined in the [README for the HASH application](/apps/hash/README.md).** Similarly, **ensure you call `deployment-down` before trying to run the `external-services`.**
+> **Before running the following command:**
 >
-> It is planned to address this by revisiting the way the services are orchestrated, while still allowing for local non-container-based development.
+> 1. Ensure you tear down any existing `external-services` that were started as outlined in the ["Getting Started"](/README.md#--getting-started) section of the root README.
+> 2. Ensure you call `deployment-down` before trying to run the `external-services`.
+>
+> _In the future we plan to address this by revisiting the way the services are orchestrated, while still allowing for local non-container-based development._
 
 ```shell
 just deployment-up
@@ -94,7 +98,8 @@ To locate the build directory, run with `cargo build -vv` and search for "Genera
 
 New payloads can then be added in the `definitions` and `oneOf` of the `Status` schema.
 
-> Note: migrating to the above is in progress, and not all error responses currently satisfy the `Status` shape, consult the API spec to see.
+> [!NOTE]
+> Migrating to the above is in progress, and not all error responses currently satisfy the `Status` shape, consult the API spec to see.
 
 ---
 
@@ -130,9 +135,8 @@ The benchmark suite can be run with:
 just bench
 ```
 
-### Note:
+> [!WARNING]
+> In terms of time, our benchmarks carry a fairly significant setup cost per suite upon initialization. As such, the benchmark databases **are not cleaned up** between or after runs.
 
-The benchmarks currently have a fairly costly (in time) setup cost per suite on initialization.
-As such, the benchmark databases **are not cleaned up** between or after runs.
-
-This also means that if breaking changes are made to the seeding logic, **you must manually delete the benchmark tables to have them reseed**.
+> [!WARNING]
+> This also means that if breaking changes are made to the seeding logic, **you must manually delete the benchmark tables to have them reseed**.
