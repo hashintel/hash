@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use type_system::{schema::PropertyType, url::VersionedUrl};
+use type_system::{
+    schema::PropertyType,
+    url::{OntologyTypeRecordId, VersionedUrl},
+};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     ToSchema,
@@ -10,8 +13,7 @@ use crate::{
     Embedding,
     ontology::{
         OntologyProvenance, OntologyTemporalMetadata, OntologyType,
-        OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
-        OntologyTypeWithMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeReference, OntologyTypeWithMetadata,
     },
 };
 

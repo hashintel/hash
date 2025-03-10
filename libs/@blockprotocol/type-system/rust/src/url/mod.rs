@@ -6,6 +6,7 @@
 //! - [`BaseUrl`]: Foundation of type identity representing a base location without versioning
 //! - [`VersionedUrl`]: Complete type identifier combining a base URL with version information
 //! - [`OntologyTypeVersion`]: Strongly-typed wrapper for version numbers
+//! - [`OntologyTypeRecordId`]: Structured representation of an ontology type identifier
 //!
 //! These types enforce format validation and provide integration with serialization frameworks
 //! and database systems (when appropriate feature flags are enabled).
@@ -18,15 +19,16 @@
 //! use type_system::url::{BaseUrl, VersionedUrl};
 //!
 //! // Create a base URL
-//! let base = BaseUrl::new("https://example.com/types/data-type/text/".to_owned())?;
+//! let base = BaseUrl::new("https://example.com/types/data-type/text/".to_owned())
+//!     .expect("should create a valid BaseUrl");
 //!
 //! // Parse a versioned URL
-//! let versioned = VersionedUrl::from_str("https://example.com/types/data-type/text/v/1")?;
+//! let versioned = VersionedUrl::from_str("https://example.com/types/data-type/text/v/1")
+//!     .expect("should parse a valid VersionedUrl");
 //! assert_eq!(
 //!     versioned.to_string(),
 //!     "https://example.com/types/data-type/text/v/1"
 //! );
-//! # Ok::<(), type_system::url::ParseVersionedUrlError>(())
 //! ```
 
 #[cfg(feature = "postgres")]
@@ -62,12 +64,12 @@ mod error;
 /// ```
 /// use type_system::url::BaseUrl;
 ///
-/// let base_url = BaseUrl::new("https://example.com/types/data-type/text/".to_owned())?;
+/// let base_url = BaseUrl::new("https://example.com/types/data-type/text/".to_owned())
+///     .expect("should create a valid BaseUrl");
 /// assert_eq!(
 ///     base_url.as_str(),
 ///     "https://example.com/types/data-type/text/"
 /// );
-/// # Ok::<(), type_system::url::ParseBaseUrlError>(())
 /// ```
 ///
 /// # Errors
@@ -477,6 +479,68 @@ impl ToSchema<'_> for VersionedUrl {
     }
 }
 
+/// An identifier for an ontology type record consisting of a base URL and version.
+///
+/// This type provides a structured representation of an ontology type identifier
+/// that can be used in database records and type definitions. It contains the same
+/// components as a [`VersionedUrl`] but in a structured form rather than a string.
+///
+/// # Examples
+///
+/// ```
+/// use std::str::FromStr;
+///
+/// use type_system::url::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl};
+///
+/// // Create from individual components
+/// let base_url = BaseUrl::new("https://example.com/types/data-type/text/".to_owned())?;
+/// let version = OntologyTypeVersion::new(1);
+/// let record_id = OntologyTypeRecordId { base_url, version };
+///
+/// // Convert between VersionedUrl and OntologyTypeRecordId
+/// let url = VersionedUrl::from_str("https://example.com/types/data-type/text/v/1")?;
+/// let record_id = OntologyTypeRecordId::from(url.clone());
+/// let url2 = VersionedUrl::from(record_id);
+/// assert_eq!(url, url2);
+/// # Ok::<(), Box<dyn core::error::Error>>(())
+/// ```
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct OntologyTypeRecordId {
+    /// The base URL component representing the unversioned part of the type identifier
+    #[cfg_attr(feature = "utoipa", schema(value_type = BaseUrl))]
+    pub base_url: BaseUrl,
+
+    /// The version number component specifying the exact version of the type
+    #[cfg_attr(feature = "utoipa", schema(value_type = u32))]
+    pub version: OntologyTypeVersion,
+}
+
+impl fmt::Display for OntologyTypeRecordId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}v/{}", self.base_url, self.version.inner())
+    }
+}
+
+impl From<VersionedUrl> for OntologyTypeRecordId {
+    fn from(versioned_url: VersionedUrl) -> Self {
+        Self {
+            base_url: versioned_url.base_url,
+            version: versioned_url.version,
+        }
+    }
+}
+
+impl From<OntologyTypeRecordId> for VersionedUrl {
+    fn from(record_id: OntologyTypeRecordId) -> Self {
+        Self {
+            base_url: record_id.base_url,
+            version: record_id.version,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -546,6 +610,25 @@ mod tests {
             VersionedUrl::from_str(input_str).expect_err("able to parse VersionedUrl"),
             *expected
         );
+    }
+
+    #[test]
+    fn ontology_type_record_id() {
+        let url_str = "https://example.com/types/data-type/text/v/3";
+        let url = VersionedUrl::from_str(url_str).expect("parsing versioned URL failed");
+        let record_id = OntologyTypeRecordId::from(url.clone());
+
+        // Check fields
+        assert_eq!(
+            record_id.base_url.as_str(),
+            "https://example.com/types/data-type/text/"
+        );
+        assert_eq!(record_id.version.inner(), 3);
+
+        // Check round-trip conversion
+        let converted_url = VersionedUrl::from(record_id);
+        assert_eq!(converted_url, url);
+        assert_eq!(converted_url.to_string(), url_str);
     }
 
     #[test]

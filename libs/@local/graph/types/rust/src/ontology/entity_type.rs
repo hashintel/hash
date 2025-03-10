@@ -1,17 +1,20 @@
 use serde::{Deserialize, Serialize};
-use type_system::{schema::EntityType, url::VersionedUrl};
+use type_system::{
+    schema::EntityType,
+    url::{OntologyTypeRecordId, VersionedUrl},
+};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     ToSchema,
     openapi::{Ref, RefOr, Schema, schema},
 };
 
+use super::OntologyTypeReference;
 use crate::{
     Embedding,
     ontology::{
         OntologyProvenance, OntologyTemporalMetadata, OntologyType,
-        OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
-        OntologyTypeWithMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeWithMetadata,
     },
 };
 

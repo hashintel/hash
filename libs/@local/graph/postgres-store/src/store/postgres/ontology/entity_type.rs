@@ -41,7 +41,7 @@ use hash_graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -58,7 +58,7 @@ use type_system::{
         EntityTypeValidator, InheritanceDepth, OntologyTypeResolver, OntologyTypeUuid,
         PartialEntityType, PropertyTypeUuid,
     },
-    url::{OntologyTypeVersion, VersionedUrl},
+    url::{OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::store::{

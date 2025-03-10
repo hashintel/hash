@@ -72,7 +72,7 @@ mod tests {
         ontology::{
             DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
             OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
-            OntologyTypeProvider, OntologyTypeRecordId, ProvidedOntologyEditionProvenance,
+            OntologyTypeProvider, ProvidedOntologyEditionProvenance,
         },
         owned_by_id::OwnedById,
     };
@@ -85,7 +85,7 @@ mod tests {
             DataType, DataTypeReference, DataTypeUuid, EntityType, EntityTypeUuid,
             OntologyTypeResolver, PropertyType,
         },
-        url::{BaseUrl, VersionedUrl},
+        url::{BaseUrl, OntologyTypeRecordId, VersionedUrl},
     };
     use uuid::Uuid;
 

@@ -34,8 +34,7 @@ use hash_graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
         OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeMetadata,
-        PropertyTypeWithMetadata,
+        OntologyTypeClassificationMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
 };
 use postgres_types::{Json, ToSql};
@@ -44,7 +43,7 @@ use tracing::instrument;
 use type_system::{
     Validator as _,
     schema::{DataTypeUuid, OntologyTypeUuid, PropertyTypeUuid, PropertyTypeValidator},
-    url::{OntologyTypeVersion, VersionedUrl},
+    url::{OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::store::{

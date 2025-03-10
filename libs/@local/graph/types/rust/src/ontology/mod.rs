@@ -3,7 +3,7 @@ mod entity_type;
 mod property_type;
 mod provenance;
 
-use core::{borrow::Borrow, error::Error, fmt};
+use core::{borrow::Borrow, error::Error};
 
 use error_stack::Report;
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
     schema::{DataTypeReference, EntityTypeReference, PropertyTypeReference},
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    url::{OntologyTypeRecordId, VersionedUrl},
 };
 
 pub use self::{
@@ -28,40 +28,6 @@ pub use self::{
     },
 };
 use crate::owned_by_id::OwnedById;
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub struct OntologyTypeRecordId {
-    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
-    pub base_url: BaseUrl,
-    #[cfg_attr(feature = "utoipa", schema(value_type = u32))]
-    pub version: OntologyTypeVersion,
-}
-
-impl fmt::Display for OntologyTypeRecordId {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}v/{}", self.base_url.as_str(), self.version.inner())
-    }
-}
-
-impl From<VersionedUrl> for OntologyTypeRecordId {
-    fn from(versioned_url: VersionedUrl) -> Self {
-        Self {
-            base_url: versioned_url.base_url,
-            version: versioned_url.version,
-        }
-    }
-}
-
-impl From<OntologyTypeRecordId> for VersionedUrl {
-    fn from(record_id: OntologyTypeRecordId) -> Self {
-        Self {
-            base_url: record_id.base_url,
-            version: record_id.version,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use type_system::{
     schema::{Conversions, DataType},
-    url::{BaseUrl, VersionedUrl},
+    url::{BaseUrl, OntologyTypeRecordId, VersionedUrl},
 };
 #[cfg(feature = "utoipa")]
 use utoipa::{
@@ -15,9 +15,10 @@ use utoipa::{
     openapi::{ObjectBuilder, Ref, RefOr, Schema, schema},
 };
 
+use super::OntologyTypeReference;
 use crate::ontology::{
     OntologyProvenance, OntologyTemporalMetadata, OntologyType, OntologyTypeClassificationMetadata,
-    OntologyTypeRecordId, OntologyTypeReference, OntologyTypeWithMetadata,
+    OntologyTypeWithMetadata,
 };
 
 /// A [`DataTypeMetadata`] that has not yet been fully resolved.

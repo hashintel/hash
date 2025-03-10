@@ -38,7 +38,7 @@ use hash_graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
     },
 };
 use hash_status::StatusCode;
@@ -52,7 +52,7 @@ use type_system::{
         DataTypeResolveData, DataTypeUuid, DataTypeValidator, InheritanceDepth,
         OntologyTypeResolver, OntologyTypeUuid,
     },
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    url::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::store::{

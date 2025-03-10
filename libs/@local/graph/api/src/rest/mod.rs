@@ -71,8 +71,8 @@ use hash_graph_types::{
     knowledge::entity::EntityId,
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
-        OntologyTypeReference, PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
+        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -84,7 +84,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
     schema::DomainValidator,
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    url::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,

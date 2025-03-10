@@ -11,9 +11,8 @@ use futures::{
 };
 use hash_graph_types::ontology::{
     OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
-    OntologyTypeRecordId,
 };
-use type_system::schema::OntologyTypeUuid;
+use type_system::{schema::OntologyTypeUuid, url::OntologyTypeRecordId};
 
 use crate::{
     snapshot::{SnapshotRestoreError, ontology::OntologyTypeMetadataRowBatch},
