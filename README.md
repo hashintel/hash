@@ -54,13 +54,13 @@ The only current "officially supported" way of trying HASH right now is by signi
 When you first create an account you may be placed on a waitlist. To jump the queue, once signed in, follow the instructions shown in your HASH dashboard. All submissions are reviewed by a member of the team.
 
 </details>
-    
+
 <details>
   <summary> &nbsp; Running HASH locally</summary>
 
 ### Running HASH locally
 
-**Running HASH locally is not yet officially supported.** We plan on publishing a comprehensive guide to running your own instance of HASH shortly (2025Q2). In the meantime, you may try the instructions below.
+**Running HASH locally is not yet officially supported.** We plan on publishing a comprehensive guide to [running your own instance] of HASH shortly (2025Q2). In the meantime, you may try the instructions below.
 
 #### Experimental instructions
 
@@ -219,7 +219,7 @@ Transactional emails templates are located in the following locations:
 
 ### Deploying HASH to the cloud
 
-To deploy HASH in the cloud, follow the instructions contained in the root [`/infra` directory](https://github.com/hashintel/hash/tree/main/infra).
+**Support for running HASH in the cloud is coming soon.** We plan on publishing a comprehensive guide to deploying HASH on AWS/GCP/Azure in the near future. In the meantime, instructions contained in the root [`/infra` directory](https://github.com/hashintel/hash/tree/main/infra) might help in getting started.
 
 </details>
 
@@ -237,6 +237,7 @@ Browse the HASH [development roadmap] for more information about currently in-fl
   <summary> &nbsp; Repository structure</summary>
 
 ### Repository structure
+
 This repository's contents is divided across several primary sections:
 
 - [**`/apps`**](/apps) contains the primary code powering our runnable [applications](https://github.com/hashintel/hash/tree/main/apps#applications)

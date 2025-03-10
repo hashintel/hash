@@ -229,7 +229,7 @@ These apply across all projects:
 - **Once you have receive a pull request review, please bear the following in mind:**
   - reviewers may make suggestions for _optional_ changes which are not required to get your code merged. It should be obvious which suggestions are optional, and which are required changes. If it is not obvious, ask for clarification.
   - please do not resolve comment threads unless you opened them - leave it to the person who raised a comment to decide if any further discussion is required (GitHub will also automatically resolve any code suggestions you click 'commit' on). Comment threads may also be left open so that they can be linked to later.
-- **We perform automated linting and formatting checks on pull requests using GitHub Actions.** As part of our Continuous Integration (CI) setup, when a pull request is created or updated, GitHub Actions will run a series of checks. This includes running `ESLint`, `TSC`, `Biome`, `Markdownlint`, `rustfmt`, and a few other tools. Some checks may be skipped depending on the files that have been changed in the pull request. First-time contributors need to wait for a HASH maintainer to manually launch CI checks. 
+- **We perform automated linting and formatting checks on pull requests using GitHub Actions.** As part of our Continuous Integration (CI) setup, when a pull request is created or updated, GitHub Actions will run a series of checks. This includes running `ESLint`, `TSC`, `Biome`, `Markdownlint`, `rustfmt`, and a few other tools. Some checks may be skipped depending on the files that have been changed in the pull request. First-time contributors need to wait for a HASH maintainer to manually launch CI checks.
 
 ### How can I find interesting PRs to work on?
 
