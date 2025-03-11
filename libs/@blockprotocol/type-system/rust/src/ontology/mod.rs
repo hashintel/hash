@@ -1,3 +1,16 @@
+//! Ontology module containing type definitions and validation logic
+//!
+//! The ontology module is the core of the Block Protocol Type System, providing:
+//!
+//! 1. Definitions for the core type abstractions (data, property, and entity types)
+//! 2. JSON Schema integration for strongly typed ontology definitions
+//! 3. Metadata structures for tracking type information
+//! 4. Provenance tracking for type ownership and history
+//! 5. Type ID management and versioning support
+//!
+//! This module defines the foundational types used throughout the system and
+//! ensures consistent type validation across different contexts.
+
 pub mod data_type;
 pub mod entity_type;
 pub mod id;

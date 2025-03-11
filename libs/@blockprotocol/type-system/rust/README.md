@@ -22,6 +22,20 @@ The type system is built around three primary concepts:
 2. **Property Types** - Reusable definitions of properties with their own schema
 3. **Entity Types** - Definitions of entities with their property and relationship requirements
 
+### Metadata and Provenance
+
+The type system includes comprehensive metadata for each type:
+
+1. **Ontology Metadata** - Contains information about type records including:
+   - Record IDs - Unique identifiers for each type
+   - Temporal Versioning - When types were created or modified
+   - Ownership - Whether types are owned locally or fetched from remote sources
+
+2. **Provenance** - Tracks the origin and history of types:
+   - Creation information - Who created the type and when
+   - Edition information - History of changes to the type
+   - Source information - Where the type originated from
+
 ### Validation
 
 The type system's central purpose is ensuring data integrity through validation:

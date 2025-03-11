@@ -26,14 +26,81 @@
 //!    requirements. Entity types can inherit from other entity types and define links to other
 //!    entities.
 //!
+//! In addition to these core types, the system includes:
+//!
+//! 4. **Ontology Metadata** - Contains information about type records, including:
+//!    - Record identifiers that uniquely reference each type
+//!    - Temporal versioning data for tracking changes over time
+//!    - Ownership information that determines if a type is local or remote
+//!
+//! 5. **Provenance** - Tracks the origin and history of types through:
+//!    - Actor information (who created or archived a type)
+//!    - Source details (where a type originated from)
+//!    - Origin data (how the type came into existence)
+//!
 //! ## Core Components
 //!
 //! - [`Value`] - A JSON-compatible value representation used throughout the system
 //! - [`Validator`] - A trait for implementing validation logic
 //! - [`Valid<T>`] - A wrapper that guarantees a value has been validated
-//! - [`schema`] module - Contains the definitions for data, property, and entity types
+//! - [`ontology`] module - Contains the definitions for data, property, and entity types
+//! - [`provenance`] module - Contains types for tracking origin and history of ontology types
+//! - [`knowledge`] module - Contains definitions for knowledge entities and properties
 //!
 //! ## Comprehensive Guide: Working with Types
+//!
+//! ### Working with Ontology Metadata and Provenance
+//!
+//! The type system provides comprehensive support for tracking metadata and provenance:
+//!
+//! ```
+//! use std::str::FromStr;
+//!
+//! use time::OffsetDateTime;
+//! use type_system::{
+//!     ontology::provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
+//!     provenance::{ActorType, EditionCreatedById, OriginProvenance, OriginType},
+//!     web::OwnedById,
+//! };
+//! use uuid::Uuid;
+//!
+//! // Create ownership information for a locally owned type
+//! let web_id = Uuid::from_str("01234567-89ab-cdef-0123-456789abcdef").unwrap();
+//! let owned_by_id = OwnedById::from(web_id);
+//! let ownership = OntologyOwnership::Local { owned_by_id };
+//!
+//! // Alternative: For a type fetched from elsewhere
+//! let remote_ownership = OntologyOwnership::Remote {
+//!     fetched_at: OffsetDateTime::now_utc(),
+//! };
+//!
+//! // Create provenance information
+//! let actor_id = Uuid::from_str("12345678-90ab-cdef-1234-567890abcdef").unwrap();
+//! let edition_provenance = OntologyEditionProvenance {
+//!     created_by_id: EditionCreatedById::from(actor_id),
+//!     archived_by_id: None,
+//!     user_defined: {
+//!         // User-defined provenance information
+//!         let actor_type = ActorType::User;
+//!         let origin = OriginProvenance {
+//!             type_: OriginType::Authored,
+//!         };
+//!         // Create the user-defined provenance
+//!         type_system::ontology::provenance::ProvidedOntologyEditionProvenance {
+//!             sources: vec![],
+//!             actor_type,
+//!             origin,
+//!         }
+//!     },
+//! };
+//!
+//! // Create the complete provenance
+//! let provenance = OntologyProvenance {
+//!     edition: edition_provenance,
+//! };
+//!
+//! // This metadata can then be attached to data type, property type, or entity type definitions
+//! ```
 //!
 //! ### Creating and Validating Types
 //!
@@ -130,8 +197,10 @@
 //!
 //! 2. **Handle Type Resolution Carefully**
 //!    - The type system supports recursive references
-//!    - Use [`schema::OntologyTypeResolver`] to handle reference resolution
+//!    - Use [`OntologyTypeResolver`] to handle reference resolution
 //!    - Cache resolved types when validating multiple values
+//!
+//!    [`OntologyTypeResolver`]: crate::ontology::json_schema::OntologyTypeResolver
 //!
 //! 3. **Use the Type Safety Guarantees**
 //!    - The [`Valid<T>`] wrapper ensures values have been validated

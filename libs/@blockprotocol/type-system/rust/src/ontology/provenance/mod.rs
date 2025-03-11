@@ -1,3 +1,15 @@
+//! Ontology provenance module that contains types for tracking ownership and history
+//!
+//! This module provides types for managing the ownership and provenance of ontology types
+//! within the Block Protocol Type System. It defines structures for:
+//!
+//! 1. Tracking ownership of ontology types (locally owned vs remotely fetched)
+//! 2. Recording provenance information about type creation and modifications
+//! 3. Managing edition-specific provenance with creator and archiver information
+//!
+//! These types enable complete tracking of type history and support governance of
+//! the ontology across distributed systems.
+
 #[cfg(feature = "postgres")]
 use core::error::Error;
 
@@ -14,14 +26,26 @@ use crate::{
     web::OwnedById,
 };
 
+/// Specifies whether an ontology type is owned locally or fetched from a remote source.
+///
+/// This enum helps track the provenance of ontology types, distinguishing between:
+/// - Types that are created and owned by the local system
+/// - Types that have been fetched from external sources
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum OntologyOwnership {
+    /// The ontology type is owned by the specified web.
     #[serde(rename_all = "camelCase")]
-    Local { owned_by_id: OwnedById },
+    Local {
+        /// The ID of the web that owns this ontology type locally
+        owned_by_id: OwnedById,
+    },
+
+    /// The ontology type was fetched from a remote source.
     #[serde(rename_all = "camelCase")]
     Remote {
+        /// Timestamp when the ontology type was fetched from the remote source
         #[serde(with = "hash_codec::serde::time")]
         fetched_at: OffsetDateTime,
     },
@@ -41,14 +65,6 @@ pub struct ProvidedOntologyEditionProvenance {
     pub sources: Vec<SourceProvenance>,
     pub actor_type: ActorType,
     pub origin: OriginProvenance,
-}
-
-impl ProvidedOntologyEditionProvenance {
-    #[must_use]
-    #[expect(clippy::unused_self, clippy::missing_const_for_fn)]
-    pub fn is_empty(&self) -> bool {
-        true
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

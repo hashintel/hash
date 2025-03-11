@@ -70,6 +70,15 @@
 //!
 //! This closure process ensures all constraints from referenced types are properly applied
 //! during validation.
+//!
+//! [`DataType`]: crate::ontology::data_type::DataType
+//! [`PropertyType`]: crate::ontology::property_type::PropertyType
+//! [`EntityType`]: crate::ontology::entity_type::EntityType
+//! [`DataTypeValidator`]: crate::ontology::data_type::schema::DataTypeValidator
+//! [`PropertyTypeValidator`]: crate::ontology::property_type::schema::PropertyTypeValidator
+//! [`EntityTypeValidator`]: crate::ontology::entity_type::schema::EntityTypeValidator
+//! [`ClosedDataType`]: crate::ontology::data_type::schema::ClosedDataType
+//! [`ClosedEntityType`]: crate::ontology::entity_type::schema::ClosedEntityType
 
 mod closed_resolver;
 mod constraint;
