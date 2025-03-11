@@ -109,7 +109,7 @@ bitvec                   = { version = "=1.0.1", default-features = false }
 bumpalo                  = { version = "=3.17.0", default-features = false }
 bytes                    = { version = "=1.10.1" }
 bytes-utils              = { version = "=0.1.4", default-features = false }
-cargo_metadata           = { version = "=0.18.1", default-features = false }
+cargo_metadata           = { version = "=0.19.2", default-features = false }
 cedar-policy-core        = { version = "=4.3.3", default-features = false }
 cedar-policy-validator   = { version = "=4.3.3", default-features = false }
 clap                     = { version = "=4.5.32", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
@@ -140,7 +140,7 @@ futures-core             = { version = "=0.3.31", default-features = false }
 futures-io               = { version = "=0.3.31", default-features = false }
 futures-sink             = { version = "=0.3.31", default-features = false }
 futures-util             = { version = "=0.3.31", default-features = false }
-globset                  = { version = "=0.4.14", default-features = false }
+globset                  = { version = "=0.4.16", default-features = false }
 hashbrown                = { version = "=0.15.2", default-features = false, features = ["inline-more", "nightly"] }
 hifijson                 = { version = "=0.2.2", default-features = false }
 http                     = { version = "=1.2.0", default-features = false }
@@ -175,7 +175,7 @@ napi                     = { version = "=2.16.16", default-features = false }
 napi-build               = { version = "=2.1.5", default-features = false }
 napi-derive              = { version = "=2.16.13", default-features = false }
 num-traits               = { version = "=0.2.19", default-features = false }
-once_cell                = { version = "=1.20.3", default-features = false }
+once_cell                = { version = "=1.21.0", default-features = false }
 opentelemetry            = { version = "=0.28.0", default-features = false }
 opentelemetry-otlp       = { version = "=0.28.0", default-features = false }
 opentelemetry_sdk        = { version = "=0.28.0", default-features = false }
