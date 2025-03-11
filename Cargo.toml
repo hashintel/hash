@@ -140,7 +140,7 @@ futures-core             = { version = "=0.3.31", default-features = false }
 futures-io               = { version = "=0.3.31", default-features = false }
 futures-sink             = { version = "=0.3.31", default-features = false }
 futures-util             = { version = "=0.3.31", default-features = false }
-globset                  = { version = "=0.4.14", default-features = false }
+globset                  = { version = "=0.4.16", default-features = false }
 hashbrown                = { version = "=0.15.2", default-features = false, features = ["inline-more", "nightly"] }
 hifijson                 = { version = "=0.2.2", default-features = false }
 http                     = { version = "=1.2.0", default-features = false }
