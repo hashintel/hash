@@ -1,0 +1,18 @@
+---
+description: TypeScript coding guidelines / style – check when working on TypeScript files
+globs: *.ts, *.tsx
+alwaysApply: false
+---
+# General
+
+- Prefer 'const myFunc = () => {}' over function declarations
+- Parallelize async calls where appropriate via `Promise.all` instead of sequential fetches in a `for` loop
+- No `any` allowed. If the input type is genuinely unknown, use `unknown` and write appropriate logic to narrow the type.
+
+# Frontend
+
+- Use React function components
+- Use MUI components for all HTML elements (import from `@mui/material`)
+  - Style using the `sx` prop
+  - Flex boxes should use the `Stack` component
+  

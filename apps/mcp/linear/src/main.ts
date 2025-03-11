@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { LinearClient } from "@linear/sdk";
+import { hydrateLinearIssue } from "@local/hash-backend-utils/linear";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -10,8 +11,6 @@ import {
 import { config } from "dotenv-flow";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-
-import { hydrateIssue } from "./main/populate-linear-resources.js";
 
 config({ path: "../../../.env.local", silent: true });
 
@@ -105,7 +104,7 @@ const server = new Server(
       tools: {},
       prompts: {},
     },
-  }
+  },
 );
 
 server.setRequestHandler(ListToolsRequestSchema, () => {
@@ -131,8 +130,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       const hydratedIssues = await Promise.all(
         issues.nodes.map(async (issue) =>
-          hydrateIssue({ issue, includeComments: false })
-        )
+          hydrateLinearIssue({ issue, includeComments: false }),
+        ),
       );
 
       return {
@@ -150,7 +149,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       const issue = await linear.issue(args.issueId);
 
-      const hydratedIssue = await hydrateIssue({
+      const hydratedIssue = await hydrateLinearIssue({
         issue,
         includeComments: true,
       });
@@ -167,7 +166,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case "add_comment_to_issue": {
       const args = AddCommentToIssueRequestSchema.parse(
-        request.params.arguments
+        request.params.arguments,
       );
 
       await linear.createComment({
@@ -219,7 +218,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       const createdIssue = await linear.issue((await issue.issue).id);
-      const hydratedIssue = await hydrateIssue({
+      const hydratedIssue = await hydrateLinearIssue({
         issue: createdIssue,
         includeComments: false,
       });

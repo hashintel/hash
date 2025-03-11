@@ -1,6 +1,6 @@
 import type { Comment, Issue } from "@linear/sdk";
 
-type HydratedComment = {
+export type HydratedLinearComment = {
   id: string;
   text: string;
   createdAt: Date;
@@ -10,10 +10,18 @@ type HydratedComment = {
     name: string;
     userId: string;
   } | null;
-  replies: HydratedComment[];
+  replies: HydratedLinearComment[];
 };
 
-const hydrateComment = async (comment: Comment): Promise<HydratedComment> => {
+/**
+ * Hydrate key information about a Linear comment.
+ *
+ * @param {Comment} comment - The Linear comment to hydrate.
+ * @returns {HydratedLinearComment}
+ */
+const hydrateComment = async (
+  comment: Comment,
+): Promise<HydratedLinearComment> => {
   const [author, children] = await Promise.all([
     comment.user,
     comment.children(),
@@ -34,12 +42,12 @@ const hydrateComment = async (comment: Comment): Promise<HydratedComment> => {
     replies: await Promise.all(
       children.nodes
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-        .map(hydrateComment)
+        .map(hydrateComment),
     ),
   };
 };
 
-type HydratedIssue = {
+export type HydratedLinearIssue = {
   id: string;
   uuid: string;
   title: string;
@@ -52,16 +60,24 @@ type HydratedIssue = {
     userId: string;
   } | null;
   state?: string;
-  comments?: HydratedComment[];
+  comments?: HydratedLinearComment[];
 };
 
-export const hydrateIssue = async ({
+/**
+ * Retrieve key information about a Linear issue.
+ *
+ * @param {Issue} issue - The Linear issue to hydrate.
+ * @param {boolean} includeComments - Whether to include comments (threaded) in the returned issue.
+ *
+ * @returns {HydratedLinearIssue}
+ */
+export const hydrateLinearIssue = async ({
   issue,
   includeComments = false,
 }: {
   issue: Issue;
   includeComments?: boolean;
-}): Promise<HydratedIssue> => {
+}): Promise<HydratedLinearIssue> => {
   const [assignee, commentList, state] = await Promise.all([
     issue.assignee,
     includeComments ? issue.comments() : Promise.resolve({ nodes: [] }),
@@ -73,7 +89,7 @@ export const hydrateIssue = async ({
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
   const comments = await Promise.all(
-    rootComments.map((comment) => hydrateComment(comment))
+    rootComments.map((comment) => hydrateComment(comment)),
   );
 
   let priority: string | undefined;

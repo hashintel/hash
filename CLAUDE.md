@@ -145,7 +145,7 @@ gh pr diff <PR_NUMBER>
 
 **1b. View comments on the diff**
 
-```
+```bash
 gh api \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: 2022-11-28" \
@@ -235,7 +235,7 @@ The ProseMirror document should be structured as:
 
 - Where you highlight specific code issues, add comments for each via:
 
-```sh
+```bash
 gh pr review [PR-NUMBER] --comment --body "Your comment" --path path/to/file.ext --line 42
 ```
 
@@ -246,7 +246,7 @@ gh pr review [PR-NUMBER] --comment --body "Your comment" --path path/to/file.ext
   - Mention if you've created a Linear ticket with TODOs, and provide its number. You must create the Linear ticket before submitting your review. e.g. "I've added outstanding requirements in H-1234"
 - Submit your review via
 
-```
+```bash
 gh pr review [PR-NUMBER] [--comment | --request-changes] --body "Your review text"
 ```
 
