@@ -7,6 +7,8 @@ use type_system::ontology::{
 use crate::Embedding;
 
 /// An [`EntityTypeMetadata`] that has not yet been fully resolved.
+///
+/// [`EntityTypeMetadata`]: type_system::ontology::entity_type::EntityTypeMetadata
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialEntityTypeMetadata {
     pub record_id: OntologyTypeRecordId,

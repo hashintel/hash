@@ -22,7 +22,7 @@ use crate::{
 
 /// A path to a [`EntityType`] field.
 ///
-/// [`EntityType`]: type_system::schema::EntityType
+/// [`EntityType`]: type_system::ontology::entity_type::EntityType
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EntityTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`EntityType`].
@@ -36,8 +36,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType`]: type_system::schema::EntityType
-    /// [`BaseUrl`]: type_system::ontology::BaseUrl
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
+    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
     BaseUrl,
     /// The version of the [`EntityType`].
     ///

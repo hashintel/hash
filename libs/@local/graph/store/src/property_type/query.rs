@@ -16,7 +16,7 @@ use crate::{
 
 /// A path to a [`PropertyType`] field.
 ///
-/// [`PropertyType`]: type_system::schema::PropertyType
+/// [`PropertyType`]: type_system::ontology::property_type::PropertyType
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PropertyTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`PropertyType`].
@@ -30,8 +30,8 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`PropertyType`]: type_system::schema::PropertyType
-    /// [`BaseUrl`]: type_system::ontology::BaseUrl
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
     BaseUrl,
     /// The version of the [`PropertyType`].
     ///

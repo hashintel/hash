@@ -25,7 +25,7 @@ use crate::{
 /// single field. This means, that the path currently will always be a sequence with only one
 /// element.
 ///
-/// [`DataType`]: type_system::schema::DataType
+/// [`DataType`]: type_system::ontology::data_type::DataType
 // TODO: Adjust enum and docs when adding non-primitive data types
 //   see https://linear.app/hash/issue/BP-104
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -41,8 +41,8 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType`]: type_system::schema::DataType
-    /// [`BaseUrl`]: type_system::ontology::BaseUrl
+    /// [`DataType`]: type_system::ontology::data_type::DataType
+    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
     BaseUrl,
     /// The version of the [`DataType`].
     ///
@@ -88,8 +88,8 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`VersionedUrl`]: type_system::ontology::VersionedUrl
-    /// [`DataType`]: type_system::schema::DataType
+    /// [`VersionedUrl`]: type_system::ontology::id::VersionedUrl
+    /// [`DataType`]: type_system::ontology::data_type::DataType
     VersionedUrl,
     /// The transaction time of the [`DataType`].
     ///

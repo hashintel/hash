@@ -6,7 +6,9 @@ use type_system::ontology::{
 
 use crate::Embedding;
 
-/// An [`PropertyTypeMetadata`] that has not yet been fully resolved.
+/// A [`PropertyTypeMetadata`] that has not yet been fully resolved.
+///
+/// [`PropertyTypeMetadata`]: type_system::ontology::property_type::PropertyTypeMetadata
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialPropertyTypeMetadata {
     pub record_id: OntologyTypeRecordId,
