@@ -1808,8 +1808,8 @@ impl Transpile for QualifiedColumn {
 /// joined twice within the same condition. The `chain_depth` will be used to uniquely identify
 /// the different tables.
 ///
-/// [`DataType`]: type_system::schema::DataType
-/// [`PropertyType`]: type_system::schema::PropertyType
+/// [`DataType`]: type_system::ontology::data_type::DataType
+/// [`PropertyType`]: type_system::ontology::property_type::PropertyType
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Alias {
     pub condition_index: usize,

@@ -457,8 +457,7 @@ where
     /// Inserts a [`DataType`] identified by [`OntologyTypeUuid`], and associated with an
     /// [`OwnedById`], and [`EditionCreatedById`] into the database.
     ///
-    /// [`EditionCreatedById`]: hash_graph_types::account::EditionCreatedById
-    /// [`DataType`]: type_system::schema::DataType
+    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
     ///
     /// # Errors
     ///
@@ -558,7 +557,7 @@ where
     /// Inserts a [`PropertyType`] identified by [`OntologyTypeUuid`], and associated with an
     /// [`OwnedById`], and [`EditionCreatedById`] into the database.
     ///
-    /// [`EditionCreatedById`]: hash_graph_types::account::EditionCreatedById
+    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
     ///
     /// # Errors
     ///
@@ -590,7 +589,7 @@ where
     /// Inserts a [`EntityType`] identified by [`OntologyTypeUuid`], and associated with an
     /// [`OwnedById`], [`EditionCreatedById`], and the optional label property, into the database.
     ///
-    /// [`EditionCreatedById`]: hash_graph_types::account::EditionCreatedById
+    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
     ///
     /// # Errors
     ///
@@ -875,7 +874,7 @@ where
     /// - If the [`BaseUrl`] already exists and `on_conflict` is [`ConflictBehavior::Fail`]
     /// - If the [`VersionedUrl`] already exists and `on_conflict` is [`ConflictBehavior::Fail`]
     ///
-    /// [`BaseUrl`]: type_system::ontology::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_ontology_metadata(
         &self,
