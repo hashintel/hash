@@ -4,8 +4,6 @@ use core::fmt;
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 use type_system::web::OwnedById;
-#[cfg(feature = "utoipa")]
-use utoipa::{ToSchema, openapi};
 use uuid::Uuid;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -76,53 +74,3 @@ impl From<AccountGroupId> for OwnedById {
         Self::new(account_group_id.into_uuid())
     }
 }
-
-macro_rules! define_provenance_id {
-    ($name:tt) => {
-        #[derive(
-            Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
-        )]
-        #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
-        #[repr(transparent)]
-        pub struct $name(AccountId);
-
-        impl $name {
-            #[must_use]
-            pub const fn new(account_id: AccountId) -> Self {
-                Self(account_id)
-            }
-
-            #[must_use]
-            pub const fn as_account_id(self) -> AccountId {
-                self.0
-            }
-
-            #[must_use]
-            pub const fn as_uuid(&self) -> &Uuid {
-                self.0.as_uuid()
-            }
-
-            #[must_use]
-            pub const fn into_uuid(self) -> Uuid {
-                self.0.into_uuid()
-            }
-        }
-
-        impl fmt::Display for $name {
-            fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(fmt, "{}", &self.0)
-            }
-        }
-
-        #[cfg(feature = "utoipa")]
-        impl ToSchema<'_> for $name {
-            fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
-                (stringify!($name), AccountId::schema().1)
-            }
-        }
-    };
-}
-
-define_provenance_id!(CreatedById);
-define_provenance_id!(EditionArchivedById);
-define_provenance_id!(EditionCreatedById);

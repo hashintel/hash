@@ -55,18 +55,14 @@ mod tests {
         ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp,
     };
     use hash_graph_types::{
-        account::{AccountId, EditionCreatedById},
-        knowledge::{
-            entity::{ActorType, OriginProvenance, OriginType},
-            property::{
-                Property, PropertyMetadata, PropertyObject, PropertyProvenance,
-                PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
-                ValueMetadata,
-                error::install_error_stack_hooks,
-                visitor::{
-                    EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
-                    ValueValidationReport,
-                },
+        account::AccountId,
+        knowledge::property::{
+            Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
+            PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
+            error::install_error_stack_hooks,
+            visitor::{
+                EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
+                ValueValidationReport,
             },
         },
         ontology::{
@@ -80,6 +76,7 @@ mod tests {
     use thiserror::Error;
     use type_system::{
         ontology::provenance::OntologyOwnership,
+        provenance::{ActorType, EditionCreatedById, OriginProvenance, OriginType},
         schema::{
             ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConversionExpression,
             DataType, DataTypeReference, DataTypeUuid, EntityType, EntityTypeUuid,
@@ -108,7 +105,7 @@ mod tests {
                 },
                 provenance: OntologyProvenance {
                     edition: OntologyEditionProvenance {
-                        created_by_id: EditionCreatedById::new(actor),
+                        created_by_id: EditionCreatedById::new(actor.into_uuid()),
                         archived_by_id: None,
                         user_defined: ProvidedOntologyEditionProvenance {
                             actor_type: ActorType::Human,

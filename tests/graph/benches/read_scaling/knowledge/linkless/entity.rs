@@ -17,15 +17,17 @@ use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{
-            ActorType, Entity, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
-        },
+        entity::{Entity, ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyWithMetadataObject},
     },
 };
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
-use type_system::{schema::EntityType, web::OwnedById};
+use type_system::{
+    provenance::{ActorType, OriginProvenance, OriginType},
+    schema::EntityType,
+    web::OwnedById,
+};
 use uuid::Uuid;
 
 use crate::util::{Store, StoreWrapper, seed, setup, setup_subscriber};

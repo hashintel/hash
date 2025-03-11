@@ -20,13 +20,12 @@ use hash_graph_store::{
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::knowledge::{
-    entity::{
-        ActorType, EntityUuid, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
-    },
+    entity::{EntityUuid, ProvidedEntityEditionProvenance},
     property::{PropertyObject, PropertyWithMetadataObject},
 };
 use pretty_assertions::assert_eq;
 use type_system::{
+    provenance::{ActorType, OriginProvenance, OriginType},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };

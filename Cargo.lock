@@ -8635,6 +8635,7 @@ dependencies = [
  "postgres-types",
  "pretty_assertions",
  "regex",
+ "semver",
  "serde",
  "serde_json",
  "simple-mermaid",

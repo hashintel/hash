@@ -55,7 +55,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     account::AccountId,
-    knowledge::entity::{ActorType, Entity, EntityId, OriginProvenance, OriginType},
+    knowledge::entity::{Entity, EntityId},
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
         OntologyTypeMetadata, OntologyTypeReference, PartialDataTypeMetadata,
@@ -69,6 +69,7 @@ use tokio::net::ToSocketAddrs;
 use tracing::Instrument as _;
 use type_system::{
     ontology::provenance::OntologyOwnership,
+    provenance::{ActorType, OriginProvenance, OriginType},
     schema::{DataType, DomainValidator, EntityType, EntityTypeReference, PropertyType},
     url::VersionedUrl,
     web::OwnedById,

@@ -20,9 +20,8 @@ use uuid::Uuid;
 pub use self::{
     diff::EntityTypeIdDiff,
     provenance::{
-        ActorType, EntityEditionProvenance, EntityProvenance, InferredEntityProvenance, Location,
-        OriginProvenance, OriginType, ProvidedEntityEditionProvenance, SourceProvenance,
-        SourceType,
+        EntityEditionProvenance, EntityProvenance, InferredEntityProvenance,
+        ProvidedEntityEditionProvenance,
     },
 };
 use crate::{

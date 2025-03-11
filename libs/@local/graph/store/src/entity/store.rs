@@ -6,7 +6,7 @@ use futures::TryFutureExt as _;
 use hash_graph_authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
-    account::{AccountId, CreatedById, EditionCreatedById},
+    account::AccountId,
     knowledge::{
         Confidence, EntityTypeIdDiff,
         entity::{Entity, EntityEmbedding, EntityId, EntityUuid, ProvidedEntityEditionProvenance},
@@ -17,7 +17,12 @@ use hash_graph_types::{
     },
 };
 use serde::{Deserialize, Serialize};
-use type_system::{schema::ClosedMultiEntityType, url::VersionedUrl, web::OwnedById};
+use type_system::{
+    provenance::{CreatedById, EditionCreatedById},
+    schema::ClosedMultiEntityType,
+    url::VersionedUrl,
+    web::OwnedById,
+};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     ToSchema,

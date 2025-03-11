@@ -15,11 +15,15 @@ use hash_graph_store::{
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::knowledge::{
-    entity::{ActorType, Entity, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
+    entity::{Entity, ProvidedEntityEditionProvenance},
     property::{PropertyObject, PropertyWithMetadataObject},
 };
 use pretty_assertions::assert_eq;
-use type_system::{url::VersionedUrl, web::OwnedById};
+use type_system::{
+    provenance::{ActorType, OriginProvenance, OriginType},
+    url::VersionedUrl,
+    web::OwnedById,
+};
 
 use crate::{DatabaseApi, DatabaseTestWrapper, assert_equal_entities};
 

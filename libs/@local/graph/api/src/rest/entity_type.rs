@@ -37,12 +37,9 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
-use hash_graph_types::{
-    account::EditionCreatedById,
-    ontology::{
-        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
-        OntologyTypeMetadata, OntologyTypeReference, ProvidedOntologyEditionProvenance,
-    },
+use hash_graph_types::ontology::{
+    EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
+    OntologyTypeMetadata, OntologyTypeReference, ProvidedOntologyEditionProvenance,
 };
 use hash_map::HashMap;
 use hash_temporal_client::TemporalClient;
@@ -50,6 +47,7 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
     ontology::provenance::OntologyOwnership,
+    provenance::EditionCreatedById,
     schema::{DomainValidator, EntityType, EntityTypeUuid, ValidateOntologyType as _},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,

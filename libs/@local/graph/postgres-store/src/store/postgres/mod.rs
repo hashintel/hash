@@ -31,7 +31,7 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use hash_graph_types::{
-    account::{AccountGroupId, AccountId, EditionArchivedById},
+    account::{AccountGroupId, AccountId},
     ontology::{OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata},
 };
 use hash_temporal_client::TemporalClient;
@@ -41,6 +41,7 @@ use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     Valid,
     ontology::provenance::OntologyOwnership,
+    provenance::EditionArchivedById,
     schema::{
         ClosedDataType, ClosedEntityType, Conversions, DataType, DataTypeReference,
         DataTypeResolveData, DataTypeUuid, EntityType, EntityTypeReference, EntityTypeResolveData,

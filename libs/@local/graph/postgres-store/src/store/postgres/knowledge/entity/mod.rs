@@ -45,7 +45,7 @@ use hash_graph_temporal_versioning::{
 };
 use hash_graph_types::{
     Embedding,
-    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
+    account::AccountId,
     knowledge::{
         Confidence,
         entity::{
@@ -68,6 +68,7 @@ use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     Value,
+    provenance::{CreatedById, EditionArchivedById, EditionCreatedById},
     schema::{
         ClosedEntityType, ClosedMultiEntityType, DataTypeReference, EntityTypeUuid,
         InheritanceDepth, OntologyTypeUuid,
@@ -938,7 +939,7 @@ where
 
             let entity_provenance = EntityProvenance {
                 inferred: InferredEntityProvenance {
-                    created_by_id: CreatedById::new(actor_id),
+                    created_by_id: CreatedById::new(actor_id.into_uuid()),
                     created_at_transaction_time: transaction_time,
                     created_at_decision_time: decision_time,
                     first_non_draft_created_at_transaction_time: entity_id
@@ -951,7 +952,7 @@ where
                         .then_some(decision_time),
                 },
                 edition: EntityEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id),
+                    created_by_id: EditionCreatedById::new(actor_id.into_uuid()),
                     archived_by_id: None,
                     provided: params.provenance,
                 },
@@ -1901,7 +1902,7 @@ where
         let link_data = previous_entity.link_data;
 
         let edition_provenance = EntityEditionProvenance {
-            created_by_id: EditionCreatedById::new(actor_id),
+            created_by_id: EditionCreatedById::new(actor_id.into_uuid()),
             archived_by_id: None,
             provided: params.provenance,
         };
@@ -2684,7 +2685,7 @@ where
                     WHERE entity_edition_id = $1",
                 &[
                     &locked_row.entity_edition_id,
-                    &EditionArchivedById::new(actor_id),
+                    &EditionArchivedById::new(actor_id.into_uuid()),
                 ],
             )
             .await

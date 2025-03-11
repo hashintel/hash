@@ -10,11 +10,13 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity_type, property_type};
-use hash_graph_types::{
-    knowledge::entity::{ActorType, OriginProvenance, OriginType},
-    ontology::ProvidedOntologyEditionProvenance,
+use hash_graph_types::ontology::ProvidedOntologyEditionProvenance;
+use type_system::{
+    ontology::provenance::OntologyOwnership,
+    provenance::{ActorType, OriginProvenance, OriginType},
+    schema::EntityType,
+    web::OwnedById,
 };
-use type_system::{ontology::provenance::OntologyOwnership, schema::EntityType, web::OwnedById};
 
 use crate::{DatabaseTestWrapper, entity_type_relationships};
 

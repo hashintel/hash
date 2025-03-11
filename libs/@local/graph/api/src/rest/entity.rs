@@ -43,14 +43,12 @@ use hash_graph_store::{
 };
 use hash_graph_types::{
     Embedding,
-    account::{CreatedById, EditionCreatedById},
     knowledge::{
         Confidence, EntityTypeIdDiff,
         entity::{
-            ActorType, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
+            Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
             EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
-            InferredEntityProvenance, Location, OriginProvenance, ProvidedEntityEditionProvenance,
-            SourceProvenance, SourceType,
+            InferredEntityProvenance, ProvidedEntityEditionProvenance,
         },
         link::LinkData,
         property::{
@@ -74,7 +72,14 @@ use hash_graph_types::{
 };
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
-use type_system::{url::VersionedUrl, web::OwnedById};
+use type_system::{
+    provenance::{
+        ActorType, CreatedById, EditionCreatedById, Location, OriginProvenance, SourceProvenance,
+        SourceType,
+    },
+    url::VersionedUrl,
+    web::OwnedById,
+};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{

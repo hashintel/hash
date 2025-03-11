@@ -7,7 +7,7 @@ use hash_graph_authorization::schema::EntityTypeRelationAndSubject;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::{
     Embedding,
-    account::{AccountId, EditionCreatedById},
+    account::AccountId,
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
         ProvidedOntologyEditionProvenance,
@@ -16,6 +16,7 @@ use hash_graph_types::{
 use serde::{Deserialize, Serialize};
 use type_system::{
     ontology::provenance::OntologyOwnership,
+    provenance::EditionCreatedById,
     schema::{
         ClosedDataType, ClosedEntityType, ClosedMultiEntityType, EntityType, PartialEntityType,
         PropertyType,

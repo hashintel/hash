@@ -20,7 +20,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_types::{
     knowledge::{
-        entity::{ActorType, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
+        entity::ProvidedEntityEditionProvenance,
         property::{
             ObjectMetadata, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
             PropertyWithMetadataValue, ValueMetadata,
@@ -32,6 +32,7 @@ use time::OffsetDateTime;
 use type_system::{
     Value,
     ontology::provenance::OntologyOwnership,
+    provenance::{ActorType, OriginProvenance, OriginType},
     schema::{DataType, DataTypeUuid},
     url::{BaseUrl, VersionedUrl},
     web::OwnedById,

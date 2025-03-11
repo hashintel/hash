@@ -6,8 +6,7 @@ use bytes::BytesMut;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
-
-use crate::knowledge::entity::SourceProvenance;
+use type_system::provenance::SourceProvenance;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

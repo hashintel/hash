@@ -11,14 +11,17 @@ use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{
-            ActorType, EntityUuid, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
-        },
+        entity::{EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
         property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
 };
-use type_system::{schema::EntityType, url::VersionedUrl, web::OwnedById};
+use type_system::{
+    provenance::{ActorType, OriginProvenance, OriginType},
+    schema::EntityType,
+    url::VersionedUrl,
+    web::OwnedById,
+};
 use uuid::Uuid;
 
 use crate::util::{StoreWrapper, seed};

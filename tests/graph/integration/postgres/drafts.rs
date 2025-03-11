@@ -5,7 +5,7 @@ use hash_graph_store::entity::{CreateEntityParams, EntityStore as _, PatchEntity
 use hash_graph_temporal_versioning::ClosedTemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::knowledge::{
-    entity::{ActorType, EntityId, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
+    entity::{EntityId, ProvidedEntityEditionProvenance},
     property::{
         Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
         PropertyWithMetadataObject,
@@ -14,6 +14,7 @@ use hash_graph_types::knowledge::{
 use pretty_assertions::assert_eq;
 use time::Duration;
 use type_system::{
+    provenance::{ActorType, OriginProvenance, OriginType},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };

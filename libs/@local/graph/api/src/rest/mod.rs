@@ -14,7 +14,6 @@ pub mod web;
 mod api_resource;
 mod json;
 mod utoipa_typedef;
-
 use alloc::{borrow::Cow, sync::Arc};
 use core::str::FromStr as _;
 use std::{fs, io, time::Instant};
@@ -67,7 +66,7 @@ use hash_graph_temporal_versioning::{
 };
 use hash_graph_type_fetcher::TypeFetcher;
 use hash_graph_types::{
-    account::{AccountGroupId, AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
+    account::{AccountGroupId, AccountId},
     knowledge::entity::EntityId,
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
@@ -82,6 +81,7 @@ use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
+    provenance::{CreatedById, EditionArchivedById, EditionCreatedById},
     schema::DomainValidator,
     url::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,

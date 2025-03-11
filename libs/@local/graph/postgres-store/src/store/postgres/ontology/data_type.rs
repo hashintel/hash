@@ -35,7 +35,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use hash_graph_types::{
     Embedding,
-    account::{AccountId, EditionArchivedById, EditionCreatedById},
+    account::AccountId,
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
         OntologyTemporalMetadata,
@@ -48,6 +48,7 @@ use tracing::instrument;
 use type_system::{
     Valid, Validator as _,
     ontology::provenance::OntologyOwnership,
+    provenance::{EditionArchivedById, EditionCreatedById},
     schema::{
         ClosedDataType, ConversionDefinition, Conversions, DataType, DataTypeEdge,
         DataTypeResolveData, DataTypeUuid, DataTypeValidator, InheritanceDepth,
@@ -400,7 +401,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id),
+                    created_by_id: EditionCreatedById::new(actor_id.into_uuid()),
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -807,7 +808,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id),
+                    created_by_id: EditionCreatedById::new(actor_id.into_uuid()),
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -1059,8 +1060,11 @@ where
         actor_id: AccountId,
         params: ArchiveDataTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        self.archive_ontology_type(&params.data_type_id, EditionArchivedById::new(actor_id))
-            .await
+        self.archive_ontology_type(
+            &params.data_type_id,
+            EditionArchivedById::new(actor_id.into_uuid()),
+        )
+        .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -1072,7 +1076,7 @@ where
         self.unarchive_ontology_type(
             &params.data_type_id,
             &OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
+                created_by_id: EditionCreatedById::new(actor_id.into_uuid()),
                 archived_by_id: None,
                 user_defined: params.provenance,
             },
