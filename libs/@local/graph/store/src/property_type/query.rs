@@ -48,7 +48,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// with a `"latest"` parameter, which will only match the latest version of the
     /// [`PropertyType`].
     ///
-    /// [`PropertyType`]: type_system::schema::PropertyType
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     Version,
     /// The [`VersionedUrl`] of the [`PropertyType`].
     ///
@@ -61,15 +61,15 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`PropertyType`]: type_system::schema::PropertyType
-    /// [`VersionedUrl`]: type_system::ontology::VersionedUrl
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+    /// [`VersionedUrl`]: type_system::ontology::id::VersionedUrl
     VersionedUrl,
     /// The transaction time of the [`PropertyType`].
     ///
     /// It's not possible to query for the temporal axis directly, this has to be done via the
     /// `temporalAxes` parameter on the request.
     ///
-    /// [`PropertyType`]: type_system::schema::PropertyType
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     TransactionTime,
     /// The [`OwnedById`] of the [`PropertyTypeMetadata`] belonging to the [`PropertyType`].
     ///
@@ -82,13 +82,13 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`PropertyType`]: type_system::schema::PropertyType
-    /// [`OwnedById`]: hash_graph_types::owned_by_id::OwnedById
-    /// [`PropertyTypeMetadata`]: hash_graph_types::ontology::PropertyTypeMetadata
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+    /// [`OwnedById`]: type_system::web::OwnedById
+    /// [`PropertyTypeMetadata`]: type_system::ontology::property_type::PropertyTypeMetadata
     OwnedById,
     /// Corresponds to [`PropertyType::title()`].
     ///
-    /// [`PropertyType::title()`]: type_system::schema::PropertyType::title
+    /// [`PropertyType::title()`]: type_system::ontology::property_type::PropertyType::title
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -101,7 +101,7 @@ pub enum PropertyTypeQueryPath<'p> {
     Title,
     /// Corresponds to [`PropertyType::description()`]
     ///
-    /// [`PropertyType::description()`]: type_system::schema::PropertyType::description
+    /// [`PropertyType::description()`]: type_system::ontology::property_type::PropertyType::description
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -119,9 +119,9 @@ pub enum PropertyTypeQueryPath<'p> {
     /// Allowed edge kinds are:
     /// - [`ConstrainsValuesOn`]
     ///
-    /// [`DataType`]: type_system::schema::DataType
+    /// [`DataType`]: type_system::ontology::data_type::DataType
     /// [`ConstrainsValuesOn`]: OntologyEdgeKind::ConstrainsValuesOn
-    /// [`PropertyType`]: type_system::schema::PropertyType
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     ///
     /// ## Constraining data types
     ///
@@ -155,7 +155,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// - [`ConstrainsPropertiesOn`]
     ///
     /// [`ConstrainsPropertiesOn`]: OntologyEdgeKind::ConstrainsPropertiesOn
-    /// [`PropertyType`]: type_system::schema::PropertyType
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     ///
     /// ## Constraining other property types
     ///
@@ -194,8 +194,8 @@ pub enum PropertyTypeQueryPath<'p> {
     /// - [`ConstrainsPropertiesOn`]
     ///
     /// [`ConstrainsPropertiesOn`]: OntologyEdgeKind::ConstrainsPropertiesOn
-    /// [`PropertyType`]: type_system::schema::PropertyType
-    /// [`EntityType`]: type_system::schema::PropertyType
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     ///
     /// ## Constraining other property types
     ///
@@ -216,7 +216,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// Deserializes from `["editionProvenance", ...]` where `...` is a path to a provenance entry
     /// of an [`PropertyType`].
     ///
-    /// [`PropertyType`]: type_system::schema::PropertyType
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     ///
     /// ```rust
     /// # use serde::Deserialize;

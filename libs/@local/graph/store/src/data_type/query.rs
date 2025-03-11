@@ -75,7 +75,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType`]: type_system::schema::DataType
+    /// [`DataType`]: type_system::ontology::data_type::DataType
     Version,
     /// The [`VersionedUrl`] of the [`DataType`].
     ///
@@ -96,7 +96,7 @@ pub enum DataTypeQueryPath<'p> {
     /// It's not possible to query for the temporal axis directly, this has to be done via the
     /// `temporalAxes` parameter on the request.
     ///
-    /// [`DataType`]: type_system::schema::DataType
+    /// [`DataType`]: type_system::ontology::data_type::DataType
     TransactionTime,
     /// The [`OwnedById`] of the [`DataTypeMetadata`] belonging to the [`DataType`].
     ///
@@ -109,11 +109,11 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType`]: type_system::schema::DataType
-    /// [`OwnedById`]: hash_graph_types::owned_by_id::OwnedById
-    /// [`DataTypeMetadata`]: hash_graph_types::ontology::DataTypeMetadata
+    /// [`DataType`]: type_system::ontology::data_type::DataType
+    /// [`OwnedById`]: type_system::web::OwnedById
+    /// [`DataTypeMetadata`]: type_system::ontology::data_type::DataTypeMetadata
     OwnedById,
-    /// Corresponds to [`DataType::title()`].
+    /// Corresponds to [`DataType::title`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -124,7 +124,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType::title()`]: type_system::schema::DataType::title
+    /// [`DataType::title`]: type_system::ontology::data_type::DataType::title
     Title,
     /// Corresponds to [`DataType`]'s description.
     ///
@@ -137,7 +137,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType`]: type_system::schema::DataType
+    /// [`DataType`]: type_system::ontology::data_type::DataType
     Description,
     /// Corresponds to [`DataType`]'s type.
     ///
@@ -150,7 +150,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType`]: type_system::schema::DataType
+    /// [`DataType`]: type_system::ontology::data_type::DataType
     Type,
     /// Only used internally and not available for deserialization.
     OntologyId,
@@ -161,7 +161,7 @@ pub enum DataTypeQueryPath<'p> {
     /// Allowed edge kinds are:
     /// - [`InheritsFrom`]
     ///
-    /// [`DataType`]: type_system::schema::DataType
+    /// [`DataType`]: type_system::ontology::data_type::DataType
     /// [`InheritsFrom`]: OntologyEdgeKind::InheritsFrom
     ///
     ///
@@ -278,8 +278,8 @@ pub enum DataTypeQueryPath<'p> {
     /// Only used internally and not available for deserialization.
     ///
     /// [`ConstrainsValuesOn`]: OntologyEdgeKind::ConstrainsValuesOn
-    /// [`DataType`]: type_system::schema::DataType
-    /// [`PropertyType`]: type_system::schema::PropertyType
+    /// [`DataType`]: type_system::ontology::data_type::DataType
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     PropertyTypeEdge {
         edge_kind: OntologyEdgeKind,
         path: Box<PropertyTypeQueryPath<'p>>,
@@ -304,7 +304,7 @@ pub enum DataTypeQueryPath<'p> {
     /// Deserializes from `["editionProvenance", ...]` where `...` is a path to a provenance entry
     /// of an [`DataType`].
     ///
-    /// [`DataType`]: type_system::schema::DataType
+    /// [`DataType`]: type_system::ontology::data_type::DataType
     ///
     /// ```rust
     /// # use serde::Deserialize;

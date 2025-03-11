@@ -48,7 +48,7 @@ pub enum EntityQueryPath<'p> {
     /// ```
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`OwnedById`]: hash_graph_types::owned_by_id::OwnedById
+    /// [`OwnedById`]: type_system::web::OwnedById
     /// [`EntityId`]: hash_graph_types::knowledge::entity::EntityId
     OwnedById,
     /// The [`DraftId`] of the [`EntityId`] belonging to the [`Entity`].
@@ -107,8 +107,8 @@ pub enum EntityQueryPath<'p> {
     /// instead.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeBaseUrls,
     /// The list of [`EntityType`]s' versions belonging to the [`Entity`].
@@ -117,7 +117,7 @@ pub enum EntityQueryPath<'p> {
     /// instead.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeVersions,
     /// The confidence value for the [`Entity`].
@@ -206,7 +206,7 @@ pub enum EntityQueryPath<'p> {
     /// ```
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`EntityType`]: type_system::schema::PropertyType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     EntityTypeEdge {
         edge_kind: SharedEdgeKind,
         path: EntityTypeQueryPath<'p>,
@@ -406,7 +406,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`label_property`]: type_system::schema::EntityType::label_property
+    /// [`label_property`]: type_system::ontology::entity_type::EntityType::label_property
     Label { inheritance_depth: Option<u32> },
     /// Corresponds to the provenance data of the [`Entity`].
     ///
@@ -464,28 +464,28 @@ pub enum EntityQueryPath<'p> {
     /// It's currently not possible to query for the first title directly.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     FirstTypeTitle,
     /// Corresponds to the title of the [`Entity`]'s last [`EntityType`].
     ///
     /// It's currently not possible to query for the last title directly.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     LastTypeTitle,
     /// Corresponds to the first set label of the [`Entity`] as specified by it's [`EntityType`]s.
     ///
     /// It's currently not possible to query for the first label directly.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     FirstLabel,
     /// Corresponds to the last set label of the [`Entity`] as specified by it's [`EntityType`]s.
     ///
     /// It's currently not possible to query for the last label directly.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     LastLabel,
 }
 

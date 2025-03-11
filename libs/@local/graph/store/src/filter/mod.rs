@@ -85,12 +85,12 @@ pub trait QueryRecord: Sized + Send {
 pub trait OntologyQueryPath {
     /// Returns the path identifying the [`BaseUrl`].
     ///
-    /// [`BaseUrl`]: type_system::ontology::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
     fn base_url() -> Self;
 
     /// Returns the path identifying the [`OntologyTypeVersion`].
     ///
-    /// [`OntologyTypeVersion`]: type_system::ontology::OntologyTypeVersion
+    /// [`OntologyTypeVersion`]: type_system::ontology::id::OntologyTypeVersion
     fn version() -> Self;
 }
 

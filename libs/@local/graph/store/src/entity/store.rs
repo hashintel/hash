@@ -354,7 +354,7 @@ pub trait EntityStore {
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     fn create_entity<R>(
         &mut self,
         actor_id: AccountId,
