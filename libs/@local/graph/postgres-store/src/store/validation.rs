@@ -21,10 +21,7 @@ use hash_graph_store::{
 use hash_graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
-    ontology::{
-        DataTypeLookup, DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeProvider,
-        PropertyTypeWithMetadata,
-    },
+    ontology::{DataTypeLookup, OntologyTypeProvider},
 };
 use hash_graph_validation::EntityProvider;
 use tokio::sync::RwLock;
@@ -33,7 +30,8 @@ use type_system::{
     Valid,
     schema::{
         ClosedDataType, ClosedEntityType, ConversionDefinition, ConversionExpression,
-        DataTypeReference, DataTypeUuid, EntityTypeUuid, PropertyType, PropertyTypeUuid,
+        DataTypeReference, DataTypeUuid, DataTypeWithMetadata, EntityTypeUuid,
+        EntityTypeWithMetadata, PropertyType, PropertyTypeUuid, PropertyTypeWithMetadata,
     },
     url::{BaseUrl, VersionedUrl},
 };

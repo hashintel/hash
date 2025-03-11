@@ -12,11 +12,10 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
-use hash_graph_types::ontology::EntityTypeWithMetadata;
 use postgres_types::Json;
 use tokio_postgres::GenericClient as _;
 use type_system::{
-    schema::{ClosedEntityType, EntityTypeUuid, OntologyTypeUuid},
+    schema::{ClosedEntityType, EntityTypeUuid, EntityTypeWithMetadata, OntologyTypeUuid},
     url::VersionedUrl,
 };
 

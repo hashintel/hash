@@ -3441,6 +3441,7 @@ dependencies = [
  "temporal-client",
  "temporal-sdk-core-protos",
  "thiserror 2.0.12",
+ "type-system",
  "url",
  "uuid",
 ]

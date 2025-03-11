@@ -1,8 +1,10 @@
 pub use self::{
+    metadata::{PropertyTypeMetadata, PropertyTypeWithMetadata},
     reference::PropertyTypeReference,
     validation::{PropertyTypeValidationError, PropertyTypeValidator},
 };
 
+mod metadata;
 mod raw;
 mod reference;
 mod validation;
@@ -12,6 +14,7 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::{
+    ontology::{OntologyTypeReference, OntologyTypeSchema},
     schema::{
         DataTypeReference, OneOfSchema, PropertyValueArray, PropertyValueObject, ValueOrArray,
     },
@@ -406,6 +409,26 @@ impl PropertyValues {
             Self::PropertyTypeObject(_) => PropertyValueType::Object,
             Self::ArrayOfPropertyValues(_) => PropertyValueType::Array,
         }
+    }
+}
+
+impl OntologyTypeSchema for PropertyType {
+    type Metadata = PropertyTypeMetadata;
+
+    fn id(&self) -> &VersionedUrl {
+        &self.id
+    }
+
+    fn references(&self) -> Vec<OntologyTypeReference> {
+        self.property_type_references()
+            .into_iter()
+            .map(OntologyTypeReference::PropertyTypeReference)
+            .chain(
+                self.data_type_references()
+                    .into_iter()
+                    .map(OntologyTypeReference::DataTypeReference),
+            )
+            .collect()
     }
 }
 

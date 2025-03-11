@@ -15,12 +15,13 @@ pub use self::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, Operator,
         Variable,
     },
+    metadata::{DataTypeMetadata, DataTypeWithMetadata},
     reference::DataTypeReference,
     validation::{DataTypeValidator, ValidateDataTypeError},
 };
 
 mod closed;
-
+mod metadata;
 mod reference;
 mod validation;
 
@@ -29,7 +30,12 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Value, schema::data_type::constraint::ValueConstraints, url::VersionedUrl};
+use crate::{
+    Value,
+    ontology::{OntologyTypeReference, OntologyTypeSchema},
+    schema::data_type::constraint::ValueConstraints,
+    url::VersionedUrl,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -600,6 +606,20 @@ impl DataType {
         self.all_of
             .iter()
             .map(|reference| (reference, DataTypeEdge::Inheritance))
+    }
+}
+
+impl OntologyTypeSchema for DataType {
+    type Metadata = DataTypeMetadata;
+
+    fn id(&self) -> &VersionedUrl {
+        &self.id
+    }
+
+    fn references(&self) -> Vec<OntologyTypeReference> {
+        self.data_type_references()
+            .map(|(reference, _)| OntologyTypeReference::DataTypeReference(reference))
+            .collect()
     }
 }
 

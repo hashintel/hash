@@ -59,7 +59,7 @@ use hash_graph_types::{
             PropertyWithMetadataValue, visitor::EntityVisitor as _,
         },
     },
-    ontology::{DataTypeLookup, EntityTypeWithMetadata, OntologyTypeProvider},
+    ontology::{DataTypeLookup, OntologyTypeProvider},
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use hash_status::StatusCode;
@@ -71,7 +71,7 @@ use type_system::{
     provenance::{CreatedById, EditionArchivedById, EditionCreatedById},
     schema::{
         ClosedEntityType, ClosedMultiEntityType, DataTypeReference, EntityTypeUuid,
-        InheritanceDepth, OntologyTypeUuid,
+        EntityTypeWithMetadata, InheritanceDepth, OntologyTypeUuid,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,

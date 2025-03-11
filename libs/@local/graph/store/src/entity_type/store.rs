@@ -5,21 +5,17 @@ use std::collections::HashMap;
 use error_stack::Report;
 use hash_graph_authorization::schema::EntityTypeRelationAndSubject;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-use hash_graph_types::{
-    Embedding,
-    account::AccountId,
-    ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
-        ProvidedOntologyEditionProvenance,
-    },
-};
+use hash_graph_types::{Embedding, account::AccountId};
 use serde::{Deserialize, Serialize};
 use type_system::{
-    ontology::provenance::OntologyOwnership,
+    ontology::{
+        OntologyTemporalMetadata,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
     provenance::EditionCreatedById,
     schema::{
-        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, EntityType, PartialEntityType,
-        PropertyType,
+        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, EntityType, EntityTypeMetadata,
+        EntityTypeWithMetadata, PartialEntityType, PropertyType,
     },
     url::VersionedUrl,
     web::OwnedById,

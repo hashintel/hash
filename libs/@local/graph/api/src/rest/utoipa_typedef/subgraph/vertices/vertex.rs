@@ -1,12 +1,12 @@
 use hash_graph_store::subgraph::identifier::{
     DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId,
 };
-use hash_graph_types::{
-    knowledge::entity::Entity,
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-};
+use hash_graph_types::knowledge::entity::Entity;
 use serde::Serialize;
-use type_system::url::{BaseUrl, OntologyTypeVersion};
+use type_system::{
+    schema::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    url::{BaseUrl, OntologyTypeVersion},
+};
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]

@@ -13,7 +13,7 @@ pub use self::{
 mod query;
 mod store;
 
-use hash_graph_types::ontology::DataTypeWithMetadata;
+use type_system::schema::DataTypeWithMetadata;
 
 use crate::filter::QueryRecord;
 

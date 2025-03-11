@@ -34,19 +34,19 @@ use hash_graph_store::{
     },
     query::ConflictBehavior,
 };
-use hash_graph_types::ontology::{
-    OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference, PropertyTypeEmbedding,
-    PropertyTypeMetadata, PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
-};
+use hash_graph_types::ontology::PropertyTypeEmbedding;
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
-    ontology::provenance::OntologyOwnership,
+    ontology::{
+        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
     schema::{
-        DomainValidator, PropertyType, PropertyTypeUuid, PropertyValueType,
-        ValidateOntologyType as _,
+        DomainValidator, PropertyType, PropertyTypeMetadata, PropertyTypeUuid,
+        PropertyTypeWithMetadata, PropertyValueType, ValidateOntologyType as _,
     },
     url::{OntologyTypeVersion, VersionedUrl},
     web::OwnedById,

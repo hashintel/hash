@@ -24,14 +24,14 @@ use hash_graph_store::{
     property_type::{CreatePropertyTypeParams, PropertyTypeStore as _, UpdatePropertyTypesParams},
     query::ConflictBehavior,
 };
-use hash_graph_types::{account::AccountId, ontology::ProvidedOntologyEditionProvenance};
+use hash_graph_types::account::AccountId;
 use hash_repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
 use tracing_flame::FlameLayer;
 use tracing_subscriber::{prelude::*, registry::Registry};
 use type_system::{
-    ontology::provenance::OntologyOwnership,
+    ontology::provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     provenance::{ActorType, OriginProvenance, OriginType},
     schema::{DataType, EntityType, PropertyType},
     web::OwnedById,

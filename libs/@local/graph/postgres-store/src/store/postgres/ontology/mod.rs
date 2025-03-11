@@ -15,15 +15,14 @@ use hash_graph_store::{
     query::{Ordering, Sorting as _, VersionedUrlSorting},
     subgraph::temporal_axes::QueryTemporalAxes,
 };
-use hash_graph_types::ontology::{
-    DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
-};
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
 use type_system::{
     ontology::provenance::OntologyOwnership,
-    schema::OntologyTypeUuid,
+    schema::{
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeUuid, PropertyTypeWithMetadata,
+    },
     url::{BaseUrl, VersionedUrl},
     web::OwnedById,
 };

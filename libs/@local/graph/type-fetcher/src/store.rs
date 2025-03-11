@@ -56,21 +56,22 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
-    ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
-        OntologyTypeMetadata, OntologyTypeReference, PartialDataTypeMetadata,
-        PartialEntityTypeMetadata, PartialPropertyTypeMetadata, PropertyTypeMetadata,
-        ProvidedOntologyEditionProvenance,
-    },
+    ontology::{PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata},
 };
 use hash_temporal_client::TemporalClient;
 use tarpc::context;
 use tokio::net::ToSocketAddrs;
 use tracing::Instrument as _;
 use type_system::{
-    ontology::provenance::OntologyOwnership,
+    ontology::{
+        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference, OntologyTypeSchema,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
     provenance::{ActorType, OriginProvenance, OriginType},
-    schema::{DataType, DomainValidator, EntityType, EntityTypeReference, PropertyType},
+    schema::{
+        DataType, DataTypeMetadata, DomainValidator, EntityType, EntityTypeMetadata,
+        EntityTypeReference, PropertyType, PropertyTypeMetadata,
+    },
     url::VersionedUrl,
     web::OwnedById,
 };
@@ -330,14 +331,14 @@ where
     }
 
     #[tracing::instrument(level = "trace", skip(self, ontology_type))]
-    async fn collect_external_ontology_types<'o, T: OntologyType + Sync>(
+    async fn collect_external_ontology_types<'o, T: OntologyTypeSchema + Sync>(
         &self,
         actor_id: AccountId,
         ontology_type: &'o T,
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<Vec<OntologyTypeReference<'o>>, Report<QueryError>> {
         let mut references = Vec::new();
-        for reference in ontology_type.traverse_references() {
+        for reference in ontology_type.references() {
             if !bypassed_types.contains(reference.url())
                 && !self
                     .contains_ontology_type(actor_id, reference)
@@ -480,7 +481,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self, ontology_types))]
-    async fn insert_external_types<'o, T: OntologyType + Sync + 'o>(
+    async fn insert_external_types<'o, T: OntologyTypeSchema + Sync + 'o>(
         &mut self,
         actor_id: AccountId,
         ontology_types: impl IntoIterator<Item = &'o T, IntoIter: Send> + Send,

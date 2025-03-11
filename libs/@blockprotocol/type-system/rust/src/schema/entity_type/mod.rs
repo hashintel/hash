@@ -4,12 +4,14 @@ pub use self::{
         ResolveClosedEntityTypeError,
     },
     constraints::EntityConstraints,
+    metadata::{EntityTypeMetadata, EntityTypeWithMetadata},
     reference::EntityTypeReference,
     validation::{EntityTypeValidationError, EntityTypeValidator},
 };
 
 mod closed;
 mod constraints;
+mod metadata;
 mod reference;
 mod validation;
 
@@ -19,6 +21,7 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    ontology::{OntologyTypeReference, OntologyTypeSchema},
     schema::{
         ObjectTypeTag, PropertyTypeReference, PropertyValueArray, ValueOrArray, one_of::OneOfSchema,
     },
@@ -461,6 +464,24 @@ impl EntityType {
                 )
             },
         )
+    }
+}
+
+impl OntologyTypeSchema for EntityType {
+    type Metadata = EntityTypeMetadata;
+
+    fn id(&self) -> &VersionedUrl {
+        &self.id
+    }
+
+    fn references(&self) -> Vec<OntologyTypeReference> {
+        self.entity_type_references()
+            .map(|(reference, _)| OntologyTypeReference::EntityTypeReference(reference))
+            .chain(
+                self.property_type_references()
+                    .map(|(reference, _)| OntologyTypeReference::PropertyTypeReference(reference)),
+            )
+            .collect()
     }
 }
 

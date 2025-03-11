@@ -36,20 +36,19 @@ use hash_graph_store::{
     pool::StorePool,
     query::ConflictBehavior,
 };
-use hash_graph_types::ontology::{
-    DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
-    OntologyTypeReference, ProvidedOntologyEditionProvenance,
-};
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
-    ontology::provenance::OntologyOwnership,
+    ontology::{
+        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
     schema::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeUuid, DomainValidator, JsonSchemaValueType, Operator, ValidateOntologyType as _,
-        Variable,
+        DataTypeMetadata, DataTypeUuid, DataTypeWithMetadata, DomainValidator, JsonSchemaValueType,
+        Operator, ValidateOntologyType as _, Variable,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,

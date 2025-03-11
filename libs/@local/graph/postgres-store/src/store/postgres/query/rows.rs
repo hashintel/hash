@@ -11,12 +11,12 @@ use hash_graph_types::{
         },
         property::{PropertyMetadataObject, PropertyObject, PropertyProvenance},
     },
-    ontology::OntologyEditionProvenance,
 };
 use postgres_types::ToSql;
 use time::OffsetDateTime;
 use type_system::{
     Valid,
+    ontology::provenance::OntologyEditionProvenance,
     schema::{
         ClosedDataType, ClosedEntityType, ConversionDefinition, DataType, DataTypeUuid, EntityType,
         EntityTypeUuid, InheritanceDepth, OntologyTypeUuid, PropertyType, PropertyTypeUuid,

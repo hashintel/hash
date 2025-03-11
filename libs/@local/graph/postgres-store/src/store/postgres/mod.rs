@@ -30,17 +30,17 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
-use hash_graph_types::{
-    account::{AccountGroupId, AccountId},
-    ontology::{OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata},
-};
+use hash_graph_types::account::{AccountGroupId, AccountId};
 use hash_temporal_client::TemporalClient;
 use postgres_types::Json;
 use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     Valid,
-    ontology::provenance::OntologyOwnership,
+    ontology::{
+        OntologyTemporalMetadata,
+        provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
+    },
     provenance::EditionArchivedById,
     schema::{
         ClosedDataType, ClosedEntityType, Conversions, DataType, DataTypeReference,

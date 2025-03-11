@@ -80,18 +80,20 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
-    ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, PropertyTypeMetadata,
-        ProvidedOntologyEditionProvenance,
-    },
 };
 use hash_tracing::logging::env_filter;
 use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{
-    ontology::provenance::OntologyOwnership,
+    ontology::{
+        OntologyTemporalMetadata,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
     provenance::{ActorType, OriginProvenance, OriginType},
-    schema::{DataType, EntityType, PropertyType},
+    schema::{
+        DataType, DataTypeMetadata, EntityType, EntityTypeMetadata, PropertyType,
+        PropertyTypeMetadata,
+    },
     web::OwnedById,
 };
 use uuid::Uuid;

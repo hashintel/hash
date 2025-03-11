@@ -4,17 +4,15 @@ use core::iter;
 use error_stack::Report;
 use hash_graph_authorization::schema::PropertyTypeRelationAndSubject;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-use hash_graph_types::{
-    Embedding,
-    account::AccountId,
-    ontology::{
-        OntologyTemporalMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
-        ProvidedOntologyEditionProvenance,
-    },
-};
+use hash_graph_types::{Embedding, account::AccountId};
 use serde::{Deserialize, Serialize};
 use type_system::{
-    ontology::provenance::OntologyOwnership, schema::PropertyType, url::VersionedUrl,
+    ontology::{
+        OntologyTemporalMetadata,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
+    schema::{PropertyType, PropertyTypeMetadata, PropertyTypeWithMetadata},
+    url::VersionedUrl,
 };
 
 use crate::{

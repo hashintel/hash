@@ -15,11 +15,11 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
-use hash_graph_types::{
-    knowledge::entity::{Entity, EntityEditionId},
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+use hash_graph_types::knowledge::entity::{Entity, EntityEditionId};
+use type_system::schema::{
+    DataTypeUuid, DataTypeWithMetadata, EntityTypeUuid, EntityTypeWithMetadata, PropertyTypeUuid,
+    PropertyTypeWithMetadata,
 };
-use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
 
 use crate::store::postgres::{AsClient, PostgresStore};
 

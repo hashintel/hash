@@ -29,22 +29,21 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use hash_graph_types::{
-    Embedding,
-    account::AccountId,
-    ontology::{
-        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-        PropertyTypeMetadata, PropertyTypeWithMetadata,
-    },
-};
+use hash_graph_types::{Embedding, account::AccountId};
 use postgres_types::{Json, ToSql};
 use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{
     Validator as _,
-    ontology::provenance::OntologyOwnership,
+    ontology::{
+        OntologyTemporalMetadata,
+        provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
+    },
     provenance::{EditionArchivedById, EditionCreatedById},
-    schema::{DataTypeUuid, OntologyTypeUuid, PropertyTypeUuid, PropertyTypeValidator},
+    schema::{
+        DataTypeUuid, OntologyTypeUuid, PropertyTypeMetadata, PropertyTypeUuid,
+        PropertyTypeValidator, PropertyTypeWithMetadata,
+    },
     url::{OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
 };
 

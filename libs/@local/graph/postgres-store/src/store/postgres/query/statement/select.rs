@@ -128,12 +128,11 @@ mod tests {
             temporal_axes::QueryTemporalAxesUnresolved,
         },
     };
-    use hash_graph_types::{
-        Embedding,
-        knowledge::entity::Entity,
-        ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    };
+    use hash_graph_types::{Embedding, knowledge::entity::Entity};
     use postgres_types::ToSql;
+    use type_system::schema::{
+        DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+    };
     use uuid::Uuid;
 
     use crate::store::postgres::query::{

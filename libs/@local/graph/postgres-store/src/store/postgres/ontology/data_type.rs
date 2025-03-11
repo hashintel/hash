@@ -33,26 +33,22 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use hash_graph_types::{
-    Embedding,
-    account::AccountId,
-    ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata,
-    },
-};
+use hash_graph_types::{Embedding, account::AccountId};
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{
     Valid, Validator as _,
-    ontology::provenance::OntologyOwnership,
+    ontology::{
+        OntologyTemporalMetadata,
+        provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
+    },
     provenance::{EditionArchivedById, EditionCreatedById},
     schema::{
         ClosedDataType, ConversionDefinition, Conversions, DataType, DataTypeEdge,
-        DataTypeResolveData, DataTypeUuid, DataTypeValidator, InheritanceDepth,
-        OntologyTypeResolver, OntologyTypeUuid,
+        DataTypeMetadata, DataTypeResolveData, DataTypeUuid, DataTypeValidator,
+        DataTypeWithMetadata, InheritanceDepth, OntologyTypeResolver, OntologyTypeUuid,
     },
     url::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
 };

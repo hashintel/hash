@@ -153,8 +153,8 @@ mod tests {
         data_type::DataTypeQueryPath,
         filter::{Filter, FilterExpression, Parameter},
     };
-    use hash_graph_types::ontology::DataTypeWithMetadata;
     use postgres_types::ToSql;
+    use type_system::schema::DataTypeWithMetadata;
 
     use crate::store::postgres::query::{SelectCompiler, Transpile as _};
 

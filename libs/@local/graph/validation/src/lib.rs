@@ -65,22 +65,24 @@ mod tests {
                 ValueValidationReport,
             },
         },
-        ontology::{
-            DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
-            OntologyProvenance, OntologyTemporalMetadata, OntologyTypeProvider,
-            ProvidedOntologyEditionProvenance,
-        },
+        ontology::{DataTypeLookup, OntologyTypeProvider},
     };
     use serde::Deserialize as _;
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{
-        ontology::provenance::OntologyOwnership,
+        ontology::{
+            OntologyTemporalMetadata,
+            provenance::{
+                OntologyEditionProvenance, OntologyOwnership, OntologyProvenance,
+                ProvidedOntologyEditionProvenance,
+            },
+        },
         provenance::{ActorType, EditionCreatedById, OriginProvenance, OriginType},
         schema::{
             ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConversionExpression,
-            DataType, DataTypeReference, DataTypeUuid, EntityType, EntityTypeUuid,
-            OntologyTypeResolver, PropertyType,
+            DataType, DataTypeMetadata, DataTypeReference, DataTypeUuid, DataTypeWithMetadata,
+            EntityType, EntityTypeUuid, OntologyTypeResolver, PropertyType,
         },
         url::{BaseUrl, OntologyTypeRecordId, VersionedUrl},
         web::OwnedById,

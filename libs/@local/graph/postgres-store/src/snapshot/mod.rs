@@ -48,14 +48,16 @@ use hash_graph_store::{
 use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityId, EntityUuid},
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
 use type_system::{
-    schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
+    schema::{
+        DataTypeUuid, DataTypeWithMetadata, EntityTypeUuid, EntityTypeWithMetadata,
+        PropertyTypeUuid, PropertyTypeWithMetadata,
+    },
     url::VersionedUrl,
     web::OwnedById,
 };

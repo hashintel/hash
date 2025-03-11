@@ -5,18 +5,14 @@ use std::collections::HashMap;
 use error_stack::Report;
 use hash_graph_authorization::schema::DataTypeRelationAndSubject;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-use hash_graph_types::{
-    Embedding,
-    account::AccountId,
-    ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
-        ProvidedOntologyEditionProvenance,
-    },
-};
+use hash_graph_types::{self, Embedding, account::AccountId};
 use serde::{Deserialize, Serialize};
 use type_system::{
-    ontology::provenance::OntologyOwnership,
-    schema::{ConversionDefinition, Conversions, DataType},
+    ontology::{
+        OntologyTemporalMetadata,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
+    schema::{ConversionDefinition, Conversions, DataType, DataTypeMetadata, DataTypeWithMetadata},
     url::{BaseUrl, VersionedUrl},
 };
 

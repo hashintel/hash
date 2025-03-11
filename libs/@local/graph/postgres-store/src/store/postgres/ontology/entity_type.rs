@@ -36,14 +36,7 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use hash_graph_types::{
-    Embedding,
-    account::AccountId,
-    ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata,
-    },
-};
+use hash_graph_types::{Embedding, account::AccountId};
 use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;
@@ -51,13 +44,16 @@ use tokio_postgres::{GenericClient as _, Row};
 use tracing::{Instrument as _, instrument};
 use type_system::{
     Valid, Validator as _,
-    ontology::provenance::OntologyOwnership,
+    ontology::{
+        OntologyTemporalMetadata,
+        provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
+    },
     provenance::{EditionArchivedById, EditionCreatedById},
     schema::{
         ClosedDataType, ClosedEntityType, ClosedMultiEntityType, DataType, DataTypeUuid,
-        EntityType, EntityTypeResolveData, EntityTypeToPropertyTypeEdge, EntityTypeUuid,
-        EntityTypeValidator, InheritanceDepth, OntologyTypeResolver, OntologyTypeUuid,
-        PartialEntityType, PropertyTypeUuid,
+        EntityType, EntityTypeMetadata, EntityTypeResolveData, EntityTypeToPropertyTypeEdge,
+        EntityTypeUuid, EntityTypeValidator, EntityTypeWithMetadata, InheritanceDepth,
+        OntologyTypeResolver, OntologyTypeUuid, PartialEntityType, PropertyTypeUuid,
     },
     url::{OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,

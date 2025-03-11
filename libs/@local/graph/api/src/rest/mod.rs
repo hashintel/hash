@@ -68,11 +68,6 @@ use hash_graph_type_fetcher::TypeFetcher;
 use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityId,
-    ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
-    },
 };
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
@@ -81,8 +76,14 @@ use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
+    ontology::{
+        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        provenance::{
+            OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
+        },
+    },
     provenance::{CreatedById, EditionArchivedById, EditionCreatedById},
-    schema::DomainValidator,
+    schema::{DataTypeMetadata, DomainValidator, EntityTypeMetadata, PropertyTypeMetadata},
     url::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };

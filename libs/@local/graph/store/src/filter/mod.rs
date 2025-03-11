@@ -9,11 +9,14 @@ use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
 use hash_graph_types::{
     knowledge::entity::{Entity, EntityId},
-    ontology::{DataTypeLookup, DataTypeWithMetadata, PropertyTypeWithMetadata},
+    ontology::DataTypeLookup,
 };
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    schema::{DataTypeReference, DataTypeUuid, PropertyTypeUuid},
+    schema::{
+        DataTypeReference, DataTypeUuid, DataTypeWithMetadata, PropertyTypeUuid,
+        PropertyTypeWithMetadata,
+    },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
@@ -537,13 +540,10 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
 #[cfg(test)]
 mod tests {
 
-    use hash_graph_types::{
-        knowledge::entity::{DraftId, EntityUuid},
-        ontology::{DataTypeLookup, DataTypeWithMetadata},
-    };
+    use hash_graph_types::knowledge::entity::{DraftId, EntityUuid};
     use serde_json::json;
     use type_system::{
-        schema::{ClosedDataType, ConversionExpression, DataTypeReference},
+        schema::{ClosedDataType, ConversionExpression, DataTypeReference, DataTypeWithMetadata},
         web::OwnedById,
     };
     use uuid::Uuid;
