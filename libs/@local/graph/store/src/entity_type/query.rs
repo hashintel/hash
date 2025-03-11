@@ -60,7 +60,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde_json::json;
     /// # use hash_graph_store::{filter::{Filter, FilterExpression, Parameter}};
     /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
-    /// # use hash_graph_types::ontology::EntityTypeWithMetadata;
+    /// # use type_system::ontology::EntityTypeWithMetadata;
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
     /// let path = Filter::<EntityTypeWithMetadata>::deserialize(filter_value)?;
     /// assert_eq!(path, Filter::Equal(
