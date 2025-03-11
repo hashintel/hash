@@ -73,11 +73,11 @@ use hash_graph_types::{
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use type_system::{
+    ontology::id::VersionedUrl,
     provenance::{
         ActorType, CreatedById, EditionCreatedById, Location, OriginProvenance, SourceProvenance,
         SourceType,
     },
-    url::VersionedUrl,
     web::OwnedById,
 };
 use utoipa::{OpenApi, ToSchema};

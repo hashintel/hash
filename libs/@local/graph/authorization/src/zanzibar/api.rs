@@ -8,7 +8,9 @@ use hash_graph_types::{
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use type_system::{
-    schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
+    ontology::{
+        data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
+    },
     web::OwnedById,
 };
 

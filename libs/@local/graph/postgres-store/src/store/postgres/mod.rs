@@ -38,16 +38,20 @@ use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     Valid,
     ontology::{
-        OntologyTemporalMetadata,
+        OntologyTemporalMetadata, OntologyTypeUuid,
+        data_type::{
+            ClosedDataType, Conversions, DataType, DataTypeUuid,
+            schema::{DataTypeReference, DataTypeResolveData},
+        },
+        entity_type::{
+            ClosedEntityType, EntityType, EntityTypeUuid,
+            schema::{EntityTypeReference, EntityTypeResolveData},
+        },
+        id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+        property_type::{PropertyType, schema::PropertyTypeReference},
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     provenance::EditionArchivedById,
-    schema::{
-        ClosedDataType, ClosedEntityType, Conversions, DataType, DataTypeReference,
-        DataTypeResolveData, DataTypeUuid, EntityType, EntityTypeReference, EntityTypeResolveData,
-        EntityTypeUuid, OntologyTypeUuid, PropertyType, PropertyTypeReference,
-    },
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };
 
@@ -871,7 +875,7 @@ where
     /// - If the [`BaseUrl`] already exists and `on_conflict` is [`ConflictBehavior::Fail`]
     /// - If the [`VersionedUrl`] already exists and `on_conflict` is [`ConflictBehavior::Fail`]
     ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_ontology_metadata(
         &self,

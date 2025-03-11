@@ -9,15 +9,17 @@ use hash_graph_types::{Embedding, account::AccountId};
 use serde::{Deserialize, Serialize};
 use type_system::{
     ontology::{
-        OntologyTemporalMetadata,
+        EntityTypeWithMetadata, OntologyTemporalMetadata,
+        data_type::ClosedDataType,
+        entity_type::{
+            ClosedEntityType, ClosedMultiEntityType, EntityType, EntityTypeMetadata,
+            schema::PartialEntityType,
+        },
+        id::VersionedUrl,
+        property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     provenance::EditionCreatedById,
-    schema::{
-        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, EntityType, EntityTypeMetadata,
-        EntityTypeWithMetadata, PartialEntityType, PropertyType,
-    },
-    url::VersionedUrl,
     web::OwnedById,
 };
 
@@ -246,7 +248,7 @@ pub trait EntityTypeStore {
     /// - if any account referred to by `metadata` does not exist.
     /// - if the [`BaseUrl`] of the `entity_type` already exists.
     ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_entity_type<R>(
         &mut self,
         actor_id: AccountId,
@@ -272,7 +274,7 @@ pub trait EntityTypeStore {
     /// - if any account referred to by the metadata does not exist.
     /// - if any [`BaseUrl`] of the entity type already exists.
     ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_entity_types<P, R>(
         &mut self,
         actor_id: AccountId,

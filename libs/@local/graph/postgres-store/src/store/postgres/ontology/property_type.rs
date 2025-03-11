@@ -36,15 +36,16 @@ use tracing::instrument;
 use type_system::{
     Validator as _,
     ontology::{
-        OntologyTemporalMetadata,
+        OntologyTemporalMetadata, OntologyTypeUuid,
+        data_type::DataTypeUuid,
+        id::{OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
+        property_type::{
+            PropertyTypeMetadata, PropertyTypeUuid, PropertyTypeWithMetadata,
+            schema::PropertyTypeValidator,
+        },
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     provenance::{EditionArchivedById, EditionCreatedById},
-    schema::{
-        DataTypeUuid, OntologyTypeUuid, PropertyTypeMetadata, PropertyTypeUuid,
-        PropertyTypeValidator, PropertyTypeWithMetadata,
-    },
-    url::{OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::store::{

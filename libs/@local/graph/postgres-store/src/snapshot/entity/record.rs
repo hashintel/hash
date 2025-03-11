@@ -5,7 +5,7 @@ use hash_graph_types::{
     knowledge::entity::{EntityId, EntityUuid},
 };
 use serde::{Deserialize, Serialize};
-use type_system::url::BaseUrl;
+use type_system::ontology::id::BaseUrl;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

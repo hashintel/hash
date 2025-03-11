@@ -13,7 +13,7 @@ mod value;
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use type_system::url::BaseUrl;
+use type_system::ontology::id::BaseUrl;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

@@ -286,7 +286,7 @@ mod tests {
         use std::collections::HashSet;
 
         use hash_graph_types::knowledge::entity::EntityUuid;
-        use type_system::{url::VersionedUrl, web::OwnedById};
+        use type_system::{ontology::id::VersionedUrl, web::OwnedById};
 
         use super::*;
         use crate::policies::{

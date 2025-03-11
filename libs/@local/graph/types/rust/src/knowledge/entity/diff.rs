@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 
 use serde::Serialize;
-use type_system::url::VersionedUrl;
+use type_system::ontology::id::VersionedUrl;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

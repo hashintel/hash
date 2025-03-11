@@ -42,13 +42,14 @@ use time::OffsetDateTime;
 use type_system::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        PropertyTypeWithMetadata,
+        id::{OntologyTypeVersion, VersionedUrl},
+        json_schema::{DomainValidator, ValidateOntologyType as _},
+        property_type::{
+            PropertyType, PropertyTypeMetadata, PropertyTypeUuid, schema::PropertyValueType,
+        },
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    schema::{
-        DomainValidator, PropertyType, PropertyTypeMetadata, PropertyTypeUuid,
-        PropertyTypeWithMetadata, PropertyValueType, ValidateOntologyType as _,
-    },
-    url::{OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };
 use utoipa::{OpenApi, ToSchema};

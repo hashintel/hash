@@ -1,4 +1,4 @@
-use type_system::{ontology::provenance::OntologyOwnership, url::OntologyTypeRecordId};
+use type_system::ontology::{id::OntologyTypeRecordId, provenance::OntologyOwnership};
 
 pub use self::lookup::DataTypeLookup;
 

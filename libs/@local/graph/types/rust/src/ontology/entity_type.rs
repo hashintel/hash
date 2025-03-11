@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use type_system::{
-    ontology::provenance::OntologyOwnership,
-    url::{OntologyTypeRecordId, VersionedUrl},
+use type_system::ontology::{
+    id::{OntologyTypeRecordId, VersionedUrl},
+    provenance::OntologyOwnership,
 };
 
 use crate::Embedding;

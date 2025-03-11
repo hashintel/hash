@@ -42,15 +42,16 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
     ontology::{
-        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        DataTypeWithMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
+        OntologyTypeReference,
+        data_type::{
+            ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
+            DataTypeMetadata, DataTypeUuid, Operator, Variable,
+        },
+        id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+        json_schema::{DomainValidator, JsonSchemaValueType, ValidateOntologyType as _},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    schema::{
-        ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeMetadata, DataTypeUuid, DataTypeWithMetadata, DomainValidator, JsonSchemaValueType,
-        Operator, ValidateOntologyType as _, Variable,
-    },
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };
 use utoipa::{OpenApi, ToSchema};

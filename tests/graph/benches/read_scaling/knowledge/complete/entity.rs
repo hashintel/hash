@@ -29,8 +29,8 @@ use hash_graph_types::{
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
 use type_system::{
+    ontology::entity_type::EntityType,
     provenance::{ActorType, OriginProvenance, OriginType},
-    schema::EntityType,
     web::OwnedById,
 };
 use uuid::Uuid;

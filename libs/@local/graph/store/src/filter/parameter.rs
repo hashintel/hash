@@ -8,8 +8,12 @@ use hash_graph_types::{Embedding, knowledge::entity::EntityEditionId};
 use serde::Deserialize;
 use type_system::{
     Value,
-    schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
-    url::{OntologyTypeVersion, VersionedUrl},
+    ontology::{
+        data_type::DataTypeUuid,
+        entity_type::EntityTypeUuid,
+        id::{OntologyTypeVersion, VersionedUrl},
+        property_type::PropertyTypeUuid,
+    },
 };
 use uuid::Uuid;
 

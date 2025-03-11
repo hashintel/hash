@@ -87,13 +87,12 @@ use tokio_postgres::{NoTls, Transaction};
 use type_system::{
     ontology::{
         OntologyTemporalMetadata,
+        data_type::{DataType, DataTypeMetadata},
+        entity_type::{EntityType, EntityTypeMetadata},
+        property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     provenance::{ActorType, OriginProvenance, OriginType},
-    schema::{
-        DataType, DataTypeMetadata, EntityType, EntityTypeMetadata, PropertyType,
-        PropertyTypeMetadata,
-    },
     web::OwnedById,
 };
 use uuid::Uuid;

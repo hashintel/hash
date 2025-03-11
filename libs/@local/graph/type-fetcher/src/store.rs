@@ -65,14 +65,14 @@ use tracing::Instrument as _;
 use type_system::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference, OntologyTypeSchema,
+        data_type::{DataType, DataTypeMetadata},
+        entity_type::{EntityType, EntityTypeMetadata, schema::EntityTypeReference},
+        id::VersionedUrl,
+        json_schema::DomainValidator,
+        property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     provenance::{ActorType, OriginProvenance, OriginType},
-    schema::{
-        DataType, DataTypeMetadata, DomainValidator, EntityType, EntityTypeMetadata,
-        EntityTypeReference, PropertyType, PropertyTypeMetadata,
-    },
-    url::VersionedUrl,
     web::OwnedById,
 };
 

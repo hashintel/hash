@@ -20,7 +20,7 @@ use hash_graph_types::{
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use tokio_postgres::GenericClient as _;
-use type_system::schema::{ClosedEntityType, ClosedMultiEntityType};
+use type_system::ontology::entity_type::{ClosedEntityType, ClosedMultiEntityType};
 
 use crate::{
     snapshot::WriteBatch,

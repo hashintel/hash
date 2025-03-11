@@ -4,9 +4,9 @@ use error_stack::Report;
 use hash_graph_types::knowledge::{
     entity::EntityId, property::visitor::ObjectPropertyValidationReport,
 };
-use type_system::{
-    schema::ResolveClosedEntityTypeError,
-    url::{BaseUrl, VersionedUrl},
+use type_system::ontology::{
+    entity_type::schema::ResolveClosedEntityTypeError,
+    id::{BaseUrl, VersionedUrl},
 };
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]

@@ -1,6 +1,8 @@
 use hash_graph_temporal_versioning::{ClosedTemporalBound, TemporalTagged as _, TimeAxis};
 use hash_graph_types::knowledge::entity::Entity;
-use type_system::schema::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata};
+use type_system::ontology::{
+    DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+};
 
 use crate::subgraph::identifier::{
     DataTypeVertexId, EntityTypeVertexId, EntityVertexId, PropertyTypeVertexId, VertexId,

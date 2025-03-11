@@ -12,7 +12,7 @@ use core::str::FromStr as _;
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
 use hash_graph_types::knowledge::entity::EntityUuid;
-use type_system::{url::VersionedUrl, web::OwnedById};
+use type_system::{ontology::id::VersionedUrl, web::OwnedById};
 use uuid::Uuid;
 
 pub use self::{

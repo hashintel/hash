@@ -4,10 +4,9 @@ use hash_graph_authorization::schema::{
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
-use type_system::{
-    ontology::OntologyTypeSchema,
-    schema::{DataType, EntityType, PropertyType},
-    url::VersionedUrl,
+use type_system::ontology::{
+    OntologyTypeSchema, data_type::DataType, entity_type::EntityType, id::VersionedUrl,
+    property_type::PropertyType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

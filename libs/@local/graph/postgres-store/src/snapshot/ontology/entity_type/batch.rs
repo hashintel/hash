@@ -6,7 +6,7 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::{entity_type::EntityTypeStore as _, error::InsertionError};
 use tokio_postgres::GenericClient as _;
-use type_system::schema::EntityTypeUuid;
+use type_system::ontology::entity_type::EntityTypeUuid;
 
 use crate::{
     snapshot::WriteBatch,

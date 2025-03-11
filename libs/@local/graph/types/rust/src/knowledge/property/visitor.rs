@@ -5,12 +5,18 @@ use error_stack::Report;
 use futures::FutureExt as _;
 use type_system::{
     Value,
-    schema::{
-        ConstraintError, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema,
-        PropertyType, PropertyTypeReference, PropertyValueArray, PropertyValueSchema,
-        PropertyValueType, PropertyValues, ValueOrArray,
+    ontology::{
+        data_type::schema::DataTypeReference,
+        id::{BaseUrl, VersionedUrl},
+        json_schema::{ConstraintError, JsonSchemaValueType},
+        property_type::{
+            PropertyType,
+            schema::{
+                PropertyObjectSchema, PropertyTypeReference, PropertyValueArray,
+                PropertyValueSchema, PropertyValueType, PropertyValues, ValueOrArray,
+            },
+        },
     },
-    url::{BaseUrl, VersionedUrl},
 };
 
 use crate::{

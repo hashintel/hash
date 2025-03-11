@@ -13,7 +13,10 @@ use futures::{
 use hash_graph_authorization::schema::PropertyTypeRelationAndSubject;
 use type_system::{
     Validator as _,
-    schema::{DataTypeUuid, PropertyTypeUuid, PropertyTypeValidator},
+    ontology::{
+        data_type::DataTypeUuid,
+        property_type::{PropertyTypeUuid, schema::PropertyTypeValidator},
+    },
 };
 
 use crate::{

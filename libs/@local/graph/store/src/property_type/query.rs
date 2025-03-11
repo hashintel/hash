@@ -31,7 +31,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```
     ///
     /// [`PropertyType`]: type_system::schema::PropertyType
-    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     BaseUrl,
     /// The version of the [`PropertyType`].
     ///
@@ -62,7 +62,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```
     ///
     /// [`PropertyType`]: type_system::schema::PropertyType
-    /// [`VersionedUrl`]: type_system::url::VersionedUrl
+    /// [`VersionedUrl`]: type_system::ontology::VersionedUrl
     VersionedUrl,
     /// The transaction time of the [`PropertyType`].
     ///

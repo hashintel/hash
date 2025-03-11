@@ -72,19 +72,21 @@ mod tests {
     use thiserror::Error;
     use type_system::{
         ontology::{
-            OntologyTemporalMetadata,
+            DataTypeWithMetadata, OntologyTemporalMetadata,
+            data_type::{
+                ClosedDataType, ConversionExpression, DataType, DataTypeMetadata, DataTypeUuid,
+                schema::DataTypeReference,
+            },
+            entity_type::{ClosedEntityType, ClosedMultiEntityType, EntityType, EntityTypeUuid},
+            id::{BaseUrl, OntologyTypeRecordId, VersionedUrl},
+            json_schema::OntologyTypeResolver,
+            property_type::PropertyType,
             provenance::{
                 OntologyEditionProvenance, OntologyOwnership, OntologyProvenance,
                 ProvidedOntologyEditionProvenance,
             },
         },
         provenance::{ActorType, EditionCreatedById, OriginProvenance, OriginType},
-        schema::{
-            ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConversionExpression,
-            DataType, DataTypeMetadata, DataTypeReference, DataTypeUuid, DataTypeWithMetadata,
-            EntityType, EntityTypeUuid, OntologyTypeResolver, PropertyType,
-        },
-        url::{BaseUrl, OntologyTypeRecordId, VersionedUrl},
         web::OwnedById,
     };
     use uuid::Uuid;

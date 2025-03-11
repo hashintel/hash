@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
-use type_system::url::BaseUrl;
+use type_system::ontology::id::BaseUrl;
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};
 

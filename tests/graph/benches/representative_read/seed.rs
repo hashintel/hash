@@ -17,9 +17,8 @@ use hash_graph_types::{
     },
 };
 use type_system::{
+    ontology::{entity_type::EntityType, id::VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
-    schema::EntityType,
-    url::VersionedUrl,
     web::OwnedById,
 };
 use uuid::Uuid;

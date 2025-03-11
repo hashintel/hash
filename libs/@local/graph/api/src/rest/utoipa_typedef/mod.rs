@@ -1,8 +1,10 @@
 pub(crate) mod subgraph;
 
 use serde::{Deserialize, Serialize};
-use type_system::schema::{
-    DataType, DataTypeMetadata, EntityType, EntityTypeMetadata, PropertyType, PropertyTypeMetadata,
+use type_system::ontology::{
+    data_type::{DataType, DataTypeMetadata},
+    entity_type::{EntityType, EntityTypeMetadata},
+    property_type::{PropertyType, PropertyTypeMetadata},
 };
 use utoipa::{
     ToSchema,

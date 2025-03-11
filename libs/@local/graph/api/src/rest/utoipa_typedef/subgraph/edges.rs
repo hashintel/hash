@@ -12,7 +12,7 @@ use hash_graph_store::subgraph::{
 use hash_graph_temporal_versioning::Timestamp;
 use hash_graph_types::knowledge::entity::EntityId;
 use serde::Serialize;
-use type_system::url::{BaseUrl, OntologyTypeVersion};
+use type_system::ontology::id::{BaseUrl, OntologyTypeVersion};
 use utoipa::{
     ToSchema,
     openapi::{ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema, schema::AdditionalProperties},
@@ -247,7 +247,7 @@ mod tests {
     };
     use hash_graph_types::knowledge::entity::{EntityId, EntityUuid};
     use type_system::{
-        url::{BaseUrl, OntologyTypeVersion},
+        ontology::id::{BaseUrl, OntologyTypeVersion},
         web::OwnedById,
     };
     use uuid::Uuid;

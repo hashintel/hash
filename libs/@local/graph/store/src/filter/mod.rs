@@ -12,12 +12,10 @@ use hash_graph_types::{
     ontology::DataTypeLookup,
 };
 use serde::{Deserialize, de, de::IntoDeserializer as _};
-use type_system::{
-    schema::{
-        DataTypeReference, DataTypeUuid, DataTypeWithMetadata, PropertyTypeUuid,
-        PropertyTypeWithMetadata,
-    },
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+use type_system::ontology::{
+    data_type::{DataTypeUuid, DataTypeWithMetadata, schema::DataTypeReference},
+    id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
 };
 
 pub use self::{
@@ -87,12 +85,12 @@ pub trait QueryRecord: Sized + Send {
 pub trait OntologyQueryPath {
     /// Returns the path identifying the [`BaseUrl`].
     ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn base_url() -> Self;
 
     /// Returns the path identifying the [`OntologyTypeVersion`].
     ///
-    /// [`OntologyTypeVersion`]: type_system::url::OntologyTypeVersion
+    /// [`OntologyTypeVersion`]: type_system::ontology::OntologyTypeVersion
     fn version() -> Self;
 }
 
@@ -543,7 +541,7 @@ mod tests {
     use hash_graph_types::knowledge::entity::{DraftId, EntityUuid};
     use serde_json::json;
     use type_system::{
-        schema::{ClosedDataType, ConversionExpression, DataTypeReference, DataTypeWithMetadata},
+        ontology::data_type::{ClosedDataType, ConversionExpression},
         web::OwnedById,
     };
     use uuid::Uuid;

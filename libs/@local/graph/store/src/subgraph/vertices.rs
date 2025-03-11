@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use hash_graph_types::knowledge::entity::Entity;
-use type_system::schema::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata};
+use type_system::ontology::{
+    DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+};
 
 use crate::subgraph::identifier::{
     DataTypeVertexId, EntityTypeVertexId, EntityVertexId, PropertyTypeVertexId,

@@ -54,11 +54,12 @@ use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
 use type_system::{
-    schema::{
-        DataTypeUuid, DataTypeWithMetadata, EntityTypeUuid, EntityTypeWithMetadata,
-        PropertyTypeUuid, PropertyTypeWithMetadata,
+    ontology::{
+        data_type::{DataTypeUuid, DataTypeWithMetadata},
+        entity_type::{EntityTypeUuid, EntityTypeWithMetadata},
+        id::VersionedUrl,
+        property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
-    url::VersionedUrl,
     web::OwnedById,
 };
 

@@ -7,7 +7,9 @@ use hash_graph_types::{
     knowledge::entity::{EntityId, EntityUuid},
 };
 use type_system::{
-    schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
+    ontology::{
+        data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
+    },
     web::OwnedById,
 };
 

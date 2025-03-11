@@ -9,13 +9,10 @@ use futures::{
     channel::mpsc::{self, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use type_system::{
-    ontology::{
-        OntologyTemporalMetadata,
-        provenance::{OntologyOwnership, OntologyProvenance},
-    },
-    schema::OntologyTypeUuid,
-    url::OntologyTypeRecordId,
+use type_system::ontology::{
+    OntologyTemporalMetadata, OntologyTypeUuid,
+    id::OntologyTypeRecordId,
+    provenance::{OntologyOwnership, OntologyProvenance},
 };
 
 use crate::{

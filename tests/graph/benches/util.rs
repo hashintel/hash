@@ -31,9 +31,13 @@ use tokio_postgres::NoTls;
 use tracing_flame::FlameLayer;
 use tracing_subscriber::{prelude::*, registry::Registry};
 use type_system::{
-    ontology::provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    ontology::{
+        data_type::DataType,
+        entity_type::EntityType,
+        property_type::PropertyType,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
     provenance::{ActorType, OriginProvenance, OriginType},
-    schema::{DataType, EntityType, PropertyType},
     web::OwnedById,
 };
 

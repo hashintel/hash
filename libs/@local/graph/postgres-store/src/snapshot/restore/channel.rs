@@ -12,7 +12,9 @@ use futures::{
 };
 use hash_graph_authorization::schema::EntityRelationAndSubject;
 use hash_graph_types::knowledge::entity::EntityUuid;
-use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
+use type_system::ontology::{
+    data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
+};
 
 use crate::{
     snapshot::{

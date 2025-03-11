@@ -1,4 +1,4 @@
-use type_system::schema::PropertyTypeWithMetadata;
+use type_system::ontology::PropertyTypeWithMetadata;
 
 pub(crate) use self::query::PropertyTypeQueryPathVisitor;
 pub use self::{

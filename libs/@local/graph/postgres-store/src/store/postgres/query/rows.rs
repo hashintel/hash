@@ -16,12 +16,14 @@ use postgres_types::ToSql;
 use time::OffsetDateTime;
 use type_system::{
     Valid,
-    ontology::provenance::OntologyEditionProvenance,
-    schema::{
-        ClosedDataType, ClosedEntityType, ConversionDefinition, DataType, DataTypeUuid, EntityType,
-        EntityTypeUuid, InheritanceDepth, OntologyTypeUuid, PropertyType, PropertyTypeUuid,
+    ontology::{
+        InheritanceDepth, OntologyTypeUuid,
+        data_type::{ClosedDataType, ConversionDefinition, DataType, DataTypeUuid},
+        entity_type::{ClosedEntityType, EntityType, EntityTypeUuid},
+        id::{BaseUrl, OntologyTypeVersion},
+        property_type::{PropertyType, PropertyTypeUuid},
+        provenance::OntologyEditionProvenance,
     },
-    url::{BaseUrl, OntologyTypeVersion},
     web::OwnedById,
 };
 

@@ -25,8 +25,8 @@ use hash_graph_types::knowledge::{
 };
 use pretty_assertions::assert_eq;
 use type_system::{
+    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };
 use uuid::Uuid;

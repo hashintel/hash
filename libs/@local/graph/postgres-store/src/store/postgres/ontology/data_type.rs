@@ -41,16 +41,17 @@ use tracing::instrument;
 use type_system::{
     Valid, Validator as _,
     ontology::{
-        OntologyTemporalMetadata,
+        InheritanceDepth, OntologyTemporalMetadata, OntologyTypeUuid,
+        data_type::{
+            ClosedDataType, ConversionDefinition, Conversions, DataTypeMetadata, DataTypeUuid,
+            DataTypeWithMetadata,
+            schema::{DataType, DataTypeEdge, DataTypeResolveData, DataTypeValidator},
+        },
+        id::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
+        json_schema::OntologyTypeResolver,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     provenance::{EditionArchivedById, EditionCreatedById},
-    schema::{
-        ClosedDataType, ConversionDefinition, Conversions, DataType, DataTypeEdge,
-        DataTypeMetadata, DataTypeResolveData, DataTypeUuid, DataTypeValidator,
-        DataTypeWithMetadata, InheritanceDepth, OntologyTypeResolver, OntologyTypeUuid,
-    },
-    url::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::store::{

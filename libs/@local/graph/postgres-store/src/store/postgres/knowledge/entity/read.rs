@@ -16,7 +16,10 @@ use hash_graph_temporal_versioning::{
 use hash_graph_types::knowledge::entity::{EntityEditionId, EntityId, EntityUuid};
 use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
-use type_system::{schema::OntologyTypeUuid, url::BaseUrl, web::OwnedById};
+use type_system::{
+    ontology::{OntologyTypeUuid, id::BaseUrl},
+    web::OwnedById,
+};
 
 use crate::store::postgres::{
     AsClient, PostgresStore,

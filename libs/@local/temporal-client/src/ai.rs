@@ -7,7 +7,9 @@ use temporal_client::{WorkflowClientTrait as _, WorkflowOptions};
 use temporal_sdk_core_protos::{
     ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL, temporal::api::common::v1::Payload,
 };
-use type_system::schema::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata};
+use type_system::ontology::{
+    DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+};
 use uuid::Uuid;
 
 use crate::{TemporalClient, WorkflowError};

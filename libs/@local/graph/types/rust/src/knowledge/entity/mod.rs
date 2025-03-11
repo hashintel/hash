@@ -10,7 +10,7 @@ use hash_graph_temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, T
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use type_system::{
-    url::{BaseUrl, VersionedUrl},
+    ontology::id::{BaseUrl, VersionedUrl},
     web::OwnedById,
 };
 #[cfg(feature = "utoipa")]
@@ -379,7 +379,7 @@ mod tests {
         use alloc::borrow::Cow;
         use core::iter::once;
 
-        use type_system::url::BaseUrl;
+        use type_system::ontology::id::BaseUrl;
 
         use crate::knowledge::property::{
             Property, PropertyDiff, PropertyPath, PropertyPathElement,

@@ -14,11 +14,13 @@ use futures::{
 use hash_graph_authorization::schema::EntityTypeRelationAndSubject;
 use type_system::{
     Valid, Validator as _,
-    schema::{
-        ClosedEntityType, EntityConstraints, EntityTypeUuid, EntityTypeValidator,
-        InverseEntityTypeMetadata,
+    ontology::{
+        entity_type::{
+            ClosedEntityType, EntityTypeUuid,
+            schema::{EntityConstraints, EntityTypeValidator, InverseEntityTypeMetadata},
+        },
+        id::{OntologyTypeVersion, VersionedUrl},
     },
-    url::{OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::{

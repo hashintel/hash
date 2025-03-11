@@ -28,10 +28,12 @@ use hash_graph_types::knowledge::{
 use time::OffsetDateTime;
 use type_system::{
     Value,
-    ontology::provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    ontology::{
+        data_type::{DataType, DataTypeUuid, DataTypeWithMetadata},
+        id::{BaseUrl, VersionedUrl},
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
     provenance::{ActorType, OriginProvenance, OriginType},
-    schema::{DataType, DataTypeUuid, DataTypeWithMetadata},
-    url::{BaseUrl, VersionedUrl},
     web::OwnedById,
 };
 

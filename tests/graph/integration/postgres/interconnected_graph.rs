@@ -9,8 +9,8 @@ use hash_graph_types::knowledge::{
     property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
 };
 use type_system::{
+    ontology::id::VersionedUrl,
     provenance::{ActorType, OriginProvenance, OriginType},
-    url::VersionedUrl,
     web::OwnedById,
 };
 use uuid::Uuid;

@@ -13,7 +13,7 @@ pub use self::{
 mod query;
 mod store;
 
-use type_system::schema::DataTypeWithMetadata;
+use type_system::ontology::DataTypeWithMetadata;
 
 use crate::filter::QueryRecord;
 

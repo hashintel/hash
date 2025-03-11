@@ -6,7 +6,7 @@ use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use smol_str::SmolStr;
 use type_system::{
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };
 
@@ -217,7 +217,7 @@ mod tests {
 
     use hash_graph_types::knowledge::entity::EntityUuid;
     use serde_json::json;
-    use type_system::{url::VersionedUrl, web::OwnedById};
+    use type_system::{ontology::id::VersionedUrl, web::OwnedById};
     use uuid::Uuid;
 
     use super::{EntityTypeId, EntityTypeResourceConstraint};

@@ -19,11 +19,11 @@ use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
 use type_system::{
-    ontology::provenance::OntologyOwnership,
-    schema::{
+    ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeUuid, PropertyTypeWithMetadata,
+        id::{BaseUrl, VersionedUrl},
+        provenance::OntologyOwnership,
     },
-    url::{BaseUrl, VersionedUrl},
     web::OwnedById,
 };
 

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use type_system::{
     Value,
-    url::{BaseUrl, VersionedUrl},
+    ontology::id::{BaseUrl, VersionedUrl},
 };
 
 use crate::knowledge::{Confidence, property::PropertyProvenance};

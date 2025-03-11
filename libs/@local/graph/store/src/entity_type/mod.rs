@@ -14,7 +14,7 @@ pub use self::{
 mod query;
 mod store;
 
-use type_system::schema::EntityTypeWithMetadata;
+use type_system::ontology::entity_type::EntityTypeWithMetadata;
 
 use crate::filter::QueryRecord;
 

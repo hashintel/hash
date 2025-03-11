@@ -12,9 +12,11 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, property_type};
 use type_system::{
-    ontology::provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    ontology::{
+        property_type::PropertyType,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
     provenance::{ActorType, OriginProvenance, OriginType},
-    schema::PropertyType,
     web::OwnedById,
 };
 

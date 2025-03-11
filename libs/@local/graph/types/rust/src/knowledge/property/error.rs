@@ -3,8 +3,10 @@ use std::collections::HashSet;
 use error_stack::Report;
 use type_system::{
     Value,
-    schema::{ClosedMultiEntityType, DataType, PropertyType},
-    url::VersionedUrl,
+    ontology::{
+        data_type::DataType, entity_type::ClosedMultiEntityType, id::VersionedUrl,
+        property_type::PropertyType,
+    },
 };
 
 use crate::knowledge::property::{PropertyWithMetadata, PropertyWithMetadataObject};

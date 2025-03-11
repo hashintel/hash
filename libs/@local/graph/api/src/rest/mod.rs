@@ -78,13 +78,16 @@ use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        data_type::DataTypeMetadata,
+        entity_type::EntityTypeMetadata,
+        id::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
+        json_schema::DomainValidator,
+        property_type::PropertyTypeMetadata,
         provenance::{
             OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
         },
     },
     provenance::{CreatedById, EditionArchivedById, EditionCreatedById},
-    schema::{DataTypeMetadata, DomainValidator, EntityTypeMetadata, PropertyTypeMetadata},
-    url::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };
 use utoipa::{

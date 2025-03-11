@@ -1,11 +1,12 @@
 use core::{borrow::Borrow, error::Error};
 
 use error_stack::{FutureExt as _, Report};
-use type_system::{
-    schema::{
-        ClosedDataType, ConversionExpression, DataTypeReference, DataTypeUuid, DataTypeWithMetadata,
+use type_system::ontology::{
+    data_type::{
+        ConversionExpression, DataTypeUuid, DataTypeWithMetadata,
+        schema::{ClosedDataType, DataTypeReference},
     },
-    url::BaseUrl,
+    id::BaseUrl,
 };
 
 #[trait_variant::make(Send)]

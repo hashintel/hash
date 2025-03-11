@@ -232,8 +232,6 @@ extern crate alloc;
 pub mod knowledge;
 pub mod ontology;
 pub mod provenance;
-pub mod schema;
-pub mod url;
 mod utils;
 pub mod web;
 

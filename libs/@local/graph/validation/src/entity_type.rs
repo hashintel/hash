@@ -34,13 +34,16 @@ use hash_graph_types::{
 use thiserror::Error;
 use type_system::{
     Value,
-    schema::{
-        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConstraintValidator as _,
-        DataTypeReference, JsonSchemaValueType, PropertyObjectSchema, PropertyType,
-        PropertyTypeReference, PropertyValueArray, PropertyValueSchema, PropertyValues,
-        ValueOrArray,
+    ontology::{
+        data_type::schema::{ClosedDataType, DataTypeReference},
+        entity_type::schema::{ClosedEntityType, ClosedMultiEntityType},
+        id::VersionedUrl,
+        json_schema::{ConstraintValidator as _, JsonSchemaValueType},
+        property_type::schema::{
+            PropertyObjectSchema, PropertyType, PropertyTypeReference, PropertyValueArray,
+            PropertyValueSchema, PropertyValues, ValueOrArray,
+        },
     },
-    url::VersionedUrl,
 };
 
 use crate::{EntityProvider, Validate};

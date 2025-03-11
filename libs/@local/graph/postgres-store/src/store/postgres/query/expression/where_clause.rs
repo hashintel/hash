@@ -128,7 +128,7 @@ mod tests {
         filter::{Filter, FilterExpression, Parameter},
         subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
-    use type_system::schema::DataTypeWithMetadata;
+    use type_system::ontology::DataTypeWithMetadata;
 
     use super::*;
     use crate::store::postgres::query::{SelectCompiler, test_helper::trim_whitespace};

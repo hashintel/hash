@@ -154,7 +154,7 @@ mod tests {
         filter::{Filter, FilterExpression, Parameter},
     };
     use postgres_types::ToSql;
-    use type_system::schema::DataTypeWithMetadata;
+    use type_system::ontology::DataTypeWithMetadata;
 
     use crate::store::postgres::query::{SelectCompiler, Transpile as _};
 

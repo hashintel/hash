@@ -42,7 +42,7 @@ pub enum DataTypeQueryPath<'p> {
     /// ```
     ///
     /// [`DataType`]: type_system::schema::DataType
-    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     BaseUrl,
     /// The version of the [`DataType`].
     ///
@@ -88,7 +88,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`VersionedUrl`]: type_system::url::VersionedUrl
+    /// [`VersionedUrl`]: type_system::ontology::VersionedUrl
     /// [`DataType`]: type_system::schema::DataType
     VersionedUrl,
     /// The transaction time of the [`DataType`].

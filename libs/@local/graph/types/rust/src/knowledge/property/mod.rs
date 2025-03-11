@@ -1,7 +1,10 @@
 pub mod error;
 pub mod visitor;
 
-use type_system::{Value, schema::PropertyValueType};
+use type_system::{
+    Value,
+    ontology::{json_schema::JsonSchemaValueType, property_type::schema::PropertyValueType},
+};
 
 pub use self::{
     array::PropertyWithMetadataArray,
@@ -28,10 +31,7 @@ use std::{collections::HashMap, io};
 
 use error_stack::{Report, ResultExt as _};
 use serde::{Deserialize, Serialize};
-use type_system::{
-    schema::JsonSchemaValueType,
-    url::{BaseUrl, VersionedUrl},
-};
+use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

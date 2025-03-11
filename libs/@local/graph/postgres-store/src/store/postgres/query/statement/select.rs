@@ -130,7 +130,7 @@ mod tests {
     };
     use hash_graph_types::{Embedding, knowledge::entity::Entity};
     use postgres_types::ToSql;
-    use type_system::schema::{
+    use type_system::ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
     };
     use uuid::Uuid;
@@ -1204,7 +1204,7 @@ mod tests {
     mod predefined {
         use hash_graph_types::knowledge::entity::{EntityId, EntityUuid};
         use type_system::{
-            url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+            ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
             web::OwnedById,
         };
 

@@ -68,12 +68,15 @@ use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     Value,
-    provenance::{CreatedById, EditionArchivedById, EditionCreatedById},
-    schema::{
-        ClosedEntityType, ClosedMultiEntityType, DataTypeReference, EntityTypeUuid,
-        EntityTypeWithMetadata, InheritanceDepth, OntologyTypeUuid,
+    ontology::{
+        InheritanceDepth, OntologyTypeUuid,
+        data_type::schema::DataTypeReference,
+        entity_type::{
+            ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, EntityTypeWithMetadata,
+        },
+        id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     },
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    provenance::{CreatedById, EditionArchivedById, EditionCreatedById},
     web::OwnedById,
 };
 use uuid::Uuid;

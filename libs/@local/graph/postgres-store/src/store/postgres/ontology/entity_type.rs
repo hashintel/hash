@@ -45,17 +45,22 @@ use tracing::{Instrument as _, instrument};
 use type_system::{
     Valid, Validator as _,
     ontology::{
-        OntologyTemporalMetadata,
+        EntityTypeWithMetadata, InheritanceDepth, OntologyTemporalMetadata, OntologyTypeUuid,
+        data_type::{ClosedDataType, DataType, DataTypeUuid},
+        entity_type::{
+            ClosedEntityType, ClosedMultiEntityType, EntityType, EntityTypeMetadata,
+            EntityTypeUuid,
+            schema::{
+                EntityTypeResolveData, EntityTypeToPropertyTypeEdge, EntityTypeValidator,
+                PartialEntityType,
+            },
+        },
+        id::{OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
+        json_schema::OntologyTypeResolver,
+        property_type::PropertyTypeUuid,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     provenance::{EditionArchivedById, EditionCreatedById},
-    schema::{
-        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, DataType, DataTypeUuid,
-        EntityType, EntityTypeMetadata, EntityTypeResolveData, EntityTypeToPropertyTypeEdge,
-        EntityTypeUuid, EntityTypeValidator, EntityTypeWithMetadata, InheritanceDepth,
-        OntologyTypeResolver, OntologyTypeUuid, PartialEntityType, PropertyTypeUuid,
-    },
-    url::{OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };
 

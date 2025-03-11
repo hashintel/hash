@@ -1,4 +1,4 @@
-use type_system::url::VersionedUrl;
+use type_system::ontology::id::VersionedUrl;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

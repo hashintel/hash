@@ -24,8 +24,8 @@ use hash_graph_types::knowledge::{
     property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
 };
 use type_system::{
+    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };
 

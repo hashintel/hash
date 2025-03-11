@@ -11,7 +11,7 @@ use serde::Deserialize as _;
 use tokio_postgres::Row;
 use tracing::instrument;
 use type_system::{
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };
 use uuid::Uuid;

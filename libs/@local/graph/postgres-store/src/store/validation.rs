@@ -28,12 +28,16 @@ use tokio::sync::RwLock;
 use tokio_postgres::GenericClient as _;
 use type_system::{
     Valid,
-    schema::{
-        ClosedDataType, ClosedEntityType, ConversionDefinition, ConversionExpression,
-        DataTypeReference, DataTypeUuid, DataTypeWithMetadata, EntityTypeUuid,
-        EntityTypeWithMetadata, PropertyType, PropertyTypeUuid, PropertyTypeWithMetadata,
+    ontology::{
+        DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+        data_type::{
+            ClosedDataType, ConversionDefinition, ConversionExpression, DataTypeUuid,
+            schema::DataTypeReference,
+        },
+        entity_type::{ClosedEntityType, EntityTypeUuid},
+        id::{BaseUrl, VersionedUrl},
+        property_type::{PropertyType, PropertyTypeUuid},
     },
-    url::{BaseUrl, VersionedUrl},
 };
 
 use crate::store::postgres::{AsClient, PostgresStore};

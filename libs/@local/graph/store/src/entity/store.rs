@@ -18,9 +18,8 @@ use hash_graph_types::{
 };
 use serde::{Deserialize, Serialize};
 use type_system::{
+    ontology::{entity_type::ClosedMultiEntityType, id::VersionedUrl},
     provenance::{CreatedById, EditionCreatedById},
-    schema::ClosedMultiEntityType,
-    url::VersionedUrl,
     web::OwnedById,
 };
 #[cfg(feature = "utoipa")]
