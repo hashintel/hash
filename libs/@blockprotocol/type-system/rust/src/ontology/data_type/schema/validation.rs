@@ -41,7 +41,7 @@ pub enum ValidateDataTypeError {
 /// ```
 /// use serde_json::json;
 /// use type_system::{
-///     schema::{DataType, DataTypeValidator},
+///     ontology::data_type::schema::{DataType, DataTypeValidator},
 ///     Valid, Validator
 /// };
 ///

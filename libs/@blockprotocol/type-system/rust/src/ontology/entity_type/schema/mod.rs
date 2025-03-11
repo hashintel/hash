@@ -132,8 +132,10 @@ pub struct EntityTypeDisplayMetadata {
 /// ```
 /// use serde_json::json;
 /// use type_system::{
-///     schema::EntityType,
-///     ontology::BaseUrl,
+///     ontology::{
+///         entity_type::schema::EntityType,
+///         id::BaseUrl,
+///     },
 /// };
 ///
 /// // Define a Person entity type with properties and links
@@ -281,7 +283,7 @@ impl EntityType {
     /// # Examples
     ///
     /// ```
-    /// use type_system::schema::{EntityType, EntityTypeToEntityTypeEdge};
+    /// use type_system::ontology::entity_type::schema::{EntityType, EntityTypeToEntityTypeEdge};
     /// use serde_json::json;
     ///
     /// let entity_type_json = json!({
@@ -354,7 +356,7 @@ impl EntityType {
     /// # Examples
     ///
     /// ```
-    /// use type_system::schema::{EntityType, EntityTypeToPropertyTypeEdge};
+    /// use type_system::ontology::entity_type::schema::{EntityType, EntityTypeToPropertyTypeEdge};
     /// use serde_json::json;
     ///
     /// let entity_type_json = json!({
@@ -407,7 +409,7 @@ impl EntityType {
     /// # Examples
     ///
     /// ```
-    /// use type_system::schema::EntityType;
+    /// use type_system::ontology::entity_type::schema::EntityType;
     /// use serde_json::json;
     ///
     /// let entity_type_json = json!({

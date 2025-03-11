@@ -16,7 +16,7 @@
 //! ```
 //! use std::str::FromStr;
 //!
-//! use type_system::ontology::{BaseUrl, VersionedUrl};
+//! use type_system::ontology::id::{BaseUrl, VersionedUrl};
 //!
 //! // Create a base URL
 //! let base = BaseUrl::new("https://example.com/types/data-type/text/".to_owned())
@@ -62,7 +62,7 @@ mod error;
 /// # Examples
 ///
 /// ```
-/// use type_system::ontology::BaseUrl;
+/// use type_system::ontology::id::BaseUrl;
 ///
 /// let base_url = BaseUrl::new("https://example.com/types/data-type/text/".to_owned())
 ///     .expect("should create a valid BaseUrl");
@@ -225,7 +225,7 @@ impl<'a> FromSql<'a> for BaseUrl {
 /// # Examples
 ///
 /// ```
-/// use type_system::url::OntologyTypeVersion;
+/// use type_system::ontology::id::OntologyTypeVersion;
 ///
 /// let version = OntologyTypeVersion::new(1);
 /// assert_eq!(version.inner(), 1);
@@ -300,14 +300,14 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 /// ```
 /// use std::str::FromStr;
 ///
-/// use type_system::ontology::VersionedUrl;
+/// use type_system::ontology::id::{ParseVersionedUrlError, VersionedUrl};
 ///
 /// let url = VersionedUrl::from_str("https://example.com/types/data-type/text/v/1")?;
 /// assert_eq!(
 ///     url.to_string(),
 ///     "https://example.com/types/data-type/text/v/1"
 /// );
-/// # Ok::<(), type_system::ontology::url::ParseVersionedUrlError>(())
+/// # Ok::<(), ParseVersionedUrlError>(())
 /// ```
 ///
 /// # Errors
@@ -490,7 +490,9 @@ impl ToSchema<'_> for VersionedUrl {
 /// ```
 /// use std::str::FromStr;
 ///
-/// use type_system::ontology::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl};
+/// use type_system::ontology::id::{
+///     BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl,
+/// };
 ///
 /// // Create from individual components
 /// let base_url = BaseUrl::new("https://example.com/types/data-type/text/".to_owned())?;

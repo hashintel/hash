@@ -73,7 +73,7 @@ use crate::ontology::{
 ///
 /// ```
 /// use serde_json::json;
-/// use type_system::schema::PropertyType;
+/// use type_system::ontology::property_type::schema::PropertyType;
 ///
 /// // Define a property type that can be either a string or a number
 /// let user_id_json = json!({
@@ -158,7 +158,7 @@ impl PropertyType {
     ///
     /// ```
     /// use serde_json::json;
-    /// use type_system::schema::PropertyType;
+    /// use type_system::ontology::property_type::schema::PropertyType;
     ///
     /// let property_type_json = json!({
     ///     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
@@ -200,7 +200,7 @@ impl PropertyType {
     ///
     /// ```
     /// use serde_json::json;
-    /// use type_system::schema::PropertyType;
+    /// use type_system::ontology::property_type::schema::PropertyType;
     ///
     /// let property_type_json = json!({
     ///     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",

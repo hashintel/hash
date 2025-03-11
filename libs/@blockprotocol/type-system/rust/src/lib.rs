@@ -58,7 +58,10 @@
 //!
 //! use time::OffsetDateTime;
 //! use type_system::{
-//!     ontology::provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
+//!     ontology::provenance::{
+//!         OntologyEditionProvenance, OntologyOwnership, OntologyProvenance,
+//!         ProvidedOntologyEditionProvenance,
+//!     },
 //!     provenance::{ActorType, EditionCreatedById, OriginProvenance, OriginType},
 //!     web::OwnedById,
 //! };
@@ -66,7 +69,7 @@
 //!
 //! // Create ownership information for a locally owned type
 //! let web_id = Uuid::from_str("01234567-89ab-cdef-0123-456789abcdef").unwrap();
-//! let owned_by_id = OwnedById::from(web_id);
+//! let owned_by_id = OwnedById::new(web_id);
 //! let ownership = OntologyOwnership::Local { owned_by_id };
 //!
 //! // Alternative: For a type fetched from elsewhere
@@ -77,16 +80,24 @@
 //! // Create provenance information
 //! let actor_id = Uuid::from_str("12345678-90ab-cdef-1234-567890abcdef").unwrap();
 //! let edition_provenance = OntologyEditionProvenance {
-//!     created_by_id: EditionCreatedById::from(actor_id),
+//!     created_by_id: EditionCreatedById::new(actor_id),
 //!     archived_by_id: None,
 //!     user_defined: {
 //!         // User-defined provenance information
-//!         let actor_type = ActorType::User;
+//!         let actor_type = ActorType::Human;
 //!         let origin = OriginProvenance {
-//!             type_: OriginType::Authored,
+//!             ty: OriginType::WebApp,
+//!             id: None,
+//!             version: None,
+//!             semantic_version: None,
+//!             environment: None,
+//!             device_id: None,
+//!             session_id: None,
+//!             api_key_public_id: None,
+//!             user_agent: None,
 //!         };
 //!         // Create the user-defined provenance
-//!         type_system::ontology::provenance::ProvidedOntologyEditionProvenance {
+//!         ProvidedOntologyEditionProvenance {
 //!             sources: vec![],
 //!             actor_type,
 //!             origin,
@@ -109,7 +120,7 @@
 //! ```
 //! use serde_json::json;
 //! use type_system::{
-//!     schema::{DataType, DataTypeValidator},
+//!     ontology::data_type::schema::{DataType, DataTypeValidator},
 //!     Valid, Validator, Value
 //! };
 //!
@@ -156,13 +167,14 @@
 //! # use serde_json::json;
 //! # use type_system::{
 //! #     Value,
-//! #     schema::{
-//! #         ClosedDataType, DataType, DataTypeReference, DataTypeUuid, InheritanceDepth,
-//! #         OntologyTypeResolver,
+//! #     ontology::{
+//! #         data_type::{schema::{ClosedDataType, DataType, DataTypeReference}, DataTypeUuid},
+//! #         InheritanceDepth,
+//! #         json_schema::OntologyTypeResolver,
 //! #     },
 //! # };
 //! #
-//! # use crate::type_system::schema::ConstraintValidator;
+//! # use type_system::ontology::json_schema::ConstraintValidator;
 //! #
 //! # let number_type: DataType = serde_json::from_value(json!({
 //! #     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -215,7 +227,7 @@
 //! use serde_json::json;
 //! use type_system::{
 //!     Value, Valid, Validator,
-//!     schema::{DataType, DataTypeValidator, ClosedDataType}
+//!     ontology::data_type::schema::{DataType, DataTypeValidator, ClosedDataType}
 //! };
 //!
 //! # // This shows how you might write tests for type validation

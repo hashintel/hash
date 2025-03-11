@@ -375,7 +375,7 @@ mod raw {
 ///
 /// ```
 /// use serde_json::json;
-/// use type_system::schema::DataType;
+/// use type_system::ontology::data_type::schema::DataType;
 ///
 /// // Define a parent text data type
 /// let text_type_json = json!({
@@ -515,7 +515,7 @@ impl DataType {
     ///
     /// ```
     /// use serde_json::json;
-    /// use type_system::schema::{DataType, DataTypeEdge};
+    /// use type_system::ontology::data_type::schema::{DataType, DataTypeEdge};
     ///
     /// let data_type = serde_json::from_value::<DataType>(json!({
     ///     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
