@@ -38,6 +38,12 @@ pub trait AuthorizationApi: Send + Sync {
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
+    fn get_account_group_relations(
+        &self,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>>> + Send;
+
     fn modify_account_group_relations(
         &mut self,
         relationships: impl IntoIterator<
@@ -290,6 +296,16 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
     ) -> Result<CheckResponse, Report<CheckError>> {
         (**self)
             .check_account_group_permission(actor, permission, account_group, consistency)
+            .await
+    }
+
+    async fn get_account_group_relations(
+        &self,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
+    ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
+        (**self)
+            .get_account_group_relations(account_group, consistency)
             .await
     }
 
