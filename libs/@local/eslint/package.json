@@ -24,7 +24,7 @@
     "@babel/eslint-parser": "7.26.8",
     "@eslint/compat": "1.2.7",
     "@eslint/eslintrc": "3.3.0",
-    "effect": "3.13.8",
+    "effect": "3.13.9",
     "eslint": "9.20.1",
     "eslint-config-airbnb": "19.0.4",
     "eslint-config-flat-gitignore": "2.1.0",
