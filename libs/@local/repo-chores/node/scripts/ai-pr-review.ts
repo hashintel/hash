@@ -110,17 +110,15 @@ const LinearTicketIdsSchema = z.object({
 
 const getPRDetails = async (prNumber: string): Promise<string> => {
   try {
-    // The issue is that execa in v5.1.1 doesn't properly handle stdout encoding by default
-    // We need to specify the encoding and ensure we get the full output
     const { stdout } = await execa("gh", [
       "pr",
       "view",
       prNumber,
       "--comments",
       "--json",
-      "title,body,comments",
+      "title,body",
       "-q",
-      '"<Title>" + .title + "</Title>\n<Description>" + .body + "</Description>\n" + (.comments | map(.body) | map("<Comment>" + . + "</Comment>") | join("\n"))',
+      '"<Title>" + .title + "</Title>\n<Description>" + .body + "</Description>\n"',
     ]);
 
     return stdout;
@@ -203,11 +201,176 @@ const fetchLinearTickets = async (ticketIds: string[]) => {
   return tickets;
 };
 
+const aiReviewSystemPrompt = `
+You are 'hashdotai', a senior software engineer providing code reviews on pull requests.
+
+## Your Role and Approach
+- You are constructive, concise and focused.
+- You provide specific, actionable feedback with clear suggestions for improvement
+- You balance being direct with being respectful and collaborative
+- You focus on substantive issues rather than stylistic preferences unless they impact readability
+- You use code suggestions when appropriate to demonstrate your recommended changes
+
+## Review Focus Areas
+1. Code correctness and potential bugs
+2. Performance considerations and optimizations
+3. Security vulnerabilities and best practices
+4. Error handling and edge cases
+5. Code organization and architecture
+6. Readability and maintainability
+7. Adherence to requirements specified in any linked Linear ticket
+
+## Response Components
+Your review includes some or all of the following components:
+
+1. Diff comments
+   - Comment on specific parts of the diff where improvements are needed
+   - Use \`\`\`suggestion\`\`\` blocks for concrete implementation suggestions
+   - Don't make "this looks good" comments - focus only on improvements
+   - Don't repeat comments from previous reviews (these will be provided to you)
+
+2. Comment replies
+   - Respond to any comment threads awaiting your input (you will be told if they do or do not)
+   - Always @mention the relevant participants in the conversation – check the comment threads carefully to find them. Don't tag yourself!
+   - Be helpful and address the specific questions or concerns raised
+
+3. Ticket TODOs (OPTIONAL)
+   - Only include missed or misinterpreted requirements from the Linear ticket
+   - Don't duplicate issues already mentioned in diff comments
+   - Organize todos by ticket ID
+   - Be specific about what was missed and what needs to be done
+   - You don't need to provide this if there are no _requirement_ issues – leave code improvements for elsewhere
+
+4. General comments
+   - Provide an overall assessment of the PR
+   - Justify any "request-changes" decision with clear reasoning
+   - Don't repeat the todo list or specific diff comments – your colleagues don't need these twice
+   - Focus on the big picture and overall quality
+
+## Decision Guidelines
+- Use "comment" for PRs with minor issues that don't block merging
+- Use "request-changes" for PRs with significant issues that should be addressed before merging
+- Base your decision on the severity and quantity of issues found
+`;
+
+/**
+ * Preprocesses the AI review response to fix a common formatting issue (arrays being returned as strings)
+ */
+const preprocessAiReviewResponse = (
+  response: unknown,
+): Record<string, unknown> => {
+  if (typeof response !== "object" || response === null) {
+    throw new Error("AI review response is not an object");
+  }
+
+  const processed: Record<string, unknown> = {
+    ...(response as Record<string, unknown>),
+  };
+
+  // Fix arrays that are returned as strings
+  for (const [key, value] of Object.entries(processed)) {
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const trimmedValue = value.trim();
+
+    if (trimmedValue.startsWith("[") && trimmedValue.endsWith("]")) {
+      try {
+        // Attempt to parse the string as JSON
+        processed[key] = JSON.parse(trimmedValue);
+      } catch {
+        console.warn(
+          chalk.yellow(
+            `Failed to parse string as JSON array for key "${key}". Attempting manual conversion...`,
+          ),
+        );
+
+        // If JSON.parse fails, try to manually convert the string to an array
+        try {
+          // Handle the case where the array elements are objects
+          if (trimmedValue.includes("{") && trimmedValue.includes("}")) {
+            // Split by "},{"
+            const items = trimmedValue
+              .replace(/^\[\s*{/, "") // Remove leading [{
+              .replace(/}\s*\]$/, "") // Remove trailing }]
+              .split(/},\s*{/);
+
+            const arrayItems = items.map((item) => {
+              // Add back the curly braces
+              const objectStr = item.startsWith("{") ? item : `{${item}`;
+              const fullObjectStr = objectStr.endsWith("}")
+                ? objectStr
+                : `${objectStr}}`;
+
+              try {
+                // Use type assertion to avoid unsafe return
+                return JSON.parse(fullObjectStr) as Record<string, unknown>;
+              } catch {
+                console.error(
+                  chalk.red(`Failed to parse object: ${fullObjectStr}`),
+                );
+                process.exit(1);
+                return null;
+              }
+            });
+
+            processed[key] = arrayItems;
+          } else {
+            // Handle simpler arrays (strings, numbers, etc.)
+            const items = trimmedValue
+              .substring(1, trimmedValue.length - 1) // Remove [ and ]
+              .split(",")
+              .map((item) => item.trim());
+
+            processed[key] = items.map((item) => {
+              // Try to convert to appropriate type
+              if (item.startsWith('"') && item.endsWith('"')) {
+                return item.substring(1, item.length - 1); // Remove quotes
+              }
+
+              const num = Number(item);
+              if (!Number.isNaN(num)) {
+                return num;
+              }
+
+              if (item === "true") {
+                return true;
+              }
+              if (item === "false") {
+                return false;
+              }
+              if (item === "null") {
+                return null;
+              }
+
+              return item;
+            });
+          }
+        } catch (manualError) {
+          console.error(
+            chalk.red(
+              `Failed manual conversion for key "${key}": ${stringifyError(
+                manualError,
+              )}`,
+            ),
+          );
+
+          process.exit(1);
+        }
+      }
+    }
+  }
+
+  return processed;
+};
+
 const generateAIReview = async ({
   prDetails,
   prDiff,
   linearTickets,
   previousAiCommentThreads,
+  previousErrors,
 }: {
   prDetails: string;
   prDiff: string;
@@ -218,25 +381,21 @@ const generateAIReview = async ({
   const generateReviewTool = {
     name: "submit_pr_review",
     description:
-      "Ssubmit a code review for a pull request. The review should include specific comments with suggested changes on parts of the diff, follow-up tasks if needed, and a general review with a decision to either comment or request changes.",
+      "Submit a code review for a pull request. The review should include specific comments with suggested changes on parts of the diff, follow-up tasks if needed, and a general review with a decision to either comment or request changes.",
     input_schema: zodToJsonSchema(PRReviewSchema) as JsonSchema7ObjectType,
   };
 
   try {
-    const userMessage = `You are 'hashdotai', a senior software engineer. You are providing a Pull Request review for a colleague.
+    const userMessage = `Hello, hashdotai! 
     
-Please review the following pull request. Please analyze the code changes and provide specific comments, follow-up tasks, and a general review with a decision.
+Please review the following pull request.
 
-The review should follow a specific structure with:
-1. Comments on specific parts of the diff, where they are relevant to specific code changes (file path, position, and comment text).
-   --- RULES FOR DIFF COMMENTS ---
-   a. Position is provided as [position: X] in the diff. 
-   b. Only provide comments suggesting improvements! Don't make 'this looks good'-style comments. 
-   c. Don't repeat comments you've made in previous reviews (these are listed below).
-   d. Use \`\`\`suggestions\`\`\` where you can.
-2. Comment replies to any comment threads awaiting your response. If 'yes' these are required. If 'maybe' give advice if you have any. Don't feel obliged.
-2. TODO items for MISSED or MISINTERPRETED requirements from the Linear ticket. Don't repeat comments you've made on the diff. This is only for addressing requirements mentioned in the ticket.
-3. General review comments and a decision (comment or request changes). DON'T include reference to any created Linear ticket here or TODO items mentioned there. This will be captured separately.
+I've provided the:
+1. PR Overview – this explains the purpose of the PR
+2. PR Diff – this shows the changes made in the PR
+3. Linear Tickets – these are any Linear tickets linked to the PR
+4. Comments Awaiting Response – these are any comments on the PR that are awaiting a response from you
+5. Other Comments Previously Made – these are any comments you or others have made on the PR previously. 
 
 <PR Overview>
 ${prDetails}
@@ -261,11 +420,11 @@ Reply required: ${
     }
 Original comment: ${thread.body}
 File path: ${thread.path}
-<Replies>
-${thread.replies
-  .map((reply) => `Author (tag with @${reply.author}): ${reply.body}`)
-  .join("\n---\n")}
-</Replies>
+  <Replies>
+  ${thread.replies
+    .map((reply) => `    Author (tag with @${reply.author}): ${reply.body}`)
+    .join("\n---\n")}
+  </Replies>
 </Comment>`,
   )
   .join("\n---\n")}
@@ -275,16 +434,26 @@ ${thread.replies
 ${previousAiCommentThreads
   .filter((thread) => thread.requiresAiResponse === "no")
   .map(
-    (thread) => `File path: ${thread.path}
-Comment: ${thread.body}`,
+    (thread) => `<Comment>
+Original comment: ${thread.body}
+File path: ${thread.path}
+  <Replies>
+  ${thread.replies
+    .map((reply) => `Author (@${reply.author}): ${reply.body}`)
+    .join("\n---\n")}
+  </Replies>
+</Comment>`,
   )
   .join("\n---\n")}
 </Other Comments Previously Made>
+
+${previousErrors ? `\n\nPrevious errors: ${previousErrors}` : ""}
 `;
 
     const response = await anthropic.messages.create({
       model: "claude-3-7-sonnet-20250219",
       max_tokens: 4000,
+      system: aiReviewSystemPrompt,
       tools: [generateReviewTool],
       tool_choice: { type: "tool", name: "submit_pr_review" },
       messages: [
@@ -306,7 +475,11 @@ Comment: ${thread.body}`,
     console.log(JSON.stringify(toolUseBlock.input, null, 2));
 
     try {
-      const parsedReview = PRReviewSchema.parse(toolUseBlock.input);
+      // Preprocess the response to fix malformed JSON arrays
+      const preprocessedInput = preprocessAiReviewResponse(toolUseBlock.input);
+
+      // Parse with Zod schema
+      const parsedReview = PRReviewSchema.parse(preprocessedInput);
 
       const { commentReplies } = parsedReview;
 
@@ -383,14 +556,15 @@ Comment: ${thread.body}`,
       }
 
       console.log(JSON.stringify(parsedReview, null, 2));
-
-      process.exit(0);
-
       return parsedReview;
     } catch (err) {
       console.error(
         chalk.red(`Error parsing PR review – retrying: ${stringifyError(err)}`),
       );
+
+      // Log the raw input to help debug parsing issues
+      console.error(chalk.yellow("Raw input that failed to parse:"));
+      console.error(JSON.stringify(toolUseBlock.input, null, 2));
 
       await sleep(2_000);
 
@@ -400,11 +574,15 @@ Comment: ${thread.body}`,
         linearTickets,
         previousAiCommentThreads,
         previousErrors:
-          "Your last review didn't meet the response schema – please try again.",
+          "Your last review didn't meet the response schema – please try again. Make sure arrays are properly formatted as JSON arrays, not strings.",
       });
     }
-  } catch {
-    console.error(chalk.red(`Error generating AI review. Retrying...`));
+  } catch (error) {
+    console.error(
+      chalk.red(
+        `Error generating AI review. Retrying... ${stringifyError(error)}`,
+      ),
+    );
 
     await sleep(2_000);
 
@@ -413,7 +591,8 @@ Comment: ${thread.body}`,
       prDiff,
       linearTickets,
       previousAiCommentThreads,
-      previousErrors: null,
+      previousErrors:
+        "An error occurred while generating your review. Please try again.",
     });
   }
 };
