@@ -6,13 +6,13 @@ import type {
   GetClosedMultiEntityTypesQuery,
   GetClosedMultiEntityTypesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getClosedMultiEntityTypeQuery } from "../../graphql/queries/ontology/entity-type.queries";
+import { getClosedMultiEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
 
-export const useGetClosedMultiEntityType = () => {
+export const useGetClosedMultiEntityTypes = () => {
   const [getMultiEntityType, { loading }] = useLazyQuery<
     GetClosedMultiEntityTypesQuery,
     GetClosedMultiEntityTypesQueryVariables
-  >(getClosedMultiEntityTypeQuery, {
+  >(getClosedMultiEntityTypesQuery, {
     fetchPolicy: "cache-first",
   });
 
@@ -22,13 +22,14 @@ export const useGetClosedMultiEntityType = () => {
         variables: {
           entityTypeIds: newEntityTypeIds,
           includeArchived: false,
-          includeDrafts: false,
         },
       });
 
       if (!response.data) {
         throw new Error(
-          `Failed to fetch closedMultiEntityType for ids ${[...newEntityTypeIds].join(", ")}`,
+          `Failed to fetch closedMultiEntityType for ids ${[
+            ...newEntityTypeIds,
+          ].join(", ")}`,
         );
       }
 

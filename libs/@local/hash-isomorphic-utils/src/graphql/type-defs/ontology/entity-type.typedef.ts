@@ -9,7 +9,7 @@ export const entityTypeTypedef = gql`
   scalar UserPermissionsOnEntityType
 
   type GetClosedMultiEntityTypesResponse {
-    closedMultiEntityTypes: [ClosedMultiEntityType!]!
+    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap!
     definitions: ClosedMultiEntityTypesDefinitions!
   }
 
@@ -44,7 +44,6 @@ export const entityTypeTypedef = gql`
     getClosedMultiEntityTypes(
       entityTypeIds: [[VersionedUrl!]!]!
       includeArchived: Boolean = false
-      includeDrafts: Boolean = false
     ): GetClosedMultiEntityTypesResponse!
 
     """
@@ -89,9 +88,7 @@ export const entityTypeTypedef = gql`
     """
     Update multiple entity types at once.
     """
-    updateEntityTypes(
-      updates: [EntityTypeUpdate!]!
-    ): [EntityTypeWithMetadata!]!
+    updateEntityTypes(updates: [EntityTypeUpdate!]!): [EntityTypeWithMetadata!]!
 
     """
     Archive a entity type.

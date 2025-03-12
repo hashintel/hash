@@ -5,6 +5,7 @@ import { publicUserAccountId } from "@local/hash-backend-utils/public-user-accou
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
+  ClosedMultiEntityTypeMap,
   EntityTypePermission,
   GetClosedMultiEntityTypesParams,
   GetClosedMultiEntityTypesResponse as GetClosedMultiEntityTypesResponseGraphApi,
@@ -18,7 +19,6 @@ import type {
 } from "@local/hash-graph-client";
 import type {
   ClosedEntityTypeWithMetadata,
-  ClosedMultiEntityType,
   EntityTypeMetadata,
   EntityTypeResolveDefinitions,
   EntityTypeWithMetadata,
@@ -29,7 +29,6 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   mapGraphApiClosedEntityTypesToClosedEntityTypes,
-  mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes,
   mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
   mapGraphApiEntityTypesToEntityTypes,
   mapGraphApiSubgraphToSubgraph,
@@ -251,7 +250,7 @@ export type GetClosedMultiEntityTypesResponse = Omit<
   GetClosedMultiEntityTypesResponseGraphApi,
   "entityTypes" | "definitions"
 > & {
-  entityTypes: ClosedMultiEntityType[];
+  closedMultiEntityTypes: Record<string, ClosedMultiEntityTypeMap>;
   definitions?: EntityTypeResolveDefinitions;
 };
 
@@ -262,9 +261,7 @@ export const getClosedMultiEntityTypes: ImpureGraphFunction<
   graphApi
     .getClosedMultiEntityTypes(actorId, request)
     .then(({ data: response }) => ({
-      entityTypes: mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes(
-        response.entityTypes,
-      ),
+      closedMultiEntityTypes: response.entityTypes,
       definitions: response.definitions
         ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
             response.definitions,

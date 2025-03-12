@@ -23,6 +23,7 @@ import type {
 import { atLeastOne } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import type {
   ClosedEntityTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -389,24 +390,29 @@ describe("Entity type CRU", () => {
       },
     )) as [ClosedEntityTypeWithMetadata, ...ClosedEntityTypeWithMetadata[]];
 
-    const {
-      entityTypes: [closedMultiEntityType],
-      definitions,
-    } = await getClosedMultiEntityTypes(graphContext, authentication, {
-      entityTypeIds: [
-        [
-          systemEntityTypes.user.entityTypeId,
-          systemEntityTypes.actor.entityTypeId,
+    const { closedMultiEntityTypes, definitions } =
+      await getClosedMultiEntityTypes(graphContext, authentication, {
+        entityTypeIds: [
+          [
+            systemEntityTypes.user.entityTypeId,
+            systemEntityTypes.actor.entityTypeId,
+          ],
         ],
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeResolved: "resolved",
+      });
+
+    const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
+      closedMultiEntityTypes,
+      [
+        systemEntityTypes.user.entityTypeId,
+        systemEntityTypes.actor.entityTypeId,
       ],
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-      includeResolved: "resolved",
-    });
+    );
 
     // It's not specified how `required` is ordered, so we need to sort it before comparing
-    if (closedMultiEntityType!.required) {
-      closedMultiEntityType!.required.sort();
+    if (closedMultiEntityType.required) {
+      closedMultiEntityType.required.sort();
     }
 
     const allOf = atLeastOne(

@@ -319,7 +319,7 @@ describe("Entity CRU", () => {
       expect(entityTypeFromResponse).toBeDefined();
 
       const {
-        entityTypes: [entityTypeFromGraph],
+        closedMultiEntityTypes: closedTypeMapFromGraph,
         definitions: definitionsFromGraph,
       } = await getClosedMultiEntityTypes(
         graphContext,
@@ -327,16 +327,20 @@ describe("Entity CRU", () => {
         {
           entityTypeIds: [entity.metadata.entityTypeIds],
           temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: false,
           includeResolved: "resolved",
         },
       );
 
-      if (entityTypeFromResponse.required && entityTypeFromGraph!.required) {
+      const entityTypeFromGraph = getClosedMultiEntityTypeFromMap(
+        closedTypeMapFromGraph,
+        entity.metadata.entityTypeIds,
+      );
+
+      if (entityTypeFromResponse.required && entityTypeFromGraph.required) {
         // The `required` field is not sorted, so we need to sort it before comparing
         entityTypeFromResponse.required =
           entityTypeFromResponse.required.sort();
-        entityTypeFromGraph!.required = entityTypeFromGraph!.required.sort();
+        entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
       }
 
       for (const [id, schema] of Object.entries(

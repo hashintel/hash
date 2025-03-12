@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client";
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   Entity as EntityClass,
@@ -52,7 +53,7 @@ import {
 import { useHandleTypeChanges } from "./entity/shared/use-handle-type-changes";
 import { NotFound } from "./not-found";
 import { useSlideStack } from "./slide-stack";
-import { useGetClosedMultiEntityType } from "./use-get-closed-multi-entity-type";
+import { useGetClosedMultiEntityTypes } from "./use-get-closed-multi-entity-type";
 import {
   type MinimalEntityValidationReport,
   useValidateEntity,
@@ -181,7 +182,7 @@ export const Entity = ({
     | undefined
   >();
 
-  const { getClosedMultiEntityTypes } = useGetClosedMultiEntityType();
+  const { getClosedMultiEntityTypes } = useGetClosedMultiEntityTypes();
 
   useEffect(() => {
     if (
@@ -207,8 +208,13 @@ export const Entity = ({
       }
 
       void getClosedMultiEntityTypes(entityTypeIds).then((result) => {
+        const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
+          result.closedMultiEntityTypes,
+          mustHaveAtLeastOne(entityTypeIds),
+        );
+
         setDraftEntityTypesDetails({
-          closedMultiEntityType: result.closedMultiEntityTypes[0]!,
+          closedMultiEntityType,
           closedMultiEntityTypesDefinitions:
             result.closedMultiEntityTypesDefinitions,
         });

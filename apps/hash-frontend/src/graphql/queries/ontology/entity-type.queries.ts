@@ -53,7 +53,7 @@ export const queryEntityTypesQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getClosedMultiEntityTypeQuery = gql`
+export const getClosedMultiEntityTypesQuery = gql`
   query getClosedMultiEntityTypes(
     $entityTypeIds: [[VersionedUrl!]!]!
     $includeArchived: Boolean = false
@@ -62,7 +62,6 @@ export const getClosedMultiEntityTypeQuery = gql`
     getClosedMultiEntityTypes(
       entityTypeIds: $entityTypeIds
       includeArchived: $includeArchived
-      includeDrafts: $includeDrafts
     ) {
       closedMultiEntityTypes
       definitions

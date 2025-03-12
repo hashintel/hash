@@ -157,29 +157,29 @@ export const getClosedMultiEntityTypesResolver: ResolverFn<
   GraphQLContext,
   QueryGetClosedMultiEntityTypesArgs
 > = async (_, args, graphQLContext) => {
-  const { entityTypeIds, includeDrafts, includeArchived } = args;
+  const { entityTypeIds, includeArchived } = args;
 
-  const { entityTypes, definitions } = await getClosedMultiEntityTypes(
-    graphQLContextToImpureGraphContext(graphQLContext),
-    graphQLContext.authentication,
-    {
-      entityTypeIds,
-      // All references to other types are resolved, and those types provided under 'definitions' in the response,
-      // including the children of any data types which are resolved (to allow picking more specific types)
-      includeResolved: "resolvedWithDataTypeChildren",
-      includeDrafts: includeDrafts ?? false,
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
-    },
-  );
+  const { closedMultiEntityTypes, definitions } =
+    await getClosedMultiEntityTypes(
+      graphQLContextToImpureGraphContext(graphQLContext),
+      graphQLContext.authentication,
+      {
+        entityTypeIds,
+        // All references to other types are resolved, and those types provided under 'definitions' in the response,
+        // including the children of any data types which are resolved (to allow picking more specific types)
+        includeResolved: "resolvedWithDataTypeChildren",
+        temporalAxes: includeArchived
+          ? fullTransactionTimeAxis
+          : currentTimeInstantTemporalAxes,
+      },
+    );
 
   if (!definitions) {
     throw new ApolloError("No definitions found for closed multi entity type");
   }
 
   return {
-    closedMultiEntityTypes: entityTypes,
+    closedMultiEntityTypes,
     definitions,
   };
 };

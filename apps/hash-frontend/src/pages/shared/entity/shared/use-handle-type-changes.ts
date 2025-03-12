@@ -1,5 +1,9 @@
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  type Entity,
+  getClosedMultiEntityTypeFromMap,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -11,7 +15,7 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback } from "react";
 
-import { useGetClosedMultiEntityType } from "../../use-get-closed-multi-entity-type";
+import { useGetClosedMultiEntityTypes } from "../../use-get-closed-multi-entity-type";
 import type { EntityEditorProps } from "../entity-editor";
 import { createDraftEntitySubgraph } from "./create-draft-entity-subgraph";
 
@@ -33,7 +37,7 @@ export const useHandleTypeChanges = ({
   ) => void;
   setDraftLinksToArchive: Dispatch<SetStateAction<EntityId[]>>;
 }) => {
-  const { getClosedMultiEntityTypes } = useGetClosedMultiEntityType();
+  const { getClosedMultiEntityTypes } = useGetClosedMultiEntityTypes();
 
   return useCallback(
     async (change: {
@@ -76,8 +80,13 @@ export const useHandleTypeChanges = ({
         }
       }
 
+      const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
+        newTypeDetails.closedMultiEntityTypes,
+        mustHaveAtLeastOne(entityTypeIds),
+      );
+
       setDraftEntityTypesDetails({
-        closedMultiEntityType: newTypeDetails.closedMultiEntityTypes[0]!,
+        closedMultiEntityType,
         closedMultiEntityTypesDefinitions:
           newTypeDetails.closedMultiEntityTypesDefinitions,
       });
