@@ -1,4 +1,5 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { memo } from "react";
 
@@ -17,6 +18,11 @@ export type EntitySlideProps = {
    * This mock subgraph allows viewing it in the slide (and will disable attempting to request info from the db on it)
    */
   proposedEntitySubgraph?: Subgraph<EntityRootType>;
+  /**
+   * If the entity is a Flow proposal, it won't be persisted in the database yet.
+   * This mock closed multi entity type allows viewing it in the slide (and will disable attempting to request info from the db on it)
+   */
+  proposedClosedMultiEntityTypeRootMap?: ClosedMultiEntityTypesRootMap;
   replaceItem: (item: SlideItem) => void;
   removeItem: () => void;
 
