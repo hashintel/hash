@@ -27,6 +27,21 @@ jobs:
             echo "is_workflow_dispatch=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Check branch name
+        id: check-branch
+        if: steps.trigger-type.outputs.is_workflow_dispatch != 'true'
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          echo "Branch name: $HEAD_REF"
+          if [[ "$HEAD_REF" == deps/* ]]; then
+            echo "❌ Branch starts with deps/ - skipping review"
+            echo "is_deps_branch=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Branch does not start with deps/"
+            echo "is_deps_branch=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Check if review is requested for hashdotai
         id: check-reviewer
         if: steps.trigger-type.outputs.is_workflow_dispatch != 'true'
@@ -72,14 +87,32 @@ jobs:
           IS_WORKFLOW_DISPATCH: ${{ steps.trigger-type.outputs.is_workflow_dispatch }}
           IS_HASHDOTAI: ${{ steps.check-reviewer.outputs.is_hashdotai }}
           IS_MAINTAINER: ${{ steps.check-maintainer.outputs.is_maintainer }}
+          IS_DEPS_BRANCH: ${{ steps.check-branch.outputs.is_deps_branch }}
         run: |
           if [[ "$IS_WORKFLOW_DISPATCH" == "true" ]]; then
-            # For workflow_dispatch, skip all checks
-            echo "✅ Workflow dispatch - will run AI review without conditions"
+            # For workflow_dispatch, check only the branch name if PR is provided
+            PR_NUMBER="${{ github.event.inputs.pr_number }}"
+            if [[ -n "$PR_NUMBER" ]]; then
+              # Fetch the branch name for the PR
+              BRANCH_NAME=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER" | \
+                jq -r '.head.ref')
+              
+              if [[ "$BRANCH_NAME" == deps/* ]]; then
+                echo "❌ Workflow dispatch for deps/ branch - skipping review"
+                echo "should_review=false" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+            fi
+            
+            echo "✅ Workflow dispatch - will run AI review"
             echo "should_review=true" >> $GITHUB_OUTPUT
           else
-            # For pull_request event, check both conditions
-            if [[ "$IS_HASHDOTAI" == "true" && "$IS_MAINTAINER" == "true" ]]; then
+            # For pull_request event, check all conditions
+            if [[ "$IS_DEPS_BRANCH" == "true" ]]; then
+              echo "❌ Branch starts with deps/ - skipping review"
+              echo "should_review=false" >> $GITHUB_OUTPUT
+            elif [[ "$IS_HASHDOTAI" == "true" && "$IS_MAINTAINER" == "true" ]]; then
               echo "✅ All conditions met - will run AI review"
               echo "should_review=true" >> $GITHUB_OUTPUT
             else
