@@ -18,14 +18,15 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
-use hash_graph_types::knowledge::property::{
-    ObjectMetadata, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
-    PropertyWithMetadataValue, ValueMetadata,
-};
+use hash_graph_types::knowledge::property::{PropertyWithMetadata, PropertyWithMetadataObject};
 use time::OffsetDateTime;
 use type_system::{
-    Value,
-    knowledge::entity::provenance::ProvidedEntityEditionProvenance,
+    knowledge::{
+        Value,
+        entity::provenance::ProvidedEntityEditionProvenance,
+        property::metadata::{ObjectMetadata, PropertyWithMetadataValue},
+        value::{ValueMetadata, metadata::ValueProvenance},
+    },
     ontology::{
         BaseUrl, VersionedUrl,
         data_type::{DataType, DataTypeUuid, DataTypeWithMetadata},
@@ -315,7 +316,7 @@ async fn inheritance() {
                         PropertyWithMetadata::Value(PropertyWithMetadataValue {
                             value: Value::Number(Real::from(5)),
                             metadata: ValueMetadata {
-                                provenance: PropertyProvenance::default(),
+                                provenance: ValueProvenance::default(),
                                 confidence: None,
                                 data_type_id: None,
                                 original_data_type_id: None,
@@ -362,7 +363,7 @@ async fn inheritance() {
                     PropertyWithMetadata::Value(PropertyWithMetadataValue {
                         value: Value::Number(Real::from(10)),
                         metadata: ValueMetadata {
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             confidence: None,
                             data_type_id: Some(meter_dt_v1.id.clone()),
                             original_data_type_id: None,
@@ -407,7 +408,7 @@ async fn inheritance() {
                     PropertyWithMetadata::Value(PropertyWithMetadataValue {
                         value: Value::Number(Real::from(10)),
                         metadata: ValueMetadata {
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             confidence: None,
                             data_type_id: Some(centimeter_dt_v2.id.clone()),
                             original_data_type_id: None,

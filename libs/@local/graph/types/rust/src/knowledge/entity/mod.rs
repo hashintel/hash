@@ -5,7 +5,11 @@ use std::collections::HashSet;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
 use type_system::{
-    knowledge::entity::{EntityProvenance, id::EntityRecordId},
+    knowledge::{
+        Confidence,
+        entity::{EntityProvenance, LinkData, id::EntityRecordId},
+        property::metadata::{PropertyMetadata, PropertyMetadataObject},
+    },
     ontology::{BaseUrl, VersionedUrl},
 };
 #[cfg(feature = "utoipa")]
@@ -14,13 +18,8 @@ use utoipa::ToSchema;
 pub use self::diff::EntityTypeIdDiff;
 use crate::{
     Embedding,
-    knowledge::{
-        Confidence,
-        link::LinkData,
-        property::{
-            PatchError, Property, PropertyMetadata, PropertyMetadataObject, PropertyObject,
-            PropertyPatchOperation, PropertyWithMetadata,
-        },
+    knowledge::property::{
+        PatchError, Property, PropertyObject, PropertyPatchOperation, PropertyWithMetadata,
     },
 };
 

@@ -5,18 +5,18 @@ use core::error::Error;
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
-use serde::{Deserialize, Serialize};
-use type_system::provenance::SourceProvenance;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+use crate::provenance::SourceProvenance;
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PropertyProvenance {
+pub struct ValueProvenance {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sources: Vec<SourceProvenance>,
 }
 
-impl PropertyProvenance {
+impl ValueProvenance {
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.sources.is_empty()
@@ -24,7 +24,7 @@ impl PropertyProvenance {
 }
 
 #[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for PropertyProvenance {
+impl<'a> FromSql<'a> for ValueProvenance {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Json::from_sql(ty, raw)?.0)
     }
@@ -39,7 +39,7 @@ impl<'a> FromSql<'a> for PropertyProvenance {
 }
 
 #[cfg(feature = "postgres")]
-impl ToSql for PropertyProvenance {
+impl ToSql for ValueProvenance {
     postgres_types::to_sql_checked!();
 
     fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>

@@ -4,9 +4,14 @@ use core::str::FromStr as _;
 use std::collections::HashMap;
 
 use hash_graph_store::entity::ValidateEntityComponents;
-use hash_graph_types::knowledge::property::{PropertyMetadata, PropertyProvenance, ValueMetadata};
 use serde_json::json;
-use type_system::ontology::VersionedUrl;
+use type_system::{
+    knowledge::{
+        property::PropertyMetadata,
+        value::{ValueMetadata, metadata::ValueProvenance},
+    },
+    ontology::VersionedUrl,
+};
 
 use crate::tests::validate_property;
 
@@ -397,7 +402,7 @@ async fn user_id() {
         json!("1"),
         Some(PropertyMetadata::Value {
             metadata: ValueMetadata {
-                provenance: PropertyProvenance::default(),
+                provenance: ValueProvenance::default(),
                 confidence: None,
                 data_type_id: Some(text_data_type_id.clone()),
                 original_data_type_id: Some(text_data_type_id),
@@ -421,7 +426,7 @@ async fn user_id() {
         json!(1),
         Some(PropertyMetadata::Value {
             metadata: ValueMetadata {
-                provenance: PropertyProvenance::default(),
+                provenance: ValueProvenance::default(),
                 confidence: None,
                 data_type_id: Some(number_data_type_id.clone()),
                 original_data_type_id: Some(number_data_type_id),

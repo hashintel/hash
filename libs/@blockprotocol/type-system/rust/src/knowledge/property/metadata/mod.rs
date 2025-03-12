@@ -2,7 +2,7 @@ pub use self::{
     array::ArrayMetadata,
     object::{ObjectMetadata, PropertyMetadataObject},
     provenance::PropertyProvenance,
-    value::{PropertyWithMetadataValue, ValueMetadata},
+    value::PropertyWithMetadataValue,
 };
 
 mod array;
@@ -13,7 +13,8 @@ mod value;
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use type_system::ontology::BaseUrl;
+
+use crate::{knowledge::value::ValueMetadata, ontology::BaseUrl};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

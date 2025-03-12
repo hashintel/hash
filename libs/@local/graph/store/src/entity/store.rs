@@ -8,9 +8,8 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     account::AccountId,
     knowledge::{
-        Confidence, EntityTypeIdDiff,
+        EntityTypeIdDiff,
         entity::{Entity, EntityEmbedding},
-        link::LinkData,
         property::{
             PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
         },
@@ -18,9 +17,13 @@ use hash_graph_types::{
 };
 use serde::{Deserialize, Serialize};
 use type_system::{
-    knowledge::entity::{
-        id::{EntityId, EntityUuid},
-        provenance::ProvidedEntityEditionProvenance,
+    knowledge::{
+        Confidence,
+        entity::{
+            LinkData,
+            id::{EntityId, EntityUuid},
+            provenance::ProvidedEntityEditionProvenance,
+        },
     },
     ontology::{VersionedUrl, entity_type::ClosedMultiEntityType},
     provenance::{CreatedById, EditionCreatedById},

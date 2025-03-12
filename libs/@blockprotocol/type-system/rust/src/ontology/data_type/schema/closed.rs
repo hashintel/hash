@@ -10,7 +10,7 @@ use thiserror::Error;
 
 use super::{DataType, DataTypeEdge, ValueLabel};
 use crate::{
-    Value,
+    knowledge::Value,
     ontology::{
         InheritanceDepth, VersionedUrl, data_type::DataTypeUuid, json_schema::ValueConstraints,
     },

@@ -10,13 +10,13 @@ use hash_graph_store::{
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     account::AccountId,
-    knowledge::{
-        link::LinkData,
-        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
-    },
+    knowledge::property::{PropertyObject, PropertyWithMetadataObject},
 };
 use type_system::{
-    knowledge::entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+    knowledge::{
+        entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        property::metadata::PropertyProvenance,
+    },
     ontology::{VersionedUrl, entity_type::EntityType},
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,

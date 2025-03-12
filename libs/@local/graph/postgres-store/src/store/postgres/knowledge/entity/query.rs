@@ -2,18 +2,17 @@ use hash_graph_store::{
     entity::EntityQueryPath,
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
 };
-use hash_graph_types::knowledge::{
-    entity::{Entity, EntityMetadata},
-    link::LinkData,
-    property::PropertyMetadataObject,
-};
+use hash_graph_types::knowledge::entity::{Entity, EntityMetadata};
 use serde::Deserialize as _;
 use tokio_postgres::Row;
 use tracing::instrument;
 use type_system::{
-    knowledge::entity::{
-        EntityProvenance,
-        id::{EntityId, EntityRecordId, EntityUuid},
+    knowledge::{
+        entity::{
+            EntityProvenance, LinkData,
+            id::{EntityId, EntityRecordId, EntityUuid},
+        },
+        property::metadata::PropertyMetadataObject,
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,

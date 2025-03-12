@@ -1,0 +1,86 @@
+pub mod metadata;
+
+#[cfg(feature = "postgres")]
+use core::error::Error;
+use core::fmt::{self, Debug};
+use std::collections::HashMap;
+
+#[cfg(feature = "postgres")]
+use bytes::BytesMut;
+use hash_codec::numeric::Real;
+#[cfg(feature = "postgres")]
+use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
+use serde::Serialize as _;
+
+pub use self::metadata::ValueMetadata;
+
+/// A JSON-compatible value type that can represent any valid JSON structure.
+///
+/// This enum is the fundamental data unit in the type system and is used throughout
+/// the validation process. It's designed to work well with serde for serialization/deserialization
+/// and can be used in both Rust and WebAssembly contexts.
+///
+/// # Examples
+///
+/// ```
+/// use std::collections::HashMap;
+///
+/// use type_system::Value;
+///
+/// // Create a simple string value
+/// let string_value = Value::String("Hello, world!".to_string());
+///
+/// // Create a more complex object value
+/// let mut obj = HashMap::new();
+/// obj.insert("greeting".to_string(), Value::String("Hello".to_string()));
+/// obj.insert("count".to_string(), Value::Number(42_i32.into()));
+/// let object_value = Value::Object(obj);
+/// ```
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(untagged, rename = "JsonValue")]
+pub enum Value {
+    Null,
+    Bool(bool),
+    String(String),
+    Number(#[cfg_attr(target_arch = "wasm32", tsify(type = "number"))] Real),
+    Array(#[cfg_attr(target_arch = "wasm32", tsify(type = "JsonValue[]"))] Vec<Self>),
+    Object(
+        #[cfg_attr(target_arch = "wasm32", tsify(type = "{ [key: string]: JsonValue }"))]
+        HashMap<String, Self>,
+    ),
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.serialize(fmt)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'a> FromSql<'a> for Value {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Json::<Self>::from_sql(ty, raw)?.0)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <Json<Self> as FromSql>::accepts(ty)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for Value {
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        Json(self).to_sql(ty, out)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <Json<Self> as ToSql>::accepts(ty)
+    }
+}

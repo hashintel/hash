@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use error_stack::Report;
 use type_system::{
-    Value,
+    knowledge::Value,
     ontology::{
         VersionedUrl, data_type::DataType, entity_type::ClosedMultiEntityType,
         property_type::PropertyType,

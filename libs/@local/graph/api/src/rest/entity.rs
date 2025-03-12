@@ -44,15 +44,12 @@ use hash_graph_store::{
 use hash_graph_types::{
     Embedding,
     knowledge::{
-        Confidence, EntityTypeIdDiff,
+        EntityTypeIdDiff,
         entity::{Entity, EntityEmbedding, EntityMetadata, EntityTemporalMetadata},
-        link::LinkData,
         property::{
-            ArrayMetadata, ObjectMetadata, Property, PropertyDiff, PropertyMetadata,
-            PropertyMetadataObject, PropertyObject, PropertyPatchOperation, PropertyPath,
-            PropertyPathElement, PropertyProvenance, PropertyWithMetadata,
-            PropertyWithMetadataArray, PropertyWithMetadataObject, PropertyWithMetadataValue,
-            ValueMetadata,
+            Property, PropertyDiff, PropertyObject, PropertyPatchOperation, PropertyPath,
+            PropertyPathElement, PropertyWithMetadata, PropertyWithMetadataArray,
+            PropertyWithMetadataObject,
             visitor::{
                 ArrayItemNumberMismatch, ArrayValidationReport, DataTypeCanonicalCalculation,
                 DataTypeConversionError, DataTypeInferenceError, JsonSchemaValueTypeMismatch,
@@ -69,12 +66,24 @@ use hash_graph_types::{
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use type_system::{
-    knowledge::entity::{
-        id::{EntityEditionId, EntityId, EntityRecordId, EntityUuid},
-        provenance::{
-            EntityEditionProvenance, EntityProvenance, InferredEntityProvenance,
-            ProvidedEntityEditionProvenance,
+    knowledge::{
+        Confidence,
+        entity::{
+            LinkData,
+            id::{EntityEditionId, EntityId, EntityRecordId, EntityUuid},
+            provenance::{
+                EntityEditionProvenance, EntityProvenance, InferredEntityProvenance,
+                ProvidedEntityEditionProvenance,
+            },
         },
+        property::{
+            PropertyMetadata,
+            metadata::{
+                ArrayMetadata, ObjectMetadata, PropertyMetadataObject, PropertyProvenance,
+                PropertyWithMetadataValue,
+            },
+        },
+        value::{ValueMetadata, metadata::ValueProvenance},
     },
     ontology::VersionedUrl,
     provenance::{
@@ -163,6 +172,7 @@ use crate::rest::{
             ArrayMetadata,
             ObjectMetadata,
             ValueMetadata,
+            ValueProvenance,
             PropertyMetadataObject,
             PropertyMetadata,
             EntityUuid,

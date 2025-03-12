@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use error_stack::Report;
 use futures::FutureExt as _;
 use type_system::{
-    Value,
+    knowledge::Value,
     ontology::{
         BaseUrl, VersionedUrl,
         data_type::schema::DataTypeReference,

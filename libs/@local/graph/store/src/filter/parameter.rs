@@ -7,8 +7,7 @@ use hash_graph_temporal_versioning::Timestamp;
 use hash_graph_types::Embedding;
 use serde::Deserialize;
 use type_system::{
-    Value,
-    knowledge::entity::id::EntityEditionId,
+    knowledge::{Value, entity::id::EntityEditionId},
     ontology::{
         data_type::DataTypeUuid,
         entity_type::EntityTypeUuid,

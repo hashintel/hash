@@ -22,14 +22,16 @@ use hash_graph_types::{
     account::AccountId,
     knowledge::{
         entity::Entity,
-        link::LinkData,
-        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
+        property::{PropertyObject, PropertyWithMetadataObject},
     },
 };
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
 use type_system::{
-    knowledge::entity::provenance::ProvidedEntityEditionProvenance,
+    knowledge::{
+        entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
+        property::metadata::PropertyProvenance,
+    },
     ontology::entity_type::EntityType,
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,

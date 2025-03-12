@@ -58,8 +58,7 @@ mod tests {
     use hash_graph_types::{
         account::AccountId,
         knowledge::property::{
-            Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
-            PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
+            Property, PropertyObject, PropertyWithMetadata, PropertyWithMetadataObject,
             error::install_error_stack_hooks,
             visitor::{
                 EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
@@ -72,6 +71,10 @@ mod tests {
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{
+        knowledge::{
+            property::{PropertyMetadata, metadata::PropertyWithMetadataValue},
+            value::{ValueMetadata, metadata::ValueProvenance},
+        },
         ontology::{
             DataTypeWithMetadata, OntologyTemporalMetadata,
             data_type::{
@@ -438,7 +441,7 @@ mod tests {
         let mut metadata = ValueMetadata {
             data_type_id: Some(data_type_ref.url.clone()),
             original_data_type_id: Some(data_type_ref.url.clone()),
-            provenance: PropertyProvenance::default(),
+            provenance: ValueProvenance::default(),
             confidence: None,
             canonical: HashMap::default(),
         };

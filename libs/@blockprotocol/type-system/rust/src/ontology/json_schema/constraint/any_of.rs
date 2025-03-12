@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::{
     Constraint, ConstraintError, ConstraintValidator, SingleValueSchema, ValueConstraints,
 };
-use crate::{Value, ontology::data_type::schema::ResolveClosedDataTypeError};
+use crate::{knowledge::Value, ontology::data_type::schema::ResolveClosedDataTypeError};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]

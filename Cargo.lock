@@ -3153,6 +3153,7 @@ dependencies = [
  "hash-graph-types",
  "hash-tracing",
  "pretty_assertions",
+ "serde",
  "serde_json",
  "time",
  "tokio",

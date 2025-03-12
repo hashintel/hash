@@ -47,12 +47,10 @@ use hash_graph_types::{
     Embedding,
     account::AccountId,
     knowledge::{
-        Confidence,
         entity::{Entity, EntityEmbedding, EntityMetadata, EntityTemporalMetadata},
         property::{
-            Property, PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPath,
-            PropertyPathError, PropertyWithMetadata, PropertyWithMetadataObject,
-            PropertyWithMetadataValue, visitor::EntityVisitor as _,
+            Property, PropertyObject, PropertyPath, PropertyPathError, PropertyWithMetadata,
+            PropertyWithMetadataObject, visitor::EntityVisitor as _,
         },
     },
     ontology::{DataTypeLookup, OntologyTypeProvider},
@@ -63,11 +61,17 @@ use postgres_types::ToSql;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
-    Value,
-    knowledge::entity::{
-        EntityProvenance,
-        id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
-        provenance::{EntityEditionProvenance, InferredEntityProvenance},
+    knowledge::{
+        Confidence, Value,
+        entity::{
+            EntityProvenance,
+            id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
+            provenance::{EntityEditionProvenance, InferredEntityProvenance},
+        },
+        property::{
+            PropertyMetadata,
+            metadata::{PropertyMetadataObject, PropertyWithMetadataValue},
+        },
     },
     ontology::{
         InheritanceDepth,

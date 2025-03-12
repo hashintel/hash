@@ -15,10 +15,8 @@ use hash_graph_store::entity::{
 use hash_graph_types::{
     knowledge::{
         entity::Entity,
-        link::LinkData,
         property::{
             PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
-            PropertyWithMetadataValue, ValueMetadata,
             visitor::{
                 ArrayItemNumberMismatch, ArrayValidationReport, ConversionRetrieval,
                 DataTypeCanonicalCalculation, DataTypeConversionError, DataTypeInferenceError,
@@ -33,8 +31,12 @@ use hash_graph_types::{
 };
 use thiserror::Error;
 use type_system::{
-    Value,
-    knowledge::entity::EntityId,
+    knowledge::{
+        Value,
+        entity::{EntityId, LinkData},
+        property::metadata::PropertyWithMetadataValue,
+        value::ValueMetadata,
+    },
     ontology::{
         VersionedUrl,
         data_type::schema::{ClosedDataType, DataTypeReference},

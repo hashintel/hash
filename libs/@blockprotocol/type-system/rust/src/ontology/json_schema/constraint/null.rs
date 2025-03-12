@@ -2,7 +2,7 @@ use error_stack::{Report, bail};
 use serde::{Deserialize, Serialize};
 
 use super::{Constraint, ConstraintError, ConstraintValidator, JsonSchemaValueType};
-use crate::{Value, ontology::data_type::schema::ResolveClosedDataTypeError};
+use crate::{knowledge::Value, ontology::data_type::schema::ResolveClosedDataTypeError};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

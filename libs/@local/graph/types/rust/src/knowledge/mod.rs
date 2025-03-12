@@ -1,7 +1,4 @@
 pub mod entity;
-pub mod link;
 pub mod property;
 
-pub use self::{confidence::Confidence, entity::EntityTypeIdDiff};
-
-mod confidence;
+pub use self::entity::EntityTypeIdDiff;

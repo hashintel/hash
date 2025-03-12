@@ -238,7 +238,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::left_entity_id`]: hash_graph_types::knowledge::link::LinkData::left_entity_id
+    /// [`LinkData::left_entity_id`]: type_system::knowledge::entity::LinkData::left_entity_id
     ///
     ///
     /// # Right entity
@@ -264,7 +264,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::right_entity_id`]: hash_graph_types::knowledge::link::LinkData::right_entity_id
+    /// [`LinkData::right_entity_id`]: type_system::knowledge::entity::LinkData::right_entity_id
     ///
     ///
     /// # Incoming links

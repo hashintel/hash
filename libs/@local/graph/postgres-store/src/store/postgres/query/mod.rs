@@ -28,7 +28,7 @@ use hash_graph_store::{
 };
 use hash_graph_types::knowledge::entity::Entity;
 use tokio_postgres::Row;
-use type_system::Value;
+use type_system::knowledge::Value;
 
 pub use self::{
     compile::{SelectCompiler, SelectCompilerError},

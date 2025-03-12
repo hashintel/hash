@@ -4,18 +4,19 @@ use hash_graph_temporal_versioning::{
 use hash_graph_types::{
     Embedding,
     account::{AccountGroupId, AccountId},
-    knowledge::{
-        Confidence,
-        property::{PropertyMetadataObject, PropertyObject, PropertyProvenance},
-    },
+    knowledge::property::PropertyObject,
 };
 use postgres_types::ToSql;
 use time::OffsetDateTime;
 use type_system::{
     Valid,
-    knowledge::entity::{
-        id::{DraftId, EntityEditionId, EntityUuid},
-        provenance::{EntityEditionProvenance, InferredEntityProvenance},
+    knowledge::{
+        Confidence,
+        entity::{
+            id::{DraftId, EntityEditionId, EntityUuid},
+            provenance::{EntityEditionProvenance, InferredEntityProvenance},
+        },
+        property::metadata::{PropertyMetadataObject, PropertyProvenance},
     },
     ontology::{
         InheritanceDepth,

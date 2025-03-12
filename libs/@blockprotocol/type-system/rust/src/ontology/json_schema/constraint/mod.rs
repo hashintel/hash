@@ -26,7 +26,7 @@ pub use self::{
     },
 };
 use crate::{
-    Value,
+    knowledge::Value,
     ontology::data_type::schema::{ResolveClosedDataTypeError, ValueLabel},
 };
 

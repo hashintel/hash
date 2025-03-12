@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use super::{Constraint, ConstraintError, ConstraintValidator, JsonSchemaValueType};
-use crate::{Value, ontology::data_type::schema::ResolveClosedDataTypeError};
+use crate::{knowledge::Value, ontology::data_type::schema::ResolveClosedDataTypeError};
 
 #[derive(Debug, Error)]
 pub enum ObjectValidationError {}

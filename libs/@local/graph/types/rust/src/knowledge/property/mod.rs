@@ -2,17 +2,19 @@ pub mod error;
 pub mod visitor;
 
 use type_system::{
-    Value,
+    knowledge::{
+        Value,
+        property::metadata::{
+            ArrayMetadata, ObjectMetadata, PropertyMetadata, PropertyWithMetadataValue,
+        },
+        value::{ValueMetadata, metadata::ValueProvenance},
+    },
     ontology::{json_schema::JsonSchemaValueType, property_type::schema::PropertyValueType},
 };
 
 pub use self::{
     array::PropertyWithMetadataArray,
     diff::PropertyDiff,
-    metadata::{
-        ArrayMetadata, ObjectMetadata, PropertyMetadata, PropertyMetadataObject,
-        PropertyProvenance, PropertyWithMetadataValue, ValueMetadata,
-    },
     object::{PropertyObject, PropertyWithMetadataObject},
     patch::{PatchError, PropertyPatchOperation},
     path::{PropertyPath, PropertyPathElement},
@@ -20,7 +22,6 @@ pub use self::{
 
 mod array;
 mod diff;
-mod metadata;
 mod object;
 mod patch;
 mod path;
@@ -341,7 +342,7 @@ impl PropertyWithMetadata {
             (Property::Value(value), None) => Ok(Self::Value(PropertyWithMetadataValue {
                 value,
                 metadata: ValueMetadata {
-                    provenance: PropertyProvenance::default(),
+                    provenance: ValueProvenance::default(),
                     confidence: None,
                     data_type_id: None,
                     original_data_type_id: None,

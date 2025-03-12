@@ -15,13 +15,17 @@ use hash_graph_store::{
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::knowledge::property::{
-    PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyProvenance,
-    PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
+    PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyWithMetadata,
+    PropertyWithMetadataObject,
 };
 use pretty_assertions::assert_eq;
 use type_system::{
-    Value,
-    knowledge::entity::provenance::ProvidedEntityEditionProvenance,
+    knowledge::{
+        Value,
+        entity::provenance::ProvidedEntityEditionProvenance,
+        property::metadata::PropertyWithMetadataValue,
+        value::{ValueMetadata, metadata::ValueProvenance},
+    },
     ontology::{BaseUrl, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,
@@ -128,7 +132,7 @@ async fn properties_add() {
                             confidence: None,
                             data_type_id: None,
                             original_data_type_id: None,
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             canonical: HashMap::default(),
                         },
                     }),
@@ -141,7 +145,7 @@ async fn properties_add() {
                             confidence: None,
                             data_type_id: None,
                             original_data_type_id: None,
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             canonical: HashMap::default(),
                         },
                     }),
@@ -334,7 +338,7 @@ async fn properties_replace() {
                         confidence: None,
                         data_type_id: None,
                         original_data_type_id: None,
-                        provenance: PropertyProvenance::default(),
+                        provenance: ValueProvenance::default(),
                         canonical: HashMap::default(),
                     },
                 }),

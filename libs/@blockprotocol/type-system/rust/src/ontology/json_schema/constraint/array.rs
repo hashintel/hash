@@ -11,7 +11,7 @@ use super::{
     NumberSchema, StringSchema,
 };
 use crate::{
-    Value,
+    knowledge::Value,
     ontology::data_type::schema::{ResolveClosedDataTypeError, ValueLabel},
 };
 

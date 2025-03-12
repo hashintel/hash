@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use type_system::knowledge::entity::EntityId;
 
-use crate::knowledge::{Confidence, property::PropertyProvenance};
+use super::EntityId;
+use crate::knowledge::{Confidence, property::metadata::PropertyProvenance};
 
 /// The associated information for 'Link' entities
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

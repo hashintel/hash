@@ -18,12 +18,12 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::knowledge::{
-    link::LinkData,
-    property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
-};
+use hash_graph_types::knowledge::property::{PropertyObject, PropertyWithMetadataObject};
 use type_system::{
-    knowledge::entity::provenance::ProvidedEntityEditionProvenance,
+    knowledge::{
+        entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
+        property::metadata::PropertyProvenance,
+    },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,

@@ -21,6 +21,7 @@ type-system                    = { workspace = true }
 
 # Private third-party dependencies
 pretty_assertions  = { workspace = true }
+serde              = { workspace = true }
 serde_json         = { workspace = true }
 time               = { workspace = true }
 tokio              = { workspace = true, default-features = false, features = ["macros"] }

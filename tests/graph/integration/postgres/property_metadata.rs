@@ -6,21 +6,28 @@ use hash_codec::numeric::Real;
 use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _, PatchEntityParams};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::knowledge::{
-    Confidence,
-    property::{
-        ObjectMetadata, PropertyMetadata, PropertyMetadataObject, PropertyObject,
-        PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
-        PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
-    },
+use hash_graph_types::knowledge::property::{
+    PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
+    PropertyWithMetadata, PropertyWithMetadataObject,
 };
 use pretty_assertions::assert_eq;
+use serde::de::DeserializeOwned;
 use serde_json::json;
 use type_system::{
-    Value,
-    knowledge::entity::provenance::ProvidedEntityEditionProvenance,
+    knowledge::{
+        Confidence, Value,
+        entity::provenance::ProvidedEntityEditionProvenance,
+        property::{
+            PropertyMetadata,
+            metadata::{
+                ObjectMetadata, PropertyMetadataObject, PropertyProvenance,
+                PropertyWithMetadataValue,
+            },
+        },
+        value::{ValueMetadata, metadata::ValueProvenance},
+    },
     ontology::{BaseUrl, VersionedUrl},
-    provenance::{ActorType, Location, OriginProvenance, OriginType, SourceProvenance, SourceType},
+    provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,
 };
 
@@ -86,25 +93,24 @@ fn number_data_type_id() -> VersionedUrl {
         .expect("couldn't construct data type id")
 }
 
-fn property_provenance_a() -> PropertyProvenance {
-    PropertyProvenance {
-        sources: vec![SourceProvenance {
-            ty: SourceType::Webpage,
-            authors: vec!["Alice".to_owned()],
-            entity_id: None,
-            location: Some(Location {
-                name: Some("Alice's blog".to_owned()),
-                uri: Some("https://alice.com".try_into().expect("could not parse URI")),
-                description: Some("Alice's blog".to_owned()),
-            }),
-            first_published: None,
-            last_updated: None,
-            loaded_at: None,
-        }],
-    }
+fn property_provenance_a<P: DeserializeOwned>() -> P {
+    serde_json::from_value(json!({
+        "sources": [
+            {
+                "type": "webpage",
+                "authors": ["Alice"],
+                "location": {
+                    "name": "Alice's blog",
+                    "uri": "https://alice.com",
+                    "description": "Alice's blog"
+                }
+            }
+        ]
+    }))
+    .expect("could not parse provenance")
 }
 
-fn property_provenance_b() -> PropertyProvenance {
+fn property_provenance_b<P: DeserializeOwned>() -> P {
     serde_json::from_value(json!({
         "sources": [
             {
@@ -344,7 +350,7 @@ async fn no_initial_metadata() {
                 name_property_type_id(),
                 PropertyMetadata::Value {
                     metadata: ValueMetadata {
-                        provenance: PropertyProvenance::default(),
+                        provenance: ValueProvenance::default(),
                         confidence: None,
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),
@@ -411,7 +417,7 @@ async fn no_initial_metadata() {
                 name_property_type_id(),
                 PropertyMetadata::Value {
                     metadata: ValueMetadata {
-                        provenance: PropertyProvenance::default(),
+                        provenance: ValueProvenance::default(),
                         confidence: None,
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),
@@ -439,7 +445,7 @@ async fn no_initial_metadata() {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
                             original_data_type_id: None,
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             canonical: HashMap::default(),
                         },
                     }),
@@ -467,7 +473,7 @@ async fn no_initial_metadata() {
                 name_property_type_id(),
                 PropertyMetadata::Value {
                     metadata: ValueMetadata {
-                        provenance: PropertyProvenance::default(),
+                        provenance: ValueProvenance::default(),
                         confidence: Confidence::new(0.5),
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),
@@ -507,7 +513,7 @@ async fn no_initial_metadata() {
                 name_property_type_id(),
                 PropertyMetadata::Value {
                     metadata: ValueMetadata {
-                        provenance: PropertyProvenance::default(),
+                        provenance: ValueProvenance::default(),
                         confidence: Confidence::new(0.5),
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),
@@ -573,7 +579,7 @@ async fn properties_add() {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
                             original_data_type_id: None,
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             canonical: HashMap::default(),
                         },
                     }),
@@ -599,7 +605,7 @@ async fn properties_add() {
                     name_property_type_id(),
                     PropertyMetadata::Value {
                         metadata: ValueMetadata {
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             confidence: None,
                             data_type_id: Some(text_data_type_id()),
                             original_data_type_id: Some(text_data_type_id()),
@@ -614,7 +620,7 @@ async fn properties_add() {
                     age_property_type_id(),
                     PropertyMetadata::Value {
                         metadata: ValueMetadata {
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             confidence: Confidence::new(0.5),
                             data_type_id: Some(number_data_type_id()),
                             original_data_type_id: Some(number_data_type_id()),
@@ -725,7 +731,7 @@ async fn properties_remove() {
                     name_property_type_id(),
                     PropertyMetadata::Value {
                         metadata: ValueMetadata {
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             confidence: None,
                             data_type_id: Some(text_data_type_id()),
                             original_data_type_id: Some(text_data_type_id()),
@@ -795,7 +801,7 @@ async fn properties_remove() {
                 name_property_type_id(),
                 PropertyMetadata::Value {
                     metadata: ValueMetadata {
-                        provenance: PropertyProvenance::default(),
+                        provenance: ValueProvenance::default(),
                         confidence: None,
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),

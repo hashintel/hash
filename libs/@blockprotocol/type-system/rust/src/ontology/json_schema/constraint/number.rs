@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use super::{Constraint, ConstraintError, ConstraintValidator, JsonSchemaValueType};
 use crate::{
-    Value,
+    knowledge::Value,
     ontology::{
         data_type::schema::ResolveClosedDataTypeError,
         json_schema::{SingleValueConstraints, ValueConstraints},

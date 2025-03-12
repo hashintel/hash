@@ -2,7 +2,7 @@ use serde_json::json;
 use thiserror::Error;
 
 use super::JsonSchemaValueType;
-use crate::Value;
+use crate::knowledge::Value;
 
 #[derive(Debug, Error)]
 pub enum ConstraintError {

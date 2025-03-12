@@ -6,15 +6,11 @@ use std::collections::HashMap;
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
-use serde::{Deserialize, Serialize};
-use type_system::ontology::BaseUrl;
 
-use crate::knowledge::{
-    Confidence,
-    property::{PropertyMetadata, PropertyProvenance},
-};
+use super::{PropertyMetadata, PropertyProvenance};
+use crate::{knowledge::Confidence, ontology::BaseUrl};
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ObjectMetadata {
@@ -32,7 +28,7 @@ impl ObjectMetadata {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyMetadataObject {

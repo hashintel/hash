@@ -7,7 +7,7 @@ use bytes::BytesMut;
 use hash_graph_temporal_versioning::{TemporalInterval, Timestamp};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type, WasNull};
-use type_system::Value;
+use type_system::knowledge::Value;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
