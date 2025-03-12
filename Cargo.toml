@@ -193,7 +193,7 @@ proc-macro-error2        = { version = "=2.0.1", default-features = false }
 proc-macro2              = { version = "=1.0.94", default-features = false }
 prometheus-client        = { version = "=0.23.1", default-features = false }
 proptest                 = { version = "=1.6.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
-quote                    = { version = "=1.0.39", default-features = false }
+quote                    = { version = "=1.0.40", default-features = false }
 rand                     = { version = "=0.9.0", default-features = false }
 refinery                 = { version = "=0.8.16", default-features = false }
 regex                    = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
