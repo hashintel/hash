@@ -25,7 +25,7 @@ use hash_graph_authorization::policies::{
     resource::{EntityResource, EntityTypeId, EntityTypeResource, ResourceId},
     store::{MemoryPolicyStore, PolicyStore},
 };
-use type_system::{knowledge::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
+use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
 use uuid::Uuid;
 
 use self::definitions::{

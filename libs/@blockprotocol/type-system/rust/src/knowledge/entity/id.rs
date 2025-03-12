@@ -157,3 +157,36 @@ impl ToSchema<'_> for EntityId {
         )
     }
 }
+
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[repr(transparent)]
+pub struct EntityEditionId(Uuid);
+
+impl EntityEditionId {
+    #[must_use]
+    pub const fn new(id: Uuid) -> Self {
+        Self(id)
+    }
+
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        &self.0
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct EntityRecordId {
+    pub entity_id: EntityId,
+    pub edition_id: EntityEditionId,
+}

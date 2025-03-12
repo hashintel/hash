@@ -63,7 +63,7 @@ use tarpc::context;
 use tokio::net::ToSocketAddrs;
 use tracing::Instrument as _;
 use type_system::{
-    knowledge::EntityId,
+    knowledge::entity::EntityId,
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference, OntologyTypeSchema,
         VersionedUrl,

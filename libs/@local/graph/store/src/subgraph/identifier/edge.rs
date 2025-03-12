@@ -1,6 +1,6 @@
 use hash_graph_temporal_versioning::LeftClosedTemporalInterval;
 use serde::{Deserialize, Serialize};
-use type_system::knowledge::EntityId;
+use type_system::knowledge::entity::EntityId;
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 

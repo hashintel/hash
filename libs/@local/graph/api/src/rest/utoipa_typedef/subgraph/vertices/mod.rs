@@ -5,7 +5,7 @@ use hash_graph_store::subgraph::temporal_axes::VariableAxis;
 use hash_graph_temporal_versioning::Timestamp;
 use serde::Serialize;
 use type_system::{
-    knowledge::EntityId,
+    knowledge::entity::EntityId,
     ontology::id::{BaseUrl, OntologyTypeVersion},
 };
 use utoipa::{

@@ -14,16 +14,14 @@ use hash_graph_store::{
     },
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::knowledge::{
-    entity::ProvidedEntityEditionProvenance,
-    property::{
-        PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyProvenance,
-        PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
-    },
+use hash_graph_types::knowledge::property::{
+    PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyProvenance,
+    PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
 };
 use pretty_assertions::assert_eq;
 use type_system::{
     Value,
+    knowledge::entity::provenance::ProvidedEntityEditionProvenance,
     ontology::{BaseUrl, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,

@@ -33,8 +33,8 @@ pub enum EntityQueryPath<'p> {
     /// ```
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`EntityUuid`]: hash_graph_types::knowledge::entity::EntityUuid
-    /// [`EntityId`]: hash_graph_types::knowledge::entity::EntityId
+    /// [`EntityUuid`]: type_system::knowledge::entity::id::EntityUuid
+    /// [`EntityId`]: type_system::knowledge::entity::id::EntityId
     Uuid,
     /// The [`OwnedById`] of the [`EntityId`] belonging to the [`Entity`].
     ///
@@ -49,7 +49,7 @@ pub enum EntityQueryPath<'p> {
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     /// [`OwnedById`]: type_system::web::OwnedById
-    /// [`EntityId`]: hash_graph_types::knowledge::entity::EntityId
+    /// [`EntityId`]: type_system::knowledge::entity::EntityId
     OwnedById,
     /// The [`DraftId`] of the [`EntityId`] belonging to the [`Entity`].
     ///
@@ -63,8 +63,8 @@ pub enum EntityQueryPath<'p> {
     /// ```
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`DraftId`]: hash_graph_types::knowledge::entity::DraftId
-    /// [`EntityId`]: hash_graph_types::knowledge::entity::EntityId
+    /// [`DraftId`]: type_system::knowledge::entity::id::DraftId
+    /// [`EntityId`]: type_system::knowledge::entity::EntityId
     DraftId,
     /// The [`EntityEditionId`] of the [`EntityRecordId`] belonging to the [`Entity`].
     ///
@@ -78,8 +78,8 @@ pub enum EntityQueryPath<'p> {
     /// ```
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`EntityEditionId`]: hash_graph_types::knowledge::entity::EntityEditionId
-    /// [`EntityRecordId`]: hash_graph_types::knowledge::entity::EntityRecordId
+    /// [`EntityEditionId`]: type_system::knowledge::entity::id::EntityEditionId
+    /// [`EntityRecordId`]: type_system::knowledge::entity::id::EntityRecordId
     EditionId,
     /// The decision time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
@@ -217,7 +217,7 @@ pub enum EntityQueryPath<'p> {
     ///
     /// # Left entity
     ///
-    /// Corresponds to the [`Entity`] specified by [`LinkData::left_entity_id()`].
+    /// Corresponds to the [`Entity`] specified by [`LinkData::left_entity_id`].
     ///
     /// Deserializes from `["leftEntity", ...]` where `...` is the path of the left [`Entity`].
     ///
@@ -238,12 +238,12 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::left_entity_id()`]: hash_graph_types::knowledge::link::LinkData::left_entity_id
+    /// [`LinkData::left_entity_id`]: hash_graph_types::knowledge::link::LinkData::left_entity_id
     ///
     ///
     /// # Right entity
     ///
-    /// Corresponds to the [`Entity`] specified by [`LinkData::right_entity_id()`].
+    /// Corresponds to the [`Entity`] specified by [`LinkData::right_entity_id`].
     ///
     /// Deserializes from `["rightEntity", ...]` where `...` is the path of the left [`Entity`].
     ///
@@ -264,7 +264,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::right_entity_id()`]: hash_graph_types::knowledge::link::LinkData::right_entity_id
+    /// [`LinkData::right_entity_id`]: hash_graph_types::knowledge::link::LinkData::right_entity_id
     ///
     ///
     /// # Incoming links

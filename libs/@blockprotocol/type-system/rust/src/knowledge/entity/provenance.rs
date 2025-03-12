@@ -6,13 +6,13 @@ use bytes::BytesMut;
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
-use serde::{Deserialize, Serialize};
-use type_system::provenance::{
+
+use crate::provenance::{
     ActorType, CreatedById, EditionArchivedById, EditionCreatedById, OriginProvenance,
     SourceProvenance,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityEditionProvenance {
@@ -51,7 +51,7 @@ impl ToSql for EntityEditionProvenance {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvidedEntityEditionProvenance {
@@ -61,7 +61,7 @@ pub struct ProvidedEntityEditionProvenance {
     pub origin: OriginProvenance,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct InferredEntityProvenance {
@@ -103,7 +103,7 @@ impl ToSql for InferredEntityProvenance {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityProvenance {

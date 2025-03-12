@@ -2,7 +2,7 @@ use core::error::Error;
 
 use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
-use type_system::{knowledge::id::EntityUuid, web::OwnedById};
+use type_system::{knowledge::entity::id::EntityUuid, web::OwnedById};
 use uuid::Uuid;
 
 use crate::{

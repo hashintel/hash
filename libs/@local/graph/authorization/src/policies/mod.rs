@@ -285,7 +285,9 @@ mod tests {
         use core::{error::Error, str::FromStr as _};
         use std::collections::HashSet;
 
-        use type_system::{knowledge::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
+        use type_system::{
+            knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById,
+        };
 
         use super::*;
         use crate::policies::{

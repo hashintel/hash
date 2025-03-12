@@ -48,10 +48,7 @@ use hash_graph_types::{
     account::AccountId,
     knowledge::{
         Confidence,
-        entity::{
-            Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityMetadata,
-            EntityProvenance, EntityRecordId, EntityTemporalMetadata, InferredEntityProvenance,
-        },
+        entity::{Entity, EntityEmbedding, EntityMetadata, EntityTemporalMetadata},
         property::{
             Property, PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPath,
             PropertyPathError, PropertyWithMetadata, PropertyWithMetadataObject,
@@ -67,7 +64,11 @@ use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     Value,
-    knowledge::id::{DraftId, EntityId, EntityUuid},
+    knowledge::entity::{
+        EntityProvenance,
+        id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
+        provenance::{EntityEditionProvenance, InferredEntityProvenance},
+    },
     ontology::{
         InheritanceDepth,
         data_type::schema::DataTypeReference,

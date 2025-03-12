@@ -21,7 +21,7 @@ use hash_graph_types::{
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use tokio_postgres::GenericClient as _;
 use type_system::{
-    knowledge::id::EntityUuid,
+    knowledge::entity::id::EntityUuid,
     ontology::entity_type::{ClosedEntityType, ClosedMultiEntityType},
 };
 

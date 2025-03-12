@@ -8,7 +8,6 @@ use hash_graph_store::entity::{CreateEntityParams, EntityStore as _, PatchEntity
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::knowledge::{
     Confidence,
-    entity::ProvidedEntityEditionProvenance,
     property::{
         ObjectMetadata, PropertyMetadata, PropertyMetadataObject, PropertyObject,
         PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
@@ -19,6 +18,7 @@ use pretty_assertions::assert_eq;
 use serde_json::json;
 use type_system::{
     Value,
+    knowledge::entity::provenance::ProvidedEntityEditionProvenance,
     ontology::{BaseUrl, VersionedUrl},
     provenance::{ActorType, Location, OriginProvenance, OriginType, SourceProvenance, SourceType},
     web::OwnedById,

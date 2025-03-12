@@ -1,7 +1,7 @@
 use time::OffsetDateTime;
 use url::Url;
 
-use crate::knowledge::EntityId;
+use crate::knowledge::entity::EntityId;
 
 /// The type of source material which was used to produce a value.
 // This enumeration is expected to grow over time, thus it's marked as non-exhaustive.

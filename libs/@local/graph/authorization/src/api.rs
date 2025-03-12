@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use error_stack::Report;
 use hash_graph_types::account::{AccountGroupId, AccountId};
 use type_system::{
-    knowledge::id::{EntityId, EntityUuid},
+    knowledge::entity::id::{EntityId, EntityUuid},
     ontology::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },

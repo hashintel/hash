@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use error_stack::Report;
 use hash_graph_types::knowledge::property::visitor::ObjectPropertyValidationReport;
 use type_system::{
-    knowledge::EntityId,
+    knowledge::entity::EntityId,
     ontology::{BaseUrl, VersionedUrl, entity_type::schema::ResolveClosedEntityTypeError},
 };
 

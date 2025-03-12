@@ -5,7 +5,7 @@ use futures::{Stream, TryStreamExt as _};
 use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use type_system::{
-    knowledge::id::{EntityId, EntityUuid},
+    knowledge::entity::id::{EntityId, EntityUuid},
     ontology::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },

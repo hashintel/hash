@@ -1,3 +1,1 @@
-pub mod id;
-
-pub use self::id::EntityId;
+pub mod entity;

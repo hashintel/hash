@@ -12,7 +12,7 @@ use futures::{
 };
 use hash_graph_authorization::schema::EntityRelationAndSubject;
 use type_system::{
-    knowledge::id::EntityUuid,
+    knowledge::entity::id::EntityUuid,
     ontology::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },

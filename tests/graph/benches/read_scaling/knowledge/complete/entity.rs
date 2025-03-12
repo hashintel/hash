@@ -21,7 +21,7 @@ use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, ProvidedEntityEditionProvenance},
+        entity::Entity,
         link::LinkData,
         property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
@@ -29,6 +29,7 @@ use hash_graph_types::{
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
 use type_system::{
+    knowledge::entity::provenance::ProvidedEntityEditionProvenance,
     ontology::entity_type::EntityType,
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,

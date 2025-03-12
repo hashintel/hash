@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use type_system::knowledge::EntityId;
+use type_system::knowledge::entity::EntityId;
 
 use crate::knowledge::{Confidence, property::PropertyProvenance};
 

@@ -1203,7 +1203,7 @@ mod tests {
 
     mod predefined {
         use type_system::{
-            knowledge::id::{EntityId, EntityUuid},
+            knowledge::entity::id::{EntityId, EntityUuid},
             ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
             web::OwnedById,
         };

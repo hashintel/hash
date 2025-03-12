@@ -3,7 +3,7 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
 use type_system::{
-    knowledge::id::{EntityId, EntityUuid},
+    knowledge::entity::id::{EntityId, EntityUuid},
     ontology::BaseUrl,
 };
 

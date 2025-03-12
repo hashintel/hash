@@ -11,7 +11,7 @@ use core::str::FromStr as _;
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
-use type_system::{knowledge::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
+use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
 use uuid::Uuid;
 
 pub use self::{

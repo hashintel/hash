@@ -4,12 +4,14 @@ use std::collections::HashSet;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::knowledge::{
-    entity::ProvidedEntityEditionProvenance,
     link::LinkData,
     property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
 };
 use type_system::{
-    knowledge::id::{EntityId, EntityUuid},
+    knowledge::entity::{
+        id::{EntityId, EntityUuid},
+        provenance::ProvidedEntityEditionProvenance,
+    },
     ontology::VersionedUrl,
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,

@@ -12,14 +12,12 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::{ClosedTemporalBound, LimitedTemporalBound, TemporalBound};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::knowledge::{
-    entity::ProvidedEntityEditionProvenance,
-    property::{
-        Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
-        PropertyWithMetadataObject,
-    },
+use hash_graph_types::knowledge::property::{
+    Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
+    PropertyWithMetadataObject,
 };
 use type_system::{
+    knowledge::entity::provenance::ProvidedEntityEditionProvenance,
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,

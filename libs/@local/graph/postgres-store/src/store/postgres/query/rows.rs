@@ -6,7 +6,6 @@ use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::{
         Confidence,
-        entity::{EntityEditionId, EntityEditionProvenance, InferredEntityProvenance},
         property::{PropertyMetadataObject, PropertyObject, PropertyProvenance},
     },
 };
@@ -14,7 +13,10 @@ use postgres_types::ToSql;
 use time::OffsetDateTime;
 use type_system::{
     Valid,
-    knowledge::id::{DraftId, EntityUuid},
+    knowledge::entity::{
+        id::{DraftId, EntityEditionId, EntityUuid},
+        provenance::{EntityEditionProvenance, InferredEntityProvenance},
+    },
     ontology::{
         InheritanceDepth,
         data_type::{ClosedDataType, ConversionDefinition, DataType, DataTypeUuid},

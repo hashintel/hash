@@ -73,7 +73,7 @@ use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
-    knowledge::EntityId,
+    knowledge::entity::EntityId,
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
         data_type::DataTypeMetadata,

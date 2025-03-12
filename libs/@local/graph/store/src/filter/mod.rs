@@ -10,7 +10,7 @@ use error_stack::{Report, ResultExt as _, bail};
 use hash_graph_types::{knowledge::entity::Entity, ontology::DataTypeLookup};
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    knowledge::EntityId,
+    knowledge::entity::EntityId,
     ontology::{
         data_type::{DataTypeUuid, DataTypeWithMetadata, schema::DataTypeReference},
         id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
@@ -540,7 +540,7 @@ mod tests {
 
     use serde_json::json;
     use type_system::{
-        knowledge::id::{DraftId, EntityUuid},
+        knowledge::entity::id::{DraftId, EntityUuid},
         ontology::data_type::{ClosedDataType, ConversionExpression},
         web::OwnedById,
     };

@@ -4,7 +4,7 @@ use hash_graph_temporal_versioning::Timestamp;
 use hash_graph_types::knowledge::entity::Entity;
 use serde::{Deserialize, Serialize};
 use type_system::{
-    knowledge::EntityId,
+    knowledge::entity::EntityId,
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
         id::{BaseUrl, OntologyTypeVersion, VersionedUrl},

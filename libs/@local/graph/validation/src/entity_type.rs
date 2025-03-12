@@ -34,7 +34,7 @@ use hash_graph_types::{
 use thiserror::Error;
 use type_system::{
     Value,
-    knowledge::EntityId,
+    knowledge::entity::EntityId,
     ontology::{
         VersionedUrl,
         data_type::schema::{ClosedDataType, DataTypeReference},

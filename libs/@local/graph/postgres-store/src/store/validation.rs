@@ -28,7 +28,7 @@ use tokio::sync::RwLock;
 use tokio_postgres::GenericClient as _;
 use type_system::{
     Valid,
-    knowledge::EntityId,
+    knowledge::entity::EntityId,
     ontology::{
         BaseUrl, DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
         VersionedUrl,

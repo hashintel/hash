@@ -19,13 +19,10 @@ use hash_graph_store::{
     },
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::knowledge::{
-    entity::ProvidedEntityEditionProvenance,
-    property::{PropertyObject, PropertyWithMetadataObject},
-};
+use hash_graph_types::knowledge::property::{PropertyObject, PropertyWithMetadataObject};
 use pretty_assertions::assert_eq;
 use type_system::{
-    knowledge::id::EntityUuid,
+    knowledge::entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,

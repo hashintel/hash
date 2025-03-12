@@ -54,7 +54,7 @@ use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
 use type_system::{
-    knowledge::id::{EntityId, EntityUuid},
+    knowledge::entity::id::{EntityId, EntityUuid},
     ontology::{
         VersionedUrl,
         data_type::{DataTypeUuid, DataTypeWithMetadata},

@@ -1,27 +1,17 @@
 mod diff;
-mod provenance;
 
 use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
-#[cfg(feature = "postgres")]
-use postgres_types::{FromSql, ToSql};
 use type_system::{
-    knowledge::EntityId,
+    knowledge::entity::{EntityProvenance, id::EntityRecordId},
     ontology::{BaseUrl, VersionedUrl},
 };
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
-use uuid::Uuid;
 
-pub use self::{
-    diff::EntityTypeIdDiff,
-    provenance::{
-        EntityEditionProvenance, EntityProvenance, InferredEntityProvenance,
-        ProvidedEntityEditionProvenance,
-    },
-};
+pub use self::diff::EntityTypeIdDiff;
 use crate::{
     Embedding,
     knowledge::{
@@ -129,39 +119,6 @@ impl Entity {
 pub struct EntityTemporalMetadata {
     pub decision_time: LeftClosedTemporalInterval<DecisionTime>,
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
-}
-
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
-)]
-#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
-#[repr(transparent)]
-pub struct EntityEditionId(Uuid);
-
-impl EntityEditionId {
-    #[must_use]
-    pub const fn new(id: Uuid) -> Self {
-        Self(id)
-    }
-
-    #[must_use]
-    pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
-    }
-
-    #[must_use]
-    pub const fn into_uuid(self) -> Uuid {
-        self.0
-    }
-}
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub struct EntityRecordId {
-    pub entity_id: EntityId,
-    pub edition_id: EntityEditionId,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

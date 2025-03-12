@@ -82,7 +82,7 @@ use hash_tracing::logging::env_filter;
 use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{
-    knowledge::EntityId,
+    knowledge::entity::EntityId,
     ontology::{
         OntologyTemporalMetadata,
         data_type::{DataType, DataTypeMetadata},

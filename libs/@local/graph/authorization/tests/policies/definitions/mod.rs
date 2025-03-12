@@ -19,7 +19,7 @@ use hash_graph_authorization::policies::{
 };
 use pretty_assertions::assert_eq;
 use type_system::{
-    knowledge::id::EntityUuid,
+    knowledge::entity::id::EntityUuid,
     ontology::{BaseUrl, VersionedUrl},
     web::OwnedById,
 };

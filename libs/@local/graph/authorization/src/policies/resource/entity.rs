@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use smol_str::SmolStr;
-use type_system::{knowledge::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
+use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
 use uuid::Uuid;
 
 use super::entity_type::EntityTypeId;
@@ -190,7 +190,7 @@ mod tests {
     use core::{error::Error, str::FromStr as _};
 
     use serde_json::json;
-    use type_system::{knowledge::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
+    use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
     use uuid::Uuid;
 
     use super::{EntityResourceConstraint, EntityResourceFilter};

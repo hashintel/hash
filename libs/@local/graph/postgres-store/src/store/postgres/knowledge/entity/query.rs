@@ -3,7 +3,7 @@ use hash_graph_store::{
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
 };
 use hash_graph_types::knowledge::{
-    entity::{Entity, EntityMetadata, EntityProvenance, EntityRecordId},
+    entity::{Entity, EntityMetadata},
     link::LinkData,
     property::PropertyMetadataObject,
 };
@@ -11,7 +11,10 @@ use serde::Deserialize as _;
 use tokio_postgres::Row;
 use tracing::instrument;
 use type_system::{
-    knowledge::id::{EntityId, EntityUuid},
+    knowledge::entity::{
+        EntityProvenance,
+        id::{EntityId, EntityRecordId, EntityUuid},
+    },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };
