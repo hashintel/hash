@@ -18,8 +18,10 @@ jobs:
     steps:
       - name: Set trigger type
         id: trigger-type
+        env:
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             echo "is_workflow_dispatch=true" >> $GITHUB_OUTPUT
           else
             echo "is_workflow_dispatch=false" >> $GITHUB_OUTPUT
@@ -28,9 +30,11 @@ jobs:
       - name: Check if review is requested for hashdotai
         id: check-reviewer
         if: steps.trigger-type.outputs.is_workflow_dispatch != 'true'
+        env:
+          REVIEWER_LOGIN: ${{ github.event.requested_reviewer.login }}
         run: |
-          echo "Requested reviewer: ${{ github.event.requested_reviewer.login }}"
-          if [[ "${{ github.event.requested_reviewer.login }}" == "hashdotai" ]]; then
+          echo "Requested reviewer: $REVIEWER_LOGIN"
+          if [[ "$REVIEWER_LOGIN" == "hashdotai" ]]; then
             echo "✅ Review requested for hashdotai"
             echo "is_hashdotai=true" >> $GITHUB_OUTPUT
           else
@@ -41,14 +45,15 @@ jobs:
       - name: Check PR author
         id: check-maintainer
         if: steps.trigger-type.outputs.is_workflow_dispatch != 'true' && steps.check-reviewer.outputs.is_hashdotai == 'true'
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          REPO="${{ github.repository }}"
-          
           echo "Checking if $PR_AUTHOR is a maintainer on $REPO"
           
           # Get the permission level of the PR author
-          PERMISSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          PERMISSION=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             "https://api.github.com/repos/$REPO/collaborators/$PR_AUTHOR/permission" | \
             jq -r '.permission')
           
@@ -63,14 +68,18 @@ jobs:
 
       - name: Set final output
         id: set-output
+        env:
+          IS_WORKFLOW_DISPATCH: ${{ steps.trigger-type.outputs.is_workflow_dispatch }}
+          IS_HASHDOTAI: ${{ steps.check-reviewer.outputs.is_hashdotai }}
+          IS_MAINTAINER: ${{ steps.check-maintainer.outputs.is_maintainer }}
         run: |
-          if [[ "${{ steps.trigger-type.outputs.is_workflow_dispatch }}" == "true" ]]; then
+          if [[ "$IS_WORKFLOW_DISPATCH" == "true" ]]; then
             # For workflow_dispatch, skip all checks
             echo "✅ Workflow dispatch - will run AI review without conditions"
             echo "should_review=true" >> $GITHUB_OUTPUT
           else
             # For pull_request event, check both conditions
-            if [[ "${{ steps.check-reviewer.outputs.is_hashdotai }}" == "true" && "${{ steps.check-maintainer.outputs.is_maintainer }}" == "true" ]]; then
+            if [[ "$IS_HASHDOTAI" == "true" && "$IS_MAINTAINER" == "true" ]]; then
               echo "✅ All conditions met - will run AI review"
               echo "should_review=true" >> $GITHUB_OUTPUT
             else
@@ -91,15 +100,20 @@ jobs:
       
       - name: Determine PR number
         id: pr-number
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "number=${{ github.event.inputs.pr_number }}" >> $GITHUB_OUTPUT
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "number=$WORKFLOW_PR_NUMBER" >> $GITHUB_OUTPUT
           else
-            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
           fi
       
       - name: Run AI Code PR Review
-        run: yarn workspace @local/repo-chores exe scripts/ai-pr-review.ts ${{ steps.pr-number.outputs.number }}
         env:
+          PR_NUMBER: ${{ steps.pr-number.outputs.number }}
           GH_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
+        run: yarn workspace @local/repo-chores exe scripts/ai-pr-review.ts "$PR_NUMBER"
           
