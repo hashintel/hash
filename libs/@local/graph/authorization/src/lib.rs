@@ -104,6 +104,14 @@ impl AuthorizationApi for NoAuthorization {
         Ok(Zookie::empty())
     }
 
+    async fn get_account_group_relations(
+        &self,
+        _: AccountGroupId,
+        _: Consistency<'_>,
+    ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
+        Ok(Vec::new())
+    }
+
     async fn get_web_relations(
         &self,
         _: OwnedById,

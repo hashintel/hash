@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { LinearClient } from "@linear/sdk";
+import { hydrateLinearIssue } from "@local/hash-backend-utils/linear";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -10,8 +11,6 @@ import {
 import { config } from "dotenv-flow";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-
-import { hydrateIssue } from "./main/populate-linear-resources.js";
 
 config({ path: "../../../.env.local", silent: true });
 
@@ -47,6 +46,28 @@ const AddCommentToIssueRequestSchema = z.object({
   }),
 });
 
+const CreateIssueRequestSchema = z.object({
+  title: z.string({ description: "The title of the issue to create" }),
+  assigneeId: z
+    .string({
+      description:
+        "The id of the user to assign the issue to. If the parent issue has an assignee, this MUST be the same as the parent issue's assignee.",
+    })
+    .optional(),
+  teamId: z.string({
+    description:
+      "The id of the team to assign the issue to (MUST be the same as the parent issue).",
+  }),
+  description: z.string({
+    description:
+      "The description of the issue to create. MUST be formatted as a ProseMirror document. Use checklists for todo items.",
+  }),
+  parentIssueUuid: z.string({
+    description:
+      "The uuid of the parent issue this is a sub-issue of (not the H-XXXX format).",
+  }),
+});
+
 const tools = [
   {
     name: "list_issues",
@@ -62,6 +83,11 @@ const tools = [
     name: "add_comment_to_issue",
     description: "Add a comment to an issue",
     inputSchema: zodToJsonSchema(AddCommentToIssueRequestSchema),
+  },
+  {
+    name: "create_issue",
+    description: "Create a new issue in Linear",
+    inputSchema: zodToJsonSchema(CreateIssueRequestSchema),
   },
 ] as const;
 
@@ -104,7 +130,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       const hydratedIssues = await Promise.all(
         issues.nodes.map(async (issue) =>
-          hydrateIssue({ issue, includeComments: false }),
+          hydrateLinearIssue({ issue, includeComments: false }),
         ),
       );
 
@@ -123,7 +149,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       const issue = await linear.issue(args.issueId);
 
-      const hydratedIssue = await hydrateIssue({
+      const hydratedIssue = await hydrateLinearIssue({
         issue,
         includeComments: true,
       });
@@ -171,6 +197,39 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       return {
         content: [{ type: "text", text: "Comment added successfully." }],
+      };
+    }
+
+    case "create_issue": {
+      const args = CreateIssueRequestSchema.parse(request.params.arguments);
+
+      const issueCreateInput = {
+        assigneeId: args.assigneeId,
+        description: args.description,
+        parentId: args.parentIssueUuid,
+        teamId: args.teamId,
+        title: args.title,
+      };
+
+      const issue = await linear.createIssue(issueCreateInput);
+
+      if (!issue.success || !issue.issue) {
+        throw new Error("Failed to create issue");
+      }
+
+      const createdIssue = await linear.issue((await issue.issue).id);
+      const hydratedIssue = await hydrateLinearIssue({
+        issue: createdIssue,
+        includeComments: false,
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(hydratedIssue, null, 2),
+          },
+        ],
       };
     }
 

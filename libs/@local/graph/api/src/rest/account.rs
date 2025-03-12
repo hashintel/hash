@@ -14,8 +14,8 @@ use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
-        WebOwnerSubject,
+        AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupPermission,
+        AccountGroupRelationAndSubject, WebOwnerSubject,
     },
     zanzibar::Consistency,
 };
@@ -43,12 +43,16 @@ use crate::rest::{
         check_account_group_permission,
         add_account_group_member,
         remove_account_group_member,
+        get_account_group_relations,
     ),
     components(
         schemas(
             AccountId,
             AccountGroupId,
             AccountGroupPermission,
+            AccountGroupRelationAndSubject,
+            AccountGroupMemberSubject,
+            AccountGroupAdministratorSubject,
 
             InsertAccountIdParams,
             InsertAccountGroupIdParams,
@@ -81,6 +85,7 @@ impl RoutedResource for AccountResource {
                                 "/permissions/:permission",
                                 get(check_account_group_permission::<A>),
                             )
+                            .route("/relations", get(get_account_group_relations::<A>))
                             .route(
                                 "/members/:account_id",
                                 post(add_account_group_member::<A>)
@@ -403,4 +408,55 @@ where
         })?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    get,
+    path = "/account_groups/{account_group_id}/relations",
+    tag = "Account Group",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("account_group_id" = AccountGroupId, Path, description = "The ID of the account group to get relations from"),
+    ),
+    responses(
+        (status = 200, body = Vec<AccountGroupRelationAndSubject>, description = "List of members and administrators of the account group"),
+        (status = 403, description = "Permission denied"),
+        (status = 500, description = "Internal error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn get_account_group_relations<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(account_group_id): Path<AccountGroupId>,
+    authorization_api_pool: Extension<Arc<A>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
+) -> Result<Json<Vec<AccountGroupRelationAndSubject>>, Response>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::GetAccountGroupRelations { account_group_id },
+        );
+    }
+
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    // Get relations of the account group
+    let result = authorization_api
+        .get_account_group_relations(account_group_id, Consistency::FullyConsistent)
+        .await
+        .attach_printable("Could not get account group relations")
+        .map_err(report_to_response)
+        .map(Json);
+
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+
+    result
 }

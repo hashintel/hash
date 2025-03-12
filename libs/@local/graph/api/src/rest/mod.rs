@@ -291,6 +291,9 @@ pub enum OpenApiQuery<'a> {
         account_group_id: AccountGroupId,
         permission: AccountGroupPermission,
     },
+    GetAccountGroupRelations {
+        account_group_id: AccountGroupId,
+    },
     GetDataTypes(&'a JsonValue),
     GetDataTypeSubgraph(&'a JsonValue),
     GetDataTypeAuthorizationRelationships {
