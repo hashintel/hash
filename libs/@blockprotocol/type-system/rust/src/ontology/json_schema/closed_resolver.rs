@@ -50,12 +50,12 @@ use error_stack::{Report, bail};
 use thiserror::Error;
 
 use crate::ontology::{
+    VersionedUrl,
     data_type::{DataType, DataTypeUuid, schema::DataTypeResolveData},
     entity_type::{
         EntityType, EntityTypeUuid,
         schema::{EntityTypeResolveData, EntityTypeToEntityTypeEdge},
     },
-    id::VersionedUrl,
     property_type::PropertyTypeUuid,
 };
 

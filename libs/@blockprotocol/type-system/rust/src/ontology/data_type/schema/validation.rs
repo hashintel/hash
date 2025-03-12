@@ -4,7 +4,7 @@ use std::{collections::HashSet, sync::LazyLock};
 use thiserror::Error;
 
 use super::{ClosedDataType, DataType, DataTypeReference};
-use crate::{Valid, Validator, ontology::id::VersionedUrl};
+use crate::{Valid, Validator, ontology::VersionedUrl};
 
 /// Errors that can occur when validating a [`DataType`].
 ///

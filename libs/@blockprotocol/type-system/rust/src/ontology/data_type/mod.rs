@@ -13,7 +13,7 @@ pub use self::{
     metadata::{DataTypeMetadata, DataTypeWithMetadata},
     schema::{ClosedDataType, DataType},
 };
-use super::{OntologyTypeUuid, id::VersionedUrl};
+use super::id::{OntologyTypeUuid, VersionedUrl};
 
 /// A unique identifier for a [`DataType`] generated from a [`VersionedUrl`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]

@@ -6,8 +6,8 @@ use super::PropertyValueObject;
 use crate::{
     Valid, Validator,
     ontology::{
+        BaseUrl,
         entity_type::{ClosedEntityType, EntityType},
-        id::BaseUrl,
     },
 };
 

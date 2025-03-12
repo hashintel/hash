@@ -5,7 +5,7 @@ use serde::{
     Deserialize, Deserializer, Serialize,
     de::{self, SeqAccess, Visitor},
 };
-use type_system::ontology::id::BaseUrl;
+use type_system::ontology::BaseUrl;
 #[cfg(feature = "utoipa")]
 use utoipa::{
     ToSchema,
@@ -107,7 +107,7 @@ pub enum EntityQueryPath<'p> {
     /// instead.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeBaseUrls,

@@ -8,11 +8,10 @@ use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::{self, Embedding, account::AccountId};
 use serde::{Deserialize, Serialize};
 use type_system::ontology::{
-    OntologyTemporalMetadata,
+    BaseUrl, OntologyTemporalMetadata, VersionedUrl,
     data_type::{
         ConversionDefinition, Conversions, DataType, DataTypeMetadata, DataTypeWithMetadata,
     },
-    id::{BaseUrl, VersionedUrl},
     provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
 };
 
@@ -169,7 +168,7 @@ pub trait DataTypeStore {
     /// - if any account referred to by `metadata` does not exist.
     /// - if the [`BaseUrl`] of the `data_type` already exists.
     ///
-    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_data_type<R>(
         &mut self,
         actor_id: AccountId,
@@ -195,7 +194,7 @@ pub trait DataTypeStore {
     /// - if any account referred to by the metadata does not exist.
     /// - if any [`BaseUrl`] of the data type already exists.
     ///
-    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_data_types<P, R>(
         &mut self,
         actor_id: AccountId,

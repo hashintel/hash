@@ -49,9 +49,8 @@ use hash_graph_types::{
     knowledge::{
         Confidence,
         entity::{
-            DraftId, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
-            EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
-            InferredEntityProvenance,
+            Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityMetadata,
+            EntityProvenance, EntityRecordId, EntityTemporalMetadata, InferredEntityProvenance,
         },
         property::{
             Property, PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPath,
@@ -68,13 +67,14 @@ use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     Value,
+    knowledge::id::{DraftId, EntityId, EntityUuid},
     ontology::{
-        InheritanceDepth, OntologyTypeUuid,
+        InheritanceDepth,
         data_type::schema::DataTypeReference,
         entity_type::{
             ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, EntityTypeWithMetadata,
         },
-        id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+        id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
     },
     provenance::{CreatedById, EditionArchivedById, EditionCreatedById},
     web::OwnedById,

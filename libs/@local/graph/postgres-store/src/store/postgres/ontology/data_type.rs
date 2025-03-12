@@ -41,13 +41,13 @@ use tracing::instrument;
 use type_system::{
     Valid, Validator as _,
     ontology::{
-        InheritanceDepth, OntologyTemporalMetadata, OntologyTypeUuid,
+        InheritanceDepth, OntologyTemporalMetadata,
         data_type::{
             ClosedDataType, ConversionDefinition, Conversions, DataTypeMetadata, DataTypeUuid,
             DataTypeWithMetadata,
             schema::{DataType, DataTypeEdge, DataTypeResolveData, DataTypeValidator},
         },
-        id::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
+        id::{BaseUrl, OntologyTypeRecordId, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
         json_schema::OntologyTypeResolver,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },

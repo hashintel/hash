@@ -8,7 +8,7 @@ use error_stack::Report;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
-use type_system::{Value, ontology::id::BaseUrl};
+use type_system::{Value, ontology::BaseUrl};
 
 use crate::knowledge::property::{
     ObjectMetadata, Property, PropertyDiff, PropertyMetadataObject, PropertyPath,

@@ -46,9 +46,9 @@ use hash_graph_types::{
     knowledge::{
         Confidence, EntityTypeIdDiff,
         entity::{
-            Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
-            EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
-            InferredEntityProvenance, ProvidedEntityEditionProvenance,
+            Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityMetadata,
+            EntityProvenance, EntityRecordId, EntityTemporalMetadata, InferredEntityProvenance,
+            ProvidedEntityEditionProvenance,
         },
         link::LinkData,
         property::{
@@ -73,7 +73,8 @@ use hash_graph_types::{
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use type_system::{
-    ontology::id::VersionedUrl,
+    knowledge::id::{EntityId, EntityUuid},
+    ontology::VersionedUrl,
     provenance::{
         ActorType, CreatedById, EditionCreatedById, Location, OriginProvenance, SourceProvenance,
         SourceType,

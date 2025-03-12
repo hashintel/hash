@@ -1,11 +1,11 @@
 use hash_graph_authorization::schema::EntityRelationAndSubject;
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_graph_types::{
-    Embedding,
-    knowledge::entity::{EntityId, EntityUuid},
-};
+use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
-use type_system::ontology::id::BaseUrl;
+use type_system::{
+    knowledge::id::{EntityId, EntityUuid},
+    ontology::BaseUrl,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

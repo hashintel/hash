@@ -4,7 +4,7 @@ use error_stack::Report;
 use type_system::{
     Value,
     ontology::{
-        data_type::DataType, entity_type::ClosedMultiEntityType, id::VersionedUrl,
+        VersionedUrl, data_type::DataType, entity_type::ClosedMultiEntityType,
         property_type::PropertyType,
     },
 };

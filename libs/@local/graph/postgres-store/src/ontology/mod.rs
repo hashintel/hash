@@ -4,7 +4,7 @@ use core::{error::Error, fmt};
 
 use error_stack::{Report, ResultExt as _};
 use serde::Deserialize;
-use type_system::ontology::id::VersionedUrl;
+use type_system::ontology::VersionedUrl;
 
 #[derive(Debug)]
 pub struct PatchAndParseError;

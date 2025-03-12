@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use hash_graph_store::entity::ValidateEntityComponents;
 use hash_graph_types::knowledge::property::{PropertyMetadata, PropertyProvenance, ValueMetadata};
 use serde_json::json;
-use type_system::ontology::id::VersionedUrl;
+use type_system::ontology::VersionedUrl;
 
 use crate::tests::validate_property;
 

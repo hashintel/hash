@@ -7,7 +7,7 @@ pub use self::{
     metadata::{PropertyTypeMetadata, PropertyTypeWithMetadata},
     schema::PropertyType,
 };
-use super::{OntologyTypeUuid, VersionedUrl};
+use super::id::{OntologyTypeUuid, VersionedUrl};
 
 /// A unique identifier for a [`PropertyType`] generated from a [`VersionedUrl`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]

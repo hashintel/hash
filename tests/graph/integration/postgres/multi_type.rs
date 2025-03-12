@@ -20,7 +20,7 @@ use hash_graph_types::knowledge::{
 };
 use pretty_assertions::assert_eq;
 use type_system::{
-    ontology::id::VersionedUrl,
+    ontology::VersionedUrl,
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,
 };

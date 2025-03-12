@@ -20,7 +20,7 @@ use hash_graph_store::{
 };
 use hash_graph_types::{
     account::AccountId,
-    knowledge::entity::{Entity, EntityId},
+    knowledge::entity::Entity,
     ontology::{DataTypeLookup, OntologyTypeProvider},
 };
 use hash_graph_validation::EntityProvider;
@@ -28,14 +28,15 @@ use tokio::sync::RwLock;
 use tokio_postgres::GenericClient as _;
 use type_system::{
     Valid,
+    knowledge::EntityId,
     ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+        BaseUrl, DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+        VersionedUrl,
         data_type::{
             ClosedDataType, ConversionDefinition, ConversionExpression, DataTypeUuid,
             schema::DataTypeReference,
         },
         entity_type::{ClosedEntityType, EntityTypeUuid},
-        id::{BaseUrl, VersionedUrl},
         property_type::{PropertyType, PropertyTypeUuid},
     },
 };

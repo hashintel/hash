@@ -9,7 +9,7 @@ pub use self::{
 };
 use super::DataTypeMetadata;
 use crate::ontology::{
-    OntologyTypeReference, OntologyTypeSchema, id::VersionedUrl, json_schema::ValueConstraints,
+    OntologyTypeReference, OntologyTypeSchema, VersionedUrl, json_schema::ValueConstraints,
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -61,7 +61,7 @@ mod raw {
 
     use super::{DataTypeReference, DataTypeSchemaTag, DataTypeTag, ValueSchemaMetadata};
     use crate::ontology::{
-        id::VersionedUrl,
+        VersionedUrl,
         json_schema::{
             AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, BooleanTypeTag,
             NullTypeTag, NumberConstraints, NumberSchema, NumberTypeTag, ObjectTypeTag,

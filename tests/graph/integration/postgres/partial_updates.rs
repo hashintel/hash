@@ -24,7 +24,7 @@ use hash_graph_types::knowledge::{
 use pretty_assertions::assert_eq;
 use type_system::{
     Value,
-    ontology::id::{BaseUrl, VersionedUrl},
+    ontology::{BaseUrl, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,
 };

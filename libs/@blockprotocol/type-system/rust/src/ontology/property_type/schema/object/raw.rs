@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::ontology::{id::BaseUrl, json_schema::ObjectTypeTag};
+use crate::ontology::{BaseUrl, json_schema::ObjectTypeTag};
 
 #[derive(serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]

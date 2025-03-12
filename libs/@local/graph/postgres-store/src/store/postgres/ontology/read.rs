@@ -15,9 +15,9 @@ use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
 use postgres_types::Json;
 use tokio_postgres::GenericClient as _;
 use type_system::ontology::{
-    EntityTypeWithMetadata, OntologyTypeUuid,
+    EntityTypeWithMetadata,
     entity_type::{ClosedEntityType, EntityTypeUuid},
-    id::VersionedUrl,
+    id::{OntologyTypeUuid, VersionedUrl},
 };
 
 use crate::store::postgres::{

@@ -2,7 +2,7 @@ use super::{ClosedEntityType, EntityType};
 use crate::{
     Valid, Validator,
     ontology::{
-        id::BaseUrl,
+        BaseUrl,
         property_type::schema::{
             ObjectSchemaValidationError, ObjectSchemaValidator, PropertyTypeReference, ValueOrArray,
         },

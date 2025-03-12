@@ -29,8 +29,8 @@ use time::OffsetDateTime;
 use type_system::{
     Value,
     ontology::{
+        BaseUrl, VersionedUrl,
         data_type::{DataType, DataTypeUuid, DataTypeWithMetadata},
-        id::{BaseUrl, VersionedUrl},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     provenance::{ActorType, OriginProvenance, OriginType},

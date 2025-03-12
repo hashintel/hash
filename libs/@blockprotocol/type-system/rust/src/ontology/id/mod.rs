@@ -16,7 +16,7 @@
 //! ```
 //! use std::str::FromStr;
 //!
-//! use type_system::ontology::id::{BaseUrl, VersionedUrl};
+//! use type_system::ontology::{BaseUrl, VersionedUrl};
 //!
 //! // Create a base URL
 //! let base = BaseUrl::new("https://example.com/types/data-type/text/".to_owned())
@@ -44,6 +44,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use url::Url;
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};
+use uuid::Uuid;
 
 mod error;
 // #[cfg(target_arch = "wasm32")]
@@ -62,7 +63,7 @@ mod error;
 /// # Examples
 ///
 /// ```
-/// use type_system::ontology::id::BaseUrl;
+/// use type_system::ontology::BaseUrl;
 ///
 /// let base_url = BaseUrl::new("https://example.com/types/data-type/text/".to_owned())
 ///     .expect("should create a valid BaseUrl");
@@ -540,6 +541,44 @@ impl From<OntologyTypeRecordId> for VersionedUrl {
             base_url: record_id.base_url,
             version: record_id.version,
         }
+    }
+}
+
+/// A unique identifier for an ontology record generated from a [`VersionedUrl`].
+///
+/// In some contexts it's not known to which schema an ontology record belongs, so this
+/// identifier is used to reference the record without knowing its type. When appropriate,
+/// this identifier can be converted to a more specific identifier type.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(
+    feature = "postgres",
+    derive(postgres_types::FromSql, postgres_types::ToSql),
+    postgres(transparent)
+)]
+#[repr(transparent)]
+pub struct OntologyTypeUuid(Uuid);
+
+impl OntologyTypeUuid {
+    /// Creates a new instance of the identifier type from a [`VersionedUrl`].
+    #[must_use]
+    pub fn from_url(url: &VersionedUrl) -> Self {
+        Self(Uuid::new_v5(
+            &Uuid::NAMESPACE_URL,
+            url.to_string().as_bytes(),
+        ))
+    }
+
+    /// Returns a reference to the inner [`Uuid`].
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        &self.0
+    }
+
+    /// Returns a copy of the inner [`Uuid`].
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        self.0
     }
 }
 

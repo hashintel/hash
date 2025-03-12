@@ -19,7 +19,7 @@ use pretty_assertions::assert_eq;
 use serde_json::json;
 use type_system::{
     Value,
-    ontology::id::{BaseUrl, VersionedUrl},
+    ontology::{BaseUrl, VersionedUrl},
     provenance::{ActorType, Location, OriginProvenance, OriginType, SourceProvenance, SourceType},
     web::OwnedById,
 };

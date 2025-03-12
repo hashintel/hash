@@ -2,11 +2,11 @@ use core::{borrow::Borrow, error::Error};
 
 use error_stack::{FutureExt as _, Report};
 use type_system::ontology::{
+    BaseUrl,
     data_type::{
         ConversionExpression, DataTypeUuid, DataTypeWithMetadata,
         schema::{ClosedDataType, DataTypeReference},
     },
-    id::BaseUrl,
 };
 
 #[trait_variant::make(Send)]

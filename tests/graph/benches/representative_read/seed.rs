@@ -11,13 +11,14 @@ use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{EntityUuid, ProvidedEntityEditionProvenance},
+        entity::ProvidedEntityEditionProvenance,
         link::LinkData,
         property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
 };
 use type_system::{
-    ontology::{entity_type::EntityType, id::VersionedUrl},
+    knowledge::id::EntityUuid,
+    ontology::{VersionedUrl, entity_type::EntityType},
     provenance::{ActorType, OriginProvenance, OriginType},
     web::OwnedById,
 };

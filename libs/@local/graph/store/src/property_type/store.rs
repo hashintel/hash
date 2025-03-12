@@ -7,8 +7,7 @@ use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::{Embedding, account::AccountId};
 use serde::{Deserialize, Serialize};
 use type_system::ontology::{
-    OntologyTemporalMetadata,
-    id::VersionedUrl,
+    OntologyTemporalMetadata, VersionedUrl,
     property_type::{PropertyType, PropertyTypeMetadata, PropertyTypeWithMetadata},
     provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
 };
@@ -140,7 +139,7 @@ pub trait PropertyTypeStore {
     /// - if any account referred to by `metadata` does not exist.
     /// - if the [`BaseUrl`] of the `property_type` already exists.
     ///
-    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_property_type<R>(
         &mut self,
         actor_id: AccountId,
@@ -166,7 +165,7 @@ pub trait PropertyTypeStore {
     /// - if any account referred to by the metadata does not exist.
     /// - if any [`BaseUrl`] of the property type already exists.
     ///
-    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_property_types<P, R>(
         &mut self,
         actor_id: AccountId,

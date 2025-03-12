@@ -14,7 +14,7 @@ use hash_graph_store::entity::{
 };
 use hash_graph_types::{
     knowledge::{
-        entity::{Entity, EntityId},
+        entity::Entity,
         link::LinkData,
         property::{
             PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
@@ -34,10 +34,11 @@ use hash_graph_types::{
 use thiserror::Error;
 use type_system::{
     Value,
+    knowledge::EntityId,
     ontology::{
+        VersionedUrl,
         data_type::schema::{ClosedDataType, DataTypeReference},
         entity_type::schema::{ClosedEntityType, ClosedMultiEntityType},
-        id::VersionedUrl,
         json_schema::{ConstraintValidator as _, JsonSchemaValueType},
         property_type::schema::{
             PropertyObjectSchema, PropertyType, PropertyTypeReference, PropertyValueArray,

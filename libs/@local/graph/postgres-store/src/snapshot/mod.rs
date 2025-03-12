@@ -47,17 +47,18 @@ use hash_graph_store::{
 };
 use hash_graph_types::{
     account::{AccountGroupId, AccountId},
-    knowledge::entity::{Entity, EntityId, EntityUuid},
+    knowledge::entity::Entity,
 };
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
 use type_system::{
+    knowledge::id::{EntityId, EntityUuid},
     ontology::{
+        VersionedUrl,
         data_type::{DataTypeUuid, DataTypeWithMetadata},
         entity_type::{EntityTypeUuid, EntityTypeWithMetadata},
-        id::VersionedUrl,
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
     web::OwnedById,

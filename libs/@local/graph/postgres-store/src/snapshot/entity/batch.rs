@@ -13,14 +13,17 @@ use hash_graph_store::{
 };
 use hash_graph_types::{
     knowledge::{
-        entity::{Entity, EntityUuid},
+        entity::Entity,
         property::{PropertyWithMetadataObject, visitor::EntityVisitor as _},
     },
     ontology::OntologyTypeProvider,
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use tokio_postgres::GenericClient as _;
-use type_system::ontology::entity_type::{ClosedEntityType, ClosedMultiEntityType};
+use type_system::{
+    knowledge::id::EntityUuid,
+    ontology::entity_type::{ClosedEntityType, ClosedMultiEntityType},
+};
 
 use crate::{
     snapshot::WriteBatch,

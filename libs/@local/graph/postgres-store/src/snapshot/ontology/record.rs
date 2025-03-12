@@ -5,7 +5,7 @@ use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
 use type_system::ontology::{
-    OntologyTypeSchema, data_type::DataType, entity_type::EntityType, id::VersionedUrl,
+    OntologyTypeSchema, VersionedUrl, data_type::DataType, entity_type::EntityType,
     property_type::PropertyType,
 };
 

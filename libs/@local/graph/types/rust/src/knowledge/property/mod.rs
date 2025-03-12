@@ -31,7 +31,7 @@ use std::{collections::HashMap, io};
 
 use error_stack::{Report, ResultExt as _};
 use serde::{Deserialize, Serialize};
-use type_system::ontology::id::{BaseUrl, VersionedUrl};
+use type_system::ontology::{BaseUrl, VersionedUrl};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

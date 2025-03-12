@@ -36,9 +36,9 @@ use tracing::instrument;
 use type_system::{
     Validator as _,
     ontology::{
-        OntologyTemporalMetadata, OntologyTypeUuid,
+        OntologyTemporalMetadata,
         data_type::DataTypeUuid,
-        id::{OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
+        id::{OntologyTypeRecordId, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
         property_type::{
             PropertyTypeMetadata, PropertyTypeUuid, PropertyTypeWithMetadata,
             schema::PropertyTypeValidator,

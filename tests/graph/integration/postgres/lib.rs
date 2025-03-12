@@ -77,14 +77,12 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_graph_types::{
-    account::AccountId,
-    knowledge::entity::{Entity, EntityId},
-};
+use hash_graph_types::{account::AccountId, knowledge::entity::Entity};
 use hash_tracing::logging::env_filter;
 use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{
+    knowledge::EntityId,
     ontology::{
         OntologyTemporalMetadata,
         data_type::{DataType, DataTypeMetadata},

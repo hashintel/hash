@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize, Serializer};
 
 pub use self::validation::{ObjectSchemaValidationError, ObjectSchemaValidator};
 use crate::ontology::{
+    BaseUrl,
     entity_type::{ClosedMultiEntityType, EntityType},
-    id::BaseUrl,
     property_type::schema::{PropertyTypeReference, ValueOrArray},
 };
 

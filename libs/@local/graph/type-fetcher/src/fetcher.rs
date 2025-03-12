@@ -3,7 +3,7 @@ use core::{error::Error, fmt};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::ontology::{
-    data_type::DataType, entity_type::EntityType, id::VersionedUrl, property_type::PropertyType,
+    VersionedUrl, data_type::DataType, entity_type::EntityType, property_type::PropertyType,
 };
 
 // We would really like to use error-stack for this. It's not possible because

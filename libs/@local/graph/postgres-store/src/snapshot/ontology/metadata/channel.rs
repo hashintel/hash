@@ -10,8 +10,8 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use type_system::ontology::{
-    OntologyTemporalMetadata, OntologyTypeUuid,
-    id::OntologyTypeRecordId,
+    OntologyTemporalMetadata,
+    id::{OntologyTypeRecordId, OntologyTypeUuid},
     provenance::{OntologyOwnership, OntologyProvenance},
 };
 

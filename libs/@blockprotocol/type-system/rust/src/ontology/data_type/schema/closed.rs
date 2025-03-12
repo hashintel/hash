@@ -12,7 +12,7 @@ use super::{DataType, DataTypeEdge, ValueLabel};
 use crate::{
     Value,
     ontology::{
-        InheritanceDepth, data_type::DataTypeUuid, id::VersionedUrl, json_schema::ValueConstraints,
+        InheritanceDepth, VersionedUrl, data_type::DataTypeUuid, json_schema::ValueConstraints,
     },
 };
 

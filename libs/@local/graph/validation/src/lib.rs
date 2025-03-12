@@ -18,7 +18,8 @@ use core::{borrow::Borrow, error::Error};
 
 use error_stack::Report;
 use hash_graph_store::entity::ValidateEntityComponents;
-use hash_graph_types::knowledge::entity::{Entity, EntityId};
+use hash_graph_types::knowledge::entity::Entity;
+use type_system::knowledge::EntityId;
 
 pub trait Validate<S, C> {
     type Report: Send + Sync;

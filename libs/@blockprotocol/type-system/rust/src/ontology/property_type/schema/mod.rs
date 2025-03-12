@@ -492,7 +492,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        ontology::id::BaseUrl,
+        ontology::BaseUrl,
         utils::tests::{
             JsonEqualityCheck, ensure_failed_deserialization, ensure_failed_validation,
             ensure_validation_from_str,

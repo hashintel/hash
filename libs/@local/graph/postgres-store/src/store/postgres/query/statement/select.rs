@@ -1202,8 +1202,8 @@ mod tests {
     }
 
     mod predefined {
-        use hash_graph_types::knowledge::entity::{EntityId, EntityUuid};
         use type_system::{
+            knowledge::id::{EntityId, EntityUuid},
             ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
             web::OwnedById,
         };

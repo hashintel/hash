@@ -65,10 +65,7 @@ use hash_graph_temporal_versioning::{
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
 };
 use hash_graph_type_fetcher::TypeFetcher;
-use hash_graph_types::{
-    account::{AccountGroupId, AccountId},
-    knowledge::entity::EntityId,
-};
+use hash_graph_types::account::{AccountGroupId, AccountId};
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
@@ -76,6 +73,7 @@ use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
+    knowledge::EntityId,
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
         data_type::DataTypeMetadata,

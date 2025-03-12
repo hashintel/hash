@@ -2,12 +2,10 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ReportSink, ResultExt as _};
 use futures::{Stream, TryStreamExt as _};
-use hash_graph_types::{
-    account::{AccountGroupId, AccountId},
-    knowledge::entity::{EntityId, EntityUuid},
-};
+use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use type_system::{
+    knowledge::id::{EntityId, EntityUuid},
     ontology::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },

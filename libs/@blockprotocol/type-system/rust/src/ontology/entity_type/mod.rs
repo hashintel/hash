@@ -7,7 +7,7 @@ pub use self::{
     metadata::{EntityTypeMetadata, EntityTypeWithMetadata},
     schema::{ClosedEntityType, ClosedMultiEntityType, EntityType},
 };
-use super::{OntologyTypeUuid, id::VersionedUrl};
+use super::id::{OntologyTypeUuid, VersionedUrl};
 
 /// A unique identifier for a [`EntityType`] generated from a [`VersionedUrl`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]

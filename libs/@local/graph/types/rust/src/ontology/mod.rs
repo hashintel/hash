@@ -5,7 +5,7 @@ mod property_type;
 use core::{borrow::Borrow, error::Error};
 
 use error_stack::Report;
-use type_system::ontology::id::VersionedUrl;
+use type_system::ontology::VersionedUrl;
 
 pub use self::{
     data_type::{DataTypeLookup, PartialDataTypeMetadata},

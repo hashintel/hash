@@ -17,10 +17,10 @@ use hash_graph_authorization::policies::{
         EntityTypeResourceFilter, ResourceConstraint,
     },
 };
-use hash_graph_types::knowledge::entity::EntityUuid;
 use pretty_assertions::assert_eq;
 use type_system::{
-    ontology::id::{BaseUrl, VersionedUrl},
+    knowledge::id::EntityUuid,
+    ontology::{BaseUrl, VersionedUrl},
     web::OwnedById,
 };
 use uuid::Uuid;

@@ -20,8 +20,8 @@ use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
 use type_system::{
     ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeUuid, PropertyTypeWithMetadata,
-        id::{BaseUrl, VersionedUrl},
+        DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+        id::{BaseUrl, OntologyTypeUuid, VersionedUrl},
         provenance::OntologyOwnership,
     },
     web::OwnedById,

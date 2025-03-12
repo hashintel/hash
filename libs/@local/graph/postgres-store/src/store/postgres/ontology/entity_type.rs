@@ -45,7 +45,7 @@ use tracing::{Instrument as _, instrument};
 use type_system::{
     Valid, Validator as _,
     ontology::{
-        EntityTypeWithMetadata, InheritanceDepth, OntologyTemporalMetadata, OntologyTypeUuid,
+        EntityTypeWithMetadata, InheritanceDepth, OntologyTemporalMetadata,
         data_type::{ClosedDataType, DataType, DataTypeUuid},
         entity_type::{
             ClosedEntityType, ClosedMultiEntityType, EntityType, EntityTypeMetadata,
@@ -55,7 +55,7 @@ use type_system::{
                 PartialEntityType,
             },
         },
-        id::{OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
+        id::{OntologyTypeRecordId, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
         json_schema::OntologyTypeResolver,
         property_type::PropertyTypeUuid,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},

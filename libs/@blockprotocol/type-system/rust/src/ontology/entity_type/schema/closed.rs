@@ -11,9 +11,7 @@ use super::{
     EntityTypeToPropertyTypeEdge, InverseEntityTypeMetadata, extend_links,
 };
 use crate::ontology::{
-    InheritanceDepth,
-    entity_type::EntityTypeUuid,
-    id::{BaseUrl, VersionedUrl},
+    BaseUrl, InheritanceDepth, VersionedUrl, entity_type::EntityTypeUuid,
     property_type::PropertyTypeUuid,
 };
 
@@ -451,7 +449,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        ontology::{id::BaseUrl, json_schema::OntologyTypeResolver},
+        ontology::{BaseUrl, json_schema::OntologyTypeResolver},
         utils::tests::{JsonEqualityCheck, ensure_serialization_from_str},
     };
 

@@ -17,9 +17,10 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
-use hash_graph_types::{account::AccountId, knowledge::entity::EntityUuid};
+use hash_graph_types::account::AccountId;
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
+use type_system::knowledge::id::EntityUuid;
 
 use crate::util::Store;
 

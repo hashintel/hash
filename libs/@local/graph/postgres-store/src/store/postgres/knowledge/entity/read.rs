@@ -13,11 +13,12 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
 };
-use hash_graph_types::knowledge::entity::{EntityEditionId, EntityId, EntityUuid};
+use hash_graph_types::knowledge::entity::EntityEditionId;
 use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
 use type_system::{
-    ontology::{OntologyTypeUuid, id::BaseUrl},
+    knowledge::id::{EntityId, EntityUuid},
+    ontology::id::{BaseUrl, OntologyTypeUuid},
     web::OwnedById,
 };
 

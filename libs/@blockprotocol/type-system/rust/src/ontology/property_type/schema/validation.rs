@@ -5,7 +5,7 @@ use super::{
 use crate::{
     Valid, Validator,
     ontology::{
-        id::BaseUrl,
+        BaseUrl,
         json_schema::{OneOfSchemaValidationError, OneOfSchemaValidator},
     },
 };

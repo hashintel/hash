@@ -9,7 +9,7 @@ use hash_graph_types::{
     account::AccountId,
     knowledge::{
         Confidence, EntityTypeIdDiff,
-        entity::{Entity, EntityEmbedding, EntityId, EntityUuid, ProvidedEntityEditionProvenance},
+        entity::{Entity, EntityEmbedding, ProvidedEntityEditionProvenance},
         link::LinkData,
         property::{
             PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
@@ -18,7 +18,8 @@ use hash_graph_types::{
 };
 use serde::{Deserialize, Serialize};
 use type_system::{
-    ontology::{entity_type::ClosedMultiEntityType, id::VersionedUrl},
+    knowledge::id::{EntityId, EntityUuid},
+    ontology::{VersionedUrl, entity_type::ClosedMultiEntityType},
     provenance::{CreatedById, EditionCreatedById},
     web::OwnedById,
 };

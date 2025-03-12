@@ -1,6 +1,8 @@
 use time::OffsetDateTime;
 use url::Url;
 
+use crate::knowledge::EntityId;
+
 /// The type of source material which was used to produce a value.
 // This enumeration is expected to grow over time, thus it's marked as non-exhaustive.
 // To generate the OpenAPI specs pass `--write-openapi-specs` when running the HASH Graph server.
@@ -43,11 +45,10 @@ pub struct SourceProvenance {
     #[serde(rename = "type")]
     pub ty: SourceType,
 
-    /// The entityId of the HASH entity that mirrors the source.
-    // TODO: Make this an `EntityId` once we have it defined here
+    /// The entity Id of the HASH entity that mirrors the source.
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub entity_id: Option<String>,
+    pub entity_id: Option<EntityId>,
 
     /// The people or organizations that authored the material.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

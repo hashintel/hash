@@ -37,7 +37,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    /// [`BaseUrl`]: type_system::ontology::id::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     BaseUrl,
     /// The version of the [`EntityType`].
     ///
@@ -84,7 +84,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    /// [`VersionedUrl`]: type_system::ontology::id::VersionedUrl
+    /// [`VersionedUrl`]: type_system::ontology::VersionedUrl
     VersionedUrl,
     /// The transaction time of the [`EntityType`].
     ///

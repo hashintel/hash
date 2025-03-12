@@ -15,8 +15,7 @@ pub use self::{
 };
 use super::EntityTypeMetadata;
 use crate::ontology::{
-    OntologyTypeReference, OntologyTypeSchema,
-    id::{BaseUrl, VersionedUrl},
+    BaseUrl, OntologyTypeReference, OntologyTypeSchema, VersionedUrl,
     json_schema::{ObjectTypeTag, OneOfSchema},
     property_type::schema::{PropertyTypeReference, PropertyValueArray, ValueOrArray},
 };
@@ -134,7 +133,7 @@ pub struct EntityTypeDisplayMetadata {
 /// use type_system::{
 ///     ontology::{
 ///         entity_type::schema::EntityType,
-///         id::BaseUrl,
+///         BaseUrl,
 ///     },
 /// };
 ///

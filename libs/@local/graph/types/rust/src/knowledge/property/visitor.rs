@@ -6,8 +6,8 @@ use futures::FutureExt as _;
 use type_system::{
     Value,
     ontology::{
+        BaseUrl, VersionedUrl,
         data_type::schema::DataTypeReference,
-        id::{BaseUrl, VersionedUrl},
         json_schema::{ConstraintError, JsonSchemaValueType},
         property_type::{
             PropertyType,

@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use super::EntityTypeReference;
 use crate::ontology::{
-    id::{BaseUrl, VersionedUrl},
+    BaseUrl, VersionedUrl,
     json_schema::OneOfSchema,
     property_type::schema::{PropertyTypeReference, PropertyValueArray, ValueOrArray},
 };
@@ -33,7 +33,7 @@ mod links {
     use serde::{Deserialize, Serialize};
 
     use crate::ontology::{
-        entity_type::schema::EntityTypeReference, id::VersionedUrl, json_schema::OneOfSchema,
+        VersionedUrl, entity_type::schema::EntityTypeReference, json_schema::OneOfSchema,
         property_type::schema::PropertyValueArray,
     };
 
