@@ -7,11 +7,11 @@
   "type": "module",
   "bin": "./dist/index.js",
   "scripts": {
-    "build": "rimraf dist && tsc --build && shx chmod +x dist/*.js",
+    "build": "rimraf dist && tsc --project tsconfig.build.json && shx chmod +x dist/*.js",
     "dev": "chokidar 'dist/main.js' -c 'chmod +x dist/main.js' & tsc --noCheck --watch & yarn inspector & shx chmod +x dist/*.js",
     "fix:eslint": "eslint --fix .",
     "inspector": "npx @modelcontextprotocol/inspector dist/main.js",
-    "postinstall": "yarn build",
+    "postinstall": "[ \"${CI:-false}\" != \"true\" ] && yarn build || echo 'Skipping Linear MCP build in CI'",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "node dist/main.js"
@@ -19,6 +19,7 @@
   "dependencies": {
     "@linear/sdk": "6.0.0",
     "@local/eslint": "0.0.0-private",
+    "@local/hash-backend-utils": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@modelcontextprotocol/sdk": "1.6.1",
     "dotenv-flow": "3.3.0",

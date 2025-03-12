@@ -120,3 +120,50 @@ cargo clippy --all-features --package <package-name>
 ```
 
 For Rust packages, you can add features as needed with `--all-features`, specific features like `--features=foo,bar`, or use `cargo-hack` with `--feature-powerset` for comprehensive feature testing.
+
+# PR Review Guide
+
+When reviewing a Pull Request, follow these steps to provide comprehensive feedback:
+
+## 1. Initial Information Gathering
+
+Always collect the following information first:
+
+- PR content (description, title, etc.)
+- Diff changes (show ALL the changes – don't pipe them into head. Don't use --name-only)
+- Existing comments and conversation
+
+Use the following commands:
+
+**1a. View PR metadata, description, general comments and changed files**
+
+```bash
+gh pr view <PR_NUMBER> --comments
+gh pr diff <PR_NUMBER>
+```
+
+**1b. View comments on the diff**
+
+```bash
+gh api \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  /repos/OWNER/REPO/pulls/PULL_NUMBER/comments
+```
+
+## 2. Check Referenced Linear Issues
+
+- Look for Linear issue references in the PR title or description (format: H-XXXX)
+- Fetch each referenced Linear issue to understand the original requirements
+- Use these requirements as the baseline for your review
+
+```bash
+# Example of fetching a Linear issue
+mcp__linear__get_issue --issueId "H-XXXX"
+```
+
+## 3. Provide Code Quality Feedback
+
+- Be precise about the location and nature of issues
+- Include suggestions for improvement when possible
+- Reference relevant code standards from the repository

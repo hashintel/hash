@@ -11,7 +11,7 @@
     "dev": "chokidar 'dist/main.js' -c 'chmod +x dist/main.js' & tsc --noCheck --watch & yarn inspector & shx chmod +x dist/*.js",
     "fix:eslint": "eslint --fix .",
     "inspector": "npx @modelcontextprotocol/inspector dist/main.js",
-    "postinstall": "yarn build",
+    "postinstall": "[ \"${CI:-false}\" != \"true\" ] && yarn build || echo 'Skipping Notion MCP build in CI'",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "node dist/main.js"
