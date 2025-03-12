@@ -55,7 +55,7 @@ alwaysApply: false
 
 ## Error Documentation
 
-For comprehensive guidance on documenting errors, refer to the [Rust Documentation Practices](.cursor/rules/rust-documentation.mdc) file.
+For comprehensive guidance on documenting errors, refer to the [Rust Documentation Practices](mdc:.cursor/rules/rust-documentation.mdc) file.
 
 Key points to remember:
 
@@ -65,7 +65,7 @@ Key points to remember:
 
 ## Testing Error Conditions
 
-For guidance on testing error conditions, refer to the [Rust Testing Strategy](.cursor/rules/rust-testing-strategy.mdc) file.
+For guidance on testing error conditions, refer to the [Rust Testing Strategy](mdc:.cursor/rules/rust-testing-strategy.mdc) file.
 
 Key points:
 
