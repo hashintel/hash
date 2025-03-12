@@ -15,25 +15,64 @@ pub use self::{
     id::EntityId, link::LinkData, metadata::EntityMetadata, provenance::EntityProvenance,
 };
 
-/// A record of an [`Entity`] that has been persisted in the datastore, with its associated
-/// metadata.
+/// A record of an entity that has been persisted in the datastore, with its associated metadata.
+///
+/// An [`Entity`] represents a real-world object, concept, or thing within the knowledge graph.
+/// It contains structured data in the form of properties, optional link data for establishing
+/// relationships with other entities, and comprehensive metadata that describes the entity's
+/// provenance, types, temporal information, and more.
+///
+/// Each entity is an instance of one or more [`EntityType`]s defined in the ontology. The
+/// relationship is similar to objects and classes in object-oriented programming:
+/// - [`EntityType`]s define the schema, structure, and constraints that entities must follow
+/// - [`Entity`] instances contain actual data conforming to those schemas
+///
+/// An entity:
+/// - Is identified by a unique [`EntityId`]
+/// - Has one or more [`VersionedUrl`]s in its `entity_type_ids` field linking to its types
+/// - Contains a set of properties structured according to the schemas defined in its types
+/// - May have links to other entities, establishing relationships in the knowledge graph
+/// - Includes comprehensive metadata for tracking provenance, versioning, and confidence
+///
+/// [`EntityType`]: crate::ontology::entity_type::EntityType
+/// [`VersionedUrl`]: crate::ontology::VersionedUrl
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
+    /// The entity's properties, structured as a hierarchical object with keys that correspond to
+    /// property type URLs.
     pub properties: PropertyObject,
+
+    /// Optional link data describing relationships to other entities.
+    ///
+    /// When present, indicates this entity acts as a link between other entities in the graph.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
+
+    /// Comprehensive metadata describing the entity's identity, provenance, types, and temporal
+    /// information.
     pub metadata: EntityMetadata,
 }
 
 impl Entity {
-    /// Modify the properties and confidence values of the entity.
+    /// Modifies the properties and metadata of the entity through a series of patch operations.
+    ///
+    /// This method enables focused updates to the entity's properties without replacing the entire
+    /// entity. It applies each patch operation sequentially, maintaining the proper relationship
+    /// between properties and their metadata.
+    ///
+    /// Patch operations can add, remove, or replace properties at specific paths within the entity.
+    /// The entity's metadata is also updated to reflect these changes.
     ///
     /// # Errors
     ///
-    /// Returns an error if the patch operation failed
+    /// - Returns a [`PatchError`] if any patch operation fails, such as:
+    ///   - The path specified in an operation doesn't exist
+    ///   - Trying to add a property to a non-object or non-array
+    ///   - Trying to replace a property that doesn't exist
+    ///   - The property and metadata structures become misaligned
     pub fn patch(
         &mut self,
         operations: impl IntoIterator<Item = PropertyPatchOperation>,

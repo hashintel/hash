@@ -40,8 +40,25 @@
 //!
 //! ## Core Components
 //!
-//! - [`ontology`] module - Contains the definitions for data, property, and entity types
-//! - [`knowledge`] module - Contains definitions for knowledge entities and properties
+//! The type system consists of two main parts: the ontology (type definitions) and knowledge (data
+//! instances):
+//!
+//! - [`ontology`] module - Contains the schema definitions for data, property, and entity types:
+//!   - [`ontology::data_type`] - Defines validation rules for primitive values
+//!   - [`ontology::property_type`] - Defines reusable property schemas
+//!   - [`ontology::entity_type`] - Defines complete entity structures and relationships
+//!
+//! - [`knowledge`] module - Contains data instances that conform to ontology types:
+//!   - [`knowledge::Value`] - Primitive values conforming to data types
+//!   - [`knowledge::Property`] - Structured data conforming to property types
+//!   - [`knowledge::Entity`] - Complete entities conforming to entity types
+//!
+//! The relationship between ontology and knowledge is similar to schemas and records in databases:
+//! ontology types define the structure and rules, while knowledge components contain the actual
+//! data conforming to those rules.
+//!
+//! Additional components:
+//!
 //! - [`provenance`] module - Contains types for tracking origin and history of ontology types
 //! - [`Validator`] - A trait for implementing validation logic
 //! - [`Valid<T>`] - A wrapper that guarantees a value has been validated

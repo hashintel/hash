@@ -31,21 +31,78 @@ use crate::ontology::{
     property_type::schema::PropertyValueType,
 };
 
+/// Structured data that can be associated with an entity, conforming to property types defined in
+/// the ontology.
+///
+/// The [`Property`] enum represents the hierarchical structure of data within an entity.
+/// Properties are instances of [`PropertyType`]s defined in the ontology. The relationship
+/// is similar to objects and classes in object-oriented programming:
+/// - [`PropertyType`]s define the schema, structure, and constraints that properties must follow
+/// - [`Property`] instances contain actual data conforming to those schemas
+///
+/// Properties can be:
+///
+/// - Arrays of other properties
+/// - Objects (maps) with property type URLs as keys and nested properties as values
+/// - Primitive values like strings, numbers, booleans, etc.
+///
+/// Each property in an entity:
+/// - Corresponds to a specific [`PropertyType`] in the ontology
+/// - May have associated metadata tracking provenance, confidence, and other contextual information
+/// - Must satisfy the validation rules defined in its property type
+/// - Can be addressed using a [`PropertyPath`] for targeted access and modification
+///
+/// Properties form the backbone of entity data representation in the system, allowing
+/// for flexible and structured knowledge organization that aligns with the ontology.
+///
+/// [`PropertyType`]: crate::ontology::property_type::PropertyType
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum Property {
+    /// An ordered collection of properties.
+    ///
+    /// Arrays can contain heterogeneous property types, though typically they
+    /// contain properties of the same structure based on the entity type definition.
     Array(Vec<Self>),
+
+    /// A mapping from property type URLs to properties.
+    ///
+    /// Object properties use [`BaseUrl`]s as keys, which correspond to property types
+    /// defined in the ontology.
     Object(PropertyObject),
+
+    /// A primitive value such as a string, number, boolean, etc.
+    ///
+    /// Values represent the atomic units of data in the property system.
     Value(Value),
 }
 
+/// Property data combined with its corresponding metadata.
+///
+/// [`PropertyWithMetadata`] pairs each property with its metadata, maintaining the same
+/// hierarchical structure. This unified representation enables operations that need to
+/// modify both properties and their metadata consistently, such as patching operations.
+///
+/// The structure mirrors the [`Property`] enum, with specialized types for arrays, objects,
+/// and values that maintain metadata at each level of the hierarchy.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum PropertyWithMetadata {
+    /// An array of properties with associated metadata.
+    ///
+    /// Includes both element-level metadata for each array item and metadata for the array itself.
     Array(PropertyWithMetadataArray),
+
+    /// An object of properties with associated metadata.
+    ///
+    /// Includes both field-level metadata for each property and metadata for the object itself.
     Object(PropertyWithMetadataObject),
+
+    /// A primitive value with associated metadata.
+    ///
+    /// Contains metadata such as provenance, confidence, and data type information for the value.
     Value(PropertyWithMetadataValue),
 }
 

@@ -1,3 +1,8 @@
+//! Navigation and addressing of hierarchical property structures.
+//!
+//! This module provides types for addressing and traversing nested property structures,
+//! enabling operations like property access, modification, and diffing.
+
 use alloc::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
@@ -6,11 +11,25 @@ use utoipa::{ToSchema, openapi};
 
 use crate::ontology::BaseUrl;
 
+/// An element in a property path that identifies a specific property location.
+///
+/// [`PropertyPathElement`] represents a single step in navigating a property hierarchy,
+/// addressing either:
+/// - A specific property by its type URL (for object properties)
+/// - A specific index (for array properties)
+///
+/// These elements can be chained together to form a [`PropertyPath`] that addresses
+/// deeply nested properties within the property hierarchy.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum PropertyPathElement<'k> {
+    /// A property key that addresses a specific field in an object property.
+    ///
+    /// The key is a [`BaseUrl`] that corresponds to a property type URL.
     Property(Cow<'k, BaseUrl>),
+
+    /// An array index that addresses a specific element in an array property.
     Index(usize),
 }
 
@@ -44,9 +63,24 @@ impl PropertyPathElement<'_> {
     }
 }
 
+/// A sequence of path elements that identifies a specific property within a nested hierarchy.
+///
+/// [`PropertyPath`] combines multiple [`PropertyPathElement`]s to create a navigation path
+/// through the property hierarchy. This allows addressing and manipulating deeply nested
+/// properties within complex entity structures.
+///
+/// Paths are used throughout the system for operations like:
+/// - Accessing specific properties within an entity
+/// - Applying targeted updates to nested properties
+/// - Identifying property changes in diffing operations
+/// - Defining property validation constraints
+///
+/// A path can be empty (representing the root property) or contain any number of elements
+/// representing navigation through objects and arrays.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct PropertyPath<'k> {
+    /// The sequence of path elements that make up this property path.
     elements: Vec<PropertyPathElement<'k>>,
 }
 

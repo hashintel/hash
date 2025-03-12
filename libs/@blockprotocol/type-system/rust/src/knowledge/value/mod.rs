@@ -14,11 +14,20 @@ use serde::Serialize as _;
 
 pub use self::metadata::ValueMetadata;
 
-/// A JSON-compatible value type that can represent any valid JSON structure.
+/// A JSON-compatible value type that can represent any valid JSON structure, conforming to data
+/// types defined in the ontology.
 ///
 /// This enum is the fundamental data unit in the type system and is used throughout
-/// the validation process. It's designed to work well with serde for serialization/deserialization
-/// and can be used in both Rust and WebAssembly contexts.
+/// the validation process. [`Value`]s are instances of [`DataType`]s defined in the ontology.
+/// The relationship is similar to values and types in typed programming languages:
+/// - [`DataType`]s define the validation rules, constraints, and format a value must follow
+/// - [`Value`] instances contain actual data conforming to those data types
+///
+/// Each value in an entity:
+/// - Corresponds to a specific [`DataType`] in the ontology (referenced in its metadata)
+/// - May have associated metadata tracking provenance, confidence, and other contextual information
+/// - Must satisfy the validation rules defined by its data type
+/// - Serves as the atomic unit of knowledge within the property system
 ///
 /// # Examples
 ///
@@ -36,6 +45,8 @@ pub use self::metadata::ValueMetadata;
 /// obj.insert("count".to_string(), Value::Number(42_i32.into()));
 /// let object_value = Value::Object(obj);
 /// ```
+///
+/// [`DataType`]: crate::ontology::data_type::DataType
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
