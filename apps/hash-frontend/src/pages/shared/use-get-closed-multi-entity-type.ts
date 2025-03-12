@@ -27,7 +27,7 @@ export const useGetClosedMultiEntityTypes = () => {
 
       if (!response.data) {
         throw new Error(
-          `Failed to fetch closedMultiEntityType for ids ${[
+          `Failed to fetch closedMultiEntityTypes for ids ${[
             ...newEntityTypeIds,
           ].join(", ")}`,
         );

@@ -41,8 +41,19 @@ export const entityTypeTypedef = gql`
       includeArchived: Boolean = false
     ): Subgraph!
 
+    """
+    Get multiple 'closed multi entity types' at once.
+    A 'closed multi entity type' is the unified schema from a set of entity types.
+    """
     getClosedMultiEntityTypes(
+      """
+      The list of multi entity type ids to get.
+      Each entry in the array should be a set of entity type ids that will generate a closed multi entity type.
+      """
       entityTypeIds: [[VersionedUrl!]!]!
+      """
+      Whether to include archived entity types in the response.
+      """
       includeArchived: Boolean = false
     ): GetClosedMultiEntityTypesResponse!
 
