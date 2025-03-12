@@ -1,6 +1,9 @@
 use alloc::sync::Arc;
 use core::{error::Error, fmt, iter, str::FromStr as _};
-use std::{collections::HashSet, sync::LazyLock};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::LazyLock,
+};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
@@ -9,20 +12,30 @@ use uuid::Uuid;
 
 use crate::policies::cedar::CedarEntityId;
 
+#[derive(Debug)]
 pub struct Web {
     pub id: OwnedById,
+    pub roles: HashSet<WebRoleId>,
+    pub teams: HashMap<WebTeamId, WebTeam>,
 }
 
-impl Web {
+#[derive(Debug)]
+pub struct WebTeam {
+    pub id: WebTeamId,
+    pub web_id: OwnedById,
+    pub roles: HashSet<WebTeamRoleId>,
+}
+
+impl WebTeam {
     pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
-            HashSet::new(),
+            HashSet::from([self.web_id.to_euid()]),
             iter::empty(),
             Extensions::none(),
         )
-        .expect("web should be a valid Cedar entity")
+        .expect("web team should be a valid Cedar entity")
     }
 }
 
@@ -42,9 +55,10 @@ impl CedarEntityId for OwnedById {
     }
 }
 
+#[derive(Debug)]
 pub struct WebRole {
-    pub web_id: OwnedById,
     pub id: WebRoleId,
+    pub web_id: OwnedById,
 }
 
 impl WebRole {
@@ -159,6 +173,36 @@ impl CedarEntityId for WebTeamId {
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+    }
+}
+
+#[derive(Debug)]
+pub struct WebTeamRole {
+    pub id: WebTeamRoleId,
+    pub web_id: OwnedById,
+    pub team_id: WebTeamId,
+}
+
+impl WebTeamRole {
+    pub(crate) fn to_cedar_entities(&self) -> [ast::Entity; 2] {
+        [
+            ast::Entity::new(
+                self.team_id.to_euid(),
+                iter::empty(),
+                HashSet::from([self.web_id.to_euid()]),
+                iter::empty(),
+                Extensions::none(),
+            )
+            .expect("web team role should be a valid Cedar entity"),
+            ast::Entity::new(
+                self.id.to_euid(),
+                iter::empty(),
+                HashSet::from([self.team_id.to_euid()]),
+                iter::empty(),
+                Extensions::none(),
+            )
+            .expect("web team role should be a valid Cedar entity"),
+        ]
     }
 }
 

@@ -5,6 +5,12 @@
 //! represented as strings in the serialized form. This is useful when the keys are not strings
 //! themselves, but can be converted to and from strings.
 //!
+//! # Performance
+//!
+//! - Serialization: O(n) where n is the number of elements in the map
+//! - Deserialization: O(n) where n is the number of elements in the map
+//! - Additional overhead for string parsing during deserialization
+//!
 //! # Example
 //!
 //! ```rust
@@ -66,9 +72,8 @@ where
 ///
 /// # Errors
 ///
-/// In addition to the errors that can be returned by deserializing a [`HashMap`], this function
-/// can also return an error if the key cannot be parsed from a string.
-// Taken from https://github.com/serde-rs/json/issues/560#issuecomment-532054058
+/// - If deserialization of any element fails
+/// - If parsing any key from a string fails
 pub fn deserialize<'de, K, V, S, D>(deserializer: D) -> Result<HashMap<K, V, S>, D::Error>
 where
     K: Eq + Hash + FromStr,

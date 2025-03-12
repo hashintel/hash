@@ -1,3 +1,7 @@
+//! # HASH Graph Authorization
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(exhaustive_patterns, impl_trait_in_assoc_type, never_type)]
 #![feature(type_alias_impl_trait)]
 
@@ -96,6 +100,14 @@ impl AuthorizationApi for NoAuthorization {
         > + Send,
     ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(Zookie::empty())
+    }
+
+    async fn get_account_group_relations(
+        &self,
+        _: AccountGroupId,
+        _: Consistency<'_>,
+    ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
+        Ok(Vec::new())
     }
 
     async fn get_web_relations(

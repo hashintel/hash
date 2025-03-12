@@ -1,3 +1,7 @@
+//! # Effect-DNS Hickory
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![allow(clippy::cfg_not_test, reason = "napi macro uses cfg(not(test))")]
 
 use napi_derive::napi;

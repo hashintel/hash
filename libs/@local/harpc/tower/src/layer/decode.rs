@@ -14,6 +14,8 @@ use crate::{request::Request, response::Response};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct DecodeLayer<C, T> {
     codec: C,
+    // This PhantomData marker makes the struct properly variant with respect to T
+    // without imposing unnecessary constraints on it
     _marker: PhantomData<fn() -> *const T>,
 }
 
@@ -45,6 +47,8 @@ where
 pub struct DecodeService<S, C, T> {
     inner: S,
     codec: C,
+    // This PhantomData marker makes the struct properly variant with respect to T
+    // without imposing unnecessary constraints on it
     _marker: PhantomData<fn() -> *const T>,
 }
 

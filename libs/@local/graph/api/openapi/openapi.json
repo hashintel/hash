@@ -206,6 +206,56 @@
         }
       }
     },
+    "/account_groups/{account_group_id}/relations": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "get_account_group_relations",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to get relations from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of members and administrators of the account group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountGroupRelationAndSubject"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Internal error occurred"
+          }
+        }
+      }
+    },
     "/accounts": {
       "post": {
         "tags": [
@@ -3172,9 +3222,59 @@
   },
   "components": {
     "schemas": {
+      "AccountGroupAdministratorSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
       "AccountGroupId": {
         "type": "string",
         "format": "uuid"
+      },
+      "AccountGroupMemberSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
       },
       "AccountGroupPermission": {
         "type": "string",
@@ -3182,6 +3282,49 @@
           "add_member",
           "remove_member"
         ]
+      },
+      "AccountGroupRelationAndSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "administrator"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/AccountGroupAdministratorSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "member"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/AccountGroupMemberSubject"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "relation"
+        }
       },
       "AccountId": {
         "type": "string",
@@ -9016,6 +9159,7 @@
       },
       "PropertyValueType": {
         "type": "string",
+        "description": "Categorizes property value structures by their basic structural type.\n\nThis enum provides a simple classification of the different kinds of property\nvalue structures in the Block Protocol type system. It's used by the\n[`PropertyValues::property_value_type`] method to indicate which variant a particular property\nvalue represents.",
         "enum": [
           "value",
           "array",

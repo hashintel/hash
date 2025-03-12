@@ -191,29 +191,51 @@ const useInheritedConstraintsValue = (): InheritedConstraints => {
         }
         case "number": {
           if (
-            typeof parentSchema.minimum !== "undefined" &&
-            !narrowedConstraints.minimum
+            typeof parentSchema.minimum !== "undefined" ||
+            typeof parentSchema.exclusiveMinimum !== "undefined"
           ) {
-            narrowedConstraints.minimum = {
-              value: {
-                value: parentSchema.minimum,
-                exclusive: !!parentSchema.exclusiveMinimum,
-              },
-              from: parentSchema,
-            };
+            const applicableExclusiveMinimum =
+              parentSchema.exclusiveMinimum !== undefined &&
+              (parentSchema.minimum === undefined ||
+                parentSchema.minimum < parentSchema.exclusiveMinimum);
+
+            const minimumValue = applicableExclusiveMinimum
+              ? parentSchema.exclusiveMinimum
+              : parentSchema.minimum;
+
+            if (minimumValue !== undefined && !narrowedConstraints.minimum) {
+              narrowedConstraints.minimum = {
+                value: {
+                  value: minimumValue,
+                  exclusive: !!applicableExclusiveMinimum,
+                },
+                from: parentSchema,
+              };
+            }
           }
 
           if (
-            typeof parentSchema.maximum !== "undefined" &&
-            !narrowedConstraints.maximum
+            typeof parentSchema.maximum !== "undefined" ||
+            typeof parentSchema.exclusiveMaximum !== "undefined"
           ) {
-            narrowedConstraints.maximum = {
-              value: {
-                value: parentSchema.maximum,
-                exclusive: !!parentSchema.exclusiveMaximum,
-              },
-              from: parentSchema,
-            };
+            const applicableExclusiveMaximum =
+              parentSchema.exclusiveMaximum !== undefined &&
+              (parentSchema.maximum === undefined ||
+                parentSchema.maximum > parentSchema.exclusiveMaximum);
+
+            const maximumValue = applicableExclusiveMaximum
+              ? parentSchema.exclusiveMaximum
+              : parentSchema.maximum;
+
+            if (maximumValue !== undefined && !narrowedConstraints.maximum) {
+              narrowedConstraints.maximum = {
+                value: {
+                  value: maximumValue,
+                  exclusive: !!applicableExclusiveMaximum,
+                },
+                from: parentSchema,
+              };
+            }
           }
 
           if (

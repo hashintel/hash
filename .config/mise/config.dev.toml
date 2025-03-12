@@ -1,0 +1,4 @@
+[env]
+_.file = [".env.development", ".env.local.development"]
+
+NODE_ENV = "development"

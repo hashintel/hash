@@ -45,7 +45,7 @@ export const linkedTreeFlatten = <
   graph: Outer,
   outerKey: K,
   innerKey: K2,
-  depthLimit: number = 50,
+  depthLimit = 50,
 ) => {
   type AugmentedOuter = Outer & {
     meta?: Omit<Inner, K2>;

@@ -1,4 +1,6 @@
-FROM bitnami/minideb:bookworm AS mise
+FROM debian:12.9-slim AS mise
+
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
@@ -6,30 +8,28 @@ ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
 ENV MISE_NODE_COREPACK=1
 ENV PATH="/mise/shims:$PATH"
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends bash curl ca-certificates && \
-    curl https://mise.run | sh && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
-
 COPY .config/mise /etc/mise
 
-RUN eval "$(mise activate bash)"
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    curl https://mise.run | sh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    eval "$(mise activate bash)" && \
+    mise install node
 
 
 FROM mise AS base
 
 WORKDIR /app
 
-RUN mise install node && \
-    mise use --global yq npm:turbo@$(jq -r '.devDependencies.turbo' < package.json)
+RUN mise install npm:turbo && \
+    mise use --global yq
 
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-graph' --docker && \
-    find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
+    find $(yq '.workspace.members' -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
     [ -f "/app/out/full/$1" ] || ( \
     mkdir -p "/app/out/full/$(dirname "$1")/src" &&  \
     echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
@@ -64,8 +64,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential musl-tools && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install node && \
-    mise use --global protoc && \
+    mise install node npm:turbo protoc && \
     yarn install --immutable && \
     yarn cache clean
 

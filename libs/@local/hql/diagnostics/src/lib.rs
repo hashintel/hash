@@ -1,3 +1,7 @@
+//! # HashQL Diagnostics
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(cfg_eval)]
 
 extern crate alloc;

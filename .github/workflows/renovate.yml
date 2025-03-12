@@ -77,16 +77,13 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
 
-      - name: Install Rust toolchain
-        uses: ./.github/actions/install-rust-toolchain
-
       - name: Install Node.js
         uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
         with:
-          install_args: node
+          install_args: node npm:renovate
         env:
           MISE_NODE_COREPACK: 1
-          GITHUB_TOKEN: ${{ inputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295 # v9
         if: github.event.inputs.repoCache != 'disabled'
@@ -105,9 +102,6 @@ jobs:
 
           mkdir -p $cache_dir
           tar -xzf cache-download/$cache_archive -C $cache_dir
-
-      - name: Install renovate
-        run: npm install -g renovate
 
       - name: Run renovate
         env:

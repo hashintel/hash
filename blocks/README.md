@@ -29,11 +29,13 @@
 
 # Blocks
 
-This directory contains the source code for all HASH-developed public [Block Protocol](https://blockprotocol.org/) blocks.
+HASH is built around the open [Block Protocol](https://blockprotocol.org) ([@blockprotocol/blockprotocol](https://github.com/blockprotocol/blockprotocol) on GitHub). The current version of HASH is based upon an adapted version of the [Block Protocol Graph Module](https://blockprotocol.org/spec/graph) which will be formalized at a later date.
 
-You can live preview most of these on the [`@hash`](https://blockprotocol.org/@hash/blocks) page in the [Þ Hub](https://blockprotocol.org/hub), and direct links are provided below.
+Planned features such as [pages](https://hash.ai/guide/pages) and [apps](https://hash.ai/guide/apps) more directly utilize the [blocks](https://hash.ai/guide/pages/blocks) found in this directory, which contains the source code for all public HASH-developed [Block Protocol](https://blockprotocol.org/) blocks.
 
-**Please note:** this table/directory contains HASH-published blocks only, and does not contain the full extent of available Þ blocks.
+## HASH Blocks
+
+You can preview most HASH blocks on the [`@hash`](https://blockprotocol.org/@hash/blocks) page in the [Þ Hub](https://blockprotocol.org/hub), and direct links are provided below.
 
 | Directory        | Spec Target | Status         | Þ Hub URL                                                                        | Description |
 | ---------------- | ----------- | -------------- | -------------------------------------------------------------------------------- | ----------- |
@@ -60,17 +62,15 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`timer`]        | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)               |             |
 | [`video`]        | 0.3         | **Maintained** | [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)               |             |
 
-## Creating a block
+**Please note:** this table/directory contains HASH-developed blocks which are (or were) published to the [Þ Hub](https://blockprotocol.org/hub) under the official `@hash` namespace. This reflects neither the full extent of available Þ blocks, nor even those originally developed by HASH. A number of other publicly-accessible blocks can be found in the `@hashdeps` GitHub org, including the [Calculation Table](https://github.com/hashdeps/calculation-table-block), [Drawing](https://github.com/hashdeps/tldraw-block), and [Pull/Merge Request Overview](https://github.com/hashdeps/github-pr-overview) blocks.
 
-Run the following command to create a new block:
+## Using blocks
 
-```sh
-yarn create-block block-name
-```
+**In the HASH app (production):** Blocks published to the [Þ Hub](https://blockprotocol.org/hub) can be run within HASH via the 'insert block' (aka. 'slash') menu.
 
-## Running these blocks
+**In the HASH app (development):** While running the HASH app in development mode, in addition to inserting blocks published to the Þ Hub, you can also test locally-developed blocks out by going to any page, clicking on the menu next to an empty block, and pasting in the URL to your block's distribution folder (i.e. the one containing `block-metadata.json`, `block-schema.json`, and the block's code). If you need a way of serving your folder, try [`serve`](https://github.com/vercel/serve).
 
-If you want to work on, build or serve a single block, run:
+**From the command line:** If you want to work on, build or serve a single block, run:
 
 ```sh
 yarn workspace @blocks/block-name dev
@@ -80,13 +80,23 @@ yarn workspace @blocks/block-name build
 yarn workspace @blocks/block-name serve
 ```
 
+**From other applications:** Blocks published to the [Þ Hub](https://blockprotocol.org/hub) can be used within any embedding application that integrates with the Block Protocol.
+
+## Creating blocks
+
+See the [Developing Blocks](https://blockprotocol.org/docs/developing-blocks) page in the [Þ Docs](https://blockprotocol.org/docs) for instructions on developing and publishing your own blocks.
+
+Run the following command to create a new block:
+
+```sh
+yarn create-block block-name
+```
+
 ## Publishing blocks
 
-Blocks are currently published via manually-triggered GitHub actions:
+The HASH-developed blocks in this repository are currently published via manually-triggered GitHub actions:
 
 - Publish blocks to preview (choose a branch)
 - Publish blocks to production
 
-## Using these blocks
-
-As a user, you can access the published versions of these blocks via any embedding application that integrates with the Þ Hub.
+To publish your own block, in another [Þ Hub](https://blockprotocol.org/hub) namespace (and separate from this repository), see the "[Publishing Blocks](https://blockprotocol.org/docs/blocks/develop#publish)" guide in the Þ Docs.

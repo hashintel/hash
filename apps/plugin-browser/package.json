@@ -86,7 +86,7 @@
     "sass-loader": "13.3.3",
     "source-map-loader": "3.0.2",
     "style-loader": "3.3.4",
-    "terser-webpack-plugin": "5.3.12",
+    "terser-webpack-plugin": "5.3.14",
     "ts-loader": "9.5.2",
     "tsconfig-paths-webpack-plugin": "4.2.0",
     "type-fest": "3.13.1",

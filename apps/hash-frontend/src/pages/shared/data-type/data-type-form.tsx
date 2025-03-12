@@ -96,10 +96,24 @@ export const getDataTypeFromFormData = ({
       } else {
         unNulledConstraints = {
           type: "number",
-          minimum: constraints.minimum ?? undefined,
-          maximum: constraints.maximum ?? undefined,
-          exclusiveMinimum: constraints.exclusiveMinimum ?? undefined,
-          exclusiveMaximum: constraints.exclusiveMaximum ?? undefined,
+          /**
+           * In JSON schema, exclusiveMinimum and exclusiveMaximum are numbers (after Draft 4),
+           * but in the form it is simpler to deal with them as booleans,
+           * so we need to convert them back to numbers here.
+           * We don't want both minimum and exclusiveMinimum to be set.
+           */
+          minimum: !constraints.exclusiveMinimum
+            ? (constraints.minimum ?? undefined)
+            : undefined,
+          maximum: !constraints.exclusiveMaximum
+            ? (constraints.maximum ?? undefined)
+            : undefined,
+          exclusiveMinimum: constraints.exclusiveMinimum
+            ? (constraints.minimum ?? undefined)
+            : undefined,
+          exclusiveMaximum: constraints.exclusiveMaximum
+            ? (constraints.maximum ?? undefined)
+            : undefined,
           multipleOf: constraints.multipleOf ?? undefined,
         };
       }
@@ -173,12 +187,28 @@ export const getFormDataFromDataType = (dataTypeWithMetadata: {
       if ("enum" in constraints) {
         nulledConstraints = { type: "number", enum: constraints.enum };
       } else {
+        const applicableExclusiveMinimum =
+          constraints.exclusiveMinimum !== undefined
+            ? constraints.minimum === undefined ||
+              constraints.minimum < constraints.exclusiveMinimum
+            : null;
+
+        const applicableExclusiveMaximum =
+          constraints.exclusiveMaximum !== undefined
+            ? constraints.maximum === undefined ||
+              constraints.maximum > constraints.exclusiveMaximum
+            : null;
+
         nulledConstraints = {
           type: "number",
-          minimum: constraints.minimum ?? null,
-          maximum: constraints.maximum ?? null,
-          exclusiveMinimum: constraints.exclusiveMinimum ?? null,
-          exclusiveMaximum: constraints.exclusiveMaximum ?? null,
+          minimum: applicableExclusiveMinimum
+            ? constraints.exclusiveMinimum!
+            : (constraints.minimum ?? null),
+          maximum: applicableExclusiveMaximum
+            ? constraints.exclusiveMaximum!
+            : (constraints.maximum ?? null),
+          exclusiveMinimum: applicableExclusiveMinimum ?? null,
+          exclusiveMaximum: applicableExclusiveMaximum ?? null,
           multipleOf: constraints.multipleOf ?? null,
         };
       }

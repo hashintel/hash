@@ -77,6 +77,8 @@ pin_project_lite::pin_project! {
         #[pin]
         inner: Option<S>,
         buffer: BytesMut,
+        // This PhantomData is used to make the struct covariant over T
+        // without imposing unnecessary constraints
         _marker: core::marker::PhantomData<fn() -> *const T>,
     }
 }

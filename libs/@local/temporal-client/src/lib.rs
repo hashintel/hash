@@ -1,3 +1,7 @@
+//! # Temporal Client
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(impl_trait_in_assoc_type)]
 
 pub use self::error::{ConfigError, ConnectionError, WorkflowError};

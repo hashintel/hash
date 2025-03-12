@@ -1,3 +1,6 @@
+#![cfg_attr(doc, doc = include_str!("../README.md"))]
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     impl_trait_in_assoc_type,
     never_type,

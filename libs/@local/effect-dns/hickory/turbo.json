@@ -2,6 +2,9 @@
   "$schema": "https://turborepo.org/schema.json",
   "extends": ["//"],
   "tasks": {
+    "doc:dependency-diagram": {
+      "outputs": ["docs/dependency-diagram.mmd"]
+    },
     "build": {
       "outputs": ["./dist/**"]
     },

@@ -51,11 +51,13 @@ const NumberRangeEditor = ({
 
   const exclusiveMinimumDisabled =
     hasEnum ||
+    ownMinimum === null ||
     (ownMinimum === inheritedMinimum?.value.value &&
       inheritedConstraints.minimum?.value.exclusive === true);
 
   const exclusiveMaximumDisabled =
     hasEnum ||
+    ownMaximum === null ||
     (ownMaximum === inheritedMaximum?.value.value &&
       inheritedConstraints.maximum?.value.exclusive === true);
 

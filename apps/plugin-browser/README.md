@@ -19,17 +19,17 @@ We will add a link to the user guide for the plugin here, when it is available.
 ## Development
 
 1. Install dependencies: `yarn`
-1. Either have the API running locally, or add an `.env.local` to set the API_ORIGIN to the desired API
-1. Run and load extension:
+2. Either have the API running locally, or add an `.env.local` to set the API_ORIGIN to the desired API
+3. Run and load extension:
    - in Chrome:
-   - 1. `yarn dev`
-     1. [chrome://extensions](chrome://extensions)
-     1. Toggle 'Developer mode'
-     1. Click 'Load unpacked' and select the `build` folder
+     1. `yarn dev`
+     2. [chrome://extensions](chrome://extensions)
+     3. Toggle 'Developer mode'
+     4. Click 'Load unpacked' and select the `build` folder
    - in Firefox:
      1. `yarn dev:firefox`
-     1. [about:debugging#/runtime/this-firefox](about:debugging#/runtime/this-firefox)
-     1. Click 'Load Temporary Add-on...' and select the `manifest.json` file in the `build` folder
+     2. [about:debugging#/runtime/this-firefox](about:debugging#/runtime/this-firefox)
+     3. Click 'Load Temporary Add-on...' and select the `manifest.json` file in the `build` folder
 
 **Pages** (the `popup` and `options` screens) will reload automatically when changes are made.
 **Scripts** (`background`, `content`) require clicking 'Update' in [Chrome](chrome://extensions) or 'Reload' in [Firefox](about:debugging#/runtime/this-firefox)
@@ -45,7 +45,7 @@ e.g. when you click on a link, replace 'http://localhost:3000' with 'https://app
 In Firefox, the following permissions via Tools-Addons must be set before the extension will work:
 
 1. "Access your data for sites in the hash.ai domain" so that cookies will be sent to the HASH API
-1. "Access your data for all web sites" so that content can be read from any other websites
+2. "Access your data for all web sites" so that content can be read from any other websites
 
 ### Debugging
 
