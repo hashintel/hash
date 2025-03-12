@@ -57,7 +57,7 @@ export const generateCommentReplies = async ({
   prOverview: string;
   commentThreads: ExistingCommentThread[];
   previousErrors: string | null;
-  attempt: number;
+  attempt?: number;
 }): Promise<z.infer<typeof CommentReplySchema>[]> => {
   if (attempt > 3) {
     throw new Error("Too many attempts retrying generateCommentReplies");

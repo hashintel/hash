@@ -123,7 +123,7 @@ export const generatePRReview = async ({
   previousErrors,
 }: {
   anthropic: Anthropic;
-  attempt: number;
+  attempt?: number;
   commentThreads: ExistingCommentThread[];
   prDiff: string;
   prOverview: string;
@@ -181,12 +181,12 @@ export const generatePRReview = async ({
     )
     .join("\n---\n")}
   </Comments on the PR>
-  
   ${
     previousErrors
       ? `\n\nYour previous review had these errors – please avoid them this time: ${previousErrors}`
       : ""
   }
+  Now please submit your review. Remember that a 'request changes' decision will block merging, and you should specify which of your suggested changes are required and justify your decision.
   `;
 
     const response = await anthropic.messages.create({
