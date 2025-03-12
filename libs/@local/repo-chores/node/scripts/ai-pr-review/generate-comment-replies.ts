@@ -1,7 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { sleep } from "@anthropic-ai/sdk/core";
 import type { HydratedLinearIssue } from "@local/hash-backend-utils/linear";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import chalk from "chalk";
 import { z } from "zod";
 import zodToJsonSchema, {
@@ -236,12 +235,8 @@ export const generateCommentReplies = async ({
       }
 
       return commentReplies;
-    } catch (err) {
-      console.error(
-        chalk.red(
-          `Error parsing comment replies – retrying: ${stringifyError(err)}`,
-        ),
-      );
+    } catch {
+      console.error(chalk.red("Error parsing comment replies – retrying"));
 
       // Log the raw input to help debug parsing issues
       console.error(chalk.yellow("Raw input that failed to parse:"));
@@ -259,12 +254,8 @@ export const generateCommentReplies = async ({
           "Your last response didn't meet the schema – please try again. Make sure arrays are properly formatted as JSON arrays, not strings.",
       });
     }
-  } catch (error) {
-    console.error(
-      chalk.red(
-        `Error generating comment replies. Retrying... ${stringifyError(error)}`,
-      ),
-    );
+  } catch {
+    console.error(chalk.red("Error generating comment replies – retrying"));
 
     await sleep(2_000);
 

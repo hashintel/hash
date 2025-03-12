@@ -1,7 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { sleep } from "@anthropic-ai/sdk/core";
 import type { HydratedLinearIssue } from "@local/hash-backend-utils/linear";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import chalk from "chalk";
 import { z } from "zod";
 import zodToJsonSchema, {
@@ -255,12 +254,8 @@ export const generatePRReview = async ({
           "Your last review didn't meet the response schema – please try again.",
       });
     }
-  } catch (error) {
-    console.error(
-      chalk.red(
-        `Error generating PR review. Retrying... ${stringifyError(error)}`,
-      ),
-    );
+  } catch {
+    console.error(chalk.red("Error generating PR review – retrying"));
 
     await sleep(2_000);
 

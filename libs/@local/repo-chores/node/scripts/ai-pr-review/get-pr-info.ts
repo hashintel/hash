@@ -1,7 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { LinearClient } from "@linear/sdk";
 import { hydrateLinearIssue } from "@local/hash-backend-utils/linear";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import chalk from "chalk";
 import execa from "execa";
 import { z } from "zod";
@@ -27,10 +26,8 @@ export const getPROverview = async (prNumber: string): Promise<string> => {
     ]);
 
     return stdout;
-  } catch (error) {
-    console.error(
-      chalk.red(`Error fetching PR overview: ${stringifyError(error)}`),
-    );
+  } catch {
+    console.error(chalk.red("Error fetching PR overview"));
     process.exit(1);
   }
 };
@@ -39,10 +36,8 @@ export const getPRDiff = async (prNumber: string): Promise<string> => {
   try {
     const { stdout } = await execa("gh", ["pr", "diff", prNumber]);
     return stdout;
-  } catch (error) {
-    console.error(
-      chalk.red(`Error fetching PR diff: ${stringifyError(error)}`),
-    );
+  } catch {
+    console.error(chalk.red("Error fetching PR diff"));
     process.exit(1);
   }
 };
@@ -86,13 +81,9 @@ export const extractLinearTicketIds = async (
     const { ticketIds } = LinearTicketIdsSchema.parse(toolUseBlock.input);
 
     return ticketIds;
-  } catch (error) {
+  } catch {
     console.error(
-      chalk.red(
-        `Error extracting Linear ticket IDs from PR details: ${stringifyError(
-          error,
-        )}`,
-      ),
+      chalk.red(`Error extracting Linear ticket IDs from PR details`),
     );
     return [];
   }

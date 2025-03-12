@@ -3,7 +3,6 @@
 import { Anthropic } from "@anthropic-ai/sdk";
 import { sleep } from "@anthropic-ai/sdk/core";
 import { LinearClient } from "@linear/sdk";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import chalk from "chalk";
 import { config } from "dotenv-flow";
 import execa from "execa";
@@ -103,10 +102,8 @@ ${ticketTodo.todos.map((todo) => `- [ ] ${todo}`).join("\n")}`;
           chalk.red(`Failed to create Linear issue for ${ticketTodo.ticketId}`),
         );
       }
-    } catch (error) {
-      console.error(
-        chalk.red(`Error creating Linear issue: ${stringifyError(error)}`),
-      );
+    } catch {
+      console.error(chalk.red("Error creating Linear issue"));
     }
   }
 
@@ -223,10 +220,8 @@ const submitPRReview = async ({
         `Submitted PR review with decision: ${generalReview.decision}`,
       ),
     );
-  } catch (error) {
-    console.error(
-      chalk.red(`Error submitting PR review: ${stringifyError(error)}`),
-    );
+  } catch {
+    console.error(chalk.red("Error submitting PR review"));
   }
 };
 
@@ -356,14 +351,12 @@ const main = async (): Promise<void> => {
     JSON.stringify(review, null, 2),
   );
 
-  process.exit(0);
-
   await processReviewResults(prNumber, review);
 
   console.log(chalk.green("PR review completed successfully!"));
 };
 
-main().catch((error) => {
-  console.error(chalk.red(`Unhandled error: ${stringifyError(error)}`));
+main().catch(() => {
+  console.error(chalk.red("Unhandled error"));
   process.exit(1);
 });

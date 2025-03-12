@@ -1,4 +1,3 @@
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import chalk from "chalk";
 import execa from "execa";
 import { z } from "zod";
@@ -203,10 +202,8 @@ const fetchAllThreadsWithComments = async (
     }
 
     return threads;
-  } catch (error) {
-    console.error(
-      chalk.red(`Error fetching review threads: ${stringifyError(error)}`),
-    );
+  } catch {
+    console.error(chalk.red("Error fetching review threads"));
     return [];
   }
 };
