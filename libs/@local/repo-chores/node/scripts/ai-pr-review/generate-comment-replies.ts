@@ -44,6 +44,7 @@ You are responding to comments on a pull request. For each comment:
  */
 export const generateCommentReplies = async ({
   anthropic,
+  attempt = 1,
   linearTickets,
   prDiff,
   prOverview,
@@ -56,7 +57,12 @@ export const generateCommentReplies = async ({
   prOverview: string;
   commentThreads: ExistingCommentThread[];
   previousErrors: string | null;
+  attempt: number;
 }): Promise<z.infer<typeof CommentReplySchema>[]> => {
+  if (attempt > 3) {
+    throw new Error("Too many attempts retrying generateCommentReplies");
+  }
+
   // Only process threads that require a response
   const threadsRequiringResponse = commentThreads.filter(
     (thread) => thread.requiresAiResponse !== "no",
@@ -226,6 +232,7 @@ export const generateCommentReplies = async ({
 
         return generateCommentReplies({
           anthropic,
+          attempt: attempt + 1,
           commentThreads,
           linearTickets,
           prDiff,
@@ -246,6 +253,7 @@ export const generateCommentReplies = async ({
 
       return generateCommentReplies({
         anthropic,
+        attempt: attempt + 1,
         commentThreads,
         linearTickets,
         prDiff,
@@ -261,6 +269,7 @@ export const generateCommentReplies = async ({
 
     return generateCommentReplies({
       anthropic,
+      attempt: attempt + 1,
       commentThreads,
       linearTickets,
       prDiff,
