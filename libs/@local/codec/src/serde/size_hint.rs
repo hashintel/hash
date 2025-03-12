@@ -7,6 +7,10 @@ const MAX_PREALLOCATED_BYTES: usize = 1024 * 1024;
 /// Converts the size hint of an iterator to a `usize`.
 ///
 /// The bound is capped at 1 MiB to prevent excessive preallocation.
+#[expect(
+    clippy::redundant_pub_crate,
+    reason = "Function needs to be accessible within the crate while module remains private"
+)]
 pub(crate) fn cautious<Element>(hint: Option<usize>) -> usize {
     if mem::size_of::<Element>() == 0 {
         0

@@ -11,6 +11,7 @@
     "build": "rimraf dist && yarn build:release && tsc --build tsconfig.build.json",
     "build:debug": "napi build dist --platform --js=impl.js --dts=impl.d.ts",
     "build:release": "napi build dist --platform --release --js=impl.js --dts=impl.d.ts",
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root effect-dns-hickory --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
@@ -21,11 +22,11 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@napi-rs/cli": "2.18.4",
-    "@vitest/coverage-istanbul": "3.0.7",
+    "@vitest/coverage-istanbul": "3.0.8",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
-    "vitest": "3.0.7"
+    "vitest": "3.0.8"
   },
   "napi": {
     "name": "effect-dns-hickory",

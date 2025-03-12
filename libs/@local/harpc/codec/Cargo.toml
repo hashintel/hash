@@ -23,6 +23,7 @@ serde_json   = { workspace = true, public = true, optional = true }
 # Private third-party dependencies
 memchr           = { workspace = true, optional = true }
 pin-project-lite = { workspace = true, optional = true }
+simple-mermaid   = { workspace = true }
 thiserror        = { workspace = true }
 
 [dev-dependencies]

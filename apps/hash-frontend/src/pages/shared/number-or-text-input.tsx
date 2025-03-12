@@ -66,24 +66,33 @@ export const NumberOrTextInput = ({
       ? schema.multipleOf[0]
       : 0.001;
 
-  const exclusiveMinimum =
-    "exclusiveMinimum" in schema && typeof schema.exclusiveMinimum === "boolean"
-      ? schema.exclusiveMinimum
-      : false;
-
+  // Get the effective minimum value, considering both minimum and exclusiveMinimum
   const minimum =
     "minimum" in schema && typeof schema.minimum === "number"
-      ? schema.minimum + (exclusiveMinimum ? step : 0)
+      ? schema.minimum
+      : undefined;
+
+  const exclusiveMinimum =
+    "exclusiveMinimum" in schema && typeof schema.exclusiveMinimum === "number"
+      ? schema.exclusiveMinimum
+      : undefined;
+
+  const effectiveMinimum =
+    typeof exclusiveMinimum === "number" ? exclusiveMinimum + step : minimum;
+
+  // Get the effective maximum value, considering both maximum and exclusiveMaximum
+  const maximum =
+    "maximum" in schema && typeof schema.maximum === "number"
+      ? schema.maximum
       : undefined;
 
   const exclusiveMaximum =
-    "exclusiveMaximum" in schema && typeof schema.exclusiveMaximum === "boolean"
+    "exclusiveMaximum" in schema && typeof schema.exclusiveMaximum === "number"
       ? schema.exclusiveMaximum
-      : false;
-  const maximum =
-    "maximum" in schema && typeof schema.maximum === "number"
-      ? schema.maximum - (exclusiveMaximum ? step : 0)
       : undefined;
+
+  const effectiveMaximum =
+    typeof exclusiveMaximum === "number" ? exclusiveMaximum - step : maximum;
 
   const jsonStringFormat = "format" in schema ? schema.format : undefined;
 
@@ -131,8 +140,8 @@ export const NumberOrTextInput = ({
         inputProps: {
           minLength,
           maxLength,
-          min: minimum,
-          max: maximum,
+          min: effectiveMinimum,
+          max: effectiveMaximum,
           step,
         },
         inputRef,

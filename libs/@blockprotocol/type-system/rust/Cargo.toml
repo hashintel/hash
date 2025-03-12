@@ -30,13 +30,14 @@ uuid             = { workspace = true, public = true, features = ["v5", "serde",
 # Private workspace dependencies
 
 # Private third-party dependencies
-derive_more = { workspace = true, features = ["display", "error", "from"] }
-futures     = { workspace = true }
-itertools   = { workspace = true, features = ["use_alloc"] }
-regex       = { workspace = true, features = ["std"] }
-serde       = { workspace = true, features = ["derive", "rc"] }
-thiserror   = { workspace = true }
-tsify       = { workspace = true, features = ["json"] }
+derive_more    = { workspace = true, features = ["display", "error", "from"] }
+futures        = { workspace = true }
+itertools      = { workspace = true, features = ["use_alloc"] }
+regex          = { workspace = true, features = ["std"] }
+serde          = { workspace = true, features = ["derive", "rc"] }
+simple-mermaid = { workspace = true }
+thiserror      = { workspace = true }
+tsify          = { workspace = true, features = ["json"] }
 
 [dev-dependencies]
 hash-graph-test-data = { workspace = true }

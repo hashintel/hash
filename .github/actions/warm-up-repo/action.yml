@@ -11,19 +11,6 @@ runs:
   using: composite
 
   steps:
-    - name: Install Tools
-      uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
-      with:
-        install_args: --jobs 1
-      env:
-        MISE_NODE_COREPACK: 1
-        GITHUB_TOKEN: ${{ inputs.token }}
-
-    - name: Install WASM tools
-      uses: taiki-e/install-action@a50413355c47e4c63a8d72dfaccdf927f53c4c45 # v2.49.14
-      with:
-        tool: wasm-pack@0.12.1
-
     - name: Install yarn dependencies
       uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
       env:
