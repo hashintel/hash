@@ -104,6 +104,9 @@ jobs:
           install_args: node npm:turbo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Warm up repository
+        uses: ./.github/actions/warm-up-repo
       
       - name: Determine PR number
         id: pr-number
