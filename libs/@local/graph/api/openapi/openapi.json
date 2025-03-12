@@ -4500,7 +4500,6 @@
       },
       "EntityMetadata": {
         "type": "object",
-        "description": "The metadata of an [`Entity`] record.",
         "required": [
           "recordId",
           "temporalVersioning",
@@ -9973,7 +9972,19 @@
             ]
           },
           "provenance": {
-            "$ref": "#/components/schemas/PropertyProvenance"
+            "$ref": "#/components/schemas/ValueProvenance"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValueProvenance": {
+        "type": "object",
+        "properties": {
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceProvenance"
+            }
           }
         },
         "additionalProperties": false
