@@ -2,7 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Subgraph } from "@local/hash-subgraph";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { useTheme } from "@mui/material";
 import { useMemo } from "react";
 
@@ -12,17 +12,17 @@ import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 
 type EntityResultGraphProps = {
+  closedMultiEntityTypesRootMap?: ClosedMultiEntityTypesRootMap;
   onEntityClick: (entityId: EntityId) => void;
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   entities: EntityForGraphChart[];
-  subgraphWithTypes?: Subgraph;
 };
 
 export const EntityResultGraph = ({
+  closedMultiEntityTypesRootMap,
   onEntityClick,
   onEntityTypeClick,
   entities,
-  subgraphWithTypes,
 }: EntityResultGraphProps) => {
   /**
    * If a Flow updates the same entity as non-draft multiple times, it will have a record of persisting
@@ -60,7 +60,7 @@ export const EntityResultGraph = ({
 
   const theme = useTheme();
 
-  if (!subgraphWithTypes && !entities.length) {
+  if (!closedMultiEntityTypesRootMap && !entities.length) {
     return (
       <OutputContainer sx={{ flex: 1.5 }}>
         <EmptyOutputBox
@@ -73,15 +73,15 @@ export const EntityResultGraph = ({
 
   return (
     <OutputContainer sx={{ flex: 1.5, width: "100%", textAlign: "initial" }}>
-      {subgraphWithTypes && (
+      {closedMultiEntityTypesRootMap && (
         <EntityGraphVisualizer
+          closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
           entities={deduplicatedEntities}
           loadingComponent={
             <LoadingSpinner size={42} color={theme.palette.blue[60]} />
           }
           onEntityClick={onEntityClick}
           onEntityTypeClick={onEntityTypeClick}
-          subgraphWithTypes={subgraphWithTypes}
         />
       )}
     </OutputContainer>
