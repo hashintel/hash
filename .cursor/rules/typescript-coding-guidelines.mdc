@@ -5,9 +5,10 @@ alwaysApply: false
 ---
 # General
 
-- Prefer 'const myFunc = () => {}' over function declarations
-- Parallelize async calls where appropriate via `Promise.all` instead of sequential fetches in a `for` loop
+- Prefer 'const myFunc = () => {}' over function declarations.
+- Parallelize async calls where appropriate via `Promise.all` instead of sequential fetches in a `for` loop.
 - No `any` allowed. If the input type is genuinely unknown, use `unknown` and write appropriate logic to narrow the type.
+- Don't make formatting corrections to lines you aren't already modifying. Auto-fixing will handle it.
 
 # Frontend
 

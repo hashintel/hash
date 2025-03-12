@@ -12,6 +12,10 @@ export type ExistingCommentThread = {
    */
   threadId: number;
   /**
+   * Whether the thread is resolved.
+   */
+  isResolved: boolean;
+  /**
    * The author of the original comment (GitHub username, for `@tagging`)
    */
   author: string;
@@ -223,10 +227,6 @@ export const getPrComments = async (
   const commentThreads: ExistingCommentThread[] = [];
 
   for (const thread of allThreads) {
-    if (thread.isResolved) {
-      continue;
-    }
-
     const comments = thread.comments.nodes;
 
     const rootComment = comments.find((comment) => comment.replyTo === null);
@@ -256,11 +256,13 @@ export const getPrComments = async (
 
     commentThreads.push({
       threadId: rootComment.databaseId,
-      requiresAiResponse: nonAiLastComment
-        ? aiCreated || rootComment.body.includes("@hashdotai")
-          ? "yes"
-          : "maybe"
-        : "no",
+      isResolved: thread.isResolved,
+      requiresAiResponse:
+        nonAiLastComment && !thread.isResolved
+          ? aiCreated || rootComment.body.includes("@hashdotai")
+            ? "yes"
+            : "maybe"
+          : "no",
       author: aiCreated ? "you" : originalAuthor,
       body: rootComment.body,
       path: rootComment.path,
