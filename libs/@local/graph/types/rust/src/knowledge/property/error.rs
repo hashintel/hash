@@ -2,14 +2,15 @@ use std::collections::HashSet;
 
 use error_stack::Report;
 use type_system::{
-    knowledge::Value,
+    knowledge::{
+        Value,
+        property::{PropertyWithMetadata, PropertyWithMetadataObject},
+    },
     ontology::{
         VersionedUrl, data_type::DataType, entity_type::ClosedMultiEntityType,
         property_type::PropertyType,
     },
 };
-
-use crate::knowledge::property::{PropertyWithMetadata, PropertyWithMetadataObject};
 
 pub fn install_error_stack_hooks() {
     Report::install_debug_hook::<Actual>(|actual, context| match actual {

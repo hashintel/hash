@@ -5,24 +5,19 @@ use error_stack::Report;
 use futures::TryFutureExt as _;
 use hash_graph_authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_graph_types::{
-    account::AccountId,
-    knowledge::{
-        EntityTypeIdDiff,
-        entity::{Entity, EntityEmbedding},
-        property::{
-            PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
-        },
-    },
-};
+use hash_graph_types::{account::AccountId, knowledge::entity::EntityEmbedding};
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::{
         Confidence,
         entity::{
-            LinkData,
+            Entity, LinkData,
             id::{EntityId, EntityUuid},
+            metadata::EntityTypeIdDiff,
             provenance::ProvidedEntityEditionProvenance,
+        },
+        property::{
+            PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
         },
     },
     ontology::{VersionedUrl, entity_type::ClosedMultiEntityType},

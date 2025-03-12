@@ -18,13 +18,15 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
-use hash_graph_types::knowledge::property::{PropertyWithMetadata, PropertyWithMetadataObject};
 use time::OffsetDateTime;
 use type_system::{
     knowledge::{
         Value,
         entity::provenance::ProvidedEntityEditionProvenance,
-        property::metadata::{ObjectMetadata, PropertyWithMetadataValue},
+        property::{
+            PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
+            metadata::ObjectMetadata,
+        },
         value::{ValueMetadata, metadata::ValueProvenance},
     },
     ontology::{

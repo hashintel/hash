@@ -55,7 +55,6 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     account::AccountId,
-    knowledge::entity::Entity,
     ontology::{PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata},
 };
 use hash_temporal_client::TemporalClient;
@@ -63,7 +62,7 @@ use tarpc::context;
 use tokio::net::ToSocketAddrs;
 use tracing::Instrument as _;
 use type_system::{
-    knowledge::entity::EntityId,
+    knowledge::{Entity, entity::EntityId},
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference, OntologyTypeSchema,
         VersionedUrl,

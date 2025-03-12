@@ -7,21 +7,15 @@ use bytes::BytesMut;
 use error_stack::Report;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
-use serde::{Deserialize, Serialize};
-use type_system::{
-    knowledge::{
-        Value,
-        property::metadata::{ObjectMetadata, PropertyMetadataObject},
-    },
-    ontology::BaseUrl,
-};
 
-use crate::knowledge::property::{
-    Property, PropertyDiff, PropertyPath, PropertyPathElement, PropertyPathError,
-    PropertyWithMetadata,
+use super::{
+    Property, PropertyPath, PropertyPathElement, PropertyPathError, PropertyWithMetadata,
+    diff::PropertyDiff,
+    metadata::{ObjectMetadata, PropertyMetadataObject},
 };
+use crate::{knowledge::Value, ontology::BaseUrl};
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct PropertyObject(HashMap<BaseUrl, Property>);
 
@@ -138,7 +132,7 @@ impl<'a> FromSql<'a> for PropertyObject {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyWithMetadataObject {

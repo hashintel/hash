@@ -7,10 +7,10 @@ use std::collections::HashMap;
 
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
-use hash_graph_types::{knowledge::entity::Entity, ontology::DataTypeLookup};
+use hash_graph_types::ontology::DataTypeLookup;
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    knowledge::entity::EntityId,
+    knowledge::entity::{Entity, EntityId},
     ontology::{
         data_type::{DataTypeUuid, DataTypeWithMetadata, schema::DataTypeReference},
         id::{BaseUrl, OntologyTypeVersion, VersionedUrl},

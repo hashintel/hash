@@ -7,4 +7,4 @@ mod confidence;
 
 pub use confidence::Confidence;
 
-pub use self::value::Value;
+pub use self::{entity::Entity, property::Property, value::Value};

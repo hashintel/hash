@@ -12,16 +12,12 @@ use hash_graph_store::{
     query::Read,
 };
 use hash_graph_types::{
-    knowledge::{
-        entity::Entity,
-        property::{PropertyWithMetadataObject, visitor::EntityVisitor as _},
-    },
-    ontology::OntologyTypeProvider,
+    knowledge::property::visitor::EntityVisitor as _, ontology::OntologyTypeProvider,
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use tokio_postgres::GenericClient as _;
 use type_system::{
-    knowledge::entity::id::EntityUuid,
+    knowledge::{Entity, entity::id::EntityUuid, property::PropertyWithMetadataObject},
     ontology::entity_type::{ClosedEntityType, ClosedMultiEntityType},
 };
 

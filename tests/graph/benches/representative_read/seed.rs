@@ -8,14 +8,11 @@ use hash_graph_store::{
     entity::{CreateEntityParams, EntityStore as _},
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::{
-    account::AccountId,
-    knowledge::property::{PropertyObject, PropertyWithMetadataObject},
-};
+use hash_graph_types::account::AccountId;
 use type_system::{
     knowledge::{
         entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
-        property::metadata::PropertyProvenance,
+        property::{PropertyObject, PropertyWithMetadataObject, metadata::PropertyProvenance},
     },
     ontology::{VersionedUrl, entity_type::EntityType},
     provenance::{ActorType, OriginProvenance, OriginType},

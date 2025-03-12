@@ -128,10 +128,11 @@ mod tests {
             temporal_axes::QueryTemporalAxesUnresolved,
         },
     };
-    use hash_graph_types::{Embedding, knowledge::entity::Entity};
+    use hash_graph_types::Embedding;
     use postgres_types::ToSql;
-    use type_system::ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+    use type_system::{
+        knowledge::Entity,
+        ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     };
     use uuid::Uuid;
 

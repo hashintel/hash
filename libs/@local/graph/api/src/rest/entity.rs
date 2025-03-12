@@ -44,22 +44,15 @@ use hash_graph_store::{
 use hash_graph_types::{
     Embedding,
     knowledge::{
-        EntityTypeIdDiff,
-        entity::{Entity, EntityEmbedding, EntityMetadata, EntityTemporalMetadata},
-        property::{
-            Property, PropertyDiff, PropertyObject, PropertyPatchOperation, PropertyPath,
-            PropertyPathElement, PropertyWithMetadata, PropertyWithMetadataArray,
-            PropertyWithMetadataObject,
-            visitor::{
-                ArrayItemNumberMismatch, ArrayValidationReport, DataTypeCanonicalCalculation,
-                DataTypeConversionError, DataTypeInferenceError, JsonSchemaValueTypeMismatch,
-                ObjectPropertyValidationReport, ObjectValidationReport,
-                OneOfArrayValidationReports, OneOfObjectValidationReports,
-                OneOfPropertyValidationReports, PropertyArrayValidationReport,
-                PropertyObjectValidationReport, PropertyValidationReport,
-                PropertyValueTypeMismatch, PropertyValueValidationReport, ValueValidationError,
-                ValueValidationReport,
-            },
+        entity::EntityEmbedding,
+        property::visitor::{
+            ArrayItemNumberMismatch, ArrayValidationReport, DataTypeCanonicalCalculation,
+            DataTypeConversionError, DataTypeInferenceError, JsonSchemaValueTypeMismatch,
+            ObjectPropertyValidationReport, ObjectValidationReport, OneOfArrayValidationReports,
+            OneOfObjectValidationReports, OneOfPropertyValidationReports,
+            PropertyArrayValidationReport, PropertyObjectValidationReport,
+            PropertyValidationReport, PropertyValueTypeMismatch, PropertyValueValidationReport,
+            ValueValidationError, ValueValidationReport,
         },
     },
 };
@@ -67,20 +60,23 @@ use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::{
-        Confidence,
+        Confidence, Entity, Property,
         entity::{
-            LinkData,
+            EntityMetadata, LinkData,
             id::{EntityEditionId, EntityId, EntityRecordId, EntityUuid},
+            metadata::{EntityTemporalMetadata, EntityTypeIdDiff},
             provenance::{
                 EntityEditionProvenance, EntityProvenance, InferredEntityProvenance,
                 ProvidedEntityEditionProvenance,
             },
         },
         property::{
-            PropertyMetadata,
+            PropertyDiff, PropertyObject, PropertyPatchOperation, PropertyPath,
+            PropertyPathElement, PropertyWithMetadata, PropertyWithMetadataArray,
+            PropertyWithMetadataObject, PropertyWithMetadataValue,
             metadata::{
-                ArrayMetadata, ObjectMetadata, PropertyMetadataObject, PropertyProvenance,
-                PropertyWithMetadataValue,
+                ArrayMetadata, ObjectMetadata, PropertyMetadata, PropertyMetadataObject,
+                PropertyProvenance,
             },
         },
         value::{ValueMetadata, metadata::ValueProvenance},

@@ -1,9 +1,10 @@
 use alloc::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
-use type_system::ontology::BaseUrl;
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};
+
+use crate::ontology::BaseUrl;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

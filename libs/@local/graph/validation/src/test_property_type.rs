@@ -7,7 +7,7 @@ use hash_graph_store::entity::ValidateEntityComponents;
 use serde_json::json;
 use type_system::{
     knowledge::{
-        property::PropertyMetadata,
+        property::metadata::PropertyMetadata,
         value::{ValueMetadata, metadata::ValueProvenance},
     },
     ontology::VersionedUrl,

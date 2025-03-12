@@ -45,16 +45,16 @@ use hash_graph_store::{
     pool::StorePool,
     query::Read,
 };
-use hash_graph_types::{
-    account::{AccountGroupId, AccountId},
-    knowledge::entity::Entity,
-};
+use hash_graph_types::account::{AccountGroupId, AccountId};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
 use type_system::{
-    knowledge::entity::id::{EntityId, EntityUuid},
+    knowledge::entity::{
+        Entity,
+        id::{EntityId, EntityUuid},
+    },
     ontology::{
         VersionedUrl,
         data_type::{DataTypeUuid, DataTypeWithMetadata},

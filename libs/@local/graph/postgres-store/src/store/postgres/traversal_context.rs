@@ -15,9 +15,8 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
-use hash_graph_types::knowledge::entity::Entity;
 use type_system::{
-    knowledge::entity::id::EntityEditionId,
+    knowledge::entity::{Entity, id::EntityEditionId},
     ontology::{
         data_type::{DataTypeUuid, DataTypeWithMetadata},
         entity_type::{EntityTypeUuid, EntityTypeWithMetadata},

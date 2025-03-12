@@ -4,7 +4,6 @@ use hash_graph_temporal_versioning::{
 use hash_graph_types::{
     Embedding,
     account::{AccountGroupId, AccountId},
-    knowledge::property::PropertyObject,
 };
 use postgres_types::ToSql;
 use time::OffsetDateTime;
@@ -16,7 +15,10 @@ use type_system::{
             id::{DraftId, EntityEditionId, EntityUuid},
             provenance::{EntityEditionProvenance, InferredEntityProvenance},
         },
-        property::metadata::{PropertyMetadataObject, PropertyProvenance},
+        property::{
+            PropertyObject,
+            metadata::{PropertyMetadataObject, PropertyProvenance},
+        },
     },
     ontology::{
         InheritanceDepth,

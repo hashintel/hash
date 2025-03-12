@@ -13,29 +13,25 @@ use hash_graph_store::entity::{
     ValidateEntityComponents,
 };
 use hash_graph_types::{
-    knowledge::{
-        entity::Entity,
-        property::{
-            PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
-            visitor::{
-                ArrayItemNumberMismatch, ArrayValidationReport, ConversionRetrieval,
-                DataTypeCanonicalCalculation, DataTypeConversionError, DataTypeInferenceError,
-                DataTypeRetrieval, EntityVisitor, JsonSchemaValueTypeMismatch,
-                ObjectPropertyValidationReport, ObjectValidationReport,
-                OneOfPropertyValidationReports, ValueValidationError, ValueValidationReport,
-                walk_array, walk_object, walk_one_of_property_value,
-            },
-        },
+    knowledge::property::visitor::{
+        ArrayItemNumberMismatch, ArrayValidationReport, ConversionRetrieval,
+        DataTypeCanonicalCalculation, DataTypeConversionError, DataTypeInferenceError,
+        DataTypeRetrieval, EntityVisitor, JsonSchemaValueTypeMismatch,
+        ObjectPropertyValidationReport, ObjectValidationReport, OneOfPropertyValidationReports,
+        ValueValidationError, ValueValidationReport, walk_array, walk_object,
+        walk_one_of_property_value,
     },
     ontology::{DataTypeLookup, OntologyTypeProvider},
 };
 use thiserror::Error;
 use type_system::{
     knowledge::{
-        Value,
-        entity::{EntityId, LinkData},
-        property::metadata::PropertyWithMetadataValue,
-        value::ValueMetadata,
+        entity::{Entity, EntityId, LinkData},
+        property::{
+            PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
+            PropertyWithMetadataValue,
+        },
+        value::{Value, ValueMetadata},
     },
     ontology::{
         VersionedUrl,

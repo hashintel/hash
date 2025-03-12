@@ -46,13 +46,7 @@ use hash_graph_temporal_versioning::{
 use hash_graph_types::{
     Embedding,
     account::AccountId,
-    knowledge::{
-        entity::{Entity, EntityEmbedding, EntityMetadata, EntityTemporalMetadata},
-        property::{
-            Property, PropertyObject, PropertyPath, PropertyPathError, PropertyWithMetadata,
-            PropertyWithMetadataObject, visitor::EntityVisitor as _,
-        },
-    },
+    knowledge::{entity::EntityEmbedding, property::visitor::EntityVisitor as _},
     ontology::{DataTypeLookup, OntologyTypeProvider},
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
@@ -62,15 +56,17 @@ use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     knowledge::{
-        Confidence, Value,
+        Confidence, Entity, Property, Value,
         entity::{
-            EntityProvenance,
+            EntityMetadata, EntityProvenance,
             id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
+            metadata::EntityTemporalMetadata,
             provenance::{EntityEditionProvenance, InferredEntityProvenance},
         },
         property::{
-            PropertyMetadata,
-            metadata::{PropertyMetadataObject, PropertyWithMetadataValue},
+            PropertyObject, PropertyPath, PropertyPathError, PropertyWithMetadata,
+            PropertyWithMetadataObject, PropertyWithMetadataValue,
+            metadata::{PropertyMetadata, PropertyMetadataObject},
         },
     },
     ontology::{

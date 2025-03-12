@@ -4,7 +4,14 @@ use std::collections::{HashMap, HashSet};
 use error_stack::Report;
 use futures::FutureExt as _;
 use type_system::{
-    knowledge::Value,
+    knowledge::{
+        Value,
+        property::{
+            PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
+            PropertyWithMetadataValue,
+        },
+        value::ValueMetadata,
+    },
     ontology::{
         BaseUrl, VersionedUrl,
         data_type::schema::DataTypeReference,
@@ -19,13 +26,7 @@ use type_system::{
     },
 };
 
-use crate::{
-    knowledge::property::{
-        PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
-        PropertyWithMetadataValue, ValueMetadata,
-    },
-    ontology::{DataTypeLookup, OntologyTypeProvider},
-};
+use crate::ontology::{DataTypeLookup, OntologyTypeProvider};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("Could not read the data type {}", data_type_reference.url)]

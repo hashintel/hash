@@ -25,7 +25,7 @@ pub use self::metadata::ValueMetadata;
 /// ```
 /// use std::collections::HashMap;
 ///
-/// use type_system::Value;
+/// use type_system::knowledge::Value;
 ///
 /// // Create a simple string value
 /// let string_value = Value::String("Hello, world!".to_string());

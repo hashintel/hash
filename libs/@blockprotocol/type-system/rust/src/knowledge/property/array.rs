@@ -1,8 +1,6 @@
-use serde::{Deserialize, Serialize};
+use super::{PropertyWithMetadata, metadata::ArrayMetadata};
 
-use crate::knowledge::property::{ArrayMetadata, PropertyWithMetadata};
-
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyWithMetadataArray {

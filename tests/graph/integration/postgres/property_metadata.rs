@@ -6,10 +6,6 @@ use hash_codec::numeric::Real;
 use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _, PatchEntityParams};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::knowledge::property::{
-    PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
-    PropertyWithMetadata, PropertyWithMetadataObject,
-};
 use pretty_assertions::assert_eq;
 use serde::de::DeserializeOwned;
 use serde_json::json;
@@ -18,10 +14,10 @@ use type_system::{
         Confidence, Value,
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{
-            PropertyMetadata,
+            PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
+            PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
             metadata::{
-                ObjectMetadata, PropertyMetadataObject, PropertyProvenance,
-                PropertyWithMetadataValue,
+                ObjectMetadata, PropertyMetadata, PropertyMetadataObject, PropertyProvenance,
             },
         },
         value::{ValueMetadata, metadata::ValueProvenance},

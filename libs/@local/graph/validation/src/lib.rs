@@ -18,8 +18,7 @@ use core::{borrow::Borrow, error::Error};
 
 use error_stack::Report;
 use hash_graph_store::entity::ValidateEntityComponents;
-use hash_graph_types::knowledge::entity::Entity;
-use type_system::knowledge::entity::EntityId;
+use type_system::knowledge::{Entity, entity::EntityId};
 
 pub trait Validate<S, C> {
     type Report: Send + Sync;
@@ -58,7 +57,6 @@ mod tests {
     use hash_graph_types::{
         account::AccountId,
         knowledge::property::{
-            Property, PropertyObject, PropertyWithMetadata, PropertyWithMetadataObject,
             error::install_error_stack_hooks,
             visitor::{
                 EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
@@ -72,7 +70,10 @@ mod tests {
     use thiserror::Error;
     use type_system::{
         knowledge::{
-            property::{PropertyMetadata, metadata::PropertyWithMetadataValue},
+            property::{
+                Property, PropertyObject, PropertyWithMetadata, PropertyWithMetadataObject,
+                PropertyWithMetadataValue, metadata::PropertyMetadata,
+            },
             value::{ValueMetadata, metadata::ValueProvenance},
         },
         ontology::{

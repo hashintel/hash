@@ -1,6 +1,5 @@
 use hash_graph_store::entity::{PropertyMetadataValidationReport, ValidateEntityComponents};
-use hash_graph_types::knowledge::property::PropertyObject;
-use type_system::knowledge::property::metadata::PropertyMetadataObject;
+use type_system::knowledge::property::{PropertyObject, metadata::PropertyMetadataObject};
 
 use crate::Validate;
 

@@ -10,9 +10,8 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use hash_graph_authorization::schema::EntityRelationAndSubject;
-use hash_graph_types::knowledge::entity::Entity;
 use type_system::{
-    knowledge::entity::id::EntityUuid,
+    knowledge::entity::{Entity, id::EntityUuid},
     ontology::{InheritanceDepth, entity_type::EntityTypeUuid},
 };
 

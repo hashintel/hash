@@ -467,7 +467,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// Only used internally and not available for deserialization.
     ///
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`Entity`]: type_system::knowledge::Entity
     EntityEdge {
         edge_kind: SharedEdgeKind,
         path: Box<EntityQueryPath<'p>>,

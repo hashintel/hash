@@ -2,13 +2,11 @@ pub use self::{
     array::ArrayMetadata,
     object::{ObjectMetadata, PropertyMetadataObject},
     provenance::PropertyProvenance,
-    value::PropertyWithMetadataValue,
 };
 
 mod array;
 mod object;
 mod provenance;
-mod value;
 
 use std::collections::HashMap;
 

@@ -1,4 +1,4 @@
-#![feature(extend_one)]
+#![feature(extend_one, impl_trait_in_assoc_type)]
 #![expect(unsafe_code)]
 #![cfg_attr(
     target_arch = "wasm32",
@@ -119,8 +119,9 @@
 //! ```
 //! use serde_json::json;
 //! use type_system::{
+//!     knowledge::Value,
 //!     ontology::data_type::schema::{DataType, DataTypeValidator},
-//!     Valid, Validator, Value
+//!     Valid, Validator
 //! };
 //!
 //! // 1. Define a Type
@@ -165,7 +166,7 @@
 //! #
 //! # use serde_json::json;
 //! # use type_system::{
-//! #     Value,
+//! #     knowledge::Value,
 //! #     ontology::{
 //! #         data_type::{schema::{ClosedDataType, DataType, DataTypeReference}, DataTypeUuid},
 //! #         InheritanceDepth,
@@ -225,7 +226,7 @@
 //! ```
 //! use serde_json::json;
 //! use type_system::{
-//!     Value, Valid, Validator,
+//!     knowledge::Value, Valid, Validator,
 //!     ontology::data_type::schema::{DataType, DataTypeValidator, ClosedDataType}
 //! };
 //!
@@ -337,7 +338,7 @@ use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 /// # Examples
 ///
 /// ```
-/// use type_system::{Valid, Validator, Value};
+/// use type_system::{Valid, Validator, knowledge::Value};
 ///
 /// // A simple validator that ensures a string value has a certain prefix
 /// struct PrefixValidator {
@@ -408,7 +409,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use type_system::{Valid, Validator, Value};
+/// use type_system::{Valid, Validator, knowledge::Value};
 ///
 /// // Example implementation of a simple validator
 /// struct AlwaysValidValidator;

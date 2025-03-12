@@ -26,9 +26,8 @@ use hash_graph_store::{
     query::{CursorField, Sorting},
     subgraph::temporal_axes::QueryTemporalAxes,
 };
-use hash_graph_types::knowledge::entity::Entity;
 use tokio_postgres::Row;
-use type_system::knowledge::Value;
+use type_system::knowledge::{Entity, Value};
 
 pub use self::{
     compile::{SelectCompiler, SelectCompilerError},

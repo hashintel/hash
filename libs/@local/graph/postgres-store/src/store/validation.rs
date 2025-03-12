@@ -20,7 +20,6 @@ use hash_graph_store::{
 };
 use hash_graph_types::{
     account::AccountId,
-    knowledge::entity::Entity,
     ontology::{DataTypeLookup, OntologyTypeProvider},
 };
 use hash_graph_validation::EntityProvider;
@@ -28,7 +27,7 @@ use tokio::sync::RwLock;
 use tokio_postgres::GenericClient as _;
 use type_system::{
     Valid,
-    knowledge::entity::EntityId,
+    knowledge::{Entity, entity::EntityId},
     ontology::{
         BaseUrl, DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
         VersionedUrl,
