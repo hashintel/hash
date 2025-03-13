@@ -251,7 +251,7 @@ utoipa                   = { version = "=4.2.3", default-features = false }
 uuid                     = { version = "=1.15.1", default-features = false }
 virtue                   = { version = "=0.0.18", default-features = false }
 walkdir                  = { version = "=2.5.0", default-features = false }
-winnow                   = { version = "=0.7.3", default-features = false }
+winnow                   = { version = "=0.7.4", default-features = false }
 
 [profile.dev]
 codegen-backend = "cranelift"
