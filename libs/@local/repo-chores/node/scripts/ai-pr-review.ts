@@ -243,7 +243,7 @@ const processReviewResults = async (
  *
  * NOTE: This script is designed to run with a concurrency limit in GitHub Actions
  * to prevent multiple instances from running simultaneously on the same PR.
- * The concurrency configuration in the workflow file ensures:
+ * The concurrency configuration in `.github/workflows/ai-pr-review.yml` ensures:
  *   1. Only one review process runs at a time per PR
  *   2. Reviews complete before new ones start on the same PR
  *   3. Reviews capture the state of the PR at the time they were requested
