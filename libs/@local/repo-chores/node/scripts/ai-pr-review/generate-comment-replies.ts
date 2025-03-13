@@ -49,7 +49,7 @@ You are responding to comments on a pull request. For each comment:
 4. Don't tag yourself (@hashdotai) in your responses
 5. Never use general tags like "you" - always use specific GitHub usernames with the @ prefix
 6. Be specific and address the questions or concerns raised
-7. Provide code suggestions using GitHub's code suggestion format if you can suggest a specific code change / implementation
+7. Provide code suggestions using GitHub's code suggestion format if you can suggest a specific code change / implementation. When doing a suggestion, make sure you describe why you suggest the change.
 `;
 
 /**
@@ -175,7 +175,7 @@ export const generateCommentReplies = async ({
       const badTags: {
         incorrectTags: string[];
         threadId: number;
-        validTags: string[];
+        validTagsWithoutPrefix: string[];
       }[] = [];
 
       const invalidCommentIds: number[] = [];
@@ -216,7 +216,7 @@ export const generateCommentReplies = async ({
           badTags.push({
             incorrectTags: invalidTags,
             threadId: commentReply.threadId,
-            validTags: validTagsWithoutPrefix,
+            validTagsWithoutPrefix,
           });
         }
       }
@@ -224,11 +224,11 @@ export const generateCommentReplies = async ({
       const errorStrings = [
         ...(badTags.length
           ? badTags.map(
-              ({ threadId, validTags, incorrectTags }) =>
+              ({ threadId, validTagsWithoutPrefix, incorrectTags }) =>
                 `You provided a response to comment id ${threadId} and tagged these authors, but they are invalid: ${incorrectTags.join(
                   ", ",
-                )}. The valid tags are: ${validTags
-                  .map((tag) => tag.startsWith('@') ? tag : `@${tag}`) 
+                )}. The valid tags are: ${validTagsWithoutPrefix
+                  .map((tag) => (tag.startsWith("@") ? tag : `@${tag}`))
                   .join(
                     ", ",
                   )}. You must tag participants in the conversation (and not yourself – you are 'hashdotai')`,
