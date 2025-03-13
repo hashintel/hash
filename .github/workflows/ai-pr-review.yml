@@ -76,12 +76,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Checking if $PR_AUTHOR is a maintainer on $REPO"
-          
+
           # Get the permission level of the PR author
           PERMISSION=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             "https://api.github.com/repos/$REPO/collaborators/$PR_AUTHOR/permission" | \
             jq -r '.permission')
-          
+
           # Check if the permission level indicates maintainer status (admin or write)
           if [[ "$PERMISSION" == "admin" || "$PERMISSION" == "write" ]]; then
             echo "✅ $PR_AUTHOR is a maintainer"
@@ -126,7 +126,7 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Install turbo
+      - name: Install node and turbo
         uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
         with:
           install_args: node npm:turbo
@@ -135,7 +135,7 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
-      
+
       - name: Determine PR number
         id: pr-number
         env:
@@ -148,7 +148,7 @@ jobs:
           else
             echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Run AI Code PR Review
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -156,4 +156,3 @@ jobs:
           PR_NUMBER: ${{ steps.pr-number.outputs.number }}
           GH_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
         run: yarn workspace @local/repo-chores exe scripts/ai-pr-review.ts "$PR_NUMBER"
-          
