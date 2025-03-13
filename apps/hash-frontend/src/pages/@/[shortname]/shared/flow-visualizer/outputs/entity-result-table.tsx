@@ -30,6 +30,7 @@ import { Box, TableCell } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ClickableCellChip } from "../../../../../shared/clickable-cell-chip";
+import { useSlideStack } from "../../../../../shared/slide-stack";
 import { ValueChip } from "../../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
@@ -222,12 +223,10 @@ const generateColumns = ({
 };
 
 type EntityResultRow = {
+  closedMultiEntityType: ClosedMultiEntityType;
   entityLabel: string;
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
-  entityTypes: EntityType[];
   proposedEntityId?: EntityId;
-  onEntityClick: (entityId: EntityId) => void;
-  onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   outgoingLinksByLinkTypeId: Record<
     VersionedUrl,
     {
@@ -252,6 +251,7 @@ const TableRow = memo(
     columns: VirtualizedTableColumn<FieldId, EntityColumnMetadata>[];
     row: EntityResultRow;
   }) => {
+    const { pushToSlideStack } = useSlideStack();
     const hasRelevanceColumn =
       columns[0]?.id === ("relevance" satisfies FixedFieldId);
 
@@ -299,16 +299,17 @@ const TableRow = memo(
             px: 0.5,
           }}
         >
-          {row.entityTypeIds.map((entityTypeId) => {
-            const entityTypeTitle = row.entityTypes.find(
-              (type) => type.$id === entityTypeId,
-            )?.title;
-
+          {row.closedMultiEntityType.allOf.map(({ title, $id }) => {
             return (
               <Box
                 component="button"
-                key={entityTypeId}
-                onClick={() => row.onEntityTypeClick(entityTypeId)}
+                key={$id}
+                onClick={() =>
+                  pushToSlideStack({
+                    kind: "entityType",
+                    itemId: $id,
+                  })
+                }
                 sx={{ background: "none", border: "none", p: 0 }}
               >
                 <ValueChip
@@ -319,7 +320,7 @@ const TableRow = memo(
                     ...typographySx,
                   }}
                 >
-                  {entityTypeTitle}
+                  {title}
                 </ValueChip>
               </Box>
             );
@@ -337,11 +338,12 @@ const TableRow = memo(
         >
           <ClickableCellChip
             onClick={() =>
-              row.onEntityClick(
-                row.persistedEntity
+              pushToSlideStack({
+                kind: "entity",
+                itemId: row.persistedEntity
                   ? row.persistedEntity.metadata.recordId.entityId
                   : row.proposedEntityId!,
-              )
+              })
             }
             fontSize={typographySx.fontSize}
             label={row.entityLabel}
@@ -395,7 +397,12 @@ const TableRow = memo(
                 <LinkedEntitiesCell
                   key={column.id}
                   linkedEntities={linkedEntities}
-                  onEntityClick={row.onEntityClick}
+                  onEntityClick={(entityId) =>
+                    pushToSlideStack({
+                      kind: "entity",
+                      itemId: entityId,
+                    })
+                  }
                 />
               );
             }
@@ -441,8 +448,6 @@ const createRowContent: CreateVirtualizedRowContentFn<
 
 type EntityResultTableProps = {
   dataIsLoading: boolean;
-  onEntityClick: (entityId: EntityId) => void;
-  onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
   persistedEntitiesTypesInfo?: {
@@ -460,8 +465,6 @@ type EntityResultTableProps = {
 export const EntityResultTable = memo(
   ({
     dataIsLoading,
-    onEntityClick,
-    onEntityTypeClick,
     persistedEntities,
     persistedEntitiesSubgraph,
     persistedEntitiesTypesInfo,
@@ -501,7 +504,7 @@ export const EntityResultTable = memo(
       const rowData: VirtualizedTableRow<EntityResultRow>[] = [];
       const entityTypesRecord: EntityTypeCountAndDepsByEntityTypeId = {};
 
-      const closedTypes: ClosedMultiEntityType[] = [];
+      const closedTypesByKey: Record<string, ClosedMultiEntityType> = {};
 
       const staticFilterDefs = {
         relevance: {
@@ -591,7 +594,7 @@ export const EntityResultTable = memo(
             : undefined;
 
         if (!entity) {
-          continue;
+          throw new Error("Entity is undefined");
         }
 
         const entityId =
@@ -653,12 +656,25 @@ export const EntityResultTable = memo(
             ? entity.entityTypeIds
             : entity.metadata.entityTypeIds;
 
-        const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
-          persistedEntitiesTypesInfo?.closedMultiEntityTypes,
-          entityTypeIds,
-        );
+        const typeInfo = isProposed
+          ? proposedEntitiesTypesInfo
+          : persistedEntitiesTypesInfo;
 
-        closedTypes.push(closedMultiEntityType);
+        if (!typeInfo) {
+          console.warn(`Type info is undefined for ${entityId}`, isProposed);
+          continue;
+        }
+
+        const typeKey = entityTypeIds.toSorted().join(",");
+
+        const closedMultiEntityType =
+          closedTypesByKey[typeKey] ??
+          getClosedMultiEntityTypeFromMap(
+            typeInfo.closedMultiEntityTypes,
+            entityTypeIds,
+          );
+
+        closedTypesByKey[typeKey] ??= closedMultiEntityType;
 
         const entityLabel = generateEntityLabel(closedMultiEntityType, {
           properties: entity.properties,
@@ -687,6 +703,8 @@ export const EntityResultTable = memo(
           : persistedEntitiesTypesInfo;
 
         if (!typeInfo) {
+          console.warn(`2 Type info is undefined for ${entityId}`, isProposed);
+
           continue;
         }
 
@@ -702,7 +720,6 @@ export const EntityResultTable = memo(
         const outgoingLinksByLinkTypeId: EntityResultRow["outgoingLinksByLinkTypeId"] =
           {};
 
-        const entityTypes: EntityType[] = [];
         for (const {
           $id: entityTypeId,
           title,
@@ -898,11 +915,9 @@ export const EntityResultTable = memo(
         rowData.push({
           id: entityId,
           data: {
+            closedMultiEntityType,
             entityLabel,
             entityTypeIds: mustHaveAtLeastOne(entityTypeIds.toSorted()),
-            entityTypes,
-            onEntityClick,
-            onEntityTypeClick,
             outgoingLinksByLinkTypeId,
             persistedEntity: "metadata" in entity ? entity : undefined,
             proposedEntityId: isProposed ? entityId : undefined,
@@ -959,7 +974,7 @@ export const EntityResultTable = memo(
       };
 
       return {
-        closedMultiEntityTypes: closedTypes,
+        closedMultiEntityTypes: Object.values(closedTypesByKey),
         filterDefinitions: filterDefs,
         initialFilterValues: Object.fromEntries(
           typedEntries(filterDefs).map(
@@ -973,8 +988,6 @@ export const EntityResultTable = memo(
         unsortedRows: rowData,
       };
     }, [
-      onEntityClick,
-      onEntityTypeClick,
       persistedEntities,
       persistedEntitiesSubgraph,
       persistedEntitiesTypesInfo,

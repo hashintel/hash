@@ -1,4 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -7,23 +6,22 @@ import { useTheme } from "@mui/material";
 import { useMemo } from "react";
 
 import { EntityGraphVisualizer } from "../../../../../shared/entity-graph-visualizer";
+import { useSlideStack } from "../../../../../shared/slide-stack";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 
 type EntityResultGraphProps = {
   closedMultiEntityTypesRootMap?: ClosedMultiEntityTypesRootMap;
-  onEntityClick: (entityId: EntityId) => void;
-  onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   entities: EntityForGraphChart[];
 };
 
 export const EntityResultGraph = ({
   closedMultiEntityTypesRootMap,
-  onEntityClick,
-  onEntityTypeClick,
   entities,
 }: EntityResultGraphProps) => {
+  const { pushToSlideStack } = useSlideStack();
+
   /**
    * If a Flow updates the same entity as non-draft multiple times, it will have a record of persisting
    * an entity with the same id multiple times. Duplicates crash the chart.
@@ -80,8 +78,18 @@ export const EntityResultGraph = ({
           loadingComponent={
             <LoadingSpinner size={42} color={theme.palette.blue[60]} />
           }
-          onEntityClick={onEntityClick}
-          onEntityTypeClick={onEntityTypeClick}
+          onEntityClick={(entityId) => {
+            pushToSlideStack({
+              kind: "entity",
+              itemId: entityId,
+            });
+          }}
+          onEntityTypeClick={(entityTypeId) => {
+            pushToSlideStack({
+              kind: "entityType",
+              itemId: entityTypeId,
+            });
+          }}
         />
       )}
     </OutputContainer>
