@@ -191,7 +191,6 @@ export const generateCommentReplies = async ({
         }
 
         // Extract tags with @ prefix from comment
-        // Extract tags with @ prefix from comment
         const tagsInComment = commentReply.comment.match(/@[a-zA-Z0-9_-]+/g) ?? [];
 
         // Create valid tags list WITHOUT @ prefix
