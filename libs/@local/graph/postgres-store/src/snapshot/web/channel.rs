@@ -11,7 +11,7 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use hash_graph_authorization::schema::WebRelationAndSubject;
-use hash_graph_types::owned_by_id::OwnedById;
+use type_system::web::OwnedById;
 
 use crate::{
     snapshot::{SnapshotRestoreError, Web, web::WebBatch},

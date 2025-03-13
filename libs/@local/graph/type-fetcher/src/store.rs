@@ -55,22 +55,25 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     account::AccountId,
-    knowledge::entity::{ActorType, Entity, EntityId, OriginProvenance, OriginType},
-    ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
-        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
-        PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
+    ontology::{PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata},
 };
 use hash_temporal_client::TemporalClient;
 use tarpc::context;
 use tokio::net::ToSocketAddrs;
 use tracing::Instrument as _;
 use type_system::{
-    schema::{DataType, DomainValidator, EntityType, EntityTypeReference, PropertyType},
-    url::VersionedUrl,
+    knowledge::{Entity, entity::EntityId},
+    ontology::{
+        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference, OntologyTypeSchema,
+        VersionedUrl,
+        data_type::{DataType, DataTypeMetadata},
+        entity_type::{EntityType, EntityTypeMetadata, schema::EntityTypeReference},
+        json_schema::DomainValidator,
+        property_type::{PropertyType, PropertyTypeMetadata},
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
+    provenance::{ActorType, OriginProvenance, OriginType},
+    web::OwnedById,
 };
 
 use crate::fetcher::{FetchedOntologyType, FetcherClient};
@@ -328,14 +331,14 @@ where
     }
 
     #[tracing::instrument(level = "trace", skip(self, ontology_type))]
-    async fn collect_external_ontology_types<'o, T: OntologyType + Sync>(
+    async fn collect_external_ontology_types<'o, T: OntologyTypeSchema + Sync>(
         &self,
         actor_id: AccountId,
         ontology_type: &'o T,
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<Vec<OntologyTypeReference<'o>>, Report<QueryError>> {
         let mut references = Vec::new();
-        for reference in ontology_type.traverse_references() {
+        for reference in ontology_type.references() {
             if !bypassed_types.contains(reference.url())
                 && !self
                     .contains_ontology_type(actor_id, reference)
@@ -405,9 +408,7 @@ where
                     FetchedOntologyType::DataType(data_type) => {
                         let metadata = PartialDataTypeMetadata {
                             record_id: data_type.id().clone().into(),
-                            classification: OntologyTypeClassificationMetadata::External {
-                                fetched_at,
-                            },
+                            ownership: OntologyOwnership::Remote { fetched_at },
                         };
 
                         for referenced_ontology_type in self
@@ -427,9 +428,7 @@ where
                     FetchedOntologyType::PropertyType(property_type) => {
                         let metadata = PartialPropertyTypeMetadata {
                             record_id: property_type.id().clone().into(),
-                            classification: OntologyTypeClassificationMetadata::External {
-                                fetched_at,
-                            },
+                            ownership: OntologyOwnership::Remote { fetched_at },
                         };
 
                         for referenced_ontology_type in self
@@ -453,9 +452,7 @@ where
                     FetchedOntologyType::EntityType(entity_type) => {
                         let metadata = PartialEntityTypeMetadata {
                             record_id: entity_type.id().clone().into(),
-                            classification: OntologyTypeClassificationMetadata::External {
-                                fetched_at,
-                            },
+                            ownership: OntologyOwnership::Remote { fetched_at },
                         };
 
                         for referenced_ontology_type in self
@@ -484,7 +481,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self, ontology_types))]
-    async fn insert_external_types<'o, T: OntologyType + Sync + 'o>(
+    async fn insert_external_types<'o, T: OntologyTypeSchema + Sync + 'o>(
         &mut self,
         actor_id: AccountId,
         ontology_types: impl IntoIterator<Item = &'o T, IntoIter: Send> + Send,
@@ -529,7 +526,7 @@ where
                         .into_iter()
                         .map(|(schema, metadata)| CreateDataTypeParams {
                             schema,
-                            classification: metadata.classification,
+                            ownership: metadata.ownership,
                             relationships: DATA_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance {
@@ -552,7 +549,7 @@ where
                         .into_iter()
                         .map(|(schema, metadata)| CreatePropertyTypeParams {
                             schema,
-                            classification: metadata.classification,
+                            ownership: metadata.ownership,
                             relationships: PROPERTY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance {
@@ -574,7 +571,7 @@ where
                         .into_iter()
                         .map(|(schema, metadata)| CreateEntityTypeParams {
                             schema,
-                            classification: metadata.classification,
+                            ownership: metadata.ownership,
                             relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance {
@@ -626,7 +623,7 @@ where
                             .into_iter()
                             .map(|(schema, metadata)| CreateDataTypeParams {
                                 schema,
-                                classification: metadata.classification,
+                                ownership: metadata.ownership,
                                 relationships: DATA_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance {
@@ -649,7 +646,7 @@ where
                         fetched_ontology_types.property_types.into_iter().map(
                             |(schema, metadata)| CreatePropertyTypeParams {
                                 schema,
-                                classification: metadata.classification,
+                                ownership: metadata.ownership,
                                 relationships: PROPERTY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance {
@@ -672,7 +669,7 @@ where
                         fetched_ontology_types.entity_types.into_iter().map(
                             |(schema, metadata)| CreateEntityTypeParams {
                                 schema,
-                                classification: metadata.classification,
+                                ownership: metadata.ownership,
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance {

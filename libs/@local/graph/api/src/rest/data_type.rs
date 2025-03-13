@@ -36,25 +36,23 @@ use hash_graph_store::{
     pool::StorePool,
     query::ConflictBehavior,
 };
-use hash_graph_types::{
-    ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
-};
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
-    schema::{
-        ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeUuid, DomainValidator, JsonSchemaValueType, Operator, ValidateOntologyType as _,
-        Variable,
+    ontology::{
+        DataTypeWithMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
+        OntologyTypeReference,
+        data_type::{
+            ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
+            DataTypeMetadata, DataTypeUuid, Operator, Variable,
+        },
+        id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+        json_schema::{DomainValidator, JsonSchemaValueType, ValidateOntologyType as _},
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -255,7 +253,7 @@ where
 
                     Ok(CreateDataTypeParams {
                         schema,
-                        classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                        ownership: OntologyOwnership::Local { owned_by_id },
                         relationships: relationships.clone(),
                         conflict_behavior: ConflictBehavior::Fail,
                         provenance: provenance.clone(),
@@ -370,7 +368,7 @@ where
                         actor_id,
                         CreateDataTypeParams {
                             schema: *schema,
-                            classification: OntologyTypeClassificationMetadata::External {
+                            ownership: OntologyOwnership::Remote {
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                             relationships,

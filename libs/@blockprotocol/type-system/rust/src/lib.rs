@@ -1,4 +1,4 @@
-#![feature(extend_one)]
+#![feature(extend_one, impl_trait_in_assoc_type)]
 #![expect(unsafe_code)]
 #![cfg_attr(
     target_arch = "wasm32",
@@ -26,14 +26,108 @@
 //!    requirements. Entity types can inherit from other entity types and define links to other
 //!    entities.
 //!
+//! In addition to these core types, the system includes:
+//!
+//! 4. **Ontology Metadata** - Contains information about type records, including:
+//!    - Record identifiers that uniquely reference each type
+//!    - Temporal versioning data for tracking changes over time
+//!    - Ownership information that determines if a type is local or remote
+//!
+//! 5. **Provenance** - Tracks the origin and history of types through:
+//!    - Actor information (who created or archived a type)
+//!    - Source details (where a type originated from)
+//!    - Origin data (how the type came into existence)
+//!
 //! ## Core Components
 //!
-//! - [`Value`] - A JSON-compatible value representation used throughout the system
+//! The type system consists of two main parts: the ontology (type definitions) and knowledge (data
+//! instances):
+//!
+//! - [`ontology`] module - Contains the schema definitions for data, property, and entity types:
+//!   - [`ontology::data_type`] - Defines validation rules for primitive values
+//!   - [`ontology::property_type`] - Defines reusable property schemas
+//!   - [`ontology::entity_type`] - Defines complete entity structures and relationships
+//!
+//! - [`knowledge`] module - Contains data instances that conform to ontology types:
+//!   - [`knowledge::Value`] - Primitive values conforming to data types
+//!   - [`knowledge::Property`] - Structured data conforming to property types
+//!   - [`knowledge::Entity`] - Complete entities conforming to entity types
+//!
+//! The relationship between ontology and knowledge is similar to schemas and records in databases:
+//! ontology types define the structure and rules, while knowledge components contain the actual
+//! data conforming to those rules.
+//!
+//! Additional components:
+//!
+//! - [`provenance`] module - Contains types for tracking origin and history of ontology types
 //! - [`Validator`] - A trait for implementing validation logic
 //! - [`Valid<T>`] - A wrapper that guarantees a value has been validated
-//! - [`schema`] module - Contains the definitions for data, property, and entity types
 //!
 //! ## Comprehensive Guide: Working with Types
+//!
+//! ### Working with Ontology Metadata and Provenance
+//!
+//! The type system provides comprehensive support for tracking metadata and provenance:
+//!
+//! ```
+//! use std::str::FromStr;
+//!
+//! use time::OffsetDateTime;
+//! use type_system::{
+//!     ontology::provenance::{
+//!         OntologyEditionProvenance, OntologyOwnership, OntologyProvenance,
+//!         ProvidedOntologyEditionProvenance,
+//!     },
+//!     provenance::{ActorType, EditionCreatedById, OriginProvenance, OriginType},
+//!     web::OwnedById,
+//! };
+//! use uuid::Uuid;
+//!
+//! // Create ownership information for a locally owned type
+//! let web_id = Uuid::from_str("01234567-89ab-cdef-0123-456789abcdef").unwrap();
+//! let owned_by_id = OwnedById::new(web_id);
+//! let ownership = OntologyOwnership::Local { owned_by_id };
+//!
+//! // Alternative: For a type fetched from elsewhere
+//! let remote_ownership = OntologyOwnership::Remote {
+//!     fetched_at: OffsetDateTime::now_utc(),
+//! };
+//!
+//! // Create provenance information
+//! let actor_id = Uuid::from_str("12345678-90ab-cdef-1234-567890abcdef").unwrap();
+//! let edition_provenance = OntologyEditionProvenance {
+//!     created_by_id: EditionCreatedById::new(actor_id),
+//!     archived_by_id: None,
+//!     user_defined: {
+//!         // User-defined provenance information
+//!         let actor_type = ActorType::Human;
+//!         let origin = OriginProvenance {
+//!             ty: OriginType::WebApp,
+//!             id: None,
+//!             version: None,
+//!             semantic_version: None,
+//!             environment: None,
+//!             device_id: None,
+//!             session_id: None,
+//!             api_key_public_id: None,
+//!             user_agent: None,
+//!         };
+//!         // Create the user-defined provenance
+//!         ProvidedOntologyEditionProvenance {
+//!             sources: vec![],
+//!             actor_type,
+//!             origin,
+//!         }
+//!     },
+//! };
+//!
+//! // Create the complete provenance
+//! let provenance = OntologyProvenance {
+//!     edition: edition_provenance,
+//! };
+//!
+//! // This metadata can then be attached to data type, property type, or entity type definitions
+//! ```
 //!
 //! ### Creating and Validating Types
 //!
@@ -42,8 +136,9 @@
 //! ```
 //! use serde_json::json;
 //! use type_system::{
-//!     schema::{DataType, DataTypeValidator},
-//!     Valid, Validator, Value
+//!     knowledge::Value,
+//!     ontology::data_type::schema::{DataType, DataTypeValidator},
+//!     Valid, Validator
 //! };
 //!
 //! // 1. Define a Type
@@ -88,14 +183,15 @@
 //! #
 //! # use serde_json::json;
 //! # use type_system::{
-//! #     Value,
-//! #     schema::{
-//! #         ClosedDataType, DataType, DataTypeReference, DataTypeUuid, InheritanceDepth,
-//! #         OntologyTypeResolver,
+//! #     knowledge::Value,
+//! #     ontology::{
+//! #         data_type::{schema::{ClosedDataType, DataType, DataTypeReference}, DataTypeUuid},
+//! #         InheritanceDepth,
+//! #         json_schema::OntologyTypeResolver,
 //! #     },
 //! # };
 //! #
-//! # use crate::type_system::schema::ConstraintValidator;
+//! # use type_system::ontology::json_schema::ConstraintValidator;
 //! #
 //! # let number_type: DataType = serde_json::from_value(json!({
 //! #     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -130,8 +226,10 @@
 //!
 //! 2. **Handle Type Resolution Carefully**
 //!    - The type system supports recursive references
-//!    - Use [`schema::OntologyTypeResolver`] to handle reference resolution
+//!    - Use [`OntologyTypeResolver`] to handle reference resolution
 //!    - Cache resolved types when validating multiple values
+//!
+//!    [`OntologyTypeResolver`]: crate::ontology::json_schema::OntologyTypeResolver
 //!
 //! 3. **Use the Type Safety Guarantees**
 //!    - The [`Valid<T>`] wrapper ensures values have been validated
@@ -145,8 +243,8 @@
 //! ```
 //! use serde_json::json;
 //! use type_system::{
-//!     Value, Valid, Validator,
-//!     schema::{DataType, DataTypeValidator, ClosedDataType}
+//!     knowledge::Value, Valid, Validator,
+//!     ontology::data_type::schema::{DataType, DataTypeValidator, ClosedDataType}
 //! };
 //!
 //! # // This shows how you might write tests for type validation
@@ -229,99 +327,21 @@
 
 extern crate alloc;
 
-pub mod url;
-
-pub mod schema;
+pub mod knowledge;
+pub mod ontology;
+pub mod provenance;
 mod utils;
+pub mod web;
 
 use alloc::sync::Arc;
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{
-    borrow::Borrow,
-    fmt::{self, Debug},
-    ops::Deref,
-    ptr,
-};
-use std::collections::HashMap;
+use core::{borrow::Borrow, fmt::Debug, ops::Deref, ptr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-use hash_codec::numeric::Real;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
-use serde::Serialize as _;
-
-/// A JSON-compatible value type that can represent any valid JSON structure.
-///
-/// This enum is the fundamental data unit in the type system and is used throughout
-/// the validation process. It's designed to work well with serde for serialization/deserialization
-/// and can be used in both Rust and WebAssembly contexts.
-///
-/// # Examples
-///
-/// ```
-/// use std::collections::HashMap;
-///
-/// use type_system::Value;
-///
-/// // Create a simple string value
-/// let string_value = Value::String("Hello, world!".to_string());
-///
-/// // Create a more complex object value
-/// let mut obj = HashMap::new();
-/// obj.insert("greeting".to_string(), Value::String("Hello".to_string()));
-/// obj.insert("count".to_string(), Value::Number(42_i32.into()));
-/// let object_value = Value::Object(obj);
-/// ```
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(untagged, rename = "JsonValue")]
-pub enum Value {
-    Null,
-    Bool(bool),
-    String(String),
-    Number(#[cfg_attr(target_arch = "wasm32", tsify(type = "number"))] Real),
-    Array(#[cfg_attr(target_arch = "wasm32", tsify(type = "JsonValue[]"))] Vec<Self>),
-    Object(
-        #[cfg_attr(target_arch = "wasm32", tsify(type = "{ [key: string]: JsonValue }"))]
-        HashMap<String, Self>,
-    ),
-}
-
-impl fmt::Display for Value {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for Value {
-    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        Ok(Json::<Self>::from_sql(ty, raw)?.0)
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <Json<Self> as FromSql>::accepts(ty)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl ToSql for Value {
-    postgres_types::to_sql_checked!();
-
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        Json(self).to_sql(ty, out)
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <Json<Self> as ToSql>::accepts(ty)
-    }
-}
 
 /// A trait for validating values against a schema or constraint.
 ///
@@ -335,7 +355,7 @@ impl ToSql for Value {
 /// # Examples
 ///
 /// ```
-/// use type_system::{Valid, Validator, Value};
+/// use type_system::{Valid, Validator, knowledge::Value};
 ///
 /// // A simple validator that ensures a string value has a certain prefix
 /// struct PrefixValidator {
@@ -406,7 +426,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use type_system::{Valid, Validator, Value};
+/// use type_system::{Valid, Validator, knowledge::Value};
 ///
 /// // Example implementation of a simple validator
 /// struct AlwaysValidValidator;

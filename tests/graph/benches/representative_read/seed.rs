@@ -8,18 +8,16 @@ use hash_graph_store::{
     entity::{CreateEntityParams, EntityStore as _},
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::{
-    account::AccountId,
+use hash_graph_types::account::AccountId;
+use type_system::{
     knowledge::{
-        entity::{
-            ActorType, EntityUuid, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
-        },
-        link::LinkData,
-        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
+        entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        property::{PropertyObject, PropertyWithMetadataObject, metadata::PropertyProvenance},
     },
-    owned_by_id::OwnedById,
+    ontology::{VersionedUrl, entity_type::EntityType},
+    provenance::{ActorType, OriginProvenance, OriginType},
+    web::OwnedById,
 };
-use type_system::{schema::EntityType, url::VersionedUrl};
 use uuid::Uuid;
 
 use crate::util::{StoreWrapper, seed};

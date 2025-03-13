@@ -4,22 +4,29 @@ use std::collections::{HashMap, HashSet};
 use error_stack::Report;
 use futures::FutureExt as _;
 use type_system::{
-    Value,
-    schema::{
-        ConstraintError, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema,
-        PropertyType, PropertyTypeReference, PropertyValueArray, PropertyValueSchema,
-        PropertyValueType, PropertyValues, ValueOrArray,
+    knowledge::{
+        Value,
+        property::{
+            PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
+            PropertyWithMetadataValue,
+        },
+        value::ValueMetadata,
     },
-    url::{BaseUrl, VersionedUrl},
+    ontology::{
+        BaseUrl, VersionedUrl,
+        data_type::schema::DataTypeReference,
+        json_schema::{ConstraintError, JsonSchemaValueType},
+        property_type::{
+            PropertyType,
+            schema::{
+                PropertyObjectSchema, PropertyTypeReference, PropertyValueArray,
+                PropertyValueSchema, PropertyValueType, PropertyValues, ValueOrArray,
+            },
+        },
+    },
 };
 
-use crate::{
-    knowledge::property::{
-        PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
-        PropertyWithMetadataValue, ValueMetadata,
-    },
-    ontology::{DataTypeLookup, OntologyTypeProvider},
-};
+use crate::ontology::{DataTypeLookup, OntologyTypeProvider};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("Could not read the data type {}", data_type_reference.url)]

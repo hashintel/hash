@@ -5,19 +5,20 @@ use std::collections::HashMap;
 use error_stack::Report;
 use hash_graph_authorization::schema::EntityTypeRelationAndSubject;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-use hash_graph_types::{
-    Embedding,
-    account::{AccountId, EditionCreatedById},
-    ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
-};
+use hash_graph_types::{Embedding, account::AccountId};
 use serde::{Deserialize, Serialize};
 use type_system::{
-    schema::{ClosedDataType, ClosedEntityType, EntityType, PartialEntityType, PropertyType},
-    url::VersionedUrl,
+    ontology::{
+        EntityTypeWithMetadata, OntologyTemporalMetadata, VersionedUrl,
+        data_type::ClosedDataType,
+        entity_type::{
+            ClosedEntityType, EntityType, EntityTypeMetadata, schema::PartialEntityType,
+        },
+        property_type::PropertyType,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
+    provenance::EditionCreatedById,
+    web::OwnedById,
 };
 
 use crate::{
@@ -37,7 +38,7 @@ use crate::{
 )]
 pub struct CreateEntityTypeParams<R> {
     pub schema: EntityType,
-    pub classification: OntologyTypeClassificationMetadata,
+    pub ownership: OntologyOwnership,
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     pub provenance: ProvidedOntologyEditionProvenance,
@@ -255,7 +256,7 @@ pub trait EntityTypeStore {
     /// - if any account referred to by `metadata` does not exist.
     /// - if the [`BaseUrl`] of the `entity_type` already exists.
     ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_entity_type<R>(
         &mut self,
         actor_id: AccountId,
@@ -281,7 +282,7 @@ pub trait EntityTypeStore {
     /// - if any account referred to by the metadata does not exist.
     /// - if any [`BaseUrl`] of the entity type already exists.
     ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_entity_types<P, R>(
         &mut self,
         actor_id: AccountId,

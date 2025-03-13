@@ -28,11 +28,9 @@ use hash_graph_store::{
     account::{AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams},
     pool::StorePool,
 };
-use hash_graph_types::{
-    account::{AccountGroupId, AccountId},
-    owned_by_id::OwnedById,
-};
+use hash_graph_types::account::{AccountGroupId, AccountId};
 use hash_temporal_client::TemporalClient;
+use type_system::web::OwnedById;
 
 use super::session::Account;
 

@@ -7,7 +7,7 @@ use std::{
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
-use hash_graph_types::owned_by_id::OwnedById;
+use type_system::web::OwnedById;
 use uuid::Uuid;
 
 use crate::policies::cedar::CedarEntityId;
@@ -363,8 +363,8 @@ impl WebPrincipalConstraint {
 mod tests {
     use core::error::Error;
 
-    use hash_graph_types::owned_by_id::OwnedById;
     use serde_json::json;
+    use type_system::web::OwnedById;
     use uuid::Uuid;
 
     use super::{WebPrincipalConstraint, WebRoleId, WebTeamId, WebTeamRoleId};

@@ -1,12 +1,14 @@
 use std::collections::hash_map::{RandomState, RawEntryMut};
 
 use hash_graph_temporal_versioning::Timestamp;
-use hash_graph_types::{
-    knowledge::entity::{Entity, EntityId},
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-};
 use serde::{Deserialize, Serialize};
-use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
+use type_system::{
+    knowledge::entity::{Entity, EntityId},
+    ontology::{
+        DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+        id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    },
+};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 

@@ -20,9 +20,9 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@modelcontextprotocol/sdk": "1.6.1",
-    "@notionhq/client": "2.2.14",
+    "@notionhq/client": "2.2.16",
     "dotenv-flow": "3.3.0",
-    "notion-to-md": "3.1.1",
+    "notion-to-md": "3.1.7",
     "zod": "3.24.2",
     "zod-to-json-schema": "3.24.3"
   },

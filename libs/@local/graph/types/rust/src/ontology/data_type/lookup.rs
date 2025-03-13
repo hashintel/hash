@@ -1,12 +1,13 @@
 use core::{borrow::Borrow, error::Error};
 
 use error_stack::{FutureExt as _, Report};
-use type_system::{
-    schema::{ClosedDataType, ConversionExpression, DataTypeReference, DataTypeUuid},
-    url::BaseUrl,
+use type_system::ontology::{
+    BaseUrl,
+    data_type::{
+        ConversionExpression, DataTypeUuid, DataTypeWithMetadata,
+        schema::{ClosedDataType, DataTypeReference},
+    },
 };
-
-use crate::ontology::DataTypeWithMetadata;
 
 #[trait_variant::make(Send)]
 pub trait DataTypeLookup {

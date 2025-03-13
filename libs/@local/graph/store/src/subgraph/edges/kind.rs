@@ -33,24 +33,24 @@ pub enum OntologyEdgeKind {
     InheritsFrom,
     /// A [`PropertyType`] or [`DataType`] can reference a [`DataType`] to constrain values.
     ///
-    /// [`DataType`]: type_system::schema::DataType
-    /// [`PropertyType`]: type_system::schema::PropertyType
+    /// [`DataType`]: type_system::ontology::data_type::DataType
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     ConstrainsValuesOn,
     /// An [`EntityType`] or [`PropertyType`] can reference a [`PropertyType`] to constrain
     /// properties.
     ///
-    /// [`PropertyType`]: type_system::schema::PropertyType
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     ConstrainsPropertiesOn,
     /// An [`EntityType`] can reference a link [`EntityType`] to constrain the existence of
     /// certain kinds of links.
     ///
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     ConstrainsLinksOn,
     /// An [`EntityType`] can reference an [`EntityType`] to constrain the target entities of
     /// certain kinds of links.
     ///
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     ConstrainsLinkDestinationsOn,
 }
 
@@ -118,11 +118,11 @@ pub enum KnowledgeGraphEdgeKind {
     /// The `reverse` of this would be the equivalent of saying an [`Entity`] has an outgoing
     /// `Link` [`Entity`].
     ///
-    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`Entity`]: type_system::knowledge::Entity
     HasLeftEntity,
     /// This link [`Entity`] has another [`Entity`] on its 'right' endpoint.
     ///
-    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`Entity`]: type_system::knowledge::Entity
     HasRightEntity,
 }
 
@@ -143,8 +143,8 @@ impl EdgeKind<EntityVertexId, EntityIdWithInterval> for KnowledgeGraphEdgeKind {
 pub enum SharedEdgeKind {
     /// An [`Entity`] is of an [`EntityType`].
     ///
-    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`Entity`]: type_system::knowledge::Entity
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     IsOfType,
 }
 

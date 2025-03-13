@@ -10,9 +10,11 @@ use hash_graph_store::subgraph::{
     temporal_axes::VariableAxis,
 };
 use hash_graph_temporal_versioning::Timestamp;
-use hash_graph_types::knowledge::entity::EntityId;
 use serde::Serialize;
-use type_system::url::{BaseUrl, OntologyTypeVersion};
+use type_system::{
+    knowledge::entity::EntityId,
+    ontology::id::{BaseUrl, OntologyTypeVersion},
+};
 use utoipa::{
     ToSchema,
     openapi::{ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema, schema::AdditionalProperties},
@@ -245,11 +247,11 @@ mod tests {
     use hash_graph_temporal_versioning::{
         ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
     };
-    use hash_graph_types::{
-        knowledge::entity::{EntityId, EntityUuid},
-        owned_by_id::OwnedById,
+    use type_system::{
+        knowledge::entity::id::{EntityId, EntityUuid},
+        ontology::id::{BaseUrl, OntologyTypeVersion},
+        web::OwnedById,
     };
-    use type_system::url::{BaseUrl, OntologyTypeVersion};
     use uuid::Uuid;
 
     use crate::rest::utoipa_typedef::subgraph::Edges;

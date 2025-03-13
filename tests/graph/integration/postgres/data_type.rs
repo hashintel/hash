@@ -18,24 +18,24 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
-use hash_graph_types::{
-    knowledge::{
-        entity::{ActorType, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
-        property::{
-            ObjectMetadata, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
-            PropertyWithMetadataValue, ValueMetadata,
-        },
-    },
-    ontology::{
-        DataTypeWithMetadata, OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
-};
 use time::OffsetDateTime;
 use type_system::{
-    Value,
-    schema::{DataType, DataTypeUuid},
-    url::{BaseUrl, VersionedUrl},
+    knowledge::{
+        Value,
+        entity::provenance::ProvidedEntityEditionProvenance,
+        property::{
+            PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
+            metadata::ObjectMetadata,
+        },
+        value::{ValueMetadata, metadata::ValueProvenance},
+    },
+    ontology::{
+        BaseUrl, VersionedUrl,
+        data_type::{DataType, DataTypeUuid, DataTypeWithMetadata},
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
+    provenance::{ActorType, OriginProvenance, OriginType},
+    web::OwnedById,
 };
 
 use crate::{DatabaseTestWrapper, data_type_relationships};
@@ -55,7 +55,7 @@ async fn insert() {
         api.account_id,
         CreateDataTypeParams {
             schema: boolean_dt,
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
@@ -87,7 +87,7 @@ async fn query() {
         api.account_id,
         CreateDataTypeParams {
             schema: list_v1.clone(),
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
@@ -179,7 +179,7 @@ async fn inheritance() {
         api.account_id,
         CreateDataTypeParams {
             schema: centimeter_dt_v1.clone(),
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
@@ -318,7 +318,7 @@ async fn inheritance() {
                         PropertyWithMetadata::Value(PropertyWithMetadataValue {
                             value: Value::Number(Real::from(5)),
                             metadata: ValueMetadata {
-                                provenance: PropertyProvenance::default(),
+                                provenance: ValueProvenance::default(),
                                 confidence: None,
                                 data_type_id: None,
                                 original_data_type_id: None,
@@ -365,7 +365,7 @@ async fn inheritance() {
                     PropertyWithMetadata::Value(PropertyWithMetadataValue {
                         value: Value::Number(Real::from(10)),
                         metadata: ValueMetadata {
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             confidence: None,
                             data_type_id: Some(meter_dt_v1.id.clone()),
                             original_data_type_id: None,
@@ -410,7 +410,7 @@ async fn inheritance() {
                     PropertyWithMetadata::Value(PropertyWithMetadataValue {
                         value: Value::Number(Real::from(10)),
                         metadata: ValueMetadata {
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             confidence: None,
                             data_type_id: Some(centimeter_dt_v2.id.clone()),
                             original_data_type_id: None,
@@ -453,7 +453,7 @@ async fn update() {
         api.account_id,
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
@@ -556,7 +556,7 @@ async fn insert_same_base_url() {
         api.account_id,
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
@@ -577,7 +577,7 @@ async fn insert_same_base_url() {
             api.account_id,
             CreateDataTypeParams {
                 schema: object_dt_v1.clone(),
-                classification: OntologyTypeClassificationMetadata::Owned {
+                ownership: OntologyOwnership::Local {
                     owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 },
                 relationships: data_type_relationships(),
@@ -602,7 +602,7 @@ async fn insert_same_base_url() {
             api.account_id,
             CreateDataTypeParams {
                 schema: object_dt_v2.clone(),
-                classification: OntologyTypeClassificationMetadata::Owned {
+                ownership: OntologyOwnership::Local {
                     owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 },
                 relationships: data_type_relationships(),
@@ -627,7 +627,7 @@ async fn insert_same_base_url() {
             api.account_id,
             CreateDataTypeParams {
                 schema: object_dt_v1,
-                classification: OntologyTypeClassificationMetadata::External {
+                ownership: OntologyOwnership::Remote {
                     fetched_at: OffsetDateTime::now_utc(),
                 },
                 relationships: data_type_relationships(),
@@ -652,7 +652,7 @@ async fn insert_same_base_url() {
             api.account_id,
             CreateDataTypeParams {
                 schema: object_dt_v2,
-                classification: OntologyTypeClassificationMetadata::External {
+                ownership: OntologyOwnership::Remote {
                     fetched_at: OffsetDateTime::now_utc(),
                 },
                 relationships: data_type_relationships(),
@@ -713,7 +713,7 @@ async fn wrong_update_order() {
         api.account_id,
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
-            classification: OntologyTypeClassificationMetadata::Owned {
+            ownership: OntologyOwnership::Local {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
@@ -806,7 +806,7 @@ async fn update_external_with_owned() {
         api.account_id,
         CreateDataTypeParams {
             schema: object_dt_v1,
-            classification: OntologyTypeClassificationMetadata::External {
+            ownership: OntologyOwnership::Remote {
                 fetched_at: OffsetDateTime::now_utc(),
             },
             relationships: data_type_relationships(),
@@ -847,7 +847,7 @@ async fn update_external_with_owned() {
         api.account_id,
         CreateDataTypeParams {
             schema: object_dt_v2.clone(),
-            classification: OntologyTypeClassificationMetadata::External {
+            ownership: OntologyOwnership::Remote {
                 fetched_at: OffsetDateTime::now_utc(),
             },
             relationships: data_type_relationships(),

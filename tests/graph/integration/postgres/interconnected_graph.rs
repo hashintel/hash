@@ -3,18 +3,19 @@ use std::collections::HashSet;
 
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::{
+use type_system::{
     knowledge::{
         entity::{
-            ActorType, EntityId, EntityUuid, OriginProvenance, OriginType,
-            ProvidedEntityEditionProvenance,
+            LinkData,
+            id::{EntityId, EntityUuid},
+            provenance::ProvidedEntityEditionProvenance,
         },
-        link::LinkData,
-        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
+        property::{PropertyObject, PropertyWithMetadataObject, metadata::PropertyProvenance},
     },
-    owned_by_id::OwnedById,
+    ontology::VersionedUrl,
+    provenance::{ActorType, OriginProvenance, OriginType},
+    web::OwnedById,
 };
-use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
 use crate::DatabaseTestWrapper;

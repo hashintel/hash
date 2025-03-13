@@ -45,19 +45,23 @@ use hash_graph_store::{
     pool::StorePool,
     query::Read,
 };
-use hash_graph_types::{
-    account::{AccountGroupId, AccountId},
-    knowledge::entity::{Entity, EntityId, EntityUuid},
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    owned_by_id::OwnedById,
-};
+use hash_graph_types::account::{AccountGroupId, AccountId};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
 use type_system::{
-    schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
-    url::VersionedUrl,
+    knowledge::entity::{
+        Entity,
+        id::{EntityId, EntityUuid},
+    },
+    ontology::{
+        VersionedUrl,
+        data_type::{DataTypeUuid, DataTypeWithMetadata},
+        entity_type::{EntityTypeUuid, EntityTypeWithMetadata},
+        property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
+    },
+    web::OwnedById,
 };
 
 use crate::{

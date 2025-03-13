@@ -24,9 +24,9 @@ use hash_graph_store::{
     account::{AccountStore as _, InsertWebIdParams},
     pool::StorePool,
 };
-use hash_graph_types::owned_by_id::OwnedById;
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize;
+use type_system::web::OwnedById;
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;

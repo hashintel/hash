@@ -2,18 +2,21 @@ use hash_graph_store::{
     entity::EntityQueryPath,
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
 };
-use hash_graph_types::{
-    knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityProvenance, EntityRecordId, EntityUuid},
-        link::LinkData,
-        property::PropertyMetadataObject,
-    },
-    owned_by_id::OwnedById,
-};
 use serde::Deserialize as _;
 use tokio_postgres::Row;
 use tracing::instrument;
-use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
+use type_system::{
+    knowledge::{
+        entity::{
+            Entity, EntityMetadata, EntityProvenance, LinkData,
+            id::{EntityId, EntityRecordId, EntityUuid},
+            metadata::EntityTemporalMetadata,
+        },
+        property::metadata::PropertyMetadataObject,
+    },
+    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
+};
 use uuid::Uuid;
 
 use crate::store::postgres::{
@@ -157,7 +160,7 @@ impl QueryRecordDecode for Entity {
                     entity_id,
                     edition_id: row.get(indices.edition_id),
                 },
-                temporal_versioning: hash_graph_types::knowledge::entity::EntityTemporalMetadata {
+                temporal_versioning: EntityTemporalMetadata {
                     decision_time: row.get(indices.decision_time),
                     transaction_time: row.get(indices.transaction_time),
                 },

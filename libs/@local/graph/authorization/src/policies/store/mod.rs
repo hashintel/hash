@@ -8,7 +8,7 @@ use std::collections::{
 
 use either::Either;
 use error_stack::{Report, bail, ensure};
-use hash_graph_types::owned_by_id::OwnedById;
+use type_system::web::OwnedById;
 use uuid::Uuid;
 
 use self::error::{

@@ -20,22 +20,24 @@ use hash_graph_store::{
 };
 use hash_graph_types::{
     account::AccountId,
-    knowledge::entity::{Entity, EntityId},
-    ontology::{
-        DataTypeLookup, DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeProvider,
-        PropertyTypeWithMetadata,
-    },
+    ontology::{DataTypeLookup, OntologyTypeProvider},
 };
 use hash_graph_validation::EntityProvider;
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient as _;
 use type_system::{
     Valid,
-    schema::{
-        ClosedDataType, ClosedEntityType, ConversionDefinition, ConversionExpression,
-        DataTypeReference, DataTypeUuid, EntityTypeUuid, PropertyType, PropertyTypeUuid,
+    knowledge::{Entity, entity::EntityId},
+    ontology::{
+        BaseUrl, DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
+        VersionedUrl,
+        data_type::{
+            ClosedDataType, ConversionDefinition, ConversionExpression, DataTypeUuid,
+            schema::DataTypeReference,
+        },
+        entity_type::{ClosedEntityType, EntityTypeUuid},
+        property_type::{PropertyType, PropertyTypeUuid},
     },
-    url::{BaseUrl, VersionedUrl},
 };
 
 use crate::store::postgres::{AsClient, PostgresStore};

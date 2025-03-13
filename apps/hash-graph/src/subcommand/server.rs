@@ -34,7 +34,7 @@ use reqwest::{Client, Url};
 use tokio::{io, net::TcpListener, time::timeout};
 use tokio_postgres::NoTls;
 use tokio_util::codec::FramedWrite;
-use type_system::schema::DomainValidator;
+use type_system::ontology::json_schema::DomainValidator;
 
 use crate::{
     error::{GraphError, HealthcheckError},

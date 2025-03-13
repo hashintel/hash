@@ -128,12 +128,12 @@ mod tests {
             temporal_axes::QueryTemporalAxesUnresolved,
         },
     };
-    use hash_graph_types::{
-        Embedding,
-        knowledge::entity::Entity,
+    use hash_graph_types::Embedding;
+    use postgres_types::ToSql;
+    use type_system::{
+        knowledge::Entity,
         ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     };
-    use postgres_types::ToSql;
     use uuid::Uuid;
 
     use crate::store::postgres::query::{
@@ -1203,11 +1203,11 @@ mod tests {
     }
 
     mod predefined {
-        use hash_graph_types::{
-            knowledge::entity::{EntityId, EntityUuid},
-            owned_by_id::OwnedById,
+        use type_system::{
+            knowledge::entity::id::{EntityId, EntityUuid},
+            ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+            web::OwnedById,
         };
-        use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
         use super::*;
 

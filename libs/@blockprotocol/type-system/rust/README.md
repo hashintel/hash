@@ -14,13 +14,43 @@ The Block Protocol Type System defines a structured approach to typing data. It 
 
 ## Core Concepts
 
-### Types
+### Ontology Types and Knowledge Components
 
-The type system is built around three primary concepts:
+The type system is organized into two main parts:
 
-1. **Data Types** - Primitive types like strings, numbers, booleans, arrays, and objects
-2. **Property Types** - Reusable definitions of properties with their own schema
-3. **Entity Types** - Definitions of entities with their property and relationship requirements
+#### Ontology (Type Definitions)
+
+The ontology defines schemas and validation rules:
+
+1. **Data Types** - Define validation rules for primitive values like strings, numbers, booleans
+2. **Property Types** - Define reusable property schemas that can reference data types
+3. **Entity Types** - Define complete entity structures with property and relationship requirements
+
+#### Knowledge (Data Instances)
+
+Knowledge components are concrete data instances that conform to ontology types:
+
+1. **Values** - Primitive data values that conform to data types
+2. **Properties** - Structured data (including arrays and objects) that conform to property types
+3. **Entities** - Complete entity records with properties that conform to entity types
+
+The relationship between ontology and knowledge is similar to schemas and records in databases:
+ontology types define the structure and rules, while knowledge components contain the actual data
+conforming to those rules.
+
+### Metadata and Provenance
+
+The type system includes comprehensive metadata for each type:
+
+1. **Ontology Metadata** - Contains information about type records including:
+   - Record IDs - Unique identifiers for each type
+   - Temporal Versioning - When types were created or modified
+   - Ownership - Whether types are owned locally or fetched from remote sources
+
+2. **Provenance** - Tracks the origin and history of types:
+   - Creation information - Who created the type and when
+   - Edition information - History of changes to the type
+   - Source information - Where the type originated from
 
 ### Validation
 

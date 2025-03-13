@@ -4,12 +4,16 @@ use core::{error::Error, fmt, mem, str::FromStr as _};
 use error_stack::{Report, ResultExt as _, bail};
 use hash_codec::numeric::Real;
 use hash_graph_temporal_versioning::Timestamp;
-use hash_graph_types::{Embedding, knowledge::entity::EntityEditionId};
+use hash_graph_types::Embedding;
 use serde::Deserialize;
 use type_system::{
-    Value,
-    schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
-    url::{OntologyTypeVersion, VersionedUrl},
+    knowledge::{Value, entity::id::EntityEditionId},
+    ontology::{
+        data_type::DataTypeUuid,
+        entity_type::EntityTypeUuid,
+        id::{OntologyTypeVersion, VersionedUrl},
+        property_type::PropertyTypeUuid,
+    },
 };
 use uuid::Uuid;
 
