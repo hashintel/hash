@@ -25,7 +25,6 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import type {
-  ClosedEntityTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
@@ -366,7 +365,7 @@ describe("Entity type CRU", () => {
   it("can read a closed multi-entity type", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const closedEntityTypes = (await getClosedEntityTypes(
+    const closedEntityTypes = await getClosedEntityTypes(
       graphContext,
       authentication,
       {
@@ -388,7 +387,7 @@ describe("Entity type CRU", () => {
         },
         temporalAxes: currentTimeInstantTemporalAxes,
       },
-    ));
+    );
     // We don't support sorting for closed types, yet. To consistently compare them we sort them by $id.
     closedEntityTypes.sort((a, b) => a.schema.$id.localeCompare(b.schema.$id));
 

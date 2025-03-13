@@ -57,7 +57,6 @@ export const getClosedMultiEntityTypesQuery = gql`
   query getClosedMultiEntityTypes(
     $entityTypeIds: [[VersionedUrl!]!]!
     $includeArchived: Boolean = false
-    $includeDrafts: Boolean = false
   ) {
     getClosedMultiEntityTypes(
       entityTypeIds: $entityTypeIds
