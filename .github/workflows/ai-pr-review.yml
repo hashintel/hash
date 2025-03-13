@@ -10,6 +10,16 @@ on:
         required: true
         type: number
 
+# Prevent multiple AI review jobs from running simultaneously on the same PR
+# This ensures reviews are sequential and prevents duplicate/conflicting reviews
+concurrency:
+  # For workflow_dispatch events, we use github.ref (branch name)
+  # For pull_request events, we use the PR number
+  # This ensures a unique concurrency group per PR
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.ref }}
+  # Don't cancel in-progress reviews, let them complete
+  cancel-in-progress: false
+
 jobs:
   check-conditions:
     runs-on: ubuntu-24.04
