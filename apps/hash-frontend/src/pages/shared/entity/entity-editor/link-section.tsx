@@ -8,7 +8,7 @@ import { useEntityEditor } from "./entity-editor-context";
 
 export const LinkSection: FunctionComponent = () => {
   const {
-    closedMultiEntityTypesMap,
+    linkedEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypesMap,
     closedMultiEntityTypesDefinitions,
     entity,
     entitySubgraph,

@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { buildSubgraph } from "@blockprotocol/graph/stdlib";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import type {
@@ -345,7 +346,27 @@ export const Outputs = ({
     [persistedEntities],
   );
 
-  console.log({ proposedEntities });
+  const uniqueProposedEntityTypeSets = useMemo(() => {
+    /**
+     * Extract unique sets of entity type IDs from proposed entities.
+     * For example, if multiple entities have the same set of types [A, B],
+     * we only include this combination once in the result.
+     */
+    const uniqueTypeIdSets = new Set<string>();
+
+    for (const entity of proposedEntities) {
+      // Sort the entity type IDs to ensure consistent string representation
+      const sortedTypeIds = [...entity.entityTypeIds].sort();
+
+      const typeIdSetKey = sortedTypeIds.join(",");
+      uniqueTypeIdSets.add(typeIdSetKey);
+    }
+
+    return Array.from(uniqueTypeIdSets).map(
+      (typeIdSetKey) =>
+        typeIdSetKey.split(",").filter((id) => id.length > 0) as VersionedUrl[],
+    );
+  }, [proposedEntities]);
 
   const {
     data: proposedEntitiesTypesData,
@@ -356,9 +377,7 @@ export const Outputs = ({
   >(getClosedMultiEntityTypesQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
-      entityTypeIds: proposedEntities.map(
-        (proposedEntity) => proposedEntity.entityTypeIds,
-      ),
+      entityTypeIds: uniqueProposedEntityTypeSets,
       includeArchived: false,
     },
     skip: proposedEntities.length === 0,
@@ -472,16 +491,16 @@ export const Outputs = ({
 
       const selectedEntityId = item.itemId;
 
-      const persistedEntity = persistedEntities.find(
-        ({ entity }) =>
-          entity &&
-          new Entity(entity).metadata.recordId.entityId === selectedEntityId,
-      );
+      // const persistedEntity = persistedEntities.find(
+      //   ({ entity }) =>
+      //     entity &&
+      //     new Entity(entity).metadata.recordId.entityId === selectedEntityId,
+      // );
 
-      // If it's a persisted entity, no need to modify the slide item. The slide will get it from the database.
-      if (persistedEntity) {
-        return item;
-      }
+      // // If it's a persisted entity, no need to modify the slide item. The slide will get it from the database.
+      // if (persistedEntity) {
+      //   return item;
+      // }
 
       const proposedEntity = proposedEntities.find(
         (entity) => entity.localEntityId === selectedEntityId,

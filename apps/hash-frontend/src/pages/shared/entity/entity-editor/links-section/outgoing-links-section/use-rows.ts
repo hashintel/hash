@@ -19,7 +19,7 @@ export const useRows = () => {
   const {
     closedMultiEntityType,
     closedMultiEntityTypesDefinitions,
-    closedMultiEntityTypesMap,
+    linkedEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypesMap,
     entity,
     entitySubgraph,
     draftLinksToArchive,

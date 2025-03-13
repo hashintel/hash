@@ -165,8 +165,8 @@ export const Entity = ({
         EntityEditorProps,
         | "closedMultiEntityType"
         | "closedMultiEntityTypesDefinitions"
-        | "closedMultiEntityTypesMap"
         | "entitySubgraph"
+        | "linkedEntitiesClosedMultiEntityTypesMap"
       >
     >();
 
@@ -177,7 +177,9 @@ export const Entity = ({
   const [draftEntityTypesDetails, setDraftEntityTypesDetails] = useState<
     | Pick<
         EntityEditorProps,
-        "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
+        | "closedMultiEntityType"
+        | "closedMultiEntityTypesDefinitions"
+        | "linkedEntitiesClosedMultiEntityTypesMap"
       >
     | undefined
   >();
@@ -214,6 +216,8 @@ export const Entity = ({
         );
 
         setDraftEntityTypesDetails({
+          linkedEntitiesClosedMultiEntityTypesMap:
+            result.closedMultiEntityTypes,
           closedMultiEntityType,
           closedMultiEntityTypesDefinitions:
             result.closedMultiEntityTypesDefinitions,
@@ -272,6 +276,7 @@ export const Entity = ({
       );
 
       setDraftEntityTypesDetails({
+        linkedEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypes,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions: definitions,
       });
@@ -280,7 +285,7 @@ export const Entity = ({
         entitySubgraph: subgraph,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions: definitions,
-        closedMultiEntityTypesMap: closedMultiEntityTypes,
+        linkedEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypes,
       });
 
       setDraftEntitySubgraph(subgraph);
@@ -364,6 +369,8 @@ export const Entity = ({
     if (dataFromDb) {
       setDraftEntitySubgraph(dataFromDb.entitySubgraph);
       setDraftEntityTypesDetails({
+        linkedEntitiesClosedMultiEntityTypesMap:
+          dataFromDb.linkedEntitiesClosedMultiEntityTypesMap,
         closedMultiEntityType: dataFromDb.closedMultiEntityType,
         closedMultiEntityTypesDefinitions:
           dataFromDb.closedMultiEntityTypesDefinitions,
@@ -502,6 +509,8 @@ export const Entity = ({
     return <NextErrorComponent statusCode={404} />;
   }
 
+  console.log({ proposedEntitySubgraph, draftEntityTypesDetails });
+
   const haveChangesBeenMade =
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
@@ -519,9 +528,6 @@ export const Entity = ({
       )}
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditor
-          closedMultiEntityTypesMap={
-            dataFromDb?.closedMultiEntityTypesMap ?? null
-          }
           {...draftEntityTypesDetails}
           draftLinksToCreate={draftLinksToCreate}
           draftLinksToArchive={draftLinksToArchive}
@@ -644,9 +650,6 @@ export const Entity = ({
           />
           <EntityEditorContainer isInSlide={isInSlide}>
             <EntityEditor
-              closedMultiEntityTypesMap={
-                dataFromDb?.closedMultiEntityTypesMap ?? null
-              }
               defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
               {...draftEntityTypesDetails}
               draftLinksToCreate={draftLinksToCreate}

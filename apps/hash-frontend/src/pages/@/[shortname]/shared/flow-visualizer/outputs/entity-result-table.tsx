@@ -465,7 +465,7 @@ type EntityResultTableProps = {
 export const EntityResultTable = memo(
   ({
     dataIsLoading,
-    persistedEntities,
+    persistedEntities: _,
     persistedEntitiesSubgraph,
     persistedEntitiesTypesInfo,
     proposedEntities,
@@ -476,6 +476,8 @@ export const EntityResultTable = memo(
       fieldId: "entityLabel",
       direction: "asc",
     });
+
+    const persistedEntities = [];
 
     const hasEntities = !!(persistedEntities.length || proposedEntities.length);
 
@@ -563,6 +565,8 @@ export const EntityResultTable = memo(
           }[];
         }
       > = {};
+
+      console.log({ entityRecords });
 
       /**
        * We use this map to look up the target entities for links.
@@ -661,7 +665,6 @@ export const EntityResultTable = memo(
           : persistedEntitiesTypesInfo;
 
         if (!typeInfo) {
-          console.warn(`Type info is undefined for ${entityId}`, isProposed);
           continue;
         }
 
@@ -703,8 +706,6 @@ export const EntityResultTable = memo(
           : persistedEntitiesTypesInfo;
 
         if (!typeInfo) {
-          console.warn(`2 Type info is undefined for ${entityId}`, isProposed);
-
           continue;
         }
 

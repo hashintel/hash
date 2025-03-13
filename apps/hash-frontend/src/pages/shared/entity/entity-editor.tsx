@@ -32,7 +32,7 @@ export type { CustomEntityLinksColumn };
 export interface EntityEditorProps extends DraftLinkState {
   closedMultiEntityType: ClosedMultiEntityType;
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
-  closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
+  linkedEntitiesClosedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
   customEntityLinksColumns?: CustomEntityLinksColumn[];
   defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
   isDirty: boolean;

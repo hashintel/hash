@@ -29,7 +29,7 @@ export const EntityEditorContextProvider = ({
   children,
   closedMultiEntityType,
   closedMultiEntityTypesDefinitions,
-  closedMultiEntityTypesMap,
+  linkedEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypesMap,
   customEntityLinksColumns,
   defaultOutgoingLinkFilters,
   draftLinksToArchive,
