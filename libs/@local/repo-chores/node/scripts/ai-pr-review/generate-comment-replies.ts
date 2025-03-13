@@ -1,3 +1,15 @@
+/**
+ * Comment reply generation for AI PR review
+ *
+ * This module handles generating and validating replies to PR comments.
+ *
+ * Tag validation:
+ * - Extracts tags with @ prefix from AI comments
+ * - Compares them to valid usernames (without @ prefix) from original comments and replies
+ * - Filters out special names like "hashdotai" (the AI itself) and "you" (generic reference)
+ * - Provides clear error feedback if the AI uses invalid tags
+ */
+
 import type Anthropic from "@anthropic-ai/sdk";
 import { sleep } from "@anthropic-ai/sdk/core";
 import type { HydratedLinearIssue } from "@local/hash-backend-utils/linear";
@@ -33,10 +45,11 @@ You are 'hashdotai', a senior software engineer providing responses to code revi
 You are responding to comments on a pull request. For each comment:
 1. Read the original comment and any existing replies carefully
 2. If a response is required, provide a helpful, constructive response. If it's optional, reply if you can add value. Don't reply for the sake of it – it takes up your time unnecessarily.
-3. Always @mention the relevant participants in the conversation
+3. Always @mention the relevant participants in the conversation by using the exact username with @ prefix (e.g., @username)
 4. Don't tag yourself (@hashdotai) in your responses
-5. Be specific and address the questions or concerns raised
-6. Provide code suggestions using GitHub's code suggestion format if you can suggest a specific code change / implementation.
+5. Never use general tags like "you" - always use specific GitHub usernames with the @ prefix
+6. Be specific and address the questions or concerns raised
+7. Provide code suggestions using GitHub's code suggestion format if you can suggest a specific code change / implementation
 `;
 
 /**
@@ -87,21 +100,21 @@ export const generateCommentReplies = async ({
 
   try {
     const userMessage = `Hello, hashdotai!
-  
+
   I need you to respond to some comments on a pull request. Please review the comments and provide helpful replies, where you can add value.
-  
+
   <PR Overview>
   ${prOverview}
   </PR Overview>
-  
+
   <PR Diff>
   ${prDiff}
   </PR Diff>
-  
+
   <Relevant Linear Tickets>
   ${linearTickets.map((ticket) => JSON.stringify(ticket, null, 2)).join("\n")}
   </Relevant Linear Tickets>
-  
+
   <Comments Awaiting Response>
   ${threadsRequiringResponse
     .map(
@@ -125,7 +138,7 @@ export const generateCommentReplies = async ({
     )
     .join("\n---\n")}
   </Comments Awaiting Response>
-  
+
   ${
     previousErrors
       ? `\nYour previous comment replies contained these errors – please avoid them this time: ${previousErrors}`
@@ -177,22 +190,33 @@ export const generateCommentReplies = async ({
           continue;
         }
 
-        const tagsInComment = commentReply.comment.match(/@[^\s]+/g);
+        // Extract tags with @ prefix from comment
+        const tagsInComment = commentReply.comment.match(/@[^\s]+/g) ?? [];
 
-        const validTags = [
+        // Create valid tags list WITHOUT @ prefix
+        const validTagsWithoutPrefix = [
           originalComment.author,
           ...originalComment.replies.map((reply) => reply.author),
-        ].filter((tag) => tag !== "hashdotai");
+        ].filter((tag) => tag !== "hashdotai" && tag !== "you");
 
-        const invalidTags = tagsInComment?.filter(
-          (tag) => !validTags.includes(tag),
+        // Convert tags in comment to remove @ for comparison
+        const tagsInCommentWithoutPrefix = tagsInComment.map((tag) =>
+          tag.startsWith("@") ? tag.substring(1) : tag,
         );
 
-        if (invalidTags?.length) {
+        // Compare without @ prefix
+        const invalidTags = tagsInComment.filter(
+          (_, index) =>
+            !validTagsWithoutPrefix.includes(
+              tagsInCommentWithoutPrefix[index]!,
+            ),
+        );
+
+        if (invalidTags.length) {
           badTags.push({
             incorrectTags: invalidTags,
             threadId: commentReply.threadId,
-            validTags,
+            validTags: validTagsWithoutPrefix,
           });
         }
       }
@@ -203,9 +227,11 @@ export const generateCommentReplies = async ({
               ({ threadId, validTags, incorrectTags }) =>
                 `You provided a response to comment id ${threadId} and tagged these authors, but they are invalid: ${incorrectTags.join(
                   ", ",
-                )}. The valid tags are: ${validTags.join(
-                  ", ",
-                )}. You must tag participants in the conversation (and not yourself – you are 'hashdotai')`,
+                )}. The valid tags are: ${validTags
+                  .map((tag) => (tag.startsWith("@") ? tag : `@${tag}`))
+                  .join(
+                    ", ",
+                  )}. You must tag participants in the conversation (and not yourself – you are 'hashdotai')`,
             )
           : []),
         ...(invalidCommentIds.length
