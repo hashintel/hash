@@ -1099,35 +1099,31 @@ where
         };
 
         // Collect all unique entity type IDs that need resolution
-        let mut entity_type_ids_to_resolve = HashSet::<VersionedUrl>::new();
+        let mut entity_type_ids_to_resolve = HashSet::new();
         let all_multi_entity_type_ids = entity_type_ids
             .into_iter()
             .map(|entity_type_ids| {
                 entity_type_ids
                     .into_iter()
                     .inspect(|id| {
-                        entity_type_ids_to_resolve.insert(id.clone());
+                        entity_type_ids_to_resolve.insert(EntityTypeUuid::from_url(id));
                     })
                     .collect::<BTreeSet<_>>()
             })
             .collect::<Vec<_>>();
 
         // Convert entity type IDs to database-specific UUID references
-        let (entity_type_uuids, entity_type_ids) = entity_type_ids_to_resolve
-            .into_iter()
-            .map(|entity_type_id| (EntityTypeUuid::from_url(&entity_type_id), entity_type_id))
-            .collect::<(Vec<_>, Vec<_>)>();
+        let entity_type_uuids = entity_type_ids_to_resolve.into_iter().collect::<Vec<_>>();
 
         // Fetch all closed entity types in a single database query for efficiency
-        let closed_types = entity_type_ids
-            .into_iter()
-            .zip(
-                self.get_closed_entity_types(
-                    &Filter::for_entity_type_uuids(&entity_type_uuids),
-                    temporal_axes,
-                )
-                .await?,
+        let closed_types = self
+            .get_closed_entity_types(
+                &Filter::for_entity_type_uuids(&entity_type_uuids),
+                temporal_axes,
             )
+            .await?
+            .into_iter()
+            .map(|closed_entity_type| (closed_entity_type.id.clone(), closed_entity_type))
             .collect::<HashMap<_, _>>();
 
         // Build the nested hierarchical structure for each set of entity types
