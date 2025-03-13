@@ -14,6 +14,7 @@ import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashPropertyTypeId,
 } from "../util";
 
 const migrate: MigrationFunction = async ({
@@ -101,11 +102,17 @@ const migrate: MigrationFunction = async ({
         labelProperty: systemPropertyTypes.email.propertyTypeBaseUrl,
         properties: [
           {
-            propertyType: systemPropertyTypes.websiteUrl.propertyTypeId,
+            propertyType: getCurrentHashPropertyTypeId({
+              propertyTypeKey: "websiteUrl",
+              migrationState,
+            }),
             required: true,
           },
           {
-            propertyType: systemPropertyTypes.email.propertyTypeId,
+            propertyType: getCurrentHashPropertyTypeId({
+              propertyTypeKey: "email",
+              migrationState,
+            }),
             required: true,
           },
           {

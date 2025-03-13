@@ -1,7 +1,6 @@
 import {
   blockProtocolDataTypes,
   blockProtocolPropertyTypes,
-  systemDataTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
@@ -12,6 +11,8 @@ import {
   createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashDataTypeId,
+  getCurrentHashPropertyTypeId,
   getCurrentHashSystemEntityTypeId,
 } from "../util";
 
@@ -86,16 +87,26 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  const integerDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "integer",
+    migrationState,
+  });
+
   const actualEnrollmentPropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
         title: "Actual Enrollment",
         description: "The actual number of participants enrolled in something.",
-        possibleValues: [{ dataTypeId: systemDataTypes.integer.dataTypeId }],
+        possibleValues: [{ dataTypeId: integerDataTypeId }],
       },
       migrationState,
       webShortname: "h",
     });
+
+  const dateDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "date",
+    migrationState,
+  });
 
   const actualStudyStartDatePropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {
@@ -103,7 +114,7 @@ const migrate: MigrationFunction = async ({
         title: "Actual Study Start Date",
         description:
           "The actual date on which the first participant was enrolled in a clinical study.",
-        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+        possibleValues: [{ dataTypeId: dateDataTypeId }],
       },
       migrationState,
       webShortname: "h",
@@ -115,7 +126,7 @@ const migrate: MigrationFunction = async ({
         title: "Actual Study Primary Completion Date",
         description:
           "The date on which the last participant in a study was examined or received an intervention to collect final data for the primary outcome measure.",
-        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+        possibleValues: [{ dataTypeId: dateDataTypeId }],
       },
       migrationState,
       webShortname: "h",
@@ -127,7 +138,7 @@ const migrate: MigrationFunction = async ({
         title: "Actual Study Completion Date",
         description:
           "The date on which the last participant in a clinical study was examined or received an intervention to collect final data for the primary outcome measures, secondary outcome measures, and adverse events (that is, the last participant's last visit).",
-        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+        possibleValues: [{ dataTypeId: dateDataTypeId }],
       },
       migrationState,
       webShortname: "h",
@@ -139,7 +150,7 @@ const migrate: MigrationFunction = async ({
         title: "Estimated Enrollment",
         description:
           "The estimated number of participants that will be enrolled in something.",
-        possibleValues: [{ dataTypeId: systemDataTypes.integer.dataTypeId }],
+        possibleValues: [{ dataTypeId: integerDataTypeId }],
       },
       migrationState,
       webShortname: "h",
@@ -151,7 +162,7 @@ const migrate: MigrationFunction = async ({
         title: "Estimated Study Start Date",
         description:
           "The estimated date on which the first participant will be enrolled in a clinical study.",
-        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+        possibleValues: [{ dataTypeId: dateDataTypeId }],
       },
       migrationState,
       webShortname: "h",
@@ -163,7 +174,7 @@ const migrate: MigrationFunction = async ({
         title: "Estimated Primary Completion Date",
         description:
           "The estimated date on which the last participant in a study will be examined or receive an intervention to collect final data for the primary outcome measure.",
-        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+        possibleValues: [{ dataTypeId: dateDataTypeId }],
       },
       migrationState,
       webShortname: "h",
@@ -175,7 +186,7 @@ const migrate: MigrationFunction = async ({
         title: "Estimated Study Completion Date",
         description:
           "The estimated date on which the last participant in a clinical study will be examined or receive an intervention to collect final data for the primary outcome measures, secondary outcome measures, and adverse events (that is, the last participant's last visit).",
-        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+        possibleValues: [{ dataTypeId: dateDataTypeId }],
       },
       migrationState,
       webShortname: "h",
@@ -333,7 +344,10 @@ const migrate: MigrationFunction = async ({
                 $ref: interventionPropertyType.schema.$id,
               },
               [systemPropertyTypes.methodology.propertyTypeBaseUrl]: {
-                $ref: systemPropertyTypes.methodology.propertyTypeId,
+                $ref: getCurrentHashPropertyTypeId({
+                  propertyTypeKey: "methodology",
+                  migrationState,
+                }),
               },
             },
             propertyTypeObjectRequiredProperties: [
@@ -465,7 +479,10 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/microscope.svg",
         properties: [
           {
-            propertyType: systemPropertyTypes.methodology.propertyTypeId,
+            propertyType: getCurrentHashPropertyTypeId({
+              propertyTypeKey: "methodology",
+              migrationState,
+            }),
             required: true,
           },
           {
@@ -483,13 +500,22 @@ const migrate: MigrationFunction = async ({
             propertyType: isrctnIdPropertyType.schema.$id,
           },
           {
-            propertyType: systemPropertyTypes.doi.propertyTypeId,
+            propertyType: getCurrentHashPropertyTypeId({
+              propertyTypeKey: "doi",
+              migrationState,
+            }),
           },
           {
-            propertyType: systemPropertyTypes.doiLink.propertyTypeId,
+            propertyType: getCurrentHashPropertyTypeId({
+              propertyTypeKey: "doiLink",
+              migrationState,
+            }),
           },
           {
-            propertyType: systemPropertyTypes.location.propertyTypeId,
+            propertyType: getCurrentHashPropertyTypeId({
+              propertyTypeKey: "location",
+              migrationState,
+            }),
           },
           {
             propertyType: trialPhasePropertyType.schema.$id,
