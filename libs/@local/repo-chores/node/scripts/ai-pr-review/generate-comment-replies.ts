@@ -228,7 +228,7 @@ export const generateCommentReplies = async ({
                 `You provided a response to comment id ${threadId} and tagged these authors, but they are invalid: ${incorrectTags.join(
                   ", ",
                 )}. The valid tags are: ${validTags
-                  .map((tag) => (tag.startsWith("@") ? tag : `@${tag}`))
+                  .map((tag) => tag.startsWith('@') ? tag : `@${tag}`) 
                   .join(
                     ", ",
                   )}. You must tag participants in the conversation (and not yourself – you are 'hashdotai')`,
