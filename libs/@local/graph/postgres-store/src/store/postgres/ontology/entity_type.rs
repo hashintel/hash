@@ -36,15 +36,7 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use hash_graph_types::{
-    Embedding,
-    account::{AccountId, EditionArchivedById, EditionCreatedById},
-    ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
-    },
-    owned_by_id::OwnedById,
-};
+use hash_graph_types::{Embedding, account::AccountId};
 use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;
@@ -52,13 +44,24 @@ use tokio_postgres::{GenericClient as _, Row};
 use tracing::{Instrument as _, instrument};
 use type_system::{
     Valid, Validator as _,
-    schema::{
-        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, DataType, DataTypeUuid,
-        EntityType, EntityTypeResolveData, EntityTypeToPropertyTypeEdge, EntityTypeUuid,
-        EntityTypeValidator, InheritanceDepth, OntologyTypeResolver, OntologyTypeUuid,
-        PartialEntityType, PropertyTypeUuid,
+    ontology::{
+        EntityTypeWithMetadata, InheritanceDepth, OntologyTemporalMetadata,
+        data_type::{ClosedDataType, DataType, DataTypeUuid},
+        entity_type::{
+            ClosedEntityType, ClosedMultiEntityType, EntityType, EntityTypeMetadata,
+            EntityTypeUuid,
+            schema::{
+                EntityTypeResolveData, EntityTypeToPropertyTypeEdge, EntityTypeValidator,
+                PartialEntityType,
+            },
+        },
+        id::{OntologyTypeRecordId, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
+        json_schema::OntologyTypeResolver,
+        property_type::PropertyTypeUuid,
+        provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    url::{OntologyTypeVersion, VersionedUrl},
+    provenance::{EditionArchivedById, EditionCreatedById},
+    web::OwnedById,
 };
 
 use crate::store::{
@@ -66,7 +69,7 @@ use crate::store::{
     postgres::{
         AsClient, PostgresStore, ResponseCountMap, TraversalContext,
         crud::QueryRecordDecode,
-        ontology::{PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData},
+        ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
     },
     validation::{StoreCache, StoreProvider},
@@ -770,7 +773,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id),
+                    created_by_id: EditionCreatedById::new(actor_id.into_uuid()),
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -779,9 +782,7 @@ where
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
             let entity_type_id = EntityTypeUuid::from_url(&parameters.schema.id);
 
-            if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
-                &parameters.classification
-            {
+            if let OntologyOwnership::Local { owned_by_id } = &parameters.ownership {
                 transaction
                     .authorization_api
                     .check_web_permission(
@@ -814,7 +815,7 @@ where
             if let Some((_ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
                     &parameters.schema.id,
-                    &parameters.classification,
+                    &parameters.ownership,
                     parameters.conflict_behavior,
                     &provenance,
                 )
@@ -829,7 +830,7 @@ where
                 inserted_entity_types.push((entity_type_id, Arc::new(parameters.schema)));
                 inserted_entity_type_metadata.push(EntityTypeMetadata {
                     record_id,
-                    classification: parameters.classification,
+                    ownership: parameters.ownership,
                     temporal_versioning,
                     provenance,
                 });
@@ -1240,7 +1241,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id),
+                    created_by_id: EditionCreatedById::new(actor_id.into_uuid()),
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -1300,7 +1301,7 @@ where
             inserted_entity_types.push((entity_type_id, Arc::new(parameters.schema)));
             updated_entity_type_metadata.push(EntityTypeMetadata {
                 record_id,
-                classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                ownership: OntologyOwnership::Local { owned_by_id },
                 temporal_versioning,
                 provenance,
             });
@@ -1468,8 +1469,11 @@ where
         actor_id: AccountId,
         params: ArchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        self.archive_ontology_type(&params.entity_type_id, EditionArchivedById::new(actor_id))
-            .await
+        self.archive_ontology_type(
+            &params.entity_type_id,
+            EditionArchivedById::new(actor_id.into_uuid()),
+        )
+        .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -1481,7 +1485,7 @@ where
         self.unarchive_ontology_type(
             &params.entity_type_id,
             &OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
+                created_by_id: EditionCreatedById::new(actor_id.into_uuid()),
                 archived_by_id: None,
                 user_defined: params.provenance,
             },
@@ -1669,10 +1673,8 @@ impl QueryRecordDecode for EntityTypeWithMetadata {
             schema: row.get::<_, Json<_>>(indices.schema).0,
             metadata: EntityTypeMetadata {
                 record_id,
-                classification: row
-                    .get::<_, Json<PostgresOntologyTypeClassificationMetadata>>(
-                        indices.additional_metadata,
-                    )
+                ownership: row
+                    .get::<_, Json<PostgresOntologyOwnership>>(indices.additional_metadata)
                     .0
                     .into(),
                 temporal_versioning: OntologyTemporalMetadata {

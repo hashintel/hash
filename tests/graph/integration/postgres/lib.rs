@@ -77,20 +77,22 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_graph_types::{
-    account::AccountId,
-    knowledge::entity::{ActorType, Entity, EntityId, OriginProvenance, OriginType},
-    ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, PropertyTypeMetadata,
-        ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
-};
+use hash_graph_types::account::AccountId;
 use hash_tracing::logging::env_filter;
 use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
-use type_system::schema::{DataType, EntityType, PropertyType};
+use type_system::{
+    knowledge::entity::{Entity, EntityId},
+    ontology::{
+        OntologyTemporalMetadata,
+        data_type::{DataType, DataTypeMetadata},
+        entity_type::{EntityType, EntityTypeMetadata},
+        property_type::{PropertyType, PropertyTypeMetadata},
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
+    provenance::{ActorType, OriginProvenance, OriginType},
+    web::OwnedById,
+};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper<A: AuthorizationApi> {
@@ -243,7 +245,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         .expect("could not parse data type representation");
                     CreateDataTypeParams {
                         schema,
-                        classification: OntologyTypeClassificationMetadata::Owned {
+                        ownership: OntologyOwnership::Local {
                             owned_by_id: OwnedById::new(account_id.into_uuid()),
                         },
                         relationships: data_type_relationships(),
@@ -267,7 +269,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         .expect("could not property data type representation");
                     CreatePropertyTypeParams {
                         schema,
-                        classification: OntologyTypeClassificationMetadata::Owned {
+                        ownership: OntologyOwnership::Local {
                             owned_by_id: OwnedById::new(account_id.into_uuid()),
                         },
                         relationships: property_type_relationships(),
@@ -290,7 +292,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         .expect("could not entity data type representation");
                     CreateEntityTypeParams {
                         schema,
-                        classification: OntologyTypeClassificationMetadata::Owned {
+                        ownership: OntologyOwnership::Local {
                             owned_by_id: OwnedById::new(account_id.into_uuid()),
                         },
                         relationships: entity_type_relationships(),

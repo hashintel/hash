@@ -4,25 +4,31 @@ use hash_graph_temporal_versioning::{
 use hash_graph_types::{
     Embedding,
     account::{AccountGroupId, AccountId},
-    knowledge::{
-        Confidence,
-        entity::{
-            DraftId, EntityEditionId, EntityEditionProvenance, EntityUuid, InferredEntityProvenance,
-        },
-        property::{PropertyMetadataObject, PropertyObject, PropertyProvenance},
-    },
-    ontology::OntologyEditionProvenance,
-    owned_by_id::OwnedById,
 };
 use postgres_types::ToSql;
 use time::OffsetDateTime;
 use type_system::{
     Valid,
-    schema::{
-        ClosedDataType, ClosedEntityType, ConversionDefinition, DataType, DataTypeUuid, EntityType,
-        EntityTypeUuid, InheritanceDepth, OntologyTypeUuid, PropertyType, PropertyTypeUuid,
+    knowledge::{
+        Confidence,
+        entity::{
+            id::{DraftId, EntityEditionId, EntityUuid},
+            provenance::{EntityEditionProvenance, InferredEntityProvenance},
+        },
+        property::{
+            PropertyObject,
+            metadata::{PropertyMetadataObject, PropertyProvenance},
+        },
     },
-    url::{BaseUrl, OntologyTypeVersion},
+    ontology::{
+        InheritanceDepth,
+        data_type::{ClosedDataType, ConversionDefinition, DataType, DataTypeUuid},
+        entity_type::{ClosedEntityType, EntityType, EntityTypeUuid},
+        id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion},
+        property_type::{PropertyType, PropertyTypeUuid},
+        provenance::OntologyEditionProvenance,
+    },
+    web::OwnedById,
 };
 
 use crate::store::postgres::query::Table;

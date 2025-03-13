@@ -10,7 +10,7 @@ use reqwest::{
 };
 use tarpc::context::Context;
 use time::OffsetDateTime;
-use type_system::url::VersionedUrl;
+use type_system::ontology::VersionedUrl;
 
 use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError};
 

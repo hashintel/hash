@@ -1,12 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
-use hash_graph_types::knowledge::{
-    entity::EntityId, property::visitor::ObjectPropertyValidationReport,
-};
+use hash_graph_types::knowledge::property::visitor::ObjectPropertyValidationReport;
 use type_system::{
-    schema::ResolveClosedEntityTypeError,
-    url::{BaseUrl, VersionedUrl},
+    knowledge::entity::EntityId,
+    ontology::{BaseUrl, VersionedUrl, entity_type::schema::ResolveClosedEntityTypeError},
 };
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]

@@ -14,17 +14,17 @@ use hash_graph_store::{
     },
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::{
+use pretty_assertions::assert_eq;
+use type_system::{
     knowledge::{
-        entity::{
-            ActorType, Entity, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
-        },
+        Entity,
+        entity::provenance::ProvidedEntityEditionProvenance,
         property::{PropertyObject, PropertyWithMetadataObject},
     },
-    owned_by_id::OwnedById,
+    ontology::VersionedUrl,
+    provenance::{ActorType, OriginProvenance, OriginType},
+    web::OwnedById,
 };
-use pretty_assertions::assert_eq;
-use type_system::url::VersionedUrl;
 
 use crate::{DatabaseApi, DatabaseTestWrapper, assert_equal_entities};
 

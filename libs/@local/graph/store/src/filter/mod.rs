@@ -7,14 +7,15 @@ use std::collections::HashMap;
 
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
-use hash_graph_types::{
-    knowledge::entity::{Entity, EntityId},
-    ontology::{DataTypeLookup, DataTypeWithMetadata, PropertyTypeWithMetadata},
-};
+use hash_graph_types::ontology::DataTypeLookup;
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    schema::{DataTypeReference, DataTypeUuid, PropertyTypeUuid},
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    knowledge::entity::{Entity, EntityId},
+    ontology::{
+        data_type::{DataTypeUuid, DataTypeWithMetadata, schema::DataTypeReference},
+        id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+        property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
+    },
 };
 
 pub use self::{
@@ -84,12 +85,12 @@ pub trait QueryRecord: Sized + Send {
 pub trait OntologyQueryPath {
     /// Returns the path identifying the [`BaseUrl`].
     ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn base_url() -> Self;
 
     /// Returns the path identifying the [`OntologyTypeVersion`].
     ///
-    /// [`OntologyTypeVersion`]: type_system::url::OntologyTypeVersion
+    /// [`OntologyTypeVersion`]: type_system::ontology::id::OntologyTypeVersion
     fn version() -> Self;
 }
 
@@ -537,13 +538,12 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
 #[cfg(test)]
 mod tests {
 
-    use hash_graph_types::{
-        knowledge::entity::{DraftId, EntityUuid},
-        ontology::{DataTypeLookup, DataTypeWithMetadata},
-        owned_by_id::OwnedById,
-    };
     use serde_json::json;
-    use type_system::schema::{ClosedDataType, ConversionExpression, DataTypeReference};
+    use type_system::{
+        knowledge::entity::id::{DraftId, EntityUuid},
+        ontology::data_type::{ClosedDataType, ConversionExpression},
+        web::OwnedById,
+    };
     use uuid::Uuid;
 
     use super::*;

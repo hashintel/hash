@@ -13,8 +13,13 @@ use futures::{
 use hash_graph_authorization::schema::DataTypeRelationAndSubject;
 use type_system::{
     Valid, Validator as _,
-    schema::{ClosedDataType, DataTypeUuid, DataTypeValidator, ValueLabel},
-    url::{OntologyTypeVersion, VersionedUrl},
+    ontology::{
+        data_type::{
+            ClosedDataType, DataTypeUuid,
+            schema::{DataTypeValidator, ValueLabel},
+        },
+        id::{OntologyTypeVersion, VersionedUrl},
+    },
 };
 
 use crate::{
@@ -75,7 +80,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
             .start_send_unpin(OntologyTypeMetadata {
                 ontology_id: ontology_id.into(),
                 record_id: data_type.metadata.record_id,
-                classification: data_type.metadata.classification,
+                ownership: data_type.metadata.ownership,
                 temporal_versioning: data_type.metadata.temporal_versioning,
                 provenance: data_type.metadata.provenance,
             })

@@ -1,6 +1,6 @@
 use core::error::Error;
 
-use hash_graph_types::owned_by_id::OwnedById;
+use type_system::web::OwnedById;
 
 use crate::policies::principal::{ActorId, role::RoleId, team::TeamId, web::WebTeamId};
 

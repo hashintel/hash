@@ -2,11 +2,11 @@ use hash_graph_authorization::schema::{
     DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
 };
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-use hash_graph_types::{Embedding, ontology::OntologyType};
+use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
-use type_system::{
-    schema::{DataType, EntityType, PropertyType},
-    url::VersionedUrl,
+use type_system::ontology::{
+    OntologyTypeSchema, VersionedUrl, data_type::DataType, entity_type::EntityType,
+    property_type::PropertyType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -17,7 +17,7 @@ use type_system::{
         deserialize = "T: Deserialize<'de>, T::Metadata: Deserialize<'de>, R: Deserialize<'de>"
     )
 )]
-pub struct OntologyTypeSnapshotRecord<T: OntologyType, R> {
+pub struct OntologyTypeSnapshotRecord<T: OntologyTypeSchema, R> {
     pub schema: T,
     pub metadata: T::Metadata,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

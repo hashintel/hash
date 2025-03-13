@@ -10,8 +10,10 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use hash_graph_authorization::schema::EntityRelationAndSubject;
-use hash_graph_types::knowledge::entity::{Entity, EntityUuid};
-use type_system::schema::{EntityTypeUuid, InheritanceDepth};
+use type_system::{
+    knowledge::entity::{Entity, id::EntityUuid},
+    ontology::{InheritanceDepth, entity_type::EntityTypeUuid},
+};
 
 use crate::{
     snapshot::{SnapshotRestoreError, entity::EntityRowBatch},

@@ -18,20 +18,19 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::{
-    account::AccountId,
-    knowledge::{
-        entity::{
-            ActorType, Entity, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
-        },
-        link::LinkData,
-        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
-    },
-    owned_by_id::OwnedById,
-};
+use hash_graph_types::account::AccountId;
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
-use type_system::schema::EntityType;
+use type_system::{
+    knowledge::{
+        Entity,
+        entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
+        property::{PropertyObject, PropertyWithMetadataObject, metadata::PropertyProvenance},
+    },
+    ontology::entity_type::EntityType,
+    provenance::{ActorType, OriginProvenance, OriginType},
+    web::OwnedById,
+};
 use uuid::Uuid;
 
 use crate::util::{Store, StoreWrapper, seed, setup, setup_subscriber};

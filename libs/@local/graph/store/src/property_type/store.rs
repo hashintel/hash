@@ -4,16 +4,13 @@ use core::iter;
 use error_stack::Report;
 use hash_graph_authorization::schema::PropertyTypeRelationAndSubject;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-use hash_graph_types::{
-    Embedding,
-    account::AccountId,
-    ontology::{
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, PropertyTypeMetadata,
-        PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
-    },
-};
+use hash_graph_types::{Embedding, account::AccountId};
 use serde::{Deserialize, Serialize};
-use type_system::{schema::PropertyType, url::VersionedUrl};
+use type_system::ontology::{
+    OntologyTemporalMetadata, VersionedUrl,
+    property_type::{PropertyType, PropertyTypeMetadata, PropertyTypeWithMetadata},
+    provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+};
 
 use crate::{
     error::{InsertionError, QueryError, UpdateError},
@@ -31,7 +28,7 @@ use crate::{
 )]
 pub struct CreatePropertyTypeParams<R> {
     pub schema: PropertyType,
-    pub classification: OntologyTypeClassificationMetadata,
+    pub ownership: OntologyOwnership,
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     pub provenance: ProvidedOntologyEditionProvenance,
@@ -142,7 +139,7 @@ pub trait PropertyTypeStore {
     /// - if any account referred to by `metadata` does not exist.
     /// - if the [`BaseUrl`] of the `property_type` already exists.
     ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_property_type<R>(
         &mut self,
         actor_id: AccountId,
@@ -168,7 +165,7 @@ pub trait PropertyTypeStore {
     /// - if any account referred to by the metadata does not exist.
     /// - if any [`BaseUrl`] of the property type already exists.
     ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
+    /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_property_types<P, R>(
         &mut self,
         actor_id: AccountId,

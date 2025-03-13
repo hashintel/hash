@@ -119,11 +119,14 @@ pub fn validate_unique(values: &[String]) -> Result<(), Report<ValidationError>>
 
 ### Function Documentation
 
-- Describe what the function does and why you would use it
-- Document parameters and return values inline as part of the main description
-- Avoid explicit "Parameters" and "Returns" sections
-- Use clear language about what the function returns
+- Begin with a clear, single-line summary of what the function does
+- Include a detailed description of the function's behavior
+- For simple functions (0-2 parameters), describe parameters inline in the main description
+- For complex functions (3+ parameters), use an explicit "# Arguments" section with bullet points
+- Always describe return values in the main description text, not in a separate "# Returns" section
 - Link to relevant types using intra-doc links
+
+For simple functions:
 
 ```rust
 /// Processes the input elements and returns a filtered collection.
@@ -131,6 +134,28 @@ pub fn validate_unique(values: &[String]) -> Result<(), Report<ValidationError>>
 /// Takes a collection of `input` elements, applies the `filter_fn` predicate
 /// to each, and returns a [`Vec`] containing only the elements that passed
 /// the filter condition.
+```
+
+For complex functions:
+
+```rust
+/// Merges multiple data sources and applies transformation rules.
+///
+/// This function combines data from various sources, applies the specified
+/// transformation rules, and returns a unified data structure. The process  
+/// preserves metadata from all sources when possible.
+///
+/// # Arguments
+///
+/// * `sources` - Collection of data sources to merge
+/// * `rules` - Transformation rules to apply during merging
+/// * `options` - Configuration options controlling the merge behavior
+/// * `callback` - Optional function called for each merged item
+///
+/// # Errors
+///
+/// - [`SourceError`] if any data source cannot be accessed
+/// - [`RuleError`] if transformation rules are invalid
 ```
 
 ### Type Documentation
@@ -219,19 +244,37 @@ pub trait EntityStore: Send + Sync {
 
 ### Trait Implementation Documentation
 
-- Don't create documentation for trait implementations unless it adds more information than the trait documentation itself
-- Only document trait implementations when:
+- Don't create documentation for trait implementations, conversions, or trait-derived functions if upstream documentation already exists
+- Skip documentation for standard trait implementations like `From`, `Display`, `Debug`, `Serialize`, etc. unless your implementation has unique behavior
+- Only document implementations when:
   - The implementation has specific behavior beyond the trait's definition
   - There are performance considerations users should be aware of
   - The implementation has different failure modes or edge cases
   - The implementation provides additional functionality beyond the trait contract
 
 ```rust
-// Good Practice (No redundant docs)
-// No documentation here since it doesn't add any new information
-impl Default for Config {
-    fn default() -> Self {
+// Good: No documentation needed for standard traits
+impl Debug for MyType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // implementation...
+    }
+}
+
+// Good: No documentation needed for standard conversions
+impl From<MyType> for String {
+    fn from(value: MyType) -> Self {
+        // implementation...
+    }
+}
+
+// Good: Documentation needed due to special behavior
+/// Custom serialization that handles legacy formats.
+///
+/// This implementation supports both the current schema and the deprecated v1 format
+/// to maintain backward compatibility with older data.
+impl Serialize for ComplexType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        // implementation with special behavior...
     }
 }
 ```

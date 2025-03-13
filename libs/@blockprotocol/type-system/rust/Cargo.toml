@@ -14,16 +14,19 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true, features = ["unstable"] }
-hash-codec  = { workspace = true, public = true, features = ["serde", "numeric"] }
+error-stack                    = { workspace = true, public = true, features = ["unstable"] }
+hash-codec                     = { workspace = true, public = true, features = ["serde", "numeric"] }
+hash-graph-temporal-versioning = { workspace = true, public = true }
 
 # Public third-party dependencies
 bytes            = { workspace = true, public = true }
 email_address    = { workspace = true, public = true }
 iso8601-duration = { workspace = true, public = true }
 postgres-types   = { workspace = true, public = true, features = ["derive", "with-uuid-1", "with-serde_json-1"], optional = true }
+semver           = { workspace = true, public = true, features = ["serde"] }
 serde_json       = { workspace = true, public = true }
-url              = { workspace = true, public = true }
+time             = { workspace = true, public = true, features = ["serde"] }
+url              = { workspace = true, public = true, features = ["serde"] }
 utoipa           = { workspace = true, public = true, features = ["url"], optional = true }
 uuid             = { workspace = true, public = true, features = ["v5", "serde", "std"] }
 
@@ -45,8 +48,8 @@ pretty_assertions    = { workspace = true }
 tokio                = { workspace = true, features = ["macros", "rt"] }
 
 [features]
-postgres = ["dep:postgres-types"]
-utoipa   = ["dep:utoipa"]
+postgres = ["dep:postgres-types", "hash-graph-temporal-versioning/postgres"]
+utoipa   = ["dep:utoipa", "hash-graph-temporal-versioning/utoipa"]
 
 [lints]
 workspace = true

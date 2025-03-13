@@ -52,6 +52,31 @@ The rules in `.cursor/rules/*` contain detailed guidelines for:
 
 These full guidelines contain critical nuances and details that cannot be summarized. Reading the complete rules is essential for ensuring code quality and consistency.
 
+## Documentation Best Practices
+
+When documenting Rust code, follow these guidelines:
+
+1. **Function Documentation Structure**:
+   - Begin with a clear, single-line summary of what the function does
+   - Include a detailed description of the function's behavior
+   - For simple functions (0-2 parameters), describe parameters inline in the main description
+   - For complex functions (3+ parameters), use an explicit "# Arguments" section with bullet points
+   - Always describe return values in the main description text, not in a separate section
+   - Document error conditions with an explicit "# Errors" section
+
+2. **Type Documentation**:
+   - Begin with a clear, single-line summary of what the type represents
+   - Explain the type's purpose, invariants, and usage patterns
+   - Document struct fields with field-level doc comments
+   - Document enum variants clearly
+
+3. **Examples**:
+   - Include practical examples for public APIs
+   - Ensure examples compile and demonstrate typical usage patterns
+   - For complex types/functions, show multiple usage scenarios
+
+This balanced approach maintains readability while providing necessary structure for complex APIs.
+
 ## Creating code context in Rust
 
 To get an idea about an API in rust, the easiest way is to generate it's documentation:

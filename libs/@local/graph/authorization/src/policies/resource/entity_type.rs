@@ -4,9 +4,11 @@ use std::sync::LazyLock;
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
-use hash_graph_types::owned_by_id::OwnedById;
 use smol_str::SmolStr;
-use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
+use type_system::{
+    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    web::OwnedById,
+};
 
 use crate::policies::cedar::CedarEntityId;
 
@@ -213,9 +215,8 @@ impl EntityTypeResourceConstraint {
 mod tests {
     use core::{error::Error, str::FromStr as _};
 
-    use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
     use serde_json::json;
-    use type_system::url::VersionedUrl;
+    use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
     use uuid::Uuid;
 
     use super::{EntityTypeId, EntityTypeResourceConstraint};

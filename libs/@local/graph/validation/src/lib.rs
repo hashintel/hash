@@ -18,7 +18,7 @@ use core::{borrow::Borrow, error::Error};
 
 use error_stack::Report;
 use hash_graph_store::entity::ValidateEntityComponents;
-use hash_graph_types::knowledge::entity::{Entity, EntityId};
+use type_system::knowledge::{Entity, entity::EntityId};
 
 pub trait Validate<S, C> {
     type Report: Send + Sync;
@@ -55,37 +55,44 @@ mod tests {
         ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp,
     };
     use hash_graph_types::{
-        account::{AccountId, EditionCreatedById},
-        knowledge::{
-            entity::{ActorType, OriginProvenance, OriginType},
-            property::{
-                Property, PropertyMetadata, PropertyObject, PropertyProvenance,
-                PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
-                ValueMetadata,
-                error::install_error_stack_hooks,
-                visitor::{
-                    EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
-                    ValueValidationReport,
-                },
+        account::AccountId,
+        knowledge::property::{
+            error::install_error_stack_hooks,
+            visitor::{
+                EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
+                ValueValidationReport,
             },
         },
-        ontology::{
-            DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
-            OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
-            OntologyTypeProvider, OntologyTypeRecordId, ProvidedOntologyEditionProvenance,
-        },
-        owned_by_id::OwnedById,
+        ontology::{DataTypeLookup, OntologyTypeProvider},
     };
     use serde::Deserialize as _;
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{
-        schema::{
-            ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConversionExpression,
-            DataType, DataTypeReference, DataTypeUuid, EntityType, EntityTypeUuid,
-            OntologyTypeResolver, PropertyType,
+        knowledge::{
+            property::{
+                Property, PropertyObject, PropertyWithMetadata, PropertyWithMetadataObject,
+                PropertyWithMetadataValue, metadata::PropertyMetadata,
+            },
+            value::{ValueMetadata, metadata::ValueProvenance},
         },
-        url::{BaseUrl, VersionedUrl},
+        ontology::{
+            DataTypeWithMetadata, OntologyTemporalMetadata,
+            data_type::{
+                ClosedDataType, ConversionExpression, DataType, DataTypeMetadata, DataTypeUuid,
+                schema::DataTypeReference,
+            },
+            entity_type::{ClosedEntityType, ClosedMultiEntityType, EntityType, EntityTypeUuid},
+            id::{BaseUrl, OntologyTypeRecordId, VersionedUrl},
+            json_schema::OntologyTypeResolver,
+            property_type::PropertyType,
+            provenance::{
+                OntologyEditionProvenance, OntologyOwnership, OntologyProvenance,
+                ProvidedOntologyEditionProvenance,
+            },
+        },
+        provenance::{ActorType, EditionCreatedById, OriginProvenance, OriginType},
+        web::OwnedById,
     };
     use uuid::Uuid;
 
@@ -96,7 +103,7 @@ mod tests {
         DataTypeWithMetadata {
             metadata: DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(schema.id.clone()),
-                classification: OntologyTypeClassificationMetadata::Owned {
+                ownership: OntologyOwnership::Local {
                     owned_by_id: OwnedById::new(actor.into_uuid()),
                 },
                 temporal_versioning: OntologyTemporalMetadata {
@@ -107,7 +114,7 @@ mod tests {
                 },
                 provenance: OntologyProvenance {
                     edition: OntologyEditionProvenance {
-                        created_by_id: EditionCreatedById::new(actor),
+                        created_by_id: EditionCreatedById::new(actor.into_uuid()),
                         archived_by_id: None,
                         user_defined: ProvidedOntologyEditionProvenance {
                             actor_type: ActorType::Human,
@@ -435,7 +442,7 @@ mod tests {
         let mut metadata = ValueMetadata {
             data_type_id: Some(data_type_ref.url.clone()),
             original_data_type_id: Some(data_type_ref.url.clone()),
-            provenance: PropertyProvenance::default(),
+            provenance: ValueProvenance::default(),
             confidence: None,
             canonical: HashMap::default(),
         };

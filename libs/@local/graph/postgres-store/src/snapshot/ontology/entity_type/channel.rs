@@ -14,11 +14,13 @@ use futures::{
 use hash_graph_authorization::schema::EntityTypeRelationAndSubject;
 use type_system::{
     Valid, Validator as _,
-    schema::{
-        ClosedEntityType, EntityConstraints, EntityTypeUuid, EntityTypeValidator,
-        InverseEntityTypeMetadata,
+    ontology::{
+        entity_type::{
+            ClosedEntityType, EntityTypeUuid,
+            schema::{EntityConstraints, EntityTypeValidator, InverseEntityTypeMetadata},
+        },
+        id::{OntologyTypeVersion, VersionedUrl},
     },
-    url::{OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::{
@@ -76,7 +78,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .start_send_unpin(OntologyTypeMetadata {
                 ontology_id: ontology_id.into(),
                 record_id: entity_type.metadata.record_id,
-                classification: entity_type.metadata.classification,
+                ownership: entity_type.metadata.ownership,
                 temporal_versioning: entity_type.metadata.temporal_versioning,
                 provenance: entity_type.metadata.provenance,
             })

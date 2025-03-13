@@ -5,20 +5,25 @@ use error_stack::Report;
 use futures::TryFutureExt as _;
 use hash_graph_authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_graph_types::{
-    account::{AccountId, CreatedById, EditionCreatedById},
+use hash_graph_types::{account::AccountId, knowledge::entity::EntityEmbedding};
+use serde::{Deserialize, Serialize};
+use type_system::{
     knowledge::{
-        Confidence, EntityTypeIdDiff,
-        entity::{Entity, EntityEmbedding, EntityId, EntityUuid, ProvidedEntityEditionProvenance},
-        link::LinkData,
+        Confidence,
+        entity::{
+            Entity, LinkData,
+            id::{EntityId, EntityUuid},
+            metadata::EntityTypeIdDiff,
+            provenance::ProvidedEntityEditionProvenance,
+        },
         property::{
             PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
         },
     },
-    owned_by_id::OwnedById,
+    ontology::{VersionedUrl, entity_type::ClosedMultiEntityType},
+    provenance::{CreatedById, EditionCreatedById},
+    web::OwnedById,
 };
-use serde::{Deserialize, Serialize};
-use type_system::{schema::ClosedMultiEntityType, url::VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     ToSchema,
@@ -351,7 +356,7 @@ pub trait EntityStore {
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
-    /// [`EntityType`]: type_system::schema::EntityType
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     fn create_entity<R>(
         &mut self,
         actor_id: AccountId,

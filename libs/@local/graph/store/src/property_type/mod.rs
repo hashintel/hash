@@ -1,3 +1,5 @@
+use type_system::ontology::PropertyTypeWithMetadata;
+
 pub(crate) use self::query::PropertyTypeQueryPathVisitor;
 pub use self::{
     query::{PropertyTypeQueryPath, PropertyTypeQueryToken},
@@ -11,8 +13,6 @@ pub use self::{
 
 mod query;
 mod store;
-
-use hash_graph_types::ontology::PropertyTypeWithMetadata;
 
 use crate::filter::QueryRecord;
 

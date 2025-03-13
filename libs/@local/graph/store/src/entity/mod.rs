@@ -25,7 +25,7 @@ mod query;
 mod store;
 mod validation_report;
 
-use hash_graph_types::knowledge::entity::Entity;
+use type_system::knowledge::Entity;
 
 use crate::filter::QueryRecord;
 

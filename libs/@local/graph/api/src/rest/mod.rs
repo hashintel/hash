@@ -14,7 +14,6 @@ pub mod web;
 mod api_resource;
 mod json;
 mod utoipa_typedef;
-
 use alloc::{borrow::Cow, sync::Arc};
 use core::str::FromStr as _;
 use std::{fs, io, time::Instant};
@@ -66,16 +65,7 @@ use hash_graph_temporal_versioning::{
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
 };
 use hash_graph_type_fetcher::TypeFetcher;
-use hash_graph_types::{
-    account::{AccountGroupId, AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
-    knowledge::entity::EntityId,
-    ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
-        OntologyTypeReference, PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
-};
+use hash_graph_types::account::{AccountGroupId, AccountId};
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
@@ -83,8 +73,20 @@ use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
-    schema::DomainValidator,
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    knowledge::entity::EntityId,
+    ontology::{
+        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        data_type::DataTypeMetadata,
+        entity_type::EntityTypeMetadata,
+        id::{BaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl},
+        json_schema::DomainValidator,
+        property_type::PropertyTypeMetadata,
+        provenance::{
+            OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
+        },
+    },
+    provenance::{CreatedById, EditionArchivedById, EditionCreatedById},
+    web::OwnedById,
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,

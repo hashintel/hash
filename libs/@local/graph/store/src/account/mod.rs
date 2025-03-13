@@ -1,11 +1,9 @@
 use error_stack::Report;
 use hash_graph_authorization::schema::WebOwnerSubject;
-use hash_graph_types::{
-    account::{AccountGroupId, AccountId},
-    owned_by_id::OwnedById,
-};
+use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use type_system::web::OwnedById;
 
 fn random_account_id() -> AccountId {
     AccountId::new(uuid::Uuid::new_v4())

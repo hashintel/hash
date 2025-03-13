@@ -17,9 +17,12 @@ use hash_graph_authorization::policies::{
         EntityTypeResourceFilter, ResourceConstraint,
     },
 };
-use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
 use pretty_assertions::assert_eq;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    ontology::{BaseUrl, VersionedUrl},
+    web::OwnedById,
+};
 use uuid::Uuid;
 
 #[track_caller]

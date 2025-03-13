@@ -14,21 +14,20 @@ use hash_graph_store::{
     },
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::{
-    knowledge::{
-        entity::{ActorType, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
-        property::{
-            PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyProvenance,
-            PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
-            ValueMetadata,
-        },
-    },
-    owned_by_id::OwnedById,
-};
 use pretty_assertions::assert_eq;
 use type_system::{
-    Value,
-    url::{BaseUrl, VersionedUrl},
+    knowledge::{
+        Value,
+        entity::provenance::ProvidedEntityEditionProvenance,
+        property::{
+            PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyWithMetadata,
+            PropertyWithMetadataObject, PropertyWithMetadataValue,
+        },
+        value::{ValueMetadata, metadata::ValueProvenance},
+    },
+    ontology::{BaseUrl, VersionedUrl},
+    provenance::{ActorType, OriginProvenance, OriginType},
+    web::OwnedById,
 };
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
@@ -132,7 +131,7 @@ async fn properties_add() {
                             confidence: None,
                             data_type_id: None,
                             original_data_type_id: None,
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             canonical: HashMap::default(),
                         },
                     }),
@@ -145,7 +144,7 @@ async fn properties_add() {
                             confidence: None,
                             data_type_id: None,
                             original_data_type_id: None,
-                            provenance: PropertyProvenance::default(),
+                            provenance: ValueProvenance::default(),
                             canonical: HashMap::default(),
                         },
                     }),
@@ -338,7 +337,7 @@ async fn properties_replace() {
                         confidence: None,
                         data_type_id: None,
                         original_data_type_id: None,
-                        provenance: PropertyProvenance::default(),
+                        provenance: ValueProvenance::default(),
                         canonical: HashMap::default(),
                     },
                 }),

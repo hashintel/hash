@@ -13,34 +13,36 @@ use hash_graph_store::entity::{
     ValidateEntityComponents,
 };
 use hash_graph_types::{
-    knowledge::{
-        entity::{Entity, EntityId},
-        link::LinkData,
-        property::{
-            PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
-            PropertyWithMetadataValue, ValueMetadata,
-            visitor::{
-                ArrayItemNumberMismatch, ArrayValidationReport, ConversionRetrieval,
-                DataTypeCanonicalCalculation, DataTypeConversionError, DataTypeInferenceError,
-                DataTypeRetrieval, EntityVisitor, JsonSchemaValueTypeMismatch,
-                ObjectPropertyValidationReport, ObjectValidationReport,
-                OneOfPropertyValidationReports, ValueValidationError, ValueValidationReport,
-                walk_array, walk_object, walk_one_of_property_value,
-            },
-        },
+    knowledge::property::visitor::{
+        ArrayItemNumberMismatch, ArrayValidationReport, ConversionRetrieval,
+        DataTypeCanonicalCalculation, DataTypeConversionError, DataTypeInferenceError,
+        DataTypeRetrieval, EntityVisitor, JsonSchemaValueTypeMismatch,
+        ObjectPropertyValidationReport, ObjectValidationReport, OneOfPropertyValidationReports,
+        ValueValidationError, ValueValidationReport, walk_array, walk_object,
+        walk_one_of_property_value,
     },
     ontology::{DataTypeLookup, OntologyTypeProvider},
 };
 use thiserror::Error;
 use type_system::{
-    Value,
-    schema::{
-        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConstraintValidator as _,
-        DataTypeReference, JsonSchemaValueType, PropertyObjectSchema, PropertyType,
-        PropertyTypeReference, PropertyValueArray, PropertyValueSchema, PropertyValues,
-        ValueOrArray,
+    knowledge::{
+        entity::{Entity, EntityId, LinkData},
+        property::{
+            PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
+            PropertyWithMetadataValue,
+        },
+        value::{Value, ValueMetadata},
     },
-    url::VersionedUrl,
+    ontology::{
+        VersionedUrl,
+        data_type::schema::{ClosedDataType, DataTypeReference},
+        entity_type::schema::{ClosedEntityType, ClosedMultiEntityType},
+        json_schema::{ConstraintValidator as _, JsonSchemaValueType},
+        property_type::schema::{
+            PropertyObjectSchema, PropertyType, PropertyTypeReference, PropertyValueArray,
+            PropertyValueSchema, PropertyValues, ValueOrArray,
+        },
+    },
 };
 
 use crate::{EntityProvider, Validate};
