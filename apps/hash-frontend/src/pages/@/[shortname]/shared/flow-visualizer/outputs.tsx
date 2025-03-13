@@ -40,7 +40,8 @@ import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge
 import { getClosedMultiEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../../shared/get-file-properties";
-import { useSlideStack } from "../../../../shared/slide-stack";
+import { SlideStackProvider } from "../../../../shared/slide-stack";
+import type { SlideItem } from "../../../../shared/slide-stack/types";
 import { ClaimsOutput } from "./outputs/claims-output";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
@@ -284,6 +285,12 @@ type OutputsProps = {
   relevantEntityIds: EntityId[];
 };
 
+/**
+ * The Outputs component displays the results of a flow run:
+ * 1. A table or graph view of entities (proposed before they are saved to the database – persisted afterwards)
+ * 2. A list of claims made in relation to entities
+ * 3. Any deliverables produced by the flow (e.g. a spreadsheet or report document)
+ */
 export const Outputs = ({
   persistedEntities,
   proposedEntities,
@@ -337,6 +344,8 @@ export const Outputs = ({
     }),
     [persistedEntities],
   );
+
+  console.log({ proposedEntities });
 
   const {
     data: proposedEntitiesTypesData,
@@ -445,13 +454,23 @@ export const Outputs = ({
     };
   }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
 
-  const { pushToSlideStack } = useSlideStack();
-
-  const handleEntityClick = useCallback(
-    (selectedEntityId: EntityId) => {
-      if (!selectedFlowRun?.webId) {
-        return undefined;
+  /**
+   * Because proposed entities are not in the database, we need to use a custom SlideStackProvider,
+   * so that when entities are clicked in the result table/graph, we can intercept the click and
+   * build a mock subgraph to provide to the entity slide.
+   *
+   * This function rewrites the slide item to add the subgraph to proposed entities.
+   *
+   * @param item The slide item to potentially modify
+   * @returns The modified slide item with a subgraph for proposed entities, or the original item for persisted entities
+   */
+  const rewriteSlideItemOverride = useCallback(
+    (item: SlideItem): SlideItem => {
+      if (item.kind !== "entity") {
+        return item;
       }
+
+      const selectedEntityId = item.itemId;
 
       const persistedEntity = persistedEntities.find(
         ({ entity }) =>
@@ -459,87 +478,80 @@ export const Outputs = ({
           new Entity(entity).metadata.recordId.entityId === selectedEntityId,
       );
 
+      // If it's a persisted entity, no need to modify the slide item. The slide will get it from the database.
       if (persistedEntity) {
-        pushToSlideStack({
-          kind: "entity",
-          itemId: selectedEntityId,
-        });
-        return;
+        return item;
       }
 
       const proposedEntity = proposedEntities.find(
         (entity) => entity.localEntityId === selectedEntityId,
       );
 
-      if (proposedEntity) {
-        if (!proposedEntitiesTypesInfo) {
-          return undefined;
-        }
-
-        const mockedEntity = mockEntityFromProposedEntity(proposedEntity);
-
-        // We need to build a subgraph for the entity slide, which includes the entity and linked entities among the proposed entities
-        const now = new Date().toISOString();
-
-        const mockSubgraph = buildSubgraph(
-          {
-            dataTypes: [],
-            propertyTypes: [],
-            entityTypes: [],
-
-            entities: proposedEntities.map((entity) =>
-              entity.localEntityId === selectedEntityId
-                ? mockedEntity
-                : mockEntityFromProposedEntity(entity),
-            ),
-          },
-          [mockedEntity.metadata.recordId],
-          {
-            ...zeroedGraphResolveDepths,
-            hasLeftEntity: {
-              outgoing: 1,
-              incoming: 1,
-            },
-            hasRightEntity: {
-              outgoing: 1,
-              incoming: 1,
-            },
-          },
-          {
-            initial: currentTimeInstantTemporalAxes,
-            resolved: {
-              pinned: {
-                axis: "transactionTime",
-                timestamp: now,
-              },
-              variable: {
-                axis: "decisionTime",
-                interval: {
-                  start: {
-                    kind: "inclusive",
-                    limit: new Date(0).toISOString(),
-                  },
-                  end: { kind: "inclusive", limit: now },
-                },
-              },
-            },
-          },
-        ) as unknown as Subgraph<EntityRootType>;
-
-        pushToSlideStack({
-          kind: "entity",
-          itemId: selectedEntityId,
-          proposedEntitySubgraph: mockSubgraph,
-        });
+      if (!proposedEntity) {
+        // Return the original item if the proposed entity is not found
+        return item;
       }
+
+      if (!proposedEntitiesTypesInfo) {
+        // Return the original item if entity types info is not available yet
+        return item;
+      }
+
+      const mockedEntity = mockEntityFromProposedEntity(proposedEntity);
+
+      // Build a subgraph for the entity slide, which includes the entity and linked entities among the proposed entities
+      const now = new Date().toISOString();
+
+      const mockSubgraph = buildSubgraph(
+        {
+          dataTypes: [],
+          propertyTypes: [],
+          entityTypes: [],
+          entities: proposedEntities.map((entity) =>
+            entity.localEntityId === selectedEntityId
+              ? mockedEntity
+              : mockEntityFromProposedEntity(entity),
+          ),
+        },
+        [mockedEntity.metadata.recordId],
+        {
+          ...zeroedGraphResolveDepths,
+          hasLeftEntity: {
+            outgoing: 1,
+            incoming: 1,
+          },
+          hasRightEntity: {
+            outgoing: 1,
+            incoming: 1,
+          },
+        },
+        {
+          initial: currentTimeInstantTemporalAxes,
+          resolved: {
+            pinned: {
+              axis: "transactionTime",
+              timestamp: now,
+            },
+            variable: {
+              axis: "decisionTime",
+              interval: {
+                start: {
+                  kind: "inclusive",
+                  limit: new Date(0).toISOString(),
+                },
+                end: { kind: "inclusive", limit: now },
+              },
+            },
+          },
+        },
+      ) as unknown as Subgraph<EntityRootType>;
+
+      return {
+        ...item,
+        proposedEntitySubgraph: mockSubgraph,
+      };
     },
-    [
-      persistedEntities,
-      proposedEntitiesTypesInfo,
-      proposedEntities,
-      pushToSlideStack,
-      selectedFlowRun?.webId,
-    ],
+    [persistedEntities, proposedEntities, proposedEntitiesTypesInfo],
   );
 
   useEffect(() => {
@@ -600,7 +612,7 @@ export const Outputs = ({
   }, [persistedEntities, proposedEntities]);
 
   return (
-    <>
+    <SlideStackProvider rewriteSlideItemOverride={rewriteSlideItemOverride}>
       <Box position="relative">
         <Stack
           alignItems="center"
@@ -673,13 +685,6 @@ export const Outputs = ({
                 !persistedEntitiesSubgraph &&
                 !proposedEntitiesTypesInfo
               }
-              onEntityClick={handleEntityClick}
-              onEntityTypeClick={(entityTypeId) => {
-                pushToSlideStack({
-                  kind: "entityType",
-                  itemId: entityTypeId,
-                });
-              }}
               persistedEntities={persistedEntities}
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
               persistedEntitiesTypesInfo={persistedEntitiesTypesInfo}
@@ -693,26 +698,16 @@ export const Outputs = ({
                 persistedEntitiesTypesInfo?.closedMultiEntityTypes ??
                 proposedEntitiesTypesInfo?.closedMultiEntityTypes
               }
-              onEntityClick={handleEntityClick}
-              onEntityTypeClick={(entityTypeId) => {
-                pushToSlideStack({
-                  kind: "entityType",
-                  itemId: entityTypeId,
-                });
-              }}
               entities={entitiesForGraph}
             />
           ))}
         {visibleSection === "claims" && (
-          <ClaimsOutput
-            onEntityClick={handleEntityClick}
-            proposedEntities={proposedEntities}
-          />
+          <ClaimsOutput proposedEntities={proposedEntities} />
         )}
         {visibleSection === "deliverables" && (
           <Deliverables deliverables={deliverables} />
         )}
       </Stack>
-    </>
+    </SlideStackProvider>
   );
 };
