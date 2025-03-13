@@ -4460,7 +4460,7 @@
       },
       "Entity": {
         "type": "object",
-        "description": "A record of an [`Entity`] that has been persisted in the datastore, with its associated\nmetadata.",
+        "description": "A record of an entity that has been persisted in the datastore, with its associated metadata.\n\nAn [`Entity`] represents a real-world object, concept, or thing within the knowledge graph.\nIt contains structured data in the form of properties, optional link data for establishing\nrelationships with other entities, and comprehensive metadata that describes the entity's\nprovenance, types, temporal information, and more.\n\nEach entity is an instance of one or more [`EntityType`]s defined in the ontology. The\nrelationship is similar to objects and classes in object-oriented programming:\n- [`EntityType`]s define the schema, structure, and constraints that entities must follow\n- [`Entity`] instances contain actual data conforming to those schemas\n\nAn entity:\n- Is identified by a unique [`EntityId`]\n- Has one or more [`VersionedUrl`]s in its `entity_type_ids` field linking to its types\n- Contains a set of properties structured according to the schemas defined in its types\n- May have links to other entities, establishing relationships in the knowledge graph\n- Includes comprehensive metadata for tracking provenance, versioning, and confidence\n\n[`EntityType`]: crate::ontology::entity_type::EntityType\n[`VersionedUrl`]: crate::ontology::VersionedUrl",
         "required": [
           "properties",
           "metadata"
@@ -4643,6 +4643,7 @@
       },
       "EntityMetadata": {
         "type": "object",
+        "description": "Comprehensive metadata for an entity in the knowledge graph.\n\n[`EntityMetadata`] contains essential information about an entity beyond its properties,\nincluding its identity, temporal versioning, type information, provenance, and confidence.\nThis metadata provides context for interpreting and validating the entity's properties.",
         "required": [
           "recordId",
           "temporalVersioning",
@@ -4652,7 +4653,8 @@
         ],
         "properties": {
           "archived": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether this entity has been archived.\n\nArchived entities are generally not included in regular queries but remain\nin the system for historical purposes.\n\nNote, that this will be replaced by cutting off the temporal versioning interval at the\ncurrent transaction time in the future. This is a stopgap measure to ensure that archived\nentities are possible at the time of writing."
           },
           "confidence": {
             "allOf": [
@@ -4665,7 +4667,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VersionedUrl"
-            }
+            },
+            "description": "The set of entity types this entity conforms to.\n\nEach entity must conform to at least one entity type, and may conform to multiple\ntypes simultaneously."
           },
           "properties": {
             "$ref": "#/components/schemas/PropertyMetadataObject"
@@ -4963,6 +4966,7 @@
       },
       "EntityTemporalMetadata": {
         "type": "object",
+        "description": "Temporal metadata for tracking entity versions over time.\n\n[`EntityTemporalMetadata`] tracks two distinct time dimensions:\n- Decision time: When the entity was decided to exist in the real world\n- Transaction time: When the entity was recorded in the system\n\nThis bi-temporal approach allows precise tracking of when information was known\nversus when it was recorded, enabling accurate historical queries.",
         "required": [
           "decisionTime",
           "transactionTime"
@@ -8417,13 +8421,17 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Property"
-            }
+            },
+            "description": "An ordered collection of properties.\n\nArrays can contain heterogeneous property types, though typically they\ncontain properties of the same structure based on the entity type definition."
           },
           {
             "$ref": "#/components/schemas/PropertyObject"
           },
-          {}
-        ]
+          {
+            "description": "A primitive value such as a string, number, boolean, etc.\n\nValues represent the atomic units of data in the property system."
+          }
+        ],
+        "description": "Structured data that can be associated with an entity, conforming to property types defined in\nthe ontology.\n\nThe [`Property`] enum represents the hierarchical structure of data within an entity.\nProperties are instances of [`PropertyType`]s defined in the ontology. The relationship\nis similar to objects and classes in object-oriented programming:\n- [`PropertyType`]s define the schema, structure, and constraints that properties must follow\n- [`Property`] instances contain actual data conforming to those schemas\n\nProperties can be:\n\n- Arrays of other properties\n- Objects (maps) with property type URLs as keys and nested properties as values\n- Primitive values like strings, numbers, booleans, etc.\n\nEach property in an entity:\n- Corresponds to a specific [`PropertyType`] in the ontology\n- May have associated metadata tracking provenance, confidence, and other contextual information\n- Must satisfy the validation rules defined in its property type\n- Can be addressed using a [`PropertyPath`] for targeted access and modification\n\nProperties form the backbone of entity data representation in the system, allowing\nfor flexible and structured knowledge organization that aligns with the ontology.\n\n[`PropertyType`]: crate::ontology::property_type::PropertyType"
       },
       "PropertyArrayValidationReport": {
         "oneOf": [
@@ -8472,6 +8480,7 @@
         "oneOf": [
           {
             "type": "object",
+            "description": "A property was added at the specified path.\n\nThis variant indicates that a property that didn't exist in the original\nstructure was added in the new one.",
             "required": [
               "path",
               "added",
@@ -8494,6 +8503,7 @@
           },
           {
             "type": "object",
+            "description": "A property was removed from the specified path.\n\nThis variant indicates that a property that existed in the original\nstructure was removed in the new one.",
             "required": [
               "path",
               "removed",
@@ -8516,6 +8526,7 @@
           },
           {
             "type": "object",
+            "description": "A property at the specified path changed value.\n\nThis variant indicates that a property existed in both structures\nbut had different values.",
             "required": [
               "path",
               "old",
@@ -8541,6 +8552,7 @@
             }
           }
         ],
+        "description": "A representation of a difference between two property structures.\n\n[`PropertyDiff`] captures the nature of a change between two property values,\nincluding the path where the change occurred and the relevant property values\n(added, removed, or changed). This structure enables precise tracking of\nproperty modifications throughout the system.\n\nWhen comparing two property hierarchies, multiple diffs may be generated to\nrepresent all changes, with each diff capturing a specific modification at a\nparticular path.",
         "discriminator": {
           "propertyName": "op"
         }
@@ -8550,6 +8562,7 @@
           {
             "type": "object",
             "title": "PropertyMetadataArray",
+            "description": "Metadata for an array property, containing element-level and array-level metadata.",
             "required": [
               "value"
             ],
@@ -8561,13 +8574,15 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/PropertyMetadata"
-                }
+                },
+                "description": "Metadata for each element in the array.\n\nThe position of each metadata entry corresponds to the position of the\nelement in the property array."
               }
             }
           },
           {
             "type": "object",
             "title": "PropertyMetadataObject",
+            "description": "Metadata for an object property, containing field-level and object-level metadata.",
             "required": [
               "value"
             ],
@@ -8577,6 +8592,7 @@
               },
               "value": {
                 "type": "object",
+                "description": "Metadata for each field in the object.\n\nThe keys correspond to the property type URLs used in the object property.",
                 "additionalProperties": {
                   "$ref": "#/components/schemas/PropertyMetadata"
                 }
@@ -8586,6 +8602,7 @@
           {
             "type": "object",
             "title": "PropertyMetadataValue",
+            "description": "Metadata for a primitive value property.",
             "required": [
               "metadata"
             ],
@@ -8595,7 +8612,8 @@
               }
             }
           }
-        ]
+        ],
+        "description": "Metadata for property values, structured to match the hierarchical nature of properties.\n\n[`PropertyMetadata`] follows the same structure as the [`Property`] enum, providing\nmetadata for arrays, objects, and values. This parallel structure ensures that\nevery property element can have associated metadata regardless of its type.\n\nThe metadata at each level includes relevant information like provenance, confidence,\nand type references, allowing for fine-grained tracking of data origins and reliability.\n\n[`Property`]: crate::knowledge::property::Property"
       },
       "PropertyMetadataObject": {
         "type": "object",
@@ -8750,9 +8768,11 @@
           },
           {
             "type": "integer",
+            "description": "An array index that addresses a specific element in an array property.",
             "minimum": 0
           }
-        ]
+        ],
+        "description": "An element in a property path that identifies a specific property location.\n\n[`PropertyPathElement`] represents a single step in navigating a property hierarchy,\naddressing either:\n- A specific property by its type URL (for object properties)\n- A specific index (for array properties)\n\nThese elements can be chained together to form a [`PropertyPath`] that addresses\ndeeply nested properties within the property hierarchy."
       },
       "PropertyProvenance": {
         "type": "object",
@@ -9233,7 +9253,8 @@
           {
             "$ref": "#/components/schemas/PropertyWithMetadataValue"
           }
-        ]
+        ],
+        "description": "Property data combined with its corresponding metadata.\n\n[`PropertyWithMetadata`] pairs each property with its metadata, maintaining the same\nhierarchical structure. This unified representation enables operations that need to\nmodify both properties and their metadata consistently, such as patching operations.\n\nThe structure mirrors the [`Property`] enum, with specialized types for arrays, objects,\nand values that maintain metadata at each level of the hierarchy."
       },
       "PropertyWithMetadataArray": {
         "type": "object",
@@ -9273,6 +9294,7 @@
       },
       "PropertyWithMetadataValue": {
         "type": "object",
+        "description": "A primitive value with its associated metadata.\n\n[`PropertyWithMetadataValue`] combines a [`Value`] (such as a string, number, or boolean)\nwith its [`ValueMetadata`] containing provenance, confidence, and type information.\n\nThis structure is used as the leaf node in the [`PropertyWithMetadata`] hierarchy,\nrepresenting atomic data values with their context.\n\n[`PropertyWithMetadata`]: crate::knowledge::property::PropertyWithMetadata",
         "required": [
           "value",
           "metadata"
@@ -9281,7 +9303,9 @@
           "metadata": {
             "$ref": "#/components/schemas/ValueMetadata"
           },
-          "value": {}
+          "value": {
+            "description": "The primitive value data, such as a string, number, or boolean."
+          }
         },
         "additionalProperties": false
       },
