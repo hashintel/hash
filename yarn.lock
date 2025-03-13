@@ -376,7 +376,7 @@ __metadata:
     "@ory/client": "npm:1.1.41"
     "@ory/hydra-client": "npm:2.2.1"
     "@ory/kratos-client": "npm:1.0.0"
-    "@rudderstack/rudder-sdk-node": "npm:2.1.2"
+    "@rudderstack/rudder-sdk-node": "npm:2.1.3"
     "@sentry/node": "npm:7.120.3"
     "@snowplow/node-tracker": "npm:3.24.6"
     "@temporalio/client": "npm:1.11.7"
@@ -12396,11 +12396,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rudderstack/rudder-sdk-node@npm:2.1.2":
-  version: 2.1.2
-  resolution: "@rudderstack/rudder-sdk-node@npm:2.1.2"
+"@rudderstack/rudder-sdk-node@npm:2.1.3":
+  version: 2.1.3
+  resolution: "@rudderstack/rudder-sdk-node@npm:2.1.3"
   dependencies:
-    axios: "npm:1.7.8"
+    axios: "npm:1.8.2"
     axios-retry: "npm:4.5.0"
     bull: "npm:4.16.4"
     component-type: "npm:2.0.0"
@@ -12417,7 +12417,7 @@ __metadata:
   dependenciesMeta:
     bull:
       optional: true
-  checksum: 10c0/4fe0c3e1fc1f39620c0bd4508eda1433a558da254aa625f0f90653fdd8b6888ce84cdc6b5f0a1f01e89e8911a74f8fb80419a9e7c91fb3255b73b35c4bd29a82
+  checksum: 10c0/c5f4c53d0f8c7792a05b2a7476ac42be0c05d8ed559f2f17ad1c0717f2d2559b46699bf5c7260d7193dc39e6d3ba2580082ad25da1807359ebade78fe0da4b69
   languageName: node
   linkType: hard
 
@@ -20613,17 +20613,6 @@ __metadata:
   peerDependencies:
     axios: 0.x || 1.x
   checksum: 10c0/574e7b1bf24aad99b560042d232a932d51bfaa29b5a6d4612d748ed799a6f11a5afb2582792492c55d95842200cbdfbe3454027a8c1b9a2d3e895d13c3d03c10
-  languageName: node
-  linkType: hard
-
-"axios@npm:1.7.8":
-  version: 1.7.8
-  resolution: "axios@npm:1.7.8"
-  dependencies:
-    follow-redirects: "npm:^1.15.6"
-    form-data: "npm:^4.0.0"
-    proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/23ae2d0105aea9170c34ac9b6f30d9b2ab2fa8b1370205d2f7ce98b9f9510ab420148c13359ee837ea5a4bf2fb028ff225bd2fc92052fb0c478c6b4a836e2d5f
   languageName: node
   linkType: hard
 
