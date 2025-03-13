@@ -346,16 +346,16 @@ describe("Entity type CRU", () => {
           },
           allOf: [
             {
+              depth: 0,
+              $id: systemEntityTypes.user.entityTypeId,
+              icon: "/icons/types/user.svg",
+            },
+            {
               depth: 1,
               $id: systemEntityTypes.actor.entityTypeId,
               icon: "/icons/types/user.svg",
               labelProperty:
                 "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
-            },
-            {
-              depth: 0,
-              $id: systemEntityTypes.user.entityTypeId,
-              icon: "/icons/types/user.svg",
             },
           ],
         } satisfies ClosedEntityType,
@@ -388,7 +388,9 @@ describe("Entity type CRU", () => {
         },
         temporalAxes: currentTimeInstantTemporalAxes,
       },
-    )) as [ClosedEntityTypeWithMetadata, ...ClosedEntityTypeWithMetadata[]];
+    ));
+    // We don't support sorting for closed types, yet. To consistently compare them we sort them by $id.
+    closedEntityTypes.sort((a, b) => a.schema.$id.localeCompare(b.schema.$id));
 
     const { closedMultiEntityTypes, definitions } =
       await getClosedMultiEntityTypes(graphContext, authentication, {
