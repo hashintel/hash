@@ -5,9 +5,10 @@ import { publicUserAccountId } from "@local/hash-backend-utils/public-user-accou
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
+  ClosedMultiEntityTypeMap,
   EntityTypePermission,
-  GetClosedMultiEntityTypeParams,
-  GetClosedMultiEntityTypeResponse as GetClosedMultiEntityTypeResponseGraphApi,
+  GetClosedMultiEntityTypesParams,
+  GetClosedMultiEntityTypesResponse as GetClosedMultiEntityTypesResponseGraphApi,
   GetEntityTypesParams,
   GetEntityTypeSubgraphParams,
   ModifyRelationshipOperation,
@@ -18,7 +19,6 @@ import type {
 } from "@local/hash-graph-client";
 import type {
   ClosedEntityTypeWithMetadata,
-  ClosedMultiEntityType,
   EntityTypeMetadata,
   EntityTypeResolveDefinitions,
   EntityTypeWithMetadata,
@@ -29,7 +29,6 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   mapGraphApiClosedEntityTypesToClosedEntityTypes,
-  mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType,
   mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
   mapGraphApiEntityTypesToEntityTypes,
   mapGraphApiSubgraphToSubgraph,
@@ -247,24 +246,22 @@ export const getClosedEntityTypes: ImpureGraphFunction<
   }));
 };
 
-export type GetClosedMultiEntityTypeResponse = Omit<
-  GetClosedMultiEntityTypeResponseGraphApi,
-  "entityType" | "definitions"
+export type GetClosedMultiEntityTypesResponse = Omit<
+  GetClosedMultiEntityTypesResponseGraphApi,
+  "entityTypes" | "definitions"
 > & {
-  entityType: ClosedMultiEntityType;
+  closedMultiEntityTypes: Record<string, ClosedMultiEntityTypeMap>;
   definitions?: EntityTypeResolveDefinitions;
 };
 
-export const getClosedMultiEntityType: ImpureGraphFunction<
-  GetClosedMultiEntityTypeParams,
-  Promise<GetClosedMultiEntityTypeResponse>
+export const getClosedMultiEntityTypes: ImpureGraphFunction<
+  GetClosedMultiEntityTypesParams,
+  Promise<GetClosedMultiEntityTypesResponse>
 > = async ({ graphApi }, { actorId }, request) =>
   graphApi
-    .getClosedMultiEntityType(actorId, request)
+    .getClosedMultiEntityTypes(actorId, request)
     .then(({ data: response }) => ({
-      entityType: mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType(
-        response.entityType,
-      ),
+      closedMultiEntityTypes: response.entityTypes,
       definitions: response.definitions
         ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
             response.definitions,

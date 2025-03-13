@@ -28,8 +28,8 @@ use hash_graph_postgres_store::{
 use hash_graph_store::{
     entity_type::{
         ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeQueryToken,
-        EntityTypeResolveDefinitions, EntityTypeStore as _, GetClosedMultiEntityTypeParams,
-        GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams, GetEntityTypesParams,
+        EntityTypeResolveDefinitions, EntityTypeStore as _, GetClosedMultiEntityTypesParams,
+        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypesParams,
         GetEntityTypesResponse, IncludeEntityTypeOption, IncludeResolvedEntityTypeOption,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
@@ -74,7 +74,7 @@ use crate::rest::{
         load_external_entity_type,
         get_entity_types,
         get_entity_type_subgraph,
-        get_closed_multi_entity_type,
+        get_closed_multi_entity_types,
         update_entity_type,
         update_entity_types,
         update_entity_type_embeddings,
@@ -103,9 +103,9 @@ use crate::rest::{
             EntityTypeQueryToken,
             GetEntityTypesParams,
             GetEntityTypesResponse,
-            GetClosedMultiEntityTypeParams,
+            GetClosedMultiEntityTypesParams,
             IncludeEntityTypeOption,
-            GetClosedMultiEntityTypeResponse,
+            GetClosedMultiEntityTypesResponse,
             EntityTypeResolveDefinitions,
             GetEntityTypeSubgraphParams,
             GetEntityTypeSubgraphResponse,
@@ -157,7 +157,7 @@ impl RoutedResource for EntityTypeResource {
                     "/query",
                     Router::new()
                         .route("/", post(get_entity_types::<S, A>))
-                        .route("/multi", post(get_closed_multi_entity_type::<S, A>))
+                        .route("/multi", post(get_closed_multi_entity_types::<S, A>))
                         .route("/subgraph", post(get_entity_type_subgraph::<S, A>)),
                 )
                 .route("/load", post(load_external_entity_type::<S, A>))
@@ -766,7 +766,7 @@ where
 #[utoipa::path(
     post,
     path = "/entity-types/query/multi",
-    request_body = GetClosedMultiEntityTypeParams,
+    request_body = GetClosedMultiEntityTypesParams,
     tag = "EntityType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -775,7 +775,7 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = GetClosedMultiEntityTypeResponse,
+            body = GetClosedMultiEntityTypesResponse,
             description = "Gets a list of multi-entity types that satisfy the given query. A multi-entity type is the combination of multiple entity types.",
         ),
 
@@ -787,14 +787,14 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client, request)
 )]
-async fn get_closed_multi_entity_type<S, A>(
+async fn get_closed_multi_entity_types<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetClosedMultiEntityTypeResponse>, Response>
+) -> Result<Json<GetClosedMultiEntityTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -813,14 +813,18 @@ where
         .await
         .map_err(report_to_response)?;
 
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization
+    // and better error reporting.
+    let params = GetClosedMultiEntityTypesParams::deserialize(&request)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
+
     let response = store
         .get_closed_multi_entity_types(
             actor_id,
-            // Manually deserialize the query from a JSON value to allow borrowed deserialization
-            // and better error reporting.
-            GetClosedMultiEntityTypeParams::deserialize(&request)
-                .map_err(Report::from)
-                .map_err(report_to_response)?,
+            params.entity_type_ids,
+            params.temporal_axes,
+            params.include_resolved,
         )
         .await
         .map_err(report_to_response)

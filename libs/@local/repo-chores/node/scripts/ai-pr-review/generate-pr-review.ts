@@ -115,6 +115,7 @@ type PRReview = z.infer<typeof PRReviewSchema>;
  */
 export const generatePRReview = async ({
   anthropic,
+  attempt = 1,
   commentThreads,
   prOverview,
   prDiff,
@@ -122,12 +123,17 @@ export const generatePRReview = async ({
   previousErrors,
 }: {
   anthropic: Anthropic;
+  attempt?: number;
   commentThreads: ExistingCommentThread[];
   prDiff: string;
   prOverview: string;
   linearTickets: HydratedLinearIssue[];
   previousErrors: string | null;
 }): Promise<PRReview> => {
+  if (attempt > 3) {
+    throw new Error("Too many attempts retrying generatePRReview");
+  }
+
   const generateReviewTool = {
     name: "submit_pr_review",
     description:
@@ -175,12 +181,12 @@ export const generatePRReview = async ({
     )
     .join("\n---\n")}
   </Comments on the PR>
-  
   ${
     previousErrors
       ? `\n\nYour previous review had these errors – please avoid them this time: ${previousErrors}`
       : ""
   }
+  Now please submit your review. Remember that a 'request changes' decision will block merging, and you should specify which of your suggested changes are required and justify your decision.
   `;
 
     const response = await anthropic.messages.create({
@@ -246,6 +252,7 @@ export const generatePRReview = async ({
 
       return generatePRReview({
         anthropic,
+        attempt: attempt + 1,
         commentThreads,
         linearTickets,
         prDiff,
@@ -261,6 +268,7 @@ export const generatePRReview = async ({
 
     return generatePRReview({
       anthropic,
+      attempt: attempt + 1,
       commentThreads,
       linearTickets,
       prDiff,

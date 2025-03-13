@@ -1,4 +1,4 @@
-use alloc::sync::Arc;
+use alloc::{collections::BTreeSet, sync::Arc};
 use core::iter;
 use std::collections::{HashMap, HashSet};
 
@@ -13,12 +13,13 @@ use hash_graph_authorization::{
     zanzibar::{Consistency, Zookie},
 };
 use hash_graph_store::{
+    entity::ClosedMultiEntityTypeMap,
     entity_type::{
         ArchiveEntityTypeParams, ClosedDataTypeDefinition, CountEntityTypesParams,
         CreateEntityTypeParams, EntityTypeQueryPath, EntityTypeResolveDefinitions, EntityTypeStore,
-        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
-        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-        GetEntityTypesResponse, IncludeEntityTypeOption, UnarchiveEntityTypeParams,
+        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams,
+        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
+        IncludeEntityTypeOption, IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
         UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{InsertionError, QueryError, UpdateError},
@@ -537,22 +538,30 @@ where
 
     pub(crate) async fn get_closed_entity_types(
         &self,
-        entity_type_ids: &[EntityTypeUuid],
+        filter: &Filter<'_, EntityTypeWithMetadata>,
+        temporal_axes: QueryTemporalAxesUnresolved,
     ) -> Result<Vec<ClosedEntityType>, Report<QueryError>> {
-        self.as_client()
-            .query_raw(
-                "
-                        SELECT closed_schema FROM entity_types
-                        JOIN unnest($1::uuid[])
-                        WITH ORDINALITY AS filter(id, idx)
-                          ON filter.id = entity_types.ontology_id
-                        ORDER BY filter.idx
-                    ",
-                &[entity_type_ids],
-            )
+        let resolved_temporal_axes = temporal_axes.resolve();
+
+        let mut compiler = SelectCompiler::new(Some(&resolved_temporal_axes), false);
+        compiler.add_filter(filter).change_context(QueryError)?;
+        let closed_schema_idx =
+            compiler.add_selection_path(&EntityTypeQueryPath::ClosedSchema(None));
+        let (statement, parameters) = compiler.compile();
+
+        let stream = self
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::trace_span!("query"))
             .await
-            .change_context(QueryError)?
-            .map_ok(|row| row.get::<_, Valid<ClosedEntityType>>(0).into_inner())
+            .change_context(QueryError)?;
+
+        stream
+            .map(|row| row.change_context(QueryError))
+            .map_ok(|row| {
+                row.get::<_, Valid<ClosedEntityType>>(closed_schema_idx)
+                    .into_inner()
+            })
             .try_collect()
             .await
             .change_context(QueryError)
@@ -1035,9 +1044,10 @@ where
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = params.temporal_axes.clone().resolve();
+        let temporal_axes = params.temporal_axes.clone();
+        let resolved_temporal_axes = temporal_axes.clone().resolve();
         let (mut response, _) = self
-            .get_entity_types_impl(actor_id, params, &temporal_axes)
+            .get_entity_types_impl(actor_id, params, &resolved_temporal_axes)
             .await?;
 
         if let Some(include_entity_types) = include_entity_types {
@@ -1047,7 +1057,10 @@ where
                 .map(|entity_type| EntityTypeUuid::from_url(&entity_type.schema.id))
                 .collect::<Vec<_>>();
 
-            response.closed_entity_types = Some(self.get_closed_entity_types(&ids).await?);
+            response.closed_entity_types = Some(
+                self.get_closed_entity_types(&Filter::for_entity_type_uuids(&ids), temporal_axes)
+                    .await?,
+            );
 
             match include_entity_types {
                 IncludeEntityTypeOption::Closed => {}
@@ -1069,51 +1082,140 @@ where
         Ok(response)
     }
 
-    async fn get_closed_multi_entity_types(
+    #[expect(clippy::too_many_lines)]
+    async fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: AccountId,
-        params: GetClosedMultiEntityTypeParams,
-    ) -> Result<GetClosedMultiEntityTypeResponse, Report<QueryError>> {
-        let entity_type_ids = params
-            .entity_type_ids
-            .iter()
-            .map(EntityTypeUuid::from_url)
-            .collect::<Vec<_>>();
-        let response = self
-            .get_entity_types(
-                actor_id,
-                GetEntityTypesParams {
-                    filter: Filter::In(
-                        FilterExpression::Path {
-                            path: EntityTypeQueryPath::OntologyId,
-                        },
-                        ParameterList::EntityTypeIds(&entity_type_ids),
-                    ),
-                    temporal_axes: params.temporal_axes,
-                    include_drafts: params.include_drafts,
-                    after: None,
-                    limit: None,
-                    include_count: false,
-                    include_entity_types: Some(params.include_resolved.map_or(
-                        IncludeEntityTypeOption::Closed,
-                        IncludeEntityTypeOption::from,
-                    )),
-                    include_web_ids: false,
-                    include_edition_created_by_ids: false,
-                },
-            )
-            .await
-            .change_context(QueryError)?;
+        entity_type_ids: I,
+        temporal_axes: QueryTemporalAxesUnresolved,
+        include_resolved: Option<IncludeResolvedEntityTypeOption>,
+    ) -> Result<GetClosedMultiEntityTypesResponse, Report<QueryError>>
+    where
+        I: IntoIterator<Item = J>,
+        J: IntoIterator<Item = VersionedUrl>,
+    {
+        let mut response = GetClosedMultiEntityTypesResponse {
+            entity_types: HashMap::new(),
+            definitions: None,
+        };
 
-        Ok(GetClosedMultiEntityTypeResponse {
-            entity_type: ClosedMultiEntityType::from_multi_type_closed_schema(
-                response
-                    .closed_entity_types
-                    .expect("Response should include closed entity types"),
+        // Collect all unique entity type IDs that need resolution
+        let mut entity_type_ids_to_resolve = HashSet::new();
+        let all_multi_entity_type_ids = entity_type_ids
+            .into_iter()
+            .map(|entity_type_ids| {
+                entity_type_ids
+                    .into_iter()
+                    .inspect(|id| {
+                        entity_type_ids_to_resolve.insert(EntityTypeUuid::from_url(id));
+                    })
+                    .collect::<BTreeSet<_>>()
+            })
+            .collect::<Vec<_>>();
+
+        // Convert entity type IDs to database-specific UUID references
+        let entity_type_uuids = entity_type_ids_to_resolve.into_iter().collect::<Vec<_>>();
+
+        // Fetch all closed entity types in a single database query for efficiency
+        let closed_types = self
+            .get_closed_entity_types(
+                &Filter::for_entity_type_uuids(&entity_type_uuids),
+                temporal_axes,
             )
-            .change_context(QueryError)?,
-            definitions: response.definitions,
-        })
+            .await?
+            .into_iter()
+            .map(|closed_entity_type| (closed_entity_type.id.clone(), closed_entity_type))
+            .collect::<HashMap<_, _>>();
+
+        // Build the nested hierarchical structure for each set of entity types
+        for entity_multi_type_ids in &all_multi_entity_type_ids {
+            // Get the first entity type to serve as the root of the hierarchy
+            let mut entity_type_id_iter = entity_multi_type_ids.iter();
+            let Some(first_entity_type_id) = entity_type_id_iter.next() else {
+                continue; // Skip empty sets
+            };
+
+            // Create or retrieve the entry for the first entity type
+            let (_, ref mut map) = response
+                .entity_types
+                .raw_entry_mut()
+                .from_key(first_entity_type_id)
+                .or_insert_with(|| {
+                    (
+                        (*first_entity_type_id).clone(),
+                        ClosedMultiEntityTypeMap {
+                            schema: ClosedMultiEntityType::from_closed_schema(
+                                closed_types
+                                    .get(first_entity_type_id)
+                                    .expect(
+                                        "The entity type was already resolved, so it should be \
+                                         present in the closed types",
+                                    )
+                                    .clone(),
+                            ),
+                            inner: HashMap::new(),
+                        },
+                    )
+                });
+
+            // Process remaining entity types in the set, creating a nested structure
+            for entity_type_id in entity_type_id_iter {
+                // For each additional entity type, create a deeper level in the hierarchy
+                let (_, new_map) = map
+                    .inner
+                    .raw_entry_mut()
+                    .from_key(entity_type_id)
+                    .or_insert_with(|| {
+                        let mut closed_parent = map.schema.clone();
+                        closed_parent
+                            .add_closed_entity_type(
+                                closed_types
+                                    .get(entity_type_id)
+                                    .expect(
+                                        "The entity type was already resolved, so it should be \
+                                         present in the closed types",
+                                    )
+                                    .clone(),
+                            )
+                            .expect("The entity type was constructed before so it has to be valid");
+                        (
+                            (*entity_type_id).clone(),
+                            ClosedMultiEntityTypeMap {
+                                schema: closed_parent,
+                                inner: HashMap::new(),
+                            },
+                        )
+                    });
+                *map = new_map;
+            }
+        }
+
+        if let Some(include_entity_types) = include_resolved {
+            match include_entity_types {
+                IncludeResolvedEntityTypeOption::Resolved => {
+                    response.definitions = Some(
+                        self.get_entity_type_resolve_definitions(
+                            actor_id,
+                            &entity_type_uuids,
+                            false,
+                        )
+                        .await?,
+                    );
+                }
+                IncludeResolvedEntityTypeOption::ResolvedWithDataTypeChildren => {
+                    response.definitions = Some(
+                        self.get_entity_type_resolve_definitions(
+                            actor_id,
+                            &entity_type_uuids,
+                            true,
+                        )
+                        .await?,
+                    );
+                }
+            }
+        }
+
+        Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip(self))]

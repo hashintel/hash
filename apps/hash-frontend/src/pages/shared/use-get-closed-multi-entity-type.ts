@@ -3,40 +3,41 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { useCallback } from "react";
 
 import type {
-  GetClosedMultiEntityTypeQuery,
-  GetClosedMultiEntityTypeQueryVariables,
+  GetClosedMultiEntityTypesQuery,
+  GetClosedMultiEntityTypesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getClosedMultiEntityTypeQuery } from "../../graphql/queries/ontology/entity-type.queries";
+import { getClosedMultiEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
 
-export const useGetClosedMultiEntityType = () => {
+export const useGetClosedMultiEntityTypes = () => {
   const [getMultiEntityType, { loading }] = useLazyQuery<
-    GetClosedMultiEntityTypeQuery,
-    GetClosedMultiEntityTypeQueryVariables
-  >(getClosedMultiEntityTypeQuery, {
+    GetClosedMultiEntityTypesQuery,
+    GetClosedMultiEntityTypesQueryVariables
+  >(getClosedMultiEntityTypesQuery, {
     fetchPolicy: "cache-first",
   });
 
-  const getClosedMultiEntityType = useCallback(
+  const getClosedMultiEntityTypes = useCallback(
     async (newEntityTypeIds: VersionedUrl[]) => {
       const response = await getMultiEntityType({
         variables: {
           entityTypeIds: newEntityTypeIds,
           includeArchived: false,
-          includeDrafts: false,
         },
       });
 
       if (!response.data) {
         throw new Error(
-          `Failed to fetch closedMultiEntityType for ids ${[...newEntityTypeIds].join(", ")}`,
+          `Failed to fetch closedMultiEntityTypes for ids ${[
+            ...newEntityTypeIds,
+          ].join(", ")}`,
         );
       }
 
-      const { closedMultiEntityType, definitions } =
-        response.data.getClosedMultiEntityType;
+      const { closedMultiEntityTypes, definitions } =
+        response.data.getClosedMultiEntityTypes;
 
       return {
-        closedMultiEntityType,
+        closedMultiEntityTypes,
         closedMultiEntityTypesDefinitions: definitions,
       };
     },
@@ -44,7 +45,7 @@ export const useGetClosedMultiEntityType = () => {
   );
 
   return {
-    getClosedMultiEntityType,
+    getClosedMultiEntityTypes,
     loading,
   };
 };

@@ -8,8 +8,8 @@ export const entityTypeTypedef = gql`
   scalar Filter
   scalar UserPermissionsOnEntityType
 
-  type GetClosedMultiEntityTypeResponse {
-    closedMultiEntityType: ClosedMultiEntityType!
+  type GetClosedMultiEntityTypesResponse {
+    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap!
     definitions: ClosedMultiEntityTypesDefinitions!
   }
 
@@ -41,11 +41,21 @@ export const entityTypeTypedef = gql`
       includeArchived: Boolean = false
     ): Subgraph!
 
-    getClosedMultiEntityType(
-      entityTypeIds: [VersionedUrl!]!
+    """
+    Get multiple 'closed multi entity types' at once.
+    A 'closed multi entity type' is the unified schema from a set of entity types.
+    """
+    getClosedMultiEntityTypes(
+      """
+      The list of multi entity type ids to get.
+      Each entry in the array should be a set of entity type ids that will generate a closed multi entity type.
+      """
+      entityTypeIds: [[VersionedUrl!]!]!
+      """
+      Whether to include archived entity types in the response.
+      """
       includeArchived: Boolean = false
-      includeDrafts: Boolean = false
-    ): GetClosedMultiEntityTypeResponse!
+    ): GetClosedMultiEntityTypesResponse!
 
     """
     Check the requesting user's permissions on an entity type
@@ -89,9 +99,7 @@ export const entityTypeTypedef = gql`
     """
     Update multiple entity types at once.
     """
-    updateEntityTypes(
-      updates: [EntityTypeUpdate!]!
-    ): [EntityTypeWithMetadata!]!
+    updateEntityTypes(updates: [EntityTypeUpdate!]!): [EntityTypeWithMetadata!]!
 
     """
     Archive a entity type.
