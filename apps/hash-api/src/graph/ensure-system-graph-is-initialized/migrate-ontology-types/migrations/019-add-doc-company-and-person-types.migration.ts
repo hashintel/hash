@@ -13,6 +13,7 @@ import {
   createSystemPropertyTypeIfNotExists,
   getCurrentHashDataTypeId,
   getCurrentHashLinkEntityTypeId,
+  getCurrentHashPropertyTypeId,
 } from "../util";
 
 const migrate: MigrationFunction = async ({
@@ -379,7 +380,10 @@ const migrate: MigrationFunction = async ({
             propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
           },
           {
-            propertyType: systemPropertyTypes.email.propertyTypeId,
+            propertyType: getCurrentHashPropertyTypeId({
+              propertyTypeKey: "email",
+              migrationState,
+            }),
             array: true,
           },
         ],
@@ -427,7 +431,10 @@ const migrate: MigrationFunction = async ({
         labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
         properties: [
           {
-            propertyType: systemPropertyTypes.title.propertyTypeId,
+            propertyType: getCurrentHashPropertyTypeId({
+              propertyTypeKey: "title",
+              migrationState,
+            }),
             required: true,
           },
           {
@@ -488,7 +495,10 @@ const migrate: MigrationFunction = async ({
         description: "A paper describing academic research",
         properties: [
           {
-            propertyType: systemPropertyTypes.title.propertyTypeId,
+            propertyType: getCurrentHashPropertyTypeId({
+              propertyTypeKey: "title",
+              migrationState,
+            }),
             required: true,
           },
           {

@@ -15,6 +15,11 @@ This file contains standards for how AI assistants should interact with codebase
 3. **Proactivity**: Anticipate rule requirements before starting work on any task.
 4. **Accuracy**: Ensure adherence to all relevant guidelines in every implementation.
 
+## Things to avoid
+
+1. Making changes unrelated to the task at hand - if you see other things in a file that could be improved, suggest them to the user!
+2. Getting stuck for a long time without asking for help - if you're struggling, just ask.
+
 ## Self-Checking Process
 
 When working on any project task:
