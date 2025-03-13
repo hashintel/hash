@@ -18,6 +18,7 @@ concurrency:
   # This ensures a unique concurrency group per PR
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.ref }}
   # Don't cancel in-progress reviews, let them complete
+  # New reviews will wait in queue until active ones finish
   cancel-in-progress: false
 
 jobs:
