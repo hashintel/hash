@@ -1,9 +1,9 @@
 import type {
   EntityRecordId,
-  GraphElementVertexId,
   OntologyTypeRecordId,
-  Subgraph,
-} from "../../types.js";
+} from "@blockprotocol/type-system";
+
+import type { GraphElementVertexId, Subgraph } from "../../types.js";
 import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
 import { typedEntries } from "../../util.js";
 

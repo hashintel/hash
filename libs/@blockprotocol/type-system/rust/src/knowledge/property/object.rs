@@ -11,7 +11,7 @@ use postgres_types::{FromSql, IsNull, ToSql, Type};
 use super::{
     Property, PropertyPath, PropertyPathElement, PropertyPathError, PropertyWithMetadata,
     diff::PropertyDiff,
-    metadata::{ObjectMetadata, PropertyMetadataObject},
+    metadata::{ObjectMetadata, PropertyObjectMetadata},
 };
 use crate::{knowledge::Value, ontology::BaseUrl};
 
@@ -134,16 +134,16 @@ impl<'a> FromSql<'a> for PropertyObject {
 
 #[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PropertyWithMetadataObject {
-    #[serde(default)]
+pub struct PropertyObjectWithMetadata {
     #[cfg_attr(feature = "utoipa", schema(required))]
     pub value: HashMap<BaseUrl, PropertyWithMetadata>,
     #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
     pub metadata: ObjectMetadata,
 }
 
-impl PropertyWithMetadataObject {
+impl PropertyObjectWithMetadata {
     /// Creates a unified representation of the property and its metadata.
     ///
     /// # Errors
@@ -151,7 +151,7 @@ impl PropertyWithMetadataObject {
     /// - If the property and metadata types do not match.
     pub fn from_parts(
         properties: PropertyObject,
-        metadata: Option<PropertyMetadataObject>,
+        metadata: Option<PropertyObjectMetadata>,
     ) -> Result<Self, Report<PropertyPathError>> {
         Ok(if let Some(mut metadata_elements) = metadata {
             Self {
@@ -184,7 +184,7 @@ impl PropertyWithMetadataObject {
     }
 
     #[must_use]
-    pub fn into_parts(self) -> (PropertyObject, PropertyMetadataObject) {
+    pub fn into_parts(self) -> (PropertyObject, PropertyObjectMetadata) {
         let (properties, metadata_properties) = self
             .value
             .into_iter()
@@ -195,7 +195,7 @@ impl PropertyWithMetadataObject {
             .unzip();
         (
             PropertyObject::new(properties),
-            PropertyMetadataObject {
+            PropertyObjectMetadata {
                 value: metadata_properties,
                 metadata: self.metadata,
             },

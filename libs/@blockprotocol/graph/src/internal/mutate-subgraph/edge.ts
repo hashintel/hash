@@ -1,13 +1,13 @@
+import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractVersion,
   getReferencedIdsFromEntityType,
   getReferencedIdsFromPropertyType,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 import isEqual from "lodash.isequal";
 
 import { unionOfIntervals } from "../../stdlib.js";
-import type { EntityId } from "../../types/entity.js";
 import type {
   EntityIdWithInterval,
   EntityVertexId,
@@ -37,7 +37,7 @@ import {
  */
 export const addOutwardEdgeToSubgraphByMutation = (
   subgraph: Subgraph,
-  sourceBaseId: EntityId,
+  sourceBaseId: BaseUrl | EntityId,
   at: OntologyTypeRevisionId,
   outwardEdge: OutwardEdge,
 ) => {
@@ -128,7 +128,7 @@ export const inferPropertyTypeEdgesInSubgraphByMutation = (
 
         addOutwardEdgeToSubgraphByMutation(
           subgraph,
-          baseUrl,
+          baseUrl as BaseUrl,
           version.toString(),
           {
             kind: edgeKind,
@@ -216,7 +216,7 @@ export const inferEntityTypeEdgesInSubgraphByMutation = (
 
         addOutwardEdgeToSubgraphByMutation(
           subgraph,
-          baseUrl,
+          baseUrl as BaseUrl,
           version.toString(),
           {
             kind: edgeKind,
@@ -310,7 +310,7 @@ export const inferEntityEdgesInSubgraphByMutation = (
         // Add IS_OF_TYPE edges for the entity and entity type
         addOutwardEdgeToSubgraphByMutation(
           subgraph,
-          entityId,
+          entityId as EntityId,
           intervalStartLimit,
           {
             kind: "IS_OF_TYPE",
@@ -330,7 +330,7 @@ export const inferEntityEdgesInSubgraphByMutation = (
             kind: "IS_OF_TYPE",
             reversed: true,
             rightEndpoint: {
-              entityId,
+              entityId: entityId as EntityId,
               interval: entityInterval,
             },
           },
@@ -339,17 +339,19 @@ export const inferEntityEdgesInSubgraphByMutation = (
     }
 
     if (entity.linkData) {
-      const linkInfo = linkMap[entityId];
+      const linkInfo = linkMap[entityId as EntityId];
       if (!linkInfo) {
-        linkMap[entityId] = {
+        linkMap[entityId as EntityId] = {
           leftEntityId: entity.linkData.leftEntityId,
           rightEntityId: entity.linkData.rightEntityId,
           edgeIntervals: [entityInterval],
         };
       } else {
         if (
-          linkMap[entityId]!.leftEntityId !== entity.linkData.leftEntityId &&
-          linkMap[entityId]!.rightEntityId !== entity.linkData.rightEntityId
+          linkMap[entityId as EntityId]!.leftEntityId !==
+            entity.linkData.leftEntityId &&
+          linkMap[entityId as EntityId]!.rightEntityId !==
+            entity.linkData.rightEntityId
         ) {
           /*
            * @todo This assumes that the left and right entity ID of a link entity is static for its entire lifetime, that is
@@ -378,7 +380,7 @@ export const inferEntityEdgesInSubgraphByMutation = (
       for (const edgeInterval of unionedIntervals) {
         addOutwardEdgeToSubgraphByMutation(
           subgraph,
-          linkEntityId,
+          linkEntityId as EntityId,
           edgeInterval.start.limit,
           {
             kind: "HAS_LEFT_ENTITY",
@@ -393,12 +395,15 @@ export const inferEntityEdgesInSubgraphByMutation = (
           {
             kind: "HAS_LEFT_ENTITY",
             reversed: true,
-            rightEndpoint: { entityId: linkEntityId, interval: edgeInterval },
+            rightEndpoint: {
+              entityId: linkEntityId as EntityId,
+              interval: edgeInterval,
+            },
           },
         );
         addOutwardEdgeToSubgraphByMutation(
           subgraph,
-          linkEntityId,
+          linkEntityId as EntityId,
           edgeInterval.start.limit,
           {
             kind: "HAS_RIGHT_ENTITY",
@@ -416,7 +421,10 @@ export const inferEntityEdgesInSubgraphByMutation = (
           {
             kind: "HAS_RIGHT_ENTITY",
             reversed: true,
-            rightEndpoint: { entityId: linkEntityId, interval: edgeInterval },
+            rightEndpoint: {
+              entityId: linkEntityId as EntityId,
+              interval: edgeInterval,
+            },
           },
         );
       }

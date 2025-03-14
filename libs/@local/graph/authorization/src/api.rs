@@ -8,7 +8,7 @@ use type_system::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
     provenance::ActorId,
-    web::OwnedById,
+    web::{ActorGroupId, OwnedById},
 };
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
     schema::{
-        AccountGroupId, AccountGroupPermission, AccountGroupRelationAndSubject, ActorIdOrPublic,
+        AccountGroupPermission, AccountGroupRelationAndSubject, ActorIdOrPublic,
         DataTypePermission, DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject,
         EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypePermission,
         PropertyTypeRelationAndSubject, WebPermission, WebRelationAndSubject,
@@ -36,13 +36,13 @@ pub trait AuthorizationApi: Send + Sync {
         &self,
         actor: ActorId,
         permission: AccountGroupPermission,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
     fn get_account_group_relations(
         &self,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>>> + Send;
 
@@ -51,7 +51,7 @@ pub trait AuthorizationApi: Send + Sync {
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                AccountGroupId,
+                ActorGroupId,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,
@@ -293,7 +293,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         actor: ActorId,
         permission: AccountGroupPermission,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         (**self)
@@ -303,7 +303,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn get_account_group_relations(
         &self,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
         (**self)
@@ -316,7 +316,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                AccountGroupId,
+                ActorGroupId,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,

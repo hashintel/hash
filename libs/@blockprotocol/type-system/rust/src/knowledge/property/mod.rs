@@ -13,14 +13,17 @@ use std::{collections::HashMap, io};
 
 use error_stack::{Report, ResultExt as _};
 
-use self::metadata::{ArrayMetadata, ObjectMetadata, PropertyMetadata};
+use self::metadata::{
+    ArrayMetadata, ObjectMetadata, PropertyArrayMetadata, PropertyMetadata, PropertyObjectMetadata,
+    PropertyValueMetadata,
+};
 pub use self::{
-    array::PropertyWithMetadataArray,
+    array::PropertyArrayWithMetadata,
     diff::PropertyDiff,
-    object::{PropertyObject, PropertyWithMetadataObject},
+    object::{PropertyObject, PropertyObjectWithMetadata},
     patch::{PatchError, PropertyPatchOperation},
     path::{PropertyPath, PropertyPathElement},
-    value::PropertyWithMetadataValue,
+    value::PropertyValueWithMetadata,
 };
 use super::{
     Value,
@@ -57,6 +60,7 @@ use crate::ontology::{
 ///
 /// [`PropertyType`]: crate::ontology::property_type::PropertyType
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum Property {
@@ -64,18 +68,21 @@ pub enum Property {
     ///
     /// Arrays can contain heterogeneous property types, though typically they
     /// contain properties of the same structure based on the entity type definition.
-    Array(Vec<Self>),
+    Array(#[cfg_attr(target_arch = "wasm32", tsify(type = "Property[]"))] Vec<Self>),
 
     /// A mapping from property type URLs to properties.
     ///
     /// Object properties use [`BaseUrl`]s as keys, which correspond to property types
     /// defined in the ontology.
-    Object(PropertyObject),
+    Object(
+        #[cfg_attr(target_arch = "wasm32", tsify(type = "{ [key: BaseUrl]: Property }"))]
+        PropertyObject,
+    ),
 
     /// A primitive value such as a string, number, boolean, etc.
     ///
     /// Values represent the atomic units of data in the property system.
-    Value(Value),
+    Value(#[cfg_attr(target_arch = "wasm32", tsify(type = "JsonValue"))] Value),
 }
 
 /// Property data combined with its corresponding metadata.
@@ -87,23 +94,24 @@ pub enum Property {
 /// The structure mirrors the [`Property`] enum, with specialized types for arrays, objects,
 /// and values that maintain metadata at each level of the hierarchy.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum PropertyWithMetadata {
     /// An array of properties with associated metadata.
     ///
     /// Includes both element-level metadata for each array item and metadata for the array itself.
-    Array(PropertyWithMetadataArray),
+    Array(PropertyArrayWithMetadata),
 
     /// An object of properties with associated metadata.
     ///
     /// Includes both field-level metadata for each property and metadata for the object itself.
-    Object(PropertyWithMetadataObject),
+    Object(PropertyObjectWithMetadata),
 
     /// A primitive value with associated metadata.
     ///
     /// Contains metadata such as provenance, confidence, and data type information for the value.
-    Value(PropertyWithMetadataValue),
+    Value(PropertyValueWithMetadata),
 }
 
 impl PropertyWithMetadata {
@@ -341,11 +349,11 @@ impl PropertyWithMetadata {
         match (property, metadata) {
             (
                 Property::Array(properties),
-                Some(PropertyMetadata::Array {
+                Some(PropertyMetadata::Array(PropertyArrayMetadata {
                     value: metadata_elements,
                     metadata,
-                }),
-            ) => Ok(Self::Array(PropertyWithMetadataArray {
+                })),
+            ) => Ok(Self::Array(PropertyArrayWithMetadata {
                 value: metadata_elements
                     .into_iter()
                     .map(Some)
@@ -355,7 +363,7 @@ impl PropertyWithMetadata {
                     .collect::<Result<_, _>>()?,
                 metadata,
             })),
-            (Property::Array(properties), None) => Ok(Self::Array(PropertyWithMetadataArray {
+            (Property::Array(properties), None) => Ok(Self::Array(PropertyArrayWithMetadata {
                 value: properties
                     .into_iter()
                     .map(|property| Self::from_parts(property, None))
@@ -364,11 +372,11 @@ impl PropertyWithMetadata {
             })),
             (
                 Property::Object(properties),
-                Some(PropertyMetadata::Object {
+                Some(PropertyMetadata::Object(PropertyObjectMetadata {
                     value: mut metadata_elements,
                     metadata,
-                }),
-            ) => Ok(Self::Object(PropertyWithMetadataObject {
+                })),
+            ) => Ok(Self::Object(PropertyObjectWithMetadata {
                 value: properties
                     .into_iter()
                     .map(|(key, property)| {
@@ -381,7 +389,7 @@ impl PropertyWithMetadata {
                     .collect::<Result<_, _>>()?,
                 metadata,
             })),
-            (Property::Object(properties), None) => Ok(Self::Object(PropertyWithMetadataObject {
+            (Property::Object(properties), None) => Ok(Self::Object(PropertyObjectWithMetadata {
                 value: properties
                     .into_iter()
                     .map(|(key, property)| {
@@ -390,10 +398,11 @@ impl PropertyWithMetadata {
                     .collect::<Result<_, _>>()?,
                 metadata: ObjectMetadata::default(),
             })),
-            (Property::Value(value), Some(PropertyMetadata::Value { metadata })) => {
-                Ok(Self::Value(PropertyWithMetadataValue { value, metadata }))
-            }
-            (Property::Value(value), None) => Ok(Self::Value(PropertyWithMetadataValue {
+            (
+                Property::Value(value),
+                Some(PropertyMetadata::Value(PropertyValueMetadata { metadata })),
+            ) => Ok(Self::Value(PropertyValueWithMetadata { value, metadata })),
+            (Property::Value(value), None) => Ok(Self::Value(PropertyValueWithMetadata {
                 value,
                 metadata: ValueMetadata {
                     provenance: ValueProvenance::default(),
@@ -414,10 +423,10 @@ impl PropertyWithMetadata {
                     array.value.into_iter().map(Self::into_parts).unzip();
                 (
                     Property::Array(properties),
-                    PropertyMetadata::Array {
+                    PropertyMetadata::Array(PropertyArrayMetadata {
                         value: metadata_elements,
                         metadata: array.metadata,
-                    },
+                    }),
                 )
             }
             Self::Object(object) => {
@@ -431,17 +440,17 @@ impl PropertyWithMetadata {
                     .unzip();
                 (
                     Property::Object(PropertyObject::new(properties)),
-                    PropertyMetadata::Object {
+                    PropertyMetadata::Object(PropertyObjectMetadata {
                         value: metadata_properties,
                         metadata: object.metadata,
-                    },
+                    }),
                 )
             }
             Self::Value(property) => (
                 Property::Value(property.value),
-                PropertyMetadata::Value {
+                PropertyMetadata::Value(PropertyValueMetadata {
                     metadata: property.metadata,
-                },
+                }),
             ),
         }
     }

@@ -1,12 +1,10 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   atLeastOne,
   getReferencedIdsFromDataType,
-} from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
   getReferencedIdsFromEntityType,
   getReferencedIdsFromPropertyType,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 
 import { typedValues } from "../../util/typed-object-iter.js";
 import type { InitializeContext } from "../context.js";

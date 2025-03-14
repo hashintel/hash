@@ -24,7 +24,7 @@ use type_system::{
         Value,
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{
-            PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
+            PropertyObjectWithMetadata, PropertyValueWithMetadata, PropertyWithMetadata,
             metadata::ObjectMetadata,
         },
         value::{ValueMetadata, metadata::ValueProvenance},
@@ -309,13 +309,13 @@ async fn inheritance() {
                     "http://localhost:3000/@alice/types/entity-type/line/v/1",
                 )
                 .expect("couldn't construct Base URL")]),
-                properties: PropertyWithMetadataObject {
+                properties: PropertyObjectWithMetadata {
                     value: HashMap::from([(
                         BaseUrl::new(
                             "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                         )
                         .expect("couldn't construct Base URL"),
-                        PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                        PropertyWithMetadata::Value(PropertyValueWithMetadata {
                             value: Value::Number(Real::from(5)),
                             metadata: ValueMetadata {
                                 provenance: ValueProvenance::default(),
@@ -356,13 +356,13 @@ async fn inheritance() {
                 "http://localhost:3000/@alice/types/entity-type/line/v/1",
             )
             .expect("couldn't construct Base URL")]),
-            properties: PropertyWithMetadataObject {
+            properties: PropertyObjectWithMetadata {
                 value: HashMap::from([(
                     BaseUrl::new(
                         "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
-                    PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                    PropertyWithMetadata::Value(PropertyValueWithMetadata {
                         value: Value::Number(Real::from(10)),
                         metadata: ValueMetadata {
                             provenance: ValueProvenance::default(),
@@ -401,13 +401,13 @@ async fn inheritance() {
                 "http://localhost:3000/@alice/types/entity-type/line/v/1",
             )
             .expect("couldn't construct Base URL")]),
-            properties: PropertyWithMetadataObject {
+            properties: PropertyObjectWithMetadata {
                 value: HashMap::from([(
                     BaseUrl::new(
                         "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
-                    PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                    PropertyWithMetadata::Value(PropertyValueWithMetadata {
                         value: Value::Number(Real::from(10)),
                         metadata: ValueMetadata {
                             provenance: ValueProvenance::default(),

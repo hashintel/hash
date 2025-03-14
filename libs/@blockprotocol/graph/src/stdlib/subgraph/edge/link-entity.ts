@@ -1,8 +1,12 @@
 import type {
   Entity,
   EntityId,
-  LinkEntityAndRightEntity,
-} from "../../../types/entity.js";
+  TemporalBound,
+  TemporalInterval,
+  Timestamp,
+} from "@blockprotocol/type-system";
+
+import type { LinkEntityAndRightEntity } from "../../../types/entity.js";
 import type { Subgraph } from "../../../types/subgraph.js";
 import {
   isHasLeftEntityEdge,
@@ -10,7 +14,6 @@ import {
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
 } from "../../../types/subgraph.js";
-import type { TimeInterval } from "../../../types/temporal-versioning.js";
 import { typedEntries } from "../../../util.js";
 import {
   intervalForTimestamp,
@@ -50,7 +53,7 @@ const getUniqueEntitiesFilter = () => {
 export const getOutgoingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
@@ -69,7 +72,7 @@ export const getOutgoingLinksForEntity = (
     // Only look at outgoing edges that were created before or within the search interval
     if (
       !intervalIsStrictlyAfterInterval(
-        intervalForTimestamp(edgeTimestamp),
+        intervalForTimestamp(edgeTimestamp as Timestamp),
         searchInterval,
       )
     ) {
@@ -122,7 +125,7 @@ export const getOutgoingLinksForEntity = (
 export const getIncomingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
@@ -140,7 +143,7 @@ export const getIncomingLinksForEntity = (
   for (const [edgeTimestamp, outwardEdges] of typedEntries(entityEdges)) {
     if (
       !intervalIsStrictlyAfterInterval(
-        intervalForTimestamp(edgeTimestamp),
+        intervalForTimestamp(edgeTimestamp as Timestamp),
         searchInterval,
       )
     ) {
@@ -193,7 +196,7 @@ export const getIncomingLinksForEntity = (
 export const getLeftEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] | undefined => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
@@ -242,7 +245,7 @@ export const getLeftEntityForLinkEntity = (
 export const getRightEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] | undefined => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
@@ -291,7 +294,7 @@ export const getOutgoingLinkAndTargetEntities = <
 >(
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): LinkAndRightEntities => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
@@ -320,7 +323,7 @@ export const getOutgoingLinkAndTargetEntities = <
         linkEntity: linkEntityRevisions,
         rightEntity: getRightEntityForLinkEntity(
           subgraph,
-          linkEntityId,
+          linkEntityId as EntityId,
           searchInterval,
         ),
       };

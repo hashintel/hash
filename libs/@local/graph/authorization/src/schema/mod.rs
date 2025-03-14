@@ -8,12 +8,14 @@ mod property_type;
 mod settings;
 mod web;
 
+use type_system::web::ActorGroupId;
+
 pub use self::{
     account::{AccountNamespace, ActorIdOrPublic, PublicAccess},
     account_group::{
-        AccountGroupAdministratorSubject, AccountGroupId, AccountGroupMemberSubject,
-        AccountGroupNamespace, AccountGroupPermission, AccountGroupRelationAndSubject,
-        AccountGroupSubject, AccountGroupSubjectId,
+        AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupNamespace,
+        AccountGroupPermission, AccountGroupRelationAndSubject, AccountGroupSubject,
+        AccountGroupSubjectId,
     },
     data_type::{
         DataTypeEditorSubject, DataTypeNamespace, DataTypeOwnerSubject, DataTypePermission,

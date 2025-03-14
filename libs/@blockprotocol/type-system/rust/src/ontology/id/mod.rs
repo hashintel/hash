@@ -88,7 +88,7 @@ mod error;
 #[cfg_attr(feature = "postgres", derive(ToSql), postgres(transparent))]
 #[derive(Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct BaseUrl(
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<string, \"BaseUrl\">"))] String,
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<Url, \"BaseUrl\">"))] String,
 );
 
 impl fmt::Debug for BaseUrl {
@@ -350,7 +350,7 @@ pub struct VersionedUrl {
 #[derive(tsify::Tsify)]
 #[serde(rename = "VersionedUrl")]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]
-pub struct VersionedUrlPatch(#[tsify(type = "`${BaseUrl}v/${OntologyTypeVersion}`")] String);
+pub struct VersionedUrlPatch(#[tsify(type = "`${string}v/${number}`")] String);
 
 impl VersionedUrl {
     /// Converts this [`VersionedUrl`] to a standard [`Url`] instance.

@@ -1,6 +1,6 @@
 import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { EntityType } from "@blockprotocol/type-system/slim";
+import type { EntityType } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {

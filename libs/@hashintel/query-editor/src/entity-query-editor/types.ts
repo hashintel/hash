@@ -3,7 +3,7 @@ import type {
   MultiFilter,
   MultiFilterOperatorType,
 } from "@blockprotocol/graph";
-import type { BaseUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 export type FilterType = "Type" | "Property";
 

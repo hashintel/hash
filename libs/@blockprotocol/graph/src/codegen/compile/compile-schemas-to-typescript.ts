@@ -4,8 +4,8 @@ import type {
   EntityType,
   PropertyType,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
+import { validateVersionedUrl } from "@blockprotocol/type-system";
 import { compile as compileJsonSchema } from "json-schema-to-typescript";
 
 import { mustBeDefined } from "../../util/must-be-defined.js";

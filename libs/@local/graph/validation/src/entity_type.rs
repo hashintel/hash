@@ -28,8 +28,8 @@ use type_system::{
     knowledge::{
         entity::{Entity, EntityId, LinkData},
         property::{
-            PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
-            PropertyWithMetadataValue,
+            PropertyArrayWithMetadata, PropertyObjectWithMetadata, PropertyPath,
+            PropertyValueWithMetadata,
         },
         value::{Value, ValueMetadata},
     },
@@ -396,7 +396,7 @@ impl EntityVisitor for EntityPreprocessor {
     async fn visit_one_of_property<P>(
         &mut self,
         schema: &[PropertyValues],
-        property: &mut PropertyWithMetadataValue,
+        property: &mut PropertyValueWithMetadata,
         type_provider: &P,
     ) -> Result<(), OneOfPropertyValidationReports>
     where
@@ -574,7 +574,7 @@ impl EntityVisitor for EntityPreprocessor {
     async fn visit_array<T, P>(
         &mut self,
         schema: &PropertyValueArray<T>,
-        array: &mut PropertyWithMetadataArray,
+        array: &mut PropertyArrayWithMetadata,
         type_provider: &P,
     ) -> Result<(), ArrayValidationReport>
     where
@@ -616,7 +616,7 @@ impl EntityVisitor for EntityPreprocessor {
     async fn visit_object<T, P>(
         &mut self,
         schema: &T,
-        object: &mut PropertyWithMetadataObject,
+        object: &mut PropertyObjectWithMetadata,
         type_provider: &P,
     ) -> Result<(), ObjectValidationReport>
     where

@@ -17,7 +17,7 @@ use type_system::{
             provenance::ProvidedEntityEditionProvenance,
         },
         property::{
-            PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
+            PropertyDiff, PropertyObjectWithMetadata, PropertyPatchOperation, PropertyPath,
         },
     },
     ontology::{VersionedUrl, entity_type::ClosedMultiEntityType},
@@ -137,7 +137,7 @@ pub struct CreateEntityParams<R> {
     pub decision_time: Option<Timestamp<DecisionTime>>,
     #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
     pub entity_type_ids: HashSet<VersionedUrl>,
-    pub properties: PropertyWithMetadataObject,
+    pub properties: PropertyObjectWithMetadata,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
@@ -156,7 +156,7 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub entity_types: EntityValidationType<'a>,
     #[serde(borrow)]
-    pub properties: Cow<'a, PropertyWithMetadataObject>,
+    pub properties: Cow<'a, PropertyObjectWithMetadata>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,

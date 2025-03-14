@@ -116,7 +116,7 @@ export const generateEntityLabel = (
     for (const typeToCheck of entityTypesAndAncestors ?? []) {
       const label = getLabelPropertyValue(
         entity,
-        typeToCheck.schema.labelProperty as BaseUrl | undefined,
+        typeToCheck.schema.labelProperty,
       );
 
       if (label) {

@@ -1,10 +1,10 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
-  extractVersion,
-} from "@blockprotocol/type-system/slim";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 
-import type { EntityTypeWithMetadata } from "../../../types/ontology/entity-type.js";
 import type {
   OntologyTypeVertexId,
   Subgraph,

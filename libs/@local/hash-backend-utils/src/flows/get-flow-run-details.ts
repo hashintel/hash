@@ -1,5 +1,5 @@
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityUuid } from "@blockprotocol/type-system";
+import type { OwnedById } from "@blockprotocol/type-system";
 import type {
   CheckpointLog,
   DetailedFlowField,

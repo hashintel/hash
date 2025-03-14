@@ -1,4 +1,4 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 import { mustBeDefined, typedValues } from "../../util.js";
 import type { PreprocessContext } from "../context.js";

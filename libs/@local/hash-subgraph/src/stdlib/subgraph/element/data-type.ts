@@ -5,7 +5,7 @@ import {
   getDataTypes as getDataTypesBp,
   getDataTypesByBaseUrl as getDataTypesByBaseUrlBp,
 } from "@blockprotocol/graph/stdlib";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { DataType } from "@local/hash-graph-client";
 import type {
   BaseUrl,

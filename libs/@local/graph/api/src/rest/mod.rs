@@ -32,8 +32,8 @@ use hash_codec::numeric::Real;
 use hash_graph_authorization::{
     AuthorizationApiPool,
     schema::{
-        AccountGroupId, AccountGroupPermission, DataTypePermission, EntityPermission,
-        EntityTypePermission, PropertyTypePermission,
+        AccountGroupPermission, DataTypePermission, EntityPermission, EntityTypePermission,
+        PropertyTypePermission,
     },
 };
 use hash_graph_postgres_store::store::error::VersionedUrlAlreadyExists;
@@ -85,7 +85,7 @@ use type_system::{
         },
     },
     provenance::{ActorId, CreatedById, EditionArchivedById, EditionCreatedById},
-    web::OwnedById,
+    web::{ActorGroupId, OwnedById},
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,
@@ -287,11 +287,11 @@ impl QueryLogger {
 #[serde(tag = "endpoint", content = "query", rename_all = "camelCase")]
 pub enum OpenApiQuery<'a> {
     CheckAccountGroupPermission {
-        account_group_id: AccountGroupId,
+        account_group_id: ActorGroupId,
         permission: AccountGroupPermission,
     },
     GetAccountGroupRelations {
-        account_group_id: AccountGroupId,
+        account_group_id: ActorGroupId,
     },
     GetDataTypes(&'a JsonValue),
     GetDataTypeSubgraph(&'a JsonValue),

@@ -3,10 +3,7 @@ import {
   extractVersion,
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
-import type {
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {

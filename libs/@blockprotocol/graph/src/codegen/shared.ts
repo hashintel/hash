@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { JSONSchema as SchemaWithOptional$id } from "json-schema-to-typescript";
 
 export type LogLevel = "silent" | "warn" | "info" | "debug" | "trace";

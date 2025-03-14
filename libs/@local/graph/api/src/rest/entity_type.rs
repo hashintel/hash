@@ -192,7 +192,7 @@ struct ModifyEntityTypeAuthorizationRelationship {
     tag = "EntityType",
     request_body = [ModifyEntityTypeAuthorizationRelationship],
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, description = "The relationship was modified for the entity"),
@@ -265,7 +265,7 @@ where
     path = "/entity-types/{entity_type_id}/relationships",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_type_id" = VersionedUrl, Path, description = "The Entity type to read the relations for"),
     ),
     responses(
@@ -318,7 +318,7 @@ where
     path = "/entity-types/{entity_type_id}/permissions/{permission}",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_type_id" = VersionedUrl, Path, description = "The entity type ID to check if the actor has the permission"),
         ("permission" = EntityTypePermission, Path, description = "The permission to check for"),
     ),
@@ -375,7 +375,7 @@ where
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = MaybeListOfEntityTypeMetadata),
@@ -575,7 +575,7 @@ enum LoadExternalEntityTypeRequest {
     request_body = LoadExternalEntityTypeRequest,
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = EntityTypeMetadata),
@@ -701,7 +701,7 @@ where
     request_body = GetEntityTypesParams,
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (
@@ -769,7 +769,7 @@ where
     request_body = GetClosedMultiEntityTypeParams,
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (
@@ -851,7 +851,7 @@ struct GetEntityTypeSubgraphResponse {
     request_body = GetEntityTypeSubgraphParams,
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (
@@ -933,7 +933,7 @@ struct UpdateEntityTypeRequest {
     path = "/entity-types",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = EntityTypeMetadata),
@@ -999,7 +999,7 @@ where
     path = "/entity-types/bulk",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity types", body = [EntityTypeMetadata]),
@@ -1069,7 +1069,7 @@ where
     path = "/entity-types/embeddings",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, content_type = "application/json", description = "The embeddings were created"),
@@ -1121,7 +1121,7 @@ where
     path = "/entity-types/archive",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = OntologyTemporalMetadata),
@@ -1184,7 +1184,7 @@ where
     path = "/entity-types/unarchive",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The temporal metadata of the updated entity type", body = OntologyTemporalMetadata),

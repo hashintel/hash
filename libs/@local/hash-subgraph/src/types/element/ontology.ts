@@ -1,5 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { validateBaseUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { validateBaseUrl } from "@blockprotocol/type-system";
 import type { Brand } from "@local/advanced-types/brand";
 import type {
   DataTypeMetadata,

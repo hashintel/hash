@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type {
   InferredEntityChangeResult,

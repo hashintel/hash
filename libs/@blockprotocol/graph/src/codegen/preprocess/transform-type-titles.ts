@@ -3,11 +3,8 @@ import type {
   DataType,
   EntityType,
   PropertyType,
-} from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
-  extractVersion,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import ts from "typescript";
 
 import { mustBeDefined } from "../../util/must-be-defined.js";

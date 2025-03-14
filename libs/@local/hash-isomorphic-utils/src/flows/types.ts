@@ -1,15 +1,17 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  EntityUuid,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
-  EntityId,
-  EntityUuid,
   PropertyMetadataObject,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Status } from "@local/status";
 
 import type { FlowRun } from "../graphql/api-types.gen.js";

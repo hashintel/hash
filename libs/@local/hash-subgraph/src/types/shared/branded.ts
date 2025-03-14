@@ -1,4 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  DraftId,
+  EntityId,
+  EntityUuid,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { Brand } from "@local/advanced-types/brand";
 import type {
   DataTypeRelationAndSubject as DataTypeRelationAndSubjectGraph,
@@ -12,11 +17,6 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type {
-  DraftId,
-  EntityId,
-  EntityUuid,
-} from "@local/hash-graph-types/entity";
 import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { validate as validateUuid } from "uuid";

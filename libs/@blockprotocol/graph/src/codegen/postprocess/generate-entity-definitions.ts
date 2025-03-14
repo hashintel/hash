@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 import { mustBeDefined } from "../../util/must-be-defined.js";
 import { typedEntries } from "../../util/typed-object-iter.js";

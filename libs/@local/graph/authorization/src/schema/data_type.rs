@@ -1,12 +1,16 @@
 use core::error::Error;
 
 use serde::{Deserialize, Serialize};
-use type_system::{ontology::data_type::DataTypeUuid, provenance::ActorId, web::OwnedById};
+use type_system::{
+    ontology::data_type::DataTypeUuid,
+    provenance::ActorId,
+    web::{ActorGroupId, OwnedById},
+};
 use uuid::Uuid;
 
 use crate::{
     schema::{
-        AccountGroupId, PublicAccess,
+        PublicAccess,
         error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
@@ -76,7 +80,7 @@ pub enum DataTypeSubject {
     Setting(DataTypeSetting),
     Public,
     Account(ActorId),
-    AccountGroup(AccountGroupId),
+    AccountGroup(ActorGroupId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -128,7 +132,7 @@ impl Resource for DataTypeSubject {
                 Self::Account(ActorId::new(id))
             }
             (DataTypeSubjectNamespace::AccountGroup, DataTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(AccountGroupId::new(id))
+                Self::AccountGroup(ActorGroupId::new(id))
             }
             (
                 DataTypeSubjectNamespace::Web
@@ -202,7 +206,7 @@ pub enum DataTypeEditorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: DataTypeSubjectSet,
     },

@@ -1,11 +1,14 @@
 import type {
   Entity,
   EntityId,
-  EntityRevisionId,
-} from "../../../types/entity.js";
+  TemporalBound,
+  TemporalInterval,
+  Timestamp,
+} from "@blockprotocol/type-system";
+
+import type { EntityRevisionId } from "../../../types/entity.js";
 import type { Subgraph, Vertices } from "../../../types/subgraph.js";
 import { isEntityVertex } from "../../../types/subgraph/vertices.js";
-import type { TimeInterval } from "../../../types/temporal-versioning.js";
 import { mustBeDefined, typedEntries, typedValues } from "../../../util.js";
 import {
   intervalContainsTimestamp,
@@ -144,7 +147,7 @@ export const getEntityRevision = (
           vertex.inner.metadata.temporalVersioning[
             subgraph.temporalAxes.resolved.variable.axis
           ],
-          targetTime,
+          targetTime as Timestamp,
         )
       ) {
         return vertex.inner;
@@ -163,12 +166,12 @@ export const getEntityRevision = (
  *
  * @param {Subgraph }subgraph
  * @param {EntityId} entityId
- * @param {TimeInterval} [interval]
+ * @param {TemporalInterval} [interval]
  */
 export const getEntityRevisionsByEntityId = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] => {
   const entityRevisions = getRevisionsForEntity(subgraph, entityId);
 
@@ -183,7 +186,7 @@ export const getEntityRevisionsByEntityId = (
       // Only look at vertices that were created before or within the search interval
       if (
         !intervalIsStrictlyAfterInterval(
-          intervalForTimestamp(startTime),
+          intervalForTimestamp(startTime as Timestamp),
           interval,
         ) &&
         isEntityVertex(vertex)

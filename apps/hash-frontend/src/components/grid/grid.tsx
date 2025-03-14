@@ -1,6 +1,6 @@
 import "@glideapps/glide-data-grid/dist/index.css";
 
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   DataEditorProps,
   DataEditorRef,

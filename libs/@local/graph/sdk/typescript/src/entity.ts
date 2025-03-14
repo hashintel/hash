@@ -1,59 +1,49 @@
-import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorId,
+  BaseUrl,
+  ClosedEntityType,
+  ClosedMultiEntityType,
+  EntityId,
+  EntityMetadata,
+  EntityUuid,
+  LinkData,
+  OwnedById,
+  Property,
+  PropertyArrayWithMetadata,
+  PropertyMetadata,
+  PropertyObjectMetadata,
+  PropertyObjectWithMetadata,
+  PropertyPatchOperation,
+  PropertyPath,
+  PropertyType,
+  PropertyValueMetadata,
+  PropertyValueWithMetadata,
+  PropertyWithMetadata,
+  ProvidedEntityEditionProvenance,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  isArrayMetadata,
+  isBaseUrl,
+  isObjectMetadata,
+  isValueMetadata,
+} from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
-  PropertyProvenance,
-  ProvidedEntityEditionProvenance,
+  PropertyMetadataObject,
+  PropertyWithMetadataValue,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 import type {
-  AccountId,
-  CreatedById,
-  EditionArchivedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
-import type {
-  EntityId,
-  EntityMetadata,
-  EntityProperties,
-  EntityRecordId,
-  EntityTemporalVersioningMetadata,
-  EntityUuid,
-  LinkData,
-  Property,
-  PropertyArrayWithMetadata,
-  PropertyMetadata,
-  PropertyMetadataObject,
-  PropertyMetadataValue,
-  PropertyObject,
-  PropertyObjectWithMetadata,
-  PropertyPatchOperation,
-  PropertyPath,
-  PropertyValueWithMetadata,
-  PropertyWithMetadata,
-} from "@local/hash-graph-types/entity";
-import {
-  isArrayMetadata,
-  isObjectMetadata,
-  isValueMetadata,
-} from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  ClosedEntityType,
-  ClosedMultiEntityType,
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
-import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-} from "@local/hash-graph-types/temporal-versioning";
 import type { EntityValidationReport } from "@local/hash-graph-types/validation";
-import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { AuthenticationContext } from "./authentication-context.js";
 
@@ -61,7 +51,7 @@ import type { AuthenticationContext } from "./authentication-context.js";
  * Types used in getEntitySubgraph response to indicate the count of these in the whole result set,
  * useful for filtering only a limited number of entities are returned in a single response.
  */
-export type CreatedByIdsMap = Record<AccountId, number>;
+export type CreatedByIdsMap = Record<ActorId, number>;
 export type TypeIdsMap = Record<VersionedUrl, number>;
 export type TypeTitlesMap = Record<VersionedUrl, string>;
 export type WebIdsMap = Record<OwnedById, number>;
@@ -96,27 +86,19 @@ type TypeId = typeof typeId;
 
 export interface SerializedEntity<
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Properties extends PropertyObject = PropertyObject,
+  Properties extends Record<BaseUrl, Property> = Record<BaseUrl, Property>,
 > {
   // Prevents the type from being created from outside the module
   [typeId]: TypeId;
 }
 
 type EntityData<Properties extends EntityProperties = EntityProperties> = {
-  metadata: EntityMetadata<Properties["entityTypeIds"]> & {
-    confidence?: number;
-    properties?: PropertyMetadataObject;
-  };
+  metadata: EntityMetadata<Properties["entityTypeIds"]>;
   properties: Properties["properties"];
-  linkData?: LinkData & {
-    leftEntityConfidence?: number;
-    rightEntityConfidence?: number;
-    leftEntityProvenance?: PropertyProvenance;
-    rightEntityProvenance?: PropertyProvenance;
-  };
+  linkData?: LinkData;
 };
 
-type EntityInput<Properties extends PropertyObject> =
+type EntityInput<Properties extends Record<BaseUrl, Property>> =
   | GraphApiEntity
   | SerializedEntity<Properties>;
 
@@ -162,7 +144,7 @@ export const patchesFromPropertyObjects = ({
   oldProperties,
   newProperties,
 }: {
-  oldProperties: PropertyObject;
+  oldProperties: Record<BaseUrl, Property>;
   newProperties: PropertyObjectWithMetadata;
 }): PropertyPatchOperation[] => {
   const patches: PropertyPatchOperation[] = [];
@@ -223,7 +205,7 @@ export const patchesFromPropertyObjects = ({
  * type argument inference would solve (1) but not (2).
  */
 export const getDefinedPropertyFromPatchesGetter = <
-  Properties extends PropertyObject,
+  Properties extends Record<BaseUrl, Property>,
 >(
   propertyPatches: PropertyPatchOperation[],
 ) => {
@@ -242,7 +224,9 @@ export const getDefinedPropertyFromPatchesGetter = <
   };
 };
 
-export const isValueRemovedByPatches = <Properties extends PropertyObject>({
+export const isValueRemovedByPatches = <
+  Properties extends Record<BaseUrl, Property>,
+>({
   baseUrl,
   propertyPatches,
 }: {
@@ -326,7 +310,7 @@ export const mergePropertiesAndMetadata = (
         metadata: {
           dataTypeId: null,
         },
-      } satisfies PropertyValueWithMetadata;
+      } satisfies PropertyWithMetadataValue;
     }
     if (isObjectMetadata(metadata)) {
       return {
@@ -366,7 +350,7 @@ export const mergePropertiesAndMetadata = (
     return {
       value: property,
       metadata: metadata.metadata,
-    } satisfies PropertyValueWithMetadata;
+    } satisfies PropertyWithMetadataValue;
   }
 
   // The property is not an array or object, so we treat it as a value
@@ -376,14 +360,14 @@ export const mergePropertiesAndMetadata = (
       metadata: {
         dataTypeId: null,
       },
-    } satisfies PropertyValueWithMetadata;
+    } satisfies PropertyWithMetadataValue;
   }
 
   if (isValueMetadata(metadata)) {
     return {
       value: property,
       metadata: metadata.metadata,
-    } satisfies PropertyValueWithMetadata;
+    } satisfies PropertyWithMetadataValue;
   }
 
   if (isArrayMetadata(metadata)) {
@@ -411,7 +395,7 @@ export const mergePropertiesAndMetadata = (
  */
 export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
   property: T["properties"],
-  metadata?: PropertyMetadataObject,
+  metadata?: PropertyObjectMetadata,
 ): T["propertiesWithMetadata"] => {
   return {
     value: Object.fromEntries(
@@ -436,7 +420,7 @@ export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
 };
 
 export const flattenPropertyMetadata = (
-  metadata: PropertyMetadataObject,
+  metadata: PropertyObjectMetadata,
 ): {
   path: PropertyPath;
   metadata: Required<PropertyMetadata>["metadata"];
@@ -489,7 +473,7 @@ export const getDisplayFieldsForClosedEntityType = (
       ? /**
          * This is a closed, single entity type. Its inheritance chain, including itself, is breadth-first in 'allOf'.
          */
-        (closedType.allOf ?? [])
+        closedType.allOf
       : /**
          * This is a multi-entity-type, where each item in the root 'allOf' is a closed type,
          * each of which has its inheritance chain (including itself) in a breadth-first order in its own 'allOf'.
@@ -498,7 +482,7 @@ export const getDisplayFieldsForClosedEntityType = (
          * one.
          */
         closedType.allOf
-          .flatMap((type) => type.allOf ?? [])
+          .flatMap((type) => type.allOf)
           .sort((a, b) => a.depth - b.depth);
 
   for (const { icon, labelProperty, $id } of breadthFirstArray) {
@@ -687,7 +671,7 @@ export const getPropertyTypeForClosedEntityType = ({
 
 const setMetadataForPropertyPath = (
   path: PropertyPath,
-  leafMetadata: PropertyMetadataValue | "delete",
+  leafMetadata: PropertyValueMetadata | "delete",
   currentMetadataUpToPath: PropertyMetadata | undefined,
 ): PropertyMetadata | undefined => {
   const nextKey = path[0];
@@ -749,11 +733,11 @@ const setMetadataForPropertyPath = (
  */
 export const generateChangedPropertyMetadataObject = (
   path: PropertyPath,
-  metadata: PropertyMetadataValue | "delete",
-  baseMetadataObject: PropertyMetadataObject,
+  metadata: PropertyValueMetadata | "delete",
+  baseMetadataObject: PropertyObjectMetadata,
 ): PropertyMetadataObject => {
   const clonedMetadata = JSON.parse(JSON.stringify(baseMetadataObject)) as
-    | PropertyMetadataObject
+    | PropertyObjectMetadata
     | undefined;
 
   if (!clonedMetadata || !isObjectMetadata(clonedMetadata)) {
@@ -794,50 +778,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   #entity: EntityData<PropertyMap>;
 
   constructor(entity: EntityInput<PropertyMap["properties"]>) {
-    if (isSerializedEntity(entity)) {
-      this.#entity = entity as unknown as EntityData<PropertyMap>;
-    } else if (isGraphApiEntity(entity)) {
-      this.#entity = {
-        ...entity,
-        properties: entity.properties as PropertyMap["properties"],
-        metadata: {
-          ...entity.metadata,
-          recordId: entity.metadata.recordId as EntityRecordId,
-          entityTypeIds: entity.metadata
-            .entityTypeIds as PropertyMap["entityTypeIds"],
-          temporalVersioning: entity.metadata
-            .temporalVersioning as EntityTemporalVersioningMetadata,
-          properties: entity.metadata.properties as
-            | PropertyMetadataObject
-            | undefined,
-          provenance: {
-            ...entity.metadata.provenance,
-            createdById: entity.metadata.provenance.createdById as CreatedById,
-            createdAtDecisionTime: entity.metadata.provenance
-              .createdAtDecisionTime as CreatedAtDecisionTime,
-            createdAtTransactionTime: entity.metadata.provenance
-              .createdAtTransactionTime as CreatedAtTransactionTime,
-            firstNonDraftCreatedAtDecisionTime: entity.metadata.provenance
-              .firstNonDraftCreatedAtDecisionTime as CreatedAtDecisionTime,
-            firstNonDraftCreatedAtTransactionTime: entity.metadata.provenance
-              .firstNonDraftCreatedAtTransactionTime as CreatedAtTransactionTime,
-            edition: {
-              ...entity.metadata.provenance.edition,
-              createdById: entity.metadata.provenance.edition
-                .createdById as EditionCreatedById,
-              archivedById: entity.metadata.provenance.edition
-                .archivedById as EditionArchivedById,
-            },
-          },
-        },
-        linkData: entity.linkData
-          ? {
-              ...entity.linkData,
-              leftEntityId: entity.linkData.leftEntityId as EntityId,
-              rightEntityId: entity.linkData.rightEntityId as EntityId,
-            }
-          : undefined,
-      };
+    if (isSerializedEntity(entity) || isGraphApiEntity(entity)) {
+      this.#entity = entity as EntityData<PropertyMap>;
     } else {
       throw new Error(
         `Expected entity to be either a serialized entity, or a graph api entity, but got ${JSON.stringify(entity, null, 2)}`,

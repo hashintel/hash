@@ -1,5 +1,5 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeEditor } from "@hashintel/type-editor";
 import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { useMemo } from "react";

@@ -1,6 +1,3 @@
-import type { EntityId } from "../entity.js";
-import type { OntologyTypeRevisionId } from "../ontology.js";
-import type { Timestamp } from "../temporal-versioning.js";
 import type { KnowledgeGraphOutwardEdge } from "./edges/variants/knowledge.js";
 import type { OntologyOutwardEdge } from "./edges/variants/ontology.js";
 
@@ -10,12 +7,16 @@ export * from "./edges/variants.js";
 
 export type OntologyRootedEdges = Record<
   string,
-  Record<OntologyTypeRevisionId, OntologyOutwardEdge[]>
+  {
+    [baseUrl: string]: OntologyOutwardEdge[];
+  }
 >;
 
 export type KnowledgeGraphRootedEdges = Record<
-  EntityId,
-  Record<Timestamp, KnowledgeGraphOutwardEdge[]>
+  string,
+  {
+    [timestamp: string]: KnowledgeGraphOutwardEdge[];
+  }
 >;
 
 // We technically want to intersect (`&`) the types here, but as their property keys overlap it confuses things and we

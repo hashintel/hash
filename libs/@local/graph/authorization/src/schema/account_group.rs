@@ -1,9 +1,5 @@
-use core::fmt;
-
-#[cfg(feature = "postgres")]
-use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
-use type_system::{provenance::ActorId, web::OwnedById};
+use type_system::{provenance::ActorId, web::ActorGroupId};
 use uuid::Uuid;
 
 use crate::zanzibar::{
@@ -17,42 +13,7 @@ pub enum AccountGroupNamespace {
     AccountGroup,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[repr(transparent)]
-pub struct AccountGroupId(Uuid);
-
-impl AccountGroupId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-
-    #[must_use]
-    pub const fn into_uuid(self) -> Uuid {
-        self.0
-    }
-
-    #[must_use]
-    pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
-    }
-}
-
-impl fmt::Display for AccountGroupId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-impl From<AccountGroupId> for OwnedById {
-    fn from(account_group_id: AccountGroupId) -> Self {
-        Self::new(account_group_id.into_uuid())
-    }
-}
-
-impl Resource for AccountGroupId {
+impl Resource for ActorGroupId {
     type Id = Self;
     type Kind = AccountGroupNamespace;
 
@@ -79,7 +40,7 @@ pub enum AccountGroupResourceRelation {
     Member,
 }
 
-impl Relation<AccountGroupId> for AccountGroupResourceRelation {}
+impl Relation<ActorGroupId> for AccountGroupResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -89,7 +50,7 @@ pub enum AccountGroupPermission {
     RemoveMember,
 }
 
-impl Permission<AccountGroupId> for AccountGroupPermission {}
+impl Permission<ActorGroupId> for AccountGroupPermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
@@ -172,9 +133,9 @@ pub enum AccountGroupRelationAndSubject {
     },
 }
 
-impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
+impl Relationship for (ActorGroupId, AccountGroupRelationAndSubject) {
     type Relation = AccountGroupResourceRelation;
-    type Resource = AccountGroupId;
+    type Resource = ActorGroupId;
     type Subject = AccountGroupSubject;
     type SubjectSet = !;
 

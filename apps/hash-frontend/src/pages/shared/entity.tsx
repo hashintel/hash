@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   Entity as EntityClass,
   getClosedMultiEntityTypeFromMap,

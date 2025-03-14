@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { OwnedById, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   ClosedEntityType as GraphApiClosedEntityType,
@@ -74,7 +74,8 @@ export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
               );
 
               const requesterOwnsEntity =
-                userAccountId && userAccountId === ownedById;
+                userAccountId &&
+                (userAccountId as string as OwnedById) === ownedById;
 
               if (
                 !restrictedPropertyBaseUrls.includes(key) ||

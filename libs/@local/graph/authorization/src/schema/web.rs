@@ -1,12 +1,15 @@
 use core::error::Error;
 
 use serde::{Deserialize, Serialize};
-use type_system::{provenance::ActorId, web::OwnedById};
+use type_system::{
+    provenance::ActorId,
+    web::{ActorGroupId, OwnedById},
+};
 use uuid::Uuid;
 
 use crate::{
     schema::{
-        AccountGroupId, PublicAccess,
+        PublicAccess,
         error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
@@ -78,7 +81,7 @@ impl Permission<OwnedById> for WebPermission {}
 pub enum WebSubject {
     Public,
     Account(ActorId),
-    AccountGroup(AccountGroupId),
+    AccountGroup(ActorGroupId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -118,7 +121,7 @@ impl Resource for WebSubject {
                 Self::Account(ActorId::new(id))
             }
             (WebSubjectNamespace::AccountGroup, WebSubjectId::Uuid(id)) => {
-                Self::AccountGroup(AccountGroupId::new(id))
+                Self::AccountGroup(ActorGroupId::new(id))
             }
             (WebSubjectNamespace::AccountGroup, WebSubjectId::Asteriks(PublicAccess::Public)) => {
                 return Err(InvalidResource::<Self>::invalid_id(kind, id));
@@ -158,7 +161,7 @@ pub enum WebOwnerSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
     },
 }
 
@@ -172,7 +175,7 @@ pub enum WebEntityCreatorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: WebSubjectSet,
     },
@@ -188,7 +191,7 @@ pub enum WebEntityEditorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: WebSubjectSet,
     },
@@ -205,7 +208,7 @@ pub enum WebEntityViewerSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: WebSubjectSet,
     },

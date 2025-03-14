@@ -10,7 +10,7 @@ use type_system::{
             id::{EntityId, EntityUuid},
             provenance::ProvidedEntityEditionProvenance,
         },
-        property::{PropertyObject, PropertyWithMetadataObject, metadata::PropertyProvenance},
+        property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::VersionedUrl,
     provenance::{ActorType, OriginProvenance, OriginType},
@@ -60,7 +60,7 @@ async fn insert() {
             "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
         )
         .expect("couldn't construct Versioned URL")]),
-        properties: PropertyWithMetadataObject::from_parts(
+        properties: PropertyObjectWithMetadata::from_parts(
             serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity"),
             None,
         )
@@ -85,7 +85,7 @@ async fn insert() {
             "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
         )
         .expect("couldn't construct Versioned URL")]),
-        properties: PropertyWithMetadataObject::from_parts(
+        properties: PropertyObjectWithMetadata::from_parts(
             serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity"),
             None,
         )
@@ -109,7 +109,7 @@ async fn insert() {
             "https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1",
         )
         .expect("couldn't construct Versioned URL")]),
-        properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+        properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
             .expect("could not create property with metadata object"),
         confidence: None,
         link_data: Some(LinkData {

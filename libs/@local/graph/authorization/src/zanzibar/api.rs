@@ -9,7 +9,7 @@ use type_system::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
     provenance::ActorId,
-    web::OwnedById,
+    web::{ActorGroupId, OwnedById},
 };
 
 use crate::{
@@ -21,9 +21,9 @@ use crate::{
         ModifyRelationshipOperation, ModifyRelationshipResponse, ReadError, ZanzibarBackend,
     },
     schema::{
-        AccountGroupId, AccountGroupPermission, AccountGroupRelationAndSubject, AccountNamespace,
-        ActorIdOrPublic, DataTypePermission, DataTypeRelationAndSubject, EntityNamespace,
-        EntityPermission, EntityRelationAndSubject, EntitySetting, EntityTypePermission,
+        AccountGroupPermission, AccountGroupRelationAndSubject, AccountNamespace, ActorIdOrPublic,
+        DataTypePermission, DataTypeRelationAndSubject, EntityNamespace, EntityPermission,
+        EntityRelationAndSubject, EntitySetting, EntityTypePermission,
         EntityTypeRelationAndSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
         SettingName, SettingRelationAndSubject, SettingSubject, WebPermission,
         WebRelationAndSubject,
@@ -97,7 +97,7 @@ where
         &self,
         actor: ActorId,
         permission: AccountGroupPermission,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         self.backend
@@ -108,11 +108,11 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_account_group_relations(
         &self,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
         self.backend
-            .read_relations::<(AccountGroupId, AccountGroupRelationAndSubject)>(
+            .read_relations::<(ActorGroupId, AccountGroupRelationAndSubject)>(
                 RelationshipFilter::from_resource(account_group),
                 consistency,
             )
@@ -129,7 +129,7 @@ where
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                AccountGroupId,
+                ActorGroupId,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,

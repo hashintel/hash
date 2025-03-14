@@ -2,7 +2,7 @@ import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import type {
   EntityTypeReference,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 

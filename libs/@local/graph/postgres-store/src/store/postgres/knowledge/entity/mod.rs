@@ -63,9 +63,9 @@ use type_system::{
             provenance::{EntityEditionProvenance, InferredEntityProvenance},
         },
         property::{
-            PropertyObject, PropertyPath, PropertyPathError, PropertyWithMetadata,
-            PropertyWithMetadataObject, PropertyWithMetadataValue,
-            metadata::{PropertyMetadata, PropertyMetadataObject},
+            PropertyObject, PropertyObjectWithMetadata, PropertyPath, PropertyPathError,
+            PropertyValueWithMetadata, PropertyWithMetadata,
+            metadata::{PropertyMetadata, PropertyObjectMetadata},
         },
     },
     ontology::{
@@ -344,7 +344,7 @@ where
         path: &PropertyPath<'_>,
         target_data_type_id: &VersionedUrl,
     ) {
-        let Ok(PropertyWithMetadata::Value(PropertyWithMetadataValue { value, metadata })) =
+        let Ok(PropertyWithMetadata::Value(PropertyValueWithMetadata { value, metadata })) =
             entity.get_mut(path.as_ref())
         else {
             // If the property does not exist or is not a value, we can ignore it.
@@ -389,7 +389,7 @@ where
         entity: &mut Entity,
         conversions: &[QueryConversion<'_>],
     ) -> Result<(), Report<PropertyPathError>> {
-        let mut property = PropertyWithMetadata::Object(PropertyWithMetadataObject::from_parts(
+        let mut property = PropertyWithMetadata::Object(PropertyObjectWithMetadata::from_parts(
             mem::take(&mut entity.properties),
             Some(mem::take(&mut entity.metadata.properties)),
         )?);
@@ -1815,10 +1815,10 @@ where
 
         let mut properties_with_metadata = PropertyWithMetadata::from_parts(
             Property::Object(previous_entity.properties),
-            Some(PropertyMetadata::Object {
+            Some(PropertyMetadata::Object(PropertyObjectMetadata {
                 value: previous_entity.metadata.properties.value,
                 metadata: previous_entity.metadata.properties.metadata,
-            }),
+            })),
         )
         .change_context(UpdateError)?;
         properties_with_metadata
@@ -2249,7 +2249,7 @@ where
         properties: &PropertyObject,
         confidence: Option<Confidence>,
         provenance: &EntityEditionProvenance,
-        metadata: &PropertyMetadataObject,
+        metadata: &PropertyObjectMetadata,
     ) -> Result<EntityEditionId, Report<InsertionError>> {
         let edition_id: EntityEditionId = self
             .as_client()

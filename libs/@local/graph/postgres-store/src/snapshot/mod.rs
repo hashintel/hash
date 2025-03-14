@@ -30,9 +30,9 @@ use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
     backend::ZanzibarBackend,
     schema::{
-        AccountGroupId, AccountGroupRelationAndSubject, DataTypeRelationAndSubject,
-        EntityNamespace, EntityRelationAndSubject, EntityTypeRelationAndSubject,
-        PropertyTypeRelationAndSubject, WebRelationAndSubject,
+        AccountGroupRelationAndSubject, DataTypeRelationAndSubject, EntityNamespace,
+        EntityRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
+        WebRelationAndSubject,
     },
     zanzibar::{
         Consistency,
@@ -61,7 +61,7 @@ use type_system::{
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
     provenance::ActorId,
-    web::OwnedById,
+    web::{ActorGroupId, OwnedById},
 };
 
 use crate::{
@@ -76,7 +76,7 @@ pub struct Account {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountGroup {
-    pub id: AccountGroupId,
+    pub id: ActorGroupId,
     pub relations: Vec<AccountGroupRelationAndSubject>,
 }
 
@@ -319,11 +319,11 @@ impl PostgresStorePool {
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
             .and_then(move |row| async move {
-                let id: AccountGroupId = row.get(0);
+                let id: ActorGroupId = row.get(0);
                 Ok(AccountGroup {
                     id,
                     relations: authorization_api
-                        .read_relations::<(AccountGroupId, AccountGroupRelationAndSubject)>(
+                        .read_relations::<(ActorGroupId, AccountGroupRelationAndSubject)>(
                             RelationshipFilter::from_resource(id),
                             Consistency::FullyConsistent,
                         )

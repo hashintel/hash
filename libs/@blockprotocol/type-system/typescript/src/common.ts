@@ -1,5 +1,13 @@
 // import init from "@blockprotocol/type-system-rs";
 
+import type {
+  BaseUrl,
+  EntityMetadata as EntityMetadataBp,
+  LinkData,
+  Property,
+  VersionedUrl,
+} from "@blockprotocol/type-system-rs";
+
 // export type InitInput =
 //   | RequestInfo
 //   | URL
@@ -49,4 +57,27 @@ export const mustHaveAtLeastOne = <T>(array: T[]): [T, ...T[]] => {
   }
 
   return arr;
+};
+
+export type Entity<
+  Properties extends Record<BaseUrl, Property> | null = Record<
+    BaseUrl,
+    Property
+  >,
+> = {
+  metadata: EntityMetadata;
+  linkData?: LinkData;
+} & (Properties extends null
+  ? { properties?: never }
+  : { properties: Properties });
+
+// setWasmInit(() => (typeof wasm === "function" ? wasm() : wasm));
+
+export type EntityMetadata<
+  EntityTypeIds extends [VersionedUrl, ...VersionedUrl[]] = [
+    VersionedUrl,
+    ...VersionedUrl[],
+  ],
+> = Omit<EntityMetadataBp, "entityTypeIds"> & {
+  entityTypeIds: EntityTypeIds;
 };

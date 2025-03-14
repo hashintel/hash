@@ -140,7 +140,7 @@ export const linearWebhook: RequestHandler<
 
             const ownedById = extractEntityUuidFromEntityId(
               hashWorkspaceEntityId,
-            ) as Uuid as OwnedById;
+            ) as string as OwnedById;
 
             const workflow =
               `${payloadAction}HashEntityFromLinearData` as const satisfies keyof WorkflowTypeMap;

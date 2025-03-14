@@ -2,7 +2,7 @@ import type {
   EntityType,
   PropertyType,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 import type {
   GetEntitiesRequest as GetEntitiesRequestGraphApi,
   GetEntitySubgraphRequest as GetEntitySubgraphRequestGraphApi,

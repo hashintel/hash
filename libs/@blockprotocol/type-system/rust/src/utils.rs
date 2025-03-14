@@ -9,6 +9,64 @@ mod wasm {
     import type { Brand } from "@local/advanced-types/brand";
     "#;
 
+    // Common types
+
+    #[derive(tsify::Tsify)]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    struct Url(#[tsify(type = "Brand<string, \"Url\">")] String);
+
+    #[derive(tsify::Tsify)]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    struct Timestamp(#[tsify(type = "Brand<string, \"Timestamp\">")] String);
+
+    #[derive(tsify::Tsify)]
+    #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    enum TemporalBound {
+        Unbounded,
+        Inclusive(Timestamp),
+        Exclusive(Timestamp),
+    }
+    #[derive(tsify::Tsify)]
+    #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    enum LimitedTemporalBound {
+        Inclusive(Timestamp),
+        Exclusive(Timestamp),
+    }
+    #[derive(tsify::Tsify)]
+    #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    enum ClosedTemporalBound {
+        Inclusive(Timestamp),
+    }
+    #[derive(tsify::Tsify)]
+    #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    enum OpenTemporalBound {
+        Exclusive(Timestamp),
+        Unbounded,
+    }
+
+    #[derive(tsify::Tsify)]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    struct TemporalInterval<Start, End> {
+        start: Start,
+        end: End,
+    }
+    #[derive(tsify::Tsify)]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    struct RightBoundedTemporalInterval {
+        start: TemporalBound,
+        end: LimitedTemporalBound,
+    }
+    #[derive(tsify::Tsify)]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    struct LeftClosedTemporalInterval {
+        start: ClosedTemporalBound,
+        end: OpenTemporalBound,
+    }
+
     /// Sets up better error messages for WebAssembly panics.
     ///
     /// When compiled to WebAssembly, this function configures the panic hook

@@ -1,6 +1,5 @@
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { ActorId, EntityUuid } from "@blockprotocol/type-system";
+import type { OwnedById } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -83,8 +82,8 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
       const pageAuthor = await getUserById(context, authentication, {
         entityId: entityIdFromComponents(
-          pageAuthorAccountId as Uuid as OwnedById,
-          pageAuthorAccountId as Uuid as EntityUuid,
+          pageAuthorAccountId as ActorId as OwnedById,
+          pageAuthorAccountId as string as EntityUuid,
         ),
       });
 

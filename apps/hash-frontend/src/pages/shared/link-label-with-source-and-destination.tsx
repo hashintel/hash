@@ -1,6 +1,6 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
-import type { EntityType } from "@blockprotocol/type-system/slim";
-import { extractVersion } from "@blockprotocol/type-system/slim";
+import type { EntityType } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
 import {
   EntityOrTypeIcon,
   EyeSlashRegularIcon,

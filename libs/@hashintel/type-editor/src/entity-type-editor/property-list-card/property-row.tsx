@@ -1,7 +1,4 @@
-import type {
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import { Collapse, Table, TableBody, TableCell, TableRow } from "@mui/material";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";

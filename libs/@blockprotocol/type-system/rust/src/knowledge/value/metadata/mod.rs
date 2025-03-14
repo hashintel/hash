@@ -11,6 +11,7 @@ use crate::{
 
 #[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ValueMetadata {
     #[serde(default, skip_serializing_if = "ValueProvenance::is_empty")]
@@ -29,5 +30,6 @@ pub struct ValueMetadata {
     pub original_data_type_id: Option<VersionedUrl>,
 
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "{ [key: BaseUrl]: JsonValue }"))]
     pub canonical: HashMap<BaseUrl, Value>,
 }

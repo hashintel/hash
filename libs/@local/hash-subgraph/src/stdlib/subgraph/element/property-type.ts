@@ -7,14 +7,12 @@ import {
 } from "@blockprotocol/graph/stdlib";
 import type {
   DataTypeReference,
-  PropertyTypeReference,
-  ValueOrArray,
-} from "@blockprotocol/type-system";
-import type {
   EntityType,
   PropertyType,
+  PropertyTypeReference,
+  ValueOrArray,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -96,7 +94,7 @@ export const getPropertyTypeForEntity = (
   propertyBaseUrl: BaseUrl,
 ): {
   propertyType: PropertyType;
-  refSchema: EntityType["properties"][string];
+  refSchema: EntityType["properties"][BaseUrl];
 } => {
   const entityTypeAndParents = getBreadthFirstEntityTypesAndParents(
     subgraph,

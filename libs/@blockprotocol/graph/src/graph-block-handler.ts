@@ -1,4 +1,5 @@
 import { ModuleHandler } from "@blockprotocol/core";
+import type { BaseUrl, Entity, Property } from "@blockprotocol/type-system";
 
 /**
  * There's an issue when importing useGraphEmbedderModule from @blockprotocol/graph/react in hashintel/hash:
@@ -13,8 +14,6 @@ import type {
   CreateResourceError,
   DataTypeRootType,
   DeleteEntityData,
-  Entity,
-  EntityPropertiesObject,
   EntityRootType,
   EntityTypeRootType,
   GetDataTypeData,
@@ -118,7 +117,10 @@ export class GraphBlockHandler
   // @todo automate creation of these methods from graph-module.json and types.ts
 
   createEntity<
-    ValidProperties extends EntityPropertiesObject = EntityPropertiesObject,
+    ValidProperties extends Record<BaseUrl, Property> = Record<
+      BaseUrl,
+      Property
+    >,
   >({ data }: { data?: CreateEntityData & { properties: ValidProperties } }) {
     return this.sendMessage<Entity, CreateResourceError>({
       message: {
@@ -130,7 +132,10 @@ export class GraphBlockHandler
   }
 
   updateEntity<
-    ValidProperties extends EntityPropertiesObject = EntityPropertiesObject,
+    ValidProperties extends Record<BaseUrl, Property> = Record<
+      BaseUrl,
+      Property
+    >,
   >({ data }: { data?: UpdateEntityData & { properties: ValidProperties } }) {
     return this.sendMessage<Entity, ReadOrModifyResourceError>({
       message: {

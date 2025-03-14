@@ -24,7 +24,7 @@ use type_system::{
     knowledge::{
         Entity,
         entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
-        property::{PropertyObject, PropertyWithMetadataObject, metadata::PropertyProvenance},
+        property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::entity_type::EntityType,
     provenance::{ActorId, ActorType, OriginProvenance, OriginType},
@@ -126,7 +126,7 @@ async fn seed_db<A: AuthorizationApi>(
                     entity_uuid: None,
                     decision_time: None,
                     entity_type_ids: HashSet::from([entity_type.id]),
-                    properties: PropertyWithMetadataObject::from_parts(properties, None)
+                    properties: PropertyObjectWithMetadata::from_parts(properties, None)
                         .expect("could not create property with metadata object"),
                     confidence: None,
                     link_data: None,
@@ -156,7 +156,7 @@ async fn seed_db<A: AuthorizationApi>(
                         entity_uuid: None,
                         decision_time: None,
                         entity_type_ids: HashSet::from([link_type.id.clone()]),
-                        properties: PropertyWithMetadataObject::from_parts(
+                        properties: PropertyObjectWithMetadata::from_parts(
                             PropertyObject::empty(),
                             None,
                         )

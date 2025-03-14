@@ -31,14 +31,14 @@ use type_system::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
     provenance::ActorId,
-    web::OwnedById,
+    web::{ActorGroupId, OwnedById},
 };
 
 use crate::{
     backend::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
-    schema::{AccountGroupId, AccountGroupPermission, EntityPermission, WebPermission},
+    schema::{AccountGroupPermission, EntityPermission, WebPermission},
     zanzibar::{Consistency, Zookie},
 };
 
@@ -54,7 +54,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: ActorId,
         _: AccountGroupPermission,
-        _: AccountGroupId,
+        _: ActorGroupId,
         _: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         Ok(CheckResponse {
@@ -68,7 +68,7 @@ impl AuthorizationApi for NoAuthorization {
         _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                AccountGroupId,
+                ActorGroupId,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,
@@ -106,7 +106,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_account_group_relations(
         &self,
-        _: AccountGroupId,
+        _: ActorGroupId,
         _: Consistency<'_>,
     ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
         Ok(Vec::new())

@@ -5,7 +5,7 @@ import {
   getEntityTypes as getEntityTypesBp,
   getEntityTypesByBaseUrl as getEntityTypesByBaseUrlBp,
 } from "@blockprotocol/graph/stdlib";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,

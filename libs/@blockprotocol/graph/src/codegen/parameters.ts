@@ -1,5 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { validateVersionedUrl } from "@blockprotocol/type-system";
 
 import { typedEntries, typedKeys } from "../util/typed-object-iter.js";
 

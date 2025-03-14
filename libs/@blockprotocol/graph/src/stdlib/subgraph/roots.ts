@@ -1,3 +1,5 @@
+import type { EntityId } from "@blockprotocol/type-system";
+
 import type {
   DataTypeRootType,
   EntityRootType,
@@ -144,7 +146,11 @@ export const isEntityRootedSubgraph = (
     }
 
     mustBeDefined(
-      getEntityRevision(subgraph, rootVertexId.baseId, rootVertexId.revisionId),
+      getEntityRevision(
+        subgraph,
+        rootVertexId.baseId as EntityId,
+        rootVertexId.revisionId,
+      ),
       `roots should have corresponding vertices but ${JSON.stringify(
         rootVertexId,
       )} was missing`,

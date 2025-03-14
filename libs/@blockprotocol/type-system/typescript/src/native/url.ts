@@ -55,6 +55,10 @@ export const validateBaseUrl = (
   }
 };
 
+export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
+  return validateBaseUrl(baseUrl).type === "Ok";
+};
+
 const versionedUrlRegExp = /(.+\/)v\/(.*)/;
 
 /**

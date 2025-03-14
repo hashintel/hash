@@ -20,8 +20,8 @@ use type_system::{
         Value,
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{
-            PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyWithMetadata,
-            PropertyWithMetadataObject, PropertyWithMetadataValue,
+            PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
+            PropertyPathElement, PropertyValueWithMetadata, PropertyWithMetadata,
         },
         value::{ValueMetadata, metadata::ValueProvenance},
     },
@@ -99,7 +99,7 @@ async fn properties_add() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
@@ -125,7 +125,7 @@ async fn properties_add() {
             properties: vec![
                 PropertyPatchOperation::Add {
                     path: once(PropertyPathElement::from(age_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                    property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
                         value: Value::Number(Real::from(30)),
                         metadata: ValueMetadata {
                             confidence: None,
@@ -138,7 +138,7 @@ async fn properties_add() {
                 },
                 PropertyPatchOperation::Add {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                    property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
                         value: Value::String("Alice Allison".to_owned()),
                         metadata: ValueMetadata {
                             confidence: None,
@@ -219,7 +219,7 @@ async fn properties_remove() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
@@ -306,7 +306,7 @@ async fn properties_replace() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
@@ -331,7 +331,7 @@ async fn properties_replace() {
             entity_type_ids: HashSet::new(),
             properties: vec![PropertyPatchOperation::Replace {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
                     value: Value::String("Bob".to_owned()),
                     metadata: ValueMetadata {
                         confidence: None,
@@ -408,7 +408,7 @@ async fn type_ids() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+                properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,

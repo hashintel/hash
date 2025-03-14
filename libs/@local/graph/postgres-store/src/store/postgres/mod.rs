@@ -15,10 +15,9 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupAdministratorSubject, AccountGroupId, AccountGroupRelationAndSubject,
-        WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
-        WebEntityTypeViewerSubject, WebOwnerSubject, WebPropertyTypeViewerSubject,
-        WebRelationAndSubject, WebSubjectSet,
+        AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
+        WebEntityCreatorSubject, WebEntityEditorSubject, WebEntityTypeViewerSubject,
+        WebOwnerSubject, WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
     },
 };
 use hash_graph_store::{
@@ -52,7 +51,7 @@ use type_system::{
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     provenance::{ActorId, EditionArchivedById},
-    web::OwnedById,
+    web::{ActorGroupId, OwnedById},
 };
 
 pub use self::{
@@ -1240,7 +1239,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 id: ActorId::new(owned_by_id.into_uuid()),
             }),
             (false, true) => Ok(WebOwnerSubject::AccountGroup {
-                id: AccountGroupId::new(owned_by_id.into_uuid()),
+                id: ActorGroupId::new(owned_by_id.into_uuid()),
             }),
             (true, true) => Err(Report::new(QueryWebError)
                 .attach_printable("Record exists in both accounts and account_groups")

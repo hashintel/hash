@@ -1,4 +1,3 @@
-use hash_graph_authorization::schema::AccountGroupId;
 use hash_graph_temporal_versioning::{
     DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime,
 };
@@ -15,7 +14,7 @@ use type_system::{
         },
         property::{
             PropertyObject,
-            metadata::{PropertyMetadataObject, PropertyProvenance},
+            metadata::{PropertyObjectMetadata, PropertyProvenance},
         },
     },
     ontology::{
@@ -27,7 +26,7 @@ use type_system::{
         provenance::OntologyEditionProvenance,
     },
     provenance::ActorId,
-    web::OwnedById,
+    web::{ActorGroupId, OwnedById},
 };
 
 use crate::store::postgres::query::Table;
@@ -39,7 +38,7 @@ pub trait PostgresRow: ToSql + Sized {
 #[derive(Debug, ToSql)]
 #[postgres(name = "account_groups")]
 pub struct AccountGroupRow {
-    pub account_group_id: AccountGroupId,
+    pub account_group_id: ActorGroupId,
 }
 
 #[derive(Debug, ToSql)]
@@ -95,7 +94,7 @@ pub struct EntityEditionRow {
     pub archived: bool,
     pub confidence: Option<Confidence>,
     pub provenance: EntityEditionProvenance,
-    pub property_metadata: PropertyMetadataObject,
+    pub property_metadata: PropertyObjectMetadata,
 }
 
 #[derive(Debug, ToSql)]

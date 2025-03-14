@@ -141,7 +141,7 @@ export const getEntityRevision = (
           vertex.inner.metadata.temporalVersioning[
             subgraph.temporalAxes.resolved.variable.axis
           ],
-          targetTime as EntityRevisionId,
+          targetTime,
         )
       ) {
         return vertex.inner;

@@ -1,6 +1,5 @@
-use hash_graph_authorization::schema::AccountGroupId;
 use postgres_types::ToSql;
-use type_system::provenance::ActorId;
+use type_system::{provenance::ActorId, web::ActorGroupId};
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "accounts")]
@@ -11,5 +10,5 @@ pub struct AccountRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "account_groups")]
 pub struct AccountGroupRow {
-    pub account_group_id: AccountGroupId,
+    pub account_group_id: ActorGroupId,
 }

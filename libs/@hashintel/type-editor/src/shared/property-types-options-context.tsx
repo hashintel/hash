@@ -1,5 +1,5 @@
 import type { PropertyTypeWithMetadata } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext } from "react";
 

@@ -1,9 +1,18 @@
+import type { EntityTemporalVersioningMetadata } from "@blockprotocol/graph";
 import type {
+  BaseUrl,
   DataType,
+  DataTypeMetadata,
   EntityType,
+  EntityTypeMetadata,
   OneOfSchema,
+  OntologyProvenance,
+  OntologyTypeRecordId,
+  OntologyTypeVersion,
   PropertyType,
   PropertyValues,
+  SourceProvenance,
+  Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -39,20 +48,11 @@ import type {
   EntityMetadata,
   EntityProvenance,
   EntityRecordId,
-  EntityTemporalVersioningMetadata,
   LinkData,
 } from "@local/hash-graph-types/entity";
 import type {
-  BaseUrl,
-  DataTypeMetadata,
-  EntityTypeMetadata,
-  OntologyProvenance,
-  OntologyTypeRecordId,
-} from "@local/hash-graph-types/ontology";
-import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
-  Timestamp,
 } from "@local/hash-graph-types/temporal-versioning";
 
 import type {
@@ -114,7 +114,7 @@ const mapOntologyTypeRecordId = (
 ): OntologyTypeRecordId => {
   return {
     baseUrl: recordId.baseUrl as BaseUrl,
-    version: recordId.version,
+    version: recordId.version as OntologyTypeVersion,
   };
 };
 
@@ -127,7 +127,7 @@ const mapOntologyProvenance = (
       archivedById: metadata.edition.archivedById as EditionArchivedById,
       actorType: metadata.edition.actorType,
       origin: metadata.edition.origin,
-      sources: metadata.edition.sources,
+      sources: metadata.edition.sources as SourceProvenance[],
     },
   };
 };
@@ -368,7 +368,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
     const result = validateBaseUrl(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUrl = result.inner as BaseUrl;
+      const baseUrl = result.inner;
 
       mappedVertices[baseUrl] = Object.fromEntries(
         Object.entries(inner).map(([version, vertex]) => {

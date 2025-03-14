@@ -4,8 +4,8 @@ import type {
   EntityTypeReference,
   PropertyTypeReference,
   ValueOrArray,
-} from "@blockprotocol/type-system/slim";
-import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 
 import type { EntityTypeEditorFormData } from "./shared/form-types";
 

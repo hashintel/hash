@@ -1,6 +1,11 @@
+import type {
+  BaseUrl,
+  Confidence,
+  Property,
+  PropertyObjectMetadata,
+  PropertyObjectWithMetadata,
+} from "@blockprotocol/type-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
-import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { expect, test } from "vitest";
 
 import { Entity } from "../src/entity.js";
@@ -69,7 +74,7 @@ const createTestEntity = (): GraphApiEntity => ({
               value: {
                 [base_url_aaa]: {
                   metadata: {
-                    confidence: 0.1,
+                    confidence: 0.1 as Confidence,
                     dataTypeId:
                       "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                   },
@@ -78,7 +83,7 @@ const createTestEntity = (): GraphApiEntity => ({
             },
           },
           metadata: {
-            confidence: 0.2,
+            confidence: 0.2 as Confidence,
           },
         },
         [base_url_b]: {
@@ -87,7 +92,7 @@ const createTestEntity = (): GraphApiEntity => ({
               value: {
                 [base_url_b10b]: {
                   metadata: {
-                    confidence: 0.3,
+                    confidence: 0.3 as Confidence,
                     dataTypeId:
                       "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                   },
@@ -96,14 +101,14 @@ const createTestEntity = (): GraphApiEntity => ({
             },
           ],
           metadata: {
-            confidence: 0.4,
+            confidence: 0.4 as Confidence,
           },
         },
         [base_url_c]: {
           value: [
             {
               metadata: {
-                confidence: 0.5,
+                confidence: 0.5 as Confidence,
                 dataTypeId:
                   "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
               },
@@ -111,7 +116,7 @@ const createTestEntity = (): GraphApiEntity => ({
           ],
         },
       },
-    } satisfies PropertyMetadataObject,
+    } satisfies PropertyObjectMetadata,
   },
   properties: {},
 });

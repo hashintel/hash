@@ -306,7 +306,7 @@ const generateOntologyIds = async () => {
     `../../../libs/@local/hash-isomorphic-utils/src/${outputFileName}`,
   );
 
-  const importStatement = `import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+  const importStatement = `import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";\n\n`;
 
   const fileText =

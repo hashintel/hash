@@ -3,7 +3,7 @@ import type {
   GraphEmbedderMessageCallbacks,
   Subgraph as BpSubgraph,
 } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {

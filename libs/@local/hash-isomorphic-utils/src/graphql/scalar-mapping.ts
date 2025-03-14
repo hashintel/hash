@@ -93,7 +93,7 @@ export const scalars = {
     "@local/hash-graph-types/authorization#AuthorizationSubjectId",
   EntityId: "@local/hash-graph-types/entity#EntityId",
 
-  EntityUuid: "@local/hash-graph-types/entity#EntityUuid",
+  EntityUuid: "@blockprotocol/type-system#EntityUuid",
   Uuid: "@local/hash-graph-types/branded#Uuid",
 
   OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",

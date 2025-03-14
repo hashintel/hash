@@ -1,15 +1,18 @@
-import type { Entity } from "../../types/entity.js";
+import type {
+  DataTypeWithMetadata,
+  Entity,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
+
 import type {
   DataTypeVertex,
-  DataTypeWithMetadata,
   EntityIdWithInterval,
   EntityTypeVertex,
-  EntityTypeWithMetadata,
   EntityVertex,
   EntityVertexId,
   OntologyTypeVertexId,
   PropertyTypeVertex,
-  PropertyTypeWithMetadata,
   Subgraph,
 } from "../../types/subgraph.js";
 

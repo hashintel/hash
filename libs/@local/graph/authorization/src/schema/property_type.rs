@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{
     schema::{
-        AccountGroupId, PublicAccess,
+        ActorGroupId, PublicAccess,
         error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
@@ -76,7 +76,7 @@ pub enum PropertyTypeSubject {
     Setting(PropertyTypeSetting),
     Public,
     Account(ActorId),
-    AccountGroup(AccountGroupId),
+    AccountGroup(ActorGroupId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -128,7 +128,7 @@ impl Resource for PropertyTypeSubject {
                 Self::Account(ActorId::new(id))
             }
             (PropertyTypeSubjectNamespace::AccountGroup, PropertyTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(AccountGroupId::new(id))
+                Self::AccountGroup(ActorGroupId::new(id))
             }
             (
                 PropertyTypeSubjectNamespace::Web
@@ -202,7 +202,7 @@ pub enum PropertyTypeEditorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: PropertyTypeSubjectSet,
     },

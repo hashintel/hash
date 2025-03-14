@@ -67,8 +67,8 @@ mod tests {
     use type_system::{
         knowledge::{
             property::{
-                Property, PropertyObject, PropertyWithMetadata, PropertyWithMetadataObject,
-                PropertyWithMetadataValue, metadata::PropertyMetadata,
+                Property, PropertyObject, PropertyObjectWithMetadata, PropertyValueWithMetadata,
+                PropertyWithMetadata, metadata::PropertyMetadata,
             },
             value::{ValueMetadata, metadata::ValueProvenance},
         },
@@ -305,7 +305,7 @@ mod tests {
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadataObject, ObjectValidationReport> {
+    ) -> Result<PropertyObjectWithMetadata, ObjectValidationReport> {
         let mut ontology_type_resolver = OntologyTypeResolver::default();
         let entity_types = entity_types
             .into_iter()
@@ -356,7 +356,7 @@ mod tests {
             }),
         );
 
-        let mut properties = PropertyWithMetadataObject::from_parts(
+        let mut properties = PropertyObjectWithMetadata::from_parts(
             serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string"),
             None,
         )
@@ -407,7 +407,7 @@ mod tests {
         data_type: &str,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadataValue, ValueValidationReport> {
+    ) -> Result<PropertyValueWithMetadata, ValueValidationReport> {
         let mut value = serde_json::from_value(value).expect("failed to parse value");
         let mut provider = Provider::new(
             [],
@@ -442,6 +442,6 @@ mod tests {
         EntityPreprocessor { components }
             .visit_value(&data_type_ref, &mut value, &mut metadata, &provider)
             .await?;
-        Ok(PropertyWithMetadataValue { value, metadata })
+        Ok(PropertyValueWithMetadata { value, metadata })
     }
 }

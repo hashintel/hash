@@ -1,3 +1,12 @@
+import type {
+  DataTypeWithMetadata,
+  Entity,
+  EntityRecordId,
+  EntityTypeWithMetadata,
+  OntologyTypeRecordId,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
+
 import {
   inferDataTypeEdgesInSubgraphByMutation,
   inferEntityEdgesInSubgraphByMutation,
@@ -11,16 +20,10 @@ import {
   addPropertyTypeVerticesToSubgraphByMutation,
 } from "../../internal/mutate-subgraph/element.js";
 import type {
-  DataTypeWithMetadata,
-  Entity,
-  EntityRecordId,
   EntityRootType,
-  EntityTypeWithMetadata,
   EntityVertexId,
   GraphResolveDepths,
-  OntologyTypeRecordId,
   OntologyTypeVertexId,
-  PropertyTypeWithMetadata,
   Subgraph,
   SubgraphTemporalAxes,
 } from "../../types.js";

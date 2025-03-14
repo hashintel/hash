@@ -1,12 +1,16 @@
 use core::error::Error;
 
 use serde::{Deserialize, Serialize};
-use type_system::{ontology::entity_type::EntityTypeUuid, provenance::ActorId, web::OwnedById};
+use type_system::{
+    ontology::entity_type::EntityTypeUuid,
+    provenance::ActorId,
+    web::{ActorGroupId, OwnedById},
+};
 use uuid::Uuid;
 
 use crate::{
     schema::{
-        AccountGroupId, PublicAccess,
+        PublicAccess,
         error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
@@ -78,7 +82,7 @@ pub enum EntityTypeSubject {
     Setting(EntityTypeSetting),
     Public,
     Account(ActorId),
-    AccountGroup(AccountGroupId),
+    AccountGroup(ActorGroupId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -130,7 +134,7 @@ impl Resource for EntityTypeSubject {
                 Self::Account(ActorId::new(id))
             }
             (EntityTypeSubjectNamespace::AccountGroup, EntityTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(AccountGroupId::new(id))
+                Self::AccountGroup(ActorGroupId::new(id))
             }
             (
                 EntityTypeSubjectNamespace::Web
@@ -204,7 +208,7 @@ pub enum EntityTypeEditorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: EntityTypeSubjectSet,
     },
@@ -228,7 +232,7 @@ pub enum EntityTypeInstantiatorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: EntityTypeSubjectSet,
     },

@@ -141,12 +141,12 @@ export const createOrg: ImpureGraphFunction<
     orgAccountGroupId = await createAccountGroup(ctx, authentication, {});
 
     await createWeb(ctx, authentication, {
-      ownedById: orgAccountGroupId as OwnedById,
+      ownedById: orgAccountGroupId,
       owner: { kind: "accountGroup", subjectId: orgAccountGroupId },
     });
 
     await createWebMachineActor(ctx, authentication, {
-      ownedById: orgAccountGroupId as OwnedById,
+      ownedById: orgAccountGroupId,
       logger,
     });
   }

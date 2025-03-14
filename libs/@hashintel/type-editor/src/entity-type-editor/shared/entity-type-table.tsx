@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { WhiteCard } from "@hashintel/design-system";
 import type { TypographyProps } from "@mui/material";
 import {
@@ -90,10 +90,10 @@ const flashAnimation = memoize(
   ${FLASH_START}%, ${FLASH_END}% {
     background-color: ${color};
   }
-  
+
   from, to {
     background-color: transparent;
-  } 
+  }
 `,
 );
 
