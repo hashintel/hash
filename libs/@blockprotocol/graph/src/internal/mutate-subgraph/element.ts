@@ -11,7 +11,10 @@ import type {
   EntityTypeVertex,
   EntityVertex,
   EntityVertexId,
+  KnowledgeGraphVertices,
+  OntologyTypeRevisionId,
   OntologyTypeVertexId,
+  OntologyVertices,
   PropertyTypeVertex,
   Subgraph,
 } from "../../types/subgraph.js";
@@ -34,16 +37,18 @@ export const addDataTypeVerticesToSubgraphByMutation = (
   /* eslint-disable no-param-reassign -- We want to mutate the input here */
   for (const dataType of dataTypes) {
     const { baseUrl, version } = dataType.metadata.recordId;
+    const revisionId = version.toString() as OntologyTypeRevisionId;
 
     const dataTypeVertex: DataTypeVertex = {
       kind: "dataType",
       inner: dataType,
     };
 
-    subgraph.vertices[baseUrl] ??= {};
-    subgraph.vertices[baseUrl][version] = dataTypeVertex;
+    (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
+    (subgraph.vertices as OntologyVertices)[baseUrl]![revisionId] =
+      dataTypeVertex;
 
-    vertexIds.push({ baseId: baseUrl, revisionId: version.toString() });
+    vertexIds.push({ baseId: baseUrl, revisionId });
   }
   /* eslint-enable no-param-reassign */
   return vertexIds;
@@ -67,16 +72,18 @@ export const addPropertyTypeVerticesToSubgraphByMutation = (
   /* eslint-disable no-param-reassign -- We want to mutate the input here */
   for (const propertyType of propertyTypes) {
     const { baseUrl, version } = propertyType.metadata.recordId;
+    const revisionId = version.toString() as OntologyTypeRevisionId;
 
     const propertyTypeVertex: PropertyTypeVertex = {
       kind: "propertyType",
       inner: propertyType,
     };
 
-    subgraph.vertices[baseUrl] ??= {};
-    subgraph.vertices[baseUrl][version] = propertyTypeVertex;
+    (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
+    (subgraph.vertices as OntologyVertices)[baseUrl]![revisionId] =
+      propertyTypeVertex;
 
-    vertexIds.push({ baseId: baseUrl, revisionId: version.toString() });
+    vertexIds.push({ baseId: baseUrl, revisionId });
   }
   /* eslint-enable no-param-reassign */
   return vertexIds;
@@ -100,16 +107,18 @@ export const addEntityTypeVerticesToSubgraphByMutation = (
   /* eslint-disable no-param-reassign -- We want to mutate the input here */
   for (const entityType of entityTypes) {
     const { baseUrl, version } = entityType.metadata.recordId;
+    const revisionId = version.toString() as OntologyTypeRevisionId;
 
     const entityTypeVertex: EntityTypeVertex = {
       kind: "entityType",
       inner: entityType,
     };
 
-    subgraph.vertices[baseUrl] ??= {};
-    subgraph.vertices[baseUrl][version] = entityTypeVertex;
+    (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
+    (subgraph.vertices as OntologyVertices)[baseUrl]![revisionId] =
+      entityTypeVertex;
 
-    vertexIds.push({ baseId: baseUrl, revisionId: version.toString() });
+    vertexIds.push({ baseId: baseUrl, revisionId });
   }
   /* eslint-enable no-param-reassign */
   return vertexIds;
@@ -148,12 +157,14 @@ export const addEntityVerticesToSubgraphByMutation = (
       inner: entity,
     };
 
-    if (!subgraph.vertices[entityId]) {
-      subgraph.vertices[entityId] = {
+    if (!(subgraph.vertices as KnowledgeGraphVertices)[entityId]) {
+      (subgraph.vertices as KnowledgeGraphVertices)[entityId] = {
         [entityInterval.start.limit]: entityVertex,
       };
     } else {
-      subgraph.vertices[entityId][entityInterval.start.limit] = entityVertex;
+      (subgraph.vertices as KnowledgeGraphVertices)[entityId]![
+        entityInterval.start.limit
+      ] = entityVertex;
     }
 
     vertexIds.push({

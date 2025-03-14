@@ -1,8 +1,8 @@
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import {

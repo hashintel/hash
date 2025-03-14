@@ -2,6 +2,7 @@ import type {
   BaseUrl,
   DataTypeWithMetadata,
   Entity,
+  EntityId,
   EntityTypeWithMetadata,
   Property,
   PropertyTypeWithMetadata,
@@ -77,8 +78,8 @@ export type VertexId<BaseId, RevisionId> = {
   baseId: BaseId;
   revisionId: RevisionId;
 };
-export type EntityVertexId = VertexId<string, EntityRevisionId>;
-export type OntologyTypeVertexId = VertexId<string, OntologyTypeRevisionId>;
+export type EntityVertexId = VertexId<EntityId, EntityRevisionId>;
+export type OntologyTypeVertexId = VertexId<BaseUrl, OntologyTypeRevisionId>;
 export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
 
 export const isOntologyTypeVertexId = (
@@ -111,15 +112,17 @@ export const isEntityVertexId = (
   );
 };
 
-export type OntologyVertices = Record<
-  string,
-  { [baseUrl: string]: OntologyVertex }
->;
+export type OntologyVertices = {
+  [baseId: BaseUrl]: {
+    [revisionId: OntologyTypeRevisionId]: OntologyVertex;
+  };
+};
 
-export type KnowledgeGraphVertices = Record<
-  string,
-  { [timestamp: string]: KnowledgeGraphVertex }
->;
+export type KnowledgeGraphVertices = {
+  [baseId: EntityId]: {
+    [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
+  };
+};
 
 // We technically want to intersect (`&`) the types here, but as their property keys overlap it confuses things and we
 // end up with unsatisfiable values like `EntityVertex & DataTypeVertex`. While the union (`|`) is semantically

@@ -5,11 +5,20 @@ import type {
   TemporalInterval,
   Timestamp,
 } from "@blockprotocol/type-system";
+import {
+  typedEntries,
+  typedKeys,
+  typedValues,
+} from "@local/advanced-types/typed-entries";
 
 import type { EntityRevisionId } from "../../../types/entity.js";
-import type { Subgraph, Vertices } from "../../../types/subgraph.js";
+import type {
+  KnowledgeGraphVertex,
+  KnowledgeGraphVertices,
+  Subgraph,
+} from "../../../types/subgraph.js";
 import { isEntityVertex } from "../../../types/subgraph/vertices.js";
-import { mustBeDefined, typedEntries, typedValues } from "../../../util.js";
+import { mustBeDefined } from "../../../util.js";
 import {
   intervalContainsTimestamp,
   intervalForTimestamp,
@@ -27,10 +36,14 @@ import {
 export const getEntities = (subgraph: Subgraph, latest: boolean): Entity[] => {
   return typedValues(subgraph.vertices).flatMap((revisions) => {
     if (latest) {
-      const revisionVersions = Object.keys(revisions).sort();
+      const revisionVersions = Object.keys(
+        revisions,
+      ).sort() as EntityRevisionId[];
 
       const lastIndex = revisionVersions.length - 1;
-      const vertex = revisions[revisionVersions[lastIndex]!]!;
+      const vertex = (
+        revisions as Record<EntityRevisionId, KnowledgeGraphVertex>
+      )[revisionVersions[lastIndex]!]!;
       return isEntityVertex(vertex) ? [vertex.inner] : [];
     } else {
       return typedValues(revisions)
@@ -43,8 +56,10 @@ export const getEntities = (subgraph: Subgraph, latest: boolean): Entity[] => {
 const getRevisionsForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-): Vertices[string] | undefined => {
-  const entityRevisions = subgraph.vertices[entityId];
+): KnowledgeGraphVertices[EntityId] | undefined => {
+  const entityRevisions = (subgraph.vertices as KnowledgeGraphVertices)[
+    entityId
+  ];
 
   if (entityRevisions) {
     return entityRevisions;
@@ -64,7 +79,7 @@ const getRevisionsForEntity = (
    */
   const draftEntityIds = Object.keys(subgraph.vertices).filter((id) =>
     id.startsWith(`${entityId}~`),
-  );
+  ) as EntityId[];
 
   if (draftEntityIds.length > 0) {
     /**
@@ -76,9 +91,11 @@ const getRevisionsForEntity = (
      * If this is the case, some will not be present among the editions, as they will be overwritten by the last one.
      * @todo reconsider the approach to this as part of rethinking the subgraph shape
      */
-    const acc: Vertices[string] = {};
+    const acc: KnowledgeGraphVertices[EntityId] = {};
     for (const draftEntityId of draftEntityIds) {
-      const draftEntity = subgraph.vertices[draftEntityId];
+      const draftEntity: KnowledgeGraphVertices[EntityId] | undefined = (
+        subgraph.vertices as KnowledgeGraphVertices
+      )[draftEntityId];
       if (draftEntity) {
         for (const [timestamp, vertex] of typedEntries(draftEntity)) {
           acc[timestamp] = vertex;
@@ -113,7 +130,7 @@ export const getEntityRevision = (
     return undefined;
   }
 
-  const revisionVersions = Object.keys(entityRevisions).sort();
+  const revisionVersions = typedKeys(entityRevisions).sort();
 
   // Short circuit for efficiency, just take the latest
   if (targetRevisionInformation === undefined) {
@@ -186,7 +203,7 @@ export const getEntityRevisionsByEntityId = (
       // Only look at vertices that were created before or within the search interval
       if (
         !intervalIsStrictlyAfterInterval(
-          intervalForTimestamp(startTime as Timestamp),
+          intervalForTimestamp(startTime),
           interval,
         ) &&
         isEntityVertex(vertex)

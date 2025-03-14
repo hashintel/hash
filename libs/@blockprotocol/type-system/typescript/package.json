@@ -51,7 +51,8 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private"
+    "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@local/advanced-types": "0.0.0-private"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",

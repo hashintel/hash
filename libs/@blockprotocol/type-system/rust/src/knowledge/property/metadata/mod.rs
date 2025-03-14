@@ -38,14 +38,11 @@ use serde::{Deserialize, Serialize};
 #[serde(untagged)]
 pub enum PropertyMetadata {
     /// Metadata for an array property, containing element-level and array-level metadata.
-    #[cfg_attr(feature = "utoipa", schema(title = "PropertyMetadataArray"))]
     Array(PropertyArrayMetadata),
 
     /// Metadata for an object property, containing field-level and object-level metadata.
-    #[cfg_attr(feature = "utoipa", schema(title = "PropertyMetadataObject"))]
     Object(PropertyObjectMetadata),
 
     /// Metadata for a primitive value property.
-    #[cfg_attr(feature = "utoipa", schema(title = "PropertyMetadataValue"))]
     Value(PropertyValueMetadata),
 }

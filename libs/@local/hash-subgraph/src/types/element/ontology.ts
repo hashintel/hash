@@ -1,10 +1,11 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { validateBaseUrl } from "@blockprotocol/type-system";
+import type {
+  OntologyTypeRecordId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { Brand } from "@local/advanced-types/brand";
 import type {
-  DataTypeMetadata,
   ExternalOntologyElementMetadata,
-  OntologyTypeRecordId,
+  OntologyElementMetadata,
   OwnedOntologyElementMetadata,
 } from "@local/hash-graph-types/ontology";
 
@@ -23,23 +24,10 @@ export const ontologyTypeRecordIdToVersionedUrl = (
   return `${ontologyTypeRecordId.baseUrl}v/${ontologyTypeRecordId.version}`;
 };
 
-export const isOntologyTypeRecordId = (
-  editionId: object,
-): editionId is OntologyTypeRecordId => {
-  return (
-    "baseId" in editionId &&
-    typeof editionId.baseId === "string" &&
-    validateBaseUrl(editionId.baseId).type !== "Err" &&
-    "version" in editionId &&
-    typeof editionId.version === "number" &&
-    Number.isInteger(editionId.version)
-  );
-};
-
 export const isExternalOntologyElementMetadata = (
-  metadata: DataTypeMetadata,
+  metadata: OntologyElementMetadata,
 ): metadata is ExternalOntologyElementMetadata => "fetchedAt" in metadata;
 
 export const isOwnedOntologyElementMetadata = (
-  metadata: DataTypeMetadata,
+  metadata: OntologyElementMetadata,
 ): metadata is OwnedOntologyElementMetadata => "ownedById" in metadata;

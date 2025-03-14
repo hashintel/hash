@@ -470,7 +470,6 @@ export class ProsemirrorManager {
       this.view.state,
     ).store;
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     const blockEntity = blockEntityId ? entityStore.saved[blockEntityId] : null;
 
     if (!isBlockEntity(blockEntity)) {

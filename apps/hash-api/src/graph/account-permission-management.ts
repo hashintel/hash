@@ -52,7 +52,7 @@ export const createAccountGroup: ImpureGraphFunction<
     .then(({ data }) => data as AccountGroupId);
 
 export const createWeb: ImpureGraphFunction<
-  { ownedById: AccountId | AccountGroupId; owner: WebOwnerSubject },
+  { ownedById: OwnedById; owner: WebOwnerSubject },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.createWeb(actorId, params);

@@ -1,6 +1,5 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityUuid } from "@blockprotocol/type-system";
-
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
 import { simplifyProperties } from "../simplify-properties.js";

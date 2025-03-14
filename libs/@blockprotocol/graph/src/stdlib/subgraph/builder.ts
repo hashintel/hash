@@ -1,11 +1,14 @@
 import type {
+  BaseUrl,
   DataTypeWithMetadata,
   Entity,
+  EntityId,
   EntityRecordId,
   EntityTypeWithMetadata,
   OntologyTypeRecordId,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 
 import {
   inferDataTypeEdgesInSubgraphByMutation,
@@ -20,15 +23,16 @@ import {
   addPropertyTypeVerticesToSubgraphByMutation,
 } from "../../internal/mutate-subgraph/element.js";
 import type {
+  EntityRevisionId,
   EntityRootType,
   EntityVertexId,
   GraphResolveDepths,
+  OntologyTypeRevisionId,
   OntologyTypeVertexId,
   Subgraph,
   SubgraphTemporalAxes,
 } from "../../types.js";
 import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
-import { typedEntries } from "../../util.js";
 import { getVertexIdForRecordId } from "./vertex-id-for-element.js";
 
 /**
@@ -135,7 +139,7 @@ export const buildSubgraph = (
   for (const rootRecordId of rootRecordIds) {
     try {
       const vertexId = getVertexIdForRecordId(subgraph, rootRecordId);
-      subgraph.roots.push(vertexId);
+      subgraph.roots.push(vertexId as EntityVertexId);
     } catch {
       missingRootVertexIds.push(rootRecordId);
     }
@@ -184,10 +188,17 @@ export const inferSubgraphEdges = (
       [baseId, revisionObject],
     ) => {
       for (const [revisionId, vertex] of typedEntries(revisionObject)) {
-        acc[`${vertex.kind}VertexIds`].push({
-          baseId,
-          revisionId,
-        });
+        if (vertex.kind === "entity") {
+          acc.entityVertexIds.push({
+            baseId: baseId as EntityId,
+            revisionId: revisionId as EntityRevisionId,
+          });
+        } else {
+          acc[`${vertex.kind}VertexIds`].push({
+            baseId: baseId as BaseUrl,
+            revisionId: revisionId as OntologyTypeRevisionId,
+          });
+        }
       }
 
       return acc;

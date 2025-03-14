@@ -1,5 +1,6 @@
 import type { OntologyTypeRecordId } from "@blockprotocol/type-system";
 import { validateBaseUrl } from "@blockprotocol/type-system";
+import type { Brand } from "@local/advanced-types/brand";
 
 export * from "./ontology/data-type.js";
 export * from "./ontology/entity-type.js";
@@ -26,4 +27,4 @@ export const isOntologyTypeRecordId = (
  * Although it would be possible to create a template literal type, this confuses TypeScript when traversing the
  * {@link Subgraph} in generic contexts, whereby it then thinks any string must relate to a {@link EntityVertex}.
  */
-export type OntologyTypeRevisionId = string; // we explicitly opt not to use `${number}`
+export type OntologyTypeRevisionId = Brand<string, "OntologyTypeRevisionId">; // we explicitly opt not to use `${number}`

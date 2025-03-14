@@ -1,7 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { ActorId } from "@blockprotocol/type-system";
-import type { EntityUuid } from "@blockprotocol/type-system";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type {
+  ActorId,
+  EntityUuid,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type {
   GraphApi,
   ProvidedEntityEditionProvenance,

@@ -34,8 +34,6 @@ import type {
   Entity as GraphApiEntity,
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
-  PropertyMetadataObject,
-  PropertyWithMetadataValue,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
 import type { EntityProperties } from "@local/hash-graph-types/entity";
@@ -310,7 +308,7 @@ export const mergePropertiesAndMetadata = (
         metadata: {
           dataTypeId: null,
         },
-      } satisfies PropertyWithMetadataValue;
+      } satisfies PropertyValueWithMetadata;
     }
     if (isObjectMetadata(metadata)) {
       return {
@@ -350,7 +348,7 @@ export const mergePropertiesAndMetadata = (
     return {
       value: property,
       metadata: metadata.metadata,
-    } satisfies PropertyWithMetadataValue;
+    } satisfies PropertyValueWithMetadata;
   }
 
   // The property is not an array or object, so we treat it as a value
@@ -360,14 +358,14 @@ export const mergePropertiesAndMetadata = (
       metadata: {
         dataTypeId: null,
       },
-    } satisfies PropertyWithMetadataValue;
+    } satisfies PropertyValueWithMetadata;
   }
 
   if (isValueMetadata(metadata)) {
     return {
       value: property,
       metadata: metadata.metadata,
-    } satisfies PropertyWithMetadataValue;
+    } satisfies PropertyValueWithMetadata;
   }
 
   if (isArrayMetadata(metadata)) {
@@ -735,7 +733,7 @@ export const generateChangedPropertyMetadataObject = (
   path: PropertyPath,
   metadata: PropertyValueMetadata | "delete",
   baseMetadataObject: PropertyObjectMetadata,
-): PropertyMetadataObject => {
+): PropertyObjectMetadata => {
   const clonedMetadata = JSON.parse(JSON.stringify(baseMetadataObject)) as
     | PropertyObjectMetadata
     | undefined;
@@ -905,7 +903,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     );
   }
 
-  public get propertiesMetadata(): PropertyMetadataObject {
+  public get propertiesMetadata(): PropertyObjectMetadata {
     return this.#entity.metadata.properties ?? { value: {} };
   }
 

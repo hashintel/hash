@@ -4375,6 +4375,7 @@ __metadata:
     "@apidevtools/json-schema-ref-parser": "npm:11.9.3"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash.isequal": "npm:4.5.8"
@@ -4441,6 +4442,7 @@ __metadata:
   resolution: "@blockprotocol/type-system@workspace:libs/@blockprotocol/type-system/typescript"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
+    "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@rollup/plugin-node-resolve": "npm:16.0.0"

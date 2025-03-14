@@ -8,6 +8,7 @@ import type {
   DataTypeMetadata,
   EntityTypeMetadata,
   OntologyProvenance,
+  OntologyTemporalMetadata,
   OntologyTypeRecordId,
   OwnedById,
   PartialEntityType,
@@ -16,7 +17,6 @@ import type {
   Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { validateBaseUrl } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
@@ -24,7 +24,6 @@ import type {
   DataTypeConversionTargets as GraphApiDataTypeConversionTargets,
   EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
   GetClosedMultiEntityTypeResponseDefinitions,
-  OntologyTemporalMetadata,
 } from "@local/hash-graph-client";
 
 export type OwnedOntologyElementMetadata = {

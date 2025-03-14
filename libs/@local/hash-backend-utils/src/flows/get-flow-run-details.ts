@@ -1,5 +1,4 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { EntityUuid, OwnedById } from "@blockprotocol/type-system";
 import type {
   CheckpointLog,
   DetailedFlowField,

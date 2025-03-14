@@ -1,5 +1,5 @@
-import { atLeastOne } from "@blockprotocol/type-system";
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import { atLeastOne } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {

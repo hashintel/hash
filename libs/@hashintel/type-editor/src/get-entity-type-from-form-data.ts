@@ -1,11 +1,10 @@
-import { atLeastOne } from "@blockprotocol/type-system";
 import type {
   EntityType,
   EntityTypeReference,
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
+import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
 
 import type { EntityTypeEditorFormData } from "./shared/form-types";
 
