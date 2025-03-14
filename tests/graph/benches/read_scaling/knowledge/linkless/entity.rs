@@ -14,7 +14,6 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::account::AccountId;
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
 use type_system::{
@@ -24,7 +23,7 @@ use type_system::{
         property::{PropertyObject, PropertyWithMetadataObject},
     },
     ontology::entity_type::EntityType,
-    provenance::{ActorType, OriginProvenance, OriginType},
+    provenance::{ActorId, ActorType, OriginProvenance, OriginType},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -38,7 +37,7 @@ const DB_NAME: &str = "entity_scale";
     reason = "transaction is committed which consumes the object"
 )]
 async fn seed_db<A: AuthorizationApi>(
-    account_id: AccountId,
+    account_id: ActorId,
     store_wrapper: &mut StoreWrapper<A>,
     total: usize,
 ) -> Vec<Entity> {
@@ -148,7 +147,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
-    actor_id: AccountId,
+    actor_id: ActorId,
     entity_metadata_list: &[Entity],
 ) {
     bencher.to_async(runtime).iter_batched(
@@ -203,9 +202,8 @@ fn bench_scaling_read_entity(crit: &mut Criterion) {
     let mut group = crit.benchmark_group(group_id);
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = AccountId::new(
-        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    );
+    let account_id =
+        ActorId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"));
 
     for size in [1, 10, 100, 1_000, 10_000] {
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id, NoAuthorization);

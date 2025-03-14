@@ -1,13 +1,12 @@
 use core::error::Error;
 
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
-use type_system::web::OwnedById;
+use type_system::{provenance::ActorId, web::OwnedById};
 use uuid::Uuid;
 
 use crate::{
     schema::{
-        PublicAccess,
+        AccountGroupId, PublicAccess,
         error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
@@ -78,7 +77,7 @@ impl Permission<OwnedById> for WebPermission {}
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum WebSubject {
     Public,
-    Account(AccountId),
+    Account(ActorId),
     AccountGroup(AccountGroupId),
 }
 
@@ -116,7 +115,7 @@ impl Resource for WebSubject {
                 Self::Public
             }
             (WebSubjectNamespace::Account, WebSubjectId::Uuid(id)) => {
-                Self::Account(AccountId::new(id))
+                Self::Account(ActorId::new(id))
             }
             (WebSubjectNamespace::AccountGroup, WebSubjectId::Uuid(id)) => {
                 Self::AccountGroup(AccountGroupId::new(id))
@@ -155,7 +154,7 @@ impl Resource for WebSubject {
 pub enum WebOwnerSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -169,7 +168,7 @@ pub enum WebOwnerSubject {
 pub enum WebEntityCreatorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -185,7 +184,7 @@ pub enum WebEntityCreatorSubject {
 pub enum WebEntityEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -202,7 +201,7 @@ pub enum WebEntityViewerSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]

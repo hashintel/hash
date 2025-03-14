@@ -9,11 +9,11 @@ mod settings;
 mod web;
 
 pub use self::{
-    account::{AccountIdOrPublic, AccountNamespace, PublicAccess},
+    account::{AccountNamespace, ActorIdOrPublic, PublicAccess},
     account_group::{
-        AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupNamespace,
-        AccountGroupPermission, AccountGroupRelationAndSubject, AccountGroupSubject,
-        AccountGroupSubjectId,
+        AccountGroupAdministratorSubject, AccountGroupId, AccountGroupMemberSubject,
+        AccountGroupNamespace, AccountGroupPermission, AccountGroupRelationAndSubject,
+        AccountGroupSubject, AccountGroupSubjectId,
     },
     data_type::{
         DataTypeEditorSubject, DataTypeNamespace, DataTypeOwnerSubject, DataTypePermission,

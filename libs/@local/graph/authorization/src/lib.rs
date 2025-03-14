@@ -16,7 +16,7 @@ use std::collections::HashMap;
 
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
 use crate::schema::{
-    AccountGroupRelationAndSubject, AccountIdOrPublic, DataTypePermission,
+    AccountGroupRelationAndSubject, ActorIdOrPublic, DataTypePermission,
     DataTypeRelationAndSubject, EntityRelationAndSubject, EntityTypePermission,
     EntityTypeRelationAndSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
     WebRelationAndSubject,
@@ -25,12 +25,12 @@ use crate::schema::{
 mod api;
 
 use error_stack::Report;
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use type_system::{
     knowledge::entity::id::{EntityId, EntityUuid},
     ontology::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
+    provenance::ActorId,
     web::OwnedById,
 };
 
@@ -38,7 +38,7 @@ use crate::{
     backend::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
-    schema::{AccountGroupPermission, EntityPermission, WebPermission},
+    schema::{AccountGroupId, AccountGroupPermission, EntityPermission, WebPermission},
     zanzibar::{Consistency, Zookie},
 };
 
@@ -52,7 +52,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_account_group_permission(
         &self,
-        _: AccountId,
+        _: ActorId,
         _: AccountGroupPermission,
         _: AccountGroupId,
         _: Consistency<'_>,
@@ -79,7 +79,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_web_permission(
         &self,
-        _: AccountId,
+        _: ActorId,
         _: WebPermission,
         _: OwnedById,
         _: Consistency<'_>,
@@ -122,7 +122,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_entity_permission(
         &self,
-        _: AccountId,
+        _: ActorId,
         _: EntityPermission,
         _: EntityId,
         _: Consistency<'_>,
@@ -135,7 +135,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_entities_permission(
         &self,
-        _: AccountId,
+        _: ActorId,
         _: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
         _: Consistency<'_>,
@@ -187,7 +187,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_entity_type_permission(
         &self,
-        _: AccountId,
+        _: ActorId,
         _: EntityTypePermission,
         _: EntityTypeUuid,
         _: Consistency<'_>,
@@ -200,7 +200,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_entity_types_permission(
         &self,
-        _: AccountId,
+        _: ActorId,
         _: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
@@ -238,7 +238,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_property_type_permission(
         &self,
-        _: AccountId,
+        _: ActorId,
         _: PropertyTypePermission,
         _: PropertyTypeUuid,
         _: Consistency<'_>,
@@ -251,7 +251,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_property_types_permission(
         &self,
-        _: AccountId,
+        _: ActorId,
         _: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
@@ -289,7 +289,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_data_type_permission(
         &self,
-        _: AccountId,
+        _: ActorId,
         _: DataTypePermission,
         _: DataTypeUuid,
         _: Consistency<'_>,
@@ -302,7 +302,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_data_types_permission(
         &self,
-        _: AccountId,
+        _: ActorId,
         _: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
@@ -326,7 +326,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_entities(
         &self,
-        _: AccountId,
+        _: ActorId,
         _: EntityPermission,
         _: Consistency<'_>,
     ) -> Result<Vec<EntityUuid>, Report<ReadError>> {
@@ -338,7 +338,7 @@ impl AuthorizationApi for NoAuthorization {
         _: EntityUuid,
         _: EntityPermission,
         _: Consistency<'_>,
-    ) -> Result<Vec<AccountIdOrPublic>, Report<ReadError>> {
+    ) -> Result<Vec<ActorIdOrPublic>, Report<ReadError>> {
         Ok(Vec::new())
     }
 }

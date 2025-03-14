@@ -30,9 +30,9 @@ use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
     backend::ZanzibarBackend,
     schema::{
-        AccountGroupRelationAndSubject, DataTypeRelationAndSubject, EntityNamespace,
-        EntityRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
-        WebRelationAndSubject,
+        AccountGroupId, AccountGroupRelationAndSubject, DataTypeRelationAndSubject,
+        EntityNamespace, EntityRelationAndSubject, EntityTypeRelationAndSubject,
+        PropertyTypeRelationAndSubject, WebRelationAndSubject,
     },
     zanzibar::{
         Consistency,
@@ -45,7 +45,6 @@ use hash_graph_store::{
     pool::StorePool,
     query::Read,
 };
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
@@ -61,6 +60,7 @@ use type_system::{
         entity_type::{EntityTypeUuid, EntityTypeWithMetadata},
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
+    provenance::ActorId,
     web::OwnedById,
 };
 
@@ -71,7 +71,7 @@ use crate::{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
-    pub id: AccountId,
+    pub id: ActorId,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

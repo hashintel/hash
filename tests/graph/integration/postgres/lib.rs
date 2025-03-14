@@ -77,7 +77,6 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_graph_types::account::AccountId;
 use hash_tracing::logging::env_filter;
 use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
@@ -90,7 +89,7 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorType, OriginProvenance, OriginType},
+    provenance::{ActorId, ActorType, OriginProvenance, OriginType},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -102,7 +101,7 @@ pub struct DatabaseTestWrapper<A: AuthorizationApi> {
 
 pub struct DatabaseApi<'pool, A: AuthorizationApi> {
     store: PostgresStore<Transaction<'pool>, A>,
-    account_id: AccountId,
+    account_id: ActorId,
 }
 
 const fn data_type_relationships() -> [DataTypeRelationAndSubject; 1] {
@@ -221,7 +220,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .await
             .expect("could not start test transaction");
 
-        let account_id = AccountId::new(Uuid::new_v4());
+        let account_id = ActorId::new(Uuid::new_v4());
         store
             .insert_account_id(account_id, InsertAccountIdParams { account_id })
             .await
@@ -314,7 +313,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
 impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
     async fn create_data_types<P, R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<InsertionError>>
     where
@@ -326,7 +325,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
 
     async fn count_data_types(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: CountDataTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         self.store.count_data_types(actor_id, params).await
@@ -334,7 +333,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
 
     async fn get_data_types(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: GetDataTypesParams<'_>,
     ) -> Result<GetDataTypesResponse, Report<QueryError>> {
         let include_count = params.include_count;
@@ -369,7 +368,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
 
     async fn get_data_type_subgraph(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: GetDataTypeSubgraphParams<'_>,
     ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
         let include_count = params.include_count;
@@ -404,7 +403,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
 
     async fn update_data_types<P, R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
@@ -416,7 +415,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
 
     async fn archive_data_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: ArchiveDataTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.archive_data_type(actor_id, params).await
@@ -424,7 +423,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
 
     async fn unarchive_data_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.unarchive_data_type(actor_id, params).await
@@ -432,7 +431,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
 
     async fn update_data_type_embeddings(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         self.store
@@ -442,7 +441,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
 
     async fn get_data_type_conversion_targets(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: GetDataTypeConversionTargetsParams,
     ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
         self.store
@@ -458,7 +457,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
 impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
     async fn create_property_types<P, R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>
     where
@@ -470,7 +469,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
 
     async fn count_property_types(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: CountPropertyTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         self.store.count_property_types(actor_id, params).await
@@ -478,7 +477,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
 
     async fn get_property_types(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: GetPropertyTypesParams<'_>,
     ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
         let include_count = params.include_count;
@@ -514,7 +513,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
 
     async fn get_property_type_subgraph(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: GetPropertyTypeSubgraphParams<'_>,
     ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
         let include_count = params.include_count;
@@ -554,7 +553,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
 
     async fn update_property_types<P, R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
@@ -566,7 +565,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
 
     async fn archive_property_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: ArchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.archive_property_type(actor_id, params).await
@@ -574,7 +573,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
 
     async fn unarchive_property_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: UnarchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.unarchive_property_type(actor_id, params).await
@@ -582,7 +581,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
 
     async fn update_property_type_embeddings(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: UpdatePropertyTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         self.store
@@ -594,7 +593,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
 impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
     async fn create_entity_types<P, R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<InsertionError>>
     where
@@ -606,7 +605,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
 
     async fn count_entity_types(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: CountEntityTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         self.store.count_entity_types(actor_id, params).await
@@ -614,7 +613,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
 
     async fn get_entity_types(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: GetEntityTypesParams<'_>,
     ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
         let include_count = params.include_count;
@@ -649,7 +648,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
 
     async fn get_closed_multi_entity_types(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: GetClosedMultiEntityTypeParams,
     ) -> Result<GetClosedMultiEntityTypeResponse, Report<QueryError>> {
         self.store
@@ -659,7 +658,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
 
     async fn get_entity_type_subgraph(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: GetEntityTypeSubgraphParams<'_>,
     ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
         let include_count = params.include_count;
@@ -698,7 +697,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
 
     async fn update_entity_types<P, R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<UpdateError>>
     where
@@ -710,7 +709,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
 
     async fn archive_entity_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: ArchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.archive_entity_type(actor_id, params).await
@@ -718,7 +717,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
 
     async fn unarchive_entity_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: UnarchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.unarchive_entity_type(actor_id, params).await
@@ -726,7 +725,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
 
     async fn update_entity_type_embeddings(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         self.store
@@ -745,7 +744,7 @@ where
 {
     async fn create_entities<R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: Vec<CreateEntityParams<R>>,
     ) -> Result<Vec<Entity>, Report<InsertionError>>
     where
@@ -756,7 +755,7 @@ where
 
     async fn validate_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> HashMap<usize, EntityValidationReport> {
@@ -767,7 +766,7 @@ where
 
     async fn get_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: GetEntitiesParams<'_>,
     ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
         let include_count = params.include_count;
@@ -802,7 +801,7 @@ where
 
     async fn get_entity_subgraph(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: GetEntitySubgraphParams<'_>,
     ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
         let include_count = params.include_count;
@@ -836,7 +835,7 @@ where
 
     async fn count_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: CountEntitiesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         self.store.count_entities(actor_id, params).await
@@ -844,7 +843,7 @@ where
 
     async fn get_entity_by_id(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -856,7 +855,7 @@ where
 
     async fn patch_entity(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: PatchEntityParams,
     ) -> Result<Entity, Report<UpdateError>> {
         self.store.patch_entity(actor_id, params).await
@@ -864,7 +863,7 @@ where
 
     async fn update_entity_embeddings(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         self.store.update_entity_embeddings(actor_id, params).await

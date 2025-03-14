@@ -14,8 +14,8 @@ use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupPermission,
-        AccountGroupRelationAndSubject, WebOwnerSubject,
+        AccountGroupAdministratorSubject, AccountGroupId, AccountGroupMemberSubject,
+        AccountGroupPermission, AccountGroupRelationAndSubject, WebOwnerSubject,
     },
     zanzibar::Consistency,
 };
@@ -23,9 +23,8 @@ use hash_graph_store::{
     account::{AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams},
     pool::StorePool,
 };
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use hash_temporal_client::TemporalClient;
-use type_system::web::OwnedById;
+use type_system::{provenance::ActorId, web::OwnedById};
 use utoipa::OpenApi;
 
 use super::api_resource::RoutedResource;
@@ -47,7 +46,7 @@ use crate::rest::{
     ),
     components(
         schemas(
-            AccountId,
+            ActorId,
             AccountGroupId,
             AccountGroupPermission,
             AccountGroupRelationAndSubject,
@@ -102,10 +101,10 @@ impl RoutedResource for AccountResource {
     tag = "Account",
     request_body = InsertAccountIdParams,
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the created account", body = AccountId),
+        (status = 200, content_type = "application/json", description = "The schema of the created account", body = ActorId),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -120,7 +119,7 @@ async fn create_account<S, A>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<InsertAccountIdParams>,
-) -> Result<Json<AccountId>, Response>
+) -> Result<Json<ActorId>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -150,7 +149,7 @@ where
     tag = "Account Group",
     request_body = InsertAccountGroupIdParams,
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The schema of the created account", body = AccountGroupId),
@@ -217,7 +216,7 @@ where
     path = "/account_groups/{account_group_id}/permissions/{permission}",
     tag = "Account Group",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("account_group_id" = AccountGroupId, Path, description = "The ID of the account group to check if the actor has the permission"),
         ("permission" = AccountGroupPermission, Path, description = "The permission to check for"),
     ),
@@ -277,9 +276,9 @@ where
     path = "/account_groups/{account_group_id}/members/{account_id}",
     tag = "Account Group",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("account_group_id" = AccountGroupId, Path, description = "The ID of the account group to add the member to"),
-        ("account_id" = AccountId, Path, description = "The ID of the account to add to the group"),
+        ("account_id" = ActorId, Path, description = "The ID of the account to add to the group"),
     ),
     responses(
         (status = 201, description = "The account group member was added"),
@@ -291,7 +290,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn add_account_group_member<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((account_group_id, account_id)): Path<(AccountGroupId, AccountId)>,
+    Path((account_group_id, account_id)): Path<(AccountGroupId, ActorId)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<StatusCode, StatusCode>
 where
@@ -346,9 +345,9 @@ where
     path = "/account_groups/{account_group_id}/members/{account_id}",
     tag = "Account Group",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("account_group_id" = AccountGroupId, Path, description = "The ID of the account group to remove the member from"),
-        ("account_id" = AccountId, Path, description = "The ID of the account to remove from the group")
+        ("account_id" = ActorId, Path, description = "The ID of the account to remove from the group")
     ),
     responses(
         (status = 204, description = "The account group member was removed"),
@@ -360,7 +359,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn remove_account_group_member<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((account_group_id, account_id)): Path<(AccountGroupId, AccountId)>,
+    Path((account_group_id, account_id)): Path<(AccountGroupId, ActorId)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<StatusCode, StatusCode>
 where
@@ -415,7 +414,7 @@ where
     path = "/account_groups/{account_group_id}/relations",
     tag = "Account Group",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("account_group_id" = AccountGroupId, Path, description = "The ID of the account group to get relations from"),
     ),
     responses(

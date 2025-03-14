@@ -2951,7 +2951,6 @@ dependencies = [
  "harpc-system",
  "harpc-tower",
  "harpc-types",
- "hash-graph-types",
  "multiaddr",
  "scc",
  "serde",
@@ -2961,6 +2960,7 @@ dependencies = [
  "tokio-util",
  "tower 0.5.2",
  "tracing",
+ "type-system",
  "uuid",
 ]
 
@@ -3070,7 +3070,6 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-test-server",
  "hash-graph-type-fetcher",
- "hash-graph-types",
  "hash-temporal-client",
  "hash-tracing",
  "mimalloc",
@@ -3151,7 +3150,6 @@ dependencies = [
  "futures",
  "futures-core",
  "hash-codec",
- "hash-graph-types",
  "indoc",
  "postgres-types",
  "pretty_assertions",
@@ -3183,7 +3181,6 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
- "hash-graph-types",
  "hash-repo-chores",
  "itertools 0.14.0",
  "rand 0.9.0",
@@ -3210,7 +3207,6 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
- "hash-graph-types",
  "hash-tracing",
  "pretty_assertions",
  "serde",
@@ -3363,12 +3359,12 @@ dependencies = [
  "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-type-defs",
- "hash-graph-types",
  "hash-status",
  "simple-mermaid",
  "tokio",
  "tokio-util",
  "tracing",
+ "type-system",
  "uuid",
 ]
 
@@ -3495,7 +3491,6 @@ name = "hash-temporal-client"
 version = "0.0.0"
 dependencies = [
  "error-stack",
- "hash-graph-types",
  "serde",
  "serde_json",
  "simple-mermaid",

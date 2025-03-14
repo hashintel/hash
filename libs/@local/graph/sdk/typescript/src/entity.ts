@@ -517,7 +517,7 @@ export const getDisplayFieldsForClosedEntityType = (
          * between packages
          * @todo do something about this
          */
-        "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
+        ("https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" as VersionedUrl);
     }
 
     if (foundIcon && foundLabelProperty && isLink) {

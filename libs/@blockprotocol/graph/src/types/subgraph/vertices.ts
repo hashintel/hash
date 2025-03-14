@@ -50,7 +50,7 @@ export type KnowledgeGraphVertex<
 
 export type Vertex<
   Properties extends EntityPropertiesObject | null = Record<
-    BaseUrl,
+    string,
     EntityPropertyValue
   >,
 > = OntologyVertex | KnowledgeGraphVertex<Properties>;
@@ -79,8 +79,8 @@ export type VertexId<BaseId, RevisionId> = {
   baseId: BaseId;
   revisionId: RevisionId;
 };
-export type EntityVertexId = VertexId<EntityId, EntityRevisionId>;
-export type OntologyTypeVertexId = VertexId<BaseUrl, OntologyTypeRevisionId>;
+export type EntityVertexId = VertexId<string, EntityRevisionId>;
+export type OntologyTypeVertexId = VertexId<string, OntologyTypeRevisionId>;
 export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
 
 export const isOntologyTypeVertexId = (
@@ -114,7 +114,7 @@ export const isEntityVertexId = (
 };
 
 export type OntologyVertices = Record<
-  BaseUrl,
+  string,
   Record<OntologyTypeRevisionId, OntologyVertex>
 >;
 

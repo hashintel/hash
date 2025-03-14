@@ -19,8 +19,8 @@ use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
-        WebOwnerSubject,
+        AccountGroupId, AccountGroupMemberSubject, AccountGroupPermission,
+        AccountGroupRelationAndSubject, WebOwnerSubject,
     },
     zanzibar::Consistency,
 };
@@ -28,9 +28,8 @@ use hash_graph_store::{
     account::{AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams},
     pool::StorePool,
 };
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use hash_temporal_client::TemporalClient;
-use type_system::web::OwnedById;
+use type_system::{provenance::ActorId, web::OwnedById};
 
 use super::session::Account;
 
@@ -42,7 +41,7 @@ pub struct PermissionResponse {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 #[display("account {id} does not exist in the graph")]
 pub struct AccountNotFoundError {
-    id: AccountId,
+    id: ActorId,
 }
 
 impl Error for AccountNotFoundError {
@@ -63,7 +62,7 @@ pub trait AccountSystem {
         &self,
         scope: Self::ExecutionScope,
         params: InsertAccountIdParams,
-    ) -> Result<AccountId, Report<AccountError>>;
+    ) -> Result<ActorId, Report<AccountError>>;
 
     async fn create_account_group(
         &self,
@@ -82,14 +81,14 @@ pub trait AccountSystem {
         &self,
         scope: Self::ExecutionScope,
         account_group_id: AccountGroupId,
-        account_id: AccountId,
+        account_id: ActorId,
     ) -> Result<(), Report<AccountError>>;
 
     async fn remove_account_group_member(
         &self,
         scope: Self::ExecutionScope,
         account_group_id: AccountGroupId,
-        account_id: AccountId,
+        account_id: ActorId,
     ) -> Result<(), Report<AccountError>>;
 }
 
@@ -240,7 +239,7 @@ where
             .change_context(AccountError)
     }
 
-    fn actor(session: &Session<Account>) -> Result<AccountId, Report<AccountError>> {
+    fn actor(session: &Session<Account>) -> Result<ActorId, Report<AccountError>> {
         let &Account {
             actor_id: Some(actor_id),
         } = session.get()
@@ -270,7 +269,7 @@ where
         &self,
         scope: Session<Account>,
         params: InsertAccountIdParams,
-    ) -> Result<AccountId, Report<AccountError>> {
+    ) -> Result<ActorId, Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
 
         let mut store = self.store().await?;
@@ -356,7 +355,7 @@ where
         &self,
         scope: Session<Account>,
         account_group_id: AccountGroupId,
-        account_id: AccountId,
+        account_id: ActorId,
     ) -> Result<(), Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
 
@@ -408,7 +407,7 @@ where
         &self,
         scope: Session<Account>,
         account_group_id: AccountGroupId,
-        account_id: AccountId,
+        account_id: ActorId,
     ) -> Result<(), Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
 
@@ -614,7 +613,7 @@ where
         &self,
         scope: Connection<S, C>,
         params: InsertAccountIdParams,
-    ) -> Result<AccountId, Report<AccountError>> {
+    ) -> Result<ActorId, Report<AccountError>> {
         invoke_call_discrete(scope, meta::AccountProcedureId::CreateAccount, [params])
             .await
             .change_context(AccountError)
@@ -653,7 +652,7 @@ where
         &self,
         scope: Connection<S, C>,
         account_group_id: AccountGroupId,
-        account_id: AccountId,
+        account_id: ActorId,
     ) -> Result<(), Report<AccountError>> {
         invoke_call_discrete(
             scope,
@@ -668,7 +667,7 @@ where
         &self,
         scope: Connection<S, C>,
         account_group_id: AccountGroupId,
-        account_id: AccountId,
+        account_id: ActorId,
     ) -> Result<(), Report<AccountError>> {
         invoke_call_discrete(
             scope,

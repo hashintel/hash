@@ -1,13 +1,12 @@
 use core::error::Error;
 
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
-use type_system::{ontology::entity_type::EntityTypeUuid, web::OwnedById};
+use type_system::{ontology::entity_type::EntityTypeUuid, provenance::ActorId, web::OwnedById};
 use uuid::Uuid;
 
 use crate::{
     schema::{
-        PublicAccess,
+        AccountGroupId, PublicAccess,
         error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
@@ -78,7 +77,7 @@ pub enum EntityTypeSubject {
     Web(OwnedById),
     Setting(EntityTypeSetting),
     Public,
-    Account(AccountId),
+    Account(ActorId),
     AccountGroup(AccountGroupId),
 }
 
@@ -128,7 +127,7 @@ impl Resource for EntityTypeSubject {
                 EntityTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (EntityTypeSubjectNamespace::Account, EntityTypeSubjectId::Uuid(id)) => {
-                Self::Account(AccountId::new(id))
+                Self::Account(ActorId::new(id))
             }
             (EntityTypeSubjectNamespace::AccountGroup, EntityTypeSubjectId::Uuid(id)) => {
                 Self::AccountGroup(AccountGroupId::new(id))
@@ -201,7 +200,7 @@ pub enum EntityTypeSettingSubject {
 pub enum EntityTypeEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -225,7 +224,7 @@ pub enum EntityTypeInstantiatorSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]

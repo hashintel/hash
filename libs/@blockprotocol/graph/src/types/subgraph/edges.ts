@@ -1,5 +1,3 @@
-import type { BaseUrl } from "@blockprotocol/type-system/slim";
-
 import type { EntityId } from "../entity.js";
 import type { OntologyTypeRevisionId } from "../ontology.js";
 import type { Timestamp } from "../temporal-versioning.js";
@@ -11,7 +9,7 @@ export * from "./edges/outward-edge.js";
 export * from "./edges/variants.js";
 
 export type OntologyRootedEdges = Record<
-  BaseUrl,
+  string,
   Record<OntologyTypeRevisionId, OntologyOutwardEdge[]>
 >;
 

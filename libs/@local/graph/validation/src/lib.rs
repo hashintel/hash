@@ -55,13 +55,9 @@ mod tests {
         ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp,
     };
     use hash_graph_types::{
-        account::AccountId,
-        knowledge::property::{
-            error::install_error_stack_hooks,
-            visitor::{
-                EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
-                ValueValidationReport,
-            },
+        knowledge::property::visitor::{
+            EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
+            ValueValidationReport,
         },
         ontology::{DataTypeLookup, OntologyTypeProvider},
     };
@@ -91,7 +87,7 @@ mod tests {
                 ProvidedOntologyEditionProvenance,
             },
         },
-        provenance::{ActorType, EditionCreatedById, OriginProvenance, OriginType},
+        provenance::{ActorId, ActorType, EditionCreatedById, OriginProvenance, OriginType},
         web::OwnedById,
     };
     use uuid::Uuid;
@@ -99,7 +95,7 @@ mod tests {
     use super::*;
 
     fn generate_data_type_metadata(schema: DataType) -> DataTypeWithMetadata {
-        let actor = AccountId::new(Uuid::nil());
+        let actor = ActorId::new(Uuid::nil());
         DataTypeWithMetadata {
             metadata: DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(schema.id.clone()),
@@ -114,7 +110,7 @@ mod tests {
                 },
                 provenance: OntologyProvenance {
                     edition: OntologyEditionProvenance {
-                        created_by_id: EditionCreatedById::new(actor.into_uuid()),
+                        created_by_id: EditionCreatedById::new(actor),
                         archived_by_id: None,
                         user_defined: ProvidedOntologyEditionProvenance {
                             actor_type: ActorType::Human,
@@ -310,8 +306,6 @@ mod tests {
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
     ) -> Result<PropertyWithMetadataObject, ObjectValidationReport> {
-        install_error_stack_hooks();
-
         let mut ontology_type_resolver = OntologyTypeResolver::default();
         let entity_types = entity_types
             .into_iter()
@@ -383,7 +377,6 @@ mod tests {
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
     ) -> Result<PropertyWithMetadata, PropertyValidationReport> {
-        install_error_stack_hooks();
         let property = Property::deserialize(property).expect("failed to deserialize property");
 
         let provider = Provider::new(
@@ -415,7 +408,6 @@ mod tests {
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
     ) -> Result<PropertyWithMetadataValue, ValueValidationReport> {
-        install_error_stack_hooks();
         let mut value = serde_json::from_value(value).expect("failed to parse value");
         let mut provider = Provider::new(
             [],

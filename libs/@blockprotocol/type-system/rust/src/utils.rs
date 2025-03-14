@@ -2,6 +2,12 @@
 mod wasm {
     use serde::{Deserialize, Serialize};
     use tsify::Tsify;
+    use wasm_bindgen::prelude::wasm_bindgen;
+
+    #[wasm_bindgen(typescript_custom_section)]
+    const TS_APPEND_CONTENT: &'static str = r#"
+    import type { Brand } from "@local/advanced-types/brand";
+    "#;
 
     /// Sets up better error messages for WebAssembly panics.
     ///

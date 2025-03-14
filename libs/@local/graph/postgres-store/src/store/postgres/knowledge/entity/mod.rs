@@ -45,7 +45,6 @@ use hash_graph_temporal_versioning::{
 };
 use hash_graph_types::{
     Embedding,
-    account::AccountId,
     knowledge::{entity::EntityEmbedding, property::visitor::EntityVisitor as _},
     ontology::{DataTypeLookup, OntologyTypeProvider},
 };
@@ -77,7 +76,7 @@ use type_system::{
         },
         id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
     },
-    provenance::{CreatedById, EditionArchivedById, EditionCreatedById},
+    provenance::{ActorId, CreatedById, EditionArchivedById, EditionCreatedById},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -132,7 +131,7 @@ where
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
-        actor_id: AccountId,
+        actor_id: ActorId,
         zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
@@ -507,7 +506,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn get_entities_impl(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: GetEntitiesImplParams<'_>,
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<(GetEntitiesResponse<'static>, Zookie<'static>), Report<QueryError>> {
@@ -858,7 +857,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn create_entities<R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: Vec<CreateEntityParams<R>>,
     ) -> Result<Vec<Entity>, Report<InsertionError>>
     where
@@ -943,7 +942,7 @@ where
 
             let entity_provenance = EntityProvenance {
                 inferred: InferredEntityProvenance {
-                    created_by_id: CreatedById::new(actor_id.into_uuid()),
+                    created_by_id: CreatedById::new(actor_id),
                     created_at_transaction_time: transaction_time,
                     created_at_decision_time: decision_time,
                     first_non_draft_created_at_transaction_time: entity_id
@@ -956,7 +955,7 @@ where
                         .then_some(decision_time),
                 },
                 edition: EntityEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id.into_uuid()),
+                    created_by_id: EditionCreatedById::new(actor_id),
                     archived_by_id: None,
                     provided: params.provenance,
                 },
@@ -1272,7 +1271,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn validate_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> HashMap<usize, EntityValidationReport> {
@@ -1359,7 +1358,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn get_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: GetEntitiesParams<'_>,
     ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
         params
@@ -1414,7 +1413,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn get_entity_subgraph(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: GetEntitySubgraphParams<'_>,
     ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
         params
@@ -1584,7 +1583,7 @@ where
 
     async fn count_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: CountEntitiesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         params
@@ -1634,7 +1633,7 @@ where
 
     async fn get_entity_by_id(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -1676,7 +1675,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn patch_entity(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         mut params: PatchEntityParams,
     ) -> Result<Entity, Report<UpdateError>> {
         let transaction_time = Timestamp::now().remove_nanosecond();
@@ -1906,7 +1905,7 @@ where
         let link_data = previous_entity.link_data;
 
         let edition_provenance = EntityEditionProvenance {
-            created_by_id: EditionCreatedById::new(actor_id.into_uuid()),
+            created_by_id: EditionCreatedById::new(actor_id),
             archived_by_id: None,
             provided: params.provenance,
         };
@@ -2080,7 +2079,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_entity_embeddings(
         &mut self,
-        _: AccountId,
+        _: ActorId,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         #[derive(Debug, ToSql)]
@@ -2593,7 +2592,7 @@ where
     #[tracing::instrument(level = "trace", skip(self))]
     async fn archive_entity(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         locked_row: LockedEntityEdition,
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
@@ -2689,7 +2688,7 @@ where
                     WHERE entity_edition_id = $1",
                 &[
                     &locked_row.entity_edition_id,
-                    &EditionArchivedById::new(actor_id.into_uuid()),
+                    &EditionArchivedById::new(actor_id),
                 ],
             )
             .await

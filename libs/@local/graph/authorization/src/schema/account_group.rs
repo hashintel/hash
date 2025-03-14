@@ -1,5 +1,9 @@
-use hash_graph_types::account::{AccountGroupId, AccountId};
+use core::fmt;
+
+#[cfg(feature = "postgres")]
+use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
+use type_system::{provenance::ActorId, web::OwnedById};
 use uuid::Uuid;
 
 use crate::zanzibar::{
@@ -11,6 +15,41 @@ use crate::zanzibar::{
 pub enum AccountGroupNamespace {
     #[serde(rename = "graph/account_group")]
     AccountGroup,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[repr(transparent)]
+pub struct AccountGroupId(Uuid);
+
+impl AccountGroupId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        self.0
+    }
+
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        &self.0
+    }
+}
+
+impl fmt::Display for AccountGroupId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl From<AccountGroupId> for OwnedById {
+    fn from(account_group_id: AccountGroupId) -> Self {
+        Self::new(account_group_id.into_uuid())
+    }
 }
 
 impl Resource for AccountGroupId {
@@ -55,7 +94,7 @@ impl Permission<AccountGroupId> for AccountGroupPermission {}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum AccountGroupSubject {
-    Account(AccountId),
+    Account(ActorId),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,7 +117,7 @@ impl Resource for AccountGroupSubject {
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, !> {
         Ok(match (kind, id) {
             (AccountGroupSubjectNamespace::Account, AccountGroupSubjectId::Uuid(id)) => {
-                Self::Account(AccountId::new(id))
+                Self::Account(ActorId::new(id))
             }
         })
     }
@@ -103,7 +142,7 @@ impl Resource for AccountGroupSubject {
 pub enum AccountGroupAdministratorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
 }
 
@@ -113,7 +152,7 @@ pub enum AccountGroupAdministratorSubject {
 pub enum AccountGroupMemberSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
 }
 

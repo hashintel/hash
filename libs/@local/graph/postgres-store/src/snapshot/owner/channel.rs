@@ -10,21 +10,20 @@ use futures::{
     channel::mpsc::{self, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use hash_graph_authorization::schema::AccountGroupRelationAndSubject;
-use hash_graph_types::account::AccountGroupId;
+use hash_graph_authorization::schema::{AccountGroupId, AccountGroupRelationAndSubject};
 
 use crate::snapshot::{
     SnapshotRestoreError,
     owner::{AccountGroupRow, AccountRow, AccountRowBatch, Owner},
 };
 
-/// A sink to insert [`AccountId`]s and [`AccountGroupId`]s.
+/// A sink to insert [`ActorId`]s and [`AccountGroupId`]s.
 ///
 /// An `AccountSender` with the corresponding [`OwnerReceiver`] are created using the [`channel`]
 /// function.
 ///
-/// [`AccountId`]: hash_graph_types::account::AccountId
-/// [`AccountGroupId`]: hash_graph_types::account::AccountGroupId
+/// [`ActorId`]: type_system::provenance::ActorId
+/// [`AccountGroupId`]: hash_graph_authorization::schema::AccountGroupId
 #[derive(Debug, Clone)]
 #[expect(clippy::struct_field_names)]
 pub struct OwnerSender {

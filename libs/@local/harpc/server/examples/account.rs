@@ -47,8 +47,8 @@ use harpc_tower::{
 use harpc_types::{
     procedure::ProcedureId, response_kind::ResponseKind, subsystem::SubsystemId, version::Version,
 };
-use hash_graph_types::account::AccountId;
 use multiaddr::multiaddr;
+use type_system::provenance::ActorId;
 use uuid::Uuid;
 
 #[derive(Debug, Copy, Clone)]
@@ -111,7 +111,7 @@ impl Subsystem for Account {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct CreateAccount {
-    id: Option<AccountId>,
+    id: Option<ActorId>,
 }
 
 impl Procedure for CreateAccount {
@@ -132,7 +132,7 @@ trait AccountSystem {
         &self,
         scope: Self::ExecutionScope,
         payload: CreateAccount,
-    ) -> Result<AccountId, Report<AccountError>>;
+    ) -> Result<ActorId, Report<AccountError>>;
 }
 
 #[derive_where::derive_where(Debug, Clone)]
@@ -159,8 +159,8 @@ where
         &self,
         scope: Self::ExecutionScope,
         payload: CreateAccount,
-    ) -> Result<AccountId, Report<AccountError>> {
-        Ok(AccountId::new(Uuid::new_v4()))
+    ) -> Result<ActorId, Report<AccountError>> {
+        Ok(ActorId::new(Uuid::new_v4()))
     }
 }
 
@@ -196,7 +196,7 @@ where
         &self,
         scope: Connection<S, C>,
         payload: CreateAccount,
-    ) -> Result<AccountId, Report<AccountError>> {
+    ) -> Result<ActorId, Report<AccountError>> {
         invoke_call_discrete(scope, AccountProcedureId::CreateAccount, [payload])
             .await
             .change_context(AccountError)

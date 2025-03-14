@@ -22,7 +22,6 @@ hash-graph-postgres-store = { workspace = true, features = ["clap"] }
 hash-graph-store          = { workspace = true }
 hash-graph-test-server    = { workspace = true, optional = true }
 hash-graph-type-fetcher   = { workspace = true }
-hash-graph-types          = { workspace = true }
 hash-temporal-client      = { workspace = true }
 hash-tracing              = { workspace = true, features = ["clap"] }
 type-system               = { workspace = true }

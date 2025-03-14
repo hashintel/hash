@@ -7,7 +7,7 @@ export type LogLevel = "silent" | "warn" | "info" | "debug" | "trace";
 export const sharedTypeFileName = "shared.ts";
 
 export const primitiveLinkEntityTypeId =
-  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" as VersionedUrl;
 
 /** The suffix to append to generated types for each class of ontology type */
 export const generatedTypeSuffix = {
@@ -56,28 +56,28 @@ export const metadataSchemaKind = "metadataSchema";
  * – we'll add import statements for the types in post-processing.
  */
 export const propertyProvenanceSchema: JsonSchema = {
-  $id: "https://hash.ai/@h/schemas/property-provenance/v/1",
+  $id: "https://hash.ai/@h/schemas/property-provenance/v/1" as VersionedUrl,
   title: "PropertyProvenance",
   kind: metadataSchemaKind,
   const: redundantTypePlaceholder,
 };
 
 export const objectMetadataSchema: JsonSchema = {
-  $id: "https://hash.ai/@h/schemas/object-metadata/v/1",
+  $id: "https://hash.ai/@h/schemas/object-metadata/v/1" as VersionedUrl,
   title: "ObjectMetadata",
   kind: metadataSchemaKind,
   const: redundantTypePlaceholder,
 };
 
 export const arrayMetadataSchema: JsonSchema = {
-  $id: "https://hash.ai/@h/schemas/array-metadata/v/1",
+  $id: "https://hash.ai/@h/schemas/array-metadata/v/1" as VersionedUrl,
   title: "ArrayMetadata",
   kind: metadataSchemaKind,
   const: redundantTypePlaceholder,
 };
 
 export const confidenceMetadataSchema: JsonSchema = {
-  $id: "https://hash.ai/@h/schemas/confidence/v/1",
+  $id: "https://hash.ai/@h/schemas/confidence/v/1" as VersionedUrl,
   title: "Confidence",
   kind: metadataSchemaKind,
   const: redundantTypePlaceholder,

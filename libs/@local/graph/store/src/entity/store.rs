@@ -5,7 +5,7 @@ use error_stack::Report;
 use futures::TryFutureExt as _;
 use hash_graph_authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_graph_types::{account::AccountId, knowledge::entity::EntityEmbedding};
+use hash_graph_types::knowledge::entity::EntityEmbedding;
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::{
@@ -21,7 +21,7 @@ use type_system::{
         },
     },
     ontology::{VersionedUrl, entity_type::ClosedMultiEntityType},
-    provenance::{CreatedById, EditionCreatedById},
+    provenance::{ActorId, CreatedById, EditionCreatedById},
     web::OwnedById,
 };
 #[cfg(feature = "utoipa")]
@@ -359,7 +359,7 @@ pub trait EntityStore {
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     fn create_entity<R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: CreateEntityParams<R>,
     ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send
     where
@@ -376,7 +376,7 @@ pub trait EntityStore {
     /// Creates new [`Entities`][Entity].
     fn create_entities<R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: Vec<CreateEntityParams<R>>,
     ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send
     where
@@ -389,7 +389,7 @@ pub trait EntityStore {
     /// - if the validation failed
     fn validate_entity(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
     ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send {
@@ -403,7 +403,7 @@ pub trait EntityStore {
     /// - if the validation failed
     fn validate_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send;
@@ -415,7 +415,7 @@ pub trait EntityStore {
     /// - if the requested [`Entities`][Entity] cannot be retrieved
     fn get_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: GetEntitiesParams<'_>,
     ) -> impl Future<Output = Result<GetEntitiesResponse<'static>, Report<QueryError>>> + Send;
 
@@ -426,7 +426,7 @@ pub trait EntityStore {
     /// - if the requested [`Entities`][Entity] cannot be retrieved
     fn get_entity_subgraph(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: GetEntitySubgraphParams<'_>,
     ) -> impl Future<Output = Result<GetEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
 
@@ -439,13 +439,13 @@ pub trait EntityStore {
     /// [`get_entity`]: Self::get_entity_subgraph
     fn count_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: CountEntitiesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
     fn get_entity_by_id(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -453,13 +453,13 @@ pub trait EntityStore {
 
     fn patch_entity(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: PatchEntityParams,
     ) -> impl Future<Output = Result<Entity, Report<UpdateError>>> + Send;
 
     fn diff_entity(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: DiffEntityParams,
     ) -> impl Future<Output = Result<DiffEntityResult<'static>, Report<QueryError>>> + Send
     where
@@ -524,7 +524,7 @@ pub trait EntityStore {
 
     fn update_entity_embeddings(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 

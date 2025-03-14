@@ -1,4 +1,4 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   extractBaseUrl,
   extractVersion,
@@ -54,7 +54,7 @@ export const getEntityTypesReferencedByEntityType = (
   subgraph: Subgraph,
   entityTypeId: OntologyTypeVertexId | VersionedUrl,
 ): EntityTypeReferences => {
-  let baseUrl: BaseUrl;
+  let baseUrl: string;
   let revisionId: OntologyTypeRevisionId;
 
   if (typeof entityTypeId === "string") {

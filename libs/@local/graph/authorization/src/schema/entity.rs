@@ -1,13 +1,12 @@
 use core::error::Error;
 
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
-use type_system::{knowledge::entity::id::EntityUuid, web::OwnedById};
+use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorId, web::OwnedById};
 use uuid::Uuid;
 
 use crate::{
     schema::{
-        PublicAccess,
+        AccountGroupId, PublicAccess,
         error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
@@ -80,7 +79,7 @@ pub enum EntitySubject {
     Setting(EntitySetting),
     Web(OwnedById),
     Public,
-    Account(AccountId),
+    Account(ActorId),
     AccountGroup(AccountGroupId),
 }
 
@@ -130,7 +129,7 @@ impl Resource for EntitySubject {
                 Self::Public
             }
             (EntitySubjectNamespace::Account, EntitySubjectId::Uuid(id)) => {
-                Self::Account(AccountId::new(id))
+                Self::Account(ActorId::new(id))
             }
             (EntitySubjectNamespace::AccountGroup, EntitySubjectId::Uuid(id)) => {
                 Self::AccountGroup(AccountGroupId::new(id))
@@ -205,7 +204,7 @@ pub enum EntityOwnerSubject {
 pub enum EntityAdministratorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -221,7 +220,7 @@ pub enum EntityAdministratorSubject {
 pub enum EntityEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -238,7 +237,7 @@ pub enum EntityViewerSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]

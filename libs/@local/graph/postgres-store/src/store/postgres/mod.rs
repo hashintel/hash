@@ -15,9 +15,10 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
-        WebEntityCreatorSubject, WebEntityEditorSubject, WebEntityTypeViewerSubject,
-        WebOwnerSubject, WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
+        AccountGroupAdministratorSubject, AccountGroupId, AccountGroupRelationAndSubject,
+        WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
+        WebEntityTypeViewerSubject, WebOwnerSubject, WebPropertyTypeViewerSubject,
+        WebRelationAndSubject, WebSubjectSet,
     },
 };
 use hash_graph_store::{
@@ -30,7 +31,6 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use hash_temporal_client::TemporalClient;
 use postgres_types::Json;
 use time::OffsetDateTime;
@@ -51,7 +51,7 @@ use type_system::{
         property_type::{PropertyType, schema::PropertyTypeReference},
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::EditionArchivedById,
+    provenance::{ActorId, EditionArchivedById},
     web::OwnedById,
 };
 
@@ -1034,7 +1034,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_id(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: InsertAccountIdParams,
     ) -> Result<(), Report<AccountInsertionError>> {
         self.as_client()
@@ -1051,7 +1051,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_group_id(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: InsertAccountGroupIdParams,
     ) -> Result<(), Report<AccountGroupInsertionError>> {
         let transaction = self
@@ -1114,7 +1114,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_web_id(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: InsertWebIdParams,
     ) -> Result<(), Report<WebInsertionError>> {
         let transaction = self.transaction().await.change_context(WebInsertionError)?;
@@ -1237,7 +1237,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 .attach_printable("Record does not exist")
                 .attach_printable(owned_by_id)),
             (true, false) => Ok(WebOwnerSubject::Account {
-                id: AccountId::new(owned_by_id.into_uuid()),
+                id: ActorId::new(owned_by_id.into_uuid()),
             }),
             (false, true) => Ok(WebOwnerSubject::AccountGroup {
                 id: AccountGroupId::new(owned_by_id.into_uuid()),
@@ -1257,7 +1257,7 @@ where
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_accounts(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
     ) -> Result<(), Report<DeletionError>> {
         self.as_client()
             .client()

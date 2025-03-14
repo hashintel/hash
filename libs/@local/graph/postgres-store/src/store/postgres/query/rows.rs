@@ -1,10 +1,8 @@
+use hash_graph_authorization::schema::AccountGroupId;
 use hash_graph_temporal_versioning::{
     DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime,
 };
-use hash_graph_types::{
-    Embedding,
-    account::{AccountGroupId, AccountId},
-};
+use hash_graph_types::Embedding;
 use postgres_types::ToSql;
 use time::OffsetDateTime;
 use type_system::{
@@ -28,6 +26,7 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeUuid},
         provenance::OntologyEditionProvenance,
     },
+    provenance::ActorId,
     web::OwnedById,
 };
 
@@ -46,7 +45,7 @@ pub struct AccountGroupRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "accounts")]
 pub struct AccountRow {
-    pub account_id: AccountId,
+    pub account_id: ActorId,
 }
 
 #[derive(Debug, ToSql)]

@@ -606,7 +606,6 @@ __metadata:
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-test-server": "npm:0.0.0-private"
     "@rust/hash-graph-type-fetcher": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
     "@rust/hash-temporal-client": "npm:0.0.0-private"
     "@rust/hash-tracing": "npm:0.0.0-private"
   languageName: unknown
@@ -12520,6 +12519,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/harpc-server@workspace:libs/@local/harpc/server"
   dependencies:
+    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
     "@rust/harpc-client": "npm:0.0.0-private"
     "@rust/harpc-codec": "npm:0.0.0-private"
@@ -12527,7 +12527,6 @@ __metadata:
     "@rust/harpc-system": "npm:0.0.0-private"
     "@rust/harpc-tower": "npm:0.0.0-private"
     "@rust/harpc-types": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
@@ -12609,7 +12608,6 @@ __metadata:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-codec": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
@@ -12625,7 +12623,6 @@ __metadata:
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hash-graph-test-data": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
     "@rust/hash-repo-chores": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
@@ -12652,7 +12649,6 @@ __metadata:
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hash-graph-test-data": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
     "@rust/hash-tracing": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
@@ -12723,6 +12719,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-test-server@workspace:libs/@local/graph/test-server"
   dependencies:
+    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-api": "npm:0.0.0-private"
@@ -12730,7 +12727,6 @@ __metadata:
     "@rust/hash-graph-postgres-store": "npm:0.0.0-private"
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-type-defs": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
     "@rust/hash-status": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
@@ -12811,7 +12807,6 @@ __metadata:
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
