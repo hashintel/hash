@@ -7932,9 +7932,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz"
-version = "7.0.3"
+version = "7.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13b092bf18815b5fcfadc8b15d4644d5d68b4d761b32ac1192912e3241aa45f7"
+checksum = "82e52a217aa173f90181948c0b8217b184192ae73b1c8493d0d8cec921dd337c"
 dependencies = [
  "serde",
  "serde_combinators",
@@ -7945,9 +7945,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-internal"
-version = "7.0.3"
+version = "7.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f04fc3fa0293849f8762c3e8427cb11a73b8bfc2157f2713029d93df554da052"
+checksum = "88d0533ab2d6ad586406d5700beefac5801d1910a88e998d481c42fdefa65551"
 dependencies = [
  "bincode",
  "cargo_metadata",
@@ -7956,9 +7956,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-macro"
-version = "7.0.3"
+version = "7.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcc398c37df7cf559845f32bcf694b3984e0378887dc2e177775a7a918ee7110"
+checksum = "e0e01257b591370c00a2a411fbda9f38061d2314b2da719d99cfa71f49906182"
 dependencies = [
  "darling",
  "heck",
@@ -7971,9 +7971,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-runtime"
-version = "7.0.3"
+version = "7.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2dede21a17233c03fdb704ea831e4a6b52da877f54e8bc273f74eee47903d446"
+checksum = "31e39a085aa75bf827963c64d831fff4ad9e8664f3b15bbbc30c2051244b3f54"
 dependencies = [
  "hex",
  "num-traits",
