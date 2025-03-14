@@ -1,0 +1,759 @@
+import { IconButton, TextField } from "@hashintel/design-system";
+import {
+  Box,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControlLabel,
+  Slider,
+  Stack,
+  Switch,
+  Typography,
+} from "@mui/material";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { Button } from "../../../shared/ui";
+import type { PetriNetEdge } from "./edge-menu";
+import type { TokenType } from "./token-editor";
+
+// Define the condition interface
+interface TransitionCondition {
+  id: string;
+  name: string;
+  probability: number;
+  outputEdgeIds: string[]; // IDs of edges to activate when this condition is met
+}
+
+// Define the transition data interface
+interface TransitionData {
+  label: string;
+  processTimes?: {
+    [tokenTypeId: string]: number; // Processing time in hours for each token type
+  };
+  description?: string;
+  priority?: number;
+
+  // New fields for conditional logic
+  hasConditions?: boolean; // Whether this transition has conditional outputs
+  conditions?: TransitionCondition[]; // Array of possible conditions
+}
+
+interface TransitionEditorProps {
+  open: boolean;
+  onClose: () => void;
+  transitionId: string;
+  transitionData: TransitionData;
+  tokenTypes: TokenType[];
+  outgoingEdges: Array<
+    PetriNetEdge & {
+      targetLabel: string;
+    }
+  >;
+  onUpdateTransition: (transitionId: string, data: TransitionData) => void;
+}
+
+export const TransitionEditor = ({
+  open,
+  onClose,
+  transitionId,
+  transitionData,
+  tokenTypes,
+  outgoingEdges,
+  onUpdateTransition,
+}: TransitionEditorProps) => {
+  // Local state for editing
+  const [editedData, setEditedData] = useState<TransitionData>({
+    label: "",
+    processTimes: {},
+    description: "",
+    priority: 1,
+    hasConditions: false,
+    conditions: [],
+  });
+
+  // Initialize form when opened
+  useEffect(() => {
+    if (open) {
+      setEditedData({
+        label: transitionData.label,
+        processTimes: transitionData.processTimes ?? {},
+        description: transitionData.description ?? "",
+        priority: transitionData.priority ?? 1,
+        hasConditions: transitionData.hasConditions ?? false,
+        conditions: transitionData.conditions ?? [],
+      });
+
+      // If no conditions exist yet, initialize with a default condition
+      if (
+        !transitionData.conditions ||
+        transitionData.conditions.length === 0
+      ) {
+        setEditedData((prev) => ({
+          ...prev,
+          conditions: [
+            {
+              id: `condition-${Date.now()}`,
+              name: "Default",
+              probability: 100,
+              outputEdgeIds: outgoingEdges.map((edge) => edge.id),
+            },
+          ],
+        }));
+      }
+    }
+  }, [open, transitionData, outgoingEdges]);
+
+  const handleLabelChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setEditedData((prev) => ({
+        ...prev,
+        label: event.target.value,
+      }));
+    },
+    [],
+  );
+
+  const handleDescriptionChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setEditedData((prev) => ({
+        ...prev,
+        description: event.target.value,
+      }));
+    },
+    [],
+  );
+
+  const handlePriorityChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = parseInt(event.target.value, 10);
+      setEditedData((prev) => ({
+        ...prev,
+        priority: Number.isNaN(value) ? 1 : value,
+      }));
+    },
+    [],
+  );
+
+  const handleProcessingTimeChange = useCallback(
+    (
+      tokenTypeId: string,
+      event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    ) => {
+      const value = parseFloat(event.target.value);
+      setEditedData((prev) => ({
+        ...prev,
+        processTimes: {
+          ...prev.processTimes,
+          [tokenTypeId]: Number.isNaN(value) ? 0 : value,
+        },
+      }));
+    },
+    [],
+  );
+
+  // New handlers for conditional logic
+  const handleHasConditionsChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const hasConditions = event.target.checked;
+      setEditedData((prev) => ({
+        ...prev,
+        hasConditions,
+        // If enabling conditions and none exist, create a default one
+        conditions:
+          hasConditions && (!prev.conditions || prev.conditions.length === 0)
+            ? [
+                {
+                  id: `condition-${Date.now()}`,
+                  name: "Default",
+                  probability: 100,
+                  outputEdgeIds: outgoingEdges.map((edge) => edge.id),
+                },
+              ]
+            : prev.conditions,
+      }));
+    },
+    [outgoingEdges],
+  );
+
+  const handleAddCondition = useCallback(() => {
+    setEditedData((prev) => {
+      const existingConditions = prev.conditions ?? [];
+
+      // Quick path: if no conditions exist, create one with 100%
+      if (existingConditions.length === 0) {
+        const newCondition: TransitionCondition = {
+          id: `condition-${Date.now()}`,
+          name: "Condition 1",
+          probability: 100,
+          outputEdgeIds: [],
+        };
+
+        return {
+          ...prev,
+          conditions: [newCondition],
+        };
+      }
+
+      // If we have existing conditions, distribute evenly
+      const newConditionCount = existingConditions.length + 1;
+      const targetProbability = Math.floor(100 / newConditionCount);
+      const remainder = 100 - targetProbability * newConditionCount;
+
+      // Create adjusted conditions with evenly distributed probabilities
+      const adjustedConditions = existingConditions.map((condition, index) => {
+        return {
+          id: condition.id,
+          name: condition.name,
+          probability: targetProbability + (index === 0 ? remainder : 0),
+          outputEdgeIds: condition.outputEdgeIds,
+        };
+      });
+
+      const newCondition: TransitionCondition = {
+        id: `condition-${Date.now()}`,
+        name: `Condition ${newConditionCount}`,
+        probability: targetProbability,
+        outputEdgeIds: [],
+      };
+
+      return {
+        ...prev,
+        conditions: [...adjustedConditions, newCondition],
+      };
+    });
+  }, []);
+
+  const handleRemoveCondition = useCallback((conditionId: string) => {
+    setEditedData((prev) => {
+      const conditions = prev.conditions ?? [];
+
+      // Find the condition to remove and its probability
+      const conditionToRemove = conditions.find(
+        (condition) => condition.id === conditionId,
+      );
+      if (!conditionToRemove) {
+        return prev;
+      }
+
+      const probabilityToRedistribute = conditionToRemove.probability;
+      const remainingConditions = conditions.filter(
+        (condition) => condition.id !== conditionId,
+      );
+
+      // If no conditions left, just return empty array
+      if (remainingConditions.length === 0) {
+        return {
+          ...prev,
+          conditions: [],
+        };
+      }
+
+      // If only one condition left, it gets 100%
+      if (remainingConditions.length === 1) {
+        const condition = remainingConditions[0];
+        if (!condition) {
+          return prev;
+        }
+
+        const updatedCondition: TransitionCondition = {
+          id: condition.id,
+          name: condition.name,
+          probability: 100,
+          outputEdgeIds: condition.outputEdgeIds,
+        };
+
+        return {
+          ...prev,
+          conditions: [updatedCondition],
+        };
+      }
+
+      // Distribute the removed probability proportionally
+      const totalRemainingProbability = remainingConditions.reduce(
+        (sum, condition) => sum + condition.probability,
+        0,
+      );
+
+      // Calculate how much to add to each remaining condition
+      const distributionFactor =
+        totalRemainingProbability > 0
+          ? probabilityToRedistribute / totalRemainingProbability
+          : 0;
+
+      // Distribute proportionally
+      const adjustedConditions = remainingConditions.map((condition) => {
+        return {
+          id: condition.id,
+          name: condition.name,
+          probability: Math.round(
+            condition.probability * (1 + distributionFactor),
+          ),
+          outputEdgeIds: condition.outputEdgeIds,
+        };
+      });
+
+      // Fix any rounding errors by adjusting the first condition
+      const newTotal = adjustedConditions.reduce(
+        (sum, condition) => sum + condition.probability,
+        0,
+      );
+
+      if (newTotal !== 100 && adjustedConditions.length > 0) {
+        const firstCondition = adjustedConditions[0];
+        if (firstCondition) {
+          adjustedConditions[0] = {
+            id: firstCondition.id,
+            name: firstCondition.name,
+            probability: firstCondition.probability + (100 - newTotal),
+            outputEdgeIds: firstCondition.outputEdgeIds,
+          };
+        }
+      }
+
+      return {
+        ...prev,
+        conditions: adjustedConditions,
+      };
+    });
+  }, []);
+
+  const handleConditionNameChange = useCallback(
+    (conditionId: string, name: string) => {
+      setEditedData((prev) => ({
+        ...prev,
+        conditions: (prev.conditions ?? []).map((condition) =>
+          condition.id === conditionId ? { ...condition, name } : condition,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const handleConditionProbabilityChange = useCallback(
+    (conditionId: string, newProbability: number) => {
+      setEditedData((prev) => {
+        const conditions = prev.conditions ?? [];
+
+        // If there's only one condition, it must be 100%
+        if (conditions.length === 1) {
+          const condition = conditions[0];
+          if (!condition) {
+            return prev;
+          }
+
+          const updatedCondition: TransitionCondition = {
+            id: condition.id,
+            name: condition.name,
+            probability: 100,
+            outputEdgeIds: condition.outputEdgeIds,
+          };
+
+          return {
+            ...prev,
+            conditions: [updatedCondition],
+          };
+        }
+
+        // Find the condition being changed
+        const conditionToUpdate = conditions.find(
+          (condition) => condition.id === conditionId,
+        );
+
+        if (!conditionToUpdate) {
+          throw new Error(
+            `Condition to update with id ${conditionId} not found`,
+          );
+        }
+
+        const oldProbability = conditionToUpdate.probability;
+
+        const probabilityDelta = newProbability - oldProbability;
+
+        // If no change, return unchanged
+        if (probabilityDelta === 0) {
+          return prev;
+        }
+
+        let hasDeltaBeenDistributed = false;
+        const newConditions: TransitionCondition[] = [];
+
+        for (const condition of conditions) {
+          if (condition.id === conditionId) {
+            newConditions.push({
+              ...condition,
+              probability: newProbability,
+            });
+            continue;
+          }
+
+          if (hasDeltaBeenDistributed) {
+            newConditions.push(condition);
+            continue;
+          }
+
+          newConditions.push({
+            ...condition,
+            probability: condition.probability - probabilityDelta,
+          });
+          hasDeltaBeenDistributed = true;
+        }
+
+        return {
+          ...prev,
+          conditions: newConditions,
+        };
+      });
+    },
+    [],
+  );
+
+  const handleToggleEdgeForCondition = useCallback(
+    (conditionId: string, edgeId: string) => {
+      setEditedData((prev) => ({
+        ...prev,
+        conditions: (prev.conditions ?? []).map((condition) => {
+          if (condition.id === conditionId) {
+            const outputEdgeIds = [...condition.outputEdgeIds];
+            const edgeIndex = outputEdgeIds.indexOf(edgeId);
+
+            if (edgeIndex >= 0) {
+              // Remove edge if already included
+              outputEdgeIds.splice(edgeIndex, 1);
+            } else {
+              // Add edge if not included
+              outputEdgeIds.push(edgeId);
+            }
+
+            return {
+              ...condition,
+              outputEdgeIds,
+            };
+          }
+          return condition;
+        }),
+      }));
+    },
+    [],
+  );
+
+  const handleSave = useCallback(() => {
+    // Ensure conditions sum to 100% before saving
+    const dataToSave = { ...editedData };
+
+    if (
+      dataToSave.hasConditions &&
+      dataToSave.conditions &&
+      dataToSave.conditions.length > 0
+    ) {
+      const totalProbability = dataToSave.conditions.reduce(
+        (sum, condition) => sum + condition.probability,
+        0,
+      );
+
+      if (totalProbability !== 100) {
+        // Fast path: if only one condition, set to 100%
+        if (dataToSave.conditions.length === 1) {
+          const condition = dataToSave.conditions[0];
+          if (condition) {
+            dataToSave.conditions[0] = {
+              id: condition.id,
+              name: condition.name,
+              probability: 100,
+              outputEdgeIds: condition.outputEdgeIds,
+            };
+          }
+        } else {
+          // Normalize probabilities to sum to 100%
+          const factor = 100 / totalProbability;
+          dataToSave.conditions = dataToSave.conditions.map((condition) => ({
+            id: condition.id,
+            name: condition.name,
+            probability: Math.round(condition.probability * factor),
+            outputEdgeIds: condition.outputEdgeIds,
+          }));
+
+          // Fix any rounding errors by adjusting the first condition
+          const newTotal = dataToSave.conditions.reduce(
+            (sum, condition) => sum + condition.probability,
+            0,
+          );
+
+          if (newTotal !== 100 && dataToSave.conditions.length > 0) {
+            const firstCondition = dataToSave.conditions[0];
+            if (firstCondition) {
+              dataToSave.conditions[0] = {
+                id: firstCondition.id,
+                name: firstCondition.name,
+                probability: firstCondition.probability + (100 - newTotal),
+                outputEdgeIds: firstCondition.outputEdgeIds,
+              };
+            }
+          }
+        }
+      }
+    }
+
+    onUpdateTransition(transitionId, dataToSave);
+    onClose();
+  }, [transitionId, editedData, onUpdateTransition, onClose]);
+
+  // Calculate total probability
+  const totalProbability = useMemo(() => {
+    return (editedData.conditions ?? []).reduce(
+      (sum, condition) => sum + condition.probability,
+      0,
+    );
+  }, [editedData.conditions]);
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Edit Transition</DialogTitle>
+      <DialogContent>
+        <Stack spacing={3} sx={{ mt: 1 }}>
+          {/* Basic transition properties */}
+          <TextField
+            label="Transition Name"
+            value={editedData.label}
+            onChange={handleLabelChange}
+            fullWidth
+          />
+
+          <TextField
+            label="Description"
+            value={editedData.description}
+            onChange={handleDescriptionChange}
+            fullWidth
+            multiline
+            rows={2}
+          />
+
+          <TextField
+            label="Priority"
+            type="number"
+            value={editedData.priority}
+            onChange={handlePriorityChange}
+            fullWidth
+            helperText="Higher priority transitions fire first when multiple are enabled"
+            inputProps={{ min: 1 }}
+          />
+
+          {/* Processing times section */}
+          <Box>
+            <Typography fontWeight="bold" sx={{ mb: 1 }}>
+              Processing Times
+            </Typography>
+            <Typography color="text.secondary" sx={{ mb: 2 }}>
+              Specify how long this transition takes to process each token type
+              (in hours)
+            </Typography>
+
+            <Stack spacing={2}>
+              {tokenTypes.map((tokenType) => (
+                <Stack
+                  key={tokenType.id}
+                  direction="row"
+                  spacing={2}
+                  alignItems="center"
+                >
+                  <Box
+                    sx={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      bgcolor: tokenType.color,
+                    }}
+                  />
+                  <Typography sx={{ width: 150 }}>{tokenType.name}</Typography>
+                  <TextField
+                    label="Processing Time (hours)"
+                    type="number"
+                    value={editedData.processTimes?.[tokenType.id] ?? 0}
+                    onChange={(event) =>
+                      handleProcessingTimeChange(tokenType.id, event)
+                    }
+                    inputProps={{ min: 0, step: 0.1 }}
+                    sx={{ width: 200 }}
+                  />
+                </Stack>
+              ))}
+            </Stack>
+          </Box>
+
+          <Divider />
+
+          {/* Conditional outputs section */}
+          <Box>
+            <Typography fontWeight="bold" sx={{ mb: 1 }}>
+              Conditional Outputs
+            </Typography>
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={editedData.hasConditions}
+                  onChange={handleHasConditionsChange}
+                />
+              }
+              label="This transition has multiple possible outcomes"
+            />
+
+            {editedData.hasConditions && (
+              <Box sx={{ mt: 2 }}>
+                <Typography color="text.secondary" sx={{ mb: 2 }}>
+                  Define different conditions that determine which outputs are
+                  produced. The total probability should sum to 100%.
+                </Typography>
+
+                <Box
+                  sx={{
+                    mb: 2,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography
+                    color={
+                      totalProbability === 100 ? "success.main" : "error.main"
+                    }
+                    fontWeight="bold"
+                  >
+                    Total Probability: {totalProbability}%
+                  </Typography>
+                  <Button
+                    size="small"
+                    onClick={handleAddCondition}
+                    disabled={
+                      editedData.conditions?.length === outgoingEdges.length
+                    }
+                  >
+                    Add Condition
+                  </Button>
+                </Box>
+
+                {/* Conditions list */}
+                <Stack spacing={3} sx={{ mt: 2 }}>
+                  {(editedData.conditions ?? []).map((condition) => (
+                    <Box
+                      key={condition.id}
+                      sx={{
+                        p: 2,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: 1,
+                        position: "relative",
+                      }}
+                    >
+                      {/* Only show remove button if there's more than one condition */}
+                      {(editedData.conditions?.length ?? 0) > 1 && (
+                        <IconButton
+                          size="small"
+                          sx={{ position: "absolute", top: 8, right: 8 }}
+                          onClick={() => handleRemoveCondition(condition.id)}
+                        >
+                          ✕
+                        </IconButton>
+                      )}
+
+                      <Stack spacing={2}>
+                        <TextField
+                          label="Condition Name"
+                          value={condition.name}
+                          onChange={(event) =>
+                            handleConditionNameChange(
+                              condition.id,
+                              event.target.value,
+                            )
+                          }
+                          fullWidth
+                        />
+
+                        <Box>
+                          <Typography gutterBottom>
+                            Probability: {condition.probability}%
+                          </Typography>
+                          <Slider
+                            value={condition.probability}
+                            onChange={(_event, value) =>
+                              handleConditionProbabilityChange(
+                                condition.id,
+                                typeof value === "number" ? value : value[0],
+                              )
+                            }
+                            valueLabelDisplay="auto"
+                            step={1}
+                            marks
+                            min={1}
+                            max={100}
+                          />
+                        </Box>
+
+                        <Box>
+                          <Typography fontWeight="bold" sx={{ mb: 1 }}>
+                            Active Output Paths:
+                          </Typography>
+                          <Stack spacing={1}>
+                            {outgoingEdges.length === 0 ? (
+                              <Typography color="text.secondary">
+                                No output paths available. Add connections from
+                                this transition first.
+                              </Typography>
+                            ) : (
+                              outgoingEdges.map((edge) => (
+                                <FormControlLabel
+                                  key={edge.id}
+                                  control={
+                                    <Switch
+                                      checked={condition.outputEdgeIds.includes(
+                                        edge.id,
+                                      )}
+                                      onChange={() =>
+                                        handleToggleEdgeForCondition(
+                                          condition.id,
+                                          edge.id,
+                                        )
+                                      }
+                                    />
+                                  }
+                                  label={`To: ${edge.targetLabel} (${Object.entries(
+                                    edge.data?.tokenWeights ?? {},
+                                  )
+                                    .filter(([_, weight]) => (weight ?? 0) > 0)
+                                    .map(([tokenId, weight]) => {
+                                      const token = tokenTypes.find(
+                                        (tokenType) => tokenType.id === tokenId,
+                                      );
+                                      return token
+                                        ? `${weight} ${token.name}`
+                                        : "";
+                                    })
+                                    .join(", ")})`}
+                                />
+                              ))
+                            )}
+                          </Stack>
+                        </Box>
+                      </Stack>
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
+            )}
+          </Box>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          onClick={handleSave}
+          variant="primary"
+          disabled={editedData.hasConditions && totalProbability !== 100}
+        >
+          Save
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};

@@ -56,6 +56,7 @@ export * from "./icon-feather-regular";
 export * from "./icon-file-regular";
 export * from "./icon-file-spreadsheet-regular";
 export * from "./icon-file-spreadsheet-solid";
+export * from "./icon-forward-step-solid";
 export * from "./icon-graph";
 export * from "./icon-image-regular";
 export * from "./icon-image-solid";

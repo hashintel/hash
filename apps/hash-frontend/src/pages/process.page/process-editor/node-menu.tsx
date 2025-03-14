@@ -2,7 +2,7 @@ import { TextField } from "@hashintel/design-system";
 import { Box, Card, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 
-import { Button } from "../../shared/ui";
+import { Button } from "../../../shared/ui";
 import type { TokenType } from "./token-editor";
 
 // Interface for token counts by type

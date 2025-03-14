@@ -8,6 +8,8 @@ alwaysApply: false
 - Prefer 'const myFunc = () => {}' over function declarations.
 - Parallelize async calls where appropriate via `Promise.all` instead of sequential fetches in a `for` loop.
 - No `any` allowed. If the input type is genuinely unknown, use `unknown` and write appropriate logic to narrow the type.
+- Prefer `??` over `||`
+- No unchecked index access (`array[0]` might be `undefined`). Optional chain or check and throw and error (depending on whether it is acceptable for the result to be undefined or not).
 - Don't make formatting corrections to lines you aren't already modifying. Auto-fixing will handle it.
 - Avoid single-letter variable names. e.g. `event`, not `e`. Exception: in `for` loops (e.g. `i` is fine).
 - Variable names are all in `camelCase`. No `SCREAMING_SNAKE_CASE`.

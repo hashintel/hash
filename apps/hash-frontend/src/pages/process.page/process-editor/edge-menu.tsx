@@ -1,19 +1,26 @@
 import { TextField } from "@hashintel/design-system";
 import { Box, Card, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
+import type { Edge } from "reactflow";
 
 import type { TokenType } from "./token-editor";
+
+export type PetriNetEdge = Edge<{
+  tokenWeights: {
+    [tokenTypeId: string]: number | undefined;
+  };
+}>;
 
 interface EdgeMenuProps {
   edgeId: string;
   tokenWeights: {
-    [tokenTypeId: string]: number;
+    [tokenTypeId: string]: number | undefined;
   };
   position: { x: number; y: number };
   onClose: () => void;
   onUpdateWeights: (
     edgeId: string,
-    tokenWeights: { [tokenTypeId: string]: number },
+    tokenWeights: { [tokenTypeId: string]: number | undefined },
   ) => void;
   tokenTypes: TokenType[];
 }
@@ -27,7 +34,7 @@ export const EdgeMenu = ({
   tokenTypes,
 }: EdgeMenuProps) => {
   const [localWeights, setLocalWeights] = useState<{
-    [tokenTypeId: string]: number;
+    [tokenTypeId: string]: number | undefined;
   }>(tokenWeights);
 
   useEffect(() => {
@@ -48,7 +55,7 @@ export const EdgeMenu = ({
 
   // Calculate total weight (excluding zero weights)
   const totalWeight = Object.values(localWeights).reduce(
-    (sum, weight) => sum + (weight > 0 ? weight : 0),
+    (weight, sum) => (sum ?? 0) + (weight ?? 0),
     0,
   );
 

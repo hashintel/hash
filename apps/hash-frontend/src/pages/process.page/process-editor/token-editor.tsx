@@ -11,7 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { HexColorPicker } from "react-colorful";
 
-import { Button } from "../../shared/ui";
+import { Button } from "../../../shared/ui";
 
 // Token type definition
 export interface TokenType {
