@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   ObjectMetadata,
   PropertyProvenance,
@@ -130,7 +131,9 @@ export type {
  * A written work, typically longer than an article, often published in print form.
  */
 export type Book = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/book/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/book/v/1" & VersionedUrl,
+  ];
   properties: BookProperties;
   propertiesWithMetadata: BookPropertiesWithMetadata;
 };
@@ -165,7 +168,7 @@ export type ISBNDataTypeWithMetadata = {
 export type ISBNDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/isbn/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/isbn/v/1" & VersionedUrl;
 };
 
 /**

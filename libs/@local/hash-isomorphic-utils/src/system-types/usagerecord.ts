@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 
@@ -113,7 +114,9 @@ export type {
  * The thing that something created.
  */
 export type Created = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/created/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/created/v/1" & VersionedUrl,
+  ];
   properties: CreatedProperties;
   propertiesWithMetadata: CreatedPropertiesWithMetadata;
 };
@@ -144,7 +147,9 @@ export type CustomMetadataPropertyValueWithMetadata =
  * Something that was incurred in something else.
  */
 export type IncurredIn = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/incurred-in/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/incurred-in/v/1" & VersionedUrl,
+  ];
   properties: IncurredInProperties;
   propertiesWithMetadata: IncurredInPropertiesWithMetadata;
 };
@@ -183,7 +188,9 @@ export type OutputUnitCountPropertyValueWithMetadata =
  * The thing that something records usage of.
  */
 export type RecordsUsageOf = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/records-usage-of/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/records-usage-of/v/1" & VersionedUrl,
+  ];
   properties: RecordsUsageOfProperties;
   propertiesWithMetadata: RecordsUsageOfPropertiesWithMetadata;
 };
@@ -207,7 +214,9 @@ export type RecordsUsageOfPropertiesWithMetadata =
  * The thing that something created.
  */
 export type Updated = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/updated/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/updated/v/1" & VersionedUrl,
+  ];
   properties: UpdatedProperties;
   propertiesWithMetadata: UpdatedPropertiesWithMetadata;
 };
@@ -230,7 +239,9 @@ export type UpdatedPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * A record of usage of a service
  */
 export type UsageRecord = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/usage-record/v/2"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/usage-record/v/2" & VersionedUrl,
+  ];
   properties: UsageRecordProperties;
   propertiesWithMetadata: UsageRecordPropertiesWithMetadata;
 };

@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
@@ -36,7 +37,9 @@ export type {
  * A Facebook account.
  */
 export type FacebookAccount = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/facebook-account/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/facebook-account/v/1" & VersionedUrl,
+  ];
   properties: FacebookAccountProperties;
   propertiesWithMetadata: FacebookAccountPropertiesWithMetadata;
 };

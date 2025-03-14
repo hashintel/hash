@@ -106,7 +106,8 @@ export type ActorTypeDataTypeWithMetadata = {
 export type ActorTypeDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/actor-type/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/actor-type/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -148,7 +149,8 @@ export type BooleanDataTypeWithMetadata = {
 export type BooleanDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -163,7 +165,7 @@ export type BytesDataTypeWithMetadata = {
 export type BytesDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1" & VersionedUrl;
 };
 
 /**
@@ -377,7 +379,8 @@ export type InformationDataTypeWithMetadata = {
 export type InformationDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/information/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/information/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -401,7 +404,8 @@ export type NumberDataTypeWithMetadata = {
 export type NumberDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -464,7 +468,7 @@ export type URIDataTypeWithMetadata = {
 export type URIDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1" & VersionedUrl;
 };
 
 /**

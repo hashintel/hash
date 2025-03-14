@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
@@ -120,7 +121,9 @@ export type {
  * A spreadsheet file.
  */
 export type SpreadsheetFile = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/spreadsheet-file/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/spreadsheet-file/v/1" & VersionedUrl,
+  ];
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
 };

@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
@@ -543,7 +544,8 @@ export type {
  */
 export type CommentNotification = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/comment-notification/v/6",
+    "https://hash.ai/@h/types/entity-type/comment-notification/v/6" &
+      VersionedUrl,
   ];
   properties: CommentNotificationProperties;
   propertiesWithMetadata: CommentNotificationPropertiesWithMetadata;
@@ -605,7 +607,8 @@ export type CommentNotificationTriggeredByUserLink = {
  */
 export type RepliedToComment = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/replied-to-comment/v/1",
+    "https://hash.ai/@h/types/entity-type/replied-to-comment/v/1" &
+      VersionedUrl,
   ];
   properties: RepliedToCommentProperties;
   propertiesWithMetadata: RepliedToCommentPropertiesWithMetadata;
@@ -631,7 +634,8 @@ export type RepliedToCommentPropertiesWithMetadata =
  */
 export type TriggeredByComment = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/triggered-by-comment/v/1",
+    "https://hash.ai/@h/types/entity-type/triggered-by-comment/v/1" &
+      VersionedUrl,
   ];
   properties: TriggeredByCommentProperties;
   propertiesWithMetadata: TriggeredByCommentPropertiesWithMetadata;

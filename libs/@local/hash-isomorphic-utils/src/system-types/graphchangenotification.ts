@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 
@@ -70,7 +71,8 @@ export type {
  */
 export type GraphChangeNotification = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/graph-change-notification/v/1",
+    "https://hash.ai/@h/types/entity-type/graph-change-notification/v/1" &
+      VersionedUrl,
   ];
   properties: GraphChangeNotificationProperties;
   propertiesWithMetadata: GraphChangeNotificationPropertiesWithMetadata;

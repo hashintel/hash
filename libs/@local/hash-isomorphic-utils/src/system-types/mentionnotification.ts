@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
@@ -543,7 +544,8 @@ export type {
  */
 export type MentionNotification = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/mention-notification/v/6",
+    "https://hash.ai/@h/types/entity-type/mention-notification/v/6" &
+      VersionedUrl,
   ];
   properties: MentionNotificationProperties;
   propertiesWithMetadata: MentionNotificationPropertiesWithMetadata;
@@ -605,7 +607,8 @@ export type MentionNotificationTriggeredByUserLink = {
  */
 export type OccurredInComment = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/occurred-in-comment/v/1",
+    "https://hash.ai/@h/types/entity-type/occurred-in-comment/v/1" &
+      VersionedUrl,
   ];
   properties: OccurredInCommentProperties;
   propertiesWithMetadata: OccurredInCommentPropertiesWithMetadata;
@@ -630,7 +633,9 @@ export type OccurredInCommentPropertiesWithMetadata =
  * Text that something occurred in.
  */
 export type OccurredInText = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/occurred-in-text/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/occurred-in-text/v/1" & VersionedUrl,
+  ];
   properties: OccurredInTextProperties;
   propertiesWithMetadata: OccurredInTextPropertiesWithMetadata;
 };

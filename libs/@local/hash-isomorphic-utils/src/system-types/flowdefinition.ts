@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ArrayMetadata, ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
@@ -34,7 +35,9 @@ export type {
  * The definition of a HASH flow.
  */
 export type FlowDefinition = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-definition/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/flow-definition/v/1" & VersionedUrl,
+  ];
   properties: FlowDefinitionProperties;
   propertiesWithMetadata: FlowDefinitionPropertiesWithMetadata;
 };

@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ArrayMetadata, ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
@@ -421,7 +422,8 @@ export type {
  */
 export type LinearIntegration = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/linear-integration/v/7",
+    "https://hash.ai/@h/types/entity-type/linear-integration/v/7" &
+      VersionedUrl,
   ];
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
@@ -479,7 +481,8 @@ export type LinearTeamIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
  */
 export type SyncLinearDataWith = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/sync-linear-data-with/v/1",
+    "https://hash.ai/@h/types/entity-type/sync-linear-data-with/v/1" &
+      VersionedUrl,
   ];
   properties: SyncLinearDataWithProperties;
   propertiesWithMetadata: SyncLinearDataWithPropertiesWithMetadata;
@@ -511,7 +514,9 @@ export type SyncLinearDataWithPropertiesWithMetadata =
  * The user secret something uses.
  */
 export type UsesUserSecret = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/uses-user-secret/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/uses-user-secret/v/1" & VersionedUrl,
+  ];
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
 };

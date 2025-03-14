@@ -109,7 +109,8 @@ export type BooleanDataTypeWithMetadata = {
 export type BooleanDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -168,7 +169,7 @@ export type DateDataTypeWithMetadata = {
 export type DateDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/date/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/date/v/1" & VersionedUrl;
 };
 
 /**
@@ -183,7 +184,7 @@ export type DateTimeDataTypeWithMetadata = {
 export type DateTimeDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1" & VersionedUrl;
 };
 
 /**
@@ -234,7 +235,7 @@ export type EmailDataTypeWithMetadata = {
 export type EmailDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1" & VersionedUrl;
 };
 
 /**
@@ -390,7 +391,8 @@ export type InformationDataTypeWithMetadata = {
 export type InformationDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/information/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/information/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -603,7 +605,7 @@ export type MegabytesDataTypeWithMetadata = {
 export type MegabytesDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/megabytes/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/megabytes/v/1" & VersionedUrl;
 };
 
 /**
@@ -625,7 +627,8 @@ export type NumberDataTypeWithMetadata = {
 export type NumberDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -926,7 +929,8 @@ export type TextDataTypeWithMetadata = {
 export type TextDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -976,7 +980,7 @@ export type URIDataTypeWithMetadata = {
 export type URIDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1" & VersionedUrl;
 };
 
 /**

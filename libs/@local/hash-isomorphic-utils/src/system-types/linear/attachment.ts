@@ -562,7 +562,8 @@ export type ObjectDataTypeWithMetadata = {
 export type ObjectDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1" &
+    VersionedUrl;
 };
 
 /**

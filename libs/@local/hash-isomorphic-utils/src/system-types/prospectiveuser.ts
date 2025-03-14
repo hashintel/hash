@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
@@ -48,7 +49,9 @@ export type IntendedUsePropertyValueWithMetadata = TextDataTypeWithMetadata;
  * Information about a prospective user of an application or system
  */
 export type ProspectiveUser = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/prospective-user/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/prospective-user/v/1" & VersionedUrl,
+  ];
   properties: ProspectiveUserProperties;
   propertiesWithMetadata: ProspectiveUserPropertiesWithMetadata;
 };

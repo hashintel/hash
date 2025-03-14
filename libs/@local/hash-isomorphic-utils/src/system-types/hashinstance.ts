@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type { BooleanDataType, BooleanDataTypeWithMetadata } from "./shared.js";
@@ -12,7 +13,9 @@ export type { BooleanDataType, BooleanDataTypeWithMetadata };
  * An instance of HASH.
  */
 export type HASHInstance = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/hash-instance/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/hash-instance/v/1" & VersionedUrl,
+  ];
   properties: HASHInstanceProperties;
   propertiesWithMetadata: HASHInstancePropertiesWithMetadata;
 };

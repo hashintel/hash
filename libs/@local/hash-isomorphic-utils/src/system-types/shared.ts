@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   ArrayMetadata,
   ObjectMetadata,
@@ -14,7 +15,9 @@ import type { Confidence } from "@local/hash-graph-types/entity";
  * Someone or something that can perform actions in the system
  */
 export type Actor = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/actor/v/2"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/actor/v/2" & VersionedUrl,
+  ];
   properties: ActorProperties;
   propertiesWithMetadata: ActorPropertiesWithMetadata;
 };
@@ -41,7 +44,9 @@ export type ActorPropertiesWithMetadata = {
  * Something that something is affiliated with.
  */
 export type AffiliatedWith = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/affiliated-with/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/affiliated-with/v/1" & VersionedUrl,
+  ];
   properties: AffiliatedWithProperties;
   propertiesWithMetadata: AffiliatedWithPropertiesWithMetadata;
 };
@@ -95,7 +100,9 @@ export type ArchivedPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
  * What or whom something was authored by.
  */
 export type AuthoredBy = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/authored-by/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/authored-by/v/1" & VersionedUrl,
+  ];
   properties: AuthoredByProperties;
   propertiesWithMetadata: AuthoredByPropertiesWithMetadata;
 };
@@ -126,7 +133,9 @@ export type AutomaticInferenceConfigurationPropertyValueWithMetadata =
  * A block that displays or otherwise uses data, part of a wider page or collection.
  */
 export type Block = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/block/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/block/v/1" & VersionedUrl,
+  ];
   properties: BlockProperties;
   propertiesWithMetadata: BlockPropertiesWithMetadata;
 };
@@ -135,7 +144,9 @@ export type Block = {
  * A collection of blocks.
  */
 export type BlockCollection = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/block-collection/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/block-collection/v/1" & VersionedUrl,
+  ];
   properties: BlockCollectionProperties;
   propertiesWithMetadata: BlockCollectionPropertiesWithMetadata;
 };
@@ -188,7 +199,8 @@ export type BooleanDataTypeWithMetadata = {
 export type BooleanDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -196,7 +208,8 @@ export type BooleanDataTypeMetadata = {
  */
 export type BrowserPluginSettings = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/browser-plugin-settings/v/1",
+    "https://hash.ai/@h/types/entity-type/browser-plugin-settings/v/1" &
+      VersionedUrl,
   ];
   properties: BrowserPluginSettingsProperties;
   propertiesWithMetadata: BrowserPluginSettingsPropertiesWithMetadata;
@@ -246,14 +259,16 @@ export type BytesDataTypeWithMetadata = {
 export type BytesDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1" & VersionedUrl;
 };
 
 /**
  * Comment associated with the issue.
  */
 export type Comment = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/comment/v/6"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/comment/v/6" & VersionedUrl,
+  ];
   properties: CommentProperties;
   propertiesWithMetadata: CommentPropertiesWithMetadata;
 };
@@ -313,6 +328,35 @@ export type ConnectionSourceNamePropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
 /**
+ * A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.
+ */
+export type DOIDataType = TextDataType;
+
+export type DOIDataTypeWithMetadata = {
+  value: DOIDataType;
+  metadata: DOIDataTypeMetadata;
+};
+export type DOIDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/doi/v/1" & VersionedUrl;
+};
+
+/**
+ * A permanent link for a digital object, using its Digital Object Identifier (DOI), which resolves to a webpage describing it
+ */
+export type DOILinkPropertyValue = URIDataType;
+
+export type DOILinkPropertyValueWithMetadata = URIDataTypeWithMetadata;
+
+/**
+ * The Digital Object Identifier (DOI) of an object
+ */
+export type DOIPropertyValue = DOIDataType;
+
+export type DOIPropertyValueWithMetadata = DOIDataTypeWithMetadata;
+
+/**
  * A reference to a particular date and time, formatted according to RFC 3339.
  */
 export type DateTimeDataType = TextDataType;
@@ -324,7 +368,7 @@ export type DateTimeDataTypeWithMetadata = {
 export type DateTimeDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1" & VersionedUrl;
 };
 
 /**
@@ -352,7 +396,9 @@ export type DisplayNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A written work, such as a book or article.
  */
 export type Doc = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/doc/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/doc/v/1" & VersionedUrl,
+  ];
   properties: DocProperties;
   propertiesWithMetadata: DocPropertiesWithMetadata;
 };
@@ -389,7 +435,9 @@ export type DocPropertiesWithMetadata = {
  * A document file.
  */
 export type DocumentFile = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/document-file/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/document-file/v/1" & VersionedUrl,
+  ];
   properties: DocumentFileProperties;
   propertiesWithMetadata: DocumentFilePropertiesWithMetadata;
 };
@@ -431,7 +479,7 @@ export type EmailDataTypeWithMetadata = {
 export type EmailDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1" & VersionedUrl;
 };
 
 /**
@@ -476,7 +524,9 @@ export type FeatureNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A file hosted at a URL
  */
 export type File = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/file/v/2"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/file/v/2" & VersionedUrl,
+  ];
   properties: FileProperties;
   propertiesWithMetadata: FilePropertiesWithMetadata;
 };
@@ -618,7 +668,9 @@ export type FlowDefinitionIDPropertyValueWithMetadata =
  * An execution run of a flow.
  */
 export type FlowRun = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-run/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/flow-run/v/1" & VersionedUrl,
+  ];
   properties: FlowRunProperties;
   propertiesWithMetadata: FlowRunPropertiesWithMetadata;
 };
@@ -660,7 +712,9 @@ export type FractionalIndexPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * Something that something has
  */
 export type Has = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/has/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/has/v/1" & VersionedUrl,
+  ];
   properties: HasProperties;
   propertiesWithMetadata: HasPropertiesWithMetadata;
 };
@@ -669,7 +723,9 @@ export type Has = {
  * The avatar something has.
  */
 export type HasAvatar = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/has-avatar/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/has-avatar/v/1" & VersionedUrl,
+  ];
   properties: HasAvatarProperties;
   propertiesWithMetadata: HasAvatarPropertiesWithMetadata;
 };
@@ -692,7 +748,9 @@ export type HasAvatarPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * The biography something has.
  */
 export type HasBio = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/has-bio/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/has-bio/v/1" & VersionedUrl,
+  ];
   properties: HasBioProperties;
   propertiesWithMetadata: HasBioPropertiesWithMetadata;
 };
@@ -715,7 +773,9 @@ export type HasBioPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * The cover image something has.
  */
 export type HasCoverImage = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/has-cover-image/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/has-cover-image/v/1" & VersionedUrl,
+  ];
   properties: HasCoverImageProperties;
   propertiesWithMetadata: HasCoverImagePropertiesWithMetadata;
 };
@@ -738,7 +798,9 @@ export type HasCoverImagePropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * The data that something has.
  */
 export type HasData = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/has-data/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/has-data/v/1" & VersionedUrl,
+  ];
   properties: HasDataProperties;
   propertiesWithMetadata: HasDataPropertiesWithMetadata;
 };
@@ -762,7 +824,8 @@ export type HasDataPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  */
 export type HasIndexedContent = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/has-indexed-content/v/1",
+    "https://hash.ai/@h/types/entity-type/has-indexed-content/v/1" &
+      VersionedUrl,
   ];
   properties: HasIndexedContentProperties;
   propertiesWithMetadata: HasIndexedContentPropertiesWithMetadata;
@@ -795,7 +858,9 @@ export type HasOutgoingLinksByLinkEntityTypeId = {};
  * The parent something has.
  */
 export type HasParent = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/has-parent/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/has-parent/v/1" & VersionedUrl,
+  ];
   properties: HasParentProperties;
   propertiesWithMetadata: HasParentPropertiesWithMetadata;
 };
@@ -829,7 +894,8 @@ export type HasPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  */
 export type HasServiceAccount = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/has-service-account/v/1",
+    "https://hash.ai/@h/types/entity-type/has-service-account/v/1" &
+      VersionedUrl,
   ];
   properties: HasServiceAccountProperties;
   propertiesWithMetadata: HasServiceAccountPropertiesWithMetadata;
@@ -854,7 +920,9 @@ export type HasServiceAccountPropertiesWithMetadata =
  * The text something has.
  */
 export type HasText = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/has-text/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/has-text/v/1" & VersionedUrl,
+  ];
   properties: HasTextProperties;
   propertiesWithMetadata: HasTextPropertiesWithMetadata;
 };
@@ -884,7 +952,9 @@ export type IconPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * An image file hosted at a URL
  */
 export type ImageFile = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/image-file/v/2"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/image-file/v/2" & VersionedUrl,
+  ];
   properties: ImageFileProperties;
   propertiesWithMetadata: ImageFilePropertiesWithMetadata;
 };
@@ -915,7 +985,8 @@ export type InformationDataTypeWithMetadata = {
 export type InformationDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/information/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/information/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -929,7 +1000,9 @@ export type InputUnitCostPropertyValueWithMetadata = NumberDataTypeWithMetadata;
  * An organization dedicated to a specific purpose, such as education, research, or public service, and structured with formal systems of governance and operation.
  */
 export type Institution = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/institution/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/institution/v/1" & VersionedUrl,
+  ];
   properties: InstitutionProperties;
   propertiesWithMetadata: InstitutionPropertiesWithMetadata;
 };
@@ -966,14 +1039,16 @@ export type IntegerDataTypeWithMetadata = {
 export type IntegerDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/integer/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/integer/v/1" & VersionedUrl;
 };
 
 /**
  * Something that someone or something is a member of.
  */
 export type IsMemberOf = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/is-member-of/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/is-member-of/v/1" & VersionedUrl,
+  ];
   properties: IsMemberOfProperties;
   propertiesWithMetadata: IsMemberOfPropertiesWithMetadata;
 };
@@ -1005,7 +1080,8 @@ export type KratosIdentityIdPropertyValueWithMetadata =
  */
 export type Link = {
   entityTypeIds: [
-    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" &
+      VersionedUrl,
   ];
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
@@ -1047,6 +1123,13 @@ export type ManualInferenceConfigurationPropertyValueWithMetadata =
   ObjectDataTypeWithMetadata;
 
 /**
+ * The procedure via which something was produced, analyzed, or otherwise approached.
+ */
+export type MethodologyPropertyValue = TextDataType;
+
+export type MethodologyPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
  * A word or set of words by which something is known, addressed, or referred to.
  */
 export type NamePropertyValue = TextDataType;
@@ -1057,7 +1140,9 @@ export type NamePropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A notification to a user.
  */
 export type Notification = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/notification/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/notification/v/1" & VersionedUrl,
+  ];
   properties: NotificationProperties;
   propertiesWithMetadata: NotificationPropertiesWithMetadata;
 };
@@ -1094,7 +1179,8 @@ export type NumberDataTypeWithMetadata = {
 export type NumberDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -1116,14 +1202,17 @@ export type ObjectDataTypeWithMetadata = {
 export type ObjectDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1" &
+    VersionedUrl;
 };
 
 /**
  * A block that something occurred in.
  */
 export type OccurredInBlock = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/occurred-in-block/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/occurred-in-block/v/1" & VersionedUrl,
+  ];
   properties: OccurredInBlockProperties;
   propertiesWithMetadata: OccurredInBlockPropertiesWithMetadata;
 };
@@ -1148,7 +1237,8 @@ export type OccurredInBlockPropertiesWithMetadata =
  */
 export type OccurredInEntity = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/occurred-in-entity/v/2",
+    "https://hash.ai/@h/types/entity-type/occurred-in-entity/v/2" &
+      VersionedUrl,
   ];
   properties: OccurredInEntityProperties;
   propertiesWithMetadata: OccurredInEntityPropertiesWithMetadata;
@@ -1177,7 +1267,9 @@ export type OccurredInEntityPropertiesWithMetadata =
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
 export type Organization = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/organization/v/2"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/organization/v/2" & VersionedUrl,
+  ];
   properties: OrganizationProperties;
   propertiesWithMetadata: OrganizationPropertiesWithMetadata;
 };
@@ -1314,7 +1406,9 @@ export type OutputsPropertyValueWithMetadata = {
  * A page for displaying and potentially interacting with data.
  */
 export type Page = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/page/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/page/v/1" & VersionedUrl,
+  ];
   properties: PageProperties;
   propertiesWithMetadata: PagePropertiesWithMetadata;
 };
@@ -1354,7 +1448,9 @@ export type PagePropertiesWithMetadata =
  * A human being
  */
 export type Person = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/person/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/person/v/1" & VersionedUrl,
+  ];
   properties: PersonProperties;
   propertiesWithMetadata: PersonPropertiesWithMetadata;
 };
@@ -1411,7 +1507,9 @@ export type PreferredPronounsPropertyValueWithMetadata =
  * A presentation file.
  */
 export type PresentationFile = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/presentation-file/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/presentation-file/v/1" & VersionedUrl,
+  ];
   properties: PresentationFileProperties;
   propertiesWithMetadata: PresentationFilePropertiesWithMetadata;
 };
@@ -1439,7 +1537,9 @@ export type PresentationFilePropertiesWithMetadata =
  * A biography for display on someone or something's profile.
  */
 export type ProfileBio = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/profile-bio/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/profile-bio/v/1" & VersionedUrl,
+  ];
   properties: ProfileBioProperties;
   propertiesWithMetadata: ProfileBioPropertiesWithMetadata;
 };
@@ -1498,7 +1598,9 @@ export type ResolvedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
  * A service account.
  */
 export type ServiceAccount = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/service-account/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/service-account/v/1" & VersionedUrl,
+  ];
   properties: ServiceAccountProperties;
   propertiesWithMetadata: ServiceAccountPropertiesWithMetadata;
 };
@@ -1525,7 +1627,9 @@ export type ServiceAccountPropertiesWithMetadata = {
  * A feature of a service
  */
 export type ServiceFeature = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/service-feature/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/service-feature/v/1" & VersionedUrl,
+  ];
   properties: ServiceFeatureProperties;
   propertiesWithMetadata: ServiceFeaturePropertiesWithMetadata;
 };
@@ -1610,7 +1714,9 @@ export type SummaryPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * An ordered sequence of characters.
  */
 export type Text = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/text/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/text/v/1" & VersionedUrl,
+  ];
   properties: TextProperties;
   propertiesWithMetadata: TextPropertiesWithMetadata;
 };
@@ -1627,7 +1733,8 @@ export type TextDataTypeWithMetadata = {
 export type TextDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" &
+    VersionedUrl;
 };
 
 export type TextOutgoingLinkAndTarget = never;
@@ -1695,7 +1802,9 @@ export type TriggerPropertyValueWithMetadata = {
  * A user that triggered something.
  */
 export type TriggeredByUser = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/triggered-by-user/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/triggered-by-user/v/1" & VersionedUrl,
+  ];
   properties: TriggeredByUserProperties;
   propertiesWithMetadata: TriggeredByUserPropertiesWithMetadata;
 };
@@ -1727,7 +1836,7 @@ export type URIDataTypeWithMetadata = {
 export type URIDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1" & VersionedUrl;
 };
 
 /**
@@ -1742,7 +1851,9 @@ export type UploadCompletedAtPropertyValueWithMetadata =
  * A user of the HASH application.
  */
 export type User = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/user/v/6"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/user/v/6" & VersionedUrl,
+  ];
   properties: UserProperties;
   propertiesWithMetadata: UserPropertiesWithMetadata;
 };
@@ -1864,7 +1975,9 @@ export type UserPropertiesWithMetadata = ActorPropertiesWithMetadata & {
  * A secret or credential belonging to a user.
  */
 export type UserSecret = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/user-secret/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/user-secret/v/1" & VersionedUrl,
+  ];
   properties: UserSecretProperties;
   propertiesWithMetadata: UserSecretPropertiesWithMetadata;
 };
@@ -1917,5 +2030,5 @@ export type YearDataTypeWithMetadata = {
 export type YearDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/year/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/year/v/1" & VersionedUrl;
 };

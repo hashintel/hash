@@ -76,7 +76,7 @@ export type DateTimeDataTypeWithMetadata = {
 export type DateTimeDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1" & VersionedUrl;
 };
 
 /**
@@ -98,7 +98,7 @@ export type EmailDataTypeWithMetadata = {
 export type EmailDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1" & VersionedUrl;
 };
 
 /**
@@ -150,7 +150,8 @@ export type TextDataTypeWithMetadata = {
 export type TextDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" &
+    VersionedUrl;
 };
 
 /**

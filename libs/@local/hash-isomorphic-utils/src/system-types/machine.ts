@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
@@ -32,7 +33,9 @@ export type {
  * A machine that can perform actions in the system
  */
 export type Machine = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/machine/v/2"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/machine/v/2" & VersionedUrl,
+  ];
   properties: MachineProperties;
   propertiesWithMetadata: MachinePropertiesWithMetadata;
 };

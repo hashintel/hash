@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 
@@ -37,7 +38,9 @@ export type {
  * A claim made about something.
  */
 export type Claim = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/claim/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/claim/v/1" & VersionedUrl,
+  ];
   properties: ClaimProperties;
   propertiesWithMetadata: ClaimPropertiesWithMetadata;
 };
@@ -80,7 +83,9 @@ export type ClaimPropertiesWithMetadata = {
  * The object something has
  */
 export type HasObject = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/has-object/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/has-object/v/1" & VersionedUrl,
+  ];
   properties: HasObjectProperties;
   propertiesWithMetadata: HasObjectPropertiesWithMetadata;
 };
@@ -103,7 +108,9 @@ export type HasObjectPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * The subject something has
  */
 export type HasSubject = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/has-subject/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/has-subject/v/1" & VersionedUrl,
+  ];
   properties: HasSubjectProperties;
   propertiesWithMetadata: HasSubjectPropertiesWithMetadata;
 };

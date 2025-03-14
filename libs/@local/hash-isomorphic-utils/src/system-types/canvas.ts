@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
@@ -114,7 +115,9 @@ export type {
  * A page in canvas format, with content in a free-form arrangement.
  */
 export type Canvas = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/canvas/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/canvas/v/1" & VersionedUrl,
+  ];
   properties: CanvasProperties;
   propertiesWithMetadata: CanvasPropertiesWithMetadata;
 };
@@ -146,7 +149,8 @@ export type CanvasPropertiesWithMetadata = PagePropertiesWithMetadata & {
  */
 export type HasSpatiallyPositionedContent = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/has-spatially-positioned-content/v/1",
+    "https://hash.ai/@h/types/entity-type/has-spatially-positioned-content/v/1" &
+      VersionedUrl,
   ];
   properties: HasSpatiallyPositionedContentProperties;
   propertiesWithMetadata: HasSpatiallyPositionedContentPropertiesWithMetadata;
