@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   ObjectMetadata,
   PropertyProvenance,
@@ -12,7 +13,9 @@ import type { Confidence } from "@local/hash-graph-types/entity";
  * A Google user account.
  */
 export type Account = {
-  entityTypeIds: ["https://hash.ai/@google/types/entity-type/account/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@google/types/entity-type/account/v/1" & VersionedUrl,
+  ];
   properties: AccountProperties;
   propertiesWithMetadata: AccountPropertiesWithMetadata;
 };
@@ -117,7 +120,8 @@ export type ExpiredAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
  */
 export type Link = {
   entityTypeIds: [
-    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" &
+      VersionedUrl,
   ];
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
@@ -153,7 +157,9 @@ export type TextDataTypeMetadata = {
  * A secret or credential belonging to a user.
  */
 export type UserSecret = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/user-secret/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/user-secret/v/1" & VersionedUrl,
+  ];
   properties: UserSecretProperties;
   propertiesWithMetadata: UserSecretPropertiesWithMetadata;
 };
@@ -184,7 +190,9 @@ export type UserSecretPropertiesWithMetadata = {
  * The user secret something uses.
  */
 export type UsesUserSecret = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/uses-user-secret/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/uses-user-secret/v/1" & VersionedUrl,
+  ];
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
 };

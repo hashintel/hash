@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   ObjectMetadata,
   PropertyProvenance,
@@ -113,7 +114,8 @@ export type ActorTypeDataTypeMetadata = {
  */
 export type AssociatedWithAccount = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/associated-with-account/v/1",
+    "https://hash.ai/@h/types/entity-type/associated-with-account/v/1" &
+      VersionedUrl,
   ];
   properties: AssociatedWithAccountProperties;
   propertiesWithMetadata: AssociatedWithAccountPropertiesWithMetadata;
@@ -183,7 +185,9 @@ export type DescriptionPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A file hosted at a URL
  */
 export type File = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/file/v/2"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/file/v/2" & VersionedUrl,
+  ];
   properties: FileProperties;
   propertiesWithMetadata: FilePropertiesWithMetadata;
 };
@@ -325,7 +329,8 @@ export type FileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
  */
 export type GoogleSheetsFile = {
   entityTypeIds: [
-    "https://hash.ai/@google/types/entity-type/google-sheets-file/v/1",
+    "https://hash.ai/@google/types/entity-type/google-sheets-file/v/1" &
+      VersionedUrl,
   ];
   properties: GoogleSheetsFileProperties;
   propertiesWithMetadata: GoogleSheetsFilePropertiesWithMetadata;
@@ -425,7 +430,9 @@ export type OriginalURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
  * A spreadsheet file.
  */
 export type SpreadsheetFile = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/spreadsheet-file/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/spreadsheet-file/v/1" & VersionedUrl,
+  ];
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
 };

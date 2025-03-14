@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
 /**
@@ -9,7 +10,8 @@ import type { ObjectMetadata } from "@local/hash-graph-client";
  */
 export type Thing = {
   entityTypeIds: [
-    "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1",
+    "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1" &
+      VersionedUrl,
   ];
   properties: ThingProperties;
   propertiesWithMetadata: ThingPropertiesWithMetadata;

@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   ObjectMetadata,
   PropertyProvenance,
@@ -440,7 +441,9 @@ export type {
  * Issue attachment (e.g. support ticket, pull request).
  */
 export type Attachment = {
-  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/attachment/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@linear/types/entity-type/attachment/v/1" & VersionedUrl,
+  ];
   properties: AttachmentProperties;
   propertiesWithMetadata: AttachmentPropertiesWithMetadata;
 };
@@ -510,7 +513,8 @@ export type AttachmentURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
  */
 export type BelongsToIssue = {
   entityTypeIds: [
-    "https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1",
+    "https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1" &
+      VersionedUrl,
   ];
   properties: BelongsToIssueProperties;
   propertiesWithMetadata: BelongsToIssuePropertiesWithMetadata;

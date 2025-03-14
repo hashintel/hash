@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   ArrayMetadata,
   ObjectMetadata,
@@ -74,7 +75,8 @@ export type AvatarURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
  */
 export type BelongsToOrganization = {
   entityTypeIds: [
-    "https://hash.ai/@linear/types/entity-type/belongs-to-organization/v/1",
+    "https://hash.ai/@linear/types/entity-type/belongs-to-organization/v/1" &
+      VersionedUrl,
   ];
   properties: BelongsToOrganizationProperties;
   propertiesWithMetadata: BelongsToOrganizationPropertiesWithMetadata;
@@ -290,7 +292,9 @@ export type GuestPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
  * The user to whom the issue is assigned to.
  */
 export type HasAssignee = {
-  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/has-assignee/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@linear/types/entity-type/has-assignee/v/1" & VersionedUrl,
+  ];
   properties: HasAssigneeProperties;
   propertiesWithMetadata: HasAssigneePropertiesWithMetadata;
 };
@@ -313,7 +317,9 @@ export type HasAssigneePropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * The user who created something.
  */
 export type HasCreator = {
-  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/has-creator/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@linear/types/entity-type/has-creator/v/1" & VersionedUrl,
+  ];
   properties: HasCreatorProperties;
   propertiesWithMetadata: HasCreatorPropertiesWithMetadata;
 };
@@ -337,7 +343,8 @@ export type HasCreatorPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  */
 export type HasSubscriber = {
   entityTypeIds: [
-    "https://hash.ai/@linear/types/entity-type/has-subscriber/v/1",
+    "https://hash.ai/@linear/types/entity-type/has-subscriber/v/1" &
+      VersionedUrl,
   ];
   properties: HasSubscriberProperties;
   propertiesWithMetadata: HasSubscriberPropertiesWithMetadata;
@@ -412,7 +419,9 @@ export type IsMePropertyValueWithMetadata = BooleanDataTypeWithMetadata;
  * An issue.
  */
 export type Issue = {
-  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/issue/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@linear/types/entity-type/issue/v/1" & VersionedUrl,
+  ];
   properties: IssueProperties;
   propertiesWithMetadata: IssuePropertiesWithMetadata;
 };
@@ -549,7 +558,8 @@ export type LastSeenPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
  */
 export type Link = {
   entityTypeIds: [
-    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" &
+      VersionedUrl,
   ];
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
@@ -622,7 +632,9 @@ export type NumberDataTypeMetadata = {
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
 export type Organization = {
-  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/organization/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@linear/types/entity-type/organization/v/1" & VersionedUrl,
+  ];
   properties: OrganizationProperties;
   propertiesWithMetadata: OrganizationPropertiesWithMetadata;
 };
@@ -697,7 +709,9 @@ export type OrganizationPropertiesWithMetadata = {
  * The parent of the issue.
  */
 export type Parent = {
-  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/parent/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@linear/types/entity-type/parent/v/1" & VersionedUrl,
+  ];
   properties: ParentProperties;
   propertiesWithMetadata: ParentPropertiesWithMetadata;
 };
@@ -794,7 +808,9 @@ export type SCIMEnabledPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
  * The user who snoozed the issue.
  */
 export type SnoozedBy = {
-  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/snoozed-by/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@linear/types/entity-type/snoozed-by/v/1" & VersionedUrl,
+  ];
   properties: SnoozedByProperties;
   propertiesWithMetadata: SnoozedByPropertiesWithMetadata;
 };
@@ -847,7 +863,9 @@ export type StartedTriageAtPropertyValueWithMetadata =
  * The workflow state that the issue is associated with.
  */
 export type State = {
-  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/state/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@linear/types/entity-type/state/v/1" & VersionedUrl,
+  ];
   properties: StateProperties;
   propertiesWithMetadata: StatePropertiesWithMetadata;
 };
@@ -979,7 +997,9 @@ export type UpdatedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
  * A user that has access to the resources of an organization.
  */
 export type User = {
-  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/user/v/1"];
+  entityTypeIds: [
+    "https://hash.ai/@linear/types/entity-type/user/v/1" & VersionedUrl,
+  ];
   properties: UserProperties;
   propertiesWithMetadata: UserPropertiesWithMetadata;
 };
@@ -1063,7 +1083,8 @@ export type UserPropertiesWithMetadata = {
  */
 export type WorkflowState = {
   entityTypeIds: [
-    "https://hash.ai/@linear/types/entity-type/workflow-state/v/1",
+    "https://hash.ai/@linear/types/entity-type/workflow-state/v/1" &
+      VersionedUrl,
   ];
   properties: WorkflowStateProperties;
   propertiesWithMetadata: WorkflowStatePropertiesWithMetadata;

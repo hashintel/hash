@@ -2,6 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   ObjectMetadata,
   PropertyProvenance,
@@ -20,7 +21,8 @@ export type ObjectDataTypeWithMetadata = {
 export type ObjectDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1" &
+    VersionedUrl;
 };
 
 /**
@@ -28,7 +30,8 @@ export type ObjectDataTypeMetadata = {
  */
 export type Query = {
   entityTypeIds: [
-    "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
+    "https://blockprotocol.org/@hash/types/entity-type/query/v/1" &
+      VersionedUrl,
   ];
   properties: QueryProperties;
   propertiesWithMetadata: QueryPropertiesWithMetadata;

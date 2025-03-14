@@ -2,6 +2,7 @@ import type { PostprocessContext } from "./context/postprocess.js";
 import { addMetadataDependenciesToFiles } from "./postprocess/add-metadata-dependencies-to-files.js";
 import { allocateTypesToFiles } from "./postprocess/allocate-types-to-files.js";
 import { appendIdentifierDefinitionsToFileContents } from "./postprocess/append-identifier-definitions-to-file-contents.js";
+import { assertVersionedUrls } from "./postprocess/assert-versioned-urls.js";
 import { generateBlockEntityTypeAliases } from "./postprocess/generate-block-entity-type-aliases.js";
 import { generateBlockLinkTargetAliases } from "./postprocess/generate-block-link-target-aliases.js";
 import { generateEntityDefinitions } from "./postprocess/generate-entity-definitions.js";
@@ -20,6 +21,7 @@ export const postprocess = async (context: PostprocessContext) => {
   generateBlockLinkTargetAliases(context);
   appendIdentifierDefinitionsToFileContents(context);
   addMetadataDependenciesToFiles(context);
+  assertVersionedUrls(context);
   prependImportsAndExports(context);
   prependBannerComments(context);
 
