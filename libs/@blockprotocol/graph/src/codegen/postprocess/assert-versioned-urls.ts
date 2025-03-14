@@ -1,7 +1,7 @@
 import type { PostprocessContext } from "../context/postprocess.js";
 
 /**
- * Adds 'as VersionedUrl' to versioned URLs in the file.
+ * Adds '& VersionedUrl' to versioned URLs in the file (this is a branded type in the type system, we cannot rely on the string alone).
  */
 export const assertVersionedUrls = (context: PostprocessContext) => {
   for (const [file, contents] of Object.entries(context.filesToContents)) {
