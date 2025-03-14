@@ -80,7 +80,9 @@ const serializeTypeIds = (
         }),
         {},
       ),
-  ).replaceAll('/"', '/" as BaseUrl');
+  )
+    .replaceAll('/"', '/" as BaseUrl')
+    .replaceAll(/\/v\/\d+"/g, "$& as VersionedUrl");
 
 const getLatestTypesInOrganizationQuery = (params: { organization: Org }) => ({
   filter: {
