@@ -2,12 +2,10 @@ import type {
   ActorId,
   EntityUuid,
   OwnedById,
+  ProvidedEntityEditionProvenance,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type {
-  GraphApi,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {

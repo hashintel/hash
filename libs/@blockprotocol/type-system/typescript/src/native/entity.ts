@@ -1,4 +1,8 @@
 import type {
+  DraftId,
+  EntityId,
+  EntityUuid,
+  OwnedById,
   PropertyArrayMetadata,
   PropertyArrayWithMetadata,
   PropertyMetadata,
@@ -8,8 +12,62 @@ import type {
   PropertyValueWithMetadata,
   PropertyWithMetadata,
 } from "@blockprotocol/type-system-rs";
+import { validate as validateUuid } from "uuid";
 
 export const ENTITY_ID_DELIMITER = "~";
+
+export const isEntityId = (entityId: string): entityId is EntityId => {
+  const [accountId, entityUuid, draftId] = entityId.split(ENTITY_ID_DELIMITER);
+  return (
+    accountId !== undefined &&
+    validateUuid(accountId) &&
+    entityUuid !== undefined &&
+    validateUuid(entityUuid) &&
+    (!draftId || validateUuid(draftId))
+  );
+};
+
+export const entityIdFromComponents = (
+  ownedById: OwnedById,
+  entityUuid: EntityUuid,
+  draftId?: DraftId,
+): EntityId => {
+  const base = `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}`;
+
+  if (!draftId) {
+    return base as EntityId;
+  }
+
+  return `${base}${ENTITY_ID_DELIMITER}${draftId}` as EntityId;
+};
+
+export const splitEntityId = (
+  entityId: EntityId,
+): [OwnedById, EntityUuid, DraftId?] => {
+  const [ownedById, entityUuid, draftId] = entityId.split(ENTITY_ID_DELIMITER);
+  return [ownedById as OwnedById, entityUuid as EntityUuid, draftId as DraftId];
+};
+
+export const stripDraftIdFromEntityId = (entityId: EntityId) => {
+  const [ownedById, entityUuid] = splitEntityId(entityId);
+  return entityIdFromComponents(ownedById, entityUuid);
+};
+
+export const extractOwnedByIdFromEntityId = (entityId: EntityId): OwnedById => {
+  return splitEntityId(entityId)[0];
+};
+
+export const extractEntityUuidFromEntityId = (
+  entityId: EntityId,
+): EntityUuid => {
+  return splitEntityId(entityId)[1];
+};
+
+export const extractDraftIdFromEntityId = (
+  entityId: EntityId,
+): DraftId | undefined => {
+  return splitEntityId(entityId)[2];
+};
 
 export const isValueMetadata = (
   metadata: PropertyMetadata,

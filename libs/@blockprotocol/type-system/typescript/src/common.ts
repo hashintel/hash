@@ -3,6 +3,7 @@
 import type {
   BaseUrl,
   EntityMetadata as EntityMetadataBp,
+  JsonValue,
   LinkData,
   Property,
   VersionedUrl,
@@ -81,3 +82,7 @@ export type EntityMetadata<
 > = Omit<EntityMetadataBp, "entityTypeIds"> & {
   entityTypeIds: EntityTypeIds;
 };
+
+export type PropertyObject = Record<BaseUrl, Property>;
+export type PropertyArray = Property[];
+export type PropertyValue = JsonValue;

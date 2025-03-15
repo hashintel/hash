@@ -1,6 +1,6 @@
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityProperties } from "@local/hash-graph-types/entity";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { PropsWithChildren } from "react";
 import {

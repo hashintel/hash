@@ -1,5 +1,8 @@
-import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
-import type { BaseUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  DataType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import {
   buildDataTypeTreesForSelector,

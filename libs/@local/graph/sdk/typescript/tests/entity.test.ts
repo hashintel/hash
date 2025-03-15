@@ -1,9 +1,7 @@
 import type {
   BaseUrl,
   Confidence,
-  Property,
   PropertyObjectMetadata,
-  PropertyObjectWithMetadata,
 } from "@blockprotocol/type-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
 import { expect, test } from "vitest";

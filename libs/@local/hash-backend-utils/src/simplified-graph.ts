@@ -1,16 +1,15 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  extractDraftIdFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import {
   typedEntries,
   typedKeys,
   typedValues,
 } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Subgraph } from "@local/hash-subgraph";
-import {
-  extractDraftIdFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getOutgoingLinksForEntity,
@@ -153,9 +152,9 @@ export const getSimpleGraph = (subgraph: Subgraph) => {
   const entities: SimpleEntityWithoutHref[] = [];
   const entityTypes: SimpleEntityType[] = [];
 
-  const vertices = typedValues(subgraph.vertices)
-    .map((vertex) => typedValues(vertex))
-    .flat();
+  const vertices = typedValues(subgraph.vertices).flatMap((vertex) =>
+    typedValues(vertex),
+  );
 
   for (const vertex of vertices) {
     if (vertex.kind === "entity") {

@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
+import type { EntityMetadata } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
 import type {
   CheckUserPermissionsOnEntityQuery,
   CheckUserPermissionsOnEntityQueryVariables,

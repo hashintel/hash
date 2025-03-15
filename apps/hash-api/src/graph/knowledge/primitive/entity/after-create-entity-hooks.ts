@@ -1,5 +1,8 @@
-import type { ActorId, EntityUuid } from "@blockprotocol/type-system";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type {
+  ActorId,
+  EntityUuid,
+  OwnedById,
+} from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,

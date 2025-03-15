@@ -1,5 +1,8 @@
-import type { EntityPropertiesObject } from "@blockprotocol/graph";
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  PropertyObject,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { Box, Paper, Popper, Stack, Tooltip, Typography } from "@mui/material";
 import clsx from "clsx";
 import type { HTMLAttributes, ReactElement } from "react";
@@ -29,7 +32,7 @@ type TypeDisplayData = { $id: VersionedUrl; icon?: string; title: string };
 export type SelectorAutocompleteOptionProps = {
   liProps: HTMLAttributes<HTMLLIElement> & { key?: string };
   description?: string;
-  entityProperties?: EntityPropertiesObject;
+  entityProperties?: PropertyObject;
   icon: string | ReactElement | null;
   title: string;
   types: [TypeDisplayData, ...TypeDisplayData[]];

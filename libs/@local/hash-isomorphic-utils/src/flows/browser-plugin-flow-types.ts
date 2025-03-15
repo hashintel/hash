@@ -1,6 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { OwnedById, VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { InferenceModelName } from "../ai-inference-types.js";
 import type { OutputDefinition, Payload, WebPage } from "./types.js";

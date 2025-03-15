@@ -4442,7 +4442,6 @@ __metadata:
   resolution: "@blockprotocol/type-system@workspace:libs/@blockprotocol/type-system/typescript"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@rollup/plugin-node-resolve": "npm:16.0.0"
@@ -4457,6 +4456,7 @@ __metadata:
     rollup: "npm:4.35.0"
     tslib: "npm:2.8.1"
     typescript: "npm:5.7.3"
+    uuid: "npm:11.1.0"
     vite-plugin-wasm-pack: "npm:0.1.12"
     vitest: "npm:3.0.8"
   languageName: unknown

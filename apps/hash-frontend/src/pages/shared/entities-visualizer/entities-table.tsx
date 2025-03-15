@@ -354,7 +354,7 @@ export const EntitiesTable: FunctionComponent<
         | NumberCell
         | BlankCell
         | CustomCell => {
-        const columnId = columns[colIndex]?.id as EntitiesTableColumnKey;
+        const columnId = columns[colIndex]?.id;
 
         if (columnId) {
           const row = entityRows[rowIndex];

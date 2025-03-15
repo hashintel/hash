@@ -1,5 +1,7 @@
-import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { useCallback } from "react";
 import { useFormContext, useWatch } from "react-hook-form";

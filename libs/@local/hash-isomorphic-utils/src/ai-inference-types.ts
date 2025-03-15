@@ -1,8 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  Property,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import type { Property } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Status } from "@local/status";
 import type { QueryDefinition } from "@temporalio/workflow";
 

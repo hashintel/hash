@@ -2,11 +2,11 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { Confidence } from "@blockprotocol/type-system";
 import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Confidence } from "@local/hash-graph-types/entity";
 
 import type {
   ActivePropertyValue,

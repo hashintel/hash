@@ -1,13 +1,12 @@
+import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback } from "react";
 

@@ -1,10 +1,11 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
+  BaseUrl,
   EntityId,
-  EntityTemporalVersioningMetadata,
+  EntityTemporalMetadata,
   LinkData,
-  PropertyObject,
-} from "@local/hash-graph-types/entity";
+  Property,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { Draft } from "immer";
 import { produce } from "immer";
 
@@ -27,7 +28,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
      * @todo H-2242 do we need to change this for multi-type entities
      */
     entityTypeId?: VersionedUrl | null;
-    temporalVersioning: EntityTemporalVersioningMetadata;
+    temporalVersioning: EntityTemporalMetadata;
   };
 
   /**
@@ -35,7 +36,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
    * @see https://linear.app/hash/issue/H-3000
    */
   blockChildEntity?: Type & { draftId?: string };
-  properties: PropertyObject;
+  properties: Record<BaseUrl, Property>;
   linkData?: LinkData;
 
   componentId?: string;

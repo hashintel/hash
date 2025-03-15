@@ -1,6 +1,5 @@
 import type { BlockVariant, JsonObject } from "@blockprotocol/core";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityId, OwnedById } from "@blockprotocol/type-system";
 import type { Node, Schema } from "prosemirror-model";
 import type { EditorState, Transaction } from "prosemirror-state";
 import type { EditorProps, EditorView } from "prosemirror-view";

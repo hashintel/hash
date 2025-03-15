@@ -1,7 +1,6 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SxProps, Theme } from "@mui/material";
 import type { MouseEventHandler } from "react";

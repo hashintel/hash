@@ -1,4 +1,8 @@
-import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { Collapse, Table, TableBody, TableCell, TableRow } from "@mui/material";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -130,7 +134,7 @@ export const PropertyRow = ({
               const required = Boolean(
                 selectedProperty &&
                   "required" in selectedProperty &&
-                  selectedProperty.required?.includes(propertyId),
+                  selectedProperty.required?.includes(propertyId as BaseUrl),
               );
               return [
                 ...childrenArray,

@@ -1,10 +1,11 @@
-import type { Entity as BpEntity } from "@blockprotocol/graph";
+import type {
+  BaseUrl,
+  Entity as BpEntity,
+  EntityMetadata,
+  Property,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityMetadata,
-  PropertyObject,
-} from "@local/hash-graph-types/entity";
 import { camelCase } from "lodash-es";
 
 /** @see https://stackoverflow.com/a/65015868/17217717 */
@@ -28,7 +29,7 @@ type BeforeTrailingLast<
 /**
  * An entity properties object where the baseUrl keys have been replaced by the last segment of the URL, camelCased
  */
-export type SimpleProperties<Properties extends PropertyObject> = {
+export type SimpleProperties<Properties extends Record<BaseUrl, Property>> = {
   [Key in keyof Properties as BeforeTrailingLast<
     Extract<Key, string>,
     "/"
@@ -40,7 +41,7 @@ export type Simplified<T extends Entity | BpEntity> = {
   properties: SimpleProperties<T["properties"]>;
 };
 
-export const simplifyProperties = <T extends PropertyObject>(
+export const simplifyProperties = <T extends Record<BaseUrl, Property>>(
   properties: T,
 ): SimpleProperties<T> => {
   // this function is only called with property objects that follow the HASH URL/bp scheme

@@ -1,10 +1,19 @@
-import type { EntityTemporalVersioningMetadata } from "@blockprotocol/graph";
 import type {
   BaseUrl,
+  CreatedById,
   DataType,
   DataTypeMetadata,
+  EditionArchivedById,
+  EditionCreatedById,
+  EntityEditionId,
+  EntityId,
+  EntityMetadata,
+  EntityProvenance,
+  EntityRecordId,
+  EntityTemporalMetadata,
   EntityType,
   EntityTypeMetadata,
+  LinkData,
   OneOfSchema,
   OntologyProvenance,
   OntologyTypeRecordId,
@@ -16,6 +25,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
+  isEntityId,
   validateBaseUrl,
   validateVersionedUrl,
 } from "@blockprotocol/type-system";
@@ -38,29 +48,12 @@ import type {
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  CreatedById,
-  EditionArchivedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
-import type {
-  EntityId,
-  EntityMetadata,
-  EntityProvenance,
-  EntityRecordId,
-  LinkData,
-} from "@local/hash-graph-types/entity";
-import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-} from "@local/hash-graph-types/temporal-versioning";
 
 import type {
   KnowledgeGraphVertex,
   OntologyVertex,
   Vertices,
 } from "../../src/main.js";
-import { isEntityId } from "../../src/main.js";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUrl(dataType.$id);
@@ -137,16 +130,14 @@ const mapEntityProvenance = (
 ): EntityProvenance => {
   return {
     createdById: metadata.createdById as CreatedById,
-    createdAtTransactionTime:
-      metadata.createdAtTransactionTime as CreatedAtTransactionTime,
-    createdAtDecisionTime:
-      metadata.createdAtDecisionTime as CreatedAtDecisionTime,
+    createdAtTransactionTime: metadata.createdAtTransactionTime as Timestamp,
+    createdAtDecisionTime: metadata.createdAtDecisionTime as Timestamp,
     edition: {
       createdById: metadata.edition.createdById as EditionCreatedById,
       archivedById: metadata.edition.archivedById as EditionArchivedById,
       actorType: metadata.edition.actorType,
       origin: metadata.edition.origin,
-      sources: metadata.edition.sources,
+      sources: metadata.edition.sources as SourceProvenance[],
     },
   };
 };
@@ -287,7 +278,7 @@ const mapEntityRecordId = (
 ): EntityRecordId => {
   return {
     entityId: recordId.entityId as EntityId,
-    editionId: recordId.editionId,
+    editionId: recordId.editionId as EntityEditionId,
   };
 };
 
@@ -300,7 +291,7 @@ const mapLinkData = (linkData: LinkDataGraphApi): LinkData => {
 
 const mapEntityTemporalVersioningMetadata = (
   temporalVersioning: EntityTemporalMetadataGraphApi,
-): EntityTemporalVersioningMetadata => {
+): EntityTemporalMetadata => {
   return {
     transactionTime: {
       start: {

@@ -407,7 +407,7 @@ export const EntitiesVisualizer: FunctionComponent<{
        */
       (closedMultiEntityTypes.length &&
         closedMultiEntityTypes.every(({ allOf }) =>
-          allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
+          allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id].isFile),
         )),
     [
       entityTypeBaseUrl,

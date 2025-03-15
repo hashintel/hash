@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import { PlusIcon, TypeCard } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";

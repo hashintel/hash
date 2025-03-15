@@ -171,7 +171,6 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
                 />
               }
               onClick={() => row.onTypeClick("entityType", linkEntityType.$id)}
-              /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */
               label={linkEntityType.inverse?.title || linkEntityType.title}
             />
           ))}
@@ -583,12 +582,10 @@ export const IncomingLinksTable = memo(
             switch (field) {
               case "linkTypes": {
                 const aValue =
-                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
                   a.data.linkEntityTypes[0]!.inverse?.title ||
                   a.data.linkEntityTypes[0]!.title;
 
                 const bValue =
-                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
                   b.data.linkEntityTypes[0]!.inverse?.title ||
                   b.data.linkEntityTypes[0]!.title;
 

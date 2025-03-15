@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 
 export const systemEntityTypes = {
   academicPaper: {

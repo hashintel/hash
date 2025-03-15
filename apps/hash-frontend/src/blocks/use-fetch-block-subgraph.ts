@@ -1,12 +1,17 @@
 import { useLazyQuery } from "@apollo/client";
-import type { Entity as EntityBp } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import type {
+  CreatedById,
+  EditionCreatedById,
+  Entity as EntityBp,
+  EntityEditionId,
+  EntityId,
+  PropertyObject,
+  Timestamp,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import type {
-  EntityRevisionId,
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphVertices,
@@ -73,7 +78,7 @@ export const useFetchBlockSubgraph = (): ((
           metadata: {
             recordId: {
               entityId: "placeholder-account~entity-id-not-set" as EntityId,
-              editionId: now,
+              editionId: now as string as EntityEditionId,
             },
             entityTypeIds: blockEntityTypeIds,
             temporalVersioning: {
@@ -95,6 +100,19 @@ export const useFetchBlockSubgraph = (): ((
                   kind: "unbounded",
                 },
               },
+            },
+            archived: false,
+            provenance: {
+              edition: {
+                createdById: "placeholder-account" as EditionCreatedById,
+                actorType: "human",
+                origin: {
+                  type: "web-app",
+                },
+              },
+              createdById: "placeholder-account" as CreatedById,
+              createdAtTransactionTime: now,
+              createdAtDecisionTime: now,
             },
           },
           properties: fallbackBlockProperties ?? {},
@@ -124,8 +142,8 @@ export const useFetchBlockSubgraph = (): ((
           edges: {},
           roots: [
             {
-              baseId: placeholderEntity.metadata.recordId.entityId as EntityId,
-              revisionId: now as EntityRevisionId,
+              baseId: placeholderEntity.metadata.recordId.entityId,
+              revisionId: now,
             },
           ],
           vertices: {

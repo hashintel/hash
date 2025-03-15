@@ -1,9 +1,17 @@
-import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import type {
+  ActorId,
+  EntityId,
+  EntityUuid,
+  OwnedById,
+} from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -19,11 +27,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
 
 import {
   getFlowRunFromWorkflowId,
@@ -34,7 +37,7 @@ import type { TemporalClient } from "./temporal.js";
 export const getFlowRunEntityById = async (params: {
   flowRunId: EntityUuid;
   graphApiClient: GraphApi;
-  userAuthentication: { actorId: AccountId };
+  userAuthentication: { actorId: ActorId };
 }): Promise<Entity<FlowRunEntity> | null> => {
   const { flowRunId, graphApiClient, userAuthentication } = params;
 
@@ -71,7 +74,7 @@ type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
   temporalClient: TemporalClient;
-  userAuthentication: { actorId: AccountId };
+  userAuthentication: { actorId: ActorId };
 };
 
 export async function getFlowRunById(
@@ -146,7 +149,7 @@ type GetFlowRunsFilters = {
 };
 
 type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorId };
   filters: GetFlowRunsFilters;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;

@@ -1,5 +1,5 @@
 export const scalars = {
-  BaseUrl: "@local/hash-graph-types/ontology#BaseUrl",
+  BaseUrl: "@blockprotocol/type-system#BaseUrl",
   VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
 
   Date: "string",
@@ -14,7 +14,7 @@ export const scalars = {
   HasSpatiallyPositionedContentProperties:
     "@local/hash-isomorphic-utils/system-types/canvas#HasSpatiallyPositionedContentProperties",
 
-  DataTypeWithMetadata: "@local/hash-graph-types/ontology#DataTypeWithMetadata",
+  DataTypeWithMetadata: "@blockprotocol/type-system#DataTypeWithMetadata",
   ConstructDataTypeParams:
     "@local/hash-graph-types/ontology#ConstructDataTypeParams",
   DataTypeFullConversionTargetsMap:
@@ -22,38 +22,36 @@ export const scalars = {
   DataTypeDirectConversionsMap:
     "@local/hash-graph-types/ontology#DataTypeDirectConversionsMap",
 
-  ClosedMultiEntityType:
-    "@local/hash-graph-types/ontology#ClosedMultiEntityType",
+  ClosedMultiEntityType: "@blockprotocol/type-system#ClosedMultiEntityType",
   ClosedMultiEntityTypesRootMap:
     "@local/hash-graph-types/ontology#ClosedMultiEntityTypesRootMap",
   ClosedMultiEntityTypesDefinitions:
     "@local/hash-graph-types/ontology#ClosedMultiEntityTypesDefinitions",
-  EntityTypeWithMetadata:
-    "@local/hash-graph-types/ontology#EntityTypeWithMetadata",
+  EntityTypeWithMetadata: "@blockprotocol/type-system#EntityTypeWithMetadata",
   ConstructEntityTypeParams:
     "@local/hash-isomorphic-utils/types#ConstructEntityTypeParams",
 
   PropertyTypeWithMetadata:
-    "@local/hash-graph-types/ontology#PropertyTypeWithMetadata",
+    "@blockprotocol/type-system#PropertyTypeWithMetadata",
   ConstructPropertyTypeParams:
     "@local/hash-isomorphic-utils/types#ConstructPropertyTypeParams",
 
   SerializedEntity: "@local/hash-graph-sdk/entity#SerializedEntity",
-  EntityRecordId: "@local/hash-graph-types/entity#EntityRecordId",
-  EntityMetadata: "@local/hash-graph-types/entity#EntityMetadata",
+  EntityRecordId: "@blockprotocol/type-system#EntityRecordId",
+  EntityMetadata: "@blockprotocol/type-system#EntityMetadata",
   EntityRelationAndSubject: "@local/hash-subgraph#EntityRelationAndSubject",
   EntityValidationReport:
     "@local/hash-graph-types/validation#EntityValidationReport",
   CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",
   GetEntitySubgraphRequest:
     "@local/hash-isomorphic-utils/types#GetEntitySubgraphRequest",
-  EntityTemporalVersioningMetadata:
-    "@local/hash-graph-types/entity#EntityTemporalVersioningMetadata",
-  PropertyObject: "@local/hash-graph-types/entity#PropertyObject",
+  EntityTemporalMetadata: "@blockprotocol/type-system#EntityTemporalMetadata",
+  PropertyObject: "@blockprotocol/type-system#PropertyObject",
+  PropertyArray: "@blockprotocol/type-system#PropertyArray",
+  PropertyValue: "@blockprotocol/type-system#PropertyValue",
   PropertyObjectWithMetadata:
-    "@local/hash-graph-types/entity#PropertyObjectWithMetadata",
-  PropertyPatchOperation:
-    "@local/hash-graph-types/entity#PropertyPatchOperation",
+    "@blockprotocol/type-system#PropertyObjectWithMetadata",
+  PropertyPatchOperation: "@blockprotocol/type-system#PropertyPatchOperation",
   DiffEntityInput: "@local/hash-subgraph#DiffEntityInput",
   DiffEntityResult: "@local/hash-graph-client#DiffEntityResult",
   ValidateEntityParamsComponents:
@@ -82,16 +80,16 @@ export const scalars = {
   GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
   Edges: "@local/hash-subgraph#Edges",
   SerializedVertices: "@local/hash-subgraph#SerializedVertices",
-  LinkData: "@local/hash-graph-types/entity#LinkData",
+  LinkData: "@blockprotocol/type-system#LinkData",
   SubgraphTemporalAxes: "@local/hash-subgraph#SubgraphTemporalAxes",
 
-  OwnedById: "@local/hash-graph-types/web#OwnedById",
+  OwnedById: "@blockprotocol/type-system#OwnedById",
   EditionCreatedById: "@local/hash-subgraph#EditionCreatedById",
-  AccountId: "@local/hash-graph-types/account#AccountId",
-  AccountGroupId: "@local/hash-graph-types/account#AccountGroupId",
+  ActorId: "@blockprotocol/type-system#ActorId",
+  ActorGroupId: "@blockprotocol/type-system#ActorGroupId",
   AuthorizationSubjectId:
     "@local/hash-graph-types/authorization#AuthorizationSubjectId",
-  EntityId: "@local/hash-graph-types/entity#EntityId",
+  EntityId: "@blockprotocol/type-system#EntityId",
 
   EntityUuid: "@blockprotocol/type-system#EntityUuid",
   Uuid: "@local/hash-graph-types/branded#Uuid",

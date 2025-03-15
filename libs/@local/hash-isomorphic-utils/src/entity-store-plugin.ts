@@ -1,6 +1,10 @@
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type {
+  BaseUrl,
+  EntityId,
+  OwnedById,
+  Property,
+  Timestamp,
+} from "@blockprotocol/type-system";
 import type { Draft } from "immer";
 import { castDraft, produce } from "immer";
 import { isEqual } from "lodash-es";
@@ -304,7 +308,7 @@ const entityStoreReducer = (
                 );
               } else {
                 draftEntity.properties = castDraft(
-                  action.payload.properties as PropertyObject,
+                  action.payload.properties as Record<BaseUrl, Property>,
                 );
               }
             }
