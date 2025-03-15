@@ -8838,7 +8838,7 @@ __metadata:
   resolution: "@local/hash-graph-client@workspace:libs/@local/graph/client/typescript"
   dependencies:
     "@local/tsconfig": "npm:0.0.0-private"
-    "@openapitools/openapi-generator-cli": "npm:2.17.0"
+    "@openapitools/openapi-generator-cli": "npm:2.18.4"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.13.10"
     axios: "npm:1.8.3"
@@ -8963,7 +8963,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
   dependencies:
-    "@openapitools/openapi-generator-cli": "npm:2.17.0"
+    "@openapitools/openapi-generator-cli": "npm:2.18.4"
     "@types/node": "npm:22.13.10"
     axios: "npm:1.8.3"
     rimraf: "npm:6.0.1"
@@ -9879,31 +9879,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openapitools/openapi-generator-cli@npm:2.17.0":
-  version: 2.17.0
-  resolution: "@openapitools/openapi-generator-cli@npm:2.17.0"
+"@openapitools/openapi-generator-cli@npm:2.18.4":
+  version: 2.18.4
+  resolution: "@openapitools/openapi-generator-cli@npm:2.18.4"
   dependencies:
     "@nestjs/axios": "npm:3.1.3"
     "@nestjs/common": "npm:10.4.15"
     "@nestjs/core": "npm:10.4.15"
     "@nuxtjs/opencollective": "npm:0.3.2"
-    axios: "npm:1.7.9"
+    axios: "npm:1.8.3"
     chalk: "npm:4.1.2"
     commander: "npm:8.3.0"
     compare-versions: "npm:4.1.4"
     concurrently: "npm:6.5.1"
     console.table: "npm:0.10.0"
-    fs-extra: "npm:10.1.0"
+    fs-extra: "npm:11.3.0"
     glob: "npm:9.3.5"
     inquirer: "npm:8.2.6"
     lodash: "npm:4.17.21"
     proxy-agent: "npm:6.5.0"
-    reflect-metadata: "npm:0.1.13"
-    rxjs: "npm:7.8.1"
+    reflect-metadata: "npm:0.2.2"
+    rxjs: "npm:7.8.2"
     tslib: "npm:2.8.1"
   bin:
     openapi-generator-cli: main.js
-  checksum: 10c0/43cff421946c074706e2ad9c4c56ca9220caa0b675aad46ac31e7807d4ff728ea57c5a84c375150bc7e6bf36f29bc67a9bebb6ab1a157ba806913550d53b650f
+  checksum: 10c0/7608f204f9a56e38ea8b3cd8296094b3db108ed3efe259524b61f89dcbfe7e17c6f19302d6ce0001f8b269878f35564e8c090dd8dc2b1567f198e82282a118ad
   languageName: node
   linkType: hard
 
@@ -20618,17 +20618,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.7.9":
-  version: 1.7.9
-  resolution: "axios@npm:1.7.9"
-  dependencies:
-    follow-redirects: "npm:^1.15.6"
-    form-data: "npm:^4.0.0"
-    proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/b7a41e24b59fee5f0f26c1fc844b45b17442832eb3a0fb42dd4f1430eb4abc571fe168e67913e8a1d91c993232bd1d1ab03e20e4d1fee8c6147649b576fc1b0b
-  languageName: node
-  linkType: hard
-
 "axios@npm:1.8.2":
   version: 1.8.2
   resolution: "axios@npm:1.8.2"
@@ -27956,17 +27945,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fs-extra@npm:10.1.0, fs-extra@npm:^10.0.0, fs-extra@npm:^10.1.0":
-  version: 10.1.0
-  resolution: "fs-extra@npm:10.1.0"
-  dependencies:
-    graceful-fs: "npm:^4.2.0"
-    jsonfile: "npm:^6.0.1"
-    universalify: "npm:^2.0.0"
-  checksum: 10c0/5f579466e7109719d162a9249abbeffe7f426eb133ea486e020b89bc6d67a741134076bf439983f2eb79276ceaf6bd7b7c1e43c3fd67fe889863e69072fb0a5e
-  languageName: node
-  linkType: hard
-
 "fs-extra@npm:11.1.1":
   version: 11.1.1
   resolution: "fs-extra@npm:11.1.1"
@@ -27986,6 +27964,17 @@ __metadata:
     jsonfile: "npm:^6.0.1"
     universalify: "npm:^2.0.0"
   checksum: 10c0/5f95e996186ff45463059feb115a22fb048bdaf7e487ecee8a8646c78ed8fdca63630e3077d4c16ce677051f5e60d3355a06f3cd61f3ca43f48cc58822a44d0a
+  languageName: node
+  linkType: hard
+
+"fs-extra@npm:^10.0.0, fs-extra@npm:^10.1.0":
+  version: 10.1.0
+  resolution: "fs-extra@npm:10.1.0"
+  dependencies:
+    graceful-fs: "npm:^4.2.0"
+    jsonfile: "npm:^6.0.1"
+    universalify: "npm:^2.0.0"
+  checksum: 10c0/5f579466e7109719d162a9249abbeffe7f426eb133ea486e020b89bc6d67a741134076bf439983f2eb79276ceaf6bd7b7c1e43c3fd67fe889863e69072fb0a5e
   languageName: node
   linkType: hard
 
@@ -40205,10 +40194,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"reflect-metadata@npm:0.1.13":
-  version: 0.1.13
-  resolution: "reflect-metadata@npm:0.1.13"
-  checksum: 10c0/728bff0b376b05639fd11ed80c648b61f7fe653c5b506d7ca118e58b6752b9b00810fe0c86227ecf02bd88da6251ab3eb19fd403aaf2e9ff5ef36a2fda643026
+"reflect-metadata@npm:0.2.2":
+  version: 0.2.2
+  resolution: "reflect-metadata@npm:0.2.2"
+  checksum: 10c0/1cd93a15ea291e420204955544637c264c216e7aac527470e393d54b4bb075f10a17e60d8168ec96600c7e0b9fcc0cb0bb6e91c3fbf5b0d8c9056f04e6ac1ec2
   languageName: node
   linkType: hard
 
@@ -41155,12 +41144,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rxjs@npm:*, rxjs@npm:7.8.1, rxjs@npm:^7.5.5, rxjs@npm:^7.8.1":
-  version: 7.8.1
-  resolution: "rxjs@npm:7.8.1"
+"rxjs@npm:*, rxjs@npm:7.8.2, rxjs@npm:^7.5.5, rxjs@npm:^7.8.1":
+  version: 7.8.2
+  resolution: "rxjs@npm:7.8.2"
   dependencies:
     tslib: "npm:^2.1.0"
-  checksum: 10c0/3c49c1ecd66170b175c9cacf5cef67f8914dcbc7cd0162855538d365c83fea631167cacb644b3ce533b2ea0e9a4d0b12175186985f89d75abe73dbd8f7f06f68
+  checksum: 10c0/1fcd33d2066ada98ba8f21fcbbcaee9f0b271de1d38dc7f4e256bfbc6ffcdde68c8bfb69093de7eeb46f24b1fb820620bf0223706cff26b4ab99a7ff7b2e2c45
   languageName: node
   linkType: hard
 
