@@ -67,6 +67,9 @@ wasm-bindgen-test = "0.3.49"
 
 
 [package.metadata.sync.turborepo]
+extra-dependencies = [
+    { name = "@local/advanced-types", version = "0.0.0-private" },
+]
 extra-dev-dependencies = [
     { name = "@local/tsconfig", version = "0.0.0-private" },
 ]

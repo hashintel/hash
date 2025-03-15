@@ -7,7 +7,7 @@ use crate::knowledge::value::{PropertyValue, ValueMetadata};
 
 /// A primitive value with its associated metadata.
 ///
-/// [`PropertyWithMetadataValue`] combines a [`Value`] (such as a string, number, or boolean)
+/// `PropertyValueWithMetadata` combines a [`PropertyValue`] (such as a string, number, or boolean)
 /// with its [`ValueMetadata`] containing provenance, confidence, and type information.
 ///
 /// This structure is used as the leaf node in the [`PropertyWithMetadata`] hierarchy,

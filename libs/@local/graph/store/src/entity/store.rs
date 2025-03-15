@@ -379,7 +379,7 @@ pub trait EntityStore {
     /// # Errors:
     ///
     /// - if the [`EntityType`] doesn't exist
-    /// - if the [`PropertyWithMetadataObject`] is not valid with respect to the specified
+    /// - if the [`PropertyObjectWithMetadata`] is not valid with respect to the specified
     ///   [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
