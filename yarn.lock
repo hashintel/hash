@@ -4421,6 +4421,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blockprotocol/type-system-rs@workspace:libs/@blockprotocol/type-system/rust"
   dependencies:
+    "@local/advanced-types": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-codec": "npm:0.0.0-private"
