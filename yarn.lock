@@ -526,7 +526,7 @@ __metadata:
     clsx: "npm:1.2.1"
     date-fns: "npm:4.1.0"
     dotenv-flow: "npm:3.3.0"
-    elkjs: "npm:0.9.3"
+    elkjs: "npm:0.10.0"
     emoji-mart: "npm:5.6.0"
     eslint: "npm:9.20.1"
     fractional-indexing: "npm:2.1.0"
@@ -24869,10 +24869,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"elkjs@npm:0.9.3":
-  version: 0.9.3
-  resolution: "elkjs@npm:0.9.3"
-  checksum: 10c0/caf544ff4fce8442d1d3dd6dface176c9b2fe26fc1e34f56122828e6eef7d2d7fe70d3202f9f3ecf0feb6287d4c8430949f483e63e450a7454bb39ccffab3808
+"elkjs@npm:0.10.0":
+  version: 0.10.0
+  resolution: "elkjs@npm:0.10.0"
+  checksum: 10c0/f04662fe5a972ab1fb62f698cd53ba8d5806a27ec07fd056e79a2dc89c158e63210636ce7e5dac7913967670b5f2b7c2db091f23746fea11a5ca751327ee3abc
   languageName: node
   linkType: hard
 
