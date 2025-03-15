@@ -1,0 +1,65 @@
+---
+title: Verification
+description: "Verification is the process of analyzing the correctness, safety and liveness of a modeled system."
+slug: verification
+tags: ["Software Engineering"]
+---
+
+**Verification** is the process of analyzing the _correctness_, _safety_, and _liveness_ of a modeled system before deployment. It ensures that the system behaves as expected, e.g. that it is free from _deadlocks_, _livelocks_, _starvation_ and other undesired states and inconsistencies, and that it meets certain standards. Verification is separate from "validation".
+
+# Unexpected behaviors
+
+## Livelocks
+
+A **livelock** occurs when a process is **constantly active but makes no real progress**—it keeps executing but never reaches completion, e.g.
+
+- A process **keeps looping** due to incorrect conditions, e.g. a loop checks for an approval condition but **never exits** if the condition is never met.
+- Two processes **keep retrying an action** that fails (e.g. because they are in competition for the same resource) instead of resolving a conflict.
+
+## Deadlocks
+
+A **deadlock** happens when a process **gets stuck indefinitely** with no activity, e.g.
+
+- if a process **requires manual approval** but no user completes it
+- because two or more tasks are **waiting for each other** to complete
+- technical deadlocks such as two tasks waiting on each other to release a lock on a database row
+
+Potential solutions include:
+
+- timeouts and escalation paths for user tasks
+- avoid mutual dependencies between tasks
+- strategies to avoid database deadlocks, e.g.
+  - use optimistic locking, or
+  - (if the system requires pessimistic locking) consistent ordering of lock acquisition (i.e. make sure that Task A and Task B will always attempt to lock the same rows in the same order, so they can’t end up in a situation where one locks X then waits for Y, and the other locks Y then waits for X)
+
+## Starvation
+
+**Resource starvation** happens when a transaction or process **waits indefinitely** because it **can’t get access to a resource** due to other higher-priority tasks always taking precedence.
+
+# Verification in HASH
+
+## Processes (Flows)
+
+Processes in HASH are represented as what mathematicians call "_colored Petri nets_". Unlike most representations of process models, Petri nets can be formally verified, which means we can check their integrity in a number of different ways, including by looking at properties such as:
+
+1. **Reachability**
+  - A state is considered _reachable_ if it can be achieved from an initial marking by firing a sequence of transitions.
+  - Helps determine if a process can get stuck or fail to reach a goal state.
+  - **Example:** Can an order-processing system always reach the "Order Completed" state?
+  - **Verification:** HASH constructs a _reachability graph_ and uses _state-space exploration_ to check if any given target state can be reached. If it cannot, the process map editor is notified.
+2. **Boundedness** (Safeness)
+  - A Petri net is _k-bounded_ if no place contains more than _k tokens_ at any time.
+  - A _1-bounded_ net (Safe Petri Net) ensures that places hold at most one token, preventing overflow issues.
+  - Helps prevent resource exhaustion in concurrent systems.
+  - **Verification:** HASH analyzes the _incidence matrix_ and _state-space exploration_ to check if any place can exceed k tokens.
+3. **Liveness**
+  - A Petri net is considered _live_ if all transitions remain potentially fireable (i.e. no part of the system permanently stops working).
+  - Ensures that no process is permanently blocked (i.e. there are no _deadlocks_).
+  - **Example:** In an order-processing workflow, the **"Dispatch Order"** transition should always be possible if stock is available. If not, there’s a deadlock.
+  - **Verification:** HASH uses the _reachability graph_ already computed to check if every transition is eventually fireable. Repeating execution cycles are used to find deadlocks.
+4. **Fairness**
+  - Ensures that all transitions have a chance to fire, avoiding starvation.
+  - Important in concurrent and distributed systems, where some processes should not dominate resource usage.
+  - **Example:** In a ticketing system, fairness ensures that all users eventually get service rather than some requests being delayed indefinitely.
+  - **Verification:** HASH checks _reachability properties_ to check for transitions which are never executed.
+
