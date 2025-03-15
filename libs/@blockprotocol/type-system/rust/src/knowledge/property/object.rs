@@ -138,7 +138,6 @@ impl<'a> FromSql<'a> for PropertyObject {
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyObjectWithMetadata {
-    #[cfg_attr(feature = "utoipa", schema(required))]
     pub value: HashMap<BaseUrl, PropertyWithMetadata>,
     #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
     pub metadata: ObjectMetadata,

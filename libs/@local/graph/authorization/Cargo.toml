@@ -16,7 +16,7 @@ futures-core = { workspace = true, public = true }
 reqwest      = { workspace = true, public = true, features = ["json", "stream"] }
 
 # Private workspace dependencies
-hash-codec = { workspace = true }
+hash-codec = { workspace = true, features = ["bytes"] }
 
 # Private third-party dependencies
 cedar-policy-core      = { workspace = true }
