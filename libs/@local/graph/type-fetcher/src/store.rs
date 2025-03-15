@@ -32,10 +32,10 @@ use hash_graph_store::{
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
-        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
-        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-        GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-        UpdateEntityTypesParams,
+        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams,
+        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
+        IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
@@ -1166,13 +1166,24 @@ where
         self.store.get_entity_types(actor_id, params).await
     }
 
-    async fn get_closed_multi_entity_types(
+    async fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: ActorId,
-        params: GetClosedMultiEntityTypeParams,
-    ) -> Result<GetClosedMultiEntityTypeResponse, Report<QueryError>> {
+        entity_type_ids: I,
+        temporal_axes: QueryTemporalAxesUnresolved,
+        include_resolved: Option<IncludeResolvedEntityTypeOption>,
+    ) -> Result<GetClosedMultiEntityTypesResponse, Report<QueryError>>
+    where
+        I: IntoIterator<Item = J> + Send,
+        J: IntoIterator<Item = VersionedUrl> + Send,
+    {
         self.store
-            .get_closed_multi_entity_types(actor_id, params)
+            .get_closed_multi_entity_types(
+                actor_id,
+                entity_type_ids,
+                temporal_axes,
+                include_resolved,
+            )
             .await
     }
 

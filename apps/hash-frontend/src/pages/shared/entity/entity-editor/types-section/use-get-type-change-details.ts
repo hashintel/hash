@@ -1,16 +1,23 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractVersion,
+  mustHaveAtLeastOne,
+} from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import { getPropertyTypeForClosedEntityType } from "@local/hash-graph-sdk/entity";
+import {
+  getClosedMultiEntityTypeFromMap,
+  getPropertyTypeForClosedEntityType,
+} from "@local/hash-graph-sdk/entity";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { useCallback } from "react";
 
-import { useGetClosedMultiEntityType } from "../../../use-get-closed-multi-entity-type";
+import { useGetClosedMultiEntityTypes } from "../../../use-get-closed-multi-entity-type";
 import { useEntityEditor } from "../entity-editor-context";
 import type { EntityTypeChangeDetails } from "./entity-type-change-modal";
 
 export const useGetTypeChangeDetails = () => {
-  const { getClosedMultiEntityType } = useGetClosedMultiEntityType();
+  const { getClosedMultiEntityTypes } = useGetClosedMultiEntityTypes();
 
   const {
     closedMultiEntityType: currentClosedType,
@@ -24,9 +31,14 @@ export const useGetTypeChangeDetails = () => {
       Pick<EntityTypeChangeDetails, "linkChanges" | "propertyChanges">
     > => {
       const {
-        closedMultiEntityType: proposedClosedMultiType,
+        closedMultiEntityTypes,
         closedMultiEntityTypesDefinitions: proposedDefinitions,
-      } = await getClosedMultiEntityType(newEntityTypeIds);
+      } = await getClosedMultiEntityTypes(newEntityTypeIds);
+
+      const proposedClosedMultiType = getClosedMultiEntityTypeFromMap(
+        closedMultiEntityTypes,
+        mustHaveAtLeastOne(newEntityTypeIds),
+      );
 
       const changeDetails: Pick<
         EntityTypeChangeDetails,
@@ -285,6 +297,6 @@ export const useGetTypeChangeDetails = () => {
 
       return changeDetails;
     },
-    [currentClosedType, currentDefinitions, getClosedMultiEntityType],
+    [currentClosedType, currentDefinitions, getClosedMultiEntityTypes],
   );
 };

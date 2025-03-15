@@ -1,7 +1,8 @@
-import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  type Entity,
+  getClosedMultiEntityTypeFromMap,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
@@ -9,8 +10,11 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback } from "react";
-
-import { useGetClosedMultiEntityType } from "../../use-get-closed-multi-entity-type";
+} from "@local/hash-subgraph/stdlib";
+import { useGetClosedMultiEntityTypes } from "../../use-get-closed-multi-entity-type";
+import type { EntityEditorProps } from "../entity-editor";
+import { createDraftEntitySubgraph } from "./create-draft-entity-subgraph";
+import { useGetClosedMultiEntityTypes } from "../../use-get-closed-multi-entity-type";
 import type { EntityEditorProps } from "../entity-editor";
 import { createDraftEntitySubgraph } from "./create-draft-entity-subgraph";
 
@@ -32,7 +36,7 @@ export const useHandleTypeChanges = ({
   ) => void;
   setDraftLinksToArchive: Dispatch<SetStateAction<EntityId[]>>;
 }) => {
-  const { getClosedMultiEntityType } = useGetClosedMultiEntityType();
+  const { getClosedMultiEntityTypes } = useGetClosedMultiEntityTypes();
 
   return useCallback(
     async (change: {
@@ -56,7 +60,7 @@ export const useHandleTypeChanges = ({
         throw new Error("Entity not found in subgraph");
       }
 
-      const newTypeDetails = await getClosedMultiEntityType(entityTypeIds);
+      const newTypeDetails = await getClosedMultiEntityTypes(entityTypeIds);
 
       const outgoingLinks = getOutgoingLinksForEntity(
         entitySubgraph,
@@ -75,7 +79,16 @@ export const useHandleTypeChanges = ({
         }
       }
 
-      setDraftEntityTypesDetails(newTypeDetails);
+      const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
+        newTypeDetails.closedMultiEntityTypes,
+        mustHaveAtLeastOne(entityTypeIds),
+      );
+
+      setDraftEntityTypesDetails({
+        closedMultiEntityType,
+        closedMultiEntityTypesDefinitions:
+          newTypeDetails.closedMultiEntityTypesDefinitions,
+      });
 
       setDraftEntitySubgraph((prev) =>
         createDraftEntitySubgraph({
@@ -100,7 +113,7 @@ export const useHandleTypeChanges = ({
     },
     [
       entitySubgraph,
-      getClosedMultiEntityType,
+      getClosedMultiEntityTypes,
       setDraftEntityTypesDetails,
       setDraftEntitySubgraph,
       setDraftLinksToArchive,

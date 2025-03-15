@@ -14,7 +14,7 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createEntityType,
-  getClosedMultiEntityType,
+  getClosedMultiEntityTypes,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -319,17 +319,21 @@ describe("Entity CRU", () => {
       expect(entityTypeFromResponse).toBeDefined();
 
       const {
-        entityType: entityTypeFromGraph,
+        closedMultiEntityTypes: closedTypeMapFromGraph,
         definitions: definitionsFromGraph,
-      } = await getClosedMultiEntityType(
+      } = await getClosedMultiEntityTypes(
         graphContext,
         { actorId: testUser.accountId },
         {
-          entityTypeIds: entity.metadata.entityTypeIds,
+          entityTypeIds: [entity.metadata.entityTypeIds],
           temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: false,
           includeResolved: "resolved",
         },
+      );
+
+      const entityTypeFromGraph = getClosedMultiEntityTypeFromMap(
+        closedTypeMapFromGraph,
+        entity.metadata.entityTypeIds,
       );
 
       if (entityTypeFromResponse.required && entityTypeFromGraph.required) {

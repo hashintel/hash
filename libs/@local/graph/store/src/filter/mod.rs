@@ -12,7 +12,9 @@ use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
     knowledge::entity::{Entity, EntityId},
     ontology::{
+        EntityTypeWithMetadata,
         data_type::{DataTypeUuid, DataTypeWithMetadata, schema::DataTypeReference},
+        entity_type::EntityTypeUuid,
         id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
@@ -224,6 +226,18 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
                 path: PropertyTypeQueryPath::OntologyId,
             },
             ParameterList::PropertyTypeIds(property_type_ids),
+        )
+    }
+}
+
+impl<'p> Filter<'p, EntityTypeWithMetadata> {
+    #[must_use]
+    pub const fn for_entity_type_uuids(entity_type_ids: &'p [EntityTypeUuid]) -> Self {
+        Filter::In(
+            FilterExpression::Path {
+                path: EntityTypeQueryPath::OntologyId,
+            },
+            ParameterList::EntityTypeIds(entity_type_ids),
         )
     }
 }

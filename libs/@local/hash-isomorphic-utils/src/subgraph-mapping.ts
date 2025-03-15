@@ -229,10 +229,6 @@ export const mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitio
   (entityTypeResolveDefinitions: GraphApiEntityTypeResolveDefinitions) =>
     entityTypeResolveDefinitions as EntityTypeResolveDefinitions;
 
-export const mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType = (
-  closedMultiEntityType: GraphApiClosedMultiEntityType,
-) => closedMultiEntityType as ClosedMultiEntityType;
-
 export const mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes = (
   closedMultiEntityTypes: GraphApiClosedMultiEntityType[],
 ) => closedMultiEntityTypes as ClosedMultiEntityType[];

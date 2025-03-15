@@ -855,6 +855,10 @@ impl Modify for FilterSchemaAddon {
                 )
                 .into(),
             );
+            components.schemas.insert(
+                "PropertyValue".to_owned(),
+                ObjectBuilder::new().schema_type(SchemaType::Value).into(),
+            );
         }
     }
 }

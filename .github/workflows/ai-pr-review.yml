@@ -156,4 +156,10 @@ jobs:
           LINEAR_APPLICATION_ACCESS_TOKEN: ${{ secrets.LINEAR_APPLICATION_ACCESS_TOKEN }}
           PR_NUMBER: ${{ steps.pr-number.outputs.number }}
           GH_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
-        run: yarn workspace @local/repo-chores exe scripts/ai-pr-review.ts "$PR_NUMBER"
+
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          command: yarn workspace @local/repo-chores exe scripts/ai-pr-review.ts "$PR_NUMBER"
