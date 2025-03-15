@@ -794,7 +794,7 @@ __metadata:
     tsx: "npm:4.19.3"
     typescript: "npm:5.7.3"
     zod: "npm:3.24.2"
-    zod-to-json-schema: "npm:3.24.3"
+    zod-to-json-schema: "npm:3.24.4"
   bin:
     linear-mcp: ./dist/index.js
   languageName: unknown
@@ -819,7 +819,7 @@ __metadata:
     tsx: "npm:4.19.3"
     typescript: "npm:5.7.3"
     zod: "npm:3.24.2"
-    zod-to-json-schema: "npm:3.24.3"
+    zod-to-json-schema: "npm:3.24.4"
   bin:
     notion-mcp: ./dist/index.js
   languageName: unknown
@@ -8998,7 +8998,7 @@ __metadata:
     tsx: "npm:4.19.3"
     typescript: "npm:5.7.3"
     zod: "npm:3.24.2"
-    zod-to-json-schema: "npm:3.24.3"
+    zod-to-json-schema: "npm:3.24.4"
   languageName: unknown
   linkType: soft
 
@@ -47169,12 +47169,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod-to-json-schema@npm:3.24.3, zod-to-json-schema@npm:^3.23.3, zod-to-json-schema@npm:^3.24.1":
-  version: 3.24.3
-  resolution: "zod-to-json-schema@npm:3.24.3"
+"zod-to-json-schema@npm:3.24.4, zod-to-json-schema@npm:^3.23.3, zod-to-json-schema@npm:^3.24.1":
+  version: 3.24.4
+  resolution: "zod-to-json-schema@npm:3.24.4"
   peerDependencies:
     zod: ^3.24.1
-  checksum: 10c0/5d626fa7a51539236962b1348a7b7e7111bd1722f23ad06dead2f76599e6bd918e4067ffba0695e0acac5a60f217b4953d2ad62ad403a482d034d94f025f3a4c
+  checksum: 10c0/eacef9f18159038cac87132005690c8e3da3a3aeb9dfbac2c2450f36f3b0345e895abcb165b5d81294b2dae3fedfb11b8b733daecc649b7c0584fcc9858a312d
   languageName: node
   linkType: hard
 
