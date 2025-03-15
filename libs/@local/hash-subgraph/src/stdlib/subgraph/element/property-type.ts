@@ -1,4 +1,4 @@
-import type { JsonValue, Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import {
   getPropertyTypeById as getPropertyTypeByIdBp,
   getPropertyTypeByVertexId as getPropertyTypeByVertexIdBp,
@@ -6,20 +6,17 @@ import {
   getPropertyTypesByBaseUrl as getPropertyTypesByBaseUrlBp,
 } from "@blockprotocol/graph/stdlib";
 import type {
+  BaseUrl,
   DataTypeReference,
-  PropertyTypeReference,
-  ValueOrArray,
-} from "@blockprotocol/type-system";
-import type {
+  DataTypeWithMetadata,
   EntityType,
   PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import type {
-  BaseUrl,
-  DataTypeWithMetadata,
+  PropertyTypeReference,
   PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+  PropertyValue,
+  ValueOrArray,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
 import {
@@ -38,10 +35,7 @@ import {
  */
 export const getPropertyTypes = (
   subgraph: Subgraph,
-): PropertyTypeWithMetadata[] =>
-  getPropertyTypesBp(
-    subgraph as unknown as SubgraphBp,
-  ) as PropertyTypeWithMetadata[];
+): PropertyTypeWithMetadata[] => getPropertyTypesBp(subgraph as SubgraphBp);
 
 /**
  * Gets a `PropertyTypeWithMetadata` by its `VersionedUrl` from within the vertices of the subgraph. Returns `undefined`
@@ -55,9 +49,7 @@ export const getPropertyTypeById = (
   subgraph: Subgraph,
   propertyTypeId: VersionedUrl,
 ): PropertyTypeWithMetadata | undefined =>
-  getPropertyTypeByIdBp(subgraph as unknown as SubgraphBp, propertyTypeId) as
-    | PropertyTypeWithMetadata
-    | undefined;
+  getPropertyTypeByIdBp(subgraph as SubgraphBp, propertyTypeId);
 
 /**
  * Gets a `PropertyTypeWithMetadata` by its `OntologyTypeVertexId` from within the vertices of the subgraph. Returns
@@ -71,9 +63,7 @@ export const getPropertyTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): PropertyTypeWithMetadata | undefined =>
-  getPropertyTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
-    | PropertyTypeWithMetadata
-    | undefined;
+  getPropertyTypeByVertexIdBp(subgraph as SubgraphBp, vertexId);
 
 /**
  * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
@@ -85,10 +75,7 @@ export const getPropertyTypesByBaseUrl = (
   subgraph: Subgraph,
   baseUrl: BaseUrl,
 ): PropertyTypeWithMetadata[] =>
-  getPropertyTypesByBaseUrlBp(
-    subgraph as unknown as SubgraphBp,
-    baseUrl,
-  ) as PropertyTypeWithMetadata[];
+  getPropertyTypesByBaseUrlBp(subgraph as SubgraphBp, baseUrl);
 
 export const getPropertyTypeForEntity = (
   subgraph: Subgraph,
@@ -96,7 +83,7 @@ export const getPropertyTypeForEntity = (
   propertyBaseUrl: BaseUrl,
 ): {
   propertyType: PropertyType;
-  refSchema: EntityType["properties"][string];
+  refSchema: EntityType["properties"][BaseUrl];
 } => {
   const entityTypeAndParents = getBreadthFirstEntityTypesAndParents(
     subgraph,
@@ -147,7 +134,7 @@ export const getPropertyTypeForEntity = (
 export const guessSchemaForPropertyValue = (
   subgraph: Subgraph,
   propertyType: PropertyType,
-  value: JsonValue,
+  value: PropertyValue,
 ): {
   schema:
     | DataTypeWithMetadata["schema"]

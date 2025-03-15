@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityType } from "@blockprotocol/type-system/slim";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/design-system";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";

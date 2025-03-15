@@ -2,7 +2,7 @@ use serde_json::json;
 use thiserror::Error;
 
 use super::JsonSchemaValueType;
-use crate::knowledge::Value;
+use crate::knowledge::PropertyValue;
 
 #[derive(Debug, Error)]
 pub enum ConstraintError {
@@ -10,9 +10,15 @@ pub enum ConstraintError {
         "the provided value is not equal to the expected value, expected `{actual}` to be equal \
          to `{expected}`"
     )]
-    InvalidConstValue { actual: Value, expected: Value },
+    InvalidConstValue {
+        actual: PropertyValue,
+        expected: PropertyValue,
+    },
     #[error("the provided value is not one of the expected values, expected `{actual}` to be one of `{}`", json!(expected))]
-    InvalidEnumValue { actual: Value, expected: Vec<Value> },
+    InvalidEnumValue {
+        actual: PropertyValue,
+        expected: Vec<PropertyValue>,
+    },
     #[error("the value does not match the expected constraints")]
     ValueConstraint,
     #[error(

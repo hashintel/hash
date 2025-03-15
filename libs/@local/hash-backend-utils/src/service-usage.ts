@@ -1,15 +1,15 @@
 import type {
-  GraphApi,
+  ActorGroupId,
+  ActorId,
+  ClosedTemporalBound,
+  EntityUuid,
+  OwnedById,
   ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
+  TemporalInterval,
+} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -35,7 +35,6 @@ import type {
   EntityRelationAndSubject,
   EntityRootType,
 } from "@local/hash-subgraph";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { backOff } from "exponential-backoff";
 
@@ -51,8 +50,11 @@ export const getWebServiceUsage = async (
     userAccountId,
     webId,
   }: {
-    userAccountId: AccountId;
-    decisionTimeInterval?: BoundedTimeInterval;
+    userAccountId: ActorId;
+    decisionTimeInterval?: TemporalInterval<
+      ClosedTemporalBound,
+      ClosedTemporalBound
+    >;
     webId: OwnedById;
   },
 ): Promise<AggregatedUsageRecord[]> => {
@@ -135,7 +137,7 @@ export const createUsageRecord = async (
     /**
      * Grant view access on the usage record to these additional accounts
      */
-    additionalViewers?: AccountId[];
+    additionalViewers?: ActorId[];
     /**
      * The web the usage will be assigned to (user or org)
      */
@@ -152,7 +154,7 @@ export const createUsageRecord = async (
      * The user that is incurring the usage (e.g. the user that triggered the flow)
      * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
      */
-    userAccountId: AccountId;
+    userAccountId: ActorId;
   },
 ) => {
   const properties: UsageRecord["propertiesWithMetadata"] = {
@@ -278,7 +280,7 @@ export const createUsageRecord = async (
       relation: "viewer",
       subject: {
         kind: "accountGroup",
-        subjectId: assignUsageToWebId as AccountGroupId,
+        subjectId: assignUsageToWebId as ActorGroupId,
         subjectSet: "administrator",
       },
     });

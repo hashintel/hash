@@ -2,48 +2,17 @@
  * Types used in embedding applications and blocks that support multi-axis temporal versioning schemes.
  */
 
-import type { Subtype } from "../util.js";
-
-/**
- * An ISO 8601 formatted timestamp string
- */
-export type Timestamp = string;
+import type {
+  LimitedTemporalBound,
+  TemporalBound,
+  TemporalInterval,
+  Timestamp,
+} from "@blockprotocol/type-system";
 
 /**
  * @todo - doc
  */
 export type TemporalAxis = "transactionTime" | "decisionTime";
-
-/**
- * The bound of a time-interval that is either exclusively or inclusively limited by a `Timestamp`
- */
-export type LimitedTemporalBound = {
-  kind: "inclusive" | "exclusive";
-  limit: Timestamp;
-};
-
-export type InclusiveLimitedTemporalBound = Subtype<
-  LimitedTemporalBound,
-  {
-    kind: "inclusive";
-    limit: Timestamp;
-  }
->;
-
-export type ExclusiveLimitedTemporalBound = Subtype<
-  LimitedTemporalBound,
-  {
-    kind: "exclusive";
-    limit: Timestamp;
-  }
->;
-
-export type Unbounded = { kind: "unbounded" };
-
-/**
- * The bound (or explicit lack of a bound) of a time-interval
- */
-export type TemporalBound = Unbounded | LimitedTemporalBound;
 
 /**
  * A representation of an interval of time, where the bounds of the interval may be omitted (represented by `null`) to
@@ -60,27 +29,6 @@ export type TimeIntervalUnresolved<
   start: StartBound;
   end: EndBound;
 };
-
-/**
- * A range of time from a given `start` {@link TemporalBound} to a given `end` {@link TemporalBound}, where `start` is
- * strictly before or equal to `end`.
- */
-export type TimeInterval<
-  StartBound extends TemporalBound = TemporalBound,
-  EndBound extends TemporalBound = TemporalBound,
-> = {
-  start: StartBound;
-  end: EndBound;
-};
-
-/**
- * A range of time from a given `start` to a given `end` where both bounds are {@link Timestamp}s, and where `start` is
- * strictly before or equal to `end`.
- */
-export type BoundedTimeInterval = TimeInterval<
-  LimitedTemporalBound,
-  LimitedTemporalBound
->;
 
 /**
  * A representation of a "variable" temporal axis, which is optionally bounded to a given interval where some of the
@@ -112,7 +60,7 @@ export type VariableTemporalAxis<
   EndBound extends LimitedTemporalBound = LimitedTemporalBound,
 > = {
   axis: Axis;
-  interval: TimeInterval<StartBound, EndBound>;
+  interval: TemporalInterval<StartBound, EndBound>;
 };
 
 /**

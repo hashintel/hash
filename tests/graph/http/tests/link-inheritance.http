@@ -194,7 +194,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/left1/v/1"],
   "draft": false,
   "provenance": {
@@ -227,7 +227,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/left2/v/1"],
   "draft": false,
   "provenance": {
@@ -260,7 +260,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/left3/v/1"],
   "draft": false,
   "provenance": {
@@ -293,7 +293,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/right1/v/1"],
   "draft": false,
   "provenance": {
@@ -326,7 +326,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/right2/v/1"],
   "draft": false,
   "provenance": {
@@ -359,7 +359,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/right3/v/1"],
   "draft": false,
   "provenance": {
@@ -392,7 +392,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
     "leftEntityId": "{{left1}}",
@@ -428,7 +428,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
     "leftEntityId": "{{left1}}",
@@ -464,7 +464,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
     "leftEntityId": "{{left1}}",
@@ -500,7 +500,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
     "leftEntityId": "{{left2}}",
@@ -536,7 +536,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
     "leftEntityId": "{{left2}}",
@@ -572,7 +572,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
     "leftEntityId": "{{left2}}",
@@ -608,7 +608,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
     "leftEntityId": "{{left3}}",
@@ -644,7 +644,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
     "leftEntityId": "{{left3}}",
@@ -680,7 +680,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
     "leftEntityId": "{{left3}}",
@@ -716,7 +716,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
     "leftEntityId": "{{left1}}",
@@ -752,7 +752,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
     "leftEntityId": "{{left1}}",
@@ -788,7 +788,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
     "leftEntityId": "{{left1}}",
@@ -824,7 +824,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
     "leftEntityId": "{{left2}}",
@@ -860,7 +860,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
     "leftEntityId": "{{left2}}",
@@ -896,7 +896,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
     "leftEntityId": "{{left2}}",
@@ -932,7 +932,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
     "leftEntityId": "{{left3}}",
@@ -968,7 +968,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
     "leftEntityId": "{{left3}}",
@@ -1004,7 +1004,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
     "leftEntityId": "{{left3}}",
@@ -1040,7 +1040,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
     "leftEntityId": "{{left1}}",
@@ -1076,7 +1076,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
     "leftEntityId": "{{left1}}",
@@ -1112,7 +1112,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
     "leftEntityId": "{{left1}}",
@@ -1148,7 +1148,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
     "leftEntityId": "{{left2}}",
@@ -1184,7 +1184,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
     "leftEntityId": "{{left2}}",
@@ -1220,7 +1220,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
     "leftEntityId": "{{left2}}",
@@ -1256,7 +1256,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
     "leftEntityId": "{{left3}}",
@@ -1292,7 +1292,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
     "leftEntityId": "{{left3}}",
@@ -1328,7 +1328,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
     "leftEntityId": "{{left3}}",

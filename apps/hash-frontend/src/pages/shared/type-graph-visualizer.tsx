@@ -1,10 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import { useTheme } from "@mui/material";
 import type { RefObject } from "react";
 import { useCallback, useMemo } from "react";

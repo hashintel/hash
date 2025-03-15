@@ -127,8 +127,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   useEffect(() => {
     if (
       chosenDataType &&
-      (valueMetadata as PropertyMetadataValue | undefined)?.metadata
-        .dataTypeId !== chosenDataType.dataType.$id
+      valueMetadata?.metadata.dataTypeId !== chosenDataType.dataType.$id
     ) {
       const { propertyMetadata } = generateNewMetadataObject({
         propertyKeyChain,

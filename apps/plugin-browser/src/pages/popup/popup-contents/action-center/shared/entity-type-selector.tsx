@@ -1,7 +1,7 @@
 import type {
   EntityTypeReference,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {

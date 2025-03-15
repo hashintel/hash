@@ -65,7 +65,6 @@ use hash_graph_temporal_versioning::{
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
 };
 use hash_graph_type_fetcher::TypeFetcher;
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
@@ -85,8 +84,8 @@ use type_system::{
             OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
         },
     },
-    provenance::{CreatedById, EditionArchivedById, EditionCreatedById},
-    web::OwnedById,
+    provenance::{ActorId, CreatedById, EditionArchivedById, EditionCreatedById},
+    web::{ActorGroupId, OwnedById},
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,
@@ -112,7 +111,7 @@ use self::{
     },
 };
 
-pub struct AuthenticatedUserHeader(pub AccountId);
+pub struct AuthenticatedUserHeader(pub ActorId);
 
 #[async_trait]
 impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
@@ -125,7 +124,7 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
             let uuid = Uuid::from_str(header_string)
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
-            Ok(Self(AccountId::new(uuid)))
+            Ok(Self(ActorId::new(uuid)))
         } else {
             Err((
                 StatusCode::BAD_REQUEST,
@@ -145,7 +144,7 @@ pub trait RestApiStore:
 {
     fn load_external_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> impl Future<Output = Result<OntologyTypeMetadata, Response>> + Send;
@@ -163,7 +162,7 @@ where
 {
     async fn load_external_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, Response> {
@@ -242,7 +241,7 @@ impl QueryLogger {
     }
 
     #[expect(clippy::missing_panics_doc)]
-    pub fn capture(&mut self, actor: AccountId, query: OpenApiQuery<'_>) {
+    pub fn capture(&mut self, actor: ActorId, query: OpenApiQuery<'_>) {
         let mut record = serde_json::to_value(query)
             .change_context(QueryLoggingError)
             .expect("query should be serializable");
@@ -288,11 +287,11 @@ impl QueryLogger {
 #[serde(tag = "endpoint", content = "query", rename_all = "camelCase")]
 pub enum OpenApiQuery<'a> {
     CheckAccountGroupPermission {
-        account_group_id: AccountGroupId,
+        account_group_id: ActorGroupId,
         permission: AccountGroupPermission,
     },
     GetAccountGroupRelations {
-        account_group_id: AccountGroupId,
+        account_group_id: ActorGroupId,
     },
     GetDataTypes(&'a JsonValue),
     GetDataTypeSubgraph(&'a JsonValue),
@@ -855,6 +854,10 @@ impl Modify for FilterSchemaAddon {
                         .build(),
                 )
                 .into(),
+            );
+            components.schemas.insert(
+                "PropertyValue".to_owned(),
+                ObjectBuilder::new().schema_type(SchemaType::Value).into(),
             );
         }
     }

@@ -2,7 +2,7 @@ import type {
   BaseUrl,
   DataType,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 import {
   buildDataTypeTreesForSelector,
   Button,

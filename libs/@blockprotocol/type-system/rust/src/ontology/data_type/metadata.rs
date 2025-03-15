@@ -25,6 +25,23 @@ pub struct DataTypeMetadata {
     pub conversions: HashMap<BaseUrl, Conversions>,
 }
 
+#[cfg(target_arch = "wasm32")]
+#[derive(tsify::Tsify)]
+#[serde(rename = "DataTypeMetadata", untagged)]
+#[expect(dead_code, reason = "Used in the generated TypeScript types")]
+enum DataTypeMetadataPatch {
+    #[serde(rename_all = "camelCase")]
+    Impl {
+        record_id: OntologyTypeRecordId,
+        #[serde(flatten)]
+        ownership: OntologyOwnership,
+        temporal_versioning: OntologyTemporalMetadata,
+        provenance: OntologyProvenance,
+        #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+        conversions: HashMap<BaseUrl, Conversions>,
+    },
+}
+
 #[cfg(feature = "utoipa")]
 impl ToSchema<'static> for DataTypeMetadata {
     fn schema() -> (&'static str, RefOr<Schema>) {
@@ -84,6 +101,15 @@ impl ToSchema<'static> for DataTypeMetadata {
 }
 
 pub type DataTypeWithMetadata = OntologyTypeWithMetadata<DataType>;
+
+#[cfg(target_arch = "wasm32")]
+#[derive(tsify::Tsify)]
+#[serde(rename = "DataTypeWithMetadata")]
+#[expect(dead_code, reason = "Used in the generated TypeScript types")]
+struct DataTypeWithMetadataPatch {
+    schema: DataType,
+    metadata: DataTypeMetadata,
+}
 
 #[cfg(feature = "utoipa")]
 // Utoipa's signature is too... not generic enough, thus we have to implement it for all ontology

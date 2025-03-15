@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 

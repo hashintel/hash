@@ -21,6 +21,21 @@ pub struct EntityTypeMetadata {
     pub provenance: OntologyProvenance,
 }
 
+#[cfg(target_arch = "wasm32")]
+#[derive(tsify::Tsify)]
+#[serde(rename = "EntityTypeMetadata", untagged)]
+#[expect(dead_code, reason = "Used in the generated TypeScript types")]
+enum EntityTypeMetadataPatch {
+    #[serde(rename_all = "camelCase")]
+    Impl {
+        record_id: OntologyTypeRecordId,
+        #[serde(flatten)]
+        ownership: OntologyOwnership,
+        temporal_versioning: OntologyTemporalMetadata,
+        provenance: OntologyProvenance,
+    },
+}
+
 #[cfg(feature = "utoipa")]
 impl ToSchema<'static> for EntityTypeMetadata {
     fn schema() -> (&'static str, RefOr<Schema>) {
@@ -68,6 +83,15 @@ impl ToSchema<'static> for EntityTypeMetadata {
 }
 
 pub type EntityTypeWithMetadata = OntologyTypeWithMetadata<EntityType>;
+
+#[cfg(target_arch = "wasm32")]
+#[derive(tsify::Tsify)]
+#[serde(rename = "EntityTypeWithMetadata")]
+#[expect(dead_code, reason = "Used in the generated TypeScript types")]
+struct EntityTypeWithMetadataPatch {
+    schema: EntityType,
+    metadata: EntityTypeMetadata,
+}
 
 #[cfg(feature = "utoipa")]
 impl ToSchema<'static> for EntityTypeWithMetadata {

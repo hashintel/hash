@@ -66,13 +66,19 @@ describe("validateVersionedUrl", () => {
 });
 
 const extractBaseUrlCases: [VersionedUrl, BaseUrl][] = [
-  ["http://example.com/v/0", "http://example.com/"],
-  ["http://example.com/sandwich/v/1", "http://example.com/sandwich/"],
+  ["http://example.com/v/0" as VersionedUrl, "http://example.com/" as BaseUrl],
   [
-    "file://localhost/documents/myfolder/v/10",
-    "file://localhost/documents/myfolder/",
+    "http://example.com/sandwich/v/1" as VersionedUrl,
+    "http://example.com/sandwich/" as BaseUrl,
   ],
-  ["ftp://rms@example.com/foo/v/5", "ftp://rms@example.com/foo/"],
+  [
+    "file://localhost/documents/myfolder/v/10" as VersionedUrl,
+    "file://localhost/documents/myfolder/" as BaseUrl,
+  ],
+  [
+    "ftp://rms@example.com/foo/v/5" as VersionedUrl,
+    "ftp://rms@example.com/foo/" as BaseUrl,
+  ],
 ];
 
 describe("extractBaseUrl", () => {
@@ -85,10 +91,10 @@ describe("extractBaseUrl", () => {
 });
 
 const extractVersionCases: [VersionedUrl, number][] = [
-  ["http://example.com/v/0", 0],
-  ["http://example.com/sandwich/v/1", 1],
-  ["file://localhost/documents/myfolder/v/10", 10],
-  ["ftp://rms@example.com/foo/v/5", 5],
+  ["http://example.com/v/0" as VersionedUrl, 0],
+  ["http://example.com/sandwich/v/1" as VersionedUrl, 1],
+  ["file://localhost/documents/myfolder/v/10" as VersionedUrl, 10],
+  ["ftp://rms@example.com/foo/v/5" as VersionedUrl, 5],
 ];
 
 describe("extractVersion", () => {

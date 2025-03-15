@@ -15,10 +15,13 @@ use crate::web::OwnedById;
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct EntityUuid(Uuid);
+pub struct EntityUuid(
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<string, \"EntityUuid\">"))] Uuid,
+);
 
 impl EntityUuid {
     #[must_use]
@@ -46,10 +49,13 @@ impl fmt::Display for EntityUuid {
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct DraftId(Uuid);
+pub struct DraftId(
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<string, \"DraftId\">"))] Uuid,
+);
 
 impl DraftId {
     #[must_use]
@@ -158,13 +164,26 @@ impl ToSchema<'_> for EntityId {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+#[derive(tsify::Tsify)]
+#[serde(rename = "EntityId")]
+#[expect(dead_code, reason = "Used in the generated TypeScript types")]
+pub struct EntityIdPatch(#[tsify(type = "Brand<string, \"EntityId\">")] String);
+
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct EntityEditionId(Uuid);
+pub struct EntityEditionId(
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "Brand<string, \"EntityEditionId\">")
+    )]
+    Uuid,
+);
 
 impl EntityEditionId {
     #[must_use]
@@ -184,6 +203,7 @@ impl EntityEditionId {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRecordId {

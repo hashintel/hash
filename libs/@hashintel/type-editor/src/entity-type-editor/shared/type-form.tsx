@@ -1,4 +1,4 @@
-import type { BaseUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl } from "@blockprotocol/type-system";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import type { ButtonProps } from "@hashintel/design-system";
 import {

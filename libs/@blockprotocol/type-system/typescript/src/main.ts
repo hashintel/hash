@@ -2,8 +2,11 @@
 //
 // import { setWasmInit } from "./common.js";
 
-export { atLeastOne, mustHaveAtLeastOne } from "./common.js";
+export {
+  atLeastOne,
+  Entity,
+  EntityMetadata,
+  mustHaveAtLeastOne,
+} from "./common.js";
 export * from "./native.js";
 export * from "@blockprotocol/type-system-rs";
-
-// setWasmInit(() => (typeof wasm === "function" ? wasm() : wasm));

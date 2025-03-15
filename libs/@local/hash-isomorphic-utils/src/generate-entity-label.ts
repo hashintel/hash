@@ -1,19 +1,22 @@
+import type {
+  BaseUrl,
+  ClosedMultiEntityType,
+  EntityMetadata,
+  EntityTypeWithMetadata,
+  PartialEntityType,
+  Property,
+} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityMetadata, Property } from "@local/hash-graph-types/entity";
 import type {
-  BaseUrl,
-  ClosedMultiEntityType,
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
-  EntityTypeWithMetadata,
-  PartialEntityType,
 } from "@local/hash-graph-types/ontology";
 import type { Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getBreadthFirstEntityTypesAndParents,
   getEntityRevision,
@@ -116,7 +119,7 @@ export const generateEntityLabel = (
     for (const typeToCheck of entityTypesAndAncestors ?? []) {
       const label = getLabelPropertyValue(
         entity,
-        typeToCheck.schema.labelProperty as BaseUrl | undefined,
+        typeToCheck.schema.labelProperty,
       );
 
       if (label) {

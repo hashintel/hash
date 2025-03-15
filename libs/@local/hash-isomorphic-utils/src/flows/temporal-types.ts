@@ -1,5 +1,4 @@
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { ActorId, OwnedById } from "@blockprotocol/type-system";
 import type { Status } from "@local/status";
 
 import type {
@@ -13,7 +12,7 @@ export type RunFlowWorkflowParams = {
   dataSources: FlowDataSources;
   flowTrigger: FlowTrigger;
   flowDefinition: FlowDefinition;
-  userAuthentication: { actorId: AccountId };
+  userAuthentication: { actorId: ActorId };
   webId: OwnedById;
 };
 

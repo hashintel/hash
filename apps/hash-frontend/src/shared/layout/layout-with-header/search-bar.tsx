@@ -1,5 +1,9 @@
 import { useQuery } from "@apollo/client";
 import type { EntityType } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { Chip, IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -13,10 +17,6 @@ import type {
   EntityRootType,
   EntityTypeRootType,
   Subgraph,
-} from "@local/hash-subgraph";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import {
   getEntityTypeById,

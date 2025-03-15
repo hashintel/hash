@@ -1,8 +1,8 @@
+import type { Timestamp } from "@blockprotocol/type-system";
 import type {
   QueryTemporalAxes as QueryTemporalAxesGraphApi,
   QueryTemporalAxesUnresolved as QueryTemporalAxesUnresolvedGraphApi,
 } from "@local/hash-graph-client";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 
 import type {
   QueryTemporalAxes,

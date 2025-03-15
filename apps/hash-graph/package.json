@@ -28,7 +28,6 @@
     "@rust/hash-graph-store": "0.0.0-private",
     "@rust/hash-graph-test-server": "0.0.0-private",
     "@rust/hash-graph-type-fetcher": "0.0.0-private",
-    "@rust/hash-graph-types": "0.0.0-private",
     "@rust/hash-temporal-client": "0.0.0-private",
     "@rust/hash-tracing": "0.0.0-private"
   }

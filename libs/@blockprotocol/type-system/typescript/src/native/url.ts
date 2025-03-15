@@ -27,7 +27,7 @@ export const validateBaseUrl = (
     if (url.endsWith("/")) {
       return {
         type: "Ok",
-        inner: url,
+        inner: url as BaseUrl,
       };
     } else {
       return {
@@ -53,6 +53,10 @@ export const validateBaseUrl = (
       },
     };
   }
+};
+
+export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
+  return validateBaseUrl(baseUrl).type === "Ok";
 };
 
 const versionedUrlRegExp = /(.+\/)v\/(.*)/;
@@ -164,7 +168,7 @@ export const extractBaseUrl = (url: VersionedUrl): BaseUrl => {
     throw new Error(`Not a valid VersionedUrl: ${url}`);
   }
 
-  return baseUrl;
+  return baseUrl as BaseUrl;
 };
 
 /**

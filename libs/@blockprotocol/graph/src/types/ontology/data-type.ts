@@ -1,13 +1,7 @@
-import type { DataType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 import type { QueryOperationInput } from "../entity.js";
 import type { DataTypeRootType, Subgraph } from "../subgraph.js";
-import type { OntologyElementMetadata } from "./metadata.js";
-
-export type DataTypeWithMetadata = {
-  schema: DataType;
-  metadata: OntologyElementMetadata;
-};
 
 export type QueryDataTypesData = {
   graphResolveDepths?: Partial<Pick<Subgraph["depths"], "constrainsValuesOn">>;

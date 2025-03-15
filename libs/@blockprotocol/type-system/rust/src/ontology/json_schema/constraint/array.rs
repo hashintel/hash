@@ -11,7 +11,7 @@ use super::{
     NumberSchema, StringSchema,
 };
 use crate::{
-    knowledge::Value,
+    knowledge::PropertyValue,
     ontology::data_type::schema::{ResolveClosedDataTypeError, ValueLabel},
 };
 
@@ -67,10 +67,10 @@ impl Constraint for ArrayItemConstraints {
     }
 }
 
-impl ConstraintValidator<Value> for ArrayItemConstraints {
+impl ConstraintValidator<PropertyValue> for ArrayItemConstraints {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &Value) -> bool {
+    fn is_valid(&self, value: &PropertyValue) -> bool {
         match self {
             Self::Boolean => BooleanSchema.is_valid(value),
             Self::Number(schema) => schema.is_valid(value),
@@ -78,7 +78,7 @@ impl ConstraintValidator<Value> for ArrayItemConstraints {
         }
     }
 
-    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &PropertyValue) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Boolean => BooleanSchema.validate_value(value),
             Self::Number(schema) => schema.validate_value(value),
@@ -184,19 +184,19 @@ impl Constraint for ArraySchema {
     }
 }
 
-impl ConstraintValidator<Value> for ArraySchema {
+impl ConstraintValidator<PropertyValue> for ArraySchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &Value) -> bool {
-        if let Value::Array(array) = value {
+    fn is_valid(&self, value: &PropertyValue) -> bool {
+        if let PropertyValue::Array(array) = value {
             self.is_valid(array.as_slice())
         } else {
             false
         }
     }
 
-    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
-        if let Value::Array(array) = value {
+    fn validate_value(&self, value: &PropertyValue) -> Result<(), Report<ConstraintError>> {
+        if let PropertyValue::Array(array) = value {
             self.validate_value(array.as_slice())
         } else {
             bail!(ConstraintError::InvalidType {
@@ -207,17 +207,17 @@ impl ConstraintValidator<Value> for ArraySchema {
     }
 }
 
-impl ConstraintValidator<[Value]> for ArraySchema {
+impl ConstraintValidator<[PropertyValue]> for ArraySchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &[Value]) -> bool {
+    fn is_valid(&self, value: &[PropertyValue]) -> bool {
         match self {
             Self::Constrained(constraints) => constraints.is_valid(value),
             Self::Tuple(constraints) => constraints.is_valid(value),
         }
     }
 
-    fn validate_value(&self, value: &[Value]) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &[PropertyValue]) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Constrained(constraints) => constraints
                 .validate_value(value)
@@ -262,16 +262,19 @@ impl Constraint for ArrayConstraints {
     }
 }
 
-impl ConstraintValidator<[Value]> for ArrayConstraints {
+impl ConstraintValidator<[PropertyValue]> for ArrayConstraints {
     type Error = [ArrayValidationError];
 
-    fn is_valid(&self, value: &[Value]) -> bool {
+    fn is_valid(&self, value: &[PropertyValue]) -> bool {
         self.items
             .as_ref()
             .is_none_or(|items| value.iter().all(|value| items.constraints.is_valid(value)))
     }
 
-    fn validate_value(&self, value: &[Value]) -> Result<(), Report<[ArrayValidationError]>> {
+    fn validate_value(
+        &self,
+        value: &[PropertyValue],
+    ) -> Result<(), Report<[ArrayValidationError]>> {
         let mut status = ReportSink::new();
 
         if let Some(items) = &self.items {
@@ -339,10 +342,10 @@ impl Constraint for TupleConstraints {
     }
 }
 
-impl ConstraintValidator<[Value]> for TupleConstraints {
+impl ConstraintValidator<[PropertyValue]> for TupleConstraints {
     type Error = [ArrayValidationError];
 
-    fn is_valid(&self, value: &[Value]) -> bool {
+    fn is_valid(&self, value: &[PropertyValue]) -> bool {
         let num_values = value.len();
         let num_prefix_items = self.prefix_items.len();
         if num_values != num_prefix_items {
@@ -355,7 +358,10 @@ impl ConstraintValidator<[Value]> for TupleConstraints {
             .all(|(schema, value)| schema.constraints.is_valid(value))
     }
 
-    fn validate_value(&self, value: &[Value]) -> Result<(), Report<[ArrayValidationError]>> {
+    fn validate_value(
+        &self,
+        value: &[PropertyValue],
+    ) -> Result<(), Report<[ArrayValidationError]>> {
         let mut status = ReportSink::new();
 
         let num_values = value.len();

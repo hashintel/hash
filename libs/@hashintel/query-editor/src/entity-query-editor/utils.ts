@@ -1,4 +1,5 @@
 import type { MultiFilter } from "@blockprotocol/graph";
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 import type {
   FilterValue,
@@ -100,7 +101,7 @@ export const mapMultiFilterToFormValues = (
 
       /** @todo what about targeting a nested property? */
     } else if (isTargetingProperty && filter.field[1]) {
-      const propertyTypeBaseUrl = filter.field[1] as string;
+      const propertyTypeBaseUrl = filter.field[1] as BaseUrl;
 
       const isEmpty = filter.operator === "EQUALS" && filter.value === null;
       const isNotEmpty =

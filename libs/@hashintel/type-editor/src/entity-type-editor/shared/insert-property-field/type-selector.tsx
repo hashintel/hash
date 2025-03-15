@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { TypeListSelectorDropdownProps } from "@hashintel/design-system";
 import { SelectorAutocomplete } from "@hashintel/design-system";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";

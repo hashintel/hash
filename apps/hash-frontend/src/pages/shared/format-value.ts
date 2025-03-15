@@ -1,10 +1,7 @@
 import type { JsonValue } from "@blockprotocol/core";
+import type { PropertyMetadata } from "@blockprotocol/type-system";
+import { isArrayMetadata, isValueMetadata } from "@blockprotocol/type-system";
 import { customColors } from "@hashintel/design-system/theme";
-import {
-  isArrayMetadata,
-  isValueMetadata,
-  type PropertyMetadata,
-} from "@local/hash-graph-types/entity";
 import type {
   ClosedDataTypeDefinition,
   ClosedMultiEntityTypesDefinitions,

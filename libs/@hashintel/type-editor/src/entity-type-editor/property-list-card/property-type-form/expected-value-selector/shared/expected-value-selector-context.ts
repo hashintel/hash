@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { RefObject } from "react";
 import { createContext, useContext } from "react";
 

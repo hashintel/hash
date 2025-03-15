@@ -26,7 +26,7 @@ pub use self::{
     },
 };
 use crate::{
-    knowledge::Value,
+    knowledge::PropertyValue,
     ontology::data_type::schema::{ResolveClosedDataTypeError, ValueLabel},
 };
 
@@ -167,17 +167,17 @@ impl Constraint for ValueConstraints {
     }
 }
 
-impl ConstraintValidator<Value> for ValueConstraints {
+impl ConstraintValidator<PropertyValue> for ValueConstraints {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &Value) -> bool {
+    fn is_valid(&self, value: &PropertyValue) -> bool {
         match self {
             Self::Typed(constraints) => constraints.is_valid(value),
             Self::AnyOf(constraints) => constraints.is_valid(value),
         }
     }
 
-    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &PropertyValue) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Typed(constraints) => constraints.validate_value(value),
             Self::AnyOf(constraints) => constraints.validate_value(value),
@@ -223,15 +223,15 @@ pub enum SingleValueConstraints {
     Object,
 }
 
-impl From<&Value> for JsonSchemaValueType {
-    fn from(value: &Value) -> Self {
+impl From<&PropertyValue> for JsonSchemaValueType {
+    fn from(value: &PropertyValue) -> Self {
         match value {
-            Value::Null => Self::Null,
-            Value::Bool(_) => Self::Boolean,
-            Value::Number(_) => Self::Number,
-            Value::String(_) => Self::String,
-            Value::Array(_) => Self::Array,
-            Value::Object(_) => Self::Object,
+            PropertyValue::Null => Self::Null,
+            PropertyValue::Bool(_) => Self::Boolean,
+            PropertyValue::Number(_) => Self::Number,
+            PropertyValue::String(_) => Self::String,
+            PropertyValue::Array(_) => Self::Array,
+            PropertyValue::Object(_) => Self::Object,
         }
     }
 }
@@ -259,10 +259,10 @@ impl Constraint for SingleValueConstraints {
     }
 }
 
-impl ConstraintValidator<Value> for SingleValueConstraints {
+impl ConstraintValidator<PropertyValue> for SingleValueConstraints {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &Value) -> bool {
+    fn is_valid(&self, value: &PropertyValue) -> bool {
         match self {
             Self::Null => NullSchema.is_valid(value),
             Self::Boolean => BooleanSchema.is_valid(value),
@@ -273,7 +273,7 @@ impl ConstraintValidator<Value> for SingleValueConstraints {
         }
     }
 
-    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &PropertyValue) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Null => NullSchema.validate_value(value),
             Self::Boolean => BooleanSchema.validate_value(value),

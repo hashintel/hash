@@ -1,6 +1,6 @@
 import type { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import { getPropertyTypesReferencedByEntityType as getPropertyTypesReferencedByEntityTypeBp } from "@blockprotocol/graph/stdlib";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
 

@@ -1,16 +1,7 @@
-import type {
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 
 import type { QueryOperationInput } from "../entity.js";
 import type { PropertyTypeRootType, Subgraph } from "../subgraph.js";
-import type { OntologyElementMetadata } from "./metadata.js";
-
-export type PropertyTypeWithMetadata = {
-  schema: PropertyType;
-  metadata: OntologyElementMetadata;
-};
 
 export type QueryPropertyTypesData = {
   graphResolveDepths?: Partial<

@@ -1,4 +1,4 @@
-import type { EntityType, PropertyType } from "@blockprotocol/type-system/slim";
+import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Button, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";

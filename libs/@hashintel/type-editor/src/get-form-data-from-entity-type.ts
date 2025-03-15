@@ -1,4 +1,4 @@
-import type { EntityType } from "@blockprotocol/type-system";
+import type { BaseUrl, EntityType } from "@blockprotocol/type-system";
 
 import type { EntityTypeEditorFormData } from "./shared/form-types";
 
@@ -18,7 +18,7 @@ export const getFormDataFromEntityType = (
 
     return {
       $id: isArray ? ref.items.$ref : ref.$ref,
-      required: !!schema.required?.includes(propertyId),
+      required: !!schema.required?.includes(propertyId as BaseUrl),
       array: isArray,
       maxValue: isArray ? (ref.maxItems ?? 1) : 1,
       minValue: isArray ? (ref.minItems ?? 0) : 0,

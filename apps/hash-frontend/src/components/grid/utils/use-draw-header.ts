@@ -1,4 +1,4 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   DrawHeaderCallback,
   SizedGridColumn,

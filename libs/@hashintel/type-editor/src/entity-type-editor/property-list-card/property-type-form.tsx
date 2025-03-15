@@ -1,4 +1,4 @@
-import type { BaseUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 import { useOntologyFunctions } from "../../shared/ontology-functions-context";
 import type { TypeFormProps } from "../shared/type-form";

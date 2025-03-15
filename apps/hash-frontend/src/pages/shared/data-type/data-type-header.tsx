@@ -1,5 +1,5 @@
-import type { DataType } from "@blockprotocol/type-system/slim";
-import { extractVersion } from "@blockprotocol/type-system/slim";
+import type { DataType } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
 import {
   ArrowUpRightFromSquareRegularIcon,
   ArrowUpRightIcon,

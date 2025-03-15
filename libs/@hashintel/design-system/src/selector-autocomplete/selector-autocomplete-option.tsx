@@ -1,5 +1,8 @@
-import type { EntityPropertiesObject } from "@blockprotocol/graph";
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  BaseUrl,
+  PropertyObject,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { Box, Paper, Popper, Stack, Tooltip, Typography } from "@mui/material";
 import clsx from "clsx";
 import type { HTMLAttributes, ReactElement } from "react";
@@ -13,14 +16,14 @@ import { ImageWithCheckedBackground } from "../image-with-checked-background";
 import { OntologyChip } from "../ontology-chip";
 import { parseUrlForOntologyChip } from "../parse-url-for-ontology-chip";
 
-const descriptionPropertyKey: BaseUrl =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
+const descriptionPropertyKey =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/" as BaseUrl;
 
-const fileUrlPropertyKey: BaseUrl =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/";
+const fileUrlPropertyKey =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/" as BaseUrl;
 
-const mimeTypePropertyKey: BaseUrl =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/";
+const mimeTypePropertyKey =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/" as BaseUrl;
 
 const imageThumbnailWidth = 90;
 
@@ -29,7 +32,7 @@ type TypeDisplayData = { $id: VersionedUrl; icon?: string; title: string };
 export type SelectorAutocompleteOptionProps = {
   liProps: HTMLAttributes<HTMLLIElement> & { key?: string };
   description?: string;
-  entityProperties?: EntityPropertiesObject;
+  entityProperties?: PropertyObject;
   icon: string | ReactElement | null;
   title: string;
   types: [TypeDisplayData, ...TypeDisplayData[]];

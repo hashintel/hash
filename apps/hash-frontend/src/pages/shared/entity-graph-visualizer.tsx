@@ -1,5 +1,5 @@
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { ibm } from "@hashintel/design-system/palettes";
 import {
   getClosedMultiEntityTypeFromMap,

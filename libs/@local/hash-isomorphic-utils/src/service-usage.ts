@@ -1,5 +1,8 @@
+import type {
+  ClosedTemporalBound,
+  TemporalInterval,
+} from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 
@@ -92,7 +95,10 @@ export type AggregatedUsageRecord = {
   totalOutputUnitCount: number;
   totalCostInUsd: number;
   last24hoursTotalCostInUsd: number;
-  limitedToPeriod: BoundedTimeInterval | null;
+  limitedToPeriod: TemporalInterval<
+    ClosedTemporalBound,
+    ClosedTemporalBound
+  > | null;
 };
 
 export const getAggregateUsageRecordsByServiceFeature = ({
@@ -100,7 +106,10 @@ export const getAggregateUsageRecordsByServiceFeature = ({
   serviceUsageRecords,
   serviceUsageRecordSubgraph,
 }: {
-  decisionTimeInterval?: BoundedTimeInterval;
+  decisionTimeInterval?: TemporalInterval<
+    ClosedTemporalBound,
+    ClosedTemporalBound
+  >;
   serviceUsageRecords: Entity<UsageRecord>[];
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
 }): AggregatedUsageRecord[] => {

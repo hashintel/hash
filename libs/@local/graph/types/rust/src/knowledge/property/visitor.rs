@@ -5,10 +5,10 @@ use error_stack::Report;
 use futures::FutureExt as _;
 use type_system::{
     knowledge::{
-        Value,
+        PropertyValue,
         property::{
-            PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
-            PropertyWithMetadataValue,
+            PropertyArrayWithMetadata, PropertyObjectWithMetadata, PropertyValueWithMetadata,
+            PropertyWithMetadata,
         },
         value::ValueMetadata,
     },
@@ -282,7 +282,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     fn visit_value<P>(
         &mut self,
         desired_data_type_reference: &DataTypeReference,
-        value: &mut Value,
+        value: &mut PropertyValue,
         metadata: &mut ValueMetadata,
         type_provider: &P,
     ) -> impl Future<Output = Result<(), ValueValidationReport>> + Send
@@ -310,7 +310,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     fn visit_array<T, P>(
         &mut self,
         schema: &PropertyValueArray<T>,
-        array: &mut PropertyWithMetadataArray,
+        array: &mut PropertyArrayWithMetadata,
         type_provider: &P,
     ) -> impl Future<Output = Result<(), ArrayValidationReport>> + Send
     where
@@ -335,7 +335,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     fn visit_object<T, P>(
         &mut self,
         schema: &T,
-        object: &mut PropertyWithMetadataObject,
+        object: &mut PropertyObjectWithMetadata,
         type_provider: &P,
     ) -> impl Future<Output = Result<(), ObjectValidationReport>> + Send
     where
@@ -357,7 +357,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     fn visit_one_of_property<P>(
         &mut self,
         schema: &[PropertyValues],
-        property: &mut PropertyWithMetadataValue,
+        property: &mut PropertyValueWithMetadata,
         type_provider: &P,
     ) -> impl Future<Output = Result<(), OneOfPropertyValidationReports>> + Send
     where
@@ -372,7 +372,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     fn visit_one_of_array<P>(
         &mut self,
         schema: &[PropertyValues],
-        array: &mut PropertyWithMetadataArray,
+        array: &mut PropertyArrayWithMetadata,
         type_provider: &P,
     ) -> impl Future<Output = Result<(), OneOfArrayValidationReports>> + Send
     where
@@ -387,7 +387,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     fn visit_one_of_object<P>(
         &mut self,
         schema: &[PropertyValues],
-        object: &mut PropertyWithMetadataObject,
+        object: &mut PropertyObjectWithMetadata,
         type_provider: &P,
     ) -> impl Future<Output = Result<(), OneOfObjectValidationReports>> + Send
     where
@@ -440,7 +440,7 @@ where
 pub async fn walk_array<V, S, P>(
     visitor: &mut V,
     schema: &PropertyValueArray<S>,
-    array: &mut PropertyWithMetadataArray,
+    array: &mut PropertyArrayWithMetadata,
     type_provider: &P,
 ) -> HashMap<usize, PropertyValidationReport>
 where
@@ -496,7 +496,7 @@ where
 pub async fn walk_object<V, S, P>(
     visitor: &mut V,
     schema: &S,
-    object: &mut PropertyWithMetadataObject,
+    object: &mut PropertyObjectWithMetadata,
     type_provider: &P,
 ) -> HashMap<BaseUrl, ObjectPropertyValidationReport>
 where
@@ -613,7 +613,7 @@ where
 pub async fn walk_one_of_property_value<V, P>(
     visitor: &mut V,
     schema: &[PropertyValues],
-    property: &mut PropertyWithMetadataValue,
+    property: &mut PropertyValueWithMetadata,
     type_provider: &P,
 ) -> Result<(), OneOfPropertyValidationReports>
 where
@@ -665,7 +665,7 @@ where
 pub async fn walk_one_of_array<V, P>(
     visitor: &mut V,
     schema: &[PropertyValues],
-    array: &mut PropertyWithMetadataArray,
+    array: &mut PropertyArrayWithMetadata,
     type_provider: &P,
 ) -> Result<(), OneOfArrayValidationReports>
 where
@@ -709,7 +709,7 @@ where
 pub async fn walk_one_of_object<V, P>(
     visitor: &mut V,
     schema: &[PropertyValues],
-    object: &mut PropertyWithMetadataObject,
+    object: &mut PropertyObjectWithMetadata,
     type_provider: &P,
 ) -> Result<(), OneOfObjectValidationReports>
 where

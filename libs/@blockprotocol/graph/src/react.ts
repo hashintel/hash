@@ -1,10 +1,10 @@
 import { useModuleConstructor } from "@blockprotocol/core/react";
+import type { Entity } from "@blockprotocol/type-system";
 import type { FunctionComponent, RefObject } from "react";
 import { useMemo } from "react";
 
 import type {
   BlockGraphProperties,
-  Entity,
   EntityVertexId,
   LinkEntityAndRightEntity,
   Subgraph,

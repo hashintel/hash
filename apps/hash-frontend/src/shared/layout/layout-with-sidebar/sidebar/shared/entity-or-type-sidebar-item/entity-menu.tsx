@@ -1,11 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   faAdd,
   faAsterisk,
   faChain,
   faList,
 } from "@fortawesome/free-solid-svg-icons";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Menu } from "@mui/material";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import { bindMenu } from "material-ui-popup-state/hooks";

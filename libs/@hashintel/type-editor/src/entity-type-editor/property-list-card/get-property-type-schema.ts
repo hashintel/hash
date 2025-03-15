@@ -8,8 +8,8 @@ import type {
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
+import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
 
 import type {
   ArrayExpectedValue,

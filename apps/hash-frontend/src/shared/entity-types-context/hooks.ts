@@ -1,8 +1,9 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   BaseUrl,
+  EntityType,
   EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { useMemo } from "react";
 
 import { isTypeArchived } from "../is-archived";

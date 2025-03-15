@@ -1,6 +1,9 @@
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type {
+  EntityId,
+  OwnedById,
+  PropertyObject,
+  Timestamp,
+} from "@blockprotocol/type-system";
 import type { Draft } from "immer";
 import { castDraft, produce } from "immer";
 import { isEqual } from "lodash-es";

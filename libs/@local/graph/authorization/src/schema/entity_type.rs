@@ -1,8 +1,11 @@
 use core::error::Error;
 
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
-use type_system::{ontology::entity_type::EntityTypeUuid, web::OwnedById};
+use type_system::{
+    ontology::entity_type::EntityTypeUuid,
+    provenance::ActorId,
+    web::{ActorGroupId, OwnedById},
+};
 use uuid::Uuid;
 
 use crate::{
@@ -78,8 +81,8 @@ pub enum EntityTypeSubject {
     Web(OwnedById),
     Setting(EntityTypeSetting),
     Public,
-    Account(AccountId),
-    AccountGroup(AccountGroupId),
+    Account(ActorId),
+    AccountGroup(ActorGroupId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -128,10 +131,10 @@ impl Resource for EntityTypeSubject {
                 EntityTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (EntityTypeSubjectNamespace::Account, EntityTypeSubjectId::Uuid(id)) => {
-                Self::Account(AccountId::new(id))
+                Self::Account(ActorId::new(id))
             }
             (EntityTypeSubjectNamespace::AccountGroup, EntityTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(AccountGroupId::new(id))
+                Self::AccountGroup(ActorGroupId::new(id))
             }
             (
                 EntityTypeSubjectNamespace::Web
@@ -201,11 +204,11 @@ pub enum EntityTypeSettingSubject {
 pub enum EntityTypeEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: EntityTypeSubjectSet,
     },
@@ -225,11 +228,11 @@ pub enum EntityTypeInstantiatorSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: EntityTypeSubjectSet,
     },

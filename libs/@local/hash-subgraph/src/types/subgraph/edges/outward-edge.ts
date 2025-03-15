@@ -5,14 +5,14 @@ import {
   isOntologyOutwardEdge as isOntologyOutwardEdgeBp,
   type OutwardEdge as OutwardEdgeBp,
 } from "@blockprotocol/graph";
-import type { Subtype } from "@local/advanced-types/subtype";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
+  EntityId,
   LimitedTemporalBound,
   TemporalBound,
-  TimeInterval,
+  TemporalInterval,
   Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
+} from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
 
 import type {
   KnowledgeGraphOutwardEdge,
@@ -43,7 +43,7 @@ export type EntityIdWithInterval = Subtype<
   EntityIdWithIntervalBp,
   {
     entityId: EntityId;
-    interval: TimeInterval<LimitedTemporalBound, TemporalBound>;
+    interval: TemporalInterval<LimitedTemporalBound, TemporalBound>;
   }
 >;
 

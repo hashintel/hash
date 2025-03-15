@@ -1,12 +1,9 @@
+import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import {
   atLeastOne,
   extractVersion,
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
-import type {
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {

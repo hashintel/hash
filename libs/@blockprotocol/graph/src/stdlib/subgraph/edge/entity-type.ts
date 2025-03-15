@@ -1,11 +1,8 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
-  extractVersion,
-} from "@blockprotocol/type-system/slim";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 
 import type {
-  OntologyOutwardEdge,
+  OntologyRootedEdges,
   OntologyTypeRevisionId,
   OntologyTypeVertexId,
   Subgraph,
@@ -59,15 +56,17 @@ export const getEntityTypesReferencedByEntityType = (
 
   if (typeof entityTypeId === "string") {
     baseUrl = extractBaseUrl(entityTypeId);
-    revisionId = extractVersion(entityTypeId).toString();
+    revisionId = extractVersion(
+      entityTypeId,
+    ).toString() as OntologyTypeRevisionId;
   } else {
     baseUrl = entityTypeId.baseId;
     revisionId = entityTypeId.revisionId;
   }
 
-  const outwardEdges = subgraph.edges[baseUrl]?.[revisionId] as
-    | OntologyOutwardEdge[]
-    | undefined;
+  const outwardEdges = (subgraph.edges as OntologyRootedEdges)[baseUrl]?.[
+    revisionId
+  ];
 
   const ontologyVertexIds = {
     inheritsFrom: [],

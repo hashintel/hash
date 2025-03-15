@@ -17,7 +17,7 @@ use hash_graph_types::{
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use tokio_postgres::GenericClient as _;
 use type_system::{
-    knowledge::{Entity, entity::id::EntityUuid, property::PropertyWithMetadataObject},
+    knowledge::{Entity, entity::id::EntityUuid, property::PropertyObjectWithMetadata},
     ontology::entity_type::{ClosedEntityType, ClosedMultiEntityType},
 };
 
@@ -314,7 +314,7 @@ where
             } else {
                 ValidateEntityComponents::full()
             };
-            let mut property_with_metadata = PropertyWithMetadataObject::from_parts(
+            let mut property_with_metadata = PropertyObjectWithMetadata::from_parts(
                 entity.properties.clone(),
                 Some(entity.metadata.properties.clone()),
             )

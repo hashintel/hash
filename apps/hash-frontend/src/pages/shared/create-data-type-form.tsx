@@ -1,6 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
-import type { DataType, VersionedUrl } from "@blockprotocol/type-system/slim";
-import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system/slim";
+import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
+import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { Callout, TextField } from "@hashintel/design-system";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { Box, Stack } from "@mui/material";

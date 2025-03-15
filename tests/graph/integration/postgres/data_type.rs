@@ -21,10 +21,10 @@ use hash_graph_temporal_versioning::TemporalBound;
 use time::OffsetDateTime;
 use type_system::{
     knowledge::{
-        Value,
+        PropertyValue,
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{
-            PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
+            PropertyObjectWithMetadata, PropertyValueWithMetadata, PropertyWithMetadata,
             metadata::ObjectMetadata,
         },
         value::{ValueMetadata, metadata::ValueProvenance},
@@ -309,14 +309,14 @@ async fn inheritance() {
                     "http://localhost:3000/@alice/types/entity-type/line/v/1",
                 )
                 .expect("couldn't construct Base URL")]),
-                properties: PropertyWithMetadataObject {
+                properties: PropertyObjectWithMetadata {
                     value: HashMap::from([(
                         BaseUrl::new(
                             "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                         )
                         .expect("couldn't construct Base URL"),
-                        PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                            value: Value::Number(Real::from(5)),
+                        PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                            value: PropertyValue::Number(Real::from(5)),
                             metadata: ValueMetadata {
                                 provenance: ValueProvenance::default(),
                                 confidence: None,
@@ -356,14 +356,14 @@ async fn inheritance() {
                 "http://localhost:3000/@alice/types/entity-type/line/v/1",
             )
             .expect("couldn't construct Base URL")]),
-            properties: PropertyWithMetadataObject {
+            properties: PropertyObjectWithMetadata {
                 value: HashMap::from([(
                     BaseUrl::new(
                         "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
-                    PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: Value::Number(Real::from(10)),
+                    PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                        value: PropertyValue::Number(Real::from(10)),
                         metadata: ValueMetadata {
                             provenance: ValueProvenance::default(),
                             confidence: None,
@@ -401,14 +401,14 @@ async fn inheritance() {
                 "http://localhost:3000/@alice/types/entity-type/line/v/1",
             )
             .expect("couldn't construct Base URL")]),
-            properties: PropertyWithMetadataObject {
+            properties: PropertyObjectWithMetadata {
                 value: HashMap::from([(
                     BaseUrl::new(
                         "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
-                    PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: Value::Number(Real::from(10)),
+                    PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                        value: PropertyValue::Number(Real::from(10)),
                         metadata: ValueMetadata {
                             provenance: ValueProvenance::default(),
                             confidence: None,

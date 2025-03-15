@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   CustomCell,
   Item,
@@ -354,7 +354,7 @@ export const EntitiesTable: FunctionComponent<
         | NumberCell
         | BlankCell
         | CustomCell => {
-        const columnId = columns[colIndex]?.id as EntitiesTableColumnKey;
+        const columnId = columns[colIndex]?.id;
 
         if (columnId) {
           const row = entityRows[rowIndex];

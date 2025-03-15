@@ -1,16 +1,21 @@
 import type {
   BlockGraphProperties,
+  EntityRevisionId,
   GraphEmbedderMessageCallbacks,
   Subgraph as BpSubgraph,
 } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityRecordId,
   PropertyObject,
-} from "@local/hash-graph-types/entity";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  extractOwnedByIdFromEntityId,
+  isEntityId,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import {
@@ -20,12 +25,10 @@ import {
 import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import type {
-  EntityRevisionId,
   EntityRootType,
   EntityVertex,
   Subgraph,
 } from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId, isEntityId } from "@local/hash-subgraph";
 import type { FunctionComponent } from "react";
 import {
   useCallback,
@@ -333,7 +336,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
           roots = [
             {
               baseId: entityIdOrTypeId,
-              revisionId: draftEntityEditionTimestamp as EntityRevisionId,
+              revisionId: draftEntityEditionTimestamp,
             },
           ];
         }

@@ -1,3 +1,4 @@
+import type { EntityUuid } from "@blockprotocol/type-system";
 import {
   BullseyeLightIcon,
   InfinityLightIcon,
@@ -5,7 +6,6 @@ import {
   TerminalLightIcon,
 } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   generateWorkerRunPath,
   workerFlowFilterParam,

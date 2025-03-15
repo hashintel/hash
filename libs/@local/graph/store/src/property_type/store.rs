@@ -4,12 +4,15 @@ use core::iter;
 use error_stack::Report;
 use hash_graph_authorization::schema::PropertyTypeRelationAndSubject;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-use hash_graph_types::{Embedding, account::AccountId};
+use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
-use type_system::ontology::{
-    OntologyTemporalMetadata, VersionedUrl,
-    property_type::{PropertyType, PropertyTypeMetadata, PropertyTypeWithMetadata},
-    provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+use type_system::{
+    ontology::{
+        OntologyTemporalMetadata, VersionedUrl,
+        property_type::{PropertyType, PropertyTypeMetadata, PropertyTypeWithMetadata},
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
+    provenance::ActorId,
 };
 
 use crate::{
@@ -142,7 +145,7 @@ pub trait PropertyTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_property_type<R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: CreatePropertyTypeParams<R>,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, Report<InsertionError>>> + Send
     where
@@ -168,7 +171,7 @@ pub trait PropertyTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_property_types<P, R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>> + Send
     where
@@ -182,7 +185,7 @@ pub trait PropertyTypeStore {
     /// - if the underlying store fails to count the property types.
     fn count_property_types(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: CountPropertyTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
@@ -193,7 +196,7 @@ pub trait PropertyTypeStore {
     /// - if the requested [`PropertyType`] doesn't exist.
     fn get_property_type_subgraph(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: GetPropertyTypeSubgraphParams<'_>,
     ) -> impl Future<Output = Result<GetPropertyTypeSubgraphResponse, Report<QueryError>>> + Send;
 
@@ -206,7 +209,7 @@ pub trait PropertyTypeStore {
     /// [`PropertyTypes`]: PropertyType
     fn get_property_types(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: GetPropertyTypesParams<'_>,
     ) -> impl Future<Output = Result<GetPropertyTypesResponse, Report<QueryError>>> + Send;
 
@@ -217,7 +220,7 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`] doesn't exist.
     fn update_property_type<R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: UpdatePropertyTypesParams<R>,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, Report<UpdateError>>> + Send
     where
@@ -240,7 +243,7 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`]s do not exist.
     fn update_property_types<P, R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>> + Send
     where
@@ -254,7 +257,7 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`] doesn't exist.
     fn archive_property_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
 
         params: ArchivePropertyTypeParams<'_>,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
@@ -266,14 +269,14 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`] doesn't exist.
     fn unarchive_property_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
 
         params: UnarchivePropertyTypeParams<'_>,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     fn update_property_type_embeddings(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
 
         params: UpdatePropertyTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;

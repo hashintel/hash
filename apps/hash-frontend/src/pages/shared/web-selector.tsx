@@ -1,9 +1,9 @@
+import type { OwnedById } from "@blockprotocol/type-system";
 import {
   AngleRightRegularIcon,
   Autocomplete,
   Avatar,
 } from "@hashintel/design-system";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   autocompleteClasses,
   Box,

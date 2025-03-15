@@ -4,11 +4,11 @@
 
 import type {
   ArrayMetadata,
+  Confidence,
   ObjectMetadata,
   PropertyProvenance,
-} from "@local/hash-graph-client";
+} from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { Confidence } from "@local/hash-graph-types/entity";
 
 /**
  * Someone or something that can perform actions in the system

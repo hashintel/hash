@@ -1,7 +1,7 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type { PopoverPosition } from "@mui/material";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import type { PopupState } from "material-ui-popup-state/hooks";

@@ -1,9 +1,9 @@
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { useCallback } from "react";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";

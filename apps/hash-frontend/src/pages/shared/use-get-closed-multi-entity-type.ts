@@ -1,5 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { useCallback } from "react";
 
 import type {

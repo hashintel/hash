@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use error_stack::Report;
 use hash_graph_authorization::schema::EntityTypeRelationAndSubject;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-use hash_graph_types::{Embedding, account::AccountId};
+use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
 use type_system::{
     ontology::{
@@ -17,7 +17,7 @@ use type_system::{
         property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::EditionCreatedById,
+    provenance::{ActorId, EditionCreatedById},
     web::OwnedById,
 };
 
@@ -259,7 +259,7 @@ pub trait EntityTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_entity_type<R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: CreateEntityTypeParams<R>,
     ) -> impl Future<Output = Result<EntityTypeMetadata, Report<InsertionError>>> + Send
     where
@@ -285,7 +285,7 @@ pub trait EntityTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_entity_types<P, R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<InsertionError>>> + Send
     where
@@ -299,7 +299,7 @@ pub trait EntityTypeStore {
     /// - if the underlying store fails to count the entity types.
     fn count_entity_types(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: CountEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
@@ -310,7 +310,7 @@ pub trait EntityTypeStore {
     /// - if the requested [`EntityType`] doesn't exist.
     fn get_entity_type_subgraph(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: GetEntityTypeSubgraphParams<'_>,
     ) -> impl Future<Output = Result<GetEntityTypeSubgraphResponse, Report<QueryError>>> + Send;
 
@@ -321,7 +321,7 @@ pub trait EntityTypeStore {
     /// - if the requested [`EntityType`] doesn't exist.
     fn get_entity_types(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: GetEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<GetEntityTypesResponse, Report<QueryError>>> + Send;
 
@@ -347,7 +347,7 @@ pub trait EntityTypeStore {
     /// - Type resolution fails due to invalid entity type references
     fn get_closed_multi_entity_types<I, J>(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         entity_type_ids: I,
         temporal_axes: QueryTemporalAxesUnresolved,
         include_resolved: Option<IncludeResolvedEntityTypeOption>,
@@ -363,7 +363,7 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`] doesn't exist.
     fn update_entity_type<R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: UpdateEntityTypesParams<R>,
     ) -> impl Future<Output = Result<EntityTypeMetadata, Report<UpdateError>>> + Send
     where
@@ -386,7 +386,7 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`]s do not exist.
     fn update_entity_types<P, R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<UpdateError>>> + Send
     where
@@ -400,7 +400,7 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`] doesn't exist.
     fn archive_entity_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
 
         params: ArchiveEntityTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
@@ -412,14 +412,14 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`] doesn't exist.
     fn unarchive_entity_type(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
 
         params: UnarchiveEntityTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     fn update_entity_type_embeddings(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorId,
 
         params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;

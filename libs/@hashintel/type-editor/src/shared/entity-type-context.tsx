@@ -1,4 +1,4 @@
-import type { EntityType, PropertyType } from "@blockprotocol/type-system/slim";
+import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { createContext, useContext } from "react";
 
 export const EntityTypeContext = createContext<null | {

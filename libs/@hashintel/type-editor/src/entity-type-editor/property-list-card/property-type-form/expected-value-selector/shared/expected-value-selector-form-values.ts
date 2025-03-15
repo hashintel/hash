@@ -1,4 +1,4 @@
-import type { BaseUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 import type { FlattenedCustomExpectedValueList } from "../../../shared/expected-value-types";
 

@@ -21,8 +21,8 @@ hash-codec           = { workspace = true }
 hash-graph-api       = { workspace = true }
 hash-graph-store     = { workspace = true }
 hash-graph-type-defs = { workspace = true }
-hash-graph-types     = { workspace = true, features = ["utoipa"] }
 hash-status          = { workspace = true }
+type-system          = { workspace = true }
 
 # Private third-party dependencies
 futures        = { workspace = true }

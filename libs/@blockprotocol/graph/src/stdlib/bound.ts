@@ -1,13 +1,13 @@
 import type {
   TemporalBound,
-  TimeInterval,
-} from "../types/temporal-versioning.js";
+  TemporalInterval,
+} from "@blockprotocol/type-system";
 
 export const compareBounds = (
   left: TemporalBound,
   right: TemporalBound,
-  leftType: keyof TimeInterval,
-  rightType: keyof TimeInterval,
+  leftType: keyof TemporalInterval<TemporalBound, TemporalBound>,
+  rightType: keyof TemporalInterval<TemporalBound, TemporalBound>,
 ): number => {
   // If the bound values are not equal, then the bound with the lower value is less than the bound with the higher
   // value.

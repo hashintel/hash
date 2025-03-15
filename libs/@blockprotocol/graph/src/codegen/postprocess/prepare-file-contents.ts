@@ -1,4 +1,5 @@
-import { typedKeys } from "../../util/typed-object-iter.js";
+import { typedKeys } from "@local/advanced-types/typed-entries";
+
 import type { PostprocessContext } from "../context/postprocess.js";
 
 export const prepareFileContents = (context: PostprocessContext) => {

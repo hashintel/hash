@@ -1,13 +1,16 @@
 import { useMutation } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  BaseUrl,
+  EntityId,
+  OwnedById,
+  PropertyObject,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import {
   Entity,
   LinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
   File as FileEntity,
   UploadCompletedAtPropertyValueWithMetadata,

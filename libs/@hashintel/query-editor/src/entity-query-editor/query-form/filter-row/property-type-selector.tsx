@@ -1,5 +1,5 @@
-import type { PropertyType } from "@blockprotocol/type-system/slim";
-import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+import type { PropertyType } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { MenuItem, OntologyChip } from "@hashintel/design-system";
 import { FormControl, listClasses } from "@mui/material";
 import { useMemo } from "react";

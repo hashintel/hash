@@ -1,6 +1,6 @@
-use hash_graph_types::account::AccountId;
+use type_system::provenance::ActorId;
 
 #[derive(Debug, Clone, Default)]
 pub struct Account {
-    pub actor_id: Option<AccountId>,
+    pub actor_id: Option<ActorId>,
 }

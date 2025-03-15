@@ -39,9 +39,9 @@ tracing        = { workspace = true }
 workspace = true
 
 [dev-dependencies]
-harpc-client     = { workspace = true }
-harpc-codec      = { workspace = true, features = ["json"] }
-hash-graph-types = { workspace = true }
-thiserror        = { workspace = true }
-tokio            = { workspace = true, features = ["macros", "rt-multi-thread"] }
-uuid             = { workspace = true, features = ["v4"] }
+harpc-client = { workspace = true }
+harpc-codec  = { workspace = true, features = ["json"] }
+thiserror    = { workspace = true }
+tokio        = { workspace = true, features = ["macros", "rt-multi-thread"] }
+type-system  = { workspace = true }
+uuid         = { workspace = true, features = ["v4"] }

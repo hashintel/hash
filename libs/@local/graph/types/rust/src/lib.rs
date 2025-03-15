@@ -10,8 +10,6 @@ extern crate alloc;
 pub mod knowledge;
 pub mod ontology;
 
-pub mod account;
-
 pub use self::embedding::Embedding;
 
 mod embedding;

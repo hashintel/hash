@@ -16,8 +16,8 @@ use type_system::{
     knowledge::{
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{
-            Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
-            PropertyWithMetadataObject,
+            Property, PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
+            PropertyPath, PropertyWithMetadata,
         },
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
@@ -72,7 +72,7 @@ async fn insert() {
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
                 }]),
-                properties: PropertyWithMetadataObject::from_parts(person.clone(), None)
+                properties: PropertyObjectWithMetadata::from_parts(person.clone(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
@@ -154,7 +154,7 @@ async fn query() {
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
                 }]),
-                properties: PropertyWithMetadataObject::from_parts(organization.clone(), None)
+                properties: PropertyObjectWithMetadata::from_parts(organization.clone(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
@@ -238,7 +238,7 @@ async fn update() {
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
                 }]),
-                properties: PropertyWithMetadataObject::from_parts(page_v1.clone(), None)
+                properties: PropertyObjectWithMetadata::from_parts(page_v1.clone(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,

@@ -1,11 +1,8 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
-  extractVersion,
-} from "@blockprotocol/type-system/slim";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 
 import type {
-  OntologyOutwardEdge,
+  OntologyRootedEdges,
   OntologyToOntologyOutwardEdge,
   OntologyTypeRevisionId,
   OntologyTypeVertexId,
@@ -34,15 +31,17 @@ export const getOntologyEndpointsForOntologyOutwardEdge = (
 
   if (typeof ontologyTypeId === "string") {
     baseUrl = extractBaseUrl(ontologyTypeId);
-    revisionId = extractVersion(ontologyTypeId).toString();
+    revisionId = extractVersion(
+      ontologyTypeId,
+    ).toString() as OntologyTypeRevisionId;
   } else {
     baseUrl = ontologyTypeId.baseId;
     revisionId = ontologyTypeId.revisionId;
   }
 
-  const outwardEdges = subgraph.edges[baseUrl]?.[revisionId] as
-    | OntologyOutwardEdge[]
-    | undefined;
+  const outwardEdges = (subgraph.edges as OntologyRootedEdges)[baseUrl]?.[
+    revisionId
+  ];
 
   if (outwardEdges === undefined) {
     return [];

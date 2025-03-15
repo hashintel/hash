@@ -1,6 +1,6 @@
 import { useLazyQuery, useQuery } from "@apollo/client";
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
-import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system/slim";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { Callout, TextField } from "@hashintel/design-system";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { Box, Stack } from "@mui/material";

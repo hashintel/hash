@@ -1,8 +1,5 @@
-import type {
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,

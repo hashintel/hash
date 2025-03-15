@@ -1,7 +1,7 @@
+import type { ActorId, EntityId } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -15,7 +15,6 @@ import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subg
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 
 export const getSecretEntitiesForIntegration = async ({
@@ -24,7 +23,7 @@ export const getSecretEntitiesForIntegration = async ({
   integrationEntityId,
 }: {
   authentication: {
-    actorId: AccountId;
+    actorId: ActorId;
   };
   graphApiClient: GraphApi;
   integrationEntityId: EntityId;

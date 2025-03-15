@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -407,7 +407,7 @@ export const EntitiesVisualizer: FunctionComponent<{
        */
       (closedMultiEntityTypes.length &&
         closedMultiEntityTypes.every(({ allOf }) =>
-          allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
+          allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id].isFile),
         )),
     [
       entityTypeBaseUrl,

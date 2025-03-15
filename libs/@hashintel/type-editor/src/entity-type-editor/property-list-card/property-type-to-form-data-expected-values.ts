@@ -3,8 +3,8 @@ import type {
   PropertyType,
   PropertyValues,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import uniqueId from "lodash.uniqueid";
 
 import { arrayExpectedValueDataDefaults } from "./shared/default-expected-value";

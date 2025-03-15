@@ -1,5 +1,7 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { getEntityTypes } from "@local/hash-subgraph/stdlib";
 import { useCallback, useMemo, useRef, useState } from "react";
 

@@ -1,22 +1,23 @@
 import type {
-  BoundedTimeInterval,
+  ClosedTemporalBound,
   LimitedTemporalBound,
   TemporalBound,
-  TimeInterval,
+  TemporalInterval,
   Timestamp,
-} from "../types/temporal-versioning.js";
+} from "@blockprotocol/type-system";
+
 import { boundIsAdjacentToBound, compareBounds } from "./bound.js";
 
 /**
  * Standard comparison function that returns whether `IntervalA` is before the `IntervalB`. Where "before"
  * is defined by first comparing the start bounds, and if those are equal, then the end bounds are compared.
  *
- * @param {TimeInterval} intervalA
- * @param {TimeInterval} intervalB
+ * @param {TemporalInterval} intervalA
+ * @param {TemporalInterval} intervalB
  */
 export const intervalCompareWithInterval = (
-  intervalA: TimeInterval,
-  intervalB: TimeInterval,
+  intervalA: TemporalInterval<TemporalBound, TemporalBound>,
+  intervalB: TemporalInterval<TemporalBound, TemporalBound>,
 ): number => {
   const startComparison = compareBounds(
     intervalA.start,
@@ -34,9 +35,11 @@ export const intervalCompareWithInterval = (
  * Sorts a given collection of {@link TimeInterval} in place, sorted first from earliest to latest start bounds, and
  * then earliest to latest end bounds.
  *
- * @param {TimeInterval[]} intervals
+ * @param {TemporalInterval[]} intervals
  */
-export const sortIntervals = (intervals: TimeInterval[]) => {
+export const sortIntervals = (
+  intervals: TemporalInterval<TemporalBound, TemporalBound>[],
+) => {
   intervals.sort(intervalCompareWithInterval);
 };
 
@@ -50,7 +53,7 @@ export const sortIntervals = (intervals: TimeInterval[]) => {
  */
 export const intervalForTimestamp = (
   timestamp: Timestamp,
-): BoundedTimeInterval => {
+): TemporalInterval<ClosedTemporalBound, ClosedTemporalBound> => {
   return {
     start: {
       kind: "inclusive",
@@ -68,12 +71,12 @@ export const intervalForTimestamp = (
  * being next to one another on the timeline, without any points between, *and where they are not overlapping*. Thus,
  * if adjacent, the two intervals should span another given interval.
  *
- * @param {TimeInterval} left - The first interval of the comparison (order is unimportant)
- * @param {TimeInterval} right - The second interval of the comparison
+ * @param {TemporalInterval} left - The first interval of the comparison (order is unimportant)
+ * @param {TemporalInterval} right - The second interval of the comparison
  */
 export const intervalIsAdjacentToInterval = (
-  left: TimeInterval,
-  right: TimeInterval,
+  left: TemporalInterval<TemporalBound, TemporalBound>,
+  right: TemporalInterval<TemporalBound, TemporalBound>,
 ): boolean => {
   /*
    Examples           |     1     |     2     |     3     |     4     |     5
@@ -97,8 +100,8 @@ export const intervalIsAdjacentToInterval = (
  * @param {TimeInterval} right - Checked if it's contained _within_ the other
  */
 export const intervalContainsInterval = (
-  left: TimeInterval,
-  right: TimeInterval,
+  left: TemporalInterval<TemporalBound, TemporalBound>,
+  right: TemporalInterval<TemporalBound, TemporalBound>,
 ): boolean => {
   /*
    Examples           |     1     |     2     |     3     |     4     |     5     |     6
@@ -121,7 +124,7 @@ export const intervalContainsInterval = (
  * @param {Timestamp} timestamp
  */
 export const intervalContainsTimestamp = (
-  interval: TimeInterval,
+  interval: TemporalInterval<TemporalBound, TemporalBound>,
   timestamp: Timestamp,
 ): boolean => {
   const timestampAsBound: LimitedTemporalBound = {
@@ -149,8 +152,8 @@ export const intervalContainsTimestamp = (
  * @param {TimeInterval} right
  */
 export const intervalOverlapsInterval = (
-  left: TimeInterval,
-  right: TimeInterval,
+  left: TemporalInterval<TemporalBound, TemporalBound>,
+  right: TemporalInterval<TemporalBound, TemporalBound>,
 ): boolean => {
   /*
    Examples |     1     |     2     |     3     |     4
@@ -175,13 +178,13 @@ export const intervalOverlapsInterval = (
  * be bounded, same goes for `end` {@link TemporalBound}s respectively
  */
 type IntersectionReturn<
-  LeftInterval extends TimeInterval,
-  RightInterval extends TimeInterval,
+  LeftInterval extends TemporalInterval<TemporalBound, TemporalBound>,
+  RightInterval extends TemporalInterval<TemporalBound, TemporalBound>,
 > = [LeftInterval, RightInterval] extends [
-  TimeInterval<infer LeftStartBound, infer LeftEndBound>,
-  TimeInterval<infer RightStartBound, infer RightEndBound>,
+  TemporalInterval<infer LeftStartBound, infer LeftEndBound>,
+  TemporalInterval<infer RightStartBound, infer RightEndBound>,
 ]
-  ? TimeInterval<
+  ? TemporalInterval<
       LeftStartBound | RightStartBound extends LimitedTemporalBound
         ? LimitedTemporalBound
         : TemporalBound,
@@ -199,8 +202,8 @@ type IntersectionReturn<
  * @param {TimeInterval} right
  */
 export const intervalIntersectionWithInterval = <
-  LeftInterval extends TimeInterval = TimeInterval,
-  RightInterval extends TimeInterval = TimeInterval,
+  LeftInterval extends TemporalInterval<TemporalBound, TemporalBound>,
+  RightInterval extends TemporalInterval<TemporalBound, TemporalBound>,
 >(
   left: LeftInterval,
   right: RightInterval,
@@ -236,13 +239,13 @@ export const intervalIntersectionWithInterval = <
  * bounded, same goes for end respectively
  */
 type MergeReturn<
-  LeftInterval extends TimeInterval,
-  RightInterval extends TimeInterval,
+  LeftInterval extends TemporalInterval<TemporalBound, TemporalBound>,
+  RightInterval extends TemporalInterval<TemporalBound, TemporalBound>,
 > = [LeftInterval, RightInterval] extends [
-  TimeInterval<infer LeftStartBound, infer LeftEndBound>,
-  TimeInterval<infer RightStartBound, infer RightEndBound>,
+  TemporalInterval<infer LeftStartBound, infer LeftEndBound>,
+  TemporalInterval<infer RightStartBound, infer RightEndBound>,
 ]
-  ? TimeInterval<
+  ? TemporalInterval<
       LeftStartBound extends LimitedTemporalBound
         ? RightStartBound extends LimitedTemporalBound
           ? LimitedTemporalBound
@@ -267,8 +270,8 @@ type MergeReturn<
  * @param {TimeInterval} right
  */
 export const intervalMergeWithInterval = <
-  LeftInterval extends TimeInterval = TimeInterval,
-  RightInterval extends TimeInterval = TimeInterval,
+  LeftInterval extends TemporalInterval<TemporalBound, TemporalBound>,
+  RightInterval extends TemporalInterval<TemporalBound, TemporalBound>,
 >(
   left: LeftInterval,
   right: RightInterval,
@@ -294,8 +297,8 @@ export const intervalMergeWithInterval = <
 };
 
 type UnionReturn<
-  LeftInterval extends TimeInterval,
-  RightInterval extends TimeInterval,
+  LeftInterval extends TemporalInterval<TemporalBound, TemporalBound>,
+  RightInterval extends TemporalInterval<TemporalBound, TemporalBound>,
 > =
   | [MergeReturn<LeftInterval, RightInterval>]
   | [LeftInterval, RightInterval]
@@ -312,8 +315,8 @@ type UnionReturn<
  * @param {TimeInterval}  right
  */
 export const intervalUnionWithInterval = <
-  LeftInterval extends TimeInterval = TimeInterval,
-  RightInterval extends TimeInterval = TimeInterval,
+  LeftInterval extends TemporalInterval<TemporalBound, TemporalBound>,
+  RightInterval extends TemporalInterval<TemporalBound, TemporalBound>,
 >(
   left: LeftInterval,
   right: RightInterval,
@@ -347,7 +350,9 @@ export const intervalUnionWithInterval = <
  *
  * @param {TimeInterval[]} intervals
  */
-export const unionOfIntervals = <IntervalsType extends TimeInterval>(
+export const unionOfIntervals = <
+  IntervalsType extends TemporalInterval<TemporalBound, TemporalBound>,
+>(
   ...intervals: IntervalsType[]
 ): UnionReturn<IntervalsType, IntervalsType>[number][] => {
   /*
@@ -389,8 +394,8 @@ export const unionOfIntervals = <IntervalsType extends TimeInterval>(
  * @param {TimeInterval} right
  */
 export const intervalIsStrictlyBeforeInterval = (
-  left: TimeInterval,
-  right: TimeInterval,
+  left: TemporalInterval<TemporalBound, TemporalBound>,
+  right: TemporalInterval<TemporalBound, TemporalBound>,
 ): boolean => {
   return compareBounds(left.end, right.start, "end", "start") < 0;
 };
@@ -404,8 +409,8 @@ export const intervalIsStrictlyBeforeInterval = (
  * @param {TimeInterval} right
  */
 export const intervalIsStrictlyAfterInterval = (
-  left: TimeInterval,
-  right: TimeInterval,
+  left: TemporalInterval<TemporalBound, TemporalBound>,
+  right: TemporalInterval<TemporalBound, TemporalBound>,
 ): boolean => {
   return compareBounds(left.start, right.end, "start", "end") > 0;
 };

@@ -1,3 +1,8 @@
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
   CheckIcon,
@@ -8,11 +13,6 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { SxProps, Theme, TooltipProps } from "@mui/material";
 import {

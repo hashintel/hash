@@ -1,13 +1,7 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 import type { QueryOperationInput } from "../entity.js";
 import type { EntityTypeRootType, Subgraph } from "../subgraph.js";
-import type { OntologyElementMetadata } from "./metadata.js";
-
-export type EntityTypeWithMetadata = {
-  schema: EntityType;
-  metadata: OntologyElementMetadata;
-};
 
 export type QueryEntityTypesData = {
   // @todo mention in spec or remove

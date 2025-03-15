@@ -52,7 +52,7 @@ const getAvatarForEntity = (
 /**
  * Ideally we would use {@link extractOwnedByIdFromEntityId} from @local/hash-subgraph here,
  * but importing it causes WASM-related functions to end up in the bundle,
- * even when imports in that package only come from `@blockprotocol/type-system/slim`,
+ * even when imports in that package only come from `@blockprotocol/type-system`,
  * which isn't supposed to have WASM.
  *
  * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package

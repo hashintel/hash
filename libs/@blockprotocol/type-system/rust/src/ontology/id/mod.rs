@@ -87,7 +87,9 @@ mod error;
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "postgres", derive(ToSql), postgres(transparent))]
 #[derive(Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
-pub struct BaseUrl(String);
+pub struct BaseUrl(
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<Url, \"BaseUrl\">"))] String,
+);
 
 impl fmt::Debug for BaseUrl {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -232,9 +234,16 @@ impl<'a> FromSql<'a> for BaseUrl {
 /// assert_eq!(version.inner(), 1);
 /// ```
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
-pub struct OntologyTypeVersion(u32);
+pub struct OntologyTypeVersion(
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "Brand<number, \"OntologyTypeVersion\">")
+    )]
+    u32,
+);
 
 impl OntologyTypeVersion {
     /// Creates a new version identifier with the specified value.
@@ -341,7 +350,7 @@ pub struct VersionedUrl {
 #[derive(tsify::Tsify)]
 #[serde(rename = "VersionedUrl")]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]
-pub struct VersionedUrlPatch(#[tsify(type = "`${BaseUrl}v/${number}`")] String);
+pub struct VersionedUrlPatch(#[tsify(type = "`${string}v/${number}`")] String);
 
 impl VersionedUrl {
     /// Converts this [`VersionedUrl`] to a standard [`Url`] instance.
@@ -508,6 +517,7 @@ impl ToSchema<'_> for VersionedUrl {
 /// # Ok::<(), Box<dyn core::error::Error>>(())
 /// ```
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeRecordId {

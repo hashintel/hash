@@ -1,7 +1,7 @@
 import type { EntityType } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon, IconButton } from "@hashintel/design-system";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { BoxProps } from "@mui/material";
 import { Box, styled, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";

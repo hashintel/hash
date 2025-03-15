@@ -21,6 +21,21 @@ pub struct PropertyTypeMetadata {
     pub provenance: OntologyProvenance,
 }
 
+#[cfg(target_arch = "wasm32")]
+#[derive(tsify::Tsify)]
+#[serde(rename = "PropertyTypeMetadata", untagged)]
+#[expect(dead_code, reason = "Used in the generated TypeScript types")]
+enum PropertyTypeMetadataPatch {
+    #[serde(rename_all = "camelCase")]
+    Impl {
+        record_id: OntologyTypeRecordId,
+        #[serde(flatten)]
+        ownership: OntologyOwnership,
+        temporal_versioning: OntologyTemporalMetadata,
+        provenance: OntologyProvenance,
+    },
+}
+
 #[cfg(feature = "utoipa")]
 impl ToSchema<'static> for PropertyTypeMetadata {
     fn schema() -> (&'static str, RefOr<Schema>) {
@@ -68,6 +83,15 @@ impl ToSchema<'static> for PropertyTypeMetadata {
 }
 
 pub type PropertyTypeWithMetadata = OntologyTypeWithMetadata<PropertyType>;
+
+#[cfg(target_arch = "wasm32")]
+#[derive(tsify::Tsify)]
+#[serde(rename = "PropertyTypeWithMetadata", rename_all = "camelCase")]
+#[expect(dead_code, reason = "Used in the generated TypeScript types")]
+struct PropertyTypeWithMetadataPatch {
+    schema: PropertyType,
+    metadata: PropertyTypeMetadata,
+}
 
 #[cfg(feature = "utoipa")]
 impl ToSchema<'static> for PropertyTypeWithMetadata {

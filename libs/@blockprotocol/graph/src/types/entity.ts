@@ -1,36 +1,24 @@
 import type {
-  JsonObject as CoreJsonObject,
-  JsonValue as CoreJsonValue,
-} from "@blockprotocol/core";
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
+  Entity,
+  EntityId,
+  EntityRecordId,
+  LinkData,
+  PropertyObject,
+  PropertyValue,
+  Timestamp,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 import type {
   EntityRootType,
-  ExclusiveLimitedTemporalBound,
-  InclusiveLimitedTemporalBound,
   QueryTemporalAxesUnresolved,
   Subgraph,
-  TemporalAxis,
-  TimeInterval,
-  Timestamp,
-  Unbounded,
 } from "../types.js";
 import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 
-export type JsonObject = CoreJsonObject;
-export type JsonValue = CoreJsonValue;
-
-/** @todo - Consider branding these */
-/** @todo - Add documentation for these if we keep them */
-export type EntityId = string;
 // This isn't necessary, it just _could_ provide greater clarity that this corresponds to an exact vertex and can be
 // used in a direct lookup and not a search in the vertices
 export type EntityRevisionId = Timestamp;
-
-export type EntityRecordId = {
-  entityId: EntityId;
-  editionId: string;
-};
 
 export const isEntityRecordId = (
   recordId: unknown,
@@ -43,48 +31,6 @@ export const isEntityRecordId = (
   );
 };
 
-/**
- * Entity Properties are JSON objects with `BaseUrl`s as keys, _except_ when there is a Data Type of primitive type
- * `object` in which case the nested objects become plain `JsonObject`s
- */
-export type EntityPropertyValue = JsonValue | EntityPropertiesObject;
-export type EntityPropertiesObject = {
-  [_: BaseUrl]: EntityPropertyValue;
-};
-
-type HalfClosedInterval = TimeInterval<
-  InclusiveLimitedTemporalBound,
-  ExclusiveLimitedTemporalBound | Unbounded
->;
-
-export type EntityTemporalVersioningMetadata = Record<
-  TemporalAxis,
-  HalfClosedInterval
->;
-
-export type EntityMetadata = {
-  recordId: EntityRecordId;
-  entityTypeIds: VersionedUrl[];
-  temporalVersioning: EntityTemporalVersioningMetadata;
-};
-
-export type LinkData = {
-  leftEntityId: EntityId;
-  rightEntityId: EntityId;
-};
-
-export type Entity<
-  Properties extends EntityPropertiesObject | null = Record<
-    BaseUrl,
-    EntityPropertyValue
-  >,
-> = {
-  metadata: EntityMetadata;
-  linkData?: LinkData;
-} & (Properties extends null
-  ? { properties?: never }
-  : { properties: Properties });
-
 export type LinkEntityAndRightEntity = {
   linkEntity: Entity[];
   rightEntity: Entity[];
@@ -92,7 +38,7 @@ export type LinkEntityAndRightEntity = {
 
 export type CreateEntityData = {
   entityTypeIds: VersionedUrl[];
-  properties: EntityPropertiesObject;
+  properties: PropertyObject;
   linkData?: LinkData;
 };
 
@@ -105,7 +51,7 @@ export type GetEntityData = {
 export type UpdateEntityData = {
   entityId: EntityId;
   entityTypeIds: VersionedUrl[];
-  properties: EntityPropertiesObject;
+  properties: PropertyObject;
 };
 
 export type DeleteEntityData = {
@@ -133,7 +79,7 @@ export type MultiFilter = {
     | {
         field: (string | number)[];
         operator: FilterOperatorRequiringValue;
-        value: CoreJsonValue;
+        value: PropertyValue;
       }
     | { field: (string | number)[]; operator: FilterOperatorWithoutValue }
   )[];
@@ -179,7 +125,7 @@ type BeforeTrailingLast<
  * To experiment with in block building – might be useful in patterns to make block building easier.
  * @todo remove this if we settle on a pattern that doesn't benefit from it
  */
-export type SimpleProperties<Properties extends EntityPropertiesObject> = {
+export type SimpleProperties<Properties extends PropertyObject> = {
   [Key in keyof Properties as BeforeTrailingLast<
     Extract<Key, string>,
     "/"

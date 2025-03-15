@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use super::{Constraint, ConstraintError, ConstraintValidator, JsonSchemaValueType};
 use crate::{
-    knowledge::Value,
+    knowledge::PropertyValue,
     ontology::{
         data_type::schema::ResolveClosedDataTypeError,
         json_schema::{SingleValueConstraints, ValueConstraints},
@@ -98,7 +98,7 @@ impl Constraint for NumberSchema {
                         .map(|value| {
                             constraints.validate_value(&value).change_context(
                                 ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
-                                    Value::Number(value),
+                                    PropertyValue::Number(value),
                                 ),
                             )
                         })
@@ -133,8 +133,8 @@ impl Constraint for NumberSchema {
                 ensure!(
                     !intersection.is_empty(),
                     ResolveClosedDataTypeError::ConflictingEnumValues(
-                        lhs.into_iter().map(Value::Number).collect(),
-                        rhs.into_iter().map(Value::Number).collect(),
+                        lhs.into_iter().map(PropertyValue::Number).collect(),
+                        rhs.into_iter().map(PropertyValue::Number).collect(),
                     )
                 );
 
@@ -152,19 +152,19 @@ impl Constraint for NumberSchema {
     }
 }
 
-impl ConstraintValidator<Value> for NumberSchema {
+impl ConstraintValidator<PropertyValue> for NumberSchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &Value) -> bool {
-        if let Value::Number(number) = value {
+    fn is_valid(&self, value: &PropertyValue) -> bool {
+        if let PropertyValue::Number(number) = value {
             self.is_valid(number)
         } else {
             false
         }
     }
 
-    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
-        if let Value::Number(number) = value {
+    fn validate_value(&self, value: &PropertyValue) -> Result<(), Report<ConstraintError>> {
+        if let PropertyValue::Number(number) = value {
             self.validate_value(number)
         } else {
             bail!(ConstraintError::InvalidType {
@@ -194,10 +194,10 @@ impl ConstraintValidator<Real> for NumberSchema {
                 ensure!(
                     r#enum.iter().any(|expected| value == expected),
                     ConstraintError::InvalidEnumValue {
-                        actual: Value::Number(value.clone()),
+                        actual: PropertyValue::Number(value.clone()),
                         expected: r#enum
                             .iter()
-                            .map(|number| Value::Number(number.clone()))
+                            .map(|number| PropertyValue::Number(number.clone()))
                             .collect(),
                     }
                 );
@@ -644,10 +644,10 @@ mod tests {
         )));
 
         number_schema
-            .validate_value(&Value::Number(Real::from_natural(1, -1)))
+            .validate_value(&PropertyValue::Number(Real::from_natural(1, -1)))
             .expect("value should be valid");
         number_schema
-            .validate_value(&Value::Number(Real::from_natural(9, -1)))
+            .validate_value(&PropertyValue::Number(Real::from_natural(9, -1)))
             .expect("value should be valid");
 
         check_constraints_error(
@@ -680,8 +680,8 @@ mod tests {
             &number_schema,
             json!(10.0),
             [ConstraintError::InvalidEnumValue {
-                actual: Value::Number(Real::from(10)),
-                expected: vec![Value::Number(Real::from(20))],
+                actual: PropertyValue::Number(Real::from(10)),
+                expected: vec![PropertyValue::Number(Real::from(20))],
             }],
         );
     }
@@ -1132,15 +1132,15 @@ mod tests {
                     }))
                     .expect("Failed to parse schema"),
                 ),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(
-                    Real::from(5),
-                )),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(
-                    Real::from(10),
-                )),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(
-                    Real::from(15),
-                )),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
+                    PropertyValue::Number(Real::from(5)),
+                ),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
+                    PropertyValue::Number(Real::from(10)),
+                ),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
+                    PropertyValue::Number(Real::from(15)),
+                ),
             ],
         );
     }

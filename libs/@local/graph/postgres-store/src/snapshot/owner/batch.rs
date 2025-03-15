@@ -1,8 +1,8 @@
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{backend::ZanzibarBackend, schema::AccountGroupRelationAndSubject};
 use hash_graph_store::error::InsertionError;
-use hash_graph_types::account::AccountGroupId;
 use tokio_postgres::GenericClient as _;
+use type_system::web::ActorGroupId;
 
 use crate::{
     snapshot::{
@@ -15,7 +15,7 @@ use crate::{
 pub enum AccountRowBatch {
     Accounts(Vec<AccountRow>),
     AccountGroups(Vec<AccountGroupRow>),
-    AccountGroupAccountRelations(Vec<(AccountGroupId, AccountGroupRelationAndSubject)>),
+    AccountGroupAccountRelations(Vec<(ActorGroupId, AccountGroupRelationAndSubject)>),
 }
 
 impl<C, A> WriteBatch<C, A> for AccountRowBatch

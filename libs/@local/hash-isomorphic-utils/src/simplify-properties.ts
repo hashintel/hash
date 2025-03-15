@@ -1,10 +1,10 @@
-import type { Entity as BpEntity } from "@blockprotocol/graph";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
+  Entity as BpEntity,
   EntityMetadata,
   PropertyObject,
-} from "@local/hash-graph-types/entity";
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { camelCase } from "lodash-es";
 
 /** @see https://stackoverflow.com/a/65015868/17217717 */

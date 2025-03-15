@@ -3,7 +3,7 @@ import type {
   EntityType,
   PropertyType,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 import {
   apiGraphQLEndpoint,
   frontendUrl,

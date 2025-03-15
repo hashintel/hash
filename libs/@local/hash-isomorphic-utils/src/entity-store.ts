@@ -1,10 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   EntityId,
-  EntityTemporalVersioningMetadata,
+  EntityTemporalMetadata,
   LinkData,
   PropertyObject,
-} from "@local/hash-graph-types/entity";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { Draft } from "immer";
 import { produce } from "immer";
 
@@ -27,7 +27,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
      * @todo H-2242 do we need to change this for multi-type entities
      */
     entityTypeId?: VersionedUrl | null;
-    temporalVersioning: EntityTemporalVersioningMetadata;
+    temporalVersioning: EntityTemporalMetadata;
   };
 
   /**

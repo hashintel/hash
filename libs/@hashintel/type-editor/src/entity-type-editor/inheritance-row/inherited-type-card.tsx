@@ -1,8 +1,5 @@
-import type { EntityType } from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
-  extractVersion,
-} from "@blockprotocol/type-system/slim";
+import type { EntityType } from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import { TypeCard } from "@hashintel/design-system";
 // eslint-disable-next-line no-restricted-imports -- TODO remove this dependency to make package publishable
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
