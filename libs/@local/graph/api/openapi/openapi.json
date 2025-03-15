@@ -9273,7 +9273,7 @@
       },
       "PropertyValueWithMetadata": {
         "type": "object",
-        "description": "A primitive value with its associated metadata.\n\n[`PropertyWithMetadataValue`] combines a [`Value`] (such as a string, number, or boolean)\nwith its [`ValueMetadata`] containing provenance, confidence, and type information.\n\nThis structure is used as the leaf node in the [`PropertyWithMetadata`] hierarchy,\nrepresenting atomic data values with their context.\n\n[`PropertyWithMetadata`]: crate::knowledge::property::PropertyWithMetadata",
+        "description": "A primitive value with its associated metadata.\n\n`PropertyValueWithMetadata` combines a [`PropertyValue`] (such as a string, number, or boolean)\nwith its [`ValueMetadata`] containing provenance, confidence, and type information.\n\nThis structure is used as the leaf node in the [`PropertyWithMetadata`] hierarchy,\nrepresenting atomic data values with their context.\n\n[`PropertyWithMetadata`]: crate::knowledge::property::PropertyWithMetadata",
         "required": [
           "value",
           "metadata"
