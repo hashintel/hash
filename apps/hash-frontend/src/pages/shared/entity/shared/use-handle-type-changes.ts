@@ -10,10 +10,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback } from "react";
-} from "@local/hash-subgraph/stdlib";
-import { useGetClosedMultiEntityTypes } from "../../use-get-closed-multi-entity-type";
-import type { EntityEditorProps } from "../entity-editor";
-import { createDraftEntitySubgraph } from "./create-draft-entity-subgraph";
+
 import { useGetClosedMultiEntityTypes } from "../../use-get-closed-multi-entity-type";
 import type { EntityEditorProps } from "../entity-editor";
 import { createDraftEntitySubgraph } from "./create-draft-entity-subgraph";
