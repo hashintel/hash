@@ -3,7 +3,7 @@ mod provenance;
 use std::collections::HashMap;
 
 pub use self::provenance::ValueProvenance;
-use super::Value;
+use super::PropertyValue;
 use crate::{
     knowledge::Confidence,
     ontology::{BaseUrl, VersionedUrl},
@@ -30,6 +30,5 @@ pub struct ValueMetadata {
     pub original_data_type_id: Option<VersionedUrl>,
 
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "{ [key: BaseUrl]: JsonValue }"))]
-    pub canonical: HashMap<BaseUrl, Value>,
+    pub canonical: HashMap<BaseUrl, PropertyValue>,
 }

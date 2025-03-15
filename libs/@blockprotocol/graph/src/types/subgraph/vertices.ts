@@ -4,7 +4,7 @@ import type {
   Entity,
   EntityId,
   EntityTypeWithMetadata,
-  Property,
+  PropertyObject,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { validateBaseUrl } from "@blockprotocol/type-system";
@@ -29,10 +29,7 @@ export type EntityTypeVertex = {
 };
 
 export type EntityVertex<
-  Properties extends Record<BaseUrl, Property> | null = Record<
-    BaseUrl,
-    Property
-  >,
+  Properties extends PropertyObject | null = PropertyObject,
 > = { kind: "entity"; inner: Entity<Properties> };
 
 export type OntologyVertex =
@@ -41,18 +38,12 @@ export type OntologyVertex =
   | EntityTypeVertex;
 
 export type KnowledgeGraphVertex<
-  Properties extends Record<BaseUrl, Property> | null = Record<
-    BaseUrl,
-    Property
-  >,
+  Properties extends PropertyObject | null = PropertyObject,
 > = EntityVertex<Properties>;
 
-export type Vertex<
-  Properties extends Record<BaseUrl, Property> | null = Record<
-    BaseUrl,
-    Property
-  >,
-> = OntologyVertex | KnowledgeGraphVertex<Properties>;
+export type Vertex<Properties extends PropertyObject | null = PropertyObject> =
+  | OntologyVertex
+  | KnowledgeGraphVertex<Properties>;
 
 export const isDataTypeVertex = (vertex: Vertex): vertex is DataTypeVertex => {
   return vertex.kind === "dataType";

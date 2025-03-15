@@ -21,7 +21,7 @@ use hash_graph_temporal_versioning::TemporalBound;
 use time::OffsetDateTime;
 use type_system::{
     knowledge::{
-        Value,
+        PropertyValue,
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{
             PropertyObjectWithMetadata, PropertyValueWithMetadata, PropertyWithMetadata,
@@ -316,7 +316,7 @@ async fn inheritance() {
                         )
                         .expect("couldn't construct Base URL"),
                         PropertyWithMetadata::Value(PropertyValueWithMetadata {
-                            value: Value::Number(Real::from(5)),
+                            value: PropertyValue::Number(Real::from(5)),
                             metadata: ValueMetadata {
                                 provenance: ValueProvenance::default(),
                                 confidence: None,
@@ -363,7 +363,7 @@ async fn inheritance() {
                     )
                     .expect("couldn't construct Base URL"),
                     PropertyWithMetadata::Value(PropertyValueWithMetadata {
-                        value: Value::Number(Real::from(10)),
+                        value: PropertyValue::Number(Real::from(10)),
                         metadata: ValueMetadata {
                             provenance: ValueProvenance::default(),
                             confidence: None,
@@ -408,7 +408,7 @@ async fn inheritance() {
                     )
                     .expect("couldn't construct Base URL"),
                     PropertyWithMetadata::Value(PropertyValueWithMetadata {
-                        value: Value::Number(Real::from(10)),
+                        value: PropertyValue::Number(Real::from(10)),
                         metadata: ValueMetadata {
                             provenance: ValueProvenance::default(),
                             confidence: None,

@@ -1,11 +1,9 @@
 // import init from "@blockprotocol/type-system-rs";
 
 import type {
-  BaseUrl,
   EntityMetadata as EntityMetadataBp,
-  JsonValue,
   LinkData,
-  Property,
+  PropertyObject,
   VersionedUrl,
 } from "@blockprotocol/type-system-rs";
 
@@ -60,17 +58,13 @@ export const mustHaveAtLeastOne = <T>(array: T[]): [T, ...T[]] => {
   return arr;
 };
 
-export type Entity<
-  Properties extends Record<BaseUrl, Property> | null = Record<
-    BaseUrl,
-    Property
-  >,
-> = {
-  metadata: EntityMetadata;
-  linkData?: LinkData;
-} & (Properties extends null
-  ? { properties?: never }
-  : { properties: Properties });
+export type Entity<Properties extends PropertyObject | null = PropertyObject> =
+  {
+    metadata: EntityMetadata;
+    linkData?: LinkData;
+  } & (Properties extends null
+    ? { properties?: never }
+    : { properties: Properties });
 
 // setWasmInit(() => (typeof wasm === "function" ? wasm() : wasm));
 
@@ -82,7 +76,3 @@ export type EntityMetadata<
 > = Omit<EntityMetadataBp, "entityTypeIds"> & {
   entityTypeIds: EntityTypeIds;
 };
-
-export type PropertyObject = Record<BaseUrl, Property>;
-export type PropertyArray = Property[];
-export type PropertyValue = JsonValue;

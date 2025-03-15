@@ -11,6 +11,7 @@ import type {
   Property,
   PropertyArrayWithMetadata,
   PropertyMetadata,
+  PropertyObject,
   PropertyObjectMetadata,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
@@ -84,7 +85,7 @@ type TypeId = typeof typeId;
 
 export interface SerializedEntity<
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Properties extends Record<BaseUrl, Property> = Record<BaseUrl, Property>,
+  Properties extends PropertyObject = PropertyObject,
 > {
   // Prevents the type from being created from outside the module
   [typeId]: TypeId;
@@ -96,7 +97,7 @@ type EntityData<Properties extends EntityProperties = EntityProperties> = {
   linkData?: LinkData;
 };
 
-type EntityInput<Properties extends Record<BaseUrl, Property>> =
+type EntityInput<Properties extends PropertyObject> =
   | GraphApiEntity
   | SerializedEntity<Properties>;
 
@@ -142,7 +143,7 @@ export const patchesFromPropertyObjects = ({
   oldProperties,
   newProperties,
 }: {
-  oldProperties: Record<BaseUrl, Property>;
+  oldProperties: PropertyObject;
   newProperties: PropertyObjectWithMetadata;
 }): PropertyPatchOperation[] => {
   const patches: PropertyPatchOperation[] = [];
@@ -203,7 +204,7 @@ export const patchesFromPropertyObjects = ({
  * type argument inference would solve (1) but not (2).
  */
 export const getDefinedPropertyFromPatchesGetter = <
-  Properties extends Record<BaseUrl, Property>,
+  Properties extends PropertyObject,
 >(
   propertyPatches: PropertyPatchOperation[],
 ) => {
@@ -222,9 +223,7 @@ export const getDefinedPropertyFromPatchesGetter = <
   };
 };
 
-export const isValueRemovedByPatches = <
-  Properties extends Record<BaseUrl, Property>,
->({
+export const isValueRemovedByPatches = <Properties extends PropertyObject>({
   baseUrl,
   propertyPatches,
 }: {

@@ -1,11 +1,10 @@
 import type {
-  BaseUrl,
   Entity,
   EntityId,
   EntityRecordId,
-  JsonValue,
   LinkData,
-  Property,
+  PropertyObject,
+  PropertyValue,
   Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -39,7 +38,7 @@ export type LinkEntityAndRightEntity = {
 
 export type CreateEntityData = {
   entityTypeIds: VersionedUrl[];
-  properties: Record<BaseUrl, Property>;
+  properties: PropertyObject;
   linkData?: LinkData;
 };
 
@@ -52,7 +51,7 @@ export type GetEntityData = {
 export type UpdateEntityData = {
   entityId: EntityId;
   entityTypeIds: VersionedUrl[];
-  properties: Record<BaseUrl, Property>;
+  properties: PropertyObject;
 };
 
 export type DeleteEntityData = {
@@ -80,7 +79,7 @@ export type MultiFilter = {
     | {
         field: (string | number)[];
         operator: FilterOperatorRequiringValue;
-        value: JsonValue;
+        value: PropertyValue;
       }
     | { field: (string | number)[]; operator: FilterOperatorWithoutValue }
   )[];
@@ -126,7 +125,7 @@ type BeforeTrailingLast<
  * To experiment with in block building – might be useful in patterns to make block building easier.
  * @todo remove this if we settle on a pattern that doesn't benefit from it
  */
-export type SimpleProperties<Properties extends Record<BaseUrl, Property>> = {
+export type SimpleProperties<Properties extends PropertyObject> = {
   [Key in keyof Properties as BeforeTrailingLast<
     Extract<Key, string>,
     "/"

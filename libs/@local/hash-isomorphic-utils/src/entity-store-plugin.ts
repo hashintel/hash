@@ -1,8 +1,7 @@
 import type {
-  BaseUrl,
   EntityId,
   OwnedById,
-  Property,
+  PropertyObject,
   Timestamp,
 } from "@blockprotocol/type-system";
 import type { Draft } from "immer";
@@ -308,7 +307,7 @@ const entityStoreReducer = (
                 );
               } else {
                 draftEntity.properties = castDraft(
-                  action.payload.properties as Record<BaseUrl, Property>,
+                  action.payload.properties as PropertyObject,
                 );
               }
             }

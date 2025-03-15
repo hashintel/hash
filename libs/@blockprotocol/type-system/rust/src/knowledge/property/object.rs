@@ -13,10 +13,11 @@ use super::{
     diff::PropertyDiff,
     metadata::{ObjectMetadata, PropertyObjectMetadata},
 };
-use crate::{knowledge::Value, ontology::BaseUrl};
+use crate::{knowledge::PropertyValue, ontology::BaseUrl};
 
 #[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 pub struct PropertyObject(HashMap<BaseUrl, Property>);
 
 impl PropertyObject {
@@ -74,9 +75,9 @@ impl PropertyObject {
     }
 }
 
-impl PartialEq<Value> for PropertyObject {
-    fn eq(&self, other: &Value) -> bool {
-        let Value::Object(other_object) = other else {
+impl PartialEq<PropertyValue> for PropertyObject {
+    fn eq(&self, other: &PropertyValue) -> bool {
+        let PropertyValue::Object(other_object) = other else {
             return false;
         };
 

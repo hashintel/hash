@@ -55,7 +55,7 @@ use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     knowledge::{
-        Confidence, Entity, Property, Value,
+        Confidence, Entity, Property, PropertyValue,
         entity::{
             EntityMetadata, EntityProvenance,
             id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
@@ -367,7 +367,7 @@ where
             return;
         };
 
-        let &mut Value::Number(ref mut value_number) = value else {
+        let &mut PropertyValue::Number(ref mut value_number) = value else {
             // If the value is not a number, we can ignore the property.
             return;
         };
@@ -378,7 +378,7 @@ where
         }
         drop(conversions);
 
-        *value = Value::Number(real);
+        *value = PropertyValue::Number(real);
 
         metadata.data_type_id = Some(target_data_type_id.clone());
     }

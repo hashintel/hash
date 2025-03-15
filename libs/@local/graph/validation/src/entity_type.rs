@@ -31,7 +31,7 @@ use type_system::{
             PropertyArrayWithMetadata, PropertyObjectWithMetadata, PropertyPath,
             PropertyValueWithMetadata,
         },
-        value::{Value, ValueMetadata},
+        value::{PropertyValue, ValueMetadata},
     },
     ontology::{
         VersionedUrl,
@@ -290,7 +290,7 @@ impl EntityVisitor for EntityPreprocessor {
     async fn visit_value<P>(
         &mut self,
         desired_data_type_reference: &DataTypeReference,
-        value: &mut Value,
+        value: &mut PropertyValue,
         metadata: &mut ValueMetadata,
         type_provider: &P,
     ) -> Result<(), ValueValidationReport>
@@ -484,11 +484,11 @@ impl EntityVisitor for EntityPreprocessor {
                             });
                     }
                     Ok(conversions) => {
-                        if let Value::Number(mut value) = property.value.clone() {
+                        if let PropertyValue::Number(mut value) = property.value.clone() {
                             for conversion in conversions.borrow() {
                                 value = conversion.evaluate(value);
                             }
-                            property.value = Value::Number(value);
+                            property.value = PropertyValue::Number(value);
                         } else {
                             property_validation.value_conversion =
                                 Some(DataTypeConversionError::WrongType {
@@ -528,7 +528,7 @@ impl EntityVisitor for EntityPreprocessor {
                 Ok(data_type) => {
                     if !data_type.borrow().metadata.conversions.is_empty() {
                         // We only support conversion of numbers for now
-                        if let Value::Number(value) = &property.value {
+                        if let PropertyValue::Number(value) = &property.value {
                             property.metadata.canonical = data_type
                                 .borrow()
                                 .metadata
@@ -537,7 +537,7 @@ impl EntityVisitor for EntityPreprocessor {
                                 .map(|(target, conversion)| {
                                     let converted_value =
                                         conversion.to.expression.evaluate(value.clone());
-                                    (target.clone(), Value::Number(converted_value))
+                                    (target.clone(), PropertyValue::Number(converted_value))
                                 })
                                 .collect();
                         } else {

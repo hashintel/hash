@@ -1,8 +1,4 @@
-import type {
-  BaseUrl,
-  Property,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { PropertyObject, VersionedUrl } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { Status } from "@local/status";
@@ -52,7 +48,7 @@ export type ProposedEntitySchemaOrData =
 type BaseProposedEntity = {
   entityId: number;
   updateEntityId?: string;
-  properties?: Record<BaseUrl, Property>;
+  properties?: PropertyObject;
 };
 
 export type ProposedEntityLinkFields = {

@@ -5,7 +5,7 @@ use error_stack::Report;
 use futures::FutureExt as _;
 use type_system::{
     knowledge::{
-        Value,
+        PropertyValue,
         property::{
             PropertyArrayWithMetadata, PropertyObjectWithMetadata, PropertyValueWithMetadata,
             PropertyWithMetadata,
@@ -282,7 +282,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     fn visit_value<P>(
         &mut self,
         desired_data_type_reference: &DataTypeReference,
-        value: &mut Value,
+        value: &mut PropertyValue,
         metadata: &mut ValueMetadata,
         type_provider: &P,
     ) -> impl Future<Output = Result<(), ValueValidationReport>> + Send

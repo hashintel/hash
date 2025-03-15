@@ -7,7 +7,7 @@ use bytes::BytesMut;
 use hash_graph_temporal_versioning::{TemporalInterval, Timestamp};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type, WasNull};
-use type_system::knowledge::Value;
+use type_system::knowledge::PropertyValue;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -19,7 +19,7 @@ pub enum CursorField<'a> {
     String(Cow<'a, str>),
     Timestamp(Timestamp<()>),
     TimeInterval(TemporalInterval<()>),
-    Json(Value),
+    Json(PropertyValue),
     Uuid(Uuid),
 }
 
@@ -61,7 +61,7 @@ impl FromSql<'_> for CursorField<'static> {
             Type::TEXT | Type::VARCHAR => Ok(Self::String(Cow::Owned(String::from_sql(ty, raw)?))),
             Type::TIMESTAMPTZ => Ok(Self::Timestamp(Timestamp::from_sql(ty, raw)?)),
             Type::TSTZ_RANGE => Ok(Self::TimeInterval(TemporalInterval::from_sql(ty, raw)?)),
-            Type::JSONB => Ok(Self::Json(Value::from_sql(ty, raw)?)),
+            Type::JSONB => Ok(Self::Json(PropertyValue::from_sql(ty, raw)?)),
             Type::UUID => Ok(Self::Uuid(Uuid::from_sql(ty, raw)?)),
             _ => Err(format!("Unsupported type: {ty}").into()),
         }
@@ -69,7 +69,7 @@ impl FromSql<'_> for CursorField<'static> {
 
     fn from_sql_null(ty: &Type) -> Result<Self, Box<dyn Error + Sync + Send>> {
         match *ty {
-            Type::JSONB => Ok(Self::Json(Value::Null)),
+            Type::JSONB => Ok(Self::Json(PropertyValue::Null)),
             _ => Err(Box::new(WasNull)),
         }
     }

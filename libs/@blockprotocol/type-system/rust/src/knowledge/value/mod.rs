@@ -50,27 +50,30 @@ pub use self::metadata::ValueMetadata;
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(untagged, rename = "JsonValue")]
-pub enum Value {
+#[serde(untagged)]
+pub enum PropertyValue {
     Null,
     Bool(bool),
     String(String),
     Number(#[cfg_attr(target_arch = "wasm32", tsify(type = "number"))] Real),
-    Array(#[cfg_attr(target_arch = "wasm32", tsify(type = "JsonValue[]"))] Vec<Self>),
+    Array(#[cfg_attr(target_arch = "wasm32", tsify(type = "PropertyValue[]"))] Vec<Self>),
     Object(
-        #[cfg_attr(target_arch = "wasm32", tsify(type = "{ [key: string]: JsonValue }"))]
+        #[cfg_attr(
+            target_arch = "wasm32",
+            tsify(type = "{ [key: string]: PropertyValue }")
+        )]
         HashMap<String, Self>,
     ),
 }
 
-impl fmt::Display for Value {
+impl fmt::Display for PropertyValue {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(fmt)
     }
 }
 
 #[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for Value {
+impl<'a> FromSql<'a> for PropertyValue {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Json::<Self>::from_sql(ty, raw)?.0)
     }
@@ -81,7 +84,7 @@ impl<'a> FromSql<'a> for Value {
 }
 
 #[cfg(feature = "postgres")]
-impl ToSql for Value {
+impl ToSql for PropertyValue {
     postgres_types::to_sql_checked!();
 
     fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>

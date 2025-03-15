@@ -10,10 +10,10 @@ import type {
   DataTypeReference,
   DataTypeWithMetadata,
   EntityType,
-  JsonValue,
   PropertyType,
   PropertyTypeReference,
   PropertyTypeWithMetadata,
+  PropertyValue,
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -134,7 +134,7 @@ export const getPropertyTypeForEntity = (
 export const guessSchemaForPropertyValue = (
   subgraph: Subgraph,
   propertyType: PropertyType,
-  value: JsonValue,
+  value: PropertyValue,
 ): {
   schema:
     | DataTypeWithMetadata["schema"]

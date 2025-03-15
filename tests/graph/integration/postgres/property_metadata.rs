@@ -11,7 +11,7 @@ use serde::de::DeserializeOwned;
 use serde_json::json;
 use type_system::{
     knowledge::{
-        Confidence, Value,
+        Confidence, PropertyValue,
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{
             PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation, PropertyPath,
@@ -216,7 +216,7 @@ async fn initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
                 }),
@@ -239,7 +239,7 @@ async fn initial_metadata() {
                     )))
                     .collect(),
                     property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
-                        value: Value::String("Bob".to_owned()),
+                        value: PropertyValue::String("Bob".to_owned()),
                         metadata: ValueMetadata {
                             provenance: property_provenance_a(),
                             confidence: Confidence::new(0.6),
@@ -273,7 +273,7 @@ async fn initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Bob".to_owned())
+                            PropertyValue::String("Bob".to_owned())
                         )]),
                     },
                 }),
@@ -353,7 +353,7 @@ async fn no_initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
                 }),
@@ -420,7 +420,7 @@ async fn no_initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
                 }),
@@ -437,7 +437,7 @@ async fn no_initial_metadata() {
                 properties: vec![PropertyPatchOperation::Replace {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                     property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
-                        value: Value::String("Alice".to_owned()),
+                        value: PropertyValue::String("Alice".to_owned()),
                         metadata: ValueMetadata {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
@@ -476,7 +476,7 @@ async fn no_initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
                 }),
@@ -516,7 +516,7 @@ async fn no_initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
                 }),
@@ -571,7 +571,7 @@ async fn properties_add() {
                 properties: vec![PropertyPatchOperation::Add {
                     path: path.clone(),
                     property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
-                        value: Value::Number(Real::from(30)),
+                        value: PropertyValue::Number(Real::from(30)),
                         metadata: ValueMetadata {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
@@ -608,7 +608,7 @@ async fn properties_add() {
                             original_data_type_id: Some(text_data_type_id()),
                             canonical: HashMap::from([(
                                 text_data_type_id().base_url,
-                                Value::String("Alice".to_owned())
+                                PropertyValue::String("Alice".to_owned())
                             )]),
                         },
                     }),
@@ -623,7 +623,7 @@ async fn properties_add() {
                             original_data_type_id: Some(number_data_type_id()),
                             canonical: HashMap::from([(
                                 number_data_type_id().base_url,
-                                Value::Number(Real::from(30))
+                                PropertyValue::Number(Real::from(30))
                             )]),
                         },
                     }),
@@ -696,7 +696,7 @@ async fn properties_remove() {
                     PropertyPatchOperation::Add {
                         path: film_path.clone(),
                         property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
-                            value: Value::String("Fight Club".to_owned()),
+                            value: PropertyValue::String("Fight Club".to_owned()),
                             metadata: ValueMetadata {
                                 confidence: Confidence::new(0.5),
                                 data_type_id: None,
@@ -734,7 +734,7 @@ async fn properties_remove() {
                             original_data_type_id: Some(text_data_type_id()),
                             canonical: HashMap::from([(
                                 text_data_type_id().base_url,
-                                Value::String("Alice".to_owned())
+                                PropertyValue::String("Alice".to_owned())
                             )]),
                         },
                     }),
@@ -752,7 +752,7 @@ async fn properties_remove() {
                                     original_data_type_id: Some(text_data_type_id()),
                                     canonical: HashMap::from([(
                                         text_data_type_id().base_url,
-                                        Value::String("Fight Club".to_owned())
+                                        PropertyValue::String("Fight Club".to_owned())
                                     )]),
                                 },
                             }),
@@ -804,7 +804,7 @@ async fn properties_remove() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
                 }),

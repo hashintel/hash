@@ -17,7 +17,7 @@ use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::{
-        Value,
+        PropertyValue,
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{
             PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
@@ -126,7 +126,7 @@ async fn properties_add() {
                 PropertyPatchOperation::Add {
                     path: once(PropertyPathElement::from(age_property_type_id())).collect(),
                     property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
-                        value: Value::Number(Real::from(30)),
+                        value: PropertyValue::Number(Real::from(30)),
                         metadata: ValueMetadata {
                             confidence: None,
                             data_type_id: None,
@@ -139,7 +139,7 @@ async fn properties_add() {
                 PropertyPatchOperation::Add {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                     property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
-                        value: Value::String("Alice Allison".to_owned()),
+                        value: PropertyValue::String("Alice Allison".to_owned()),
                         metadata: ValueMetadata {
                             confidence: None,
                             data_type_id: None,
@@ -198,11 +198,11 @@ async fn properties_add() {
     assert_eq!(properties.len(), 2);
     assert_eq!(
         properties[&name_property_type_id()],
-        Value::String("Alice Allison".to_owned())
+        PropertyValue::String("Alice Allison".to_owned())
     );
     assert_eq!(
         properties[&age_property_type_id()],
-        Value::Number(Real::from(30))
+        PropertyValue::Number(Real::from(30))
     );
 }
 
@@ -332,7 +332,7 @@ async fn properties_replace() {
             properties: vec![PropertyPatchOperation::Replace {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                 property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
-                    value: Value::String("Bob".to_owned()),
+                    value: PropertyValue::String("Bob".to_owned()),
                     metadata: ValueMetadata {
                         confidence: None,
                         data_type_id: None,
@@ -390,7 +390,7 @@ async fn properties_replace() {
     assert_eq!(properties.len(), 1);
     assert_eq!(
         properties[&name_property_type_id()],
-        Value::String("Bob".to_owned())
+        PropertyValue::String("Bob".to_owned())
     );
 }
 

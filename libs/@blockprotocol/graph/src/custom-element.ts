@@ -1,4 +1,4 @@
-import type { BaseUrl, Entity, Property } from "@blockprotocol/type-system";
+import type { Entity, PropertyObject } from "@blockprotocol/type-system";
 import { LitElement } from "lit";
 
 import type { BlockGraphProperties, LinkEntityAndRightEntity } from "./main.js";
@@ -96,7 +96,7 @@ export abstract class BlockElementBase<
    * A helper method to update the properties of the entity loaded into the block, i.e. this.graph.blockEntity
    * @param properties the properties object to assign to the entity, which will overwrite the existing object
    */
-  protected updateSelfProperties(properties: Record<BaseUrl, Property>) {
+  protected updateSelfProperties(properties: PropertyObject) {
     if (!this.graphModule) {
       throw new Error(
         "Cannot updateSelfProperties – graphModule not yet connected.",

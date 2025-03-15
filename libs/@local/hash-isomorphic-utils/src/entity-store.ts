@@ -1,9 +1,8 @@
 import type {
-  BaseUrl,
   EntityId,
   EntityTemporalMetadata,
   LinkData,
-  Property,
+  PropertyObject,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { Draft } from "immer";
@@ -36,7 +35,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
    * @see https://linear.app/hash/issue/H-3000
    */
   blockChildEntity?: Type & { draftId?: string };
-  properties: Record<BaseUrl, Property>;
+  properties: PropertyObject;
   linkData?: LinkData;
 
   componentId?: string;

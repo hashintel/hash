@@ -26,7 +26,7 @@ pub use self::{
     value::PropertyValueWithMetadata,
 };
 use super::{
-    Value,
+    PropertyValue,
     value::{ValueMetadata, metadata::ValueProvenance},
 };
 use crate::ontology::{
@@ -82,7 +82,7 @@ pub enum Property {
     /// A primitive value such as a string, number, boolean, etc.
     ///
     /// Values represent the atomic units of data in the property system.
-    Value(#[cfg_attr(target_arch = "wasm32", tsify(type = "JsonValue"))] Value),
+    Value(PropertyValue),
 }
 
 /// Property data combined with its corresponding metadata.
@@ -458,7 +458,7 @@ impl PropertyWithMetadata {
 
 impl Property {
     // TODO: Replace with `gen fn`
-    pub fn properties(&self) -> impl Iterator<Item = (PropertyPath<'_>, &Value)> {
+    pub fn properties(&self) -> impl Iterator<Item = (PropertyPath<'_>, &PropertyValue)> {
         let mut vec = Vec::new();
         let mut elements = PropertyPath::default();
         match self {
@@ -680,18 +680,18 @@ impl fmt::Display for Property {
     }
 }
 
-impl PartialEq<Value> for Property {
-    fn eq(&self, other: &Value) -> bool {
+impl PartialEq<PropertyValue> for Property {
+    fn eq(&self, other: &PropertyValue) -> bool {
         match self {
             Self::Array(lhs) => {
-                let Value::Array(rhs) = other else {
+                let PropertyValue::Array(rhs) = other else {
                     return false;
                 };
 
                 lhs == rhs
             }
             Self::Object(lhs) => {
-                let Value::Object(rhs) = other else {
+                let PropertyValue::Object(rhs) = other else {
                     return false;
                 };
 
