@@ -329,7 +329,7 @@ __metadata:
     tsx: "npm:4.19.3"
     typescript: "npm:5.7.3"
     vitest: "npm:3.0.8"
-    wait-on: "npm:8.0.2"
+    wait-on: "npm:8.0.3"
   languageName: unknown
   linkType: soft
 
@@ -438,7 +438,7 @@ __metadata:
     tsx: "npm:4.19.3"
     typescript: "npm:5.7.3"
     vitest: "npm:3.0.8"
-    wait-on: "npm:8.0.2"
+    wait-on: "npm:8.0.3"
     ws: "npm:8.18.1"
   languageName: unknown
   linkType: soft
@@ -586,7 +586,7 @@ __metadata:
     url-regex-safe: "npm:4.0.0"
     use-font-face-observer: "npm:1.3.0"
     uuid: "npm:11.1.0"
-    wait-on: "npm:8.0.2"
+    wait-on: "npm:8.0.3"
     webpack: "npm:5.98.0"
   languageName: unknown
   linkType: soft
@@ -639,7 +639,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     tsx: "npm:4.19.3"
     typescript: "npm:5.7.3"
-    wait-on: "npm:8.0.2"
+    wait-on: "npm:8.0.3"
   languageName: unknown
   linkType: soft
 
@@ -8828,7 +8828,7 @@ __metadata:
     typescript: "npm:5.7.3"
     uuid: "npm:11.1.0"
     vitest: "npm:3.0.8"
-    wait-on: "npm:8.0.2"
+    wait-on: "npm:8.0.3"
     winston: "npm:3.17.0"
   languageName: unknown
   linkType: soft
@@ -20629,7 +20629,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.8.3, axios@npm:^1.6.1, axios@npm:^1.7.4, axios@npm:^1.7.9":
+"axios@npm:1.8.3, axios@npm:^1.6.1, axios@npm:^1.7.4, axios@npm:^1.8.2":
   version: 1.8.3
   resolution: "axios@npm:1.8.3"
   dependencies:
@@ -41144,7 +41144,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rxjs@npm:*, rxjs@npm:7.8.2, rxjs@npm:^7.5.5, rxjs@npm:^7.8.1":
+"rxjs@npm:*, rxjs@npm:7.8.2, rxjs@npm:^7.5.5, rxjs@npm:^7.8.1, rxjs@npm:^7.8.2":
   version: 7.8.2
   resolution: "rxjs@npm:7.8.2"
   dependencies:
@@ -45904,18 +45904,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"wait-on@npm:8.0.2":
-  version: 8.0.2
-  resolution: "wait-on@npm:8.0.2"
+"wait-on@npm:8.0.3":
+  version: 8.0.3
+  resolution: "wait-on@npm:8.0.3"
   dependencies:
-    axios: "npm:^1.7.9"
+    axios: "npm:^1.8.2"
     joi: "npm:^17.13.3"
     lodash: "npm:^4.17.21"
     minimist: "npm:^1.2.8"
-    rxjs: "npm:^7.8.1"
+    rxjs: "npm:^7.8.2"
   bin:
     wait-on: bin/wait-on
-  checksum: 10c0/7a2a2193f601eb30d3125595fbed1abeb3ce0c9e164146aed27d12469d9b665273dc8e508a3a869c997f37b92d93478c202b38253a95c5c29e6fc64d0a317f5b
+  checksum: 10c0/7f14086c3bb6fc055207ab591d2faefc045f718aa7c959353a54af05cf08c53c25d9af80d4d5f6934a169cc0d97ebd1dcf024b13583d09b9a935c36bd745bd7b
   languageName: node
   linkType: hard
 
