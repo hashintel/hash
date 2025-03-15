@@ -18,10 +18,10 @@ pub use self::metadata::ValueMetadata;
 /// types defined in the ontology.
 ///
 /// This enum is the fundamental data unit in the type system and is used throughout
-/// the validation process. [`Value`]s are instances of [`DataType`]s defined in the ontology.
-/// The relationship is similar to values and types in typed programming languages:
+/// the validation process. [`PropertyValue`]s are instances of [`DataType`]s defined in the
+/// ontology. The relationship is similar to values and types in typed programming languages:
 /// - [`DataType`]s define the validation rules, constraints, and format a value must follow
-/// - [`Value`] instances contain actual data conforming to those data types
+/// - [`PropertyValue`] instances contain actual data conforming to those data types
 ///
 /// Each value in an entity:
 /// - Corresponds to a specific [`DataType`] in the ontology (referenced in its metadata)
@@ -34,16 +34,19 @@ pub use self::metadata::ValueMetadata;
 /// ```
 /// use std::collections::HashMap;
 ///
-/// use type_system::knowledge::Value;
+/// use type_system::knowledge::PropertyValue;
 ///
 /// // Create a simple string value
-/// let string_value = Value::String("Hello, world!".to_string());
+/// let string_value = PropertyValue::String("Hello, world!".to_string());
 ///
 /// // Create a more complex object value
 /// let mut obj = HashMap::new();
-/// obj.insert("greeting".to_string(), Value::String("Hello".to_string()));
-/// obj.insert("count".to_string(), Value::Number(42_i32.into()));
-/// let object_value = Value::Object(obj);
+/// obj.insert(
+///     "greeting".to_string(),
+///     PropertyValue::String("Hello".to_string()),
+/// );
+/// obj.insert("count".to_string(), PropertyValue::Number(42_i32.into()));
+/// let object_value = PropertyValue::Object(obj);
 /// ```
 ///
 /// [`DataType`]: crate::ontology::data_type::DataType
