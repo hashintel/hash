@@ -1,5 +1,9 @@
+import {
+  type ActorId,
+  extractBaseUrl,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { AccountId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -9,8 +13,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { graphApiClient } from "../../activities/shared/graph-api-client.js";
 
@@ -53,5 +55,5 @@ export const getAliceUserAccountId = async () => {
     aliceUserEntity.metadata.recordId.entityId,
   );
 
-  return aliceUserAccountId as AccountId;
+  return aliceUserAccountId as ActorId;
 };

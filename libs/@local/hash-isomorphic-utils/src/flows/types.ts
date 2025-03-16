@@ -5,10 +5,11 @@ import type {
   OwnedById,
   PropertyObject,
   PropertyObjectMetadata,
+  ProvidedEntityEditionProvenance,
+  Url,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { Status } from "@local/status";
 
@@ -22,7 +23,7 @@ export type DeepReadOnly<T> = {
 };
 
 export type WebPage = {
-  url: string;
+  url: Url;
   title: string;
   htmlContent: string;
   innerText: string;

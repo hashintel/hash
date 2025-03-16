@@ -1,14 +1,14 @@
-import { type JsonValue, type VersionedUrl } from "@blockprotocol/type-system";
-import { SchemaType } from "@google-cloud/vertexai";
-import { sleep } from "@local/hash-backend-utils/utils";
-import type { PropertyProvenance } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   PropertyObjectWithMetadata,
+  PropertyProvenance,
   PropertyValue,
   PropertyWithMetadata,
-} from "@local/hash-graph-types/entity";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { SchemaType } from "@google-cloud/vertexai";
+import { sleep } from "@local/hash-backend-utils/utils";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -454,16 +454,16 @@ export const getLlmAnalysisOfDoc = async ({
   const textContent: LlmMessageTextContent = {
     type: "text",
     text: dedent(`Please provide metadata about this document, using only the information visible in the document.
-    
+
     You are given multiple options of what type of document this might be, and must choose from them.
 
     The options are:
-    
+
     ${dereferencedDocEntityTypes.map((type) => `- ${type.schema.title}`).join("\n")}
 
     'Doc' is the most generic type. Use this if no other more specific type is appropriate.
     If you can't find a more specific type, use 'Doc'.
-    
+
     When dealing with dates in the document metadata, use the format YYYY-MM-DD. Bear in mind the document may use a different format.
     Also note the difference between 'estimated'/'predicted' and 'actual'/'confirmed' dates. Either, neither or both may be present.
     Depending on the type of document, this distinction may be important, and the document should give clues as to which dates are which.

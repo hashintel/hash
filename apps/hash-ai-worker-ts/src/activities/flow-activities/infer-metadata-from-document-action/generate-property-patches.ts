@@ -1,9 +1,9 @@
-import type { PropertyProvenance } from "@local/hash-graph-client";
 import type {
+  BaseUrl,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
-} from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+  PropertyProvenance,
+} from "@blockprotocol/type-system";
 import type { NumberOfPagesPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/academicpaper";
 import type { DocProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 

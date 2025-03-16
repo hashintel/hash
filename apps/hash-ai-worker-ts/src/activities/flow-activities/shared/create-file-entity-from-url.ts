@@ -13,7 +13,12 @@ import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
 import { fileURLToPath } from "node:url";
 
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityUuid,
+  PropertyObjectMetadata,
+  ProvidedEntityEditionProvenance,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import {
   formatFileUrl,
@@ -21,16 +26,11 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import {
   Entity,
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityUuid,
-  PropertyMetadataObject,
-} from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
@@ -130,7 +130,7 @@ const writeFileToS3URL = async ({
 export const createFileEntityFromUrl = async (params: {
   entityUuid: EntityUuid | null;
   url: string;
-  propertyMetadata?: PropertyMetadataObject;
+  propertyMetadata?: PropertyObjectMetadata;
   provenance?: ProvidedEntityEditionProvenance;
   entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
   description?: string;

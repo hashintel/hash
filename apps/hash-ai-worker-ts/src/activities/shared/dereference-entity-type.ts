@@ -1,4 +1,5 @@
 import type {
+  BaseUrl,
   DataType,
   EntityType,
   OneOfSchema,
@@ -9,10 +10,13 @@ import type {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
+import {
+  atLeastOne,
+  extractBaseUrl,
+  extractVersion,
+} from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Subgraph } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
@@ -20,10 +24,7 @@ import {
   getEntityTypeAndParentsById,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
-import {
-  componentsFromVersionedUrl,
-  extractBaseUrl,
-} from "@local/hash-subgraph/type-system-patch";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 
@@ -359,7 +360,7 @@ export const dereferenceEntityType = <
 
   for (const entityType of entityTypeWithAncestors) {
     for (const requiredProp of entityType.schema.required ?? []) {
-      requiredProperties.add(requiredProp as BaseUrl);
+      requiredProperties.add(requiredProp);
     }
 
     /**
@@ -367,7 +368,7 @@ export const dereferenceEntityType = <
      * The first item in the array is the entity type itself.
      */
     if (!labelProperty && entityType.schema.labelProperty) {
-      labelProperty = entityType.schema.labelProperty as BaseUrl;
+      labelProperty = entityType.schema.labelProperty;
     }
 
     for (const propertyRefSchema of Object.values(

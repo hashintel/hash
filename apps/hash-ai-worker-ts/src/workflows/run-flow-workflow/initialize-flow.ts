@@ -1,4 +1,4 @@
-import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ActionStep,

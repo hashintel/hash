@@ -1,15 +1,14 @@
 import type {
-  PropertyProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type {
+  ActorId,
   EntityId,
   EntityUuid,
-  PropertyMetadataObject,
-} from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  OwnedById,
+  PropertyObjectMetadata,
+  PropertyProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -29,7 +28,6 @@ import type {
   PersonProperties,
   TextDataTypeMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
 
 import { getFlowContext } from "../../shared/get-flow-context.js";
@@ -49,14 +47,14 @@ const createClaim = async ({
   userActorId,
 }: {
   claimText: string;
-  creatorActorId: AccountId;
+  creatorActorId: ActorId;
   draft: boolean;
   objectText: string;
   ownedById: OwnedById;
   propertyProvenance: PropertyProvenance;
   provenance: ProvidedEntityEditionProvenance;
   subjectText: string;
-  userActorId: AccountId;
+  userActorId: ActorId;
 }) => {
   return await Entity.create<ClaimEntity>(
     graphApiClient,
@@ -112,7 +110,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   provenance,
   propertyProvenance,
 }: {
-  aiAssistantAccountId: AccountId;
+  aiAssistantAccountId: ActorId;
   documentMetadata: Pick<DocumentData, "authors">;
   documentEntityId: EntityId;
   documentTitle: string;
@@ -133,7 +131,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     provenance: propertyProvenance,
   };
 
-  const nameOnlyPropertyMetadata: PropertyMetadataObject = {
+  const nameOnlyPropertyMetadata: PropertyObjectMetadata = {
     value: {
       [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: {
         metadata:

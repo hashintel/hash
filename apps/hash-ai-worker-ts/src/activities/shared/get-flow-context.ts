@@ -1,9 +1,17 @@
+import type {
+  ActorId,
+  EntityId,
+  EntityUuid,
+  OwnedById,
+} from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { ManualInferenceTriggerInputName } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
@@ -11,11 +19,6 @@ import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  entityIdFromComponents,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
 import type { Client as TemporalClient } from "@temporalio/client";
 import type { MemoryCache } from "cache-manager";
@@ -134,7 +137,7 @@ type FlowContext = {
   dataSources: FlowDataSources;
   flowEntityId: EntityId;
   stepId: string;
-  userAuthentication: { actorId: AccountId };
+  userAuthentication: { actorId: ActorId };
   webId: OwnedById;
 };
 

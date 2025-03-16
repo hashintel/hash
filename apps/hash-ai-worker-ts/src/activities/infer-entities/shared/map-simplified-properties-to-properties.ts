@@ -1,9 +1,9 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
+  BaseUrl,
   PropertyObject,
   PropertyValue,
-} from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+} from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 export type PropertyValueWithSimplifiedProperties =
   | PropertyValue

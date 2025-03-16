@@ -1,14 +1,14 @@
 import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyObject,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
+import type {
   Embedding,
   EntityEmbedding,
   GraphApi,
 } from "@local/hash-graph-client";
-import type { PropertyObject } from "@local/hash-graph-types/entity";
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,

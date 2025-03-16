@@ -1,4 +1,4 @@
-import type { SourceProvenance } from "@local/hash-graph-client";
+import type { SourceProvenance } from "@blockprotocol/type-system";
 
 import { generateUuid } from "./generate-uuid.js";
 

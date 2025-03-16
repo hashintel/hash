@@ -1,5 +1,4 @@
-import type { SourceProvenance } from "@local/hash-graph-client";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SourceProvenance } from "@blockprotocol/type-system";
 
 export type Claim = {
   claimId: EntityId;
