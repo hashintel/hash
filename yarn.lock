@@ -329,7 +329,7 @@ __metadata:
     tsx: "npm:4.19.3"
     typescript: "npm:5.7.3"
     vitest: "npm:3.0.8"
-    wait-on: "npm:8.0.2"
+    wait-on: "npm:8.0.3"
   languageName: unknown
   linkType: soft
 
@@ -405,7 +405,7 @@ __metadata:
     cors: "npm:2.8.5"
     cross-env: "npm:7.0.3"
     dedent: "npm:0.7.0"
-    effect: "npm:3.13.10"
+    effect: "npm:3.13.11"
     eslint: "npm:9.20.1"
     exponential-backoff: "npm:3.1.2"
     express: "npm:4.21.2"
@@ -429,7 +429,7 @@ __metadata:
     long: "npm:5.3.1"
     md5: "npm:2.3.0"
     mime-types: "npm:2.1.35"
-    nanoid: "npm:3.3.9"
+    nanoid: "npm:3.3.10"
     nodemailer: "npm:6.10.0"
     oembed-providers: "npm:1.0.20241022"
     openai: "npm:4.87.3"
@@ -438,7 +438,7 @@ __metadata:
     tsx: "npm:4.19.3"
     typescript: "npm:5.7.3"
     vitest: "npm:3.0.8"
-    wait-on: "npm:8.0.2"
+    wait-on: "npm:8.0.3"
     ws: "npm:8.18.1"
   languageName: unknown
   linkType: soft
@@ -586,7 +586,7 @@ __metadata:
     url-regex-safe: "npm:4.0.0"
     use-font-face-observer: "npm:1.3.0"
     uuid: "npm:11.1.0"
-    wait-on: "npm:8.0.2"
+    wait-on: "npm:8.0.3"
     webpack: "npm:5.98.0"
   languageName: unknown
   linkType: soft
@@ -638,7 +638,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     tsx: "npm:4.19.3"
     typescript: "npm:5.7.3"
-    wait-on: "npm:8.0.2"
+    wait-on: "npm:8.0.3"
   languageName: unknown
   linkType: soft
 
@@ -807,7 +807,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@modelcontextprotocol/sdk": "npm:1.7.0"
-    "@notionhq/client": "npm:2.2.16"
+    "@notionhq/client": "npm:2.3.0"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/node": "npm:22.13.10"
     chokidar-cli: "npm:3.0.0"
@@ -5039,53 +5039,53 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/platform-node-shared@npm:^0.29.1":
-  version: 0.29.1
-  resolution: "@effect/platform-node-shared@npm:0.29.1"
+"@effect/platform-node-shared@npm:^0.29.2":
+  version: 0.29.2
+  resolution: "@effect/platform-node-shared@npm:0.29.2"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    "@effect/platform": ^0.79.1
-    effect: ^3.13.10
-  checksum: 10c0/98cc1fa99240d7fa89ef7bab1bf042823bdec0f8a82102436d6a47ecee7d2f734858adea3a2bba03d00bf36417cd59d24e4b3db577017f3ac3534b77cb64babb
+    "@effect/platform": ^0.79.2
+    effect: ^3.13.11
+  checksum: 10c0/a0dc5187c826bce10ad87d2f5f801b9495de01227ee099afa70989ff6a697d78b4d5b4f96d520b922b5f90cd7d9499c51568e182402187dbd948a6bce2f2469a
   languageName: node
   linkType: hard
 
-"@effect/platform-node@npm:0.75.1":
-  version: 0.75.1
-  resolution: "@effect/platform-node@npm:0.75.1"
+"@effect/platform-node@npm:0.75.2":
+  version: 0.75.2
+  resolution: "@effect/platform-node@npm:0.75.2"
   dependencies:
-    "@effect/platform-node-shared": "npm:^0.29.1"
+    "@effect/platform-node-shared": "npm:^0.29.2"
     mime: "npm:^3.0.0"
     undici: "npm:^7.1.0"
     ws: "npm:^8.18.0"
   peerDependencies:
-    "@effect/platform": ^0.79.1
-    effect: ^3.13.10
-  checksum: 10c0/b045543a3931f593f0b5178b5c673b5a998704f5c356dc6a2975fcbed070eb8d63b50e7e634b2f68ea9497618d409acf7cd74362d89936f198aa22f803316f01
+    "@effect/platform": ^0.79.2
+    effect: ^3.13.11
+  checksum: 10c0/c782ce5c9093125932f4ebd6d7ce0644adb69b40a3e8fd9e920186a39f907cf0217cbd9fd6129fd167720d50184876f4711d80339145fa570d6c9870e1a6475f
   languageName: node
   linkType: hard
 
-"@effect/platform@npm:0.79.1":
-  version: 0.79.1
-  resolution: "@effect/platform@npm:0.79.1"
+"@effect/platform@npm:0.79.2":
+  version: 0.79.2
+  resolution: "@effect/platform@npm:0.79.2"
   dependencies:
     find-my-way-ts: "npm:^0.1.5"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    effect: ^3.13.10
-  checksum: 10c0/6353330d72e2637f43761991d7656dd7bbf41cfca5563fafaa1ca734cc7e098481470635ee7a8a7acf7f248059fe6784189370b84f81725287b727aa8ef0bf22
+    effect: ^3.13.11
+  checksum: 10c0/6c6ad92992a8a91c74e5ff52b951acd5a35bc72ad86a9a8e639ae9acd979963dfebf0b592530c703b1f9965e3d5112ba4525e082ad38e7d6a8af661cb8c4e11f
   languageName: node
   linkType: hard
 
-"@effect/vitest@npm:0.19.8":
-  version: 0.19.8
-  resolution: "@effect/vitest@npm:0.19.8"
+"@effect/vitest@npm:0.19.9":
+  version: 0.19.9
+  resolution: "@effect/vitest@npm:0.19.9"
   peerDependencies:
-    effect: ^3.13.10
+    effect: ^3.13.11
     vitest: ^3.0.0
-  checksum: 10c0/1d4d90d15cfc449958765daf82e05537144f4d050bc4d040b1f6cbe1e23bcdfdd0c64ccd8ae503bb29f94504595149f788c0654c6e022a2e31fe12ee0533d163
+  checksum: 10c0/def231fdb0bde15dc322db2e703b2d91b7097e6a70504af6369b4f8040422530f258506adb9a5cb6ce53ef4908a14fa204f7d4f94049afb10d63ba57895b426f
   languageName: node
   linkType: hard
 
@@ -8733,7 +8733,7 @@ __metadata:
     "@types/babel__core": "npm:^7"
     "@types/eslint__eslintrc": "npm:2.1.2"
     "@types/node": "npm:22.13.10"
-    effect: "npm:3.13.10"
+    effect: "npm:3.13.11"
     eslint: "npm:9.20.1"
     eslint-config-airbnb: "npm:19.0.4"
     eslint-config-flat-gitignore: "npm:2.1.0"
@@ -8758,9 +8758,9 @@ __metadata:
   dependencies:
     "@chainsafe/libp2p-noise": "npm:16.0.3"
     "@chainsafe/libp2p-yamux": "npm:7.0.1"
-    "@effect/platform": "npm:0.79.1"
-    "@effect/platform-node": "npm:0.75.1"
-    "@effect/vitest": "npm:0.19.8"
+    "@effect/platform": "npm:0.79.2"
+    "@effect/platform-node": "npm:0.75.2"
+    "@effect/vitest": "npm:0.19.9"
     "@libp2p/crypto": "npm:5.0.15"
     "@libp2p/identify": "npm:3.0.26"
     "@libp2p/interface": "npm:2.7.0"
@@ -8773,7 +8773,7 @@ __metadata:
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
     "@types/node": "npm:22.13.10"
     "@vitest/coverage-istanbul": "npm:3.0.8"
-    effect: "npm:3.13.10"
+    effect: "npm:3.13.11"
     eslint: "npm:9.20.1"
     it-stream-types: "npm:2.0.2"
     libp2p: "npm:2.8.1"
@@ -8830,7 +8830,7 @@ __metadata:
     typescript: "npm:5.7.3"
     uuid: "npm:11.1.0"
     vitest: "npm:3.0.8"
-    wait-on: "npm:8.0.2"
+    wait-on: "npm:8.0.3"
     winston: "npm:3.17.0"
   languageName: unknown
   linkType: soft
@@ -8840,7 +8840,7 @@ __metadata:
   resolution: "@local/hash-graph-client@workspace:libs/@local/graph/client/typescript"
   dependencies:
     "@local/tsconfig": "npm:0.0.0-private"
-    "@openapitools/openapi-generator-cli": "npm:2.17.0"
+    "@openapitools/openapi-generator-cli": "npm:2.18.4"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.13.10"
     axios: "npm:1.8.3"
@@ -8863,7 +8863,7 @@ __metadata:
     "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:3.0.8"
-    effect: "npm:3.13.10"
+    effect: "npm:3.13.11"
     eslint: "npm:9.20.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
@@ -8966,7 +8966,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
   dependencies:
-    "@openapitools/openapi-generator-cli": "npm:2.17.0"
+    "@openapitools/openapi-generator-cli": "npm:2.18.4"
     "@types/node": "npm:22.13.10"
     axios: "npm:1.8.3"
     rimraf: "npm:6.0.1"
@@ -9710,13 +9710,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@notionhq/client@npm:2.2.16, @notionhq/client@npm:^2.2.12":
-  version: 2.2.16
-  resolution: "@notionhq/client@npm:2.2.16"
+"@notionhq/client@npm:2.3.0, @notionhq/client@npm:^2.2.12":
+  version: 2.3.0
+  resolution: "@notionhq/client@npm:2.3.0"
   dependencies:
     "@types/node-fetch": "npm:^2.5.10"
     node-fetch: "npm:^2.6.1"
-  checksum: 10c0/67c3698c24642294b747cb44e73d7b4e362643f4d3095d41281c1099540235b828f25b4606d5450e88805151f6b3d6b33192b80d15d3299e0ba163e40726970e
+  checksum: 10c0/48af6e0d44c97892374755fbfbca6eb2f27e5ad8baabc511d48ec02cc7d6a1488b1692423ff426cb77c39ac5b4c9bd5498d4b6bc40e295d149ff3d24ce3d8ecc
   languageName: node
   linkType: hard
 
@@ -9882,31 +9882,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openapitools/openapi-generator-cli@npm:2.17.0":
-  version: 2.17.0
-  resolution: "@openapitools/openapi-generator-cli@npm:2.17.0"
+"@openapitools/openapi-generator-cli@npm:2.18.4":
+  version: 2.18.4
+  resolution: "@openapitools/openapi-generator-cli@npm:2.18.4"
   dependencies:
     "@nestjs/axios": "npm:3.1.3"
     "@nestjs/common": "npm:10.4.15"
     "@nestjs/core": "npm:10.4.15"
     "@nuxtjs/opencollective": "npm:0.3.2"
-    axios: "npm:1.7.9"
+    axios: "npm:1.8.3"
     chalk: "npm:4.1.2"
     commander: "npm:8.3.0"
     compare-versions: "npm:4.1.4"
     concurrently: "npm:6.5.1"
     console.table: "npm:0.10.0"
-    fs-extra: "npm:10.1.0"
+    fs-extra: "npm:11.3.0"
     glob: "npm:9.3.5"
     inquirer: "npm:8.2.6"
     lodash: "npm:4.17.21"
     proxy-agent: "npm:6.5.0"
-    reflect-metadata: "npm:0.1.13"
-    rxjs: "npm:7.8.1"
+    reflect-metadata: "npm:0.2.2"
+    rxjs: "npm:7.8.2"
     tslib: "npm:2.8.1"
   bin:
     openapi-generator-cli: main.js
-  checksum: 10c0/43cff421946c074706e2ad9c4c56ca9220caa0b675aad46ac31e7807d4ff728ea57c5a84c375150bc7e6bf36f29bc67a9bebb6ab1a157ba806913550d53b650f
+  checksum: 10c0/7608f204f9a56e38ea8b3cd8296094b3db108ed3efe259524b61f89dcbfe7e17c6f19302d6ce0001f8b269878f35564e8c090dd8dc2b1567f198e82282a118ad
   languageName: node
   linkType: hard
 
@@ -20619,17 +20619,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.7.9":
-  version: 1.7.9
-  resolution: "axios@npm:1.7.9"
-  dependencies:
-    follow-redirects: "npm:^1.15.6"
-    form-data: "npm:^4.0.0"
-    proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/b7a41e24b59fee5f0f26c1fc844b45b17442832eb3a0fb42dd4f1430eb4abc571fe168e67913e8a1d91c993232bd1d1ab03e20e4d1fee8c6147649b576fc1b0b
-  languageName: node
-  linkType: hard
-
 "axios@npm:1.8.2":
   version: 1.8.2
   resolution: "axios@npm:1.8.2"
@@ -20641,7 +20630,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.8.3, axios@npm:^1.6.1, axios@npm:^1.7.4, axios@npm:^1.7.9":
+"axios@npm:1.8.3, axios@npm:^1.6.1, axios@npm:^1.7.4, axios@npm:^1.8.2":
   version: 1.8.3
   resolution: "axios@npm:1.8.3"
   dependencies:
@@ -24842,13 +24831,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"effect@npm:3.13.10":
-  version: 3.13.10
-  resolution: "effect@npm:3.13.10"
+"effect@npm:3.13.11":
+  version: 3.13.11
+  resolution: "effect@npm:3.13.11"
   dependencies:
     "@standard-schema/spec": "npm:^1.0.0"
     fast-check: "npm:^3.23.1"
-  checksum: 10c0/ab13f445e70f5d98cb13c72d8216bc3f6801a46a978af1961c9da7a46ff024c1aae7365b1ca0e3b385dc7e4a45371ad2f832abe9ef4ab9b14f5d391161d118f7
+  checksum: 10c0/cadc80d7d48808d2c11f792070d5233b4caf0b49ebafac50979805bd936294cc0f74dbe4b168f1a1e7020f48270517c80c2fa93b360efc87a90494ef974c65a5
   languageName: node
   linkType: hard
 
@@ -27957,17 +27946,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fs-extra@npm:10.1.0, fs-extra@npm:^10.0.0, fs-extra@npm:^10.1.0":
-  version: 10.1.0
-  resolution: "fs-extra@npm:10.1.0"
-  dependencies:
-    graceful-fs: "npm:^4.2.0"
-    jsonfile: "npm:^6.0.1"
-    universalify: "npm:^2.0.0"
-  checksum: 10c0/5f579466e7109719d162a9249abbeffe7f426eb133ea486e020b89bc6d67a741134076bf439983f2eb79276ceaf6bd7b7c1e43c3fd67fe889863e69072fb0a5e
-  languageName: node
-  linkType: hard
-
 "fs-extra@npm:11.1.1":
   version: 11.1.1
   resolution: "fs-extra@npm:11.1.1"
@@ -27987,6 +27965,17 @@ __metadata:
     jsonfile: "npm:^6.0.1"
     universalify: "npm:^2.0.0"
   checksum: 10c0/5f95e996186ff45463059feb115a22fb048bdaf7e487ecee8a8646c78ed8fdca63630e3077d4c16ce677051f5e60d3355a06f3cd61f3ca43f48cc58822a44d0a
+  languageName: node
+  linkType: hard
+
+"fs-extra@npm:^10.0.0, fs-extra@npm:^10.1.0":
+  version: 10.1.0
+  resolution: "fs-extra@npm:10.1.0"
+  dependencies:
+    graceful-fs: "npm:^4.2.0"
+    jsonfile: "npm:^6.0.1"
+    universalify: "npm:^2.0.0"
+  checksum: 10c0/5f579466e7109719d162a9249abbeffe7f426eb133ea486e020b89bc6d67a741134076bf439983f2eb79276ceaf6bd7b7c1e43c3fd67fe889863e69072fb0a5e
   languageName: node
   linkType: hard
 
@@ -35833,12 +35822,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nanoid@npm:3.3.9, nanoid@npm:^3.0.0, nanoid@npm:^3.3.4, nanoid@npm:^3.3.6, nanoid@npm:^3.3.8":
-  version: 3.3.9
-  resolution: "nanoid@npm:3.3.9"
+"nanoid@npm:3.3.10, nanoid@npm:^3.0.0, nanoid@npm:^3.3.4, nanoid@npm:^3.3.6, nanoid@npm:^3.3.8":
+  version: 3.3.10
+  resolution: "nanoid@npm:3.3.10"
   bin:
     nanoid: bin/nanoid.cjs
-  checksum: 10c0/4515abe53db7b150cf77074558efc20d8e916d6910d557b5ce72e8bbf6f8e7554d3d7a0d180bfa65e5d8e99aa51b207aa8a3bf5f3b56233897b146d592e30b24
+  checksum: 10c0/34eca53d4d95cb538b05a9fa07e4b2ab941906852202edb00824c8004d71d34592704e40b0ae608bf756b1ffd91ff9359d2ea59f8d92e1a7b769e0ca46368e84
   languageName: node
   linkType: hard
 
@@ -40206,10 +40195,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"reflect-metadata@npm:0.1.13":
-  version: 0.1.13
-  resolution: "reflect-metadata@npm:0.1.13"
-  checksum: 10c0/728bff0b376b05639fd11ed80c648b61f7fe653c5b506d7ca118e58b6752b9b00810fe0c86227ecf02bd88da6251ab3eb19fd403aaf2e9ff5ef36a2fda643026
+"reflect-metadata@npm:0.2.2":
+  version: 0.2.2
+  resolution: "reflect-metadata@npm:0.2.2"
+  checksum: 10c0/1cd93a15ea291e420204955544637c264c216e7aac527470e393d54b4bb075f10a17e60d8168ec96600c7e0b9fcc0cb0bb6e91c3fbf5b0d8c9056f04e6ac1ec2
   languageName: node
   linkType: hard
 
@@ -41156,12 +41145,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rxjs@npm:*, rxjs@npm:7.8.1, rxjs@npm:^7.5.5, rxjs@npm:^7.8.1":
-  version: 7.8.1
-  resolution: "rxjs@npm:7.8.1"
+"rxjs@npm:*, rxjs@npm:7.8.2, rxjs@npm:^7.5.5, rxjs@npm:^7.8.1, rxjs@npm:^7.8.2":
+  version: 7.8.2
+  resolution: "rxjs@npm:7.8.2"
   dependencies:
     tslib: "npm:^2.1.0"
-  checksum: 10c0/3c49c1ecd66170b175c9cacf5cef67f8914dcbc7cd0162855538d365c83fea631167cacb644b3ce533b2ea0e9a4d0b12175186985f89d75abe73dbd8f7f06f68
+  checksum: 10c0/1fcd33d2066ada98ba8f21fcbbcaee9f0b271de1d38dc7f4e256bfbc6ffcdde68c8bfb69093de7eeb46f24b1fb820620bf0223706cff26b4ab99a7ff7b2e2c45
   languageName: node
   linkType: hard
 
@@ -45916,18 +45905,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"wait-on@npm:8.0.2":
-  version: 8.0.2
-  resolution: "wait-on@npm:8.0.2"
+"wait-on@npm:8.0.3":
+  version: 8.0.3
+  resolution: "wait-on@npm:8.0.3"
   dependencies:
-    axios: "npm:^1.7.9"
+    axios: "npm:^1.8.2"
     joi: "npm:^17.13.3"
     lodash: "npm:^4.17.21"
     minimist: "npm:^1.2.8"
-    rxjs: "npm:^7.8.1"
+    rxjs: "npm:^7.8.2"
   bin:
     wait-on: bin/wait-on
-  checksum: 10c0/7a2a2193f601eb30d3125595fbed1abeb3ce0c9e164146aed27d12469d9b665273dc8e508a3a869c997f37b92d93478c202b38253a95c5c29e6fc64d0a317f5b
+  checksum: 10c0/7f14086c3bb6fc055207ab591d2faefc045f718aa7c959353a54af05cf08c53c25d9af80d4d5f6934a169cc0d97ebd1dcf024b13583d09b9a935c36bd745bd7b
   languageName: node
   linkType: hard
 

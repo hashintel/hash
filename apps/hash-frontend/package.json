@@ -153,7 +153,7 @@
     "rimraf": "6.0.1",
     "sass": "1.85.1",
     "typescript": "5.7.3",
-    "wait-on": "8.0.2",
+    "wait-on": "8.0.3",
     "webpack": "5.98.0"
   }
 }
