@@ -1,5 +1,5 @@
+import type { ActorId } from "@blockprotocol/type-system";
 import {
-  type ActorId,
   extractBaseUrl,
   extractOwnedByIdFromEntityId,
 } from "@blockprotocol/type-system";

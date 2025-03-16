@@ -21,6 +21,7 @@ import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
@@ -30,7 +31,6 @@ import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
 import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
@@ -163,7 +163,7 @@ const main = async () => {
   try {
     if (isStatsDEnabled) {
       const statsdHost = process.env.STATSD_HOST;
-      const statsdPort = parseInt(process.env.STATSD_PORT || "8125", 10);
+      const statsdPort = Number.parseInt(process.env.STATSD_PORT || "8125", 10);
       await waitOnResource(`tcp:${statsdHost}:${statsdPort}`, logger);
 
       statsd = new StatsD({
@@ -208,12 +208,15 @@ const main = async () => {
   });
 
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
-  const redisPort = parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
+  const redisPort = Number.parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
   const redisEncryptedTransit =
     process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true";
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_HTTP_HOST");
-  const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10);
+  const graphApiPort = Number.parseInt(
+    getRequiredEnv("HASH_GRAPH_HTTP_PORT"),
+    10,
+  );
 
   await Promise.all([
     waitOnResource(`tcp:${redisHost}:${redisPort}`, logger),
@@ -479,7 +482,7 @@ const main = async () => {
           };
     search = await OpenSearch.connect(logger, {
       host: getRequiredEnv("HASH_OPENSEARCH_HOST"),
-      port: parseInt(process.env.HASH_OPENSEARCH_PORT || "9200", 10),
+      port: Number.parseInt(process.env.HASH_OPENSEARCH_PORT || "9200", 10),
       auth: searchAuth,
       httpsEnabled: !!process.env.HASH_OPENSEARCH_HTTPS_ENABLED,
     });
@@ -544,7 +547,10 @@ const main = async () => {
     shutdown.addCleanup("ManagedRuntime", () => runtime.dispose());
 
     const rpcHost = getRequiredEnv("HASH_GRAPH_RPC_HOST");
-    const rpcPort = parseInt(process.env.HASH_GRAPH_RPC_PORT ?? "4002", 10);
+    const rpcPort = Number.parseInt(
+      process.env.HASH_GRAPH_RPC_PORT ?? "4002",
+      10,
+    );
 
     // print out (temporary) DNS diagnostics
     // see: https://linear.app/hash/issue/H-3813/remove-dns-logging-durring-hash-api-start

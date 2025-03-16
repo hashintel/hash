@@ -1,7 +1,10 @@
+import { intervalForTimestamp } from "@blockprotocol/graph/stdlib";
+import type {
+  EntityId,
+  OwnedById,
+  Timestamp,
+} from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -20,7 +23,6 @@ import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
-  intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
 
 import type { MeQuery, MeQueryVariables } from "../graphql/api-types.gen";

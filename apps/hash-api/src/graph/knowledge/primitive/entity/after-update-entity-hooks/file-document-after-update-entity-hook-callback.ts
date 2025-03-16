@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import {
   isStorageType,
   storageProviderLookup,
@@ -13,7 +14,6 @@ import type { DOCXDocument } from "@local/hash-isomorphic-utils/system-types/doc
 import type { File } from "@local/hash-isomorphic-utils/system-types/file";
 import type { PDFDocument } from "@local/hash-isomorphic-utils/system-types/pdfdocument";
 import type { PPTXPresentation } from "@local/hash-isomorphic-utils/system-types/pptxpresentation";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
 

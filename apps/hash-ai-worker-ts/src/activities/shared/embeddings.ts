@@ -4,11 +4,12 @@ import type {
   EntityTypeWithMetadata,
   Property,
   PropertyObject,
+  PropertyType,
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import type { Embedding, PropertyType } from "@local/hash-graph-client";
+import type { Embedding } from "@local/hash-graph-client";
 import OpenAI from "openai";
 
 type Usage = OpenAI.CreateEmbeddingResponse.Usage;

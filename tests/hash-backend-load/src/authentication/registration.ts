@@ -1,5 +1,5 @@
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system/*";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import opentelemetry from "@opentelemetry/api";
 import { v4 as uuid } from "uuid";
 

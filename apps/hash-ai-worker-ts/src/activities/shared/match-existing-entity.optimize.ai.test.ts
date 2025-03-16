@@ -8,10 +8,10 @@ import type {
   EntityUuid,
   OwnedById,
   PropertyObjectMetadata,
+  ValueMetadata,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { ValueMetadata } from "@local/hash-graph-client";
 import { brandPropertyObject } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {

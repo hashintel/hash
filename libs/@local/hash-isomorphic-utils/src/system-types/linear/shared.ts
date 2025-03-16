@@ -2,12 +2,12 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Confidence } from "@blockprotocol/type-system";
 import type {
   ArrayMetadata,
+  Confidence,
   ObjectMetadata,
   PropertyProvenance,
-} from "@local/hash-graph-client";
+} from "@blockprotocol/type-system";
 
 /**
  * Whether the user account is active or disabled (suspended).

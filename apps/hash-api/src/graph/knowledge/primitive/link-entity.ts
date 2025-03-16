@@ -1,13 +1,13 @@
 import type {
+  LinkData,
+  PropertyPatchOperation,
+} from "@blockprotocol/type-system";
+import type {
   CreateEntityParameters,
   Entity,
 } from "@local/hash-graph-sdk/entity";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityProperties,
-  LinkData,
-  PropertyPatchOperation,
-} from "@local/hash-graph-types/entity";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getLatestEntityById } from "./entity";

@@ -1,12 +1,18 @@
 import type {
   ActorGroupId,
   ActorId,
+  BaseUrl,
   EntityId,
-  EntityProperties,
   LinkData,
   PropertyObject,
   PropertyPatchOperation,
   VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  extractDraftIdFromEntityId,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  splitEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
@@ -16,7 +22,6 @@ import type {
   AllFilter,
   CountEntitiesParams,
   DiffEntityResult,
-  EntityMetadata,
   EntityPermission,
   Filter,
   GraphResolveDepths,
@@ -24,7 +29,7 @@ import type {
 } from "@local/hash-graph-client";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -41,18 +46,12 @@ import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
-import type {
-  DiffEntityInput,
-  EntityAuthorizationRelationship,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
 import {
-  extractDraftIdFromEntityId,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  type DiffEntityInput,
+  type EntityAuthorizationRelationship,
+  type EntityRootType,
   isEntityVertex,
-  splitEntityId,
+  type Subgraph,
 } from "@local/hash-subgraph";
 import { ApolloError } from "apollo-server-errors";
 

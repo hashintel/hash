@@ -1,7 +1,10 @@
-import { extractBaseUrl, type VersionedUrl } from "@blockprotocol/type-system";
-import { extractVersion } from "@blockprotocol/type-system";
+import type { EntityTypeIdDiff } from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractVersion,
+  type VersionedUrl,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { EntityTypeIdDiff } from "@local/hash-graph-client";
 import type { EntityId, PropertyPath } from "@local/hash-graph-types/entity";
 import { isValueMetadata } from "@local/hash-graph-types/entity";
 import type {

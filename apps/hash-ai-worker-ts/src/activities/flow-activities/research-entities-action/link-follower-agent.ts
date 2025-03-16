@@ -1,7 +1,11 @@
+import type {
+  BaseUrl,
+  SourceProvenance,
+  Timestamp,
+  Url,
+} from "@blockprotocol/type-system";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import type { SourceProvenance } from "@local/hash-graph-client";
-import { SourceType } from "@local/hash-graph-client";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
@@ -30,7 +34,7 @@ import { checkIfWorkerShouldStop } from "./shared/check-if-worker-should-stop.js
 import { deduplicateEntities } from "./shared/deduplicate-entities.js";
 
 type ResourceToExplore = {
-  url: string;
+  url: Url;
   descriptionOfExpectedContent: string;
   exampleOfExpectedContent: string;
   goal: string;
@@ -390,12 +394,12 @@ const exploreResource = async (params: {
 
   const claimSource: SourceProvenance = {
     entityId: hashEntityForFile?.entityId,
-    type: isResourcePdfFile ? SourceType.Document : SourceType.Webpage,
+    type: isResourcePdfFile ? "document" : "webpage",
     location: {
       uri:
-        hashEntityForFile?.properties[
+        (hashEntityForFile?.properties[
           "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-        ] ?? resource.url,
+        ] as BaseUrl | undefined) ?? resource.url,
       name: resourceTitle,
       /**
        * @todo: generate a description of the resource via an LLM.
@@ -405,7 +409,7 @@ const exploreResource = async (params: {
           "https://blockprotocol.org/@blockprotocol/types/property-type/description/"
         ],
     },
-    loadedAt: new Date().toISOString(),
+    loadedAt: new Date().toISOString() as Timestamp,
     /**
      * @todo: extract the authors of the resource via an LLM, if these are specified
      * in teh content.

@@ -1,6 +1,9 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type {
+  EntityUuid,
+  OriginProvenance,
+  Url,
+} from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { type OriginProvenance, SourceType } from "@local/hash-graph-client";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
@@ -167,7 +170,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
       } = simplifyProperties(entity.properties);
 
       return {
-        url: unsignedUrl,
+        url: unsignedUrl as Url,
         title: displayName ?? fileName ?? unsignedUrl.split("/").pop()!,
         summary: description ?? "",
         fromSearchQuery: "User-provided resource",
@@ -482,7 +485,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
       return sourcesUsedToProposeEntity.flatMap((source) => {
         if (
           source.location?.uri &&
-          source.type === SourceType.Document &&
+          source.type === "document" &&
           /**
            * Exclude files we already have an entity for
            */

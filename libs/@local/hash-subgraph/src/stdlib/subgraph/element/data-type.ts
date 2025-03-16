@@ -1,4 +1,4 @@
-import { type Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import {
   getDataTypeById as getDataTypeByIdBp,
   getDataTypeByVertexId as getDataTypeByVertexIdBp,
@@ -10,7 +10,6 @@ import type {
   DataTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { DataType } from "@local/hash-graph-client";
 
 import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
 
@@ -73,9 +72,7 @@ export const getDataTypesByBaseUrl = (
 ): DataTypeWithMetadata[] =>
   getDataTypesByBaseUrlBp(subgraph as SubgraphBp, baseUrl);
 
-export const getJsonSchemaTypeFromValue = (
-  value: unknown,
-): DataType["type"] => {
+export const getJsonSchemaTypeFromValue = (value: unknown): string => {
   if (value === null) {
     return "null";
   }

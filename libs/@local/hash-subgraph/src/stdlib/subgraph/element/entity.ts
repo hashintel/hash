@@ -13,31 +13,29 @@ import type {
   TemporalInterval,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { Brand } from "@local/advanced-types/brand";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 
-import type { Subgraph, Vertices } from "../../../main.js";
+import type {
+  ActorEntityId,
+  ActorGroupEntityId,
+  Subgraph,
+  Vertices,
+} from "../../../main.js";
 import { isEntityVertex } from "../../../main.js";
 import { mustBeDefined } from "../../../shared/invariant.js";
 
-/** An `EntityId` identifying a `User` Entity */
-export type AccountEntityId = Brand<EntityId, "AccountEntityId">;
-
-/** An `EntityId`identifying an Account Group Entity, e.g. an `Org` */
-export type AccountGroupEntityId = Brand<EntityId, "AccountGroupEntityId">;
-
 /** If the underlying `EntityUuid` is an `AccountId`, use this cast to convert the type */
-export const extractAccountId = extractEntityUuidFromEntityId as (
-  entityId: AccountEntityId,
+export const extractActorId = extractEntityUuidFromEntityId as (
+  entityId: ActorEntityId,
   // The type cannot be cast directly to `AccountId`, so we do it over two casts, but without `unknown`
-) => string as (entityId: AccountEntityId) => ActorId;
+) => string as (entityId: ActorEntityId) => ActorId;
 
 /** If the underlying `EntityUuid` is an `AccountGroupId`, use this cast to convert the type */
-export const extractAccountGroupId = extractEntityUuidFromEntityId as (
-  entityId: AccountGroupEntityId,
+export const extractActorGroupId = extractEntityUuidFromEntityId as (
+  entityId: ActorGroupEntityId,
   // The type cannot be cast directly to `AccountGroupId`, so we do it over two casts, but without `unknown`
-) => string as (entityId: AccountGroupEntityId) => ActorGroupId;
+) => string as (entityId: ActorGroupEntityId) => ActorGroupId;
 
 /**
  * Returns all {@link Entity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their

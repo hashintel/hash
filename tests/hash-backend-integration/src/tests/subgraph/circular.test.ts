@@ -2,9 +2,8 @@ import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntitySubgraphResponse } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import { type ActorId, ENTITY_ID_DELIMITER } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -27,7 +26,7 @@ import { createTestImpureGraphContext } from "../util";
 
 const createRequest = (
   resolveDepths: Partial<GraphResolveDepths> = zeroedGraphResolveDepths,
-  timestamp: string = "2010-01-01T00:00:00.000Z",
+  timestamp = "2010-01-01T00:00:00.000Z",
 ): GetEntitySubgraphRequest => {
   return {
     filter: {
@@ -83,7 +82,7 @@ let link_dc: Entity;
 let link_ad: Entity;
 
 const authentication = {
-  actorId: "00000000-0001-0000-0000-000000000000" as AccountId,
+  actorId: "00000000-0001-0000-0000-000000000000" as ActorId,
 };
 
 beforeAll(async () => {

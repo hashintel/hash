@@ -70,6 +70,7 @@ impl OriginProvenance {
 #[serde(rename = "OriginProvenance", untagged)]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]
 pub enum OriginProvenancePatch {
+    #[serde(rename_all = "camelCase")]
     Impl {
         #[serde(flatten)]
         ty: OriginType,

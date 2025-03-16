@@ -1,21 +1,22 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  Timestamp,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
-  EntityRevisionId,
   EntityRootType,
   EntityVertex,
   EntityVertexId,
   KnowledgeGraphVertices,
   Subgraph,
 } from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 export const createInitialDraftEntitySubgraph = (
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
@@ -24,7 +25,7 @@ export const createInitialDraftEntitySubgraph = (
 
   const draftEntityVertexId: EntityVertexId = {
     baseId: "draft~draft" as EntityId,
-    revisionId: now as EntityRevisionId,
+    revisionId: now,
   };
   const creator = extractOwnedByIdFromEntityId(draftEntityVertexId.baseId);
 

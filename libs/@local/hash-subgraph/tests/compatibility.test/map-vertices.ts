@@ -18,6 +18,7 @@ import type {
   OntologyProvenance,
   OntologyTypeRecordId,
   OntologyTypeVersion,
+  OriginProvenance,
   PropertyType,
   PropertyValues,
   SourceProvenance,
@@ -119,7 +120,7 @@ const mapOntologyProvenance = (
       createdById: metadata.edition.createdById as EditionCreatedById,
       archivedById: metadata.edition.archivedById as EditionArchivedById,
       actorType: metadata.edition.actorType,
-      origin: metadata.edition.origin,
+      origin: metadata.edition.origin as OriginProvenance,
       sources: metadata.edition.sources as SourceProvenance[],
     },
   };
@@ -136,7 +137,7 @@ const mapEntityProvenance = (
       createdById: metadata.edition.createdById as EditionCreatedById,
       archivedById: metadata.edition.archivedById as EditionArchivedById,
       actorType: metadata.edition.actorType,
-      origin: metadata.edition.origin,
+      origin: metadata.edition.origin as OriginProvenance,
       sources: metadata.edition.sources as SourceProvenance[],
     },
   };

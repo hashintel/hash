@@ -3,6 +3,7 @@ import type {
   EntityUuid,
   OwnedById,
 } from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -10,7 +11,6 @@ import {
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 
 import { isProdEnv } from "../../../../lib/env-config";
 import { createOrUpdateMailchimpUser } from "../../../../mailchimp";

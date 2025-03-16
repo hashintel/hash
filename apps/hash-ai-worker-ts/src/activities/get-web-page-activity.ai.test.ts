@@ -1,5 +1,6 @@
 import "../shared/testing-utilities/mock-get-flow-context.js";
 
+import type { Url } from "@blockprotocol/type-system";
 import { expect, test } from "vitest";
 
 import {
@@ -11,7 +12,7 @@ test.skip(
   "Test getWebPageActivity with a Wikipedia page",
   async () => {
     const webPage = await getWebPageActivity({
-      url: "https://en.wikipedia.org/wiki/Tesla,_Inc.",
+      url: "https://en.wikipedia.org/wiki/Tesla,_Inc." as Url,
       sanitizeForLlm: true,
     });
 
@@ -35,7 +36,7 @@ test.skip(
   "Test getWebPageActivity with a FTSE 350 page",
   async () => {
     const webPage = await getWebPageActivity({
-      url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+      url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
       sanitizeForLlm: true,
     });
 

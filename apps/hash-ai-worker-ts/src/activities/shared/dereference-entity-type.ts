@@ -169,7 +169,7 @@ const dereferencePropertyTypeValue = (params: {
 
           const propertyTypeBaseUrl = extractBaseUrl(propertyType.schema.$id);
 
-          let propertyKey: string | BaseUrl = propertyTypeBaseUrl;
+          let propertyKey: BaseUrl = propertyTypeBaseUrl;
 
           if (simplifyPropertyKeys) {
             const {
@@ -184,7 +184,7 @@ const dereferencePropertyTypeValue = (params: {
                 reverseSimplifiedPropertyTypeMappings,
             });
 
-            propertyKey = simplifiedTypeId;
+            propertyKey = simplifiedTypeId as BaseUrl;
 
             simplifiedPropertyTypeMappings = updatedTypeMappings;
             reverseSimplifiedPropertyTypeMappings = updatedReverseTypeMappings;
@@ -210,7 +210,7 @@ const dereferencePropertyTypeValue = (params: {
                   ).find(
                     ([_, propertyBaseUrl]) =>
                       propertyBaseUrl === requiredPropertyBaseUrl,
-                  )?.[0];
+                  )?.[0] as BaseUrl | undefined;
 
                   return simplifiedPropertyId ?? requiredPropertyBaseUrl;
                 }),
@@ -488,7 +488,7 @@ export const dereferenceEntityType = <
               throw new Error(`Could not find simplified title for ${baseUrl}`);
             }
 
-            return simpleTitle;
+            return simpleTitle as BaseUrl;
           })
         : [...requiredProperties],
     ),

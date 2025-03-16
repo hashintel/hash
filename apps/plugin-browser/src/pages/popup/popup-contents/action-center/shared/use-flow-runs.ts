@@ -1,4 +1,8 @@
-import type { AccountId } from "@local/hash-graph-types/account";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import {
+  type ActorId,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import {
   automaticBrowserInferenceFlowDefinition,
   manualBrowserInferenceFlowDefinition,
@@ -10,7 +14,6 @@ import type {
   ManualInferenceTriggerInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { PayloadKindValues } from "@local/hash-isomorphic-utils/flows/types";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useEffect, useMemo, useState } from "react";
 
 import type {
@@ -62,7 +65,7 @@ const mapFlowRunToMinimalFlowRun = (
 const getFlowRuns = async ({
   userAccountId,
 }: {
-  userAccountId: AccountId;
+  userAccountId: ActorId;
 }): Promise<FlowFromBrowserOrWithPageRequest[]> =>
   queryGraphQlApi<GetMinimalFlowRunsQuery, GetMinimalFlowRunsQueryVariables>(
     getMinimalFlowRunsQuery,
@@ -127,7 +130,7 @@ export const useFlowRuns = (): {
     }
     return extractOwnedByIdFromEntityId(
       user.metadata.recordId.entityId,
-    ) as AccountId;
+    ) as ActorId;
   }, [user]);
 
   useEffect(() => {

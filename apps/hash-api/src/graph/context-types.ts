@@ -1,10 +1,7 @@
+import type { ActorType, OriginProvenance } from "@blockprotocol/type-system";
 import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
-import type {
-  ActorType,
-  GraphApi as GraphApiClient,
-  OriginProvenance,
-} from "@local/hash-graph-client";
+import type { GraphApi as GraphApiClient } from "@local/hash-graph-client";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { DataSource } from "apollo-datasource";
 

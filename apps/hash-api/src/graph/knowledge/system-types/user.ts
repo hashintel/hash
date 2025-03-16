@@ -1,10 +1,14 @@
+import {
+  type ActorId,
+  type EntityId,
+  type EntityUuid,
+  extractEntityUuidFromEntityId,
+  type OwnedById,
+} from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
@@ -18,11 +22,8 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
-import type { AccountEntityId } from "@local/hash-subgraph";
-import {
-  extractAccountId,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+import type { ActorEntityId } from "@local/hash-subgraph";
+import { extractActorId } from "@local/hash-subgraph/stdlib";
 
 import type {
   KratosUserIdentity,
@@ -55,7 +56,7 @@ import {
 } from "./org-membership";
 
 export type User = {
-  accountId: AccountId;
+  accountId: ActorId;
   kratosIdentityId: string;
   emails: string[];
   shortname?: string;
@@ -93,8 +94,8 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   const isAccountSignupComplete = !!shortname && !!displayName;
 
   return {
-    accountId: extractAccountId(
-      entity.metadata.recordId.entityId as AccountEntityId,
+    accountId: extractActorId(
+      entity.metadata.recordId.entityId as ActorEntityId,
     ),
     shortname,
     displayName,
@@ -244,7 +245,7 @@ export const createUser: ImpureGraphFunction<
     shortname?: string;
     displayName?: string;
     isInstanceAdmin?: boolean;
-    userAccountId?: AccountId;
+    userAccountId?: ActorId;
   },
   Promise<User>
 > = async (ctx, authentication, params) => {
@@ -288,7 +289,7 @@ export const createUser: ImpureGraphFunction<
 
   const userShouldHavePermissionsOnWeb = shortname && displayName;
 
-  let userAccountId: AccountId;
+  let userAccountId: ActorId;
   if (params.userAccountId) {
     userAccountId = params.userAccountId;
   } else {
