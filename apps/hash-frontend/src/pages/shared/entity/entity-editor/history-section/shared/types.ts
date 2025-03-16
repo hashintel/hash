@@ -2,11 +2,11 @@ import type {
   EntityEditionProvenance,
   EntityType,
   PropertyDiff,
+  PropertyMetadata,
   PropertyProvenance,
   PropertyType,
 } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { PropertyMetadata } from "@local/hash-graph-types/entity";
 
 type HistoryEventBase = {
   number: string;

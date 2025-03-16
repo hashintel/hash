@@ -1,8 +1,10 @@
 import { useMutation } from "@apollo/client";
+import type {
+  EntityTypeWithMetadata,
+  OwnedById,
+} from "@blockprotocol/type-system";
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
 import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemPropertyTypes,

@@ -308,7 +308,7 @@ const generateOntologyIds = async () => {
   );
 
   const importStatement = `import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";\n\n`;
+import type { BaseUrl } from "@blockprotocol/type-system";\n\n`;
 
   const fileText =
     importStatement +

@@ -1,5 +1,6 @@
 import type {
   BaseUrl,
+  OntologyTypeVersion,
   ParseBaseUrlError,
   ParseVersionedUrlError,
   Result,
@@ -177,7 +178,7 @@ export const extractBaseUrl = (url: VersionedUrl): BaseUrl => {
  * @param {VersionedUrl} url - The versioned URL.
  * @throws if the versioned URL is invalid.
  */
-export const extractVersion = (url: VersionedUrl): number => {
+export const extractVersion = (url: VersionedUrl): OntologyTypeVersion => {
   if (url.length > 2048) {
     throw new Error(`URL too long: ${url}`);
   }
@@ -190,5 +191,5 @@ export const extractVersion = (url: VersionedUrl): number => {
 
   const [_match, _baseUrl, version] = groups;
 
-  return Number(version);
+  return Number(version) as OntologyTypeVersion;
 };

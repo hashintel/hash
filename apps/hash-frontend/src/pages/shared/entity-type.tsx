@@ -1,4 +1,11 @@
-import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+  OntologyTypeVersion,
+  OwnedById,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import {
   atLeastOne,
   extractVersion,
@@ -12,12 +19,7 @@ import {
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-  OntologyElementMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { OntologyElementMetadata } from "@local/hash-graph-types/ontology";
 import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
@@ -63,7 +65,7 @@ type EntityTypeProps = {
   entityTypeBaseUrl?: BaseUrl;
   isInSlide: boolean;
   onEntityTypeUpdated?: (entityType: EntityTypeWithMetadata) => void;
-  requestedVersion: number | null;
+  requestedVersion: OntologyTypeVersion | null;
 };
 
 const TypeDefinition = ({

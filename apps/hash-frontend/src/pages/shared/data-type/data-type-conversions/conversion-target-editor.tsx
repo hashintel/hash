@@ -1,8 +1,9 @@
 import { useQuery } from "@apollo/client";
-import type {
-  Conversions,
-  DataType,
-  VersionedUrl,
+import {
+  type Conversions,
+  type DataType,
+  extractBaseUrl,
+  type VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
   buildDataTypeTreesForSelector,
@@ -13,7 +14,6 @@ import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-u
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { DataTypeRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";

@@ -1,4 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  PropertyArrayMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { isArrayMetadata, isValueMetadata } from "@blockprotocol/type-system";
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
   closestCenter,
@@ -14,11 +18,6 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import type { PropertyMetadataArray } from "@local/hash-graph-types/entity";
-import {
-  isArrayMetadata,
-  isValueMetadata,
-} from "@local/hash-graph-types/entity";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { Box, styled } from "@mui/material";
 import produce from "immer";
@@ -80,7 +79,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     }
 
     const itemsArray: SortableItem[] = values.map((value, index) => {
-      const arrayItemMetadata = (valueMetadata as PropertyMetadataArray).value[
+      const arrayItemMetadata = (valueMetadata as PropertyArrayMetadata).value[
         index
       ];
 

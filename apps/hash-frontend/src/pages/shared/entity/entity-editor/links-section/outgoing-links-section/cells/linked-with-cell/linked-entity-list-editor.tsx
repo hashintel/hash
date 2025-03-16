@@ -1,17 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   CreatedById,
   EditionCreatedById,
-} from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
+  EntityId,
   Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
+import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
@@ -51,8 +47,8 @@ export const createDraftLinkEntity = ({
       entityTypeIds: [linkEntityTypeId],
       provenance: {
         createdById: "" as CreatedById,
-        createdAtTransactionTime: "" as CreatedAtTransactionTime,
-        createdAtDecisionTime: "" as CreatedAtDecisionTime,
+        createdAtTransactionTime: "" as Timestamp,
+        createdAtDecisionTime: "" as Timestamp,
         edition: {
           createdById: "" as EditionCreatedById,
           actorType: "human",

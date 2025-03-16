@@ -1,4 +1,4 @@
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
   Table,
   TableBody,

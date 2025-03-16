@@ -1,9 +1,9 @@
+import type { EntityUuid } from "@blockprotocol/type-system";
 import {
   ArrowUpRightRegularIcon,
   CaretDownSolidIcon,
   IconButton,
 } from "@hashintel/design-system";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   goalFlowDefinitionIds,
   type GoalFlowTriggerInput,

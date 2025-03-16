@@ -1,3 +1,4 @@
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import {
   ArrowLeftIcon,
   ArrowUpRightFromSquareRegularIcon,
@@ -11,7 +12,6 @@ import {
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   Box,
   CircularProgress,

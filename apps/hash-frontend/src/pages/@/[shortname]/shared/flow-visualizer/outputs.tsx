@@ -11,8 +11,8 @@ import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import type {
-  Filter,
   Entity as GraphApiEntity,
+  Filter,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";

@@ -1,5 +1,6 @@
 import type {
   BaseUrl,
+  OntologyTypeVersion,
   ParseVersionedUrlError,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -40,7 +41,7 @@ export const componentsFromVersionedUrl = (
   versionedUrl: VersionedUrl,
 ): {
   baseUrl: BaseUrl;
-  version: number;
+  version: OntologyTypeVersion;
 } => {
   const baseUrl = extractBaseUrl(versionedUrl);
   const version = extractVersion(versionedUrl);

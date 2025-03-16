@@ -1,9 +1,7 @@
 import "iframe-resizer/js/iframeResizer.contentWindow";
 
-import type {
-  Entity,
-  GraphEmbedderMessageCallbacks,
-} from "@blockprotocol/graph";
+import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type * as Sentry from "@sentry/react";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useState } from "react";

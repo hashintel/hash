@@ -1,4 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  PartialEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -7,8 +11,6 @@ import {
   getDisplayFieldsForClosedEntityType,
   getPropertyTypeForClosedMultiEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { PartialEntityType } from "@local/hash-graph-types/ontology";
 import {
   generateEntityLabel,
   generateLinkEntityLabel,
@@ -171,7 +173,7 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
                 />
               }
               onClick={() => row.onTypeClick("entityType", linkEntityType.$id)}
-              label={linkEntityType.inverse?.title || linkEntityType.title}
+              label={linkEntityType.inverse?.title ?? linkEntityType.title}
             />
           ))}
           <Typography
@@ -582,11 +584,11 @@ export const IncomingLinksTable = memo(
             switch (field) {
               case "linkTypes": {
                 const aValue =
-                  a.data.linkEntityTypes[0]!.inverse?.title ||
+                  a.data.linkEntityTypes[0]!.inverse?.title ??
                   a.data.linkEntityTypes[0]!.title;
 
                 const bValue =
-                  b.data.linkEntityTypes[0]!.inverse?.title ||
+                  b.data.linkEntityTypes[0]!.inverse?.title ??
                   b.data.linkEntityTypes[0]!.title;
 
                 return aValue.localeCompare(bValue) * direction;

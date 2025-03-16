@@ -1,8 +1,8 @@
+import type { EntityUuid } from "@blockprotocol/type-system";
 import {
   CircleOneRegularIcon,
   LightbulbOnRegularIcon,
 } from "@hashintel/design-system";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { Stack, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";

@@ -1,3 +1,8 @@
+import {
+  extractBaseUrl,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
@@ -6,15 +11,10 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
-import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Popover, styled, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useMemo, useRef, useState } from "react";

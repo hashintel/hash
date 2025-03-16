@@ -1,4 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system-rs/pkg/type-system";
 import {
   type Entity,
   getClosedMultiEntityTypeFromMap,

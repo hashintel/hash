@@ -18,6 +18,13 @@ export {
   getJsonSchemaTypeFromValue,
 } from "./stdlib/subgraph/element/data-type.js";
 export {
+  extractActorGroupId,
+  extractActorId,
+  getEntities,
+  getEntityRevision,
+  getEntityRevisionsByEntityId,
+} from "./stdlib/subgraph/element/entity.js";
+export {
   getBreadthFirstEntityTypesAndParents,
   getEntityTypeAndDescendantsById,
   getEntityTypeAndParentsById,
@@ -26,13 +33,6 @@ export {
   getEntityTypes,
   getEntityTypesByBaseUrl,
 } from "./stdlib/subgraph/element/entity-type.js";
-export {
-  extractActorGroupId,
-  extractActorId,
-  getEntities,
-  getEntityRevision,
-  getEntityRevisionsByEntityId,
-} from "./stdlib/subgraph/element/entity.js";
 export {
   getPossibleLinkTypesForEntityType,
   isLinkEntityType,

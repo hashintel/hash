@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
+import type { PropertyPatchOperation } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { PropertyPatchOperation } from "@local/hash-graph-types/entity";
 import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,

@@ -1,17 +1,18 @@
-import type { EntityTypeIdDiff } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  EntityTypeIdDiff,
+  EntityTypeWithMetadata,
+  PropertyDiff,
+  Timestamp,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractVersion,
-  type VersionedUrl,
+  isValueMetadata,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { EntityId, PropertyPath } from "@local/hash-graph-types/entity";
-import { isValueMetadata } from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { Subgraph } from "@local/hash-subgraph";
 import {
   getEntityRevision,
@@ -138,9 +139,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
                 baseUrl,
           );
           if (removedOldVersion) {
-            upgradedFromEntityTypeIds.push(
-              removedOldVersion.removed as VersionedUrl,
-            );
+            upgradedFromEntityTypeIds.push(removedOldVersion.removed);
           }
 
           events.push({
@@ -155,7 +154,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
               title: addedOrRemovedType.schema.title,
               version: addedOrRemovedType.metadata.recordId.version,
               oldVersion: removedOldVersion
-                ? extractVersion(removedOldVersion.removed as VersionedUrl)
+                ? extractVersion(removedOldVersion.removed)
                 : undefined,
             },
           });
@@ -183,9 +182,9 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     }
 
     if (diffData.diff.properties) {
-      for (const propertyDiff of diffData.diff.properties) {
+      for (const propertyDiff of diffData.diff.properties as PropertyDiff[]) {
         const propertyMetadata = changedEntityEdition.propertyMetadata(
-          propertyDiff.path as PropertyPath,
+          propertyDiff.path,
         );
 
         if (!propertyMetadata) {

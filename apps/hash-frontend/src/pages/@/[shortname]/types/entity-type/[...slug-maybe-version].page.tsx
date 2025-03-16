@@ -1,5 +1,10 @@
-import type { EntityTypeWithMetadata as BpEntityTypeWithMetadata } from "@blockprotocol/graph";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  EditionCreatedById,
+  EntityTypeWithMetadata,
+  OntologyTypeVersion,
+  OwnedById,
+  Timestamp,
+} from "@blockprotocol/type-system";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
@@ -65,23 +70,41 @@ const Page: NextPageWithLayout = () => {
       const { baseUrl, version } = componentsFromVersionedUrl(
         entityTypeSchema.$id,
       );
-
       return {
         metadata: {
           recordId: {
             baseUrl,
             version,
           },
+          temporalVersioning: {
+            transactionTime: {
+              start: {
+                kind: "inclusive",
+                limit: new Date().toISOString() as Timestamp,
+              },
+              end: { kind: "unbounded" },
+            },
+          },
+          provenance: {
+            edition: {
+              createdById: "irrelevant-here" as EditionCreatedById,
+              actorType: "human",
+              origin: {
+                type: "web-app",
+              },
+            },
+          },
+          ownedById: "irrelevant-here" as OwnedById,
         },
         schema: entityTypeSchema,
-      } satisfies BpEntityTypeWithMetadata as EntityTypeWithMetadata;
+      } satisfies EntityTypeWithMetadata;
     } else {
       return null;
     }
   }, [router.query.draft]);
 
   const requestedVersion = requestedVersionString
-    ? parseInt(requestedVersionString, 10)
+    ? (parseInt(requestedVersionString, 10) as OntologyTypeVersion)
     : null;
 
   if (!routeNamespace) {

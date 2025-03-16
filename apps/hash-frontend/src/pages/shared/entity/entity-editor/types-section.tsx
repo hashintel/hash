@@ -237,7 +237,7 @@ export const TypesSection = () => {
         entityTypeId: currentTypeMetadata.$id,
         entityTypeTitle: currentTypeMetadata.title,
         icon,
-        isLink: !!currentTypeMetadata.allOf?.some(
+        isLink: !!currentTypeMetadata.allOf.some(
           (parent) => parent.$id === linkEntityTypeUrl,
         ),
         version,

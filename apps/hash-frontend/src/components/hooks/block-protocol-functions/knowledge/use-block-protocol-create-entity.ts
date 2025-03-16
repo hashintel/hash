@@ -1,9 +1,9 @@
 import { useMutation } from "@apollo/client";
+import type { OwnedById } from "@blockprotocol/type-system";
 import {
   Entity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { useCallback } from "react";
 
 import type {

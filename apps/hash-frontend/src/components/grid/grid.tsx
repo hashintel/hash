@@ -1,6 +1,6 @@
 import "@glideapps/glide-data-grid/dist/index.css";
 
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   DataEditorProps,
   DataEditorRef,
@@ -18,7 +18,6 @@ import {
   DataEditor,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import type { PopperProps } from "@mui/material";
 import { Box, useTheme } from "@mui/material";

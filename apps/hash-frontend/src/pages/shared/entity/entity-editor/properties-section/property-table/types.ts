@@ -1,10 +1,10 @@
-import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type {
   PropertyMetadata,
-  PropertyMetadataObject,
-  PropertyMetadataValue,
+  PropertyObjectMetadata,
   PropertyPath,
-} from "@local/hash-graph-types/entity";
+  PropertyValueMetadata,
+} from "@blockprotocol/type-system";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 
 import type { VerticalIndentationLineDir } from "../../../../../../components/grid/utils/draw-vertical-indentation-line";
@@ -26,9 +26,9 @@ export type PropertyRow = {
     /**
      * The metadata to set for the leaf value
      */
-    valueMetadata: PropertyMetadataValue | "delete";
+    valueMetadata: PropertyValueMetadata | "delete";
   }) => {
-    entityPropertiesMetadata: PropertyMetadataObject;
+    entityPropertiesMetadata: PropertyObjectMetadata;
     propertyMetadata: PropertyMetadata | undefined;
   };
   indent: number;

@@ -1,5 +1,5 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { OwnedById } from "@blockprotocol/type-system";
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import { useMemo } from "react";
 
 import { useOrgs } from "./use-orgs";

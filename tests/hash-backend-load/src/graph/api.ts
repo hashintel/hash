@@ -1,4 +1,4 @@
-import type { ActorId } from "@blockprotocol/type-system-rs/*";
+import type { ActorId } from "@blockprotocol/type-system-rs";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";

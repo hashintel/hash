@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
+import type { OwnedById } from "@blockprotocol/type-system";
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   GetEntityQuery,

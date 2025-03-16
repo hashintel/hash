@@ -1,5 +1,15 @@
 import { useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  isBaseUrl,
+} from "@blockprotocol/type-system";
 import type {
   CustomCell,
   Item,
@@ -8,25 +18,15 @@ import type {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 // import {
 //   ArrowRightRegularIcon,
 //   IconButton,
 //   LoadingSpinner,
 //   Select,
 // } from "@hashintel/design-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-types/ontology";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import type {
@@ -669,23 +669,23 @@ export const EntitiesTable: FunctionComponent<
 
   const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
     useState<Set<string>>(
-      new Set(lastEditedByActors.map(({ accountId }) => accountId)),
+      new Set(lastEditedByActors.map(({ actorId }) => actorId)),
     );
 
   const [selectedCreatedByAccountIds, setSelectedCreatedByAccountIds] =
     useState<Set<string>>(
-      new Set(createdByActors.map(({ accountId }) => accountId)),
+      new Set(createdByActors.map(({ actorId }) => actorId)),
     );
 
   useEffect(() => {
     setSelectedLastEditedByAccountIds(
-      new Set(lastEditedByActors.map(({ accountId }) => accountId)),
+      new Set(lastEditedByActors.map(({ actorId }) => actorId)),
     );
   }, [lastEditedByActors]);
 
   useEffect(() => {
     setSelectedCreatedByAccountIds(
-      new Set(createdByActors.map(({ accountId }) => accountId)),
+      new Set(createdByActors.map(({ actorId }) => actorId)),
     );
   }, [createdByActors]);
 
@@ -734,7 +734,7 @@ export const EntitiesTable: FunctionComponent<
       {
         columnKey: "lastEditedBy",
         filterItems: lastEditedByActors.map((actor) => ({
-          id: actor.accountId,
+          id: actor.actorId,
           label: actor.displayName ?? "Unknown Actor",
         })),
         selectedFilterItemIds: selectedLastEditedByAccountIds,
@@ -747,7 +747,7 @@ export const EntitiesTable: FunctionComponent<
       {
         columnKey: "createdBy",
         filterItems: createdByActors.map((actor) => ({
-          id: actor.accountId,
+          id: actor.actorId,
           label: actor.displayName ?? "Unknown Actor",
         })),
         selectedFilterItemIds: selectedCreatedByAccountIds,
