@@ -1,10 +1,7 @@
 import { useApolloClient } from "@apollo/client";
 import { intervalForTimestamp } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorGroupId,
-  extractEntityUuidFromEntityId,
-  type Timestamp,
-} from "@blockprotocol/type-system";
+import type { ActorGroupId, Timestamp } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";

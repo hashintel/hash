@@ -1,10 +1,10 @@
 import { useQuery } from "@apollo/client";
 import type {
   BaseUrl,
-  type Conversions,
-  type DataType,
+  Conversions,
+  DataType,
   DataTypeWithMetadata,
-  type VersionedUrl,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";

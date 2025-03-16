@@ -1,6 +1,6 @@
+import type { Url } from "@blockprotocol/type-system";
 import browser from "webextension-polyfill";
 
-import type { Url } from "@blockprotocol/type-system";
 import {
   type GetTabContentReturn,
   isWellFormattedMessage,

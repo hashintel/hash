@@ -18,6 +18,7 @@ import type {
   OwnedById,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
 import {
   currentTimeInstantTemporalAxes,
@@ -27,7 +28,6 @@ import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids"
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
 import { resetGraph } from "../../../test-server";
 import {
   createTestImpureGraphContext,

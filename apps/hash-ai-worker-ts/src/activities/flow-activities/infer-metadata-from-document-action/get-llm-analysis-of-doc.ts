@@ -4,6 +4,7 @@ import type {
   PropertyProvenance,
   PropertyValue,
   PropertyWithMetadata,
+  Url,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { SchemaType } from "@google-cloud/vertexai";
@@ -161,7 +162,9 @@ const addMetadataToPropertyValue = (
     );
   }
 
-  const propertyType = propertyObjectSchema[key];
+  const propertyType = (
+    propertyObjectSchema as DereferencedEntityTypeWithSimplifiedKeys["schema"]["properties"]
+  )[key];
 
   if (!propertyType) {
     throw new Error(
@@ -350,7 +353,7 @@ const unsimplifyDocumentMetadata = (
         authors: rest.authors?.map((author) => author.name),
         type: "document",
         entityId: provenance.entityId,
-        location: { uri: provenance.fileUrl, name: title },
+        location: { uri: provenance.fileUrl as Url, name: title },
       },
     ],
   };
@@ -571,7 +574,7 @@ export const getLlmAnalysisOfDoc = async ({
       );
     } else {
       const previousValue = get(response.message, jsonPath) as
-        | JsonValue
+        | PropertyValue
         | undefined;
 
       set(response.message, jsonPath, correctValue);

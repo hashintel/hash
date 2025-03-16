@@ -1,12 +1,12 @@
 import { useLazyQuery } from "@apollo/client";
 import type {
   BaseUrl,
-  type EntityType,
+  EntityType,
   EntityTypeWithMetadata,
-  extractBaseUrl,
-  type OwnedById,
-  type VersionedUrl,
+  OwnedById,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
