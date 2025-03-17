@@ -1,4 +1,4 @@
-use std::collections::hash_map::{RandomState, RawEntryMut};
+use std::collections::hash_map::Entry;
 
 use hash_graph_temporal_versioning::Timestamp;
 use serde::{Deserialize, Serialize};
@@ -30,10 +30,7 @@ pub trait VertexId: Sized {
     /// Returns a mutable reference to the [`Record`] vertex in the subgraph.
     ///
     /// [`Record`]: Self::Record
-    fn subgraph_entry_mut<'a>(
-        &self,
-        vertices: &'a mut Vertices,
-    ) -> RawEntryMut<'a, Self, Self::Record, RandomState>;
+    fn subgraph_entry_mut(self, vertices: &mut Vertices) -> Entry<'_, Self, Self::Record>;
 }
 
 macro_rules! define_ontology_type_vertex_id {
@@ -63,11 +60,11 @@ macro_rules! define_ontology_type_vertex_id {
                 vertices.$vertex_set.get(self)
             }
 
-            fn subgraph_entry_mut<'a>(
-                &self,
-                vertices: &'a mut Vertices,
-            ) -> RawEntryMut<'a, Self, $ontology_type, RandomState> {
-                vertices.$vertex_set.raw_entry_mut().from_key(self)
+            fn subgraph_entry_mut(
+                self,
+                vertices: &mut Vertices,
+            ) -> Entry<'_, Self, $ontology_type> {
+                vertices.$vertex_set.entry(self)
             }
         }
 
@@ -137,11 +134,8 @@ impl VertexId for EntityVertexId {
         vertices.entities.get(self)
     }
 
-    fn subgraph_entry_mut<'a>(
-        &self,
-        vertices: &'a mut Vertices,
-    ) -> RawEntryMut<'a, Self, Entity, RandomState> {
-        vertices.entities.raw_entry_mut().from_key(self)
+    fn subgraph_entry_mut(self, vertices: &mut Vertices) -> Entry<'_, Self, Entity> {
+        vertices.entities.entry(self)
     }
 }
 

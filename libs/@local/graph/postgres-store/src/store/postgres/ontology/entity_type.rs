@@ -1082,7 +1082,6 @@ where
         Ok(response)
     }
 
-    #[expect(clippy::too_many_lines)]
     async fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: AccountId,
@@ -1128,49 +1127,42 @@ where
             .collect::<HashMap<_, _>>();
 
         // Build the nested hierarchical structure for each set of entity types
-        for entity_multi_type_ids in &all_multi_entity_type_ids {
+        for entity_multi_type_ids in all_multi_entity_type_ids {
             // Get the first entity type to serve as the root of the hierarchy
-            let mut entity_type_id_iter = entity_multi_type_ids.iter();
+            let mut entity_type_id_iter = entity_multi_type_ids.into_iter();
             let Some(first_entity_type_id) = entity_type_id_iter.next() else {
                 continue; // Skip empty sets
             };
 
             // Create or retrieve the entry for the first entity type
-            let (_, ref mut map) = response
+            let mut map_ref = response
                 .entity_types
-                .raw_entry_mut()
-                .from_key(first_entity_type_id)
-                .or_insert_with(|| {
-                    (
-                        (*first_entity_type_id).clone(),
-                        ClosedMultiEntityTypeMap {
-                            schema: ClosedMultiEntityType::from_closed_schema(
-                                closed_types
-                                    .get(first_entity_type_id)
-                                    .expect(
-                                        "The entity type was already resolved, so it should be \
-                                         present in the closed types",
-                                    )
-                                    .clone(),
-                            ),
-                            inner: HashMap::new(),
-                        },
-                    )
+                .entry(first_entity_type_id.clone())
+                .or_insert_with(|| ClosedMultiEntityTypeMap {
+                    schema: ClosedMultiEntityType::from_closed_schema(
+                        closed_types
+                            .get(&first_entity_type_id)
+                            .expect(
+                                "The entity type was already resolved, so it should be present in \
+                                 the closed types",
+                            )
+                            .clone(),
+                    ),
+                    inner: HashMap::new(),
                 });
 
             // Process remaining entity types in the set, creating a nested structure
             for entity_type_id in entity_type_id_iter {
                 // For each additional entity type, create a deeper level in the hierarchy
-                let (_, new_map) = map
+                let new_map = map_ref
                     .inner
-                    .raw_entry_mut()
-                    .from_key(entity_type_id)
+                    .entry(entity_type_id.clone())
                     .or_insert_with(|| {
-                        let mut closed_parent = map.schema.clone();
+                        let mut closed_parent = map_ref.schema.clone();
                         closed_parent
                             .add_closed_entity_type(
                                 closed_types
-                                    .get(entity_type_id)
+                                    .get(&entity_type_id)
                                     .expect(
                                         "The entity type was already resolved, so it should be \
                                          present in the closed types",
@@ -1178,15 +1170,12 @@ where
                                     .clone(),
                             )
                             .expect("The entity type was constructed before so it has to be valid");
-                        (
-                            (*entity_type_id).clone(),
-                            ClosedMultiEntityTypeMap {
-                                schema: closed_parent,
-                                inner: HashMap::new(),
-                            },
-                        )
+                        ClosedMultiEntityTypeMap {
+                            schema: closed_parent,
+                            inner: HashMap::new(),
+                        }
                     });
-                *map = new_map;
+                map_ref = new_map;
             }
         }
 
