@@ -166,46 +166,6 @@ impl<K> Default for TraversalContextMap<K> {
     }
 }
 
-pub type AddIdReturn<K> = impl Iterator<
-    Item = (
-        K,
-        GraphResolveDepths,
-        RightBoundedTemporalInterval<VariableAxis>,
-    ),
->;
-
-pub type AddDataTypeIdReturn = impl Iterator<
-    Item = (
-        DataTypeUuid,
-        GraphResolveDepths,
-        RightBoundedTemporalInterval<VariableAxis>,
-    ),
->;
-
-pub type AddPropertyTypeIdReturn = impl Iterator<
-    Item = (
-        PropertyTypeUuid,
-        GraphResolveDepths,
-        RightBoundedTemporalInterval<VariableAxis>,
-    ),
->;
-
-pub type AddEntityTypeIdReturn = impl Iterator<
-    Item = (
-        EntityTypeUuid,
-        GraphResolveDepths,
-        RightBoundedTemporalInterval<VariableAxis>,
-    ),
->;
-
-pub type AddEntityIdReturn = impl Iterator<
-    Item = (
-        EntityEditionId,
-        GraphResolveDepths,
-        RightBoundedTemporalInterval<VariableAxis>,
-    ),
->;
-
 impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
     /// Adds a new entry to the map if it does not already exist.
     ///
@@ -222,7 +182,13 @@ impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
         key: K,
         graph_resolve_depths: GraphResolveDepths,
         interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> AddIdReturn<K> {
+    ) -> impl Iterator<
+        Item = (
+            K,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        ),
+    > + use<K> {
         let values = self.0.entry(key).or_default();
 
         // TODO: Further optimization could happen here. It's possible to return none, a single, or
@@ -299,7 +265,13 @@ impl TraversalContext {
         data_type_id: DataTypeUuid,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> AddDataTypeIdReturn {
+    ) -> impl Iterator<
+        Item = (
+            DataTypeUuid,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        ),
+    > + use<> {
         self.data_types
             .add_id(data_type_id, graph_resolve_depths, traversal_interval)
     }
@@ -309,7 +281,13 @@ impl TraversalContext {
         property_type_id: PropertyTypeUuid,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> AddPropertyTypeIdReturn {
+    ) -> impl Iterator<
+        Item = (
+            PropertyTypeUuid,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        ),
+    > + use<> {
         self.property_types
             .add_id(property_type_id, graph_resolve_depths, traversal_interval)
     }
@@ -319,7 +297,13 @@ impl TraversalContext {
         entity_type_id: EntityTypeUuid,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> AddEntityTypeIdReturn {
+    ) -> impl Iterator<
+        Item = (
+            EntityTypeUuid,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        ),
+    > + use<> {
         self.entity_types
             .add_id(entity_type_id, graph_resolve_depths, traversal_interval)
     }
@@ -329,7 +313,13 @@ impl TraversalContext {
         edition_id: EntityEditionId,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> AddEntityIdReturn {
+    ) -> impl Iterator<
+        Item = (
+            EntityEditionId,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        ),
+    > + use<> {
         self.entities
             .add_id(edition_id, graph_resolve_depths, traversal_interval)
     }

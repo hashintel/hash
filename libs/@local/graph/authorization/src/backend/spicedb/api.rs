@@ -68,9 +68,6 @@ impl fmt::Display for StreamError {
 
 impl Error for StreamError {}
 
-type StreamReturn<T: DeserializeOwned, B: Serialize + Sync> =
-    impl Stream<Item = Result<T, Report<StreamError>>>;
-
 impl SpiceDbOpenApi {
     async fn invoke_request(
         &self,
@@ -119,7 +116,10 @@ impl SpiceDbOpenApi {
         &self,
         path: &'static str,
         body: &B,
-    ) -> Result<StreamReturn<R, B>, Report<InvocationError>> {
+    ) -> Result<
+        impl Stream<Item = Result<R, Report<StreamError>>> + use<R, B>,
+        Report<InvocationError>,
+    > {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         enum StreamResult<T> {

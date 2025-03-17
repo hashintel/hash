@@ -29,20 +29,19 @@ pub struct OpenTelemetryConfig {
 
 const OPENTELEMETRY_TIMEOUT_DURATION: Duration = Duration::from_secs(5);
 
-pub type OtlpLayer<S>
-where
-    S: Subscriber + for<'a> LookupSpan<'a>,
-= impl Layer<S>;
-
 /// Creates a layer which connects to the `OpenTelemetry` collector.
 ///
 /// # Errors
 ///
 /// Errors if the `OpenTelemetry` configuration is invalid.
+#[expect(
+    clippy::min_ident_chars,
+    reason = "False positive lint on generic bounds"
+)]
 pub fn layer<S>(
     config: &OpenTelemetryConfig,
     handle: &Handle,
-) -> Result<OtlpLayer<S>, Report<TraceError>>
+) -> Result<impl Layer<S> + use<S>, Report<TraceError>>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
