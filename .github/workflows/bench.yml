@@ -253,10 +253,6 @@ jobs:
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
 
-      - name: Reset external services
-        if: github.event_name == 'pull_request'
-        run: yarn external-services:test down -v
-
       - name: Launch external services
         run: yarn external-services:test up hydra kratos redis spicedb temporal-ui --wait
 
