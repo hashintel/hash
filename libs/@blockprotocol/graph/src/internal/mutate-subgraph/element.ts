@@ -12,7 +12,6 @@ import type {
   EntityVertex,
   EntityVertexId,
   KnowledgeGraphVertices,
-  OntologyTypeRevisionId,
   OntologyTypeVertexId,
   OntologyVertices,
   PropertyTypeVertex,
@@ -37,7 +36,9 @@ export const addDataTypeVerticesToSubgraphByMutation = (
   /* eslint-disable no-param-reassign -- We want to mutate the input here */
   for (const dataType of dataTypes) {
     const { baseUrl, version } = dataType.metadata.recordId;
-    const revisionId = version.toString() as OntologyTypeRevisionId;
+    if (baseUrl === "__proto__") {
+      throw new Error("Cannot add data type with baseUrl '__proto__'");
+    }
 
     const dataTypeVertex: DataTypeVertex = {
       kind: "dataType",
@@ -45,10 +46,9 @@ export const addDataTypeVerticesToSubgraphByMutation = (
     };
 
     (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
-    (subgraph.vertices as OntologyVertices)[baseUrl]![revisionId] =
-      dataTypeVertex;
+    (subgraph.vertices as OntologyVertices)[baseUrl]![version] = dataTypeVertex;
 
-    vertexIds.push({ baseId: baseUrl, revisionId });
+    vertexIds.push({ baseId: baseUrl, revisionId: version });
   }
   /* eslint-enable no-param-reassign */
   return vertexIds;
@@ -72,7 +72,9 @@ export const addPropertyTypeVerticesToSubgraphByMutation = (
   /* eslint-disable no-param-reassign -- We want to mutate the input here */
   for (const propertyType of propertyTypes) {
     const { baseUrl, version } = propertyType.metadata.recordId;
-    const revisionId = version.toString() as OntologyTypeRevisionId;
+    if (baseUrl === "__proto__") {
+      throw new Error("Cannot add data type with baseUrl '__proto__'");
+    }
 
     const propertyTypeVertex: PropertyTypeVertex = {
       kind: "propertyType",
@@ -80,10 +82,10 @@ export const addPropertyTypeVerticesToSubgraphByMutation = (
     };
 
     (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
-    (subgraph.vertices as OntologyVertices)[baseUrl]![revisionId] =
+    (subgraph.vertices as OntologyVertices)[baseUrl]![version] =
       propertyTypeVertex;
 
-    vertexIds.push({ baseId: baseUrl, revisionId });
+    vertexIds.push({ baseId: baseUrl, revisionId: version });
   }
   /* eslint-enable no-param-reassign */
   return vertexIds;
@@ -107,7 +109,9 @@ export const addEntityTypeVerticesToSubgraphByMutation = (
   /* eslint-disable no-param-reassign -- We want to mutate the input here */
   for (const entityType of entityTypes) {
     const { baseUrl, version } = entityType.metadata.recordId;
-    const revisionId = version.toString() as OntologyTypeRevisionId;
+    if (baseUrl === "__proto__") {
+      throw new Error("Cannot add data type with baseUrl '__proto__'");
+    }
 
     const entityTypeVertex: EntityTypeVertex = {
       kind: "entityType",
@@ -115,10 +119,10 @@ export const addEntityTypeVerticesToSubgraphByMutation = (
     };
 
     (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
-    (subgraph.vertices as OntologyVertices)[baseUrl]![revisionId] =
+    (subgraph.vertices as OntologyVertices)[baseUrl]![version] =
       entityTypeVertex;
 
-    vertexIds.push({ baseId: baseUrl, revisionId });
+    vertexIds.push({ baseId: baseUrl, revisionId: version });
   }
   /* eslint-enable no-param-reassign */
   return vertexIds;
@@ -142,6 +146,9 @@ export const addEntityVerticesToSubgraphByMutation = (
   /* eslint-disable no-param-reassign -- We want to mutate the input here */
   for (const entity of entities) {
     const entityId = entity.metadata.recordId.entityId;
+    if (entityId === "__proto__") {
+      throw new Error("Cannot add data type with baseUrl '__proto__'");
+    }
 
     /*
         this cast should be safe as we have just checked if the Subgraph has temporal information, in which case the

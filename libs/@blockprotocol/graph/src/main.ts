@@ -68,7 +68,6 @@ export type {
   OntologyEdgeKind,
   OntologyOutwardEdge,
   OntologyRootedEdges,
-  OntologyTypeRevisionId,
   OntologyTypeVertexId,
   OntologyVertex,
   OntologyVertices,

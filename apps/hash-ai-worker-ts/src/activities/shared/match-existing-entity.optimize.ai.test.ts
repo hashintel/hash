@@ -7,7 +7,6 @@ import type {
   EntityId,
   EntityUuid,
   OwnedById,
-  PropertyObject,
   PropertyObjectMetadata,
   ValueMetadata,
 } from "@blockprotocol/type-system";
@@ -77,7 +76,7 @@ const matchTestData: MatchExistingEntityTest[] = [
               "Bill Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "An American businessman and philanthropist best known for co-founding the software company Microsoft Corporation.",
-          }) as PropertyObject,
+          }),
         },
         {
           entityId: popGatesUuid,
@@ -91,7 +90,7 @@ const matchTestData: MatchExistingEntityTest[] = [
               "William Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "A professional basketball player, he was the first African American player signed to the National Basketball League.",
-          }) as PropertyObject,
+          }),
         },
         {
           metadata: {
@@ -105,7 +104,7 @@ const matchTestData: MatchExistingEntityTest[] = [
               "William Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "An American former college basketball player, subject of the 1994 documentary film Hoop Dreams.",
-          }) as PropertyObject,
+          }),
         },
       ],
       newEntity: {
@@ -138,7 +137,7 @@ const matchTestData: MatchExistingEntityTest[] = [
             "William Gates",
           "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
             "He founded Microsoft in Albuquerque, New Mexico.",
-        }) as PropertyObject,
+        }),
       },
     },
   },
@@ -160,7 +159,7 @@ const matchTestData: MatchExistingEntityTest[] = [
               "William Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "He founded Microsoft in Albuquerque, New Mexico.",
-          }) as PropertyObject,
+          }),
         },
         {
           entityId: billGatesUuid,
@@ -174,7 +173,7 @@ const matchTestData: MatchExistingEntityTest[] = [
               "Bill Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "An American businessman and philanthropist best known for co-founding the software company Microsoft Corporation.",
-          }) as PropertyObject,
+          }),
         },
         {
           entityId: popGatesUuid,
@@ -188,7 +187,7 @@ const matchTestData: MatchExistingEntityTest[] = [
               "William Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "A professional basketball player, he was the first African American player signed to the National Basketball League.",
-          }) as PropertyObject,
+          }),
         },
       ],
       newEntity: {
@@ -221,7 +220,7 @@ const matchTestData: MatchExistingEntityTest[] = [
             "William Gates",
           "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
             "An American former college basketball player, subject of the 1994 documentary film Hoop Dreams. He never played professionally.",
-        }) as PropertyObject,
+        }),
       },
     },
   },

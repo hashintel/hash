@@ -6,9 +6,9 @@ import type {
   EntityEditionId,
   EntityId,
   PropertyObject,
-  Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { currentTimestamp } from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import type {
@@ -73,7 +73,7 @@ export const useFetchBlockSubgraph = (): ((
         // there's a delay while the request to the API to insert it is processed
         // @todo some better way of handling this – probably affected by revamped collab.
         //    or could simply not load a new block until the entity is created?
-        const now = new Date().toISOString() as Timestamp;
+        const now = currentTimestamp();
         const placeholderEntity: EntityBp = {
           metadata: {
             recordId: {

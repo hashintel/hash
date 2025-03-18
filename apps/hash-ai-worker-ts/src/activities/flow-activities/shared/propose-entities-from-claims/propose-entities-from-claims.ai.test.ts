@@ -1,12 +1,10 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
-import type {
-  EntityUuid,
-  OwnedById,
-  Timestamp,
-  Url,
+import type { EntityUuid, OwnedById, Url } from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  entityIdFromComponents,
 } from "@blockprotocol/type-system";
-import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { expect, test } from "vitest";
 
@@ -610,7 +608,7 @@ test(
             location: {
               uri: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
             },
-            loadedAt: new Date().toISOString() as Timestamp,
+            loadedAt: currentTimestamp(),
           },
         ],
       }),

@@ -1,11 +1,16 @@
 import type { EntityRevisionId } from "@blockprotocol/graph";
-import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  OntologyTypeVersion,
+} from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractVersion,
   getReferencedIdsFromEntityType,
   getReferencedIdsFromPropertyType,
 } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import isEqual from "lodash.isequal";
 
 import { unionOfIntervals } from "../../stdlib.js";
@@ -15,7 +20,6 @@ import type {
   KnowledgeGraphOutwardEdge,
   KnowledgeGraphVertices,
   OntologyOutwardEdge,
-  OntologyTypeRevisionId,
   OntologyTypeVertexId,
   OntologyVertices,
   OutwardEdge,
@@ -42,7 +46,7 @@ import {
 export const addOutwardEdgeToSubgraphByMutation = (
   subgraph: Subgraph,
   sourceBaseId: BaseUrl | EntityId,
-  at: OntologyTypeRevisionId | EntityRevisionId,
+  at: OntologyTypeVersion | EntityRevisionId,
   outwardEdge: OutwardEdge,
 ) => {
   type UntypedEdges = Record<
@@ -128,9 +132,7 @@ export const inferPropertyTypeEdgesInSubgraphByMutation = (
     ]) {
       for (const versionedUrl of endpoints) {
         const targetBaseUrl = extractBaseUrl(versionedUrl);
-        const targetRevisionId = extractVersion(
-          versionedUrl,
-        ).toString() as OntologyTypeRevisionId;
+        const targetRevisionId = extractVersion(versionedUrl);
 
         // If the endpoint vertex isn't currently in the subgraph, we won't add the edge.
         // We expect all vertices to be present before adding edges.
@@ -219,9 +221,7 @@ export const inferEntityTypeEdgesInSubgraphByMutation = (
     ]) {
       for (const versionedUrl of endpoints) {
         const targetBaseUrl = extractBaseUrl(versionedUrl);
-        const targetRevisionId = extractVersion(
-          versionedUrl,
-        ).toString() as OntologyTypeRevisionId;
+        const targetRevisionId = extractVersion(versionedUrl);
 
         // If the endpoint vertex isn't currently in the subgraph, we won't add the edge.
         // We expect all vertices to be present before adding edges.
@@ -315,9 +315,7 @@ export const inferEntityEdgesInSubgraphByMutation = (
 
     for (const entityTypeId of entityTypeIds) {
       const entityTypeBaseUrl = extractBaseUrl(entityTypeId);
-      const entityTypeRevisionId = extractVersion(
-        entityTypeId,
-      ).toString() as OntologyTypeRevisionId;
+      const entityTypeRevisionId = extractVersion(entityTypeId);
 
       // If the entity type vertex is currently in the subgraph, we add the appropriate edge.
       // We expect all vertices to be present before adding edges.
@@ -389,7 +387,7 @@ export const inferEntityEdgesInSubgraphByMutation = (
     for (const [
       linkEntityId,
       { leftEntityId, rightEntityId, edgeIntervals },
-    ] of Object.entries(linkMap)) {
+    ] of typedEntries(linkMap)) {
       // If the list of entities is comprehensive, and link destinations cannot change, the result of this should be an
       // array with a single interval that spans the full lifespan of the link entity.
       const unionedIntervals = unionOfIntervals(...edgeIntervals);
@@ -397,7 +395,7 @@ export const inferEntityEdgesInSubgraphByMutation = (
       for (const edgeInterval of unionedIntervals) {
         addOutwardEdgeToSubgraphByMutation(
           subgraph,
-          linkEntityId as EntityId,
+          linkEntityId,
           edgeInterval.start.limit,
           {
             kind: "HAS_LEFT_ENTITY",
@@ -413,14 +411,14 @@ export const inferEntityEdgesInSubgraphByMutation = (
             kind: "HAS_LEFT_ENTITY",
             reversed: true,
             rightEndpoint: {
-              entityId: linkEntityId as EntityId,
+              entityId: linkEntityId,
               interval: edgeInterval,
             },
           },
         );
         addOutwardEdgeToSubgraphByMutation(
           subgraph,
-          linkEntityId as EntityId,
+          linkEntityId,
           edgeInterval.start.limit,
           {
             kind: "HAS_RIGHT_ENTITY",
@@ -439,7 +437,7 @@ export const inferEntityEdgesInSubgraphByMutation = (
             kind: "HAS_RIGHT_ENTITY",
             reversed: true,
             rightEndpoint: {
-              entityId: linkEntityId as EntityId,
+              entityId: linkEntityId,
               interval: edgeInterval,
             },
           },

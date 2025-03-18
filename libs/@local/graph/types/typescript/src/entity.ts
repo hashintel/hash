@@ -2,14 +2,13 @@ import type {
   PropertyObject,
   PropertyObjectWithMetadata,
   PropertyValue,
-  Url,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { Brand } from "@local/advanced-types/brand";
 
 export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
   T & {
-    [K in keyof T as Brand<K & Url, "BaseUrl">]: T[K];
+    [K in keyof T as Brand<K, "BaseUrl">]: T[K];
   };
 
 // Helper function to create branded objects

@@ -3,9 +3,12 @@ import type {
   EntityRevisionId,
   KnowledgeGraphRootedEdges as KnowledgeGraphRootedEdgesBp,
   OntologyRootedEdges as OntologyRootedEdgesBp,
-  OntologyTypeRevisionId,
 } from "@blockprotocol/graph";
-import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  OntologyTypeVersion,
+} from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 
 import type {
@@ -21,7 +24,7 @@ export type OntologyRootedEdges = Subtype<
   OntologyRootedEdgesBp,
   {
     [baseUrl: BaseUrl]: {
-      [revisionId: OntologyTypeRevisionId]: OntologyOutwardEdge[];
+      [revisionId: OntologyTypeVersion]: OntologyOutwardEdge[];
     };
   }
 >;

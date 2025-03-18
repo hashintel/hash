@@ -7,7 +7,6 @@ import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 
 import type {
-  OntologyTypeRevisionId,
   OntologyTypeVertexId,
   OntologyVertices,
   Subgraph,
@@ -45,8 +44,7 @@ export const getPropertyTypeById = (
     extractBaseUrl(propertyTypeId),
     extractVersion(propertyTypeId),
   ];
-  const revisionId = version.toString() as OntologyTypeRevisionId;
-  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[revisionId];
+  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[version];
 
   if (!vertex) {
     return undefined;

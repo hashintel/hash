@@ -1,5 +1,9 @@
-import type { OntologyTypeRevisionId } from "@blockprotocol/graph";
-import type { BaseUrl, EntityId, Timestamp } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  OntologyTypeVersion,
+  Timestamp,
+} from "@blockprotocol/type-system";
 import { isEntityId, validateBaseUrl } from "@blockprotocol/type-system";
 import type {
   Edges as EdgesGraphApi,
@@ -30,8 +34,8 @@ export const mapOutwardEdge = (
         ...outwardEdge,
         rightEndpoint: {
           baseId: outwardEdge.rightEndpoint.baseId as BaseUrl,
-          revisionId:
-            `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
+          revisionId: outwardEdge.rightEndpoint
+            .revisionId as OntologyTypeVersion,
         },
       };
     }
@@ -103,10 +107,9 @@ export const mapOutwardEdge = (
               baseId: (
                 outwardEdge.rightEndpoint as OntologyTypeVertexIdGraphApi
               ).baseId as BaseUrl,
-              revisionId: `${
-                (outwardEdge.rightEndpoint as OntologyTypeVertexIdGraphApi)
-                  .revisionId
-              }` as OntologyTypeRevisionId,
+              revisionId: (
+                outwardEdge.rightEndpoint as OntologyTypeVertexIdGraphApi
+              ).revisionId as OntologyTypeVersion,
             },
           };
     }

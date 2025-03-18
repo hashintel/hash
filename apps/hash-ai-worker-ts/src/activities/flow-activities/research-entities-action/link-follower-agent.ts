@@ -1,9 +1,5 @@
-import type {
-  BaseUrl,
-  SourceProvenance,
-  Timestamp,
-  Url,
-} from "@blockprotocol/type-system";
+import type { SourceProvenance, Url } from "@blockprotocol/type-system";
+import { currentTimestamp } from "@blockprotocol/type-system";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
@@ -399,7 +395,7 @@ const exploreResource = async (params: {
       uri:
         (hashEntityForFile?.properties[
           "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-        ] as BaseUrl | undefined) ?? resource.url,
+        ] as Url | undefined) ?? resource.url,
       name: resourceTitle,
       /**
        * @todo: generate a description of the resource via an LLM.
@@ -409,7 +405,7 @@ const exploreResource = async (params: {
           "https://blockprotocol.org/@blockprotocol/types/property-type/description/"
         ],
     },
-    loadedAt: new Date().toISOString() as Timestamp,
+    loadedAt: currentTimestamp(),
     /**
      * @todo: extract the authors of the resource via an LLM, if these are specified
      * in teh content.

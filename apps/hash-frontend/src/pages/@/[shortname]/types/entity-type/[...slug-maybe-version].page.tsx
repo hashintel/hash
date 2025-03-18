@@ -3,8 +3,8 @@ import type {
   EntityTypeWithMetadata,
   OntologyTypeVersion,
   OwnedById,
-  Timestamp,
 } from "@blockprotocol/type-system";
+import { currentTimestamp } from "@blockprotocol/type-system";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
@@ -80,7 +80,7 @@ const Page: NextPageWithLayout = () => {
             transactionTime: {
               start: {
                 kind: "inclusive",
-                limit: new Date().toISOString() as Timestamp,
+                limit: currentTimestamp(),
               },
               end: { kind: "unbounded" },
             },
@@ -104,7 +104,7 @@ const Page: NextPageWithLayout = () => {
   }, [router.query.draft]);
 
   const requestedVersion = requestedVersionString
-    ? (parseInt(requestedVersionString, 10) as OntologyTypeVersion)
+    ? (Number.parseInt(requestedVersionString, 10) as OntologyTypeVersion)
     : null;
 
   if (!routeNamespace) {

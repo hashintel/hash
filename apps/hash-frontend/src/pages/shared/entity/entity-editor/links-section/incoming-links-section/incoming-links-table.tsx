@@ -173,7 +173,8 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
                 />
               }
               onClick={() => row.onTypeClick("entityType", linkEntityType.$id)}
-              label={linkEntityType.inverse?.title ?? linkEntityType.title}
+              /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */
+              label={linkEntityType.inverse?.title || linkEntityType.title}
             />
           ))}
           <Typography

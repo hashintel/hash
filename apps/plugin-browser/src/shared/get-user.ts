@@ -1,9 +1,6 @@
 import { intervalForTimestamp } from "@blockprotocol/graph/stdlib";
-import type {
-  EntityId,
-  OwnedById,
-  Timestamp,
-} from "@blockprotocol/type-system";
+import type { EntityId, OwnedById } from "@blockprotocol/type-system";
+import { currentTimestamp } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
@@ -40,7 +37,7 @@ const getAvatarForEntity = (
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter(({ linkEntity }) =>
     linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
@@ -54,7 +51,7 @@ const getAvatarForEntity = (
 /**
  * Ideally we would use {@link extractOwnedByIdFromEntityId} from @local/hash-subgraph here,
  * but importing it causes WASM-related functions to end up in the bundle,
- * even when imports in that package only come from `@blockprotocol/type-system`,
+ * even when imports in that package only come from `@blockprotocol/type-system/slim`,
  * which isn't supposed to have WASM.
  *
  * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package

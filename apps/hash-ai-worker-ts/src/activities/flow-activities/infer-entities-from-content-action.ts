@@ -4,10 +4,12 @@ import type {
   OriginProvenance,
   PropertyObjectMetadata,
   SourceProvenance,
-  Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { entityIdFromComponents } from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  entityIdFromComponents,
+} from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
@@ -105,7 +107,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     };
   }
 
-  const processBeginTime = new Date().toISOString() as Timestamp;
+  const processBeginTime = currentTimestamp();
 
   const status = await inferEntitiesFromWebPageActivity({
     webPage: content,

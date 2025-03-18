@@ -4,7 +4,6 @@ import type {
   EntityTypeVertex as EntityTypeVertexBp,
   EntityVertexId as EntityVertexIdBp,
   GraphElementVertexId as GraphElementVertexIdBp,
-  OntologyTypeRevisionId,
   OntologyTypeVertexId as OntologyTypeVertexIdBp,
   OntologyVertex as OntologyVertexBp,
   OntologyVertices as OntologyVerticesBp,
@@ -20,6 +19,7 @@ import type {
   DataTypeWithMetadata,
   EntityId,
   EntityTypeWithMetadata,
+  OntologyTypeVersion,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
@@ -88,7 +88,7 @@ export type EntityVertexId = Subtype<
 >;
 export type OntologyTypeVertexId = Subtype<
   OntologyTypeVertexIdBp,
-  VertexId<BaseUrl, OntologyTypeRevisionId>
+  VertexId<BaseUrl, OntologyTypeVersion>
 >;
 export type GraphElementVertexId = Subtype<
   GraphElementVertexIdBp,
@@ -107,7 +107,7 @@ export type OntologyVertices = Subtype<
   OntologyVerticesBp,
   {
     [baseUrl: BaseUrl]: {
-      [revisionId: OntologyTypeRevisionId]: OntologyVertex;
+      [revisionId: OntologyTypeVersion]: OntologyVertex;
     };
   }
 >;

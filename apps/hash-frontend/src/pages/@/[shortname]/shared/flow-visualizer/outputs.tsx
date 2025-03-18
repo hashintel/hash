@@ -7,7 +7,11 @@ import type {
   LeftClosedTemporalInterval,
   Timestamp,
 } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  extractEntityUuidFromEntityId,
+  generateTimestamp,
+} from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import type {
@@ -458,7 +462,7 @@ export const Outputs = ({
         const propertyTypes = getPropertyTypes(proposedEntitiesTypesSubgraph);
         const dataTypes = getDataTypes(proposedEntitiesTypesSubgraph);
 
-        const now = new Date().toISOString() as Timestamp;
+        const now = currentTimestamp();
 
         const mockSubgraph = buildSubgraph(
           {
@@ -500,7 +504,7 @@ export const Outputs = ({
                 interval: {
                   start: {
                     kind: "inclusive",
-                    limit: new Date(0).toISOString() as Timestamp,
+                    limit: generateTimestamp(new Date(0)),
                   },
                   end: { kind: "inclusive", limit: now },
                 },

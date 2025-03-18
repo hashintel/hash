@@ -4,6 +4,7 @@ import type {
   Entity,
   EntityId,
   EntityTypeWithMetadata,
+  OntologyTypeVersion,
   PropertyObject,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
@@ -11,7 +12,6 @@ import { validateBaseUrl } from "@blockprotocol/type-system";
 
 import { stringIsNonNegativeInteger } from "../../util.js";
 import type { EntityRevisionId } from "../entity.js";
-import type { OntologyTypeRevisionId } from "../ontology.js";
 
 export type DataTypeVertex = {
   kind: "dataType";
@@ -70,7 +70,7 @@ export type VertexId<BaseId, RevisionId> = {
   revisionId: RevisionId;
 };
 export type EntityVertexId = VertexId<EntityId, EntityRevisionId>;
-export type OntologyTypeVertexId = VertexId<BaseUrl, OntologyTypeRevisionId>;
+export type OntologyTypeVertexId = VertexId<BaseUrl, OntologyTypeVersion>;
 export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
 
 export const isOntologyTypeVertexId = (
@@ -105,7 +105,7 @@ export const isEntityVertexId = (
 
 export type OntologyVertices = {
   [baseId: BaseUrl]: {
-    [revisionId: OntologyTypeRevisionId]: OntologyVertex;
+    [revisionId: OntologyTypeVersion]: OntologyVertex;
   };
 };
 
@@ -114,6 +114,14 @@ export type KnowledgeGraphVertices = {
     [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
   };
 };
+
+export const isKnowledgeGraphVertex = (
+  vertex: OntologyVertex | KnowledgeGraphVertex,
+): vertex is KnowledgeGraphVertex => vertex.kind === "entity";
+
+export const isOntologyVertex = (
+  vertex: OntologyVertex | KnowledgeGraphVertex,
+): vertex is OntologyVertex => !isKnowledgeGraphVertex(vertex);
 
 // We technically want to intersect (`&`) the types here, but as their property keys overlap it confuses things and we
 // end up with unsatisfiable values like `EntityVertex & DataTypeVertex`. While the union (`|`) is semantically

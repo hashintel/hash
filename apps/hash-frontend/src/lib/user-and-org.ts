@@ -7,8 +7,8 @@ import type {
   ActorId,
   BaseUrl,
   OwnedById,
-  Timestamp,
 } from "@blockprotocol/type-system";
+import { currentTimestamp } from "@blockprotocol/type-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
@@ -166,7 +166,7 @@ export const constructOrg = (params: {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     orgEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter(({ linkEntity }) =>
     linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
@@ -185,7 +185,7 @@ export const constructOrg = (params: {
   const hasBioLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     orgEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter(({ linkEntity }) =>
     linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasBio.linkEntityTypeId,
@@ -204,7 +204,7 @@ export const constructOrg = (params: {
   const orgMemberships = getIncomingLinksForEntity(
     subgraph,
     orgEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter((linkEntity): linkEntity is LinkEntity<IsMemberOf> =>
     linkEntity.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
@@ -215,7 +215,7 @@ export const constructOrg = (params: {
     const userEntityRevisions = getLeftEntityForLinkEntity(
       subgraph,
       linkEntity.metadata.recordId.entityId,
-      intervalForTimestamp(new Date().toISOString() as Timestamp),
+      intervalForTimestamp(currentTimestamp()),
     );
 
     if (!userEntityRevisions || userEntityRevisions.length === 0) {
@@ -336,7 +336,7 @@ export const constructUser = (params: {
     getOutgoingLinksForEntity(
       subgraph,
       userEntity.metadata.recordId.entityId,
-      intervalForTimestamp(new Date().toISOString() as Timestamp),
+      intervalForTimestamp(currentTimestamp()),
     ).filter((linkEntity) =>
       linkEntity.metadata.entityTypeIds.includes(
         systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
@@ -361,7 +361,7 @@ export const constructUser = (params: {
     const orgEntityRevisions = getRightEntityForLinkEntity(
       subgraph,
       metadata.recordId.entityId,
-      intervalForTimestamp(new Date().toISOString() as Timestamp),
+      intervalForTimestamp(currentTimestamp()),
     );
 
     if (!orgEntityRevisions || orgEntityRevisions.length === 0) {
@@ -394,7 +394,7 @@ export const constructUser = (params: {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter(({ linkEntity }) =>
     linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
@@ -413,7 +413,7 @@ export const constructUser = (params: {
   const coverImageLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter(({ linkEntity }) =>
     linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
@@ -432,7 +432,7 @@ export const constructUser = (params: {
   const hasBioLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter(({ linkEntity }) =>
     linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasBio.linkEntityTypeId,
@@ -452,7 +452,7 @@ export const constructUser = (params: {
   const hasServiceAccounts = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   )
     .filter(({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeIds.includes(

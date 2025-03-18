@@ -1,14 +1,11 @@
 import type {
-  BaseUrl,
   DataTypeWithMetadata,
   Entity,
-  EntityId,
   EntityRecordId,
   EntityTypeWithMetadata,
   OntologyTypeRecordId,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 
 import {
   inferDataTypeEdgesInSubgraphByMutation,
@@ -23,12 +20,9 @@ import {
   addPropertyTypeVerticesToSubgraphByMutation,
 } from "../../internal/mutate-subgraph/element.js";
 import type {
-  EntityRevisionId,
   EntityRootType,
   EntityVertexId,
   GraphResolveDepths,
-  OntologyTypeRevisionId,
-  OntologyTypeVertexId,
   Subgraph,
   SubgraphTemporalAxes,
 } from "../../types.js";
@@ -156,69 +150,4 @@ export const buildSubgraph = (
   }
 
   return subgraph;
-};
-
-/**
- * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`
- *
- * This function will infer/add edges to a subgraph based on the vertices that are already present.
- * The {@link Subgraph} must not have any edges already present, as this would result in invalid state.
- * It will add edges for:
- *  - data type vertices
- *  - property type vertices
- *  - entity type vertices
- *  - entity vertices
- *
- * This operation MUTATES the given {@link Subgraph} - you should know why you need to do it.
- *
- * @param {Subgraph} subgraph – the subgraph to mutate by adding edges
- */
-export const inferSubgraphEdges = (
-  subgraph: Subgraph<EntityRootType>,
-): void => {
-  // Construct object with vertex ids for each vertex kind
-  const vertexIds = typedEntries(subgraph.vertices).reduce(
-    (
-      acc: {
-        dataTypeVertexIds: OntologyTypeVertexId[];
-        propertyTypeVertexIds: OntologyTypeVertexId[];
-        entityTypeVertexIds: OntologyTypeVertexId[];
-        entityVertexIds: EntityVertexId[];
-      },
-      [baseId, revisionObject],
-    ) => {
-      for (const [revisionId, vertex] of typedEntries(revisionObject)) {
-        if (vertex.kind === "entity") {
-          acc.entityVertexIds.push({
-            baseId: baseId as EntityId,
-            revisionId: revisionId as EntityRevisionId,
-          });
-        } else {
-          acc[`${vertex.kind}VertexIds`].push({
-            baseId: baseId as BaseUrl,
-            revisionId: revisionId as OntologyTypeRevisionId,
-          });
-        }
-      }
-
-      return acc;
-    },
-    {
-      dataTypeVertexIds: [],
-      propertyTypeVertexIds: [],
-      entityTypeVertexIds: [],
-      entityVertexIds: [],
-    },
-  );
-
-  inferDataTypeEdgesInSubgraphByMutation(subgraph, vertexIds.dataTypeVertexIds);
-  inferPropertyTypeEdgesInSubgraphByMutation(
-    subgraph,
-    vertexIds.propertyTypeVertexIds,
-  );
-  inferEntityTypeEdgesInSubgraphByMutation(
-    subgraph,
-    vertexIds.entityTypeVertexIds,
-  );
-  inferEntityEdgesInSubgraphByMutation(subgraph, vertexIds.entityVertexIds);
 };

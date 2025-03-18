@@ -1,6 +1,10 @@
-import type { BaseUrl, EntityId, Timestamp } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  OntologyTypeVersion,
+  Timestamp,
+} from "@blockprotocol/type-system";
 
-import type { OntologyTypeRevisionId } from "../subgraph.js";
 import type { KnowledgeGraphOutwardEdge } from "./edges/variants/knowledge.js";
 import type { OntologyOutwardEdge } from "./edges/variants/ontology.js";
 
@@ -11,7 +15,7 @@ export * from "./edges/variants.js";
 export type OntologyRootedEdges = Record<
   BaseUrl,
   {
-    [revisionId: OntologyTypeRevisionId]: OntologyOutwardEdge[];
+    [revisionId: OntologyTypeVersion]: OntologyOutwardEdge[];
   }
 >;
 

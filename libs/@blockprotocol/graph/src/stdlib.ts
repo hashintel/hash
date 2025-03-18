@@ -17,10 +17,7 @@ export {
   sortIntervals,
   unionOfIntervals,
 } from "./stdlib/interval.js";
-export {
-  buildSubgraph,
-  inferSubgraphEdges,
-} from "./stdlib/subgraph/builder.js";
+export { buildSubgraph } from "./stdlib/subgraph/builder.js";
 export {
   getEntityTypesReferencedByEntityType,
   getPropertyTypesReferencedByEntityType,

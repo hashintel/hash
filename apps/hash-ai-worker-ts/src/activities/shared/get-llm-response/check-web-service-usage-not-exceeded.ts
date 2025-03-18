@@ -1,4 +1,8 @@
-import type { ActorId, OwnedById, Timestamp } from "@blockprotocol/type-system";
+import {
+  type ActorId,
+  generateTimestamp,
+  type OwnedById,
+} from "@blockprotocol/type-system";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -33,11 +37,14 @@ export const checkWebServiceUsageNotExceeded = async (params: {
       decisionTimeInterval: {
         start: {
           kind: "inclusive",
-          limit: new Date(
-            now.valueOf() - 1000 * 60 * 60 * 24 * 30,
-          ).toISOString() as Timestamp,
+          limit: generateTimestamp(
+            new Date(now.valueOf() - 1000 * 60 * 60 * 24 * 30),
+          ),
         },
-        end: { kind: "inclusive", limit: now.toISOString() as Timestamp },
+        end: {
+          kind: "inclusive",
+          limit: generateTimestamp(now),
+        },
       },
       userAccountId,
       webId,

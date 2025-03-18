@@ -1,9 +1,12 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  OntologyTypeVersion,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 
 import type {
   OntologyRootedEdges,
-  OntologyTypeRevisionId,
   OntologyTypeVertexId,
   Subgraph,
 } from "../../../types/subgraph.js";
@@ -52,13 +55,11 @@ export const getEntityTypesReferencedByEntityType = (
   entityTypeId: OntologyTypeVertexId | VersionedUrl,
 ): EntityTypeReferences => {
   let baseUrl: BaseUrl;
-  let revisionId: OntologyTypeRevisionId;
+  let revisionId: OntologyTypeVersion;
 
   if (typeof entityTypeId === "string") {
     baseUrl = extractBaseUrl(entityTypeId);
-    revisionId = extractVersion(
-      entityTypeId,
-    ).toString() as OntologyTypeRevisionId;
+    revisionId = extractVersion(entityTypeId);
   } else {
     baseUrl = entityTypeId.baseId;
     revisionId = entityTypeId.revisionId;

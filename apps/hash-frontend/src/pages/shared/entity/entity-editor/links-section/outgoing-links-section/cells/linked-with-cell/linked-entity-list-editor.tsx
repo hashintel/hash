@@ -2,10 +2,12 @@ import type {
   CreatedById,
   EditionCreatedById,
   EntityId,
-  Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  extractDraftIdFromEntityId,
+} from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import { Box } from "@mui/material";
@@ -47,8 +49,8 @@ export const createDraftLinkEntity = ({
       entityTypeIds: [linkEntityTypeId],
       provenance: {
         createdById: "" as CreatedById,
-        createdAtTransactionTime: "" as Timestamp,
-        createdAtDecisionTime: "" as Timestamp,
+        createdAtTransactionTime: currentTimestamp(),
+        createdAtDecisionTime: currentTimestamp(),
         edition: {
           createdById: "" as EditionCreatedById,
           actorType: "human",
@@ -59,7 +61,7 @@ export const createDraftLinkEntity = ({
         decisionTime: {
           start: {
             kind: "inclusive",
-            limit: "" as Timestamp,
+            limit: currentTimestamp(),
           },
           end: {
             kind: "unbounded",
@@ -68,7 +70,7 @@ export const createDraftLinkEntity = ({
         transactionTime: {
           start: {
             kind: "inclusive",
-            limit: "" as Timestamp,
+            limit: currentTimestamp(),
           },
           end: {
             kind: "unbounded",

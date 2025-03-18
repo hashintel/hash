@@ -1,3 +1,4 @@
+import type { EntityRevisionId } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   EntityId,
@@ -267,7 +268,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
           property: propertyProvenance,
         },
         propertyType: propertyTypeWithMetadata.propertyType,
-        timestamp: firstEditionIdentifier.revisionId,
+        timestamp: firstEditionIdentifier.revisionId as EntityRevisionId,
         type: "property-update",
         diff: {
           op: "added",
@@ -304,7 +305,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     number: "1",
     entity: firstEntityEdition,
     entityTypes: firstEntityTypes.map((type) => type.schema),
-    timestamp: firstEditionIdentifier.revisionId,
+    timestamp: firstEditionIdentifier.revisionId as EntityRevisionId,
     provenance: {
       edition: firstEntityEdition.metadata.provenance.edition,
     },

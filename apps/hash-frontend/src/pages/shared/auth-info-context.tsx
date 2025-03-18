@@ -1,7 +1,10 @@
 import { useApolloClient } from "@apollo/client";
 import { intervalForTimestamp } from "@blockprotocol/graph/stdlib";
-import type { ActorGroupId, Timestamp } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { ActorGroupId } from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  extractEntityUuidFromEntityId,
+} from "@blockprotocol/type-system";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -70,7 +73,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     return getOutgoingLinksForEntity(
       authenticatedUserSubgraph,
       userEntity.metadata.recordId.entityId,
-      intervalForTimestamp(new Date().toISOString() as Timestamp),
+      intervalForTimestamp(currentTimestamp()),
     )
       .filter((linkEntity) =>
         linkEntity.metadata.entityTypeIds.includes(

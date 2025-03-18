@@ -329,7 +329,7 @@ export const getOutgoingLinkAndTargetEntities = <
         linkEntity: linkEntityRevisions,
         rightEntity: getRightEntityForLinkEntity(
           subgraph,
-          linkEntityId as EntityId,
+          linkEntityId,
           searchInterval,
         ),
       };

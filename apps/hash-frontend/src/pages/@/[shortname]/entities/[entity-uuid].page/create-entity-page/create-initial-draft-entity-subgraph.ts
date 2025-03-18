@@ -1,9 +1,9 @@
-import type {
-  EntityId,
-  Timestamp,
-  VersionedUrl,
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  extractOwnedByIdFromEntityId,
+  generateTimestamp,
 } from "@blockprotocol/type-system";
-import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -21,7 +21,7 @@ import type {
 export const createInitialDraftEntitySubgraph = (
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
 ): Subgraph<EntityRootType> => {
-  const now = new Date().toISOString() as Timestamp;
+  const now = currentTimestamp();
 
   const draftEntityVertexId: EntityVertexId = {
     baseId: "draft~draft" as EntityId,
@@ -95,7 +95,7 @@ export const createInitialDraftEntitySubgraph = (
           interval: {
             start: {
               kind: "inclusive",
-              limit: new Date(0).toISOString() as Timestamp,
+              limit: generateTimestamp(new Date(0)),
             },
             end: { kind: "inclusive", limit: now },
           },
