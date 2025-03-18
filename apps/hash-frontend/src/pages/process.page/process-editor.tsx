@@ -276,7 +276,7 @@ const WeightedEdge = ({
 
 // Node dimensions
 const nodeDimensions = {
-  place: { width: 120, height: 120 },
+  place: { width: 130, height: 130 },
   transition: { width: 160, height: 80 },
 };
 
@@ -312,6 +312,7 @@ const PlaceNode = ({ data, isConnectable }: NodeProps) => {
           fontSize: "1rem",
           boxSizing: "border-box",
           position: "relative",
+          textAlign: "center",
         })}
       >
         {data.label}
@@ -471,7 +472,7 @@ const TransitionNode = ({ id, data, isConnectable }: NodeProps) => {
       >
         {data.label}
 
-        {/* Display processing time if this is a timed transition */}
+        {/* Display processing time if this is a timed transition and not in progress */}
         {isTimed && !inProgress && (
           <Box
             sx={{
@@ -492,6 +493,53 @@ const TransitionNode = ({ id, data, isConnectable }: NodeProps) => {
             title={`Average processing time: ${avgProcessingTime} hours`}
           >
             ⏱️
+          </Box>
+        )}
+
+        {/* Show progress indicator when transition is in progress - moved to top right */}
+        {inProgress && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: -12,
+              right: -12,
+              width: 32,
+              height: 32,
+              backgroundColor: "white",
+              borderRadius: "50%",
+              boxShadow: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CircularProgress
+              variant="determinate"
+              value={progress * 100}
+              size={30}
+              thickness={4}
+              sx={{ color: "primary.main" }}
+            />
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                bottom: 0,
+                right: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Typography
+                component="div"
+                color="text.secondary"
+                sx={{ fontWeight: "bold", fontSize: "0.7rem" }}
+              >
+                {Math.round(progress * 100)}%
+              </Typography>
+            </Box>
           </Box>
         )}
 
@@ -516,39 +564,6 @@ const TransitionNode = ({ id, data, isConnectable }: NodeProps) => {
             title={`Quality check with ${failureProbability}% failure probability`}
           >
             QA
-          </Box>
-        )}
-
-        {/* Show progress indicator when transition is in progress */}
-        {inProgress && (
-          <Box sx={{ position: "relative", mt: 1 }}>
-            <CircularProgress
-              variant="determinate"
-              value={progress * 100}
-              size={40}
-              thickness={4}
-              sx={{ color: "primary.main" }}
-            />
-            <Box
-              sx={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                bottom: 0,
-                right: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Typography
-                component="div"
-                color="text.secondary"
-                sx={{ fontWeight: "bold", fontSize: "0.75rem" }}
-              >
-                {Math.round(progress * 100)}%
-              </Typography>
-            </Box>
           </Box>
         )}
 
@@ -1984,7 +1999,17 @@ const FlowCanvas = () => {
           enabledTransitions.some((transition) => transition.id === node.id)),
     );
 
-    if (!anyTransitionsActive) {
+    // Check if there are any tokens in places that could potentially enable transitions
+    const anyTokensInPlaces = updatedNodes.some(
+      (node) =>
+        node.type === "place" &&
+        Object.values(node.data.tokenCounts || {}).some(
+          (count) => (count as number) > 0,
+        ),
+    );
+
+    // Only stop the simulation if there are no active transitions AND no tokens in any places
+    if (!anyTransitionsActive && !anyTokensInPlaces) {
       setIsSimulating(false);
     }
   }, [
@@ -2228,7 +2253,7 @@ const FlowCanvas = () => {
       </ReactFlow>
 
       {/* Simulation Logs */}
-      {simulationLogs.length > 0 && (
+      {/* {simulationLogs.length > 0 && (
         <Box
           sx={{
             position: "absolute",
@@ -2265,7 +2290,7 @@ const FlowCanvas = () => {
             ))}
           </Stack>
         </Box>
-      )}
+      )} */}
     </Box>
   );
 };

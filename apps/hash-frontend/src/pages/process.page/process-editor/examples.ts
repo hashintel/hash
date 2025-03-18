@@ -1,12 +1,12 @@
 import type { Node } from "reactflow";
 
 import type { PetriNetEdge } from "./edge-menu";
-import type { TokenType } from "../token-editor";
+import type { TokenType } from "./token-editor";
 
 export const exampleCPN = {
   tokenTypes: [
     { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-    { id: "precursor_b", name: "Precursor B", color: "#e74c3c" },
+    { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
     { id: "drug", name: "Drug", color: "#2ecc71" },
     { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
   ] satisfies TokenType[],
@@ -14,7 +14,7 @@ export const exampleCPN = {
     {
       id: "place_0",
       type: "place",
-      position: { x: 20, y: 280 },
+      position: { x: 20, y: 120 },
       data: {
         label: "Plant A Supply",
         tokenCounts: {
@@ -25,7 +25,7 @@ export const exampleCPN = {
         },
         tokenTypes: [
           { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#e74c3c" },
+          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
           { id: "drug", name: "Drug", color: "#2ecc71" },
           { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
         ],
@@ -45,7 +45,7 @@ export const exampleCPN = {
         },
         tokenTypes: [
           { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#e74c3c" },
+          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
           { id: "drug", name: "Drug", color: "#2ecc71" },
           { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
         ],
@@ -54,7 +54,7 @@ export const exampleCPN = {
     {
       id: "place_2",
       type: "place",
-      position: { x: 350, y: 450 },
+      position: { x: 300, y: 300 },
       data: {
         label: "Manufacturing Plant",
         tokenCounts: {
@@ -65,7 +65,7 @@ export const exampleCPN = {
         },
         tokenTypes: [
           { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#e74c3c" },
+          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
           { id: "drug", name: "Drug", color: "#2ecc71" },
           { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
         ],
@@ -74,9 +74,9 @@ export const exampleCPN = {
     {
       id: "place_3",
       type: "place",
-      position: { x: 700, y: 300 },
+      position: { x: 700, y: 350 },
       data: {
-        label: "QA Lab",
+        label: "QA Queue",
         tokenCounts: {
           precursor_a: 0,
           precursor_b: 0,
@@ -85,7 +85,7 @@ export const exampleCPN = {
         },
         tokenTypes: [
           { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#e74c3c" },
+          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
           { id: "drug", name: "Drug", color: "#2ecc71" },
           { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
         ],
@@ -94,7 +94,7 @@ export const exampleCPN = {
     {
       id: "place_4",
       type: "place",
-      position: { x: 700, y: 600 },
+      position: { x: 1100, y: 600 },
       data: {
         label: "Disposal",
         tokenCounts: {
@@ -105,7 +105,7 @@ export const exampleCPN = {
         },
         tokenTypes: [
           { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#e74c3c" },
+          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
           { id: "drug", name: "Drug", color: "#2ecc71" },
           { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
         ],
@@ -114,9 +114,9 @@ export const exampleCPN = {
     {
       id: "place_5",
       type: "place",
-      position: { x: 1000, y: 300 },
+      position: { x: 1000, y: 200 },
       data: {
-        label: "Central Warehouse",
+        label: "Dispatch",
         tokenCounts: {
           precursor_a: 0,
           precursor_b: 0,
@@ -125,7 +125,7 @@ export const exampleCPN = {
         },
         tokenTypes: [
           { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#e74c3c" },
+          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
           { id: "drug", name: "Drug", color: "#2ecc71" },
           { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
         ],
@@ -134,9 +134,9 @@ export const exampleCPN = {
     {
       id: "place_6",
       type: "place",
-      position: { x: 1300, y: 200 },
+      position: { x: 1300, y: 380 },
       data: {
-        label: "Hospital A",
+        label: "Hospital",
         tokenCounts: {
           precursor_a: 0,
           precursor_b: 0,
@@ -145,27 +145,7 @@ export const exampleCPN = {
         },
         tokenTypes: [
           { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#e74c3c" },
-          { id: "drug", name: "Drug", color: "#2ecc71" },
-          { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
-        ],
-      },
-    },
-    {
-      id: "place_7",
-      type: "place",
-      position: { x: 1300, y: 400 },
-      data: {
-        label: "Hospital B",
-        tokenCounts: {
-          precursor_a: 0,
-          precursor_b: 0,
-          drug: 0,
-          failed_drug: 0,
-        },
-        tokenTypes: [
-          { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#e74c3c" },
+          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
           { id: "drug", name: "Drug", color: "#2ecc71" },
           { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
         ],
@@ -174,13 +154,29 @@ export const exampleCPN = {
     {
       id: "transition_0",
       type: "transition",
-      position: { x: 140, y: 450 },
+      position: { x: 100, y: 400 },
+      data: {
+        label: "Deliver to Plant",
+        description: "Transport precursors to manufacturing plant",
+        processTimes: {
+          precursor_a: 2,
+          precursor_b: 2,
+          drug: 0,
+          failed_drug: 0,
+        },
+        priority: 1,
+      },
+    },
+    {
+      id: "transition_1",
+      type: "transition",
+      position: { x: 490, y: 350 },
       data: {
         label: "Manufacture",
         description: "Combine precursors to create drug",
         processTimes: {
-          precursor_a: 2, // 2 hours to process Precursor A
-          precursor_b: 3, // 3 hours to process Precursor B
+          precursor_a: 2,
+          precursor_b: 3,
           drug: 0,
           failed_drug: 0,
         },
@@ -190,75 +186,43 @@ export const exampleCPN = {
     {
       id: "transition_2",
       type: "transition",
-      position: { x: 500, y: 600 },
-      data: {
-        label: "Dispose",
-        description: "Dispose of failed drugs",
-        processTimes: {
-          precursor_a: 0,
-          precursor_b: 0,
-          drug: 0,
-          failed_drug: 1, // 1 hour to dispose
-        },
-        priority: 1,
-      },
-    },
-    {
-      id: "transition_3",
-      type: "transition",
-      position: { x: 850, y: 300 },
-      data: {
-        label: "Store",
-        description: "Move to warehouse storage",
-        processTimes: {
-          precursor_a: 0.5, // 30 minutes to store Precursor A
-          precursor_b: 0.5, // 30 minutes to store Precursor B
-          drug: 1, // 1 hour to store Drug (quality checks)
-          failed_drug: 0,
-        },
-        priority: 1,
-      },
-    },
-    {
-      id: "transition_4",
-      type: "transition",
-      position: { x: 1150, y: 300 },
-      data: {
-        label: "Distribute",
-        description: "Ship to hospitals",
-        processTimes: {
-          precursor_a: 0,
-          precursor_b: 0,
-          drug: 4, // 4 hours to distribute drugs to hospitals
-          failed_drug: 0,
-        },
-        priority: 1,
-      },
-    },
-    {
-      id: "transition-3",
-      type: "transition",
-      position: { x: 500, y: 300 },
+      position: { x: 870, y: 400 },
       data: {
         label: "Quality Check",
-        processTimes: { drug: 0.5 },
+        processTimes: { drug: 2 },
         description: "Quality assurance with conditional outputs",
         hasConditions: true,
         conditions: [
           {
             id: "condition-pass",
             name: "Pass",
-            probability: 90,
-            outputEdgeIds: ["edge-3-4"],
+            probability: 75,
+            outputEdgeIds: ["transition_2-place_5"],
           },
           {
             id: "condition-fail",
             name: "Fail",
-            probability: 10,
-            outputEdgeIds: ["edge-3-5"],
+            probability: 25,
+            outputEdgeIds: ["transition_2-place_4"],
           },
         ],
-        priority: 2, // Higher priority so it fires instead of transition_1
+        priority: 2,
+      },
+    },
+    {
+      id: "transition_3",
+      type: "transition",
+      position: { x: 1150, y: 280 },
+      data: {
+        label: "Ship",
+        description: "Ship drugs to hospital",
+        processTimes: {
+          precursor_a: 0,
+          precursor_b: 0,
+          drug: 3,
+          failed_drug: 0,
+        },
+        priority: 1,
       },
     },
   ] satisfies Node[],
@@ -301,9 +265,9 @@ export const exampleCPN = {
       interactionWidth: 8,
       data: {
         tokenWeights: {
-          precursor_a: 0,
-          precursor_b: 0,
-          drug: 1,
+          precursor_a: 1,
+          precursor_b: 1,
+          drug: 0,
           failed_drug: 0,
         },
       },
@@ -316,9 +280,9 @@ export const exampleCPN = {
       interactionWidth: 8,
       data: {
         tokenWeights: {
-          precursor_a: 0,
-          precursor_b: 0,
-          drug: 1,
+          precursor_a: 1,
+          precursor_b: 1,
+          drug: 0,
           failed_drug: 0,
         },
       },
@@ -327,21 +291,6 @@ export const exampleCPN = {
       id: "transition_1-place_3",
       source: "transition_1",
       target: "place_3",
-      type: "default",
-      interactionWidth: 8,
-      data: {
-        tokenWeights: {
-          precursor_a: 0,
-          precursor_b: 0,
-          drug: 0,
-          failed_drug: 1,
-        },
-      },
-    },
-    {
-      id: "transition_1-place_5",
-      source: "transition_1",
-      target: "place_5",
       type: "default",
       interactionWidth: 8,
       data: {
@@ -363,8 +312,23 @@ export const exampleCPN = {
         tokenWeights: {
           precursor_a: 0,
           precursor_b: 0,
-          drug: 0,
-          failed_drug: 1,
+          drug: 1,
+          failed_drug: 0,
+        },
+      },
+    },
+    {
+      id: "transition_2-place_5",
+      source: "transition_2",
+      target: "place_5",
+      type: "default",
+      interactionWidth: 8,
+      data: {
+        tokenWeights: {
+          precursor_a: 0,
+          precursor_b: 0,
+          drug: 1,
+          failed_drug: 0,
         },
       },
     },
@@ -384,9 +348,9 @@ export const exampleCPN = {
       },
     },
     {
-      id: "place_5-transition_4",
+      id: "place_5-transition_3",
       source: "place_5",
-      target: "transition_4",
+      target: "transition_3",
       type: "default",
       interactionWidth: 8,
       data: {
@@ -399,65 +363,9 @@ export const exampleCPN = {
       },
     },
     {
-      id: "transition_4-place_6",
-      source: "transition_4",
+      id: "transition_3-place_6",
+      source: "transition_3",
       target: "place_6",
-      type: "default",
-      interactionWidth: 8,
-      data: {
-        tokenWeights: {
-          precursor_a: 0,
-          precursor_b: 0,
-          drug: 1,
-          failed_drug: 0,
-        },
-      },
-    },
-    {
-      id: "transition_4-place_7",
-      source: "transition_4",
-      target: "place_7",
-      type: "default",
-      interactionWidth: 8,
-      data: {
-        tokenWeights: {
-          precursor_a: 0,
-          precursor_b: 0,
-          drug: 1,
-          failed_drug: 0,
-        },
-      },
-    },
-    {
-      id: "edge-3-4",
-      source: "transition-3",
-      target: "place_5",
-      type: "default",
-      interactionWidth: 8,
-      data: {
-        tokenWeights: {
-          drug: 1,
-          failed_drug: 0,
-        },
-      },
-    },
-    {
-      id: "edge-3-5",
-      source: "transition-3",
-      target: "place_3",
-      type: "default",
-      interactionWidth: 8,
-      data: {
-        tokenWeights: {
-          drug: 0,
-          failed_drug: 1,
-        },
-      },
-    },
-    {
-      id: "place_2-transition-3",
-      source: "place_2",
-      target: "transition-3",
       type: "default",
       interactionWidth: 8,
       data: {
