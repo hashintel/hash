@@ -40,6 +40,7 @@ import { EntityEditor } from "./entity/entity-editor";
 import { EntityEditorContainer } from "./entity/entity-editor-container";
 import { EntityHeader } from "./entity/entity-header";
 import { EntityPageLoadingState } from "./entity/entity-page-loading-state";
+import { getEntityMultiTypeDependencies } from "./entity/get-entity-multi-type-dependencies";
 import { QueryEditor } from "./entity/query-editor";
 import { QueryEditorToggle } from "./entity/query-editor-toggle";
 import { createDraftEntitySubgraph } from "./entity/shared/create-draft-entity-subgraph";
@@ -165,7 +166,7 @@ export const Entity = ({
         | "closedMultiEntityType"
         | "closedMultiEntityTypesDefinitions"
         | "entitySubgraph"
-        | "linkedEntitiesClosedMultiEntityTypesMap"
+        | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
       >
     >();
 
@@ -178,10 +179,17 @@ export const Entity = ({
         EntityEditorProps,
         | "closedMultiEntityType"
         | "closedMultiEntityTypesDefinitions"
-        | "linkedEntitiesClosedMultiEntityTypesMap"
+        | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
       >
     | undefined
   >();
+
+  const [
+    draftLinksToCreate,
+    setDraftLinksToCreate,
+    draftLinksToArchive,
+    setDraftLinksToArchive,
+  ] = useDraftLinkState();
 
   const { getClosedMultiEntityTypes } = useGetClosedMultiEntityTypes();
 
@@ -208,14 +216,21 @@ export const Entity = ({
         throw new Error("No entity type ids found");
       }
 
-      void getClosedMultiEntityTypes([entityTypeIds]).then((result) => {
+      const allRequiredMultiTypeIds = getEntityMultiTypeDependencies({
+        draftLinksToCreate,
+        entityId,
+        entityTypeIds,
+        entitySubgraph: proposedEntitySubgraph ?? null,
+      });
+
+      void getClosedMultiEntityTypes(allRequiredMultiTypeIds).then((result) => {
         const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
           result.closedMultiEntityTypes,
           mustHaveAtLeastOne(entityTypeIds),
         );
 
         setDraftEntityTypesDetails({
-          linkedEntitiesClosedMultiEntityTypesMap:
+          linkAndDestinationEntitiesClosedMultiEntityTypesMap:
             result.closedMultiEntityTypes,
           closedMultiEntityType,
           closedMultiEntityTypesDefinitions:
@@ -226,6 +241,8 @@ export const Entity = ({
   }, [
     draftLocalEntity,
     draftEntityTypesDetails,
+    draftLinksToCreate,
+    entityId,
     getClosedMultiEntityTypes,
     proposedEntitySubgraph,
   ]);
@@ -235,13 +252,6 @@ export const Entity = ({
   );
 
   const [isDirty, setIsDirty] = useState(!!draftLocalEntity);
-
-  const [
-    draftLinksToCreate,
-    setDraftLinksToCreate,
-    draftLinksToArchive,
-    setDraftLinksToArchive,
-  ] = useDraftLinkState();
 
   const { data: getEntitySubgraphData, refetch } = useQuery<
     GetEntitySubgraphQuery,
@@ -275,7 +285,8 @@ export const Entity = ({
       );
 
       setDraftEntityTypesDetails({
-        linkedEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypes,
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+          closedMultiEntityTypes,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions: definitions,
       });
@@ -284,7 +295,8 @@ export const Entity = ({
         entitySubgraph: subgraph,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions: definitions,
-        linkedEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypes,
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+          closedMultiEntityTypes,
       });
 
       setDraftEntitySubgraph(subgraph);
@@ -368,8 +380,8 @@ export const Entity = ({
     if (dataFromDb) {
       setDraftEntitySubgraph(dataFromDb.entitySubgraph);
       setDraftEntityTypesDetails({
-        linkedEntitiesClosedMultiEntityTypesMap:
-          dataFromDb.linkedEntitiesClosedMultiEntityTypesMap,
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+          dataFromDb.linkAndDestinationEntitiesClosedMultiEntityTypesMap,
         closedMultiEntityType: dataFromDb.closedMultiEntityType,
         closedMultiEntityTypesDefinitions:
           dataFromDb.closedMultiEntityTypesDefinitions,

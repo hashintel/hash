@@ -19,7 +19,7 @@ export const useRows = () => {
   const {
     closedMultiEntityType,
     closedMultiEntityTypesDefinitions,
-    linkedEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypesMap,
+    linkAndDestinationEntitiesClosedMultiEntityTypesMap,
     entity,
     entitySubgraph,
     draftLinksToArchive,
@@ -142,12 +142,14 @@ export const useRows = () => {
             continue;
           }
 
-          if (!closedMultiEntityTypesMap) {
-            throw new Error("Expected closedMultiEntityTypesMap to be defined");
+          if (!linkAndDestinationEntitiesClosedMultiEntityTypesMap) {
+            throw new Error(
+              "Expected linkAndDestinationEntitiesClosedMultiEntityTypesMap to be defined",
+            );
           }
 
           const targetEntityClosedType = getClosedMultiEntityTypeFromMap(
-            closedMultiEntityTypesMap,
+            linkAndDestinationEntitiesClosedMultiEntityTypesMap,
             latestTargetEntityRevision.metadata.entityTypeIds,
           );
 
@@ -157,7 +159,7 @@ export const useRows = () => {
           );
 
           const linkEntityClosedType = getClosedMultiEntityTypeFromMap(
-            closedMultiEntityTypesMap,
+            linkAndDestinationEntitiesClosedMultiEntityTypesMap,
             latestLinkEntityRevision.metadata.entityTypeIds,
           );
 
@@ -208,13 +210,13 @@ export const useRows = () => {
     );
   }, [
     closedMultiEntityType,
-    closedMultiEntityTypesMap,
     closedMultiEntityTypesDefinitions,
     entitySubgraph,
     entity,
     draftLinksToArchive,
     draftLinksToCreate,
     isSpecialEntityTypeLookup,
+    linkAndDestinationEntitiesClosedMultiEntityTypesMap,
     markLinkEntityToArchive,
     onEntityClick,
     uploads,

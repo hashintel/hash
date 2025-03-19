@@ -552,21 +552,20 @@ export const Outputs = ({
             outgoing: 1,
             incoming: 1,
           },
-          temporalAxes: {
-            initial: currentTimeInstantTemporalAxes,
-            resolved: {
-              pinned: {
-                axis: "transactionTime",
-                timestamp: now,
-              },
-              variable: {
-                axis: "decisionTime",
-                interval: {
-                  start: {
-                    kind: "inclusive",
-                    limit: generateTimestamp(new Date(0)),
-                  },
-                  end: { kind: "inclusive", limit: now },
+        },
+        {
+          initial: currentTimeInstantTemporalAxes,
+          resolved: {
+            pinned: {
+              axis: "transactionTime",
+              timestamp: now,
+            },
+            variable: {
+              axis: "decisionTime",
+              interval: {
+                start: {
+                  kind: "inclusive",
+                  limit: generateTimestamp(new Date(0)),
                 },
                 end: { kind: "inclusive", limit: now },
               },

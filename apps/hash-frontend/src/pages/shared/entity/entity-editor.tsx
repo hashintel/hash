@@ -32,32 +32,79 @@ import type { DraftLinkState } from "./shared/use-draft-link-state";
 export type { CustomEntityLinksColumn };
 
 export interface EntityEditorProps extends DraftLinkState {
+  /**
+   * The ClosedMultiEntityType of the entity being edited
+   */
   closedMultiEntityType: ClosedMultiEntityType;
+  /**
+   * The additional types relied on by the ClosedMultiEntityType of the entity being edited:
+   * property types, link types, and entity types for both links and their destinations.
+   */
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
-  linkedEntitiesClosedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
+  /**
+   * Custom columns to display in the readonly incoming and outgoing links table (e.g. aggregations or other computed values)
+   */
   customEntityLinksColumns?: CustomEntityLinksColumn[];
+  /**
+   * The default filters to apply to the outgoing links table (example use case: in the graph visualizer, filter down to relevant edges)
+   */
   defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
+  /**
+   * Whether the entity is dirty (has unsaved changes)
+   */
   isDirty: boolean;
+  /**
+   * The label of the entity being edited
+   */
   entityLabel: string;
+  /**
+   * The subgraph of the entity being edited – used to retrieve linked entities from (NOT types, which are taken from XType fields)
+   */
   entitySubgraph: Subgraph<EntityRootType>;
+  /**
+   * A function to call when the types of the entity are changed
+   */
   handleTypesChange: (args: {
     entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
     removedPropertiesBaseUrls: BaseUrl[];
     removedLinkTypesBaseUrls: BaseUrl[];
   }) => Promise<void>;
+  /**
+   * A map containing types for entities that are linked to or from the entity being edited, and for the links themselves.
+   * Used to generate labels for those entities in the editor. The type for the entity itself is taken from closedMultiEntityType.
+   */
+  linkAndDestinationEntitiesClosedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
+  /**
+   * A function to call when an entity is clicked (e.g. a linked entity)
+   */
   onEntityClick: (entityId: EntityId) => void;
+  /**
+   * A function to call when a type is clicked (e.g. an entity's type, or a data type for a property)
+   */
   onTypeClick: (
     type: "dataType" | "entityType",
     versionedUrl: VersionedUrl,
   ) => void;
+  /**
+   * A function to call when the entity is updated
+   */
   setEntity: (entity: Entity) => void;
+  /**
+   * Whether the editor is readonly
+   */
   readonly: boolean;
+  /**
+   * A function to call when the entity is updated
+   */
   onEntityUpdated: ((entity: Entity) => void) | null;
   /**
    * If the editor is loaded inside a slide which is contained in a container other than the body,
    * the ref to the container. Used to correctly position popups within the editor.
    */
   slideContainerRef?: RefObject<HTMLDivElement | null>;
+  /**
+   * The validation report for the entity being edited (used to highlight validation errors in the editor)
+   */
   validationReport: MinimalEntityValidationReport | null;
 }
 

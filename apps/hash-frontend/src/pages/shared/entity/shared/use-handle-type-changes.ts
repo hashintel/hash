@@ -35,7 +35,7 @@ export const useHandleTypeChanges = ({
       EntityEditorProps,
       | "closedMultiEntityType"
       | "closedMultiEntityTypesDefinitions"
-      | "closedMultiEntityTypesMap"
+      | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
     >,
   ) => void;
   setDraftLinksToArchive: Dispatch<SetStateAction<EntityId[]>>;
@@ -89,7 +89,7 @@ export const useHandleTypeChanges = ({
       );
 
       setDraftEntityTypesDetails({
-        linkedEntitiesClosedMultiEntityTypesMap:
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
           newTypeDetails.closedMultiEntityTypes,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions:

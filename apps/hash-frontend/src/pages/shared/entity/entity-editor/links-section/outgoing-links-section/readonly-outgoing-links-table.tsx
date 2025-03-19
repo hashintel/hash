@@ -251,7 +251,8 @@ export const OutgoingLinksTable = memo(
 
     const {
       closedMultiEntityTypesDefinitions,
-      linkedEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypesMap,
+      linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+        closedMultiEntityTypesMap,
       entitySubgraph,
       customEntityLinksColumns: customColumns,
       defaultOutgoingLinkFilters,
