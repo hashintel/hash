@@ -86,6 +86,7 @@ export const QueryEditor = (props: QueryEditorProps) => {
       <EntityHeader
         entityLabel={entityLabel}
         isInSlide={isInSlide}
+        isLocalDraft={false}
         onDraftArchived={() => {
           throw new Error(
             "Unexpected call to onDraftArchived from query editor",

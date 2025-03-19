@@ -206,7 +206,7 @@ export const Entity = ({
         throw new Error("No entity type ids found");
       }
 
-      void getClosedMultiEntityTypes(entityTypeIds).then((result) => {
+      void getClosedMultiEntityTypes([entityTypeIds]).then((result) => {
         const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
           result.closedMultiEntityTypes,
           mustHaveAtLeastOne(entityTypeIds),
@@ -633,6 +633,7 @@ export const Entity = ({
             entitySubgraph={draftEntitySubgraph}
             hideOpenInNew={!!proposedEntitySubgraph || !!draftLocalEntity}
             isInSlide={isInSlide}
+            isLocalDraft={!!draftLocalEntity}
             isModifyingEntity={haveChangesBeenMade}
             onDraftArchived={onRemoteDraftArchived}
             onDraftPublished={onRemoteDraftPublished}

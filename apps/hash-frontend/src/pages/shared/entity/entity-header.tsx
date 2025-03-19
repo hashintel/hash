@@ -31,6 +31,7 @@ export const EntityHeader = ({
   entitySubgraph,
   hideOpenInNew,
   isInSlide,
+  isLocalDraft,
   isModifyingEntity,
   lightTitle,
   onDraftArchived,
@@ -45,6 +46,7 @@ export const EntityHeader = ({
   entitySubgraph?: Subgraph<EntityRootType>;
   hideOpenInNew?: boolean;
   isInSlide: boolean;
+  isLocalDraft: boolean;
   isModifyingEntity?: boolean;
   lightTitle?: boolean;
   onDraftArchived: () => void;
@@ -53,9 +55,10 @@ export const EntityHeader = ({
   showTabs?: boolean;
 }) => {
   const { shortname } = useUserOrOrgShortnameByOwnedById({
-    ownedById: entity
-      ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
-      : null,
+    ownedById:
+      entity && !isLocalDraft
+        ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+        : null,
   });
 
   const icon = closedMultiEntityType
