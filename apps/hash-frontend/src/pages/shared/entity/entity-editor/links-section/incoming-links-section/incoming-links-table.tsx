@@ -585,11 +585,13 @@ export const IncomingLinksTable = memo(
             switch (field) {
               case "linkTypes": {
                 const aValue =
-                  a.data.linkEntityTypes[0]!.inverse?.title ??
+                  /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */
+                  a.data.linkEntityTypes[0]!.inverse?.title ||
                   a.data.linkEntityTypes[0]!.title;
 
                 const bValue =
-                  b.data.linkEntityTypes[0]!.inverse?.title ??
+                  /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */
+                  b.data.linkEntityTypes[0]!.inverse?.title ||
                   b.data.linkEntityTypes[0]!.title;
 
                 return aValue.localeCompare(bValue) * direction;
