@@ -1,11 +1,11 @@
+import type { ActorId, BaseUrl, OwnedById } from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
-import { type Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Fade, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
 import type {
@@ -66,7 +66,7 @@ const lastEditedTimeRangesToIcon: Record<LastEditedTimeRanges, ReactNode> = {
 
 export type DraftEntityFilterState = {
   entityTypeBaseUrls: BaseUrl[];
-  sourceAccountIds: AccountId[];
+  sourceAccountIds: ActorId[];
   webOwnedByIds: OwnedById[];
   lastEditedTimeRange: LastEditedTimeRanges;
 };
@@ -429,7 +429,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 ({ creator }) => creator.accountId === source.accountId,
               ).length,
             })) ?? [],
-        onChange: (updatedAccountIds: AccountId[]) =>
+        onChange: (updatedAccountIds: ActorId[]) =>
           setFilterState((prev) =>
             prev
               ? {

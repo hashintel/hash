@@ -1,17 +1,15 @@
 import { useQuery } from "@apollo/client";
-import {
-  type Conversions,
-  type DataType,
-  type VersionedUrl,
-} from "@blockprotocol/type-system";
-import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type {
   BaseUrl,
+  Conversions,
+  DataType,
   DataTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Typography } from "@mui/material";
 import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";

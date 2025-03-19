@@ -2,7 +2,7 @@ use error_stack::{Report, ResultExt as _};
 
 use super::property::{
     PatchError, Property, PropertyObject, PropertyPatchOperation, PropertyWithMetadata,
-    metadata::{PropertyMetadata, PropertyMetadataObject},
+    metadata::{PropertyMetadata, PropertyObjectMetadata},
 };
 
 pub mod id;
@@ -38,10 +38,12 @@ pub use self::{
 /// [`VersionedUrl`]: crate::ontology::VersionedUrl
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
     /// The entity's properties, structured as a hierarchical object with keys that correspond to
     /// property type URLs.
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Record<BaseUrl, Property>"))]
     pub properties: PropertyObject,
 
     /// Optional link data describing relationships to other entities.
@@ -79,10 +81,10 @@ impl Entity {
     ) -> Result<(), Report<PatchError>> {
         let mut properties_with_metadata = PropertyWithMetadata::from_parts(
             Property::Object(self.properties.clone()),
-            Some(PropertyMetadata::Object {
+            Some(PropertyMetadata::Object(PropertyObjectMetadata {
                 value: self.metadata.properties.value.clone(),
                 metadata: self.metadata.properties.metadata.clone(),
-            }),
+            })),
         )
         .change_context(PatchError)?;
 
@@ -108,16 +110,16 @@ impl Entity {
 
         let (
             Property::Object(properties),
-            PropertyMetadata::Object {
+            PropertyMetadata::Object(PropertyObjectMetadata {
                 value: metadata_object,
                 metadata,
-            },
+            }),
         ) = properties_with_metadata.into_parts()
         else {
             unreachable!("patching should not change the property type");
         };
         self.properties = properties;
-        self.metadata.properties = PropertyMetadataObject {
+        self.metadata.properties = PropertyObjectMetadata {
             value: metadata_object,
             metadata,
         };

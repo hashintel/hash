@@ -1,3 +1,10 @@
+import type {
+  ActorId,
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
@@ -18,13 +25,6 @@ import type {
   SerializedEntity,
 } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
@@ -40,7 +40,6 @@ import type {
   SerializedEntityRootType,
   SerializedSubgraph,
 } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getDataTypes,
   getEntities,
@@ -58,7 +57,7 @@ export const createGraphActivities = ({
 }: {
   graphApiClient: GraphApi;
 }) => ({
-  async getUserAccountIds(): Promise<AccountId[]> {
+  async getUserAccountIds(): Promise<ActorId[]> {
     return graphApiClient
       .getEntities(publicUserAccountId, {
         filter: {
@@ -80,14 +79,14 @@ export const createGraphActivities = ({
           const entity_uuid = extractEntityUuidFromEntityId(
             mappedEntity.metadata.recordId.entityId,
           );
-          return entity_uuid as Uuid as AccountId;
+          return entity_uuid as string as ActorId;
         }),
       );
   },
 
   async getDataTypesSubgraph(params: {
     authentication: {
-      actorId: AccountId;
+      actorId: ActorId;
     };
     request: GetDataTypeSubgraphParams;
   }): Promise<SerializedSubgraph<DataTypeRootType>> {
@@ -106,7 +105,7 @@ export const createGraphActivities = ({
 
   async getPropertyTypesSubgraph(params: {
     authentication: {
-      actorId: AccountId;
+      actorId: ActorId;
     };
     request: GetPropertyTypeSubgraphParams;
   }): Promise<SerializedSubgraph<PropertyTypeRootType>> {
@@ -125,7 +124,7 @@ export const createGraphActivities = ({
 
   async getEntityTypesSubgraph(params: {
     authentication: {
-      actorId: AccountId;
+      actorId: ActorId;
     };
     request: GetEntityTypeSubgraphParams;
   }): Promise<SerializedSubgraph<EntityTypeRootType>> {
@@ -144,7 +143,7 @@ export const createGraphActivities = ({
 
   async getEntitySubgraph(params: {
     authentication: {
-      actorId: AccountId;
+      actorId: ActorId;
     };
     request: GetEntitySubgraphRequest;
   }): Promise<EntityQueryResponse> {
@@ -164,7 +163,7 @@ export const createGraphActivities = ({
   async updateDataTypeEmbeddings(
     params: {
       authentication: {
-        actorId: AccountId;
+        actorId: ActorId;
       };
     } & UpdateDataTypeEmbeddingParams,
   ): Promise<void> {
@@ -181,7 +180,7 @@ export const createGraphActivities = ({
   async updatePropertyTypeEmbeddings(
     params: {
       authentication: {
-        actorId: AccountId;
+        actorId: ActorId;
       };
     } & UpdatePropertyTypeEmbeddingParams,
   ): Promise<void> {
@@ -198,7 +197,7 @@ export const createGraphActivities = ({
   async updateEntityTypeEmbeddings(
     params: {
       authentication: {
-        actorId: AccountId;
+        actorId: ActorId;
       };
     } & UpdateEntityTypeEmbeddingParams,
   ): Promise<void> {
@@ -215,7 +214,7 @@ export const createGraphActivities = ({
   async updateEntityEmbeddings(
     params: {
       authentication: {
-        actorId: AccountId;
+        actorId: ActorId;
       };
     } & UpdateEntityEmbeddingsParams,
   ): Promise<void> {
@@ -268,7 +267,7 @@ export const createGraphActivities = ({
   },
 
   async getHashInstanceAdminAccountGroupId(authentication: {
-    actorId: AccountId;
+    actorId: ActorId;
   }) {
     return getHashInstanceAdminAccountGroupId(
       { graphApi: graphApiClient },

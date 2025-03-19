@@ -1,6 +1,6 @@
+import { isValueMetadata } from "@blockprotocol/type-system";
 import type { Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { isValueMetadata } from "@local/hash-graph-types/entity";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { useCallback } from "react";
 

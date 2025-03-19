@@ -1,7 +1,6 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { LoadingSpinner } from "@hashintel/design-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Subgraph } from "@local/hash-subgraph";
 import { useTheme } from "@mui/material";
 import { useMemo } from "react";

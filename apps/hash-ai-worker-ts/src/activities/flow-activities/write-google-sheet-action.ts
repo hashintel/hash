@@ -1,3 +1,7 @@
+import type {
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@blockprotocol/type-system";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
@@ -5,10 +9,6 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type {
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {

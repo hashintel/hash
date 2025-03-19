@@ -1,4 +1,4 @@
-import type { JsonValue } from "@blockprotocol/type-system";
+import type { PropertyValue } from "@blockprotocol/type-system";
 import type {
   FileDataPart,
   FunctionCallPart,
@@ -55,7 +55,7 @@ export const mapLlmContentToGooglePartAndUploadFiles = async (
     }
     case "tool_result": {
       try {
-        const parsedContent = JSON.parse(content.content) as JsonValue;
+        const parsedContent = JSON.parse(content.content) as PropertyValue;
 
         if (typeof parsedContent !== "object" || parsedContent === null) {
           throw new Error("Parsed content is not an object");

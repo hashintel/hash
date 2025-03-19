@@ -3,7 +3,9 @@ import type {
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
   SourceProvenance,
-} from "@local/hash-graph-client";
+  Url,
+} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
@@ -15,7 +17,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import type { Output } from "pdf2json";
@@ -101,10 +102,9 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     };
   }
 
-  const fileUrl =
-    documentEntity.properties[
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-    ];
+  const fileUrl = documentEntity.properties[
+    "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+  ] as Url;
 
   if (!fileUrl) {
     return {

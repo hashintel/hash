@@ -1,4 +1,4 @@
-import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 
 import type { NextPageWithLayout } from "../../../../shared/layout";

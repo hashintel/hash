@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { OwnedById } from "@blockprotocol/type-system";
 
 import { defaultProductionRules } from "../pages/popup/popup-contents/action-center/default-production-rules";
 import type { PersistedUserSettings } from "./storage";

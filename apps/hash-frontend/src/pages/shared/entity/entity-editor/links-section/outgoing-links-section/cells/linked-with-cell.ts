@@ -1,7 +1,7 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import type { EntityId } from "@local/hash-graph-types/entity";
 
 import {
   getCellHorizontalPadding,

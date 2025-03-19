@@ -1,4 +1,9 @@
-import type { DataTypeWithMetadata } from "@blockprotocol/graph";
+import type {
+  DataTypeWithMetadata,
+  EditionCreatedById,
+  OwnedById,
+} from "@blockprotocol/type-system";
+import { currentTimestamp } from "@blockprotocol/type-system";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
@@ -72,6 +77,25 @@ const Page: NextPageWithLayout = () => {
             baseUrl,
             version,
           },
+          temporalVersioning: {
+            transactionTime: {
+              start: {
+                kind: "inclusive",
+                limit: currentTimestamp(),
+              },
+              end: { kind: "unbounded" },
+            },
+          },
+          provenance: {
+            edition: {
+              createdById: "irrelevant-here" as EditionCreatedById,
+              actorType: "human",
+              origin: {
+                type: "web-app",
+              },
+            },
+          },
+          ownedById: "irrelevant-here" as OwnedById,
         },
         schema: dataTypeSchema,
       } satisfies DataTypeWithMetadata;
@@ -81,7 +105,7 @@ const Page: NextPageWithLayout = () => {
   }, [router.query.draft]);
 
   const requestedVersion = requestedVersionString
-    ? parseInt(requestedVersionString, 10)
+    ? Number.parseInt(requestedVersionString, 10)
     : null;
 
   if (!routeNamespace) {

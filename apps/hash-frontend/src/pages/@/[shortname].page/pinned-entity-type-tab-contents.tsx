@@ -1,14 +1,17 @@
+import type {
+  EntityTypeWithMetadata,
+  OwnedById,
+} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
-  extractEntityUuidFromEntityId,
+  type EntityRootType,
   linkEntityTypeUrl,
+  type Subgraph,
 } from "@local/hash-subgraph";
 import {
   Box,

@@ -28,15 +28,18 @@ graph TD
     16[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
     17[<a href="../hash_codec/index.html">hash-codec</a>]
     18[<a href="../hash_graph/index.html">hash-graph</a>]
+    4 --> 13
+    5 --> 8
     13 --> 9
-    8 --> 1
-    10 --> 4
+    8 --> 4
     8 --> 10
     9 --> 17
     11 --> 0
-    6 --> 5
+    8 --> 1
     12 --> 15
-    12 -.-> 4
+    6 --> 5
+    12 -.-> 13
+    10 --> 13
     14 --> 8
     16 --> 7
     16 --> 15
@@ -46,8 +49,6 @@ graph TD
     0 --> 12
     0 --> 6
     0 --> 14
-    1 --> 4
+    1 --> 13
     2 -.-> 0
-    4 --> 13
-    5 --> 8
     3 -.-> 6

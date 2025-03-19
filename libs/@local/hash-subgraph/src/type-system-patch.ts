@@ -1,16 +1,14 @@
 import type {
+  BaseUrl,
+  OntologyTypeVersion,
   ParseVersionedUrlError,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 import {
-  extractBaseUrl as extractBaseUrlBp,
+  extractBaseUrl,
   extractVersion,
   validateVersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-
-export const extractBaseUrl = (versionedUrl: VersionedUrl): BaseUrl =>
-  extractBaseUrlBp(versionedUrl) as BaseUrl;
+} from "@blockprotocol/type-system";
 
 export class InvalidVersionedUrlComponentsError extends Error {
   components: { baseUrl: BaseUrl; version: number };
@@ -43,7 +41,7 @@ export const componentsFromVersionedUrl = (
   versionedUrl: VersionedUrl,
 ): {
   baseUrl: BaseUrl;
-  version: number;
+  version: OntologyTypeVersion;
 } => {
   const baseUrl = extractBaseUrl(versionedUrl);
   const version = extractVersion(versionedUrl);

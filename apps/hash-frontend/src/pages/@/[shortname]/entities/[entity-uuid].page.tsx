@@ -1,14 +1,14 @@
+import type { DraftId, EntityUuid } from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractBaseUrl,
+  extractDraftIdFromEntityId,
+} from "@blockprotocol/type-system";
 import type { Entity as EntityClass } from "@local/hash-graph-sdk/entity";
-import type { DraftId, EntityUuid } from "@local/hash-graph-types/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  entityIdFromComponents,
-  extractDraftIdFromEntityId,
-} from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { GlobalStyles } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";

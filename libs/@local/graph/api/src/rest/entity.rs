@@ -71,12 +71,12 @@ use type_system::{
             },
         },
         property::{
-            PropertyDiff, PropertyObject, PropertyPatchOperation, PropertyPath,
-            PropertyPathElement, PropertyWithMetadata, PropertyWithMetadataArray,
-            PropertyWithMetadataObject, PropertyWithMetadataValue,
+            PropertyArrayWithMetadata, PropertyDiff, PropertyObject, PropertyObjectWithMetadata,
+            PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyValueWithMetadata,
+            PropertyWithMetadata,
             metadata::{
-                ArrayMetadata, ObjectMetadata, PropertyMetadata, PropertyMetadataObject,
-                PropertyProvenance,
+                ArrayMetadata, ObjectMetadata, PropertyArrayMetadata, PropertyMetadata,
+                PropertyObjectMetadata, PropertyProvenance, PropertyValueMetadata,
             },
         },
         value::{ValueMetadata, metadata::ValueProvenance},
@@ -122,9 +122,9 @@ use crate::rest::{
         schemas(
             CreateEntityRequest,
             PropertyWithMetadata,
-            PropertyWithMetadataValue,
-            PropertyWithMetadataArray,
-            PropertyWithMetadataObject,
+            PropertyValueWithMetadata,
+            PropertyArrayWithMetadata,
+            PropertyObjectWithMetadata,
             ValidateEntityParams,
             CountEntitiesParams,
             EntityValidationType,
@@ -169,7 +169,9 @@ use crate::rest::{
             ObjectMetadata,
             ValueMetadata,
             ValueProvenance,
-            PropertyMetadataObject,
+            PropertyObjectMetadata,
+            PropertyArrayMetadata,
+            PropertyValueMetadata,
             PropertyMetadata,
             EntityUuid,
             EntityId,
@@ -291,7 +293,7 @@ impl RoutedResource for EntityResource {
     request_body = CreateEntityRequest,
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The created entity", body = Entity),
@@ -343,7 +345,7 @@ where
     request_body = [CreateEntityRequest],
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The created entities", body = [Entity]),
@@ -392,7 +394,7 @@ where
     request_body = ValidateEntityParams,
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The validation report", body = HashMap<usize, EntityValidationReport>),
@@ -452,7 +454,7 @@ where
     path = "/entities/{entity_id}/permissions/{permission}",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The entity ID to check if the actor has the permission"),
         ("permission" = EntityPermission, Path, description = "The permission to check for"),
     ),
@@ -658,7 +660,7 @@ impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<
     request_body = GetEntitiesRequest,
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
@@ -836,7 +838,7 @@ struct GetEntitySubgraphResponse<'r> {
     request_body = GetEntitySubgraphRequest,
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
@@ -923,7 +925,7 @@ where
     request_body = CountEntitiesParams,
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
 
     ),
     responses(
@@ -987,7 +989,7 @@ where
     path = "/entities",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The updated entity", body = Entity),
@@ -1045,7 +1047,7 @@ where
     path = "/entities/embeddings",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, content_type = "application/json", description = "The embeddings were created"),
@@ -1097,7 +1099,7 @@ where
     path = "/entities/diff",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The difference between the two entities", body = DiffEntityResult),
@@ -1161,7 +1163,7 @@ where
     path = "/entities/{entity_id}/relationships",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to read the relations for"),
     ),
     responses(
@@ -1218,7 +1220,7 @@ struct ModifyEntityAuthorizationRelationship {
     tag = "Entity",
     request_body = [ModifyEntityAuthorizationRelationship],
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, description = "The relationship was modified for the entity"),
@@ -1296,7 +1298,7 @@ where
     path = "/entities/{entity_id}/administrators/{administrator}",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to add the administrator to"),
         ("administrator" = OwnedById, Path, description = "The administrator to add to the entity"),
     ),
@@ -1392,7 +1394,7 @@ where
     path = "/entities/{entity_id}/administrators/{administrator}",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to remove the administrator from"),
         ("administrator" = OwnedById, Path, description = "The administrator to remove from the entity"),
     ),
@@ -1488,7 +1490,7 @@ where
     path = "/entities/{entity_id}/editors/{editor}",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to add the editor to"),
         ("editor" = OwnedById, Path, description = "The editor to add to the entity"),
     ),
@@ -1578,7 +1580,7 @@ where
     path = "/entities/{entity_id}/editors/{editor}",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to remove the editor from"),
         ("editor" = OwnedById, Path, description = "The editor to remove from the entity"),
     ),

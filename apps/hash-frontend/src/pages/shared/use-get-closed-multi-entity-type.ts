@@ -1,5 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import type {

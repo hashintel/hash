@@ -10,20 +10,17 @@
 //! - Structural metadata for arrays and objects
 
 pub use self::{
-    array::ArrayMetadata,
-    object::{ObjectMetadata, PropertyMetadataObject},
+    array::{ArrayMetadata, PropertyArrayMetadata},
+    object::{ObjectMetadata, PropertyObjectMetadata},
     provenance::PropertyProvenance,
+    value::PropertyValueMetadata,
 };
 
 mod array;
 mod object;
 mod provenance;
-
-use std::collections::HashMap;
-
+mod value;
 use serde::{Deserialize, Serialize};
-
-use crate::{knowledge::value::ValueMetadata, ontology::BaseUrl};
 
 /// Metadata for property values, structured to match the hierarchical nature of properties.
 ///
@@ -37,44 +34,15 @@ use crate::{knowledge::value::ValueMetadata, ontology::BaseUrl};
 /// [`Property`]: crate::knowledge::property::Property
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged)]
 pub enum PropertyMetadata {
     /// Metadata for an array property, containing element-level and array-level metadata.
-    #[cfg_attr(feature = "utoipa", schema(title = "PropertyMetadataArray"))]
-    Array {
-        /// Metadata for each element in the array.
-        ///
-        /// The position of each metadata entry corresponds to the position of the
-        /// element in the property array.
-        #[serde(default)]
-        #[cfg_attr(feature = "utoipa", schema(required))]
-        value: Vec<Self>,
-
-        /// Metadata that applies to the array as a whole.
-        #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
-        metadata: ArrayMetadata,
-    },
+    Array(PropertyArrayMetadata),
 
     /// Metadata for an object property, containing field-level and object-level metadata.
-    #[cfg_attr(feature = "utoipa", schema(title = "PropertyMetadataObject"))]
-    Object {
-        /// Metadata for each field in the object.
-        ///
-        /// The keys correspond to the property type URLs used in the object property.
-        #[serde(default)]
-        #[cfg_attr(feature = "utoipa", schema(required))]
-        value: HashMap<BaseUrl, Self>,
-
-        /// Metadata that applies to the object as a whole.
-        #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
-        metadata: ObjectMetadata,
-    },
+    Object(PropertyObjectMetadata),
 
     /// Metadata for a primitive value property.
-    #[cfg_attr(feature = "utoipa", schema(title = "PropertyMetadataValue"))]
-    Value {
-        /// Comprehensive metadata for a primitive value, including provenance,
-        /// confidence, and data type information.
-        metadata: ValueMetadata,
-    },
+    Value(PropertyValueMetadata),
 }

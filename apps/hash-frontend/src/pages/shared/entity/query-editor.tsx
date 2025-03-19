@@ -1,4 +1,5 @@
-import type { Entity as EntityBp, MultiFilter } from "@blockprotocol/graph";
+import type { MultiFilter } from "@blockprotocol/graph";
+import type { Entity as EntityBp } from "@blockprotocol/type-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";

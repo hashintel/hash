@@ -1,6 +1,6 @@
+import type { OwnedById } from "@blockprotocol/type-system";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -8,8 +8,8 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { AccountEntityId } from "@local/hash-subgraph";
-import { extractAccountId } from "@local/hash-subgraph";
+import type { ActorEntityId } from "@local/hash-subgraph";
+import { extractActorId } from "@local/hash-subgraph/stdlib";
 import { ForbiddenError } from "apollo-server-express";
 
 import { getEntities } from "../../../../graph/knowledge/primitive/entity";
@@ -60,8 +60,8 @@ export const getUsageRecordsResolver: ResolverFn<
   for (const user of users) {
     const { shortname } = simplifyProperties(user.properties as UserProperties);
 
-    const userAccountId = extractAccountId(
-      user.metadata.recordId.entityId as AccountEntityId,
+    const userAccountId = extractActorId(
+      user.metadata.recordId.entityId as ActorEntityId,
     );
 
     const usageRecords = await getWebServiceUsage(

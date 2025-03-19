@@ -1,14 +1,24 @@
 import { useQuery } from "@apollo/client";
 import { buildSubgraph } from "@blockprotocol/graph/stdlib";
+import type {
+  EntityEditionId,
+  EntityId,
+  EntityUuid,
+  LeftClosedTemporalInterval,
+  Timestamp,
+} from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  extractEntityUuidFromEntityId,
+  generateTimestamp,
+} from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import type {
   Entity as GraphApiEntity,
   Filter,
-  LeftClosedTemporalInterval,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
@@ -20,7 +30,6 @@ import {
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getDataTypes,
   getEntityTypes,
@@ -228,10 +237,10 @@ const SectionTabButton = ({
 const mockEntityFromProposedEntity = (
   proposedEntity: ProposedEntityOutput,
 ): Entity => {
-  const editionId = new Date().toISOString();
+  const editionId = new Date().toISOString() as EntityEditionId;
 
   const temporalInterval: LeftClosedTemporalInterval = {
-    start: { kind: "inclusive", limit: editionId },
+    start: { kind: "inclusive", limit: editionId as string as Timestamp },
     end: { kind: "unbounded" },
   };
 
@@ -453,7 +462,7 @@ export const Outputs = ({
         const propertyTypes = getPropertyTypes(proposedEntitiesTypesSubgraph);
         const dataTypes = getDataTypes(proposedEntitiesTypesSubgraph);
 
-        const now = new Date().toISOString();
+        const now = currentTimestamp();
 
         const mockSubgraph = buildSubgraph(
           {
@@ -495,7 +504,7 @@ export const Outputs = ({
                 interval: {
                   start: {
                     kind: "inclusive",
-                    limit: new Date(0).toISOString(),
+                    limit: generateTimestamp(new Date(0)),
                   },
                   end: { kind: "inclusive", limit: now },
                 },
@@ -548,7 +557,7 @@ export const Outputs = ({
         targetEntityId,
       } = entity;
 
-      const editionId = new Date().toISOString();
+      const editionId = new Date().toISOString() as EntityEditionId;
 
       entities.push({
         linkData:

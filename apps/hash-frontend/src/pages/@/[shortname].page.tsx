@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { BaseUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -13,7 +14,6 @@ import {
   getEntityTypeAndDescendantsById,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 

@@ -1,10 +1,10 @@
-import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+} from "@blockprotocol/type-system";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   Skeleton,
   styled,

@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ArrayMetadata, ObjectMetadata } from "@local/hash-graph-client";
+import type { ArrayMetadata, ObjectMetadata } from "@blockprotocol/type-system";
 
 import type {
   DescriptionPropertyValue,

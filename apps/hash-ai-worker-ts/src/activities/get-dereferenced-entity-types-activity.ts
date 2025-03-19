@@ -1,7 +1,6 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { ActorId, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -20,7 +19,7 @@ import { dereferenceEntityType } from "./shared/dereference-entity-type.js";
 export const getDereferencedEntityTypesActivity = async (params: {
   entityTypeIds: VersionedUrl[];
   graphApiClient: GraphApi;
-  actorId: AccountId;
+  actorId: ActorId;
 }): Promise<DereferencedEntityTypesByTypeId> => {
   const { graphApiClient, entityTypeIds, actorId } = params;
 

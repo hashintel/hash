@@ -1,9 +1,9 @@
 use hash_graph_store::entity::{PropertyMetadataValidationReport, ValidateEntityComponents};
-use type_system::knowledge::property::{PropertyObject, metadata::PropertyMetadataObject};
+use type_system::knowledge::property::{PropertyObject, metadata::PropertyObjectMetadata};
 
 use crate::Validate;
 
-impl<P> Validate<PropertyObject, P> for PropertyMetadataObject
+impl<P> Validate<PropertyObject, P> for PropertyObjectMetadata
 where
     P: Sync,
 {

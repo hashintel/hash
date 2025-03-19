@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
+import type { BaseUrl } from "@blockprotocol/type-system";
 import { Autocomplete, Chip } from "@hashintel/design-system";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import type {

@@ -1,30 +1,22 @@
 import type {
-  DataTypeWithMetadata as DataTypeWithMetadataBp,
-  EntityTypeWithMetadata as EntityTypeWithMetadataBp,
-  OntologyElementMetadata as OntologyElementMetadataBp,
-  PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
-} from "@blockprotocol/graph";
-import type {
+  BaseUrl,
+  ClosedDataType,
+  ClosedEntityType,
   ConversionDefinition,
   Conversions,
-  PropertyTypeReference,
-  ValueOrArray,
-} from "@blockprotocol/type-system";
-import { validateBaseUrl } from "@blockprotocol/type-system";
-import type {
-  BaseUrl as BaseUrlBp,
-  ClosedDataType,
-  ClosedEntityType as ClosedEntityTypeBp,
-  ClosedEntityTypeMetadata as ClosedEntityTypeMetadataBp,
-  ClosedMultiEntityType as ClosedMultiEntityTypeBp,
   DataType,
-  EntityType,
-  EntityTypeDisplayMetadata as EntityTypeDisplayMetadataBp,
-  PartialEntityType as PartialEntityTypeBp,
+  DataTypeMetadata,
+  EntityTypeMetadata,
+  OntologyProvenance,
+  OntologyTemporalMetadata,
+  OntologyTypeRecordId,
+  OwnedById,
+  PartialEntityType,
   PropertyType,
+  PropertyTypeMetadata,
+  Timestamp,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import type { Brand } from "@local/advanced-types/brand";
+} from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
@@ -32,72 +24,26 @@ import type {
   DataTypeConversionTargets as GraphApiDataTypeConversionTargets,
   EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
   GetClosedMultiEntityTypesResponseDefinitions,
-  OntologyEditionProvenance as OntologyEditionProvenanceGraphApi,
 } from "@local/hash-graph-client";
-
-import type { EditionArchivedById, EditionCreatedById } from "./account.js";
-import type {
-  ExclusiveLimitedTemporalBound,
-  InclusiveLimitedTemporalBound,
-  TimeInterval,
-  Timestamp,
-  Unbounded,
-} from "./temporal-versioning.js";
-import type { OwnedById } from "./web.js";
-
-export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
-
-export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
-  return validateBaseUrl(baseUrl).type === "Ok";
-};
-
-export type OntologyProvenance = {
-  edition: OntologyEditionProvenance;
-};
-
-export type OntologyEditionProvenance = Omit<
-  OntologyEditionProvenanceGraphApi,
-  "createdById" | "archivedById"
-> & {
-  createdById: EditionCreatedById;
-  archivedById?: EditionArchivedById;
-};
-
-export type OntologyTypeRecordId = {
-  baseUrl: BaseUrl;
-  version: number;
-};
-
-/** @todo-0.3 - Consider redefining `EntityType` and `PropertyType` to use the branded `BaseUrl`s inside them */
 
 export type OwnedOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
-  ownedById: OwnedById;
   provenance: OntologyProvenance;
-  temporalVersioning: {
-    transactionTime: TimeInterval<
-      InclusiveLimitedTemporalBound,
-      ExclusiveLimitedTemporalBound | Unbounded
-    >;
-  };
+  temporalVersioning: OntologyTemporalMetadata;
+  ownedById: OwnedById;
 };
 
 export type ExternalOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
-  fetchedAt: Timestamp;
   provenance: OntologyProvenance;
-  temporalVersioning: {
-    transactionTime: TimeInterval<
-      InclusiveLimitedTemporalBound,
-      ExclusiveLimitedTemporalBound | Unbounded
-    >;
-  };
+  temporalVersioning: OntologyTemporalMetadata;
+  fetchedAt: Timestamp;
 };
 
-export type OntologyElementMetadata = Subtype<
-  OntologyElementMetadataBp,
-  OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
->;
+export type OntologyElementMetadata =
+  | DataTypeMetadata
+  | PropertyTypeMetadata
+  | EntityTypeMetadata;
 
 export type ConstructDataTypeParams = DistributiveOmit<
   DataType,
@@ -130,101 +76,11 @@ export type DataTypeFullConversionTargetsMap = Record<
  */
 export type DataTypeDirectConversionsMap = Record<BaseUrl, Conversions>;
 
-export type DataTypeMetadata = OntologyElementMetadata & {
-  conversions?: DataTypeDirectConversionsMap;
-};
-export type PropertyTypeMetadata = OntologyElementMetadata;
-export type EntityTypeMetadata = OntologyElementMetadata;
-
-export type DataTypeWithMetadata = Subtype<
-  DataTypeWithMetadataBp,
-  {
-    schema: DataType;
-    metadata: DataTypeMetadata;
-  }
->;
-
-export type PropertyTypeWithMetadata = Subtype<
-  PropertyTypeWithMetadataBp,
-  {
-    schema: PropertyType;
-    metadata: OntologyElementMetadata;
-  }
->;
-
-export type EntityTypeWithMetadata = Subtype<
-  EntityTypeWithMetadataBp,
-  {
-    schema: EntityType;
-    metadata: EntityTypeMetadata;
-  }
->;
-
-export type EntityTypeDisplayMetadata = Omit<
-  EntityTypeDisplayMetadataBp,
-  "labelProperty"
-> & {
-  labelProperty?: BaseUrl;
-};
-
-export type ClosedEntityType = Omit<
-  ClosedEntityTypeBp,
-  "properties" | "required" | "allOf"
-> & {
-  allOf?: [EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]];
-  properties: Record<BaseUrl, ValueOrArray<PropertyTypeReference>>;
-  required?: [BaseUrl, ...BaseUrl[]];
-};
-
 export type ClosedEntityTypeWithMetadata = {
   schema: ClosedEntityType;
   metadata: EntityTypeMetadata;
 };
 
-/**
- * The metadata for a type within a ClosedMultiEntityType. This includes the type's title, description, and icon.
- * Information on optional display fields for this type's ancestors are provided in the `allOf` array,
- * because consumers may wish to choose which type's icon or label to display depending on the context,
- * if _this_ type does not have those display fields.
- */
-export type ClosedMultiEntityTypeMetadata = Omit<
-  ClosedEntityTypeMetadataBp,
-  "allOf"
-> & {
-  allOf?: [EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]];
-};
-
-/**
- * Entities can have multiple types. Each of those types can inherit from multiple other types.
- * We refer to the act of resolving all information about a given type (including inherited information) as 'Closing' it.
- * Therefore, a ClosedMultiEntityType is the result of closing multiple types together to provide a single schema,
- * which represents the shape of the entity with those types (e.g. valid properties, links, etc).
- */
-export type ClosedMultiEntityType = Omit<
-  ClosedMultiEntityTypeBp,
-  "allOf" | "properties" | "required"
-> & {
-  /**
-   * Each entry in allOf represents the metadata for each of the types in the ClosedMultiEntityType.
-   * Some attributes such as type title and icon cannot be meaningfully combined, so they are provided for each type.
-   * The un-mergeable information on each type's parents is nested within each entry.
-   * See getDisplayFieldsForClosedEntityType for a function that makes it easy to get commonly-used fields from a closed multi-entity type.
-   */
-  allOf: [ClosedMultiEntityTypeMetadata, ...ClosedMultiEntityTypeMetadata[]];
-  /**
-   * The merged properties of the types in the ClosedMultiEntityType.
-   */
-  properties: Record<BaseUrl, ValueOrArray<PropertyTypeReference>>;
-  /**
-   * The merged required properties of the types in the ClosedMultiEntityType.
-   */
-  required?: [BaseUrl, ...BaseUrl[]];
-};
-
-/**
- * A map which returns a {@link ClosedMultiEntityType} for a given combination of entityTypeIds.
- * This is not intended to be traversed directly, but instead via {@link getClosedMultiEntityTypeFromMap}.
- */
 export type ClosedMultiEntityTypesRootMap = {
   [key: string]: ClosedMultiEntityTypeMap;
 };
@@ -242,10 +98,6 @@ export type ClosedMultiEntityTypesDefinitions = Subtype<
     propertyTypes: { [key: VersionedUrl]: PropertyType };
   }
 >;
-
-export type PartialEntityType = Omit<PartialEntityTypeBp, "labelProperty"> & {
-  labelProperty: BaseUrl;
-};
 
 export type EntityTypeResolveDefinitions = Subtype<
   EntityTypeResolveDefinitionsGraphApi,

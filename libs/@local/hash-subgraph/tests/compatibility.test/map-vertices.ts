@@ -1,12 +1,32 @@
 import type {
+  BaseUrl,
+  CreatedById,
   DataType,
+  DataTypeMetadata,
+  EditionArchivedById,
+  EditionCreatedById,
+  EntityEditionId,
+  EntityId,
+  EntityMetadata,
+  EntityProvenance,
+  EntityRecordId,
+  EntityTemporalMetadata,
   EntityType,
+  EntityTypeMetadata,
+  LinkData,
   OneOfSchema,
+  OntologyProvenance,
+  OntologyTypeRecordId,
+  OntologyTypeVersion,
+  OriginProvenance,
   PropertyType,
   PropertyValues,
+  SourceProvenance,
+  Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
+  isEntityId,
   validateBaseUrl,
   validateVersionedUrl,
 } from "@blockprotocol/type-system";
@@ -29,38 +49,12 @@ import type {
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  CreatedById,
-  EditionArchivedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
-import type {
-  EntityId,
-  EntityMetadata,
-  EntityProvenance,
-  EntityRecordId,
-  EntityTemporalVersioningMetadata,
-  LinkData,
-} from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  DataTypeMetadata,
-  EntityTypeMetadata,
-  OntologyProvenance,
-  OntologyTypeRecordId,
-} from "@local/hash-graph-types/ontology";
-import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-  Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
 
 import type {
   KnowledgeGraphVertex,
   OntologyVertex,
   Vertices,
 } from "../../src/main.js";
-import { isEntityId } from "../../src/main.js";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUrl(dataType.$id);
@@ -114,7 +108,7 @@ const mapOntologyTypeRecordId = (
 ): OntologyTypeRecordId => {
   return {
     baseUrl: recordId.baseUrl as BaseUrl,
-    version: recordId.version,
+    version: recordId.version as OntologyTypeVersion,
   };
 };
 
@@ -126,8 +120,8 @@ const mapOntologyProvenance = (
       createdById: metadata.edition.createdById as EditionCreatedById,
       archivedById: metadata.edition.archivedById as EditionArchivedById,
       actorType: metadata.edition.actorType,
-      origin: metadata.edition.origin,
-      sources: metadata.edition.sources,
+      origin: metadata.edition.origin as OriginProvenance,
+      sources: metadata.edition.sources as SourceProvenance[],
     },
   };
 };
@@ -137,16 +131,14 @@ const mapEntityProvenance = (
 ): EntityProvenance => {
   return {
     createdById: metadata.createdById as CreatedById,
-    createdAtTransactionTime:
-      metadata.createdAtTransactionTime as CreatedAtTransactionTime,
-    createdAtDecisionTime:
-      metadata.createdAtDecisionTime as CreatedAtDecisionTime,
+    createdAtTransactionTime: metadata.createdAtTransactionTime as Timestamp,
+    createdAtDecisionTime: metadata.createdAtDecisionTime as Timestamp,
     edition: {
       createdById: metadata.edition.createdById as EditionCreatedById,
       archivedById: metadata.edition.archivedById as EditionArchivedById,
       actorType: metadata.edition.actorType,
-      origin: metadata.edition.origin,
-      sources: metadata.edition.sources,
+      origin: metadata.edition.origin as OriginProvenance,
+      sources: metadata.edition.sources as SourceProvenance[],
     },
   };
 };
@@ -287,7 +279,7 @@ const mapEntityRecordId = (
 ): EntityRecordId => {
   return {
     entityId: recordId.entityId as EntityId,
-    editionId: recordId.editionId,
+    editionId: recordId.editionId as EntityEditionId,
   };
 };
 
@@ -300,7 +292,7 @@ const mapLinkData = (linkData: LinkDataGraphApi): LinkData => {
 
 const mapEntityTemporalVersioningMetadata = (
   temporalVersioning: EntityTemporalMetadataGraphApi,
-): EntityTemporalVersioningMetadata => {
+): EntityTemporalMetadata => {
   return {
     transactionTime: {
       start: {
@@ -368,7 +360,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
     const result = validateBaseUrl(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUrl = result.inner as BaseUrl;
+      const baseUrl = result.inner;
 
       mappedVertices[baseUrl] = Object.fromEntries(
         Object.entries(inner).map(([version, vertex]) => {

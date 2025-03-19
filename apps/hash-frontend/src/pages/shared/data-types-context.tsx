@@ -1,10 +1,10 @@
 import { useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { typedValues } from "@local/advanced-types/typed-entries";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { typedValues } from "@local/advanced-types/typed-entries";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 

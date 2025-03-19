@@ -1,3 +1,4 @@
+import type { PropertyMetadata } from "@blockprotocol/type-system";
 import type {
   CustomCell,
   CustomRenderer,
@@ -5,7 +6,6 @@ import type {
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import type { PropertyMetadata } from "@local/hash-graph-types/entity";
 import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-types/ontology";
 
 import {

@@ -1,3 +1,4 @@
+import type { OwnedById } from "@blockprotocol/type-system";
 import { faImage } from "@fortawesome/free-regular-svg-icons";
 import {
   Avatar,
@@ -5,7 +6,6 @@ import {
   IconButton,
   RotateRegularIcon,
 } from "@hashintel/design-system";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,

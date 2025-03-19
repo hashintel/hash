@@ -1,18 +1,17 @@
-import type { BaseUrl } from "@blockprotocol/type-system/slim";
-import { validateBaseUrl } from "@blockprotocol/type-system/slim";
-
-import { stringIsNonNegativeInteger } from "../../util.js";
 import type {
+  BaseUrl,
+  DataTypeWithMetadata,
   Entity,
   EntityId,
-  EntityPropertiesObject,
-  EntityPropertyValue,
-  EntityRevisionId,
-} from "../entity.js";
-import type { OntologyTypeRevisionId } from "../ontology.js";
-import type { DataTypeWithMetadata } from "../ontology/data-type.js";
-import type { EntityTypeWithMetadata } from "../ontology/entity-type.js";
-import type { PropertyTypeWithMetadata } from "../ontology/property-type.js";
+  EntityTypeWithMetadata,
+  OntologyTypeVersion,
+  PropertyObject,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
+import { validateBaseUrl } from "@blockprotocol/type-system";
+
+import { stringIsNonNegativeInteger } from "../../util.js";
+import type { EntityRevisionId } from "../entity.js";
 
 export type DataTypeVertex = {
   kind: "dataType";
@@ -30,10 +29,7 @@ export type EntityTypeVertex = {
 };
 
 export type EntityVertex<
-  Properties extends EntityPropertiesObject | null = Record<
-    BaseUrl,
-    EntityPropertyValue
-  >,
+  Properties extends PropertyObject | null = PropertyObject,
 > = { kind: "entity"; inner: Entity<Properties> };
 
 export type OntologyVertex =
@@ -42,18 +38,12 @@ export type OntologyVertex =
   | EntityTypeVertex;
 
 export type KnowledgeGraphVertex<
-  Properties extends EntityPropertiesObject | null = Record<
-    BaseUrl,
-    EntityPropertyValue
-  >,
+  Properties extends PropertyObject | null = PropertyObject,
 > = EntityVertex<Properties>;
 
-export type Vertex<
-  Properties extends EntityPropertiesObject | null = Record<
-    BaseUrl,
-    EntityPropertyValue
-  >,
-> = OntologyVertex | KnowledgeGraphVertex<Properties>;
+export type Vertex<Properties extends PropertyObject | null = PropertyObject> =
+  | OntologyVertex
+  | KnowledgeGraphVertex<Properties>;
 
 export const isDataTypeVertex = (vertex: Vertex): vertex is DataTypeVertex => {
   return vertex.kind === "dataType";
@@ -80,7 +70,7 @@ export type VertexId<BaseId, RevisionId> = {
   revisionId: RevisionId;
 };
 export type EntityVertexId = VertexId<EntityId, EntityRevisionId>;
-export type OntologyTypeVertexId = VertexId<BaseUrl, OntologyTypeRevisionId>;
+export type OntologyTypeVertexId = VertexId<BaseUrl, OntologyTypeVersion>;
 export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
 
 export const isOntologyTypeVertexId = (
@@ -113,15 +103,25 @@ export const isEntityVertexId = (
   );
 };
 
-export type OntologyVertices = Record<
-  BaseUrl,
-  Record<OntologyTypeRevisionId, OntologyVertex>
->;
+export type OntologyVertices = {
+  [baseId: BaseUrl]: {
+    [revisionId: OntologyTypeVersion]: OntologyVertex;
+  };
+};
 
-export type KnowledgeGraphVertices = Record<
-  EntityId,
-  Record<EntityRevisionId, KnowledgeGraphVertex>
->;
+export type KnowledgeGraphVertices = {
+  [baseId: EntityId]: {
+    [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
+  };
+};
+
+export const isKnowledgeGraphVertex = (
+  vertex: OntologyVertex | KnowledgeGraphVertex,
+): vertex is KnowledgeGraphVertex => vertex.kind === "entity";
+
+export const isOntologyVertex = (
+  vertex: OntologyVertex | KnowledgeGraphVertex,
+): vertex is OntologyVertex => !isKnowledgeGraphVertex(vertex);
 
 // We technically want to intersect (`&`) the types here, but as their property keys overlap it confuses things and we
 // end up with unsatisfiable values like `EntityVertex & DataTypeVertex`. While the union (`|`) is semantically

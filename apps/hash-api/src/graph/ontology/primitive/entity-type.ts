@@ -1,4 +1,13 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityType,
+  EntityTypeMetadata,
+  EntityTypeWithMetadata,
+  OntologyTemporalMetadata,
+  OntologyTypeRecordId,
+  OwnedById,
+  ProvidedOntologyEditionProvenance,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
@@ -12,19 +21,13 @@ import type {
   GetEntityTypesParams,
   GetEntityTypeSubgraphParams,
   ModifyRelationshipOperation,
-  OntologyTemporalMetadata,
-  ProvidedOntologyEditionProvenance,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import type {
   ClosedEntityTypeWithMetadata,
-  EntityTypeMetadata,
   EntityTypeResolveDefinitions,
-  EntityTypeWithMetadata,
-  OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -498,7 +501,7 @@ export const archiveEntityType: ImpureGraphFunction<
     params,
   );
 
-  return temporalMetadata;
+  return temporalMetadata as OntologyTemporalMetadata;
 };
 
 /**
@@ -516,5 +519,5 @@ export const unarchiveEntityType: ImpureGraphFunction<
     { ...params, provenance },
   );
 
-  return temporalMetadata;
+  return temporalMetadata as OntologyTemporalMetadata;
 };

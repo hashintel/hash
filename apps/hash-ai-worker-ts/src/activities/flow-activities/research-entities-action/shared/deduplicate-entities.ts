@@ -1,4 +1,4 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@blockprotocol/type-system";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import dedent from "dedent";
 
@@ -38,7 +38,7 @@ export const deduplicationAgentSystemPrompt = `
   4. the same or very similar summary may refer to different entities
 
   If an entity is a different version of another entity (e.g. a different version of a piece of software, a newer model of a car, or the Toastmaker 3000 versus the Toastmaker 2000), do not report it as a duplicate as they are not referring to the same thing.
-  
+
   If in doubt, do not merge entities. If you are confident that two entities are referring to the exact same thing, report them as duplicates.
 
   Once you have identified duplicates, you must pick a single canonical entity to assign its duplicate(s) too.

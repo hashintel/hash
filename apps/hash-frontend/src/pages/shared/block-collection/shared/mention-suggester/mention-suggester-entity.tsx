@@ -1,14 +1,14 @@
-import type { EntityPropertyValue } from "@blockprotocol/graph";
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  PropertyValue,
+} from "@blockprotocol/type-system";
 import {
   AsteriskRegularIcon,
   EntityOrTypeIcon,
   IconButton,
 } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -73,7 +73,7 @@ export type SubMenuItem =
   | {
       kind: "property";
       propertyType: PropertyTypeWithMetadata;
-      propertyValue: EntityPropertyValue;
+      propertyValue: PropertyValue;
     }
   | {
       kind: "outgoing-link";

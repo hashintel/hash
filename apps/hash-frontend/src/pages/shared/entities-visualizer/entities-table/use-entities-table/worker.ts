@@ -1,11 +1,14 @@
-import { extractVersion } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@blockprotocol/type-system";
+import {
+  extractOwnedByIdFromEntityId,
+  extractVersion,
+} from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import {
   Entity,
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   generateEntityLabel,
   generateLinkEntityLabel,
@@ -16,10 +19,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  extractOwnedByIdFromEntityId,
-  linkEntityTypeUrl,
-} from "@local/hash-subgraph";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { getEntityRevision } from "@local/hash-subgraph/stdlib";
 import { format } from "date-fns";
 
@@ -164,7 +164,7 @@ const generateTableData = async (
         entityTypeTitles.add(entityType.title);
       }
 
-      for (const typeOrAncestor of entityType.allOf ?? []) {
+      for (const typeOrAncestor of entityType.allOf) {
         if (typeOrAncestor.icon) {
           entityIcon = typeOrAncestor.icon;
           break;
@@ -348,10 +348,10 @@ const generateTableData = async (
       entityLabel,
       entityIcon,
       entityTypes: closedMultiEntityType.allOf.map((entityType) => {
-        let isLink: boolean = false;
+        let isLink = false;
         let icon: string | undefined;
 
-        for (const typeOrAncestor of entityType.allOf ?? []) {
+        for (const typeOrAncestor of entityType.allOf) {
           if (!icon && typeOrAncestor.icon) {
             icon = typeOrAncestor.icon;
           }

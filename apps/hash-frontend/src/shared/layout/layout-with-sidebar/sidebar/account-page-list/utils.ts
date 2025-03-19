@@ -1,6 +1,6 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import type { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import type { EntityId } from "@local/hash-graph-types/entity";
 
 import type { SimplePage } from "../../../../../components/hooks/use-account-pages";
 

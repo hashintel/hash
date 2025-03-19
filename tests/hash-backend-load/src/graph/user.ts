@@ -8,8 +8,8 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { AccountEntityId } from "@local/hash-subgraph";
-import { extractAccountId } from "@local/hash-subgraph";
+import type { ActorEntityId } from "@local/hash-subgraph";
+import { extractActorId } from "@local/hash-subgraph/stdlib";
 
 import { getGraphApiClient, getSystemAccountId } from "./api";
 
@@ -98,8 +98,8 @@ export const completeUserRegistration = async (params: {
 
   const systemAccountId = await getSystemAccountId();
   const graphApi = getGraphApiClient();
-  const accountId = extractAccountId(
-    user.metadata.recordId.entityId as AccountEntityId,
+  const accountId = extractActorId(
+    user.metadata.recordId.entityId as ActorEntityId,
   );
 
   await graphApi.modifyWebAuthorizationRelationships(systemAccountId, [

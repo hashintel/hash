@@ -1,10 +1,14 @@
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import type {
   SimpleEntityWithoutHref,
   SimpleLinkWithoutHref,
 } from "@local/hash-backend-utils/simplified-graph";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -18,11 +22,6 @@ import type {
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  entityIdFromComponents,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
 
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
@@ -268,7 +267,7 @@ export const gptQueryEntities: RequestHandler<
             {
               entityId: entityIdFromComponents(
                 webOwnedById,
-                webOwnedById as Uuid as EntityUuid,
+                webOwnedById as string as EntityUuid,
               ),
             },
           );

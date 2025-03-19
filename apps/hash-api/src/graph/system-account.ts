@@ -1,6 +1,6 @@
+import type { ActorId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { AccountId } from "@local/hash-graph-types/account";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
@@ -9,7 +9,7 @@ import type { ImpureGraphContext } from "./context-types";
 import { getEntityTypeById } from "./ontology/primitive/entity-type";
 
 // eslint-disable-next-line import/no-mutable-exports
-export let systemAccountId: AccountId;
+export let systemAccountId: ActorId;
 
 const authentication = { actorId: publicUserAccountId };
 

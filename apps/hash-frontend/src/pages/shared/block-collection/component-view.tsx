@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {

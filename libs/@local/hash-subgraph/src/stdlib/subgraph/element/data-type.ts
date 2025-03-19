@@ -1,16 +1,15 @@
-import { type Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import {
   getDataTypeById as getDataTypeByIdBp,
   getDataTypeByVertexId as getDataTypeByVertexIdBp,
   getDataTypes as getDataTypesBp,
   getDataTypesByBaseUrl as getDataTypesByBaseUrlBp,
 } from "@blockprotocol/graph/stdlib";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { DataType } from "@local/hash-graph-client";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
 
@@ -20,7 +19,7 @@ import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
  * @param subgraph
  */
 export const getDataTypes = (subgraph: Subgraph): DataTypeWithMetadata[] =>
-  getDataTypesBp(subgraph as unknown as SubgraphBp) as DataTypeWithMetadata[];
+  getDataTypesBp(subgraph as SubgraphBp);
 
 /**
  * Gets a `DataTypeWithMetadata` by its `VersionedUrl` from within the vertices of the subgraph. Returns `undefined` if
@@ -34,9 +33,7 @@ export const getDataTypeById = (
   subgraph: Subgraph,
   dataTypeId: VersionedUrl,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByIdBp(subgraph as unknown as SubgraphBp, dataTypeId) as
-    | DataTypeWithMetadata
-    | undefined;
+  getDataTypeByIdBp(subgraph as SubgraphBp, dataTypeId);
 
 export const mustGetDataTypeById = (
   subgraph: Subgraph,
@@ -61,9 +58,7 @@ export const getDataTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
-    | DataTypeWithMetadata
-    | undefined;
+  getDataTypeByVertexIdBp(subgraph as SubgraphBp, vertexId);
 
 /**
  * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
@@ -75,14 +70,9 @@ export const getDataTypesByBaseUrl = (
   subgraph: Subgraph,
   baseUrl: BaseUrl,
 ): DataTypeWithMetadata[] =>
-  getDataTypesByBaseUrlBp(
-    subgraph as unknown as SubgraphBp,
-    baseUrl,
-  ) as DataTypeWithMetadata[];
+  getDataTypesByBaseUrlBp(subgraph as SubgraphBp, baseUrl);
 
-export const getJsonSchemaTypeFromValue = (
-  value: unknown,
-): DataType["type"] => {
+export const getJsonSchemaTypeFromValue = (value: unknown): string => {
   if (value === null) {
     return "null";
   }

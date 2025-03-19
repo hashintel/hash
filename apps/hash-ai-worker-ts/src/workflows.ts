@@ -1,3 +1,9 @@
+import type {
+  ActorId,
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   Entity as GraphApiEntity,
@@ -6,12 +12,6 @@ import type {
 } from "@local/hash-graph-client";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -55,7 +55,7 @@ export const createEmbeddings = async (
 
 type UpdateDataTypeEmbeddingsParams = {
   authentication: {
-    actorId: AccountId;
+    actorId: ActorId;
   };
 } & (
   | {
@@ -140,7 +140,7 @@ export const updateDataTypeEmbeddings = async (
 
 type UpdatePropertyTypeEmbeddingsParams = {
   authentication: {
-    actorId: AccountId;
+    actorId: ActorId;
   };
 } & (
   | {
@@ -225,7 +225,7 @@ export const updatePropertyTypeEmbeddings = async (
 
 type UpdateEntityTypeEmbeddingsParams = {
   authentication: {
-    actorId: AccountId;
+    actorId: ActorId;
   };
 } & (
   | {
@@ -310,7 +310,7 @@ export const updateEntityTypeEmbeddings = async (
 
 type UpdateEntityEmbeddingsParams = {
   authentication: {
-    actorId: AccountId;
+    actorId: ActorId;
   };
 } & (
   | {

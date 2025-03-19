@@ -1,13 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityTypeWithMetadata,
+  OwnedById,
+  PropertyTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type {
   EditorOntologyFunctions,
   EntityTypeEditorProps,
 } from "@hashintel/type-editor";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   getEntityTypeById,
   getPropertyTypeById,

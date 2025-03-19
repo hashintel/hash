@@ -1,6 +1,9 @@
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import {
+  currentTimestamp,
+  type EntityId,
+  type OwnedById,
+  type PropertyObject,
+} from "@blockprotocol/type-system";
 import type { Draft } from "immer";
 import { castDraft, produce } from "immer";
 import { isEqual } from "lodash-es";
@@ -309,7 +312,7 @@ const entityStoreReducer = (
               }
             }
 
-            const now = new Date().toISOString();
+            const now = currentTimestamp();
 
             /**
              * When we merge the updated entity store in from the API in createEntityStore, after a save,
@@ -322,7 +325,7 @@ const entityStoreReducer = (
               decisionTime: {
                 start: {
                   kind: "inclusive",
-                  limit: now as Timestamp,
+                  limit: now,
                 },
                 end: {
                   kind: "unbounded",
@@ -331,7 +334,7 @@ const entityStoreReducer = (
               transactionTime: {
                 start: {
                   kind: "inclusive",
-                  limit: now as Timestamp,
+                  limit: now,
                 },
                 end: {
                   kind: "unbounded",
@@ -381,7 +384,7 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        const now = new Date().toISOString();
+        const now = currentTimestamp();
 
         draftState.store.draft[action.payload.draftId] = {
           metadata: {
@@ -393,7 +396,7 @@ const entityStoreReducer = (
               decisionTime: {
                 start: {
                   kind: "inclusive",
-                  limit: now as Timestamp,
+                  limit: now,
                 },
                 end: {
                   kind: "unbounded",
@@ -402,7 +405,7 @@ const entityStoreReducer = (
               transactionTime: {
                 start: {
                   kind: "inclusive",
-                  limit: now as Timestamp,
+                  limit: now,
                 },
                 end: {
                   kind: "unbounded",
