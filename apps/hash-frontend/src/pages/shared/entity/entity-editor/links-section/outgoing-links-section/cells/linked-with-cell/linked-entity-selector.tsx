@@ -1,9 +1,12 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  EntityId,
+  EntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { PaperProps } from "@mui/material";
 import { Stack, Typography } from "@mui/material";

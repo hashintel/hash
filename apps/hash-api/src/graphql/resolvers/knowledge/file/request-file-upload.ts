@@ -1,4 +1,4 @@
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import { UserInputError } from "apollo-server-errors";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";

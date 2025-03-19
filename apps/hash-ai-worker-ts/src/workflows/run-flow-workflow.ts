@@ -1,5 +1,5 @@
+import type { EntityUuid } from "@blockprotocol/type-system";
 import { sleep } from "@local/hash-backend-utils/utils";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   RunFlowWorkflowParams,

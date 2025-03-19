@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { JSONSchema as SchemaWithOptional$id } from "json-schema-to-typescript";
 
 export type LogLevel = "silent" | "warn" | "info" | "debug" | "trace";
@@ -7,7 +7,7 @@ export type LogLevel = "silent" | "warn" | "info" | "debug" | "trace";
 export const sharedTypeFileName = "shared.ts";
 
 export const primitiveLinkEntityTypeId =
-  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" as VersionedUrl;
 
 /** The suffix to append to generated types for each class of ontology type */
 export const generatedTypeSuffix = {

@@ -1,6 +1,6 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { AccountGroupId } from "@local/hash-graph-types/account";
+import type { ActorGroupId } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -25,7 +25,7 @@ import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 export const useOrgsWithLinks = ({
   orgAccountGroupIds,
 }: {
-  orgAccountGroupIds?: AccountGroupId[];
+  orgAccountGroupIds?: ActorGroupId[];
 }): {
   loading: boolean;
   orgs?: Org[];
@@ -43,11 +43,11 @@ export const useOrgsWithLinks = ({
             ...(orgAccountGroupIds
               ? [
                   {
-                    any: orgAccountGroupIds.map((accountGroupId) => ({
+                    any: orgAccountGroupIds.map((actorGroupId) => ({
                       equal: [
                         { path: ["uuid"] },
                         {
-                          parameter: accountGroupId,
+                          parameter: actorGroupId,
                         },
                       ],
                     })),

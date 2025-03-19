@@ -1,4 +1,5 @@
-import { typedValues } from "../../util/typed-object-iter.js";
+import { typedValues } from "@local/advanced-types/typed-entries";
+
 import type { PreprocessContext } from "../context.js";
 
 /** Iteratively loop through the full object and remove any occurrence of `allOf: []` */

@@ -1,5 +1,5 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import { Entity, flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FailedEntityProposal,

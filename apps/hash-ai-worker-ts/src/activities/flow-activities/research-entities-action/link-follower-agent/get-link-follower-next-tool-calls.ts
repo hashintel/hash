@@ -1,3 +1,4 @@
+import type { Url } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { sleep } from "@local/hash-backend-utils/utils";
 import dedent from "dedent";
@@ -229,7 +230,7 @@ export type ToolCallInputs = Subtype<
   {
     exploreLinks: {
       links: {
-        url: string;
+        url: Url;
         reason: string;
         goal: string;
         descriptionOfExpectedContent: string;

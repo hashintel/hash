@@ -1,17 +1,19 @@
 import { useMutation } from "@apollo/client";
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   BaseUrl,
+  EntityType,
   EntityTypeWithMetadata,
+  OntologyTypeVersion,
+  OwnedById,
   PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import type { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   getEntityTypesByBaseUrl,
   getPropertyTypesForEntityType,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useRouter } from "next/router";
 import {
   useCallback,
@@ -41,7 +43,7 @@ import {
 // @todo rethink this from scratch, it's probably more complicated than it needs to be
 export const useEntityTypeValue = (
   entityTypeBaseUrl: BaseUrl | null,
-  requestedVersion: number | null,
+  requestedVersion: OntologyTypeVersion | null,
   ownedById: OwnedById | null,
   onCompleted?: (entityType: EntityTypeWithMetadata) => void,
 ) => {
@@ -85,7 +87,7 @@ export const useEntityTypeValue = (
         }) => version,
       );
 
-      const maxVersion = Math.max(...availableVersions);
+      const maxVersion = Math.max(...availableVersions) as OntologyTypeVersion;
 
       // Return the requested version if one has been specified and it exists
       if (requestedVersion) {

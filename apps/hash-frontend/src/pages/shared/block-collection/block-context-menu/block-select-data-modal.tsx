@@ -1,12 +1,15 @@
 import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
+import type {
+  BaseUrl,
+  EntityId,
+  OwnedById,
+  PropertyObject,
+} from "@blockprotocol/type-system";
 import type { ModalProps } from "@hashintel/design-system";
 import { IconButton, Modal } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   blockProtocolEntityTypes,
   blockProtocolLinkEntityTypes,

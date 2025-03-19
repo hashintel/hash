@@ -24,7 +24,6 @@ use hash_graph_store::{
     property_type::{CreatePropertyTypeParams, PropertyTypeStore as _, UpdatePropertyTypesParams},
     query::ConflictBehavior,
 };
-use hash_graph_types::account::AccountId;
 use hash_repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
@@ -37,7 +36,7 @@ use type_system::{
         property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorType, OriginProvenance, OriginType},
+    provenance::{ActorId, ActorType, OriginProvenance, OriginType},
     web::OwnedById,
 };
 
@@ -53,7 +52,7 @@ pub struct StoreWrapper<A: AuthorizationApi> {
     pub store: ManuallyDrop<Store<A>>,
     #[expect(clippy::allow_attributes, reason = "False positive")]
     #[allow(dead_code, reason = "False positive")]
-    pub account_id: AccountId,
+    pub account_id: ActorId,
 }
 
 pub fn setup_subscriber(
@@ -89,7 +88,7 @@ where
         bench_db_name: &str,
         fail_on_exists: bool,
         delete_on_drop: bool,
-        account_id: AccountId,
+        account_id: ActorId,
         mut authorization_api: A,
     ) -> Self {
         load_env(Environment::Test);
@@ -289,7 +288,7 @@ where
 #[expect(clippy::too_many_lines)]
 pub async fn seed<D, P, E, C, A>(
     store: &mut PostgresStore<C, A>,
-    account_id: AccountId,
+    account_id: ActorId,
     data_types: D,
     property_types: P,
     entity_types: E,
@@ -475,7 +474,7 @@ pub fn setup<A: AuthorizationApi>(
     db_name: &str,
     fail_on_exists: bool,
     delete_on_drop: bool,
-    account_id: AccountId,
+    account_id: ActorId,
     authorization_api: A,
 ) -> (Runtime, StoreWrapper<A>) {
     let runtime = Runtime::new().expect("could not create runtime");

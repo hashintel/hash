@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
+import type { EntityId, Timestamp } from "@blockprotocol/type-system";
+import { splitEntityId } from "@blockprotocol/type-system";
 import { Chip, Skeleton, WhiteCard } from "@hashintel/design-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import {
   fullDecisionTimeAxis,
   fullOntologyResolveDepths,
@@ -9,7 +9,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { DiffEntityInput } from "@local/hash-subgraph";
-import { splitEntityId } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import type {

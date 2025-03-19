@@ -1,4 +1,4 @@
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
 import type { DataTypeRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Container, Stack, Typography } from "@mui/material";

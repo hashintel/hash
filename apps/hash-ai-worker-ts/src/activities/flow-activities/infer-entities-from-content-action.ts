@@ -1,14 +1,16 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { typedKeys } from "@local/advanced-types/typed-entries";
-import type {
-  OriginProvenance,
-  SourceProvenance,
-} from "@local/hash-graph-client";
 import type {
   EntityId,
   EntityUuid,
-  PropertyMetadataObject,
-} from "@local/hash-graph-types/entity";
+  OriginProvenance,
+  PropertyObjectMetadata,
+  SourceProvenance,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  entityIdFromComponents,
+} from "@blockprotocol/type-system";
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   getSimplifiedActionInputs,
@@ -16,7 +18,6 @@ import {
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
@@ -106,7 +107,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     };
   }
 
-  const processBeginTime = new Date().toISOString();
+  const processBeginTime = currentTimestamp();
 
   const status = await inferEntitiesFromWebPageActivity({
     webPage: content,
@@ -181,7 +182,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
         properties: proposal.properties ?? {},
         propertyMetadata: typedKeys(
           proposal.properties ?? {},
-        ).reduce<PropertyMetadataObject>(
+        ).reduce<PropertyObjectMetadata>(
           (acc, propertyKey) => {
             acc.value[propertyKey] = {
               metadata: { dataTypeId: null, provenance: { sources: [source] } },

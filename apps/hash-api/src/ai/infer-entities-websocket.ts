@@ -1,12 +1,12 @@
 import type http from "node:http";
 
+import type { EntityUuid } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import {
   getFlowRunEntityById,
   getFlowRuns,
 } from "@local/hash-backend-utils/flows";
 import type { Logger } from "@local/hash-backend-utils/logger";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   ExternalInputWebsocketRequestMessage,
   InferenceWebsocketClientMessage,

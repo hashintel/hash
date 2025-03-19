@@ -1,5 +1,5 @@
+import type { OwnedById } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
   FlowDefinition,
   FlowTrigger,

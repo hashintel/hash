@@ -1,4 +1,10 @@
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type {
+  ActorGroupId,
+  ActorId,
+  EntityId,
+  OwnedById,
+} from "@blockprotocol/type-system";
+import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
@@ -6,13 +12,7 @@ import type {
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityValidationReport } from "@local/hash-graph-types/validation";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -20,7 +20,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import { splitEntityId } from "@local/hash-subgraph";
 import {
   ApolloError,
   ForbiddenError,
@@ -577,14 +576,14 @@ const parseGqlAuthorizationViewerInput = ({
     if (!viewer) {
       throw new UserInputError("Viewer Account ID must be specified");
     }
-    return { kind: "account", subjectId: viewer as AccountId } as const;
+    return { kind: "account", subjectId: viewer as ActorId } as const;
   } else {
     if (!viewer) {
       throw new UserInputError("Viewer Account Group ID must be specified");
     }
     return {
       kind: "accountGroup",
-      subjectId: viewer as AccountGroupId,
+      subjectId: viewer as ActorGroupId,
       subjectSet: "member",
     } as const;
   }

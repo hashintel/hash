@@ -1,6 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { BoxProps } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 

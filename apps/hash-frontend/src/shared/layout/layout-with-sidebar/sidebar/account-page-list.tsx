@@ -1,3 +1,8 @@
+import type { EntityUuid, OwnedById } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  isEntityId,
+} from "@blockprotocol/type-system";
 import type {
   DragEndEvent,
   DragMoveEvent,
@@ -20,12 +25,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { IconButton } from "@hashintel/design-system";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import {
-  extractEntityUuidFromEntityId,
-  isEntityId,
-} from "@local/hash-subgraph";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";

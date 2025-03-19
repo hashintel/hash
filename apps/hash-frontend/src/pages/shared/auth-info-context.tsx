@@ -1,17 +1,18 @@
 import { useApolloClient } from "@apollo/client";
+import { intervalForTimestamp } from "@blockprotocol/graph/stdlib";
+import type { ActorGroupId } from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  extractEntityUuidFromEntityId,
+} from "@blockprotocol/type-system";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { AccountGroupId } from "@local/hash-graph-types/account";
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
-  intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
 import type { FunctionComponent, ReactElement } from "react";
 import {
@@ -72,7 +73,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     return getOutgoingLinksForEntity(
       authenticatedUserSubgraph,
       userEntity.metadata.recordId.entityId,
-      intervalForTimestamp(new Date().toISOString() as Timestamp),
+      intervalForTimestamp(currentTimestamp()),
     )
       .filter((linkEntity) =>
         linkEntity.metadata.entityTypeIds.includes(
@@ -88,7 +89,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
         (link) =>
           extractEntityUuidFromEntityId(
             link.linkData.rightEntityId,
-          ) as Uuid as AccountGroupId,
+          ) as string as ActorGroupId,
       ) ?? [],
   });
 

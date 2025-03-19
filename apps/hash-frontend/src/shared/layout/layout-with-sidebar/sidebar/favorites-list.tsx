@@ -1,5 +1,5 @@
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Collapse, Fade, Tooltip } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";

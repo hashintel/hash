@@ -3,13 +3,19 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type {
+  BaseUrl,
   Conversions,
   DataType,
   DataTypeReference,
+  DataTypeWithMetadata,
   EntityType,
+  EntityTypeWithMetadata,
   OneOfSchema,
+  OwnedById,
+  PropertyObjectWithMetadata,
   PropertyType,
   PropertyTypeReference,
+  PropertyTypeWithMetadata,
   PropertyValueArray,
   PropertyValueObject,
   PropertyValues,
@@ -20,20 +26,14 @@ import {
   atLeastOne,
   DATA_TYPE_META_SCHEMA,
   ENTITY_TYPE_META_SCHEMA,
+  extractBaseUrl,
+  extractOwnedByIdFromEntityId,
   PROPERTY_TYPE_META_SCHEMA,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  ConstructDataTypeParams,
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -60,10 +60,8 @@ import type {
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,
 } from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   componentsFromVersionedUrl,
-  extractBaseUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 

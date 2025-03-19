@@ -1,5 +1,5 @@
+import type { EntityUuid } from "@blockprotocol/type-system";
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
 import { ApolloError } from "apollo-server-errors";
 

@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Chip, Skeleton } from "@hashintel/design-system";
 import {
   currentTimeInstantTemporalAxes,
@@ -8,10 +9,7 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
-import {
-  type EntityRootType,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import { useMemo } from "react";

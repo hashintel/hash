@@ -1,11 +1,10 @@
 import { useMutation, useQuery } from "@apollo/client";
-import type { DataTypeWithMetadata as BpDataTypeWithMetadata } from "@blockprotocol/graph";
-import { extractVersion } from "@blockprotocol/type-system";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  OwnedById,
+} from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
@@ -60,7 +59,7 @@ import { TopContextBar } from "./top-context-bar";
 type DataTypeProps = {
   isInSlide?: boolean;
   ownedById?: OwnedById | null;
-  draftNewDataType?: BpDataTypeWithMetadata | null;
+  draftNewDataType?: DataTypeWithMetadata | null;
   dataTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
   onDataTypeUpdated: (dataType: DataTypeWithMetadata) => void;
@@ -130,7 +129,7 @@ export const DataType = ({
       reset(
         getFormDataFromDataType({
           schema: draftNewDataType.schema,
-          metadata: {},
+          metadata: { conversions: {} },
         }),
       );
     }

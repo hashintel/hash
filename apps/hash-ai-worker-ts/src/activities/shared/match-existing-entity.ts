@@ -1,13 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { SourceProvenance } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
-  PropertyMetadataObject,
   PropertyObject,
-} from "@local/hash-graph-types/entity";
-import { isValueMetadata } from "@local/hash-graph-types/entity";
+  PropertyObjectMetadata,
+  SourceProvenance,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { isValueMetadata } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
@@ -33,7 +33,7 @@ You must:
 2. If there is a match, provide:
    - the id of the existing entity that matches the new input
    - merged values for properties which are suitable for merging (e.g. descriptions which incorporate both the old and new description)
-   
+
 There may not be a match. Err on the side of caution when deciding if one entity is the same as another.
 
 Bear in mind that you may encounter entities which are named similarly but actually refer to different entities,
@@ -126,9 +126,9 @@ which is only likely to apply to longer, descriptive text fields.
       </PotentialMatch>
     </PotentialMatches>
     <Explanation>
-      This is a match with location123 despite multiple similar entries. 
-      location456 has the same address but a different opening date, suggesting it's a previous business at the same location. 
-      location789 is a different branch in Portland. 
+      This is a match with location123 despite multiple similar entries.
+      location456 has the same address but a different opening date, suggesting it's a previous business at the same location.
+      location789 is a different branch in Portland.
       location123 matches both the address and opening date, and the slight variation in business name format is mergeable.
     </Explanation>
   </Example>
@@ -197,7 +197,7 @@ which is only likely to apply to longer, descriptive text fields.
       </PotentialMatch>
     </PotentialMatches>
     <Explanation>
-      This is a match with investment101 because it matches the amount, date, and investor (Acme Venture Partners is the same as Acme Ventures). 
+      This is a match with investment101 because it matches the amount, date, and investor (Acme Venture Partners is the same as Acme Ventures).
       investment456 has a different investor, and investment789 is missing the date field which is crucial for identifying a specific investment.
     </Explanation>
   </Example>
@@ -326,7 +326,7 @@ const generateMatchExistingEntityTool = (
 export type NewEntityInput = {
   entityTypeIds: VersionedUrl[];
   properties: PropertyObject;
-  propertiesMetadata: PropertyMetadataObject;
+  propertiesMetadata: PropertyObjectMetadata;
   editionSources: SourceProvenance[];
 };
 
@@ -359,7 +359,7 @@ const generateMatchExistingEntityUserMessage = ({
 }): string => {
   return `${
     isLink
-      ? `This is a link entity, which creates a relationship between two other entities. 
+      ? `This is a link entity, which creates a relationship between two other entities.
 The properties shown for the new link and the potential matches are the attributes of the links. The new link entity is:`
       : "The new entity is:"
   }
@@ -435,7 +435,7 @@ export type MatchedEntityUpdate<T extends ExistingEntityForMatching> = {
      * If a property value is the result of merging the old and new value, the sources will also be merged.
      * e.g. if the old value came from news.com, and the new value came from wikipedia.com, the merged metadata will list both sources.
      */
-    propertyMetadata: PropertyMetadataObject;
+    propertyMetadata: PropertyObjectMetadata;
     /**
      * The sources for the new entity edition.
      * This will be a deduplicated list of sources from the new entity and the matched entity.

@@ -1,7 +1,4 @@
-import type {
-  GraphEmbedderMessageCallbacks,
-  JsonObject,
-} from "@blockprotocol/graph";
+import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
 
 import type { FetchEmbedCodeFn } from "../block-loader/fetch-embed-code";
 
@@ -39,7 +36,7 @@ export type MessageFromBlockFramer = {
 } & (
   | {
       type: "newData";
-      payload: JsonObject;
+      payload: object;
     }
   | {
       type: "response";

@@ -2,7 +2,7 @@ import type {
   BaseUrl,
   EntityType,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 
 type EntityTypeEditorTypeData = {
   $id: VersionedUrl;

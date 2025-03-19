@@ -1,4 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
@@ -7,14 +11,8 @@ import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  entityIdFromComponents,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 
 import type { ImpureGraphContext } from "../../graph/context-types";
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
@@ -25,13 +23,12 @@ const supportedLinearEntityTypeIds = linearTypeMappings.map(
   ({ hashEntityTypeId }) => hashEntityTypeId as VersionedUrl,
 );
 
-const supportedLinearLinkEntityTypeIds = linearTypeMappings
-  .map(({ outgoingLinkMappings }) =>
+const supportedLinearLinkEntityTypeIds = linearTypeMappings.flatMap(
+  ({ outgoingLinkMappings }) =>
     outgoingLinkMappings.map(
       ({ linkEntityTypeId }) => linkEntityTypeId as VersionedUrl,
     ),
-  )
-  .flat();
+);
 
 export const supportedLinearTypeIds = [
   ...supportedLinearEntityTypeIds,
@@ -115,7 +112,7 @@ export const processEntityChange = async (
    */
   const hashWorkspaceEntityId = entityIdFromComponents(
     owningAccountUuId,
-    owningAccountUuId as Uuid as EntityUuid,
+    owningAccountUuId as string as EntityUuid,
   );
 
   const linearApiKey = await getLinearSecretValueByHashWorkspaceId(

@@ -1,8 +1,8 @@
 import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
+import type { OwnedById } from "@blockprotocol/type-system";
 import { CheckIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Query } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import { Box, Collapse, Stack, Typography } from "@mui/material";

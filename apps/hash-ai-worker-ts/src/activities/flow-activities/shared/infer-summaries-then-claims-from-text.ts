@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Url, VersionedUrl } from "@blockprotocol/type-system";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
@@ -145,7 +145,7 @@ export const inferSummariesThenClaimsFromText = async (params: {
                 goal,
                 text,
                 title,
-                url,
+                url: url as Url,
                 contentType,
                 dereferencedEntityType,
                 workerIdentifiers,

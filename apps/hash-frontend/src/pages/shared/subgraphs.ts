@@ -1,5 +1,5 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 
 export const generateEntityRootedSubgraph = (

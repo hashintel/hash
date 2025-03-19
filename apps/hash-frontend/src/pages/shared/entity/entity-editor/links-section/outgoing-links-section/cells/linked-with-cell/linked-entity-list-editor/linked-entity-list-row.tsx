@@ -1,5 +1,5 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { Box } from "@mui/material";
 
 import { useEntityEditor } from "../../../../../entity-editor-context";

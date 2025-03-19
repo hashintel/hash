@@ -687,7 +687,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "$id": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
     "type": "object",
     "title": "Link",
-  "description": "The most generic connection between two entities, defining a relationship from a source to a target. It serves as a parent type for more specific link entity types, enabling consistent and interoperable data relationships.",
+    "description": "The most generic connection between two entities, defining a relationship from a source to a target. It serves as a parent type for more specific link entity types, enabling consistent and interoperable data relationships.",
     "properties": {}
   },
   "provenance": {
@@ -1758,7 +1758,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityTypes": ["{{friendship_link_entity_type_id}}"],
-  "properties": {},
+  "properties": { "value": {} },
   "linkData": {
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"
@@ -1780,7 +1780,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "properties": {},
+  "properties": { "value": {} },
   "entityTypeIds": ["{{friendship_link_entity_type_id}}"],
   "linkData": {
     "leftEntityId": "{{person_a_entity_id}}",

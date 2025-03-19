@@ -1,13 +1,13 @@
 import { useMutation } from "@apollo/client";
+import {
+  type DataTypeWithMetadata,
+  type EntityTypeWithMetadata,
+  extractOwnedByIdFromEntityId,
+  type PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
 import { isEntity } from "@local/hash-isomorphic-utils/entity-store";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   Box,
   chipClasses,

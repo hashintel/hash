@@ -1,6 +1,8 @@
-import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import type { PropertyType } from "@blockprotocol/type-system/slim";
-import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+import type {
+  EntityTypeWithMetadata,
+  PropertyType,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Fade, Stack, TableCell, Tooltip } from "@mui/material";

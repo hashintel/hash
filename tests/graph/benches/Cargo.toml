@@ -21,7 +21,6 @@ hash-graph-postgres-store      = { workspace = true }
 hash-graph-store               = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true }
 hash-graph-test-data           = { workspace = true }
-hash-graph-types               = { workspace = true }
 hash-repo-chores               = { workspace = true }
 type-system                    = { workspace = true }
 

@@ -1,16 +1,16 @@
+import type {
+  ActorId,
+  EntityId,
+  OwnedById,
+  ProvidedEntityEditionProvenance,
+} from "@blockprotocol/type-system";
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type {
   UserSecretService,
   VaultClient,
 } from "@local/hash-backend-utils/vault";
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
-import type {
-  GraphApi,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -35,7 +35,7 @@ type CreateUserSecretParams<T extends object> = {
    * The bot that will manage the secret, e.g. update, archive, upgrade it.
    * This is the only account that will have edit permissions for the secret.
    */
-  managingBotAccountId: AccountId;
+  managingBotAccountId: ActorId;
   secretData: T;
   /**
    * The rest of the path to the secret in the vault, after the standardized system prefixes.
@@ -53,7 +53,7 @@ type CreateUserSecretParams<T extends object> = {
   /**
    * The user that owns the secret. The user will have read access to the secret.
    */
-  userAccountId: AccountId;
+  userAccountId: ActorId;
   vaultClient: VaultClient;
 };
 

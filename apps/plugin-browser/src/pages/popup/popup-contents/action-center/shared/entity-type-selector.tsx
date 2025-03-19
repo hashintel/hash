@@ -1,13 +1,11 @@
 import type {
+  BaseUrl,
   EntityTypeReference,
+  EntityTypeWithMetadata,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
 import type { PopperProps } from "@mui/material";
 import { outlinedInputClasses, Typography } from "@mui/material";
 import { useMemo } from "react";

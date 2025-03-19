@@ -1,8 +1,10 @@
+import type { ActorId, BaseUrl, EntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -25,10 +27,6 @@ import type {
   SyncLinearDataWithProperties,
 } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 import {
   getRightEntityForLinkEntity,
   getRoots,
@@ -120,7 +118,7 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
  * Get a linear integration by the linear org ID
  */
 export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
-  { userAccountId: AccountId; linearOrgId: string; includeDrafts?: boolean },
+  { userAccountId: ActorId; linearOrgId: string; includeDrafts?: boolean },
   Promise<LinearIntegration | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const { userAccountId, linearOrgId, includeDrafts = false } = params;

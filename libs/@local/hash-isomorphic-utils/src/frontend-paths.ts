@@ -1,5 +1,5 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
-import { splitEntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@blockprotocol/type-system";
+import { splitEntityId } from "@blockprotocol/type-system";
 
 export const generateEntityPath = (params: {
   entityId: EntityId;

@@ -1,9 +1,16 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type {
+  EntityUuid,
+  OwnedById,
+  Timestamp,
+  Url,
+} from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  entityIdFromComponents,
+} from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
@@ -90,9 +97,9 @@ test(
           {
             type: "webpage",
             location: {
-              uri: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+              uri: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
             },
-            loadedAt: new Date().toISOString(),
+            loadedAt: currentTimestamp(),
           },
         ],
       }),
@@ -140,9 +147,9 @@ const claimsAboutGraphicsCard: Claim[] = [
       {
         type: "webpage",
         location: {
-          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning" as Url,
         },
-        loadedAt: "2024-05-29T15:59:55.606Z",
+        loadedAt: "2024-05-29T15:59:55.606Z" as Timestamp,
       },
     ],
   },
@@ -157,9 +164,9 @@ const claimsAboutGraphicsCard: Claim[] = [
       {
         type: "webpage",
         location: {
-          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning" as Url,
         },
-        loadedAt: "2024-05-29T15:59:55.606Z",
+        loadedAt: "2024-05-29T15:59:55.606Z" as Timestamp,
       },
     ],
   },
@@ -174,9 +181,9 @@ const claimsAboutGraphicsCard: Claim[] = [
       {
         type: "webpage",
         location: {
-          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning" as Url,
         },
-        loadedAt: "2024-05-29T15:59:55.606Z",
+        loadedAt: "2024-05-29T15:59:55.606Z" as Timestamp,
       },
     ],
   },
@@ -191,9 +198,9 @@ const claimsAboutGraphicsCard: Claim[] = [
       {
         type: "webpage",
         location: {
-          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning" as Url,
         },
-        loadedAt: "2024-05-29T15:59:55.606Z",
+        loadedAt: "2024-05-29T15:59:55.606Z" as Timestamp,
       },
     ],
   },
@@ -208,9 +215,9 @@ const claimsAboutGraphicsCard: Claim[] = [
       {
         type: "webpage",
         location: {
-          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning" as Url,
         },
-        loadedAt: "2024-05-29T15:59:55.606Z",
+        loadedAt: "2024-05-29T15:59:55.606Z" as Timestamp,
       },
     ],
   },
@@ -225,9 +232,9 @@ const claimsAboutGraphicsCard: Claim[] = [
       {
         type: "webpage",
         location: {
-          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning" as Url,
         },
-        loadedAt: "2024-05-29T15:59:55.606Z",
+        loadedAt: "2024-05-29T15:59:55.606Z" as Timestamp,
       },
     ],
   },

@@ -1,4 +1,4 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@blockprotocol/type-system";
 
 import { useEntityEditor } from "../entity-editor/entity-editor-context";
 

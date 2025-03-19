@@ -1,5 +1,5 @@
 import type { MultiFilter } from "@blockprotocol/graph";
-import type { EntityType, PropertyType } from "@blockprotocol/type-system/slim";
+import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/design-system";
 import { Stack } from "@mui/material";
 import type { BoxProps } from "@mui/system";

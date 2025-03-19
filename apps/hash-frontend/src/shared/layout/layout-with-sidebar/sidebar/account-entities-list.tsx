@@ -1,10 +1,9 @@
 import { useQuery } from "@apollo/client";
+import { extractBaseUrl, type OwnedById } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Collapse, Fade, Tooltip, Typography } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";

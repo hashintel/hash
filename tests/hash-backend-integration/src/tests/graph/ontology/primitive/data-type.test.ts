@@ -13,12 +13,12 @@ import {
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/ontology/primitive/util";
-import { Logger } from "@local/hash-backend-utils/logger";
 import type {
-  ConstructDataTypeParams,
   DataTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  OwnedById,
+} from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
+import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
 import {
   currentTimeInstantTemporalAxes,

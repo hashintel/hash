@@ -1,6 +1,9 @@
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type {
+  ActorId,
+  EntityUuid,
+  OwnedById,
+} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -8,7 +11,6 @@ import {
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 
 import { isProdEnv } from "../../../../lib/env-config";
 import { createOrUpdateMailchimpUser } from "../../../../mailchimp";
@@ -83,8 +85,8 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
       const pageAuthor = await getUserById(context, authentication, {
         entityId: entityIdFromComponents(
-          pageAuthorAccountId as Uuid as OwnedById,
-          pageAuthorAccountId as Uuid as EntityUuid,
+          pageAuthorAccountId as ActorId as OwnedById,
+          pageAuthorAccountId as string as EntityUuid,
         ),
       });
 

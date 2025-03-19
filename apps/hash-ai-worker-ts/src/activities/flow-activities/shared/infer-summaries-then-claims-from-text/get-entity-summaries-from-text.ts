@@ -1,7 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  EntityUuid,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import dedent from "dedent";
 
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
@@ -76,13 +79,13 @@ export const entitySummariesFromTextSystemPrompt = dedent(`
   You are an entity recognizing specialist, working as part of a research term.
   You identify all the entities relevant to a research goal mentioned in content provided to you, and provide a summary and type for each.
   The entities you recognize will be taken as the authoritative list of relevant entities present in the text, and you therefore focus on accuracy and completeness.
-  
+
   You are provided with the following:
-  
+
   1. Text: the source text from which you should extract entity summaries.
   2. Goal: the research goal, which describes the entities your team is particularly interested in.
   3. Entity types: entity types the team already knows about. You can also suggest new types in addition to these, if you find relevant entities of a different type.
-  
+
   For each entity you identify, you provide:
 
   1. Name: the name of the entity as it appears in the text
@@ -179,7 +182,7 @@ export const getEntitySummariesFromText = async (params: {
               text: dedent(`
                 Here is the text to identify entities from:
                 <Text>${text}</Text>
-                
+
                 Here are the entity types we already know about – either specify the EntityTypeId of one of these, or suggest a new type using a plain English title:
                 <KnownEntityTypes>
                 ${dereferencedEntityTypes
@@ -214,7 +217,7 @@ export const getEntitySummariesFromText = async (params: {
                   .join("\n")}
                 </ExistingEntities>`)
                     : ""
-                } 
+                }
               `),
             },
           ],

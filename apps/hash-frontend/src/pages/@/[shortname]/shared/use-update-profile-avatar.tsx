@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { OwnedById } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -18,9 +18,10 @@ export const useUpdateProfileAvatar = (props: {
 
   const existingAvatarImageEntity = profile?.hasAvatar?.imageEntity;
 
-  const ownedById = (
-    profile?.kind === "user" ? profile.accountId : profile?.accountGroupId
-  ) as OwnedById | undefined;
+  const ownedById =
+    profile?.kind === "user"
+      ? (profile.accountId as OwnedById)
+      : (profile?.accountGroupId as OwnedById);
 
   const { uploadFile } = useFileUploads();
   const { refetch: refetchUserAndOrgs } = useAuthInfo();

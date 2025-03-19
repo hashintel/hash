@@ -1,6 +1,5 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { EntityId, OwnedById } from "@blockprotocol/type-system";
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import * as Sentry from "@sentry/nextjs";
 import { useCallback } from "react";
 
