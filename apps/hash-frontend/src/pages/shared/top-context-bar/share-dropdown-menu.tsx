@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { Box, Divider, Popover, Typography } from "@mui/material";
 import {
   bindMenu,
@@ -29,7 +30,11 @@ export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
 }) => {
   const { entityId } = entity.metadata.recordId;
 
-  const { userPermissions } = useUserPermissionsOnEntity(entity);
+  const entityUuid = extractEntityUuidFromEntityId(entityId);
+
+  const { userPermissions } = useUserPermissionsOnEntity(
+    entityUuid === "draft" ? undefined : entity,
+  );
 
   const { data } = useQuery<
     GetEntityAuthorizationRelationshipsQuery,

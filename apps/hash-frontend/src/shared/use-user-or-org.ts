@@ -96,7 +96,10 @@ export const useUserOrOrg = (
         includeDrafts: false,
       },
     },
-    skip: !("accountOrAccountGroupId" in params) && !("shortname" in params),
+    skip:
+      !(
+        "accountOrAccountGroupId" in params && params.accountOrAccountGroupId
+      ) && !("shortname" in params && params.shortname),
     fetchPolicy: "cache-and-network",
   });
 
