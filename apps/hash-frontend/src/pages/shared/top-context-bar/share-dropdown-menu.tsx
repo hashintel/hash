@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { Box, Divider, Popover, Typography } from "@mui/material";
 import {
   bindMenu,
