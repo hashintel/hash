@@ -3,10 +3,10 @@
  */
 
 import type {
+  Confidence,
   ObjectMetadata,
   PropertyProvenance,
-} from "@local/hash-graph-client";
-import type { Confidence } from "@local/hash-graph-types/entity";
+} from "@blockprotocol/type-system";
 
 import type {
   ActivePropertyValue,

@@ -1,15 +1,25 @@
 import { useQuery } from "@apollo/client";
 import { buildSubgraph } from "@blockprotocol/graph/stdlib";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityEditionId,
+  EntityId,
+  EntityUuid,
+  LeftClosedTemporalInterval,
+  Timestamp,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  extractEntityUuidFromEntityId,
+  generateTimestamp,
+} from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import type {
   Entity as GraphApiEntity,
   Filter,
-  LeftClosedTemporalInterval,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
@@ -24,7 +34,6 @@ import {
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
@@ -228,10 +237,10 @@ const SectionTabButton = ({
 const mockEntityFromProposedEntity = (
   proposedEntity: ProposedEntityOutput,
 ): Entity => {
-  const editionId = new Date().toISOString();
+  const editionId = new Date().toISOString() as EntityEditionId;
 
   const temporalInterval: LeftClosedTemporalInterval = {
-    start: { kind: "inclusive", limit: editionId },
+    start: { kind: "inclusive", limit: editionId as string as Timestamp },
     end: { kind: "unbounded" },
   };
 
@@ -519,7 +528,7 @@ export const Outputs = ({
       const mockedEntity = mockEntityFromProposedEntity(proposedEntity);
 
       // Build a subgraph for the entity slide, which includes the entity and linked entities among the proposed entities
-      const now = new Date().toISOString();
+      const now = currentTimestamp();
 
       const mockSubgraph = buildSubgraph(
         {
@@ -543,20 +552,21 @@ export const Outputs = ({
             outgoing: 1,
             incoming: 1,
           },
-        },
-        {
-          initial: currentTimeInstantTemporalAxes,
-          resolved: {
-            pinned: {
-              axis: "transactionTime",
-              timestamp: now,
-            },
-            variable: {
-              axis: "decisionTime",
-              interval: {
-                start: {
-                  kind: "inclusive",
-                  limit: new Date(0).toISOString(),
+          temporalAxes: {
+            initial: currentTimeInstantTemporalAxes,
+            resolved: {
+              pinned: {
+                axis: "transactionTime",
+                timestamp: now,
+              },
+              variable: {
+                axis: "decisionTime",
+                interval: {
+                  start: {
+                    kind: "inclusive",
+                    limit: generateTimestamp(new Date(0)),
+                  },
+                  end: { kind: "inclusive", limit: now },
                 },
                 end: { kind: "inclusive", limit: now },
               },
@@ -601,7 +611,7 @@ export const Outputs = ({
         targetEntityId,
       } = entity;
 
-      const editionId = new Date().toISOString();
+      const editionId = new Date().toISOString() as EntityEditionId;
 
       entities.push({
         linkData:

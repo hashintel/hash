@@ -1,4 +1,4 @@
-import type { OriginProvenance } from "@local/hash-graph-client";
+import type { OriginProvenance } from "@blockprotocol/type-system";
 import type { Request } from "express";
 
 export const hashClientTypes = [

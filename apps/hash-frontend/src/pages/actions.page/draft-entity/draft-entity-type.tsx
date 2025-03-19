@@ -1,6 +1,6 @@
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { ArrowUpRegularIcon, EntityOrTypeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 

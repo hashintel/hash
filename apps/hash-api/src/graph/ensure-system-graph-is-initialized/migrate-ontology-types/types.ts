@@ -1,5 +1,5 @@
+import type { BaseUrl } from "@blockprotocol/type-system";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
 import type { ImpureGraphContext } from "../../context-types";
 

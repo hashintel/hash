@@ -1,7 +1,5 @@
-import type {
-  GraphEmbedderMessageCallbacks,
-  JsonObject,
-} from "@blockprotocol/graph";
+import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
+import type { PropertyObject } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { v4 as uuid } from "uuid";
@@ -12,7 +10,7 @@ import { ResizingIFrame } from "../resizing-iframe/resizing-iframe";
 import type { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
 
 export type CrossFrameProxyProps = GraphEmbedderMessageCallbacks & {
-  blockProperties: JsonObject;
+  blockProperties: PropertyObject;
   getEmbedBlock?: FetchEmbedCodeFn;
   sourceUrl: string;
   onBlockLoaded: () => void;
@@ -67,7 +65,7 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
   );
 
   const sendBlockProperties = useCallback(
-    (properties: JsonObject) =>
+    (properties: PropertyObject) =>
       sendMessage({
         type: "newData",
         payload: properties,

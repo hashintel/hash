@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
+import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   Entity as EntityClass,
@@ -7,7 +8,6 @@ import {
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -19,7 +19,6 @@ import {
   blockProtocolPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { splitEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import NextErrorComponent from "next/error";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -209,7 +208,7 @@ export const Entity = ({
         throw new Error("No entity type ids found");
       }
 
-      void getClosedMultiEntityTypes(entityTypeIds).then((result) => {
+      void getClosedMultiEntityTypes([entityTypeIds]).then((result) => {
         const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
           result.closedMultiEntityTypes,
           mustHaveAtLeastOne(entityTypeIds),
@@ -640,6 +639,7 @@ export const Entity = ({
             entitySubgraph={draftEntitySubgraph}
             hideOpenInNew={!!proposedEntitySubgraph || !!draftLocalEntity}
             isInSlide={isInSlide}
+            isLocalDraft={!!draftLocalEntity}
             isModifyingEntity={haveChangesBeenMade}
             onDraftArchived={onRemoteDraftArchived}
             onDraftPublished={onRemoteDraftPublished}

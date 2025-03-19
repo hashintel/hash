@@ -1,17 +1,18 @@
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system-rs/pkg/type-system";
 import {
   type Entity,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback } from "react";
 
@@ -63,7 +64,7 @@ export const useHandleTypeChanges = ({
         throw new Error("Entity not found in subgraph");
       }
 
-      const newTypeDetails = await getClosedMultiEntityTypes(entityTypeIds);
+      const newTypeDetails = await getClosedMultiEntityTypes([entityTypeIds]);
 
       const outgoingLinks = getOutgoingLinksForEntity(
         entitySubgraph,

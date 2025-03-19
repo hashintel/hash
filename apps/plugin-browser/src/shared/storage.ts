@@ -1,9 +1,12 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  EntityId,
+  EntityMetadata,
+  EntityTypeWithMetadata,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId, EntityMetadata } from "@local/hash-graph-types/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
   ExternalInputWebsocketRequestMessage,
   InferenceModelName,

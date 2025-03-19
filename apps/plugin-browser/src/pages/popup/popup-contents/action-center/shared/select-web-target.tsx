@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { OwnedById } from "@blockprotocol/type-system";
 import type { SxProps, Theme } from "@mui/material";
 import { FormControlLabel, Radio, RadioGroup, Stack } from "@mui/material";
 

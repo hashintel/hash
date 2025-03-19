@@ -1,17 +1,22 @@
 import type {
   Entity,
   EntityId,
-  LinkEntityAndRightEntity,
-} from "../../../types/entity.js";
-import type { Subgraph } from "../../../types/subgraph.js";
+  TemporalBound,
+  TemporalInterval,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+
+import type { LinkEntityAndRightEntity } from "../../../types/entity.js";
+import type {
+  KnowledgeGraphRootedEdges,
+  Subgraph,
+} from "../../../types/subgraph.js";
 import {
   isHasLeftEntityEdge,
   isHasRightEntityEdge,
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
 } from "../../../types/subgraph.js";
-import type { TimeInterval } from "../../../types/temporal-versioning.js";
-import { typedEntries } from "../../../util.js";
 import {
   intervalForTimestamp,
   intervalIntersectionWithInterval,
@@ -50,12 +55,12 @@ const getUniqueEntitiesFilter = () => {
 export const getOutgoingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const entityEdges = subgraph.edges[entityId];
+  const entityEdges = (subgraph.edges as KnowledgeGraphRootedEdges)[entityId];
 
   if (!entityEdges) {
     return [];
@@ -122,12 +127,12 @@ export const getOutgoingLinksForEntity = (
 export const getIncomingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const entityEdges = subgraph.edges[entityId];
+  const entityEdges = (subgraph.edges as KnowledgeGraphRootedEdges)[entityId];
 
   if (!entityEdges) {
     return [];
@@ -193,12 +198,14 @@ export const getIncomingLinksForEntity = (
 export const getLeftEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] | undefined => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
+  const outwardEdge = Object.values(
+    (subgraph.edges as KnowledgeGraphRootedEdges)[entityId] ?? {},
+  )
     .flat()
     .find(isHasLeftEntityEdge);
 
@@ -242,12 +249,14 @@ export const getLeftEntityForLinkEntity = (
 export const getRightEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] | undefined => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
+  const outwardEdge = Object.values(
+    (subgraph.edges as KnowledgeGraphRootedEdges)[entityId] ?? {},
+  )
     .flat()
     .find(isHasRightEntityEdge);
 
@@ -291,7 +300,7 @@ export const getOutgoingLinkAndTargetEntities = <
 >(
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): LinkAndRightEntities => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);

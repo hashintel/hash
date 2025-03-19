@@ -1,16 +1,15 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityRevisionId } from "@blockprotocol/graph";
+import type {
+  BaseUrl,
+  EntityMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type {
-  EntityRevisionId,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 
 export const createDraftEntitySubgraph = ({
   currentSubgraph,

@@ -1,3 +1,11 @@
+import type {
+  ActorId,
+  EntityId,
+  OriginProvenance,
+  OwnedById,
+  PropertyObject,
+  ProvidedEntityEditionProvenance,
+} from "@blockprotocol/type-system";
 import type { Connection, LinearDocument, Team } from "@linear/sdk";
 import { LinearClient } from "@linear/sdk";
 import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
@@ -7,19 +15,12 @@ import type {
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import type {
-  GraphApi,
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   Entity,
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import {
@@ -44,7 +45,7 @@ const provenance: ProvidedEntityEditionProvenance = {
 };
 
 const createHashEntity = async (params: {
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorId };
   graphApiClient: GraphApi;
   partialEntity: PartialEntity;
   outgoingLinks: {
@@ -127,7 +128,7 @@ const createHashEntity = async (params: {
 };
 
 const createOrUpdateHashEntity = async (params: {
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorId };
   graphApiClient: GraphApi;
   partialEntity: PartialEntity;
   outgoingLinks: {
@@ -347,7 +348,7 @@ export const createLinearIntegrationActivities = ({
   graphApiClient: GraphApi;
 }) => ({
   async createPartialEntities(params: {
-    authentication: { actorId: AccountId };
+    authentication: { actorId: ActorId };
     entities: PartialEntity[];
     workspaceOwnedById: OwnedById;
   }): Promise<void> {

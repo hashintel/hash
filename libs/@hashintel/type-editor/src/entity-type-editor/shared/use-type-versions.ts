@@ -1,8 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
-  extractVersion,
-} from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import { useMemo } from "react";
 
 import type { EntityTypesByVersionedUrl } from "../../shared/entity-types-options-context";

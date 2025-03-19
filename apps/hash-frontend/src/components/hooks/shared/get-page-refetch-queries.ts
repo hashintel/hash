@@ -1,8 +1,8 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+} from "@blockprotocol/type-system";
 import { useCallback } from "react";
 
 import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";

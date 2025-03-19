@@ -1,11 +1,13 @@
 import { useApolloClient, useMutation } from "@apollo/client";
+import type {
+  EntityTypeWithMetadata,
+  OwnedById,
+} from "@blockprotocol/type-system";
 import {
   ArrowRightRegularIcon,
   BullseyeLightIcon,
   TextField,
 } from "@hashintel/design-system";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import {
   goalFlowDefinition,

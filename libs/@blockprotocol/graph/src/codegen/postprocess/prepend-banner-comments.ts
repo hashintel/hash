@@ -1,5 +1,6 @@
+import { typedKeys } from "@local/advanced-types/typed-entries";
+
 import { mustBeDefined } from "../../util/must-be-defined.js";
-import { typedKeys } from "../../util/typed-object-iter.js";
 import type { PostprocessContext } from "../context/postprocess.js";
 
 const bannerComment = () => `/**

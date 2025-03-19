@@ -4,10 +4,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityUuid, OwnedById, Url } from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
@@ -38,7 +37,7 @@ test.only(
       graphApiClient,
     });
 
-    const url = "https://arxiv.org/html/2402.17177v1";
+    const url = "https://arxiv.org/html/2402.17177v1" as Url;
 
     const webPage = await getWebPageActivity({
       url,
@@ -231,7 +230,7 @@ test(
   "Test inferSummariesThenClaimsFromText with FTSE350 web page html",
   async () => {
     const url =
-      "https://www.londonstockexchange.com/indices/ftse-350/constituents/table";
+      "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url;
 
     const webPage = await getWebPageActivity({
       url,
@@ -546,7 +545,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
 test(
   "Test inferSummariesThenClaimsFromText with LLM providers",
   async () => {
-    const url = "https://platform.openai.com/docs/models";
+    const url = "https://platform.openai.com/docs/models" as Url;
 
     const webPage = await getWebPageActivity({
       url,

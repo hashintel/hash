@@ -2,11 +2,11 @@ import type {
   ConversionDefinition,
   Conversions,
   DataType,
+  DataTypeWithMetadata,
   Operator,
 } from "@blockprotocol/type-system";
 import { CloseIcon, IconButton, Select } from "@hashintel/design-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import {

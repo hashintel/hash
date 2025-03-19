@@ -7,7 +7,7 @@ use hash_graph_temporal_versioning::Timestamp;
 use hash_graph_types::Embedding;
 use serde::Deserialize;
 use type_system::{
-    knowledge::{Value, entity::id::EntityEditionId},
+    knowledge::{PropertyValue, entity::id::EntityEditionId},
     ontology::{
         data_type::DataTypeUuid,
         entity_type::EntityTypeUuid,
@@ -25,7 +25,7 @@ pub enum Parameter<'p> {
     Decimal(Real),
     Text(Cow<'p, str>),
     Vector(Embedding<'p>),
-    Any(Value),
+    Any(PropertyValue),
     #[serde(skip)]
     Uuid(Uuid),
     #[serde(skip)]
@@ -113,7 +113,7 @@ impl Parameter<'_> {
 #[derive(Debug)]
 pub enum ActualParameterType {
     Parameter(Parameter<'static>),
-    Value(Value),
+    Value(PropertyValue),
 }
 
 impl From<Parameter<'static>> for ActualParameterType {
@@ -122,8 +122,8 @@ impl From<Parameter<'static>> for ActualParameterType {
     }
 }
 
-impl From<Value> for ActualParameterType {
-    fn from(value: Value) -> Self {
+impl From<PropertyValue> for ActualParameterType {
+    fn from(value: PropertyValue) -> Self {
         Self::Value(value)
     }
 }
@@ -150,30 +150,29 @@ impl fmt::Display for ParameterConversionError {
             Self::InvalidParameterType { actual, expected } => {
                 let actual = match actual {
                     ActualParameterType::Parameter(parameter) => match parameter {
-                        Parameter::Any(Value::Null) => "null".to_owned(),
-                        Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
-                            boolean.to_string()
-                        }
+                        Parameter::Any(PropertyValue::Null) => "null".to_owned(),
+                        Parameter::Boolean(boolean)
+                        | Parameter::Any(PropertyValue::Bool(boolean)) => boolean.to_string(),
                         Parameter::Integer(number) => number.to_string(),
                         #[expect(clippy::match_same_arms)]
                         Parameter::Decimal(number) => number.to_string(),
-                        Parameter::Any(Value::Number(number)) => number.to_string(),
+                        Parameter::Any(PropertyValue::Number(number)) => number.to_string(),
                         Parameter::Text(text) => text.to_string(),
                         Parameter::Vector(_) => "vector".to_owned(),
-                        Parameter::Any(Value::String(string)) => string.clone(),
+                        Parameter::Any(PropertyValue::String(string)) => string.clone(),
                         Parameter::Uuid(uuid) => uuid.to_string(),
                         Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
                         Parameter::Timestamp(timestamp) => timestamp.to_string(),
-                        Parameter::Any(Value::Object(_)) => "object".to_owned(),
-                        Parameter::Any(Value::Array(_)) => "array".to_owned(),
+                        Parameter::Any(PropertyValue::Object(_)) => "object".to_owned(),
+                        Parameter::Any(PropertyValue::Array(_)) => "array".to_owned(),
                     },
                     ActualParameterType::Value(value) => match value {
-                        Value::Null => "null".to_owned(),
-                        Value::Bool(boolean) => boolean.to_string(),
-                        Value::Number(number) => number.to_string(),
-                        Value::String(string) => string.clone(),
-                        Value::Array(_) => "array".to_owned(),
-                        Value::Object(_) => "object".to_owned(),
+                        PropertyValue::Null => "null".to_owned(),
+                        PropertyValue::Bool(boolean) => boolean.to_string(),
+                        PropertyValue::Number(number) => number.to_string(),
+                        PropertyValue::String(string) => string.clone(),
+                        PropertyValue::Array(_) => "array".to_owned(),
+                        PropertyValue::Object(_) => "object".to_owned(),
                     },
                 };
 
@@ -202,17 +201,17 @@ impl Parameter<'_> {
 
             // Boolean conversions
             (Parameter::Boolean(bool), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Bool(*bool));
+                *self = Parameter::Any(PropertyValue::Bool(*bool));
             }
-            (Parameter::Any(Value::Bool(bool)), ParameterType::Boolean) => {
+            (Parameter::Any(PropertyValue::Bool(bool)), ParameterType::Boolean) => {
                 *self = Parameter::Boolean(*bool);
             }
 
             // Integral conversions
             (Parameter::Integer(number), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Number(Real::from(*number)));
+                *self = Parameter::Any(PropertyValue::Number(Real::from(*number)));
             }
-            (Parameter::Any(Value::Number(number)), ParameterType::Integer) => {
+            (Parameter::Any(PropertyValue::Number(number)), ParameterType::Integer) => {
                 *self = Parameter::Integer(number.to_i32().ok_or_else(|| {
                     ParameterConversionError::InvalidParameterType {
                         actual: self.to_owned().into(),
@@ -236,17 +235,17 @@ impl Parameter<'_> {
 
             // Floating point conversions
             (Parameter::Decimal(number), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Number(number.to_owned()));
+                *self = Parameter::Any(PropertyValue::Number(number.to_owned()));
             }
-            (Parameter::Any(Value::Number(number)), ParameterType::Decimal) => {
+            (Parameter::Any(PropertyValue::Number(number)), ParameterType::Decimal) => {
                 *self = Parameter::Decimal(number.to_owned());
             }
 
             // Text conversions
             (Parameter::Text(text), ParameterType::Any) => {
-                *self = Parameter::Any(Value::String((*text).to_string()));
+                *self = Parameter::Any(PropertyValue::String((*text).to_string()));
             }
-            (Parameter::Any(Value::String(string)), ParameterType::Text) => {
+            (Parameter::Any(PropertyValue::String(string)), ParameterType::Text) => {
                 *self = Parameter::Text(Cow::Owned(string.clone()));
             }
             (Parameter::Text(_base_url), ParameterType::BaseUrl) => {
@@ -268,7 +267,7 @@ impl Parameter<'_> {
 
             // Vector conversions
             (Parameter::Vector(vector), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Array(
+                *self = Parameter::Any(PropertyValue::Array(
                     vector
                         .iter()
                         .map(|value| {
@@ -277,19 +276,19 @@ impl Parameter<'_> {
                                     from: ParameterType::Vector(Box::new(ParameterType::Decimal)),
                                     to: ParameterType::Decimal,
                                 })
-                                .map(Value::Number)
+                                .map(PropertyValue::Number)
                         })
                         .collect::<Result<_, _>>()?,
                 ));
             }
-            (Parameter::Any(Value::Array(array)), ParameterType::Vector(rhs))
+            (Parameter::Any(PropertyValue::Array(array)), ParameterType::Vector(rhs))
                 if **rhs == ParameterType::Decimal =>
             {
                 *self = Parameter::Vector(
                     mem::take(array)
                         .into_iter()
                         .map(|value| {
-                            let Value::Number(number) = value else {
+                            let PropertyValue::Number(number) = value else {
                                 bail!(ParameterConversionError::InvalidParameterType {
                                     actual: self.to_owned().into(),
                                     expected: expected.clone(),

@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 

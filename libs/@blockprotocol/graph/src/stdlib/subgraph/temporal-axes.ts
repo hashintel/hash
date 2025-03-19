@@ -1,9 +1,10 @@
-import type { Subgraph } from "../../types/subgraph.js";
-import type { BoundedTimeInterval } from "../../types/temporal-versioning.js";
-import { intervalForTimestamp } from "../interval.js";
+import type {
+  ClosedTemporalBound,
+  TemporalInterval,
+} from "@blockprotocol/type-system";
 
-// Separated out to improve the ergonomics of the `as` cast in the function, which is required due to limitations of TS
-type LatestInstantInterval = BoundedTimeInterval;
+import type { Subgraph } from "../../types/subgraph.js";
+import { intervalForTimestamp } from "../interval.js";
 
 /**
  * For a given {@link Subgraph} that supports temporal versioning, this returns a {@link TimeInterval} that spans
@@ -15,7 +16,7 @@ type LatestInstantInterval = BoundedTimeInterval;
  */
 export const getLatestInstantIntervalForSubgraph = (
   subgraph: Subgraph,
-): LatestInstantInterval => {
+): TemporalInterval<ClosedTemporalBound, ClosedTemporalBound> => {
   const subgraphEndBound = subgraph.temporalAxes.resolved.variable.interval.end;
   return intervalForTimestamp(subgraphEndBound.limit);
 };

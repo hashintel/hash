@@ -1,4 +1,4 @@
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 
 import { createComment } from "../../../../graph/knowledge/system-types/comment";
 import type {

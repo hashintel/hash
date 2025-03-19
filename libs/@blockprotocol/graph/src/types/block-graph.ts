@@ -1,9 +1,13 @@
 import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
+import type {
+  Entity,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 
 import type {
   CreateEntityData,
   DeleteEntityData,
-  Entity,
   GetEntityData,
   QueryEntitiesData,
   QueryEntitiesResult,
@@ -13,9 +17,7 @@ import type { UploadFileData, UploadFileReturn } from "./file.js";
 import type {
   CreateEntityTypeData,
   CreatePropertyTypeData,
-  EntityTypeWithMetadata,
   GetPropertyTypeData,
-  PropertyTypeWithMetadata,
   QueryPropertyTypesData,
   QueryPropertyTypesResult,
   UpdateEntityTypeData,

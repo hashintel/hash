@@ -1,4 +1,5 @@
-import type { Entity, MultiFilter } from "@blockprotocol/graph";
+import type { MultiFilter } from "@blockprotocol/graph";
+import type { Entity } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { Card, List, ListItem, Typography } from "@mui/material";
 import { useEffect, useState } from "react";

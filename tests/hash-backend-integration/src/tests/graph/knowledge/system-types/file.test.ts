@@ -5,10 +5,12 @@ import {
   createFileFromUploadRequest,
 } from "@apps/hash-api/src/graph/knowledge/system-types/file";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type {
+  EntityId,
+  OwnedById,
+  Timestamp,
+} from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { resetGraph } from "../../../test-server";

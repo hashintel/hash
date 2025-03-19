@@ -1,9 +1,11 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";

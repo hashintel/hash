@@ -1,11 +1,15 @@
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
 import type {
+  ActorId,
   EntityId,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
-} from "@local/hash-graph-types/entity";
+} from "@blockprotocol/type-system";
+import {
+  extractDraftIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -13,10 +17,6 @@ import {
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  extractDraftIdFromEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import isEqual from "lodash/isEqual.js";
 
@@ -31,7 +31,7 @@ import type { ExistingEntityForMatching } from "../../shared/match-existing-enti
 
 export const getLatestEntityById = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorId };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {

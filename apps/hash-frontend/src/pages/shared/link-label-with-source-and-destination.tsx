@@ -1,6 +1,13 @@
-import type { EntityPropertyValue } from "@blockprotocol/graph";
-import type { EntityType } from "@blockprotocol/type-system/slim";
-import { extractVersion } from "@blockprotocol/type-system/slim";
+import type {
+  EntityId,
+  EntityType,
+  EntityTypeWithMetadata,
+  PropertyValue,
+} from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractVersion,
+} from "@blockprotocol/type-system";
 import {
   EntityOrTypeIcon,
   EyeSlashRegularIcon,
@@ -12,16 +19,13 @@ import {
   getDisplayFieldsForClosedEntityType,
   getPropertyTypeForClosedMultiEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
-  EntityTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getEntityTypeById,
@@ -57,7 +61,7 @@ const ContentTypography = styled(Typography)(({ theme }) => ({
   whiteSpace: "nowrap",
 }));
 
-const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
+const stringifyEntityPropertyValue = (value: PropertyValue): string => {
   if (Array.isArray(value)) {
     return value.map(stringifyEntityPropertyValue).join(", ");
   } else if (typeof value === "boolean") {
@@ -225,8 +229,8 @@ const LeftOrRightEntity: FunctionComponent<{
       return undefined;
     }
 
-    return typedEntries(entity.properties)
-      .map(([baseUrl, propertyValue]) => {
+    return typedEntries(entity.properties).flatMap(
+      ([baseUrl, propertyValue]) => {
         const closedEntityType = closedMultiEntityTypesMap
           ? getClosedMultiEntityTypeFromMap(
               closedMultiEntityTypesMap,
@@ -254,8 +258,8 @@ const LeftOrRightEntity: FunctionComponent<{
           propertyType,
           stringifiedPropertyValue,
         };
-      })
-      .flat();
+      },
+    );
   }, [
     closedMultiEntityTypesMap,
     closedMultiEntityTypesDefinitions,

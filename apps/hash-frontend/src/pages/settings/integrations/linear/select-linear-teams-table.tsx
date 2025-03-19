@@ -1,5 +1,5 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import { Chip, Select } from "@hashintel/design-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import {

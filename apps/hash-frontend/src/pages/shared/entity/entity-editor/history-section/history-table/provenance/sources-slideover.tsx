@@ -1,9 +1,8 @@
+import type { EntityId, SourceProvenance } from "@blockprotocol/type-system";
+import { splitEntityId } from "@blockprotocol/type-system";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { SourceProvenance } from "@local/hash-graph-client";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Subgraph } from "@local/hash-subgraph";
-import { splitEntityId } from "@local/hash-subgraph";
 import {
   Backdrop,
   Box,

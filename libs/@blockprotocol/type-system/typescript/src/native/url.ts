@@ -1,5 +1,6 @@
 import type {
   BaseUrl,
+  OntologyTypeVersion,
   ParseBaseUrlError,
   ParseVersionedUrlError,
   Result,
@@ -27,7 +28,7 @@ export const validateBaseUrl = (
     if (url.endsWith("/")) {
       return {
         type: "Ok",
-        inner: url,
+        inner: url as BaseUrl,
       };
     } else {
       return {
@@ -53,6 +54,10 @@ export const validateBaseUrl = (
       },
     };
   }
+};
+
+export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
+  return validateBaseUrl(baseUrl).type === "Ok";
 };
 
 const versionedUrlRegExp = /(.+\/)v\/(.*)/;
@@ -164,7 +169,7 @@ export const extractBaseUrl = (url: VersionedUrl): BaseUrl => {
     throw new Error(`Not a valid VersionedUrl: ${url}`);
   }
 
-  return baseUrl;
+  return baseUrl as BaseUrl;
 };
 
 /**
@@ -173,7 +178,7 @@ export const extractBaseUrl = (url: VersionedUrl): BaseUrl => {
  * @param {VersionedUrl} url - The versioned URL.
  * @throws if the versioned URL is invalid.
  */
-export const extractVersion = (url: VersionedUrl): number => {
+export const extractVersion = (url: VersionedUrl): OntologyTypeVersion => {
   if (url.length > 2048) {
     throw new Error(`URL too long: ${url}`);
   }
@@ -186,5 +191,5 @@ export const extractVersion = (url: VersionedUrl): number => {
 
   const [_match, _baseUrl, version] = groups;
 
-  return Number(version);
+  return Number(version) as OntologyTypeVersion;
 };

@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { PlusIcon, TypeCard } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
@@ -237,7 +237,7 @@ export const TypesSection = () => {
         entityTypeId: currentTypeMetadata.$id,
         entityTypeTitle: currentTypeMetadata.title,
         icon,
-        isLink: !!currentTypeMetadata.allOf?.some(
+        isLink: !!currentTypeMetadata.allOf.some(
           (parent) => parent.$id === linkEntityTypeUrl,
         ),
         version,

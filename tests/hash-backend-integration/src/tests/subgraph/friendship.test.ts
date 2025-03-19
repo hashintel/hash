@@ -21,7 +21,13 @@ import {
   getPropertyTypeSubgraph,
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorId,
+  BaseUrl,
+  EntityTypeWithMetadata,
+  Timestamp,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type {
   GetDataTypesParams,
   GetEntitySubgraphRequest,
@@ -29,12 +35,6 @@ import type {
   GetPropertyTypesParams,
 } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import {
   currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
@@ -145,7 +145,7 @@ let bobEntities: Entity[];
 let linkEntities: Entity[];
 
 const authentication = {
-  actorId: "00000000-0001-0000-0000-000000000000" as AccountId,
+  actorId: "00000000-0001-0000-0000-000000000000" as ActorId,
 };
 
 beforeAll(async () => {

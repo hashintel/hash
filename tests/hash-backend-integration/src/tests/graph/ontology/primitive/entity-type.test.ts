@@ -19,22 +19,23 @@ import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/
 import type {
   ClosedEntityType,
   ClosedMultiEntityType,
+  EntityTypeWithMetadata,
+  OwnedById,
+  PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { atLeastOne } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
@@ -354,7 +355,7 @@ describe("Entity type CRU", () => {
               $id: systemEntityTypes.actor.entityTypeId,
               icon: "/icons/types/user.svg",
               labelProperty:
-                "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+                blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
             },
           ],
         } satisfies ClosedEntityType,

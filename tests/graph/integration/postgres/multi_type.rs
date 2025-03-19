@@ -19,7 +19,7 @@ use type_system::{
     knowledge::{
         Entity,
         entity::provenance::ProvidedEntityEditionProvenance,
-        property::{PropertyObject, PropertyWithMetadataObject},
+        property::{PropertyObject, PropertyObjectWithMetadata},
     },
     ontology::VersionedUrl,
     provenance::{ActorType, OriginProvenance, OriginType},
@@ -87,7 +87,7 @@ async fn empty_entity() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::new(),
-                properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+                properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
@@ -121,7 +121,7 @@ async fn initial_person() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
@@ -292,7 +292,7 @@ async fn create_multi() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id(), org_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,

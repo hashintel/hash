@@ -1,6 +1,8 @@
-import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
-import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type {
+  OntologyTemporalMetadata,
+  OwnedById,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   defaultPropertyTypeAuthorizationRelationships,

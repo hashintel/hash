@@ -1,4 +1,4 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { memo } from "react";
 

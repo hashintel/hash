@@ -10,8 +10,8 @@ use type_system::{
     knowledge::{
         entity::{EntityId, provenance::ProvidedEntityEditionProvenance},
         property::{
-            Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
-            PropertyWithMetadataObject,
+            Property, PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
+            PropertyPath, PropertyWithMetadata,
         },
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
@@ -95,7 +95,7 @@ async fn initial_draft() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
@@ -280,7 +280,7 @@ async fn no_initial_draft() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
@@ -467,7 +467,7 @@ async fn multiple_drafts() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,

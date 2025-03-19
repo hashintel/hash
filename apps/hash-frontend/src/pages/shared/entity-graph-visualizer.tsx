@@ -1,22 +1,19 @@
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  ClosedMultiEntityType,
+  EntityId,
+  EntityMetadata,
+  LinkData,
+  PropertyObject,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { isEntityId, mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import { ibm } from "@hashintel/design-system/palettes";
 import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityId,
-  EntityMetadata,
-  LinkData,
-  PropertyObject,
-} from "@local/hash-graph-types/entity";
-import type {
-  ClosedMultiEntityType,
-  ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-types/ontology";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { isEntityId } from "@local/hash-subgraph";
 import { Box, Stack, useTheme } from "@mui/material";
 import type { ReactElement } from "react";
 import { memo, useCallback, useMemo, useState } from "react";

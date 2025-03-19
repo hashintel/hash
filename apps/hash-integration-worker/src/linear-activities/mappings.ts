@@ -1,4 +1,11 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorId,
+  EntityId,
+  Property,
+  PropertyObject,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import type {
   SupportedLinearTypeNames,
   SupportedLinearTypes,
@@ -8,13 +15,6 @@ import { getLinearMappingByLinearType } from "@local/hash-backend-utils/linear-t
 import type { PartialEntity } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type {
-  EntityId,
-  Property,
-  PropertyObject,
-} from "@local/hash-graph-types/entity";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {
   getEntitiesByLinearId,
@@ -65,7 +65,7 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
   T extends SupportedLinearTypeNames,
 >(params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorId };
   linearType: T;
   linearData: SupportedLinearTypes[T];
 }): Promise<{
@@ -128,7 +128,7 @@ export const mapHashEntityToLinearUpdateInput = async <
   T extends SupportedLinearTypeNames,
 >(params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorId };
   linearType: T;
   entity: Entity;
 }): Promise<SupportedLinearUpdateInput[T]> => {

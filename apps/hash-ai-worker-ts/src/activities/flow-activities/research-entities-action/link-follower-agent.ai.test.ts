@@ -1,5 +1,6 @@
 import "../../../shared/testing-utilities/mock-get-flow-context.js";
 
+import type { Url } from "@blockprotocol/type-system";
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
@@ -26,7 +27,7 @@ test.skip(
         ),
         existingEntitiesOfInterest: [],
         initialResource: {
-          url: "https://churchlab.hms.harvard.edu/index.php/lab-members#current",
+          url: "https://churchlab.hms.harvard.edu/index.php/lab-members#current" as Url,
           exampleOfExpectedContent: "Current Members: ...",
           descriptionOfExpectedContent:
             "The current members of the lab are listed on the page.",
@@ -71,7 +72,7 @@ test.skip(
         ),
         existingEntitiesOfInterest: [],
         initialResource: {
-          url: "https://openai.com/index/video-generation-models-as-world-simulators/",
+          url: "https://openai.com/index/video-generation-models-as-world-simulators/" as Url,
           goal: 'Obtain the full list of authors of the Sora article titled "Video Generation Models as World Simulators',
           exampleOfExpectedContent: "Authors: ...",
           descriptionOfExpectedContent:
@@ -118,7 +119,7 @@ test.skip(
         ),
         existingEntitiesOfInterest: [],
         initialResource: {
-          url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+          url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
           goal: "Get all the stock market constituents of the FTSE350.",
           exampleOfExpectedContent: "Constituents: ...",
           descriptionOfExpectedContent:
@@ -164,7 +165,7 @@ test.skip(
         existingEntitiesOfInterest: [],
         initialResource: {
           goal: "Identify the top 3 graphics cards suitable for AI model processing, including their specifications and features.",
-          url: "https://www.gpu-mart.com/blog/best-gpus-for-deep-learning-2023",
+          url: "https://www.gpu-mart.com/blog/best-gpus-for-deep-learning-2023" as Url,
           exampleOfExpectedContent: "Graphics Cards: ...",
           descriptionOfExpectedContent:
             "The top 3 graphics cards for AI model processing are listed on the page.",
@@ -211,7 +212,7 @@ test.skip(
         ),
         existingEntitiesOfInterest: [],
         initialResource: {
-          url: "https://corporate.marksandspencer.com/investors",
+          url: "https://corporate.marksandspencer.com/investors" as Url,
           goal: "Get the list of investors of Marks and Spencer's, based on the 2023 annual investors report PDF file.",
           exampleOfExpectedContent: "Investors: ...",
           descriptionOfExpectedContent:

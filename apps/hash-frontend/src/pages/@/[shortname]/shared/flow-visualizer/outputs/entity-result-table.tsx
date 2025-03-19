@@ -1,5 +1,13 @@
-import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type {
+  ClosedMultiEntityType,
+  EntityEditionId,
+  EntityId,
+  PropertyObject,
+  PropertyObjectMetadata,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type { EntityType } from "@blockprotocol/type-system/slim";
 import {
   typedEntries,
@@ -10,14 +18,8 @@ import {
   Entity,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 import type {
-  EntityId,
-  EntityProperties,
-  PropertyMetadataObject,
-  PropertyObject,
-} from "@local/hash-graph-types/entity";
-import type {
-  ClosedMultiEntityType,
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
@@ -25,7 +27,6 @@ import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, TableCell } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -237,7 +238,7 @@ type EntityResultRow = {
   >;
   persistedEntity?: Entity;
   properties: PropertyObject;
-  propertiesMetadata: PropertyMetadataObject;
+  propertiesMetadata: PropertyObjectMetadata;
   relevance: "Yes" | "No";
   researchOngoing: boolean;
   status: "Proposed" | "Created" | "Updated";
@@ -683,7 +684,10 @@ export const EntityResultTable = memo(
           properties: entity.properties,
           metadata: {
             entityTypeIds,
-            recordId: { entityId, editionId: "irrelevant-here" },
+            recordId: {
+              entityId,
+              editionId: "irrelevant-here" as EntityEditionId,
+            },
           },
         });
 

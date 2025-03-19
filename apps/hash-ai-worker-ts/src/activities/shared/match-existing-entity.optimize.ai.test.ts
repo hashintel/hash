@@ -3,15 +3,16 @@ import "../../shared/testing-utilities/mock-get-flow-context.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { ValueMetadata } from "@local/hash-graph-client";
 import type {
   EntityId,
   EntityUuid,
-  PropertyMetadataObject,
-} from "@local/hash-graph-types/entity";
+  OwnedById,
+  PropertyObjectMetadata,
+  ValueMetadata,
+} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import { brandPropertyObject } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolDataTypes,
@@ -21,7 +22,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { PersonProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import { test } from "vitest";
 
 import type { LlmParams } from "./get-llm-response/types.js";
@@ -33,7 +33,7 @@ import {
 import { optimizeSystemPrompt } from "./optimize-system-prompt.js";
 import type { MetricDefinition } from "./optimize-system-prompt/types.js";
 
-const emptyMetadataObject: PropertyMetadataObject = {
+const emptyMetadataObject: PropertyObjectMetadata = {
   value: {},
 };
 

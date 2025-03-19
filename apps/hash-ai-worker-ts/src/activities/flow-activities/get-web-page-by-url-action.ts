@@ -1,3 +1,4 @@
+import type { Url } from "@blockprotocol/type-system";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -18,7 +19,7 @@ export const getWebPageByUrlAction: FlowActionActivity = async ({ inputs }) => {
    * once legacy AI inference temporal workflows have been replaced
    * by HASH flows.
    */
-  const webPage = await getWebPageActivity({ url });
+  const webPage = await getWebPageActivity({ url: url as Url });
   if ("error" in webPage) {
     return {
       code: StatusCode.Unavailable,

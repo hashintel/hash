@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -9,7 +10,6 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
 import type { EntityRootType } from "@local/hash-subgraph";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 

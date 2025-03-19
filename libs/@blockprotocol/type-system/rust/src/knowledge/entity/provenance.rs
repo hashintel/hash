@@ -13,6 +13,7 @@ use crate::provenance::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityEditionProvenance {
@@ -52,6 +53,7 @@ impl ToSql for EntityEditionProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvidedEntityEditionProvenance {
@@ -62,16 +64,21 @@ pub struct ProvidedEntityEditionProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct InferredEntityProvenance {
     pub created_by_id: CreatedById,
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     pub created_at_transaction_time: Timestamp<TransactionTime>,
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     pub created_at_decision_time: Timestamp<DecisionTime>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub first_non_draft_created_at_transaction_time: Option<Timestamp<TransactionTime>>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub first_non_draft_created_at_decision_time: Option<Timestamp<DecisionTime>>,
 }
@@ -104,6 +111,7 @@ impl ToSql for InferredEntityProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityProvenance {

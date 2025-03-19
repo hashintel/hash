@@ -7,6 +7,7 @@ use crate::knowledge::entity::EntityId;
 // This enumeration is expected to grow over time, thus it's marked as non-exhaustive.
 // To generate the OpenAPI specs pass `--write-openapi-specs` when running the HASH Graph server.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 #[non_exhaustive]
@@ -17,6 +18,7 @@ pub enum SourceType {
 
 /// A location where the source material can be found.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Location {
@@ -28,6 +30,7 @@ pub struct Location {
     /// A string containing a valid relative or absolute URI.
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Url"))]
     pub uri: Option<Url>,
 
     /// Encapsulates a message intended to be read by the end user.
@@ -38,6 +41,7 @@ pub struct Location {
 
 /// The source material used in producing a value.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SourceProvenance {
@@ -61,6 +65,7 @@ pub struct SourceProvenance {
 
     /// The datetime at which the material was first published.
     #[cfg_attr(feature = "utoipa", schema(nullable = false, value_type = Timestamp))]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -70,6 +75,7 @@ pub struct SourceProvenance {
 
     /// The datetime at which the material was last updated.
     #[cfg_attr(feature = "utoipa", schema(nullable = false, value_type = Timestamp))]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -79,6 +85,7 @@ pub struct SourceProvenance {
 
     /// The datetime at which the material was retrieved from its location.
     #[cfg_attr(feature = "utoipa", schema(nullable = false, value_type = Timestamp))]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",

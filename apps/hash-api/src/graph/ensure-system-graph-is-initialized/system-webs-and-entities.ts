@@ -1,4 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorGroupId,
+  ActorId,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
@@ -7,11 +12,6 @@ import {
   getMachineActorId,
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
@@ -31,8 +31,8 @@ import { systemAccountId } from "../system-account";
 export const owningWebs: Record<
   SystemTypeWebShortname,
   {
-    machineActorAccountId?: AccountId;
-    accountGroupId?: AccountGroupId;
+    machineActorAccountId?: ActorId;
+    accountGroupId?: ActorGroupId;
     enabled: boolean;
     name: string;
     websiteUrl: string;
@@ -58,7 +58,7 @@ export const owningWebs: Record<
 export const getOrCreateOwningAccountGroupId = async (
   context: ImpureGraphContext,
   webShortname: SystemTypeWebShortname,
-): Promise<{ accountGroupId: AccountGroupId; machineActorId: AccountId }> => {
+): Promise<{ accountGroupId: ActorGroupId; machineActorId: ActorId }> => {
   // We only need to resolve this once for each shortname during the seeding process
   const resolvedAccountGroupId = owningWebs[webShortname].accountGroupId;
   const resolvedMachineActorAccountId =

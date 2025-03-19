@@ -1,5 +1,7 @@
-import type { DataTypeWithMetadata } from "@blockprotocol/graph";
-import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
+import type {
+  DataTypeWithMetadata,
+  OntologyTemporalMetadata,
+} from "@blockprotocol/type-system";
 import type { DataTypeFullConversionTargetsMap } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,

@@ -1,9 +1,8 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityUuid, OwnedById, Url } from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
@@ -41,7 +40,7 @@ test(
       .schema;
 
     const url =
-      "https://www.londonstockexchange.com/indices/ftse-350/constituents/table";
+      "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url;
 
     const webPage = await getWebPageActivity({
       url,
@@ -107,7 +106,7 @@ test(
       .schema;
 
     const url =
-      "https://www.nvidia.com/de-de/geforce/graphics-cards/40-series/rtx-4090/";
+      "https://www.nvidia.com/de-de/geforce/graphics-cards/40-series/rtx-4090/" as Url;
 
     const webPage = await getWebPageActivity({
       url,

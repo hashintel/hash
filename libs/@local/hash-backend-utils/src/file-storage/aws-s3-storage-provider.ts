@@ -5,6 +5,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import type { Url } from "@blockprotocol/type-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -141,7 +142,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
     };
   }
 
-  async presignDownload(params: PresignedDownloadRequest): Promise<string> {
+  async presignDownload(params: PresignedDownloadRequest): Promise<Url> {
     const { key, entity } = params;
     const {
       fileStorageBucket,
@@ -179,10 +180,9 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
       Key: key,
     });
 
-    const url = await getSignedUrl(client, command, {
+    return (await getSignedUrl(client, command, {
       expiresIn: params.expiresInSeconds,
-    });
-    return url;
+    })) as Url;
   }
 
   getFileEntityStorageKey({

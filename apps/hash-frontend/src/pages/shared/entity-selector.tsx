@@ -1,6 +1,11 @@
 import { useQuery } from "@apollo/client";
-import type { EntityType } from "@blockprotocol/type-system";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type { EntityId, EntityType } from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractDraftIdFromEntityId,
+  mustHaveAtLeastOne,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import type {
   SelectorAutocompleteProps,
   TypeListSelectorDropdownProps,
@@ -11,7 +16,6 @@ import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
@@ -21,11 +25,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  entityIdFromComponents,
-  extractDraftIdFromEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo, useState } from "react";
 

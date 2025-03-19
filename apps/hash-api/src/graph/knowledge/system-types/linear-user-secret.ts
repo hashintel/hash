@@ -1,12 +1,14 @@
+import type { ActorId, EntityId, OwnedById } from "@blockprotocol/type-system";
+import {
+  extractOwnedByIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import {
   EntityTypeMismatchError,
   NotFoundError,
 } from "@local/hash-backend-utils/error";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -20,10 +22,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { LinearIntegration } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  extractOwnedByIdFromEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
 
 import type {
   ImpureGraphFunction,
@@ -89,7 +87,7 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
  * Get a Linear user secret by the linear org ID
  */
 export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
-  { userAccountId: AccountId; linearOrgId: string; includeDrafts?: boolean },
+  { userAccountId: ActorId; linearOrgId: string; includeDrafts?: boolean },
   Promise<LinearUserSecret>
 > = async ({ graphApi }, { actorId }, params) => {
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
@@ -237,7 +235,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
 
   const userAccountId = extractOwnedByIdFromEntityId(
     integrationEntity.metadata.recordId.entityId,
-  ) as AccountId;
+  ) as ActorId;
 
   const secretEntity = await getLinearUserSecretByLinearOrgId(
     context,

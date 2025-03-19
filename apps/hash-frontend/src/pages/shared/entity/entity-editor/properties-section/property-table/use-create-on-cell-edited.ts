@@ -89,7 +89,7 @@ export const useCreateOnCellEdited = () => {
              */
             metadataKeyChain.push("value");
           }
-          metadataKeyChain.push(propertyKeyChain[i]!);
+          metadataKeyChain.push(propertyKeyChain[i] as string | number);
         }
 
         set(

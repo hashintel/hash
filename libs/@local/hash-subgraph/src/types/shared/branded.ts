@@ -1,5 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { Brand } from "@local/advanced-types/brand";
+import type {
+  ActorGroupId,
+  ActorId,
+  EntityId,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type {
   DataTypeRelationAndSubject as DataTypeRelationAndSubjectGraph,
   EntityRelationAndSubject as EntityRelationAndSubjectGraph,
@@ -8,94 +13,12 @@ import type {
   PropertyTypeRelationAndSubject as PropertyTypeRelationAndSubjectGraph,
   WebRelationAndSubject as WebRelationAndSubjectGraph,
 } from "@local/hash-graph-client";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
-import type {
-  DraftId,
-  EntityId,
-  EntityUuid,
-} from "@local/hash-graph-types/entity";
-import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import { validate as validateUuid } from "uuid";
-
-export const isEntityId = (entityId: string): entityId is EntityId => {
-  const [accountId, entityUuid] = entityId.split(ENTITY_ID_DELIMITER);
-  return (
-    accountId != null &&
-    entityUuid != null &&
-    validateUuid(accountId) &&
-    validateUuid(entityUuid)
-  );
-};
-
-export const entityIdFromComponents = (
-  ownedById: OwnedById,
-  entityUuid: EntityUuid,
-  draftId?: DraftId,
-): EntityId => {
-  const base = `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}`;
-
-  if (!draftId) {
-    return base as EntityId;
-  }
-
-  return `${base}${ENTITY_ID_DELIMITER}${draftId}` as EntityId;
-};
-
-export const splitEntityId = (
-  entityId: EntityId,
-): [OwnedById, EntityUuid, DraftId?] => {
-  const [ownedById, entityUuid, draftId] = entityId.split(ENTITY_ID_DELIMITER);
-  return [ownedById as OwnedById, entityUuid as EntityUuid, draftId as DraftId];
-};
-
-export const stripDraftIdFromEntityId = (entityId: EntityId) => {
-  const [ownedById, entityUuid] = splitEntityId(entityId);
-  return entityIdFromComponents(ownedById, entityUuid);
-};
-
-export const extractOwnedByIdFromEntityId = (entityId: EntityId): OwnedById => {
-  return splitEntityId(entityId)[0];
-};
-
-export const extractEntityUuidFromEntityId = (
-  entityId: EntityId,
-): EntityUuid => {
-  return splitEntityId(entityId)[1];
-};
-
-export const extractDraftIdFromEntityId = (
-  entityId: EntityId,
-): DraftId | undefined => {
-  return splitEntityId(entityId)[2];
-};
-
-/** An `EntityId` identifying a `User` Entity */
-export type AccountEntityId = Brand<EntityId, "AccountEntityId">;
-
-/** An `EntityId`identifying an Account Group Entity, e.g. an `Org` */
-export type AccountGroupEntityId = Brand<EntityId, "AccountGroupEntityId">;
-
-/** If the underlying `EntityUuid` is an `AccountId`, use this cast to convert the type */
-export const extractAccountId = extractEntityUuidFromEntityId as (
-  entityId: AccountEntityId,
-  // The type cannot be cast directly to `AccountId`, so we do it over two casts, but without `unknown`
-) => string as (entityId: AccountEntityId) => AccountId;
-
-/** If the underlying `EntityUuid` is an `AccountGroupId`, use this cast to convert the type */
-export const extractAccountGroupId = extractEntityUuidFromEntityId as (
-  entityId: AccountGroupEntityId,
-  // The type cannot be cast directly to `AccountGroupId`, so we do it over two casts, but without `unknown`
-) => string as (entityId: AccountGroupEntityId) => AccountGroupId;
 
 type ReplaceAccount<T extends { kind: "account" }> = {
-  [P in keyof T]: P extends "subjectId" ? AccountId : T[P];
+  [P in keyof T]: P extends "subjectId" ? ActorId : T[P];
 };
 type ReplaceAccountGroup<T extends { kind: "accountGroup" }> = {
-  [P in keyof T]: P extends "subjectId" ? AccountGroupId : T[P];
+  [P in keyof T]: P extends "subjectId" ? ActorGroupId : T[P];
 };
 
 type BrandSubject<T extends object> = T extends { kind: "account" }

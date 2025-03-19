@@ -33,6 +33,7 @@ export const SelectEntityTypePage = () => {
       <EntityHeader
         entityLabel="New entity"
         isInSlide={false}
+        isLocalDraft
         lightTitle
         onDraftArchived={() => {}}
         onDraftPublished={() => {}}

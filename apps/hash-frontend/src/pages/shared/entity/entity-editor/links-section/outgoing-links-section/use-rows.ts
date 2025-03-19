@@ -1,12 +1,12 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import { intervalCompareWithInterval } from "@blockprotocol/graph/stdlib";
+import type {
+  PartialEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import type { PartialEntityType } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  getOutgoingLinkAndTargetEntities,
-  intervalCompareWithInterval,
-} from "@local/hash-subgraph/stdlib";
+import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";

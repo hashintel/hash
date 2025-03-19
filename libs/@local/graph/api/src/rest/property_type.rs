@@ -176,7 +176,7 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created property type", body = MaybeListOfPropertyTypeMetadata),
@@ -273,7 +273,7 @@ enum LoadExternalPropertyTypeRequest {
     request_body = LoadExternalPropertyTypeRequest,
     tag = "PropertyType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the loaded property type", body = PropertyTypeMetadata),
@@ -367,7 +367,7 @@ where
     request_body = GetPropertyTypesParams,
     tag = "PropertyType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (
@@ -441,7 +441,7 @@ struct GetPropertyTypeSubgraphResponse {
     request_body = GetPropertyTypeSubgraphParams,
     tag = "PropertyType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (
@@ -525,7 +525,7 @@ struct UpdatePropertyTypeRequest {
     path = "/property-types",
     tag = "PropertyType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = PropertyTypeMetadata),
@@ -591,7 +591,7 @@ where
     path = "/property-types/bulk",
     tag = "PropertyType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated property types", body = [PropertyTypeMetadata]),
@@ -661,7 +661,7 @@ where
     path = "/property-types/embeddings",
     tag = "PropertyType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, content_type = "application/json", description = "The embeddings were created"),
@@ -713,7 +713,7 @@ where
     path = "/property-types/archive",
     tag = "PropertyType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = OntologyTemporalMetadata),
@@ -776,7 +776,7 @@ where
     path = "/property-types/unarchive",
     tag = "PropertyType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The temporal metadata of the updated property type", body = OntologyTemporalMetadata),
@@ -848,7 +848,7 @@ struct ModifyPropertyTypeAuthorizationRelationship {
     tag = "PropertyType",
     request_body = [ModifyPropertyTypeAuthorizationRelationship],
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, description = "The relationship was modified for the property"),
@@ -921,7 +921,7 @@ where
     path = "/property-types/{property_type_id}/relationships",
     tag = "PropertyType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("property_type_id" = VersionedUrl, Path, description = "The Property type to read the relations for"),
     ),
     responses(
@@ -974,7 +974,7 @@ where
     path = "/property-types/{property_type_id}/permissions/{permission}",
     tag = "PropertyType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("property_type_id" = VersionedUrl, Path, description = "The property type ID to check if the actor has the permission"),
         ("permission" = PropertyTypePermission, Path, description = "The permission to check for"),
     ),
