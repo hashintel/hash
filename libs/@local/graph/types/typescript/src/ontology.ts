@@ -181,6 +181,12 @@ export type ClosedEntityTypeWithMetadata = {
   metadata: EntityTypeMetadata;
 };
 
+/**
+ * The metadata for a type within a ClosedMultiEntityType. This includes the type's title, description, and icon.
+ * Information on optional display fields for this type's ancestors are provided in the `allOf` array,
+ * because consumers may wish to choose which type's icon or label to display depending on the context,
+ * if _this_ type does not have those display fields.
+ */
 export type ClosedMultiEntityTypeMetadata = Omit<
   ClosedEntityTypeMetadataBp,
   "allOf"
@@ -188,15 +194,37 @@ export type ClosedMultiEntityTypeMetadata = Omit<
   allOf?: [EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]];
 };
 
+/**
+ * Entities can have multiple types. Each of those types can inherit from multiple other types.
+ * We refer to the act of resolving all information about a given type (including inherited information) as 'Closing' it.
+ * Therefore, a ClosedMultiEntityType is the result of closing multiple types together to provide a single schema,
+ * which represents the shape of the entity with those types (e.g. valid properties, links, etc).
+ */
 export type ClosedMultiEntityType = Omit<
   ClosedMultiEntityTypeBp,
   "allOf" | "properties" | "required"
 > & {
+  /**
+   * Each entry in allOf represents the metadata for each of the types in the ClosedMultiEntityType.
+   * Some attributes such as type title and icon cannot be meaningfully combined, so they are provided for each type.
+   * The un-mergeable information on each type's parents is nested within each entry.
+   * See getDisplayFieldsForClosedEntityType for a function that makes it easy to get commonly-used fields from a closed multi-entity type.
+   */
   allOf: [ClosedMultiEntityTypeMetadata, ...ClosedMultiEntityTypeMetadata[]];
+  /**
+   * The merged properties of the types in the ClosedMultiEntityType.
+   */
   properties: Record<BaseUrl, ValueOrArray<PropertyTypeReference>>;
+  /**
+   * The merged required properties of the types in the ClosedMultiEntityType.
+   */
   required?: [BaseUrl, ...BaseUrl[]];
 };
 
+/**
+ * A map which returns a {@link ClosedMultiEntityType} for a given combination of entityTypeIds.
+ * This is not intended to be traversed directly, but instead via {@link getClosedMultiEntityTypeFromMap}.
+ */
 export type ClosedMultiEntityTypesRootMap = {
   [key: string]: ClosedMultiEntityTypeMap;
 };

@@ -61,7 +61,7 @@ export const useHandleTypeChanges = ({
         throw new Error("Entity not found in subgraph");
       }
 
-      const newTypeDetails = await getClosedMultiEntityTypes(entityTypeIds);
+      const newTypeDetails = await getClosedMultiEntityTypes([entityTypeIds]);
 
       const outgoingLinks = getOutgoingLinksForEntity(
         entitySubgraph,

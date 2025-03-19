@@ -33,7 +33,7 @@ export const useGetTypeChangeDetails = () => {
       const {
         closedMultiEntityTypes,
         closedMultiEntityTypesDefinitions: proposedDefinitions,
-      } = await getClosedMultiEntityTypes(newEntityTypeIds);
+      } = await getClosedMultiEntityTypes([newEntityTypeIds]);
 
       const proposedClosedMultiType = getClosedMultiEntityTypeFromMap(
         closedMultiEntityTypes,

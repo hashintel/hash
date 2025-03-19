@@ -1,5 +1,13 @@
 import { useLazyQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import type {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ClosedMultiEntityType,
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
 import { useCallback } from "react";
 
 import type {
@@ -8,7 +16,29 @@ import type {
 } from "../../graphql/api-types.gen";
 import { getClosedMultiEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
 
-export const useGetClosedMultiEntityTypes = () => {
+/**
+ * Retrieve the type information for multiple {@link ClosedMultiEntityType}.
+ */
+type GetClosedMultiEntityTypes = (
+  /**
+   * A list, where each entry is a list of entityTypeIds to be turned into a {@link ClosedMultiEntityType}.
+   */
+  multiEntityTypeIds: VersionedUrl[][],
+) => Promise<{
+  /**
+   * A map of {@link ClosedMultiEntityType}s. Retrieval of a given closed multi-entity type is via {@link getClosedMultiEntityTypeFromMap}.
+   */
+  closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
+  /**
+   * Information on other types referred to by the ClosedMultiEntityType: property types, data types, and entity types which are links or link destinations.
+   */
+  closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
+}>;
+
+export const useGetClosedMultiEntityTypes = (): {
+  getClosedMultiEntityTypes: GetClosedMultiEntityTypes;
+  loading: boolean;
+} => {
   const [getMultiEntityType, { loading }] = useLazyQuery<
     GetClosedMultiEntityTypesQuery,
     GetClosedMultiEntityTypesQueryVariables
@@ -17,19 +47,17 @@ export const useGetClosedMultiEntityTypes = () => {
   });
 
   const getClosedMultiEntityTypes = useCallback(
-    async (newEntityTypeIds: VersionedUrl[]) => {
+    async (multiEntityTypeIds: VersionedUrl[][]) => {
       const response = await getMultiEntityType({
         variables: {
-          entityTypeIds: newEntityTypeIds,
+          entityTypeIds: multiEntityTypeIds,
           includeArchived: false,
         },
       });
 
       if (!response.data) {
         throw new Error(
-          `Failed to fetch closedMultiEntityTypes for ids ${[
-            ...newEntityTypeIds,
-          ].join(", ")}`,
+          `Failed to fetch closedMultiEntityTypes for ids ${multiEntityTypeIds.map((ids) => ids.join(", ")).join("; ")}`,
         );
       }
 
