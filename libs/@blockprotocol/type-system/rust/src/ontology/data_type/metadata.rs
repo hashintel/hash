@@ -26,20 +26,24 @@ pub struct DataTypeMetadata {
 }
 
 #[cfg(target_arch = "wasm32")]
-#[derive(tsify::Tsify)]
-#[serde(rename = "DataTypeMetadata", untagged)]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]
-enum DataTypeMetadataPatch {
-    #[serde(rename_all = "camelCase")]
-    Impl {
-        record_id: OntologyTypeRecordId,
-        #[serde(flatten)]
-        ownership: OntologyOwnership,
-        temporal_versioning: OntologyTemporalMetadata,
-        provenance: OntologyProvenance,
-        #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-        conversions: HashMap<BaseUrl, Conversions>,
-    },
+mod metadata_patch {
+    use super::*;
+
+    #[derive(tsify_next::Tsify)]
+    #[serde(untagged)]
+    enum DataTypeMetadata {
+        #[serde(rename_all = "camelCase")]
+        Impl {
+            record_id: OntologyTypeRecordId,
+            #[serde(flatten)]
+            ownership: OntologyOwnership,
+            temporal_versioning: OntologyTemporalMetadata,
+            provenance: OntologyProvenance,
+            #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+            conversions: HashMap<BaseUrl, Conversions>,
+        },
+    }
 }
 
 #[cfg(feature = "utoipa")]
@@ -103,12 +107,15 @@ impl ToSchema<'static> for DataTypeMetadata {
 pub type DataTypeWithMetadata = OntologyTypeWithMetadata<DataType>;
 
 #[cfg(target_arch = "wasm32")]
-#[derive(tsify::Tsify)]
-#[serde(rename = "DataTypeWithMetadata")]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]
-struct DataTypeWithMetadataPatch {
-    schema: DataType,
-    metadata: DataTypeMetadata,
+mod with_metadata_patch {
+    use super::*;
+
+    #[derive(tsify_next::Tsify)]
+    struct DataTypeWithMetadata {
+        schema: DataType,
+        metadata: DataTypeMetadata,
+    }
 }
 
 #[cfg(feature = "utoipa")]

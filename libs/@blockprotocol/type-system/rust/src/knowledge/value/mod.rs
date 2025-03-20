@@ -51,7 +51,7 @@ pub use self::metadata::ValueMetadata;
 ///
 /// [`DataType`]: crate::ontology::data_type::DataType
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(untagged)]
 pub enum PropertyValue {
     Null,

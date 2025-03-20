@@ -1,7 +1,7 @@
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use serde::{Deserialize, Serialize};
-    use tsify::Tsify;
+    use tsify_next::Tsify;
     use wasm_bindgen::prelude::wasm_bindgen;
 
     #[wasm_bindgen(typescript_custom_section)]
@@ -11,15 +11,15 @@ mod wasm {
 
     // Common types
 
-    #[derive(tsify::Tsify)]
+    #[derive(tsify_next::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct Url(#[tsify(type = "Brand<string, \"Url\">")] String);
 
-    #[derive(tsify::Tsify)]
+    #[derive(tsify_next::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct Timestamp(#[tsify(type = "Brand<string, \"Timestamp\">")] String);
 
-    #[derive(tsify::Tsify)]
+    #[derive(tsify_next::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum TemporalBound {
@@ -27,20 +27,20 @@ mod wasm {
         Inclusive(Timestamp),
         Exclusive(Timestamp),
     }
-    #[derive(tsify::Tsify)]
+    #[derive(tsify_next::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum LimitedTemporalBound {
         Inclusive(Timestamp),
         Exclusive(Timestamp),
     }
-    #[derive(tsify::Tsify)]
+    #[derive(tsify_next::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum ClosedTemporalBound {
         Inclusive(Timestamp),
     }
-    #[derive(tsify::Tsify)]
+    #[derive(tsify_next::Tsify)]
     #[serde(rename_all = "camelCase", tag = "kind", content = "limit")]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     enum OpenTemporalBound {
@@ -48,19 +48,19 @@ mod wasm {
         Unbounded,
     }
 
-    #[derive(tsify::Tsify)]
+    #[derive(tsify_next::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct TemporalInterval<Start, End> {
         start: Start,
         end: End,
     }
-    #[derive(tsify::Tsify)]
+    #[derive(tsify_next::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct RightBoundedTemporalInterval {
         start: TemporalBound,
         end: LimitedTemporalBound,
     }
-    #[derive(tsify::Tsify)]
+    #[derive(tsify_next::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     struct LeftClosedTemporalInterval {
         start: ClosedTemporalBound,
