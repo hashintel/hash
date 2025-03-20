@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::openapi;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Conversions {
@@ -21,7 +21,7 @@ pub struct Conversions {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ConversionDefinition {
@@ -56,7 +56,7 @@ impl ToSql for ConversionDefinition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum Variable {
     #[serde(rename = "self")]
@@ -72,7 +72,7 @@ impl fmt::Display for Variable {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(from = "codec::SerializableValue", into = "codec::SerializableValue")]
+#[serde(from = "codec::ConversionValue", into = "codec::ConversionValue")]
 pub enum ConversionValue {
     Variable(Variable),
     Constant(Real),
@@ -102,12 +102,12 @@ impl fmt::Display for ConversionValue {
 #[cfg(feature = "utoipa")]
 impl utoipa::ToSchema<'_> for ConversionValue {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
-        ("ConversionValue", codec::SerializableValue::schema().1)
+        ("ConversionValue", codec::ConversionValue::schema().1)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum Operator {
     #[serde(rename = "+")]
@@ -122,8 +122,8 @@ pub enum Operator {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(
-    from = "codec::SerializableExpression",
-    into = "codec::SerializableExpression"
+    from = "codec::ConversionExpression",
+    into = "codec::ConversionExpression"
 )]
 pub struct ConversionExpression {
     pub lhs: ConversionValue,
@@ -191,14 +191,14 @@ mod codec {
     use hash_codec::numeric::Real;
     use serde::{Deserialize, Serialize};
 
-    use super::{ConversionExpression, ConversionValue, Operator, Variable};
+    use super::{Operator, Variable};
     use crate::ontology::json_schema::NumberTypeTag;
 
     #[derive(Serialize, Deserialize)]
-    #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+    #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
     #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
     #[serde(untagged, rename = "ConversionValue")]
-    pub(super) enum SerializableValue {
+    pub(super) enum ConversionValue {
         Variable(Variable),
         Constant {
             #[serde(rename = "const")]
@@ -207,45 +207,49 @@ mod codec {
             #[cfg_attr(feature = "utoipa", schema(inline))]
             r#type: NumberTypeTag,
         },
-        Expression(Box<ConversionExpression>),
+        Expression(Box<super::ConversionExpression>),
     }
 
-    impl From<SerializableValue> for ConversionValue {
-        fn from(value: SerializableValue) -> Self {
+    impl From<ConversionValue> for super::ConversionValue {
+        fn from(value: ConversionValue) -> Self {
             match value {
-                SerializableValue::Variable(variable) => Self::Variable(variable),
-                SerializableValue::Constant { value, .. } => Self::Constant(value),
-                SerializableValue::Expression(expression) => Self::Expression(expression),
+                ConversionValue::Variable(variable) => Self::Variable(variable),
+                ConversionValue::Constant { value, .. } => Self::Constant(value),
+                ConversionValue::Expression(expression) => Self::Expression(expression),
             }
         }
     }
 
-    impl From<ConversionValue> for SerializableValue {
-        fn from(value: ConversionValue) -> Self {
+    impl From<super::ConversionValue> for ConversionValue {
+        fn from(value: super::ConversionValue) -> Self {
             match value {
-                ConversionValue::Variable(variable) => Self::Variable(variable),
-                ConversionValue::Constant(value) => Self::Constant {
+                super::ConversionValue::Variable(variable) => Self::Variable(variable),
+                super::ConversionValue::Constant(value) => Self::Constant {
                     value,
                     r#type: NumberTypeTag::Number,
                 },
-                ConversionValue::Expression(expression) => Self::Expression(expression),
+                super::ConversionValue::Expression(expression) => Self::Expression(expression),
             }
         }
     }
 
     #[derive(Serialize, Deserialize)]
     #[serde(rename = "ConversionExpression")]
-    #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-    pub(super) struct SerializableExpression(Operator, ConversionValue, ConversionValue);
+    #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+    pub(super) struct ConversionExpression(
+        Operator,
+        super::ConversionValue,
+        super::ConversionValue,
+    );
 
-    impl From<SerializableExpression> for ConversionExpression {
-        fn from(SerializableExpression(operator, lhs, rhs): SerializableExpression) -> Self {
+    impl From<ConversionExpression> for super::ConversionExpression {
+        fn from(ConversionExpression(operator, lhs, rhs): ConversionExpression) -> Self {
             Self { lhs, operator, rhs }
         }
     }
 
-    impl From<ConversionExpression> for SerializableExpression {
-        fn from(value: ConversionExpression) -> Self {
+    impl From<super::ConversionExpression> for ConversionExpression {
+        fn from(value: super::ConversionExpression) -> Self {
             Self(value.operator, value.lhs, value.rhs)
         }
     }

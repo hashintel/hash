@@ -16,7 +16,7 @@ use crate::ontology::{
 };
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedEntityTypeMetadata {
     #[serde(rename = "$id")]
@@ -49,7 +49,7 @@ impl ClosedEntityTypeMetadata {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedEntityType {
     #[serde(rename = "$id")]
@@ -153,12 +153,25 @@ impl ClosedEntityType {
     }
 }
 
+/// Entities can have multiple types, each of which can inherit from multiple other types.
+///
+/// We refer to the act of resolving all information about a given type (including inherited
+/// information) as 'Closing' it. Therefore, a `ClosedMultiEntityType` is the result of closing
+/// multiple types together to provide a single schema, which represents the shape of the entity
+/// with those types (e.g. valid properties, links, etc).
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedMultiEntityType {
+    /// The merged constraints for all the types in this type.
     #[serde(flatten)]
     pub constraints: EntityConstraints,
+
+    /// Each entry in `allOf` represents the metadata for each of the types in this type.
+    ///
+    /// Some attributes such as type `title` and `icon` cannot be meaningfully combined, so they
+    /// are provided for each type. The un-mergeable information on each type's parents is
+    /// nested within each entry.
     #[cfg_attr(
         target_arch = "wasm32",
         tsify(type = "[ClosedEntityTypeMetadata, ...ClosedEntityTypeMetadata[]]")

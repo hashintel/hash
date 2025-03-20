@@ -38,7 +38,7 @@ pub use self::{
 /// [`VersionedUrl`]: crate::ontology::VersionedUrl
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
     /// The entity's properties, structured as a hierarchical object with keys that correspond to

@@ -84,7 +84,7 @@ mod error;
 /// [`MissingTrailingSlash`]: ParseBaseUrlError::MissingTrailingSlash
 /// [`UrlParseError`]: ParseBaseUrlError::UrlParseError
 /// [`CannotBeABase`]: ParseBaseUrlError::CannotBeABase
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "postgres", derive(ToSql), postgres(transparent))]
 #[derive(Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct BaseUrl(
@@ -234,7 +234,7 @@ impl<'a> FromSql<'a> for BaseUrl {
 /// assert_eq!(version.inner(), 1);
 /// ```
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
 pub struct OntologyTypeVersion(
@@ -347,10 +347,11 @@ pub struct VersionedUrl {
 }
 
 #[cfg(target_arch = "wasm32")]
-#[derive(tsify::Tsify)]
-#[serde(rename = "VersionedUrl")]
-#[expect(dead_code, reason = "Used in the generated TypeScript types")]
-pub struct VersionedUrlPatch(#[tsify(type = "`${string}v/${number}`")] String);
+mod patch {
+    #[derive(tsify_next::Tsify)]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    struct VersionedUrl(#[tsify(type = "`${string}v/${number}`")] String);
+}
 
 impl VersionedUrl {
     /// Converts this [`VersionedUrl`] to a standard [`Url`] instance.
@@ -517,7 +518,7 @@ impl ToSchema<'_> for VersionedUrl {
 /// # Ok::<(), Box<dyn core::error::Error>>(())
 /// ```
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeRecordId {

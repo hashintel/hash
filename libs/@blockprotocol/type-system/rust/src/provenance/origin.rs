@@ -7,7 +7,7 @@ use utoipa::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(deny_unknown_fields, tag = "type", rename_all = "kebab-case")]
 pub enum OriginType {
     WebApp,
@@ -66,35 +66,39 @@ impl OriginProvenance {
 }
 
 #[cfg(target_arch = "wasm32")]
-#[derive(tsify::Tsify)]
-#[serde(rename = "OriginProvenance", untagged)]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]
-pub enum OriginProvenancePatch {
-    #[serde(rename_all = "camelCase")]
-    Impl {
-        #[serde(flatten)]
-        ty: OriginType,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        id: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        version: Option<String>,
-        #[cfg_attr(
-            target_arch = "wasm32",
-            tsify(type = "Brand<string, \"SemanticVersion\">")
-        )]
-        #[serde(skip_serializing_if = "Option::is_none")]
-        semantic_version: Option<semver::Version>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        environment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        device_id: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        session_id: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        api_key_public_id: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        user_agent: Option<String>,
-    },
+mod patch {
+    use super::*;
+
+    #[derive(tsify_next::Tsify)]
+    #[serde(untagged)]
+    pub enum OriginProvenance {
+        #[serde(rename_all = "camelCase")]
+        Impl {
+            #[serde(flatten)]
+            ty: OriginType,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            id: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            version: Option<String>,
+            #[cfg_attr(
+                target_arch = "wasm32",
+                tsify(type = "Brand<string, \"SemanticVersion\">")
+            )]
+            #[serde(skip_serializing_if = "Option::is_none")]
+            semantic_version: Option<semver::Version>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            environment: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            device_id: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            session_id: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            api_key_public_id: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            user_agent: Option<String>,
+        },
+    }
 }
 
 #[cfg(feature = "utoipa")]
