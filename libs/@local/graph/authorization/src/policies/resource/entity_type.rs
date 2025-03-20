@@ -3,14 +3,15 @@ use core::{error::Error, fmt, iter, str::FromStr as _};
 use std::sync::LazyLock;
 
 use cedar_policy_core::{ast, extensions::Extensions};
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _, bail};
 use smol_str::SmolStr;
 use type_system::{
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
 };
 
-use crate::policies::cedar::CedarEntityId;
+use super::ResourceFilterConversionError;
+use crate::policies::{cedar::CedarEntityId, set::PolicyConstraint};
 
 #[derive(
     Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
@@ -100,16 +101,14 @@ impl EntityTypeResourceFilter {
                 .reduce(ast::Expr::or)
                 .unwrap_or_else(|| ast::Expr::val(false)),
             Self::Not { filter } => ast::Expr::not(filter.to_cedar()),
-            Self::IsBaseUrl { base_url } => ast::Expr::binary_app(
-                ast::BinaryOp::Eq,
+            Self::IsBaseUrl { base_url } => ast::Expr::is_eq(
                 ast::Expr::get_attr(
                     ast::Expr::var(ast::Var::Resource),
                     SmolStr::new_static("base_url"),
                 ),
                 ast::Expr::val(base_url.to_string()),
             ),
-            Self::IsVersion { version } => ast::Expr::binary_app(
-                ast::BinaryOp::Eq,
+            Self::IsVersion { version } => ast::Expr::is_eq(
                 ast::Expr::get_attr(
                     ast::Expr::var(ast::Var::Resource),
                     SmolStr::new_static("version"),
@@ -117,6 +116,42 @@ impl EntityTypeResourceFilter {
                 ast::Expr::val(version.inner().to_string()),
             ),
         }
+    }
+
+    fn from_policy_constraint(
+        constraint: PolicyConstraint,
+    ) -> Result<Self, Report<ResourceFilterConversionError>> {
+        match constraint {
+            PolicyConstraint::All { filters } => Ok(Self::All {
+                filters: filters
+                    .into_iter()
+                    .map(Self::from_policy_constraint)
+                    .collect::<Result<Vec<_>, _>>()?,
+            }),
+            PolicyConstraint::Any { filters } => Ok(Self::Any {
+                filters: filters
+                    .into_iter()
+                    .map(Self::from_policy_constraint)
+                    .collect::<Result<Vec<_>, _>>()?,
+            }),
+            PolicyConstraint::Not { filter } => Ok(Self::Not {
+                filter: Box::new(Self::from_policy_constraint(*filter)?),
+            }),
+            PolicyConstraint::IsBaseUrl { base_url } => Ok(Self::IsBaseUrl { base_url }),
+            PolicyConstraint::IsVersion { version } => Ok(Self::IsVersion { version }),
+            _ => bail!(ResourceFilterConversionError::UnsupportedPolicyConstraint(
+                constraint
+            )),
+        }
+    }
+
+    pub(crate) fn try_from_cedar(
+        expr: &ast::Expr,
+    ) -> Result<Self, Report<ResourceFilterConversionError>> {
+        Self::from_policy_constraint(
+            PolicyConstraint::try_from_cedar(expr)
+                .change_context(ResourceFilterConversionError::InvalidCedarExpr)?,
+        )
     }
 }
 
@@ -140,8 +175,7 @@ impl CedarEntityId for EntityTypeId {
 #[serde(untagged, rename_all_fields = "camelCase", deny_unknown_fields)]
 pub enum EntityTypeResourceConstraint {
     Any {
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        filter: Option<EntityTypeResourceFilter>,
+        filter: EntityTypeResourceFilter,
     },
     Exact {
         #[serde(deserialize_with = "Option::deserialize")]
@@ -150,8 +184,7 @@ pub enum EntityTypeResourceConstraint {
     Web {
         #[serde(deserialize_with = "Option::deserialize")]
         web_id: Option<OwnedById>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        filter: Option<EntityTypeResourceFilter>,
+        filter: EntityTypeResourceFilter,
     },
 }
 
@@ -178,9 +211,7 @@ impl EntityTypeResourceConstraint {
         match self {
             Self::Any { filter } => (
                 ast::ResourceConstraint::is_entity_type(Arc::clone(EntityTypeId::entity_type())),
-                filter
-                    .as_ref()
-                    .map_or_else(|| ast::Expr::val(true), EntityTypeResourceFilter::to_cedar),
+                filter.to_cedar(),
             ),
             Self::Exact { id } => (
                 id.as_ref()
@@ -203,9 +234,7 @@ impl EntityTypeResourceConstraint {
                         )
                     },
                 ),
-                filter
-                    .as_ref()
-                    .map_or_else(|| ast::Expr::val(true), EntityTypeResourceFilter::to_cedar),
+                filter.to_cedar(),
             ),
         }
     }
@@ -219,7 +248,7 @@ mod tests {
     use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
     use uuid::Uuid;
 
-    use super::{EntityTypeId, EntityTypeResourceConstraint};
+    use super::{EntityTypeId, EntityTypeResourceConstraint, EntityTypeResourceFilter};
     use crate::{
         policies::{ResourceConstraint, resource::tests::check_resource},
         test_utils::check_deserialization_error,
@@ -228,7 +257,9 @@ mod tests {
     #[test]
     fn constraint_any() -> Result<(), Box<dyn Error>> {
         check_resource(
-            ResourceConstraint::EntityType(EntityTypeResourceConstraint::Any { filter: None }),
+            ResourceConstraint::EntityType(EntityTypeResourceConstraint::Any {
+                filter: EntityTypeResourceFilter::All { filters: vec![] },
+            }),
             json!({
                 "type": "entityType"
             }),
@@ -290,7 +321,7 @@ mod tests {
         check_resource(
             ResourceConstraint::EntityType(EntityTypeResourceConstraint::Web {
                 web_id: Some(web_id),
-                filter: None,
+                filter: EntityTypeResourceFilter::All { filters: vec![] },
             }),
             json!({
                 "type": "entityType",
@@ -302,7 +333,7 @@ mod tests {
         check_resource(
             ResourceConstraint::EntityType(EntityTypeResourceConstraint::Web {
                 web_id: None,
-                filter: None,
+                filter: EntityTypeResourceFilter::All { filters: vec![] },
             }),
             json!({
                 "type": "entityType",

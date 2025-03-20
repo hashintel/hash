@@ -15,6 +15,7 @@ use core::{fmt, str::FromStr as _};
 use cedar::CedarEntityId as _;
 use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
 use error_stack::{Report, ResultExt as _};
+use resource::EntityTypeId;
 use uuid::Uuid;
 
 pub(crate) use self::cedar::cedar_resource_type;
@@ -25,7 +26,10 @@ use self::{
 };
 pub use self::{
     context::{Context, ContextBuilder, ContextError},
-    set::{PolicyEvaluationError, PolicySet, PolicySetInsertionError},
+    set::{
+        Authorized, ConstraintConversionError, PolicyConstraintError, PolicyEvaluationError,
+        PolicySet, PolicySetInsertionError,
+    },
     validation::{PolicyValidationError, PolicyValidator},
 };
 
@@ -107,17 +111,33 @@ impl RequestContext {
 pub struct Request<'a> {
     pub actor: ActorId,
     pub action: ActionId,
-    pub resource: &'a ResourceId<'a>,
+    pub resource: Option<&'a ResourceId<'a>>,
     pub context: RequestContext,
 }
 
 impl Request<'_> {
     pub(crate) fn to_cedar(&self) -> ast::Request {
-        ast::Request::new(
-            (self.actor.to_euid(), None),
-            (self.action.to_euid(), None),
-            (self.resource.to_euid(), None),
-            self.context.to_cedar(),
+        ast::Request::new_with_unknowns(
+            ast::EntityUIDEntry::Known {
+                euid: Arc::new(self.actor.to_euid()),
+                loc: None,
+            },
+            ast::EntityUIDEntry::Known {
+                euid: Arc::new(self.action.to_euid()),
+                loc: None,
+            },
+            self.resource.map_or(
+                ast::EntityUIDEntry::Unknown {
+                    ty: Some((**EntityTypeId::entity_type()).clone()),
+                    // ty: None,
+                    loc: None,
+                },
+                |resource| ast::EntityUIDEntry::Known {
+                    euid: Arc::new(resource.to_euid()),
+                    loc: None,
+                },
+            ),
+            Some(self.context.to_cedar()),
             Some(PolicyValidator::schema()),
             Extensions::none(),
         )
@@ -172,8 +192,11 @@ impl Policy {
                 .change_context(InvalidPolicy::InvalidPrincipalConstraint)?,
             action: ActionConstraint::try_from_cedar(policy.action_constraint())
                 .change_context(InvalidPolicy::InvalidActionConstraint)?,
-            resource: ResourceConstraint::try_from_cedar(policy.resource_constraint())
-                .change_context(InvalidPolicy::InvalidResourceConstraint)?,
+            resource: ResourceConstraint::try_from_cedar(
+                policy.resource_constraint(),
+                policy.non_scope_constraints(),
+            )
+            .change_context(InvalidPolicy::InvalidResourceConstraint)?,
             constraints: None,
         })
     }
@@ -291,8 +314,8 @@ mod tests {
 
         use super::*;
         use crate::policies::{
-            ActionConstraint, ActionId, ContextBuilder, Effect, PolicyId, PrincipalConstraint,
-            Request, RequestContext, ResourceConstraint,
+            ActionConstraint, ActionId, Authorized, ContextBuilder, Effect, PolicyId,
+            PrincipalConstraint, Request, RequestContext, ResourceConstraint,
             principal::{
                 ActorId,
                 user::{User, UserId, UserPrincipalConstraint},
@@ -373,25 +396,31 @@ mod tests {
             let mut policy_set = PolicySet::default();
             policy_set.add_policy(&policy)?;
 
-            assert!(policy_set.evaluate(
-                &Request {
-                    actor: actor_id,
-                    action: ActionId::View,
-                    resource: &resource_id,
-                    context: RequestContext,
-                },
-                &context
-            )?);
+            assert!(matches!(
+                policy_set.evaluate(
+                    &Request {
+                        actor: actor_id,
+                        action: ActionId::View,
+                        resource: Some(&resource_id),
+                        context: RequestContext,
+                    },
+                    &context
+                )?,
+                Authorized::Always
+            ));
 
-            assert!(!policy_set.evaluate(
-                &Request {
-                    actor: actor_id,
-                    action: ActionId::Update,
-                    resource: &resource_id,
-                    context: RequestContext,
-                },
-                &context
-            )?);
+            assert!(matches!(
+                policy_set.evaluate(
+                    &Request {
+                        actor: actor_id,
+                        action: ActionId::Update,
+                        resource: Some(&resource_id),
+                        context: RequestContext,
+                    },
+                    &context
+                )?,
+                Authorized::Never
+            ));
 
             Ok(())
         }

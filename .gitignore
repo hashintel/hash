@@ -153,3 +153,6 @@ out/
 
 # Vercel CLI
 .vercel/
+
+# mise local tasks
+.config/mise/tasks.toml

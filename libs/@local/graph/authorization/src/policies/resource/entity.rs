@@ -3,13 +3,13 @@ use core::{error::Error, iter, str::FromStr as _};
 use std::sync::LazyLock;
 
 use cedar_policy_core::{ast, extensions::Extensions};
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _, bail};
 use smol_str::SmolStr;
 use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
 use uuid::Uuid;
 
-use super::entity_type::EntityTypeId;
-use crate::policies::cedar::CedarEntityId;
+use super::{ResourceFilterConversionError, entity_type::EntityTypeId};
+use crate::policies::{cedar::CedarEntityId, set::PolicyConstraint};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -74,6 +74,28 @@ impl EntityResourceFilter {
                 ),
             ),
         }
+    }
+
+    fn from_policy_constraint(
+        constraint: PolicyConstraint,
+    ) -> Result<Self, Report<ResourceFilterConversionError>> {
+        match constraint {
+            PolicyConstraint::IsOfType { entity_type } => Ok(Self::IsType { entity_type }),
+            PolicyConstraint::IsAllTypes { entity_types } => Ok(Self::IsAllTypes { entity_types }),
+            PolicyConstraint::IsAnyType { entity_types } => Ok(Self::IsAnyType { entity_types }),
+            _ => bail!(ResourceFilterConversionError::UnsupportedPolicyConstraint(
+                constraint
+            )),
+        }
+    }
+
+    pub(crate) fn try_from_cedar(
+        expr: &ast::Expr,
+    ) -> Result<Self, Report<ResourceFilterConversionError>> {
+        Self::from_policy_constraint(
+            PolicyConstraint::try_from_cedar(expr)
+                .change_context(ResourceFilterConversionError::InvalidCedarExpr)?,
+        )
     }
 }
 
