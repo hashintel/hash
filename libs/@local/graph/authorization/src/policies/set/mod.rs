@@ -11,7 +11,18 @@ use type_system::{
     web::OwnedById,
 };
 
-use super::{Context, Policy, Request, cedar::CedarEntityId as _, resource::EntityTypeId};
+use super::{
+    Context, Policy, Request,
+    cedar::{
+        CedarEntityId as _, CedarExpressionVisitorError, UnexpectedCedarExpression,
+        VisitCedarExpressionError,
+    },
+    resource::EntityTypeId,
+};
+use crate::{
+    policies::cedar::{CedarExpressionVisitor, EntityTypeIdVisitor, ExpressionSetVisitor},
+    zanzibar::types::Resource,
+};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("policy set insertion failed")]
@@ -72,6 +83,18 @@ enum ConstraintConversionErrorKind {
     UnknownExprForIs(ast::Expr),
     #[display("unknown entity type for `is`: {_0}")]
     UnknownEntityTypeForIs(ast::EntityType),
+    #[display("unexpected attribute: {_0}")]
+    UnexpectedAttribute(String),
+    #[display("unexpected expression")]
+    UnexpectedExpr,
+}
+
+impl CedarExpressionVisitorError for ConstraintConversionError {
+    fn unexpected_expression() -> Self {
+        Self {
+            kind: ConstraintConversionErrorKind::UnexpectedExpr,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -89,123 +112,231 @@ pub enum PolicyConstraint {
     InWeb { web: OwnedById },
 }
 
-fn parse_entity_type_url(
-    expr: &ast::Expr,
-) -> Result<VersionedUrl, Report<ConstraintConversionError>> {
-    let ast::ExprKind::Lit(ast::Literal::EntityUID(euid)) = expr.expr_kind() else {
-        bail!(ConstraintConversionError {
-            kind: ConstraintConversionErrorKind::UnknownRhsForContains(expr.clone()),
-        });
-    };
+struct ResourceVariableVisitor;
 
-    Ok(EntityTypeId::from_euid(euid)
-        .change_context_lazy(|| ConstraintConversionError {
-            kind: ConstraintConversionErrorKind::UnknownRhsForContains(expr.clone()),
-        })?
-        .into_url())
+impl CedarExpressionVisitor for ResourceVariableVisitor {
+    type Error = ConstraintConversionError;
+    type Value = ();
+
+    fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "resource variable")
+    }
+
+    fn visit_resource_variable(&self) -> Result<Self::Value, Report<Self::Error>> {
+        Ok(())
+    }
+
+    fn visit_unknown(&self, name: &str) -> Result<Self::Value, Report<Self::Error>> {
+        if name == "resource" {
+            Ok(())
+        } else {
+            Err(Report::new(VisitCedarExpressionError::new(
+                self,
+                UnexpectedCedarExpression::Unknown(name.to_owned()),
+            )))
+            .change_context(Self::Error::unexpected_expression())
+        }
+    }
 }
 
-fn parse_entity_type_url_set(
-    expr: &ast::Expr,
-) -> Result<Vec<VersionedUrl>, Report<ConstraintConversionError>> {
-    let ast::ExprKind::Set(entity_types) = expr.expr_kind() else {
-        bail!(ConstraintConversionError {
-            kind: ConstraintConversionErrorKind::UnknownRhsForContains(expr.clone()),
-        });
-    };
+struct PolicyConstraintVisitor;
 
-    entity_types.iter().map(parse_entity_type_url).collect()
-}
+impl CedarExpressionVisitor for PolicyConstraintVisitor {
+    type Error = ConstraintConversionError;
+    type Value = PolicyConstraint;
 
-impl PolicyConstraint {
-    fn is_resource_expr(expr: &ast::Expr) -> bool {
-        match expr.expr_kind() {
-            ast::ExprKind::Unknown(unknown) => unknown.name == "resource",
-            ast::ExprKind::Var(ast::Var::Resource) => true,
-            _ => false,
+    fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "policy constraint")
+    }
+
+    fn visit_bool(&self, bool: bool) -> Result<Self::Value, Report<Self::Error>> {
+        if bool {
+            Ok(PolicyConstraint::All {
+                filters: Vec::new(),
+            })
+        } else {
+            Ok(PolicyConstraint::Any {
+                filters: Vec::new(),
+            })
         }
     }
 
-    fn try_from_cedar_literal(
-        literal: &ast::Literal,
-    ) -> Result<Self, Report<ConstraintConversionError>> {
-        match literal {
-            ast::Literal::Bool(true) => Ok(Self::All {
-                filters: Vec::new(),
-            }),
-            ast::Literal::Bool(false) => Ok(Self::Any {
-                filters: Vec::new(),
-            }),
-            _ => bail!(ConstraintConversionError {
-                kind: ConstraintConversionErrorKind::UnknownLiteral(literal.clone()),
-            }),
-        }
-    }
-
-    fn try_from_cedar_and(
+    fn visit_and(
+        &self,
         lhs: &ast::Expr,
         rhs: &ast::Expr,
-    ) -> Result<Self, Report<ConstraintConversionError>> {
+    ) -> Result<PolicyConstraint, Report<ConstraintConversionError>> {
         let mut all_filters = Vec::new();
-        match Self::try_from_cedar(lhs)? {
-            Self::All { filters } => all_filters.extend(filters),
+        match self.visit_expr(lhs)? {
+            PolicyConstraint::All { filters } => all_filters.extend(filters),
             constraint => all_filters.push(constraint),
         }
-        match Self::try_from_cedar(rhs)? {
-            Self::All { filters } => all_filters.extend(filters),
+        match self.visit_expr(rhs)? {
+            PolicyConstraint::All { filters } => all_filters.extend(filters),
             constraint => all_filters.push(constraint),
         }
 
         if all_filters.len() == 1 {
             Ok(all_filters.pop().expect("should have exactly one filter"))
         } else {
-            Ok(Self::All {
+            Ok(PolicyConstraint::All {
                 filters: all_filters,
             })
         }
     }
 
-    fn try_from_cedar_or(
+    fn visit_or(
+        &self,
         lhs: &ast::Expr,
         rhs: &ast::Expr,
-    ) -> Result<Self, Report<ConstraintConversionError>> {
+    ) -> Result<PolicyConstraint, Report<ConstraintConversionError>> {
         let mut any_filters = Vec::new();
-        match Self::try_from_cedar(lhs)? {
-            Self::Any { filters } => any_filters.extend(filters),
+        match self.visit_expr(lhs)? {
+            PolicyConstraint::Any { filters } => any_filters.extend(filters),
             constraint => any_filters.push(constraint),
         }
-        match Self::try_from_cedar(rhs)? {
-            Self::Any { filters } => any_filters.extend(filters),
+        match self.visit_expr(rhs)? {
+            PolicyConstraint::Any { filters } => any_filters.extend(filters),
             constraint => any_filters.push(constraint),
         }
 
         if any_filters.len() == 1 {
             Ok(any_filters.pop().expect("should have exactly one filter"))
         } else {
-            Ok(Self::Any {
+            Ok(PolicyConstraint::Any {
                 filters: any_filters,
             })
         }
     }
 
-    fn try_from_cedar_unary(
-        op: ast::UnaryOp,
+    fn visit_not(
+        &self,
         expr: &ast::Expr,
-    ) -> Result<Self, Report<ConstraintConversionError>> {
-        match op {
-            ast::UnaryOp::Not => Self::try_from_cedar_not(expr),
-            _ => Err(Report::new(ConstraintConversionError {
-                kind: ConstraintConversionErrorKind::UnknownUnaryOp(op),
-            })),
-        }
-    }
-
-    fn try_from_cedar_not(expr: &ast::Expr) -> Result<Self, Report<ConstraintConversionError>> {
-        Ok(Self::Not {
-            filter: Box::new(Self::try_from_cedar(expr)?),
+    ) -> Result<PolicyConstraint, Report<ConstraintConversionError>> {
+        Ok(PolicyConstraint::Not {
+            filter: Box::new(self.visit_expr(expr)?),
         })
     }
 
+    fn visit_is(
+        &self,
+        expr: &ast::Expr,
+        entity_type: &ast::EntityType,
+    ) -> Result<Self::Value, Report<Self::Error>> {
+        ResourceVariableVisitor.visit_expr(&expr)?;
+
+        if *entity_type == **EntityTypeId::entity_type() {
+            Ok(PolicyConstraint::IsEntityType { id: None })
+        } else if *entity_type == **EntityUuid::entity_type() {
+            Ok(PolicyConstraint::IsEntity { id: None })
+        } else {
+            bail!(ConstraintConversionError {
+                kind: ConstraintConversionErrorKind::UnknownEntityTypeForIs(entity_type.clone()),
+            });
+        }
+    }
+
+    fn visit_contains(
+        &self,
+        lhs: &ast::Expr,
+        rhs: &ast::Expr,
+    ) -> Result<Self::Value, Report<Self::Error>> {
+        match lhs.expr_kind() {
+            ast::ExprKind::GetAttr { expr, attr } => {
+                // We expect the lhs to be a resource variable.
+                ResourceVariableVisitor.visit_expr(&expr)?;
+
+                match attr.as_str() {
+                    "entity_types" => {
+                        return Ok(PolicyConstraint::IsOfType {
+                            entity_type: EntityTypeIdVisitor.visit_expr(rhs).change_context_lazy(
+                                || ConstraintConversionError {
+                                    kind: ConstraintConversionErrorKind::UnknownRhsForContains(
+                                        rhs.clone(),
+                                    ),
+                                },
+                            )?,
+                        });
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+
+        bail!(ConstraintConversionError {
+            kind: ConstraintConversionErrorKind::UnknownLhsForContains(lhs.clone()),
+        })
+    }
+
+    fn visit_contains_all(
+        &self,
+        lhs: &ast::Expr,
+        rhs: &ast::Expr,
+    ) -> Result<Self::Value, Report<Self::Error>> {
+        match lhs.expr_kind() {
+            ast::ExprKind::GetAttr { expr, attr } => {
+                // We expect the lhs to be a resource variable.
+                ResourceVariableVisitor.visit_expr(&expr)?;
+
+                match attr.as_str() {
+                    "entity_types" => {
+                        return Ok(PolicyConstraint::IsAllTypes {
+                            entity_types: ExpressionSetVisitor(EntityTypeIdVisitor)
+                                .visit_expr(rhs)
+                                .change_context_lazy(|| ConstraintConversionError {
+                                    kind: ConstraintConversionErrorKind::UnknownRhsForContains(
+                                        rhs.clone(),
+                                    ),
+                                })?,
+                        });
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+
+        bail!(ConstraintConversionError {
+            kind: ConstraintConversionErrorKind::UnknownLhsForContains(lhs.clone()),
+        })
+    }
+
+    fn visit_contains_any(
+        &self,
+        lhs: &ast::Expr,
+        rhs: &ast::Expr,
+    ) -> Result<Self::Value, Report<Self::Error>> {
+        match lhs.expr_kind() {
+            ast::ExprKind::GetAttr { expr, attr } => {
+                // We expect the lhs to be a resource variable.
+                ResourceVariableVisitor.visit_expr(&expr)?;
+
+                match attr.as_str() {
+                    "entity_types" => {
+                        return Ok(PolicyConstraint::IsAnyType {
+                            entity_types: ExpressionSetVisitor(EntityTypeIdVisitor)
+                                .visit_expr(rhs)
+                                .change_context_lazy(|| ConstraintConversionError {
+                                    kind: ConstraintConversionErrorKind::UnknownRhsForContains(
+                                        rhs.clone(),
+                                    ),
+                                })?,
+                        });
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+
+        bail!(ConstraintConversionError {
+            kind: ConstraintConversionErrorKind::UnknownLhsForContains(lhs.clone()),
+        })
+    }
+}
+
+impl PolicyConstraint {
     fn try_from_cedar_binary(
         op: ast::BinaryOp,
         lhs: &ast::Expr,
@@ -214,9 +345,6 @@ impl PolicyConstraint {
         match op {
             ast::BinaryOp::Eq => Self::try_from_cedar_eq(lhs, rhs),
             ast::BinaryOp::In => Self::try_from_cedar_in(lhs, rhs),
-            ast::BinaryOp::Contains => Self::try_from_cedar_contains(lhs, rhs),
-            ast::BinaryOp::ContainsAll => Self::try_from_cedar_contains_all(lhs, rhs),
-            ast::BinaryOp::ContainsAny => Self::try_from_cedar_contains_any(lhs, rhs),
             _ => bail!(ConstraintConversionError {
                 kind: ConstraintConversionErrorKind::UnknownBinaryOp(op),
             }),
@@ -322,81 +450,6 @@ impl PolicyConstraint {
             web: OwnedById::from_euid(euid).change_context_lazy(|| ConstraintConversionError {
                 kind: ConstraintConversionErrorKind::UnknownRhsForIn(expr.clone()),
             })?,
-        })
-    }
-
-    fn try_from_cedar_contains(
-        resource: &ast::Expr,
-        element: &ast::Expr,
-    ) -> Result<Self, Report<ConstraintConversionError>> {
-        match resource.expr_kind() {
-            ast::ExprKind::GetAttr { expr, attr } => {
-                if Self::is_resource_expr(expr) {
-                    match attr.as_str() {
-                        "entity_types" => {
-                            return Ok(Self::IsOfType {
-                                entity_type: parse_entity_type_url(element)?,
-                            });
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            _ => {}
-        }
-
-        bail!(ConstraintConversionError {
-            kind: ConstraintConversionErrorKind::UnknownLhsForContains(resource.clone()),
-        })
-    }
-
-    fn try_from_cedar_contains_all(
-        resource: &ast::Expr,
-        element: &ast::Expr,
-    ) -> Result<Self, Report<ConstraintConversionError>> {
-        match resource.expr_kind() {
-            ast::ExprKind::GetAttr { expr, attr } => {
-                if Self::is_resource_expr(expr) {
-                    match attr.as_str() {
-                        "entity_types" => {
-                            return Ok(Self::IsAllTypes {
-                                entity_types: parse_entity_type_url_set(element)?,
-                            });
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            _ => {}
-        }
-
-        bail!(ConstraintConversionError {
-            kind: ConstraintConversionErrorKind::UnknownLhsForContains(resource.clone()),
-        })
-    }
-
-    fn try_from_cedar_contains_any(
-        resource: &ast::Expr,
-        element: &ast::Expr,
-    ) -> Result<Self, Report<ConstraintConversionError>> {
-        match resource.expr_kind() {
-            ast::ExprKind::GetAttr { expr, attr } => {
-                if Self::is_resource_expr(expr) {
-                    match attr.as_str() {
-                        "entity_types" => {
-                            return Ok(Self::IsAnyType {
-                                entity_types: parse_entity_type_url_set(element)?,
-                            });
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            _ => {}
-        }
-
-        bail!(ConstraintConversionError {
-            kind: ConstraintConversionErrorKind::UnknownLhsForContains(resource.clone()),
         })
     }
 

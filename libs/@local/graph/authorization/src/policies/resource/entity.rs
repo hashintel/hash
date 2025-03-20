@@ -217,7 +217,10 @@ mod tests {
 
     use super::{EntityResourceConstraint, EntityResourceFilter};
     use crate::{
-        policies::{ResourceConstraint, resource::tests::check_resource},
+        policies::{
+            ResourceConstraint,
+            resource::{EntityTypeId, tests::check_resource},
+        },
         test_utils::check_deserialization_error,
     };
 

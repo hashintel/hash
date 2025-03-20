@@ -4,7 +4,7 @@ pub mod principal;
 pub mod resource;
 pub mod store;
 
-mod cedar;
+pub(crate) mod cedar;
 mod context;
 mod set;
 mod validation;
@@ -15,7 +15,6 @@ use core::{fmt, str::FromStr as _};
 use cedar::CedarEntityId as _;
 use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
 use error_stack::{Report, ResultExt as _};
-use resource::EntityTypeId;
 use uuid::Uuid;
 
 pub(crate) use self::cedar::cedar_resource_type;
@@ -128,8 +127,7 @@ impl Request<'_> {
             },
             self.resource.map_or(
                 ast::EntityUIDEntry::Unknown {
-                    ty: Some((**EntityTypeId::entity_type()).clone()),
-                    // ty: None,
+                    ty: None,
                     loc: None,
                 },
                 |resource| ast::EntityUIDEntry::Known {
