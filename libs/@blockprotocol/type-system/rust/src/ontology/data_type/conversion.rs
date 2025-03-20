@@ -190,13 +190,14 @@ impl utoipa::ToSchema<'_> for ConversionExpression {
 mod codec {
     use hash_codec::numeric::Real;
     use serde::{Deserialize, Serialize};
+    #[cfg(feature = "utoipa")]
+    use utoipa::{ToSchema, openapi};
 
     use super::{Operator, Variable};
     use crate::ontology::json_schema::NumberTypeTag;
 
     #[derive(Serialize, Deserialize)]
     #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
-    #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
     #[serde(untagged, rename = "ConversionValue")]
     pub(super) enum ConversionValue {
         Variable(Variable),
@@ -204,10 +205,34 @@ mod codec {
             #[serde(rename = "const")]
             #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
             value: Real,
-            #[cfg_attr(feature = "utoipa", schema(inline))]
             r#type: NumberTypeTag,
         },
+
         Expression(Box<super::ConversionExpression>),
+    }
+
+    #[cfg(feature = "utoipa")]
+    impl ToSchema<'static> for ConversionValue {
+        fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+            (
+                "ConversionValue",
+                openapi::Schema::OneOf(
+                    openapi::OneOfBuilder::new()
+                        .item(openapi::Ref::from_schema_name(Variable::schema().0))
+                        .item(
+                            openapi::ObjectBuilder::new()
+                                .property("const", openapi::Ref::from_schema_name("Real"))
+                                .required("const")
+                                .property("type", NumberTypeTag::schema().1)
+                                .required("type")
+                                .build(),
+                        )
+                        .item(openapi::Ref::from_schema_name("ConversionExpression"))
+                        .build(),
+                )
+                .into(),
+            )
+        }
     }
 
     impl From<ConversionValue> for super::ConversionValue {
