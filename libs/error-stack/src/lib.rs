@@ -102,7 +102,8 @@
 //! ### Initializing a Report
 //!
 //! A [`Report`] can be created directly from anything that implements [`Error`] by using
-//! [`Report::new()`] or through any of the provided macros ([`report!`], [`bail!`], [`ensure!`]).
+//! [`Report::new()`], [`IntoReport::into_report()`], or through any of the provided macros
+//! ([`bail!`], [`ensure!`]).
 //!
 //! ```rust
 //! use std::{fs, io, path::Path};
@@ -405,14 +406,10 @@
 //!
 //! ### Macros for Convenience
 //!
-//! Three macros are provided to simplify the generation of a [`Report`].
+//! Two macros are provided to simplify the generation of a [`Report`].
 //!
-//! - [`report!`] will only create a [`Report`] from its parameter. It will take into account if the
-//!   passed type itself is a [`Report`] or a [`Error`]. For the former case, it will retain the
-//!   details stored on a [`Report`], for the latter case it will create a new [`Report`] from the
-//!   [`Error`].
-//! - [`bail!`] acts like [`report!`] but also immediately returns the [`Report`] as [`Err`]
-//!   variant.
+//! - [`bail!`] acts like calling [`IntoReport::into_report()`] but also immediately returns the
+//!   [`Report`] as [`Err`] variant.
 //! - [`ensure!`] will check an expression and if it's evaluated to `false`, it will act like
 //!   [`bail!`].
 //!

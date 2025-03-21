@@ -11,6 +11,7 @@
 /// Create a [`Report`] from [`Error`]:
 ///
 /// ```rust
+/// # #![expect(deprecated, reason = "`report!` is deprecated")]
 /// use std::fs;
 ///
 /// use error_stack::report;
@@ -25,6 +26,7 @@
 /// ```
 ///
 /// ```rust
+/// # #![expect(deprecated, reason = "`report!` is deprecated")]
 /// # fn has_permission(_: &u32, _: &u32) -> bool { true }
 /// # type User = u32;
 /// # let user = 0;
