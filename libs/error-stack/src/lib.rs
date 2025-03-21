@@ -530,7 +530,7 @@ pub use self::{
     compat::IntoReportCompat,
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
-    report::Report,
+    report::{IntoReport, Report},
 };
 #[doc(inline)]
 pub use self::{future::FutureExt, result::ResultExt};

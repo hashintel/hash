@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use crate::{Context, Report};
+use crate::{Context, IntoReport, Report};
 
 #[expect(rustdoc::invalid_html_tags, reason = "False positive")]
 /// <code>[Result](core::result::Result)<T, [Report<C>]></code>
@@ -113,245 +113,82 @@ pub trait ResultExt {
         F: FnOnce() -> C;
 }
 
-impl<T, C> ResultExt for core::result::Result<T, C>
+impl<T, E> ResultExt for core::result::Result<T, E>
 where
-    C: Context,
+    E: IntoReport,
 {
-    type Context = C;
+    type Context = E::Context;
     type Ok = T;
 
     #[track_caller]
-    fn attach<A>(self, attachment: A) -> core::result::Result<T, Report<C>>
+    fn attach<A>(self, attachment: A) -> core::result::Result<T, Report<E::Context>>
     where
         A: Send + Sync + 'static,
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::new(error).attach(attachment)),
+            Err(error) => Err(error.into_report().attach(attachment)),
         }
     }
 
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> core::result::Result<T, Report<C>>
+    fn attach_lazy<A, F>(self, attachment: F) -> core::result::Result<T, Report<E::Context>>
     where
         A: Send + Sync + 'static,
         F: FnOnce() -> A,
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::new(error).attach(attachment())),
+            Err(error) => Err(error.into_report().attach(attachment())),
         }
     }
 
     #[track_caller]
-    fn attach_printable<A>(self, attachment: A) -> core::result::Result<T, Report<C>>
+    fn attach_printable<A>(self, attachment: A) -> core::result::Result<T, Report<E::Context>>
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::new(error).attach_printable(attachment)),
+            Err(error) => Err(error.into_report().attach_printable(attachment)),
         }
     }
 
     #[track_caller]
-    fn attach_printable_lazy<A, F>(self, attachment: F) -> core::result::Result<T, Report<C>>
+    fn attach_printable_lazy<A, F>(
+        self,
+        attachment: F,
+    ) -> core::result::Result<T, Report<E::Context>>
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> A,
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::new(error).attach_printable(attachment())),
+            Err(error) => Err(error.into_report().attach_printable(attachment())),
         }
     }
 
     #[track_caller]
-    fn change_context<C2>(self, context: C2) -> core::result::Result<T, Report<C2>>
+    fn change_context<C>(self, context: C) -> core::result::Result<T, Report<C>>
     where
-        C2: Context,
+        C: Context,
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::new(error).change_context(context)),
+            Err(error) => Err(error.into_report().change_context(context)),
         }
     }
 
     #[track_caller]
-    fn change_context_lazy<C2, F>(self, context: F) -> core::result::Result<T, Report<C2>>
+    fn change_context_lazy<C, F>(self, context: F) -> core::result::Result<T, Report<C>>
     where
-        C2: Context,
-        F: FnOnce() -> C2,
+        C: Context,
+        F: FnOnce() -> C,
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::new(error).change_context(context())),
-        }
-    }
-}
-
-impl<T, C> ResultExt for core::result::Result<T, Report<C>>
-where
-    C: Context,
-{
-    type Context = C;
-    type Ok = T;
-
-    #[track_caller]
-    fn attach<A>(self, attachment: A) -> Self
-    where
-        A: Send + Sync + 'static,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach(attachment)),
-        }
-    }
-
-    #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> Self
-    where
-        A: Send + Sync + 'static,
-        F: FnOnce() -> A,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach(attachment())),
-        }
-    }
-
-    #[track_caller]
-    fn attach_printable<A>(self, attachment: A) -> Self
-    where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach_printable(attachment)),
-        }
-    }
-
-    #[track_caller]
-    fn attach_printable_lazy<A, F>(self, attachment: F) -> Self
-    where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> A,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach_printable(attachment())),
-        }
-    }
-
-    #[track_caller]
-    fn change_context<C2>(self, context: C2) -> core::result::Result<T, Report<C2>>
-    where
-        C2: Context,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.change_context(context)),
-        }
-    }
-
-    #[track_caller]
-    fn change_context_lazy<C2, F>(self, context: F) -> core::result::Result<T, Report<C2>>
-    where
-        C2: Context,
-        F: FnOnce() -> C2,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.change_context(context())),
-        }
-    }
-}
-
-impl<T, C> ResultExt for core::result::Result<T, Report<[C]>>
-where
-    C: Context,
-{
-    type Context = [C];
-    type Ok = T;
-
-    #[track_caller]
-    fn attach<A>(self, attachment: A) -> Self
-    where
-        A: Send + Sync + 'static,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach(attachment)),
-        }
-    }
-
-    #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> Self
-    where
-        A: Send + Sync + 'static,
-        F: FnOnce() -> A,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach(attachment())),
-        }
-    }
-
-    #[track_caller]
-    fn attach_printable<A>(self, attachment: A) -> Self
-    where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach_printable(attachment)),
-        }
-    }
-
-    #[track_caller]
-    fn attach_printable_lazy<A, F>(self, attachment: F) -> Self
-    where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> A,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.attach_printable(attachment())),
-        }
-    }
-
-    #[track_caller]
-    fn change_context<C2>(self, context: C2) -> core::result::Result<T, Report<C2>>
-    where
-        C2: Context,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.change_context(context)),
-        }
-    }
-
-    #[track_caller]
-    fn change_context_lazy<C2, F>(self, context: F) -> core::result::Result<T, Report<C2>>
-    where
-        C2: Context,
-        F: FnOnce() -> C2,
-    {
-        // Can't use `map_err` as `#[track_caller]` is unstable on closures
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(report) => Err(report.change_context(context())),
+            Err(error) => Err(error.into_report().change_context(context())),
         }
     }
 }

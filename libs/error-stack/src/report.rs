@@ -947,3 +947,46 @@ impl<C> Extend<Self> for Report<[C]> {
         }
     }
 }
+
+/// Provides methods to work with errors in the context of error-stack's reporting system.
+///
+/// This trait allows both [`Report<C>`] instances and regular [`Error`] types to directly
+/// use error-stack's context enrichment operations. It abstracts away the need to convert
+/// to a [`Report`] first before attaching context or changing the error type.
+pub trait IntoReport {
+    /// The [`Context`] type of the resulting [`Report`].
+    type Context: ?Sized;
+
+    /// Convert the value to a [`Report`] with the given context.
+    fn into_report(self) -> Report<Self::Context>;
+}
+
+impl<C> IntoReport for Report<C> {
+    type Context = C;
+
+    #[track_caller]
+    fn into_report(self) -> Report<Self::Context> {
+        self
+    }
+}
+
+impl<C> IntoReport for Report<[C]> {
+    type Context = [C];
+
+    #[track_caller]
+    fn into_report(self) -> Report<Self::Context> {
+        self
+    }
+}
+
+impl<E> IntoReport for E
+where
+    E: Context,
+{
+    type Context = E;
+
+    #[track_caller]
+    fn into_report(self) -> Report<Self::Context> {
+        Report::new(self)
+    }
+}
