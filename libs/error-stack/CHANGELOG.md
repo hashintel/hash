@@ -26,6 +26,7 @@ All notable changes to `error-stack` will be documented in this file.
 
 - `Context`: Use `core::error::Error` instead ([#5533](https://github.com/hashintel/hash/pull/5533))
 - `Result<T, C>`: Use `core::result::Result<T, Report<C>>` instead ([#5533](https://github.com/hashintel/hash/pull/5533))
+- `report!`, use `IntoReport::into_report` instead. ([#6738](https://github.com/hashintel/hash/pull/6738))
 
 ## [0.5.0](https://github.com/hashintel/hash/tree/error-stack%400.5.0/libs/error-stack) - 2024-07-12
 

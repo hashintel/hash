@@ -54,6 +54,7 @@
 /// }
 /// # Ok(())
 /// ```
+#[deprecated(since = "0.6.0", note = "use `IntoReport::into_report` instead")]
 #[macro_export]
 macro_rules! report {
     ($err:expr $(,)?) => {{ $crate::IntoReport::into_report($err) }};
@@ -233,7 +234,7 @@ macro_rules! bail {
 #[macro_export]
 macro_rules! bail {
     ($err:expr) => {{
-        return ::core::result::Result::Err($crate::report!($err));
+        return ::core::result::Result::Err($crate::IntoReport::into_report($err));
     }};
 
     [$($err:expr),+ $(,)?] => {{
