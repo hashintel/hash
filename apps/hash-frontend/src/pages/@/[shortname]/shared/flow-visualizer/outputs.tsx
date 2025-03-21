@@ -364,7 +364,6 @@ export const Outputs = ({
     const uniqueTypeIdSets = new Set<string>();
 
     for (const entity of proposedEntities) {
-      // Sort the entity type IDs to ensure consistent string representation
       const sortedTypeIds = [...entity.entityTypeIds].sort();
 
       const typeIdSetKey = sortedTypeIds.join(",");
@@ -516,12 +515,10 @@ export const Outputs = ({
       );
 
       if (!proposedEntity) {
-        // Return the original item if the proposed entity is not found
         return item;
       }
 
       if (!proposedEntitiesTypesInfo) {
-        // Return the original item if entity types info is not available yet
         return item;
       }
 
