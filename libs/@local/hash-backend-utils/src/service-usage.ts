@@ -9,7 +9,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -310,7 +310,7 @@ export const createUsageRecord = async (
     },
   };
 
-  const [usageRecord] = await Entity.createMultiple<
+  const [usageRecord] = await HashEntity.createMultiple<
     [UsageRecord, RecordsUsageOf]
   >(context.graphApi, authentication, [
     {

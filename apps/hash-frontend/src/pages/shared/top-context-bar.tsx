@@ -4,7 +4,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SxProps, Theme } from "@mui/material";
 import {
@@ -110,7 +110,7 @@ type TopContextBarProps = {
   breadcrumbsEndAdornment?: ReactNode;
   crumbs: BreadcrumbsProps["crumbs"];
   defaultCrumbIcon?: ReactNode;
-  item?: Entity | EntityTypeWithMetadata | DataTypeWithMetadata;
+  item?: HashEntity | EntityTypeWithMetadata | DataTypeWithMetadata;
   onItemUnarchived?: () => void;
   scrollToTop?: () => void;
   sx?: SxProps<Theme>;

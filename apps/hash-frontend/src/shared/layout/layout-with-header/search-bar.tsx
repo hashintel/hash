@@ -6,7 +6,7 @@ import {
 } from "@blockprotocol/type-system";
 import { Chip, IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -113,7 +113,7 @@ const ResultItem: FunctionComponent<{
 const chipStyles = { cursor: "pointer !important", ml: 1 };
 
 const EntityResult: FunctionComponent<{
-  entity: Entity;
+  entity: HashEntity;
   onClick: () => void;
   subgraph: Subgraph<EntityRootType>;
 }> = ({ entity, onClick, subgraph }) => {

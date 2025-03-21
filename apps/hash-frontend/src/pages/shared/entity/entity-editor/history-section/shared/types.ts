@@ -6,7 +6,7 @@ import type {
   PropertyProvenance,
   PropertyType,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 type HistoryEventBase = {
   number: string;
@@ -15,7 +15,7 @@ type HistoryEventBase = {
 
 type CreationEvent = HistoryEventBase & {
   type: "created";
-  entity: Entity;
+  entity: HashEntity;
   entityTypes: EntityType[];
   provenance: {
     edition: EntityEditionProvenance;

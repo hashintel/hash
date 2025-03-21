@@ -1,5 +1,8 @@
 import type { EntityId } from "@blockprotocol/type-system";
-import { Entity, flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
+import {
+  HashEntity,
+  flattenPropertyMetadata,
+} from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FailedEntityProposal,
@@ -65,11 +68,13 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
 
   const failedEntitiesByLocalId: Record<
     EntityId,
-    Omit<FailedEntityProposal, "existingEntity"> & { existingEntity?: Entity }
+    Omit<FailedEntityProposal, "existingEntity"> & {
+      existingEntity?: HashEntity;
+    }
   > = {};
   const persistedEntitiesByLocalId: Record<
     EntityId,
-    Omit<PersistedEntity, "entity"> & { entity?: Entity }
+    Omit<PersistedEntity, "entity"> & { entity?: HashEntity }
   > = {};
 
   /**
@@ -157,7 +162,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
       if (source.location?.uri && !source.entityId) {
         const persistedFile = persistedFilesByOriginalUrl[source.location.uri];
         if (persistedFile?.entity) {
-          source.entityId = new Entity(persistedFile.entity).entityId;
+          source.entityId = new HashEntity(persistedFile.entity).entityId;
         }
       }
     }
@@ -210,7 +215,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
         ...output.value,
         existingEntity: output.value.existingEntity
-          ? new Entity(output.value.existingEntity)
+          ? new HashEntity(output.value.existingEntity)
           : undefined,
         proposedEntity: entityWithResolvedLinks,
         message: `${persistedEntityOutputs.code}: ${
@@ -222,7 +227,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
 
     persistedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
       ...output.value,
-      entity: output.value.entity ? new Entity(output.value.entity) : undefined,
+      entity: output.value.entity
+        ? new HashEntity(output.value.entity)
+        : undefined,
     };
   }
 

@@ -5,7 +5,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system-rs/pkg/type-system";
 import {
-  type Entity,
+  type HashEntity,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -48,7 +48,7 @@ export const useHandleTypeChanges = ({
       entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
       removedPropertiesBaseUrls: BaseUrl[];
       removedLinkTypesBaseUrls: BaseUrl[];
-    }): Promise<Entity> => {
+    }): Promise<HashEntity> => {
       const {
         entityTypeIds,
         removedPropertiesBaseUrls,

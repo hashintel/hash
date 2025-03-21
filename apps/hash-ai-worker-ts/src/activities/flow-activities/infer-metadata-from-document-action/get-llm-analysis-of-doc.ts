@@ -9,7 +9,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { SchemaType } from "@google-cloud/vertexai";
 import { sleep } from "@local/hash-backend-utils/utils";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -394,7 +394,7 @@ const unsimplifyDocumentMetadata = (
 export const getLlmAnalysisOfDoc = async ({
   fileEntity,
 }: {
-  fileEntity: Entity<File>;
+  fileEntity: HashEntity<File>;
 }): Promise<DocumentData> => {
   const { userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();

@@ -4,7 +4,7 @@ import type {
   EntityId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
@@ -88,7 +88,7 @@ export interface EntityEditorProps extends DraftLinkState {
   /**
    * A function to call when the entity is updated
    */
-  setEntity: (entity: Entity) => void;
+  setEntity: (entity: HashEntity) => void;
   /**
    * Whether the editor is readonly
    */
@@ -96,7 +96,7 @@ export interface EntityEditorProps extends DraftLinkState {
   /**
    * A function to call when the entity is updated
    */
-  onEntityUpdated: ((entity: Entity) => void) | null;
+  onEntityUpdated: ((entity: HashEntity) => void) | null;
   /**
    * If the editor is loaded inside a slide which is contained in a container other than the body,
    * the ref to the container. Used to correctly position popups within the editor.

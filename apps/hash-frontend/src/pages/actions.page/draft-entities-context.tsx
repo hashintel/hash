@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
@@ -20,7 +20,7 @@ import { pollInterval } from "../../shared/poll-interval";
 import { useAuthInfo } from "../shared/auth-info-context";
 
 export type DraftEntitiesContextValue = {
-  draftEntities?: Entity[];
+  draftEntities?: HashEntity[];
   draftEntitiesSubgraph?: Subgraph<EntityRootType>;
   loading: boolean;
   refetch: () => Promise<void>;

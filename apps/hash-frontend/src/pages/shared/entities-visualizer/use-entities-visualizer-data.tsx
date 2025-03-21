@@ -8,7 +8,7 @@ import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ConversionRequest } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { useMemo } from "react";
@@ -30,7 +30,7 @@ export type EntitiesVisualizerData = Partial<
     | "webIds"
   >
 > & {
-  entities?: Entity[];
+  entities?: HashEntity[];
   // Whether or not cached content was available immediately for the context data
   hadCachedContent: boolean;
   /**

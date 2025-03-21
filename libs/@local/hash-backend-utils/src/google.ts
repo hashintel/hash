@@ -1,6 +1,6 @@
 import type { ActorId, EntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -50,7 +50,7 @@ export const getGoogleAccountById = async ({
   userAccountId: ActorId;
   googleAccountId: string;
   graphApiClient: GraphApi;
-}): Promise<Entity<GoogleAccount> | undefined> => {
+}): Promise<HashEntity<GoogleAccount> | undefined> => {
   const entities = await graphApiClient
     .getEntitySubgraph(userAccountId, {
       filter: {
@@ -97,7 +97,7 @@ export const getGoogleAccountById = async ({
 
   const entity = entities[0];
 
-  return entity as Entity<GoogleAccount> | undefined;
+  return entity as HashEntity<GoogleAccount> | undefined;
 };
 
 export const getTokensForGoogleAccount = async ({

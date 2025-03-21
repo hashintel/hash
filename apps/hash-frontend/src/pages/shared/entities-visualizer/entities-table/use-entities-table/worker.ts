@@ -5,7 +5,7 @@ import {
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import {
-  Entity,
+  HashEntity,
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
@@ -143,7 +143,7 @@ const generateTableData = async (
       return "cancelled";
     }
 
-    const entity = new Entity(serializedEntity);
+    const entity = new HashEntity(serializedEntity);
 
     const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
       closedMultiEntityTypesRootMap,

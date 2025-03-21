@@ -6,7 +6,7 @@ import {
 } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import {
-  Entity as EntityClass,
+  HashEntity as EntityClass,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import { GlobalStyles, Typography } from "@mui/material";

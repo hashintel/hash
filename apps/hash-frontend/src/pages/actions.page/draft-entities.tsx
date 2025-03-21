@@ -1,7 +1,7 @@
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import { Skeleton } from "@hashintel/design-system";
 import {
-  type Entity,
+  type HashEntity,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
@@ -70,7 +70,7 @@ export const DraftEntities: FunctionComponent<{
 
   const previousDraftEntitiesWithCreators = useRef<
     | {
-        entity: Entity;
+        entity: HashEntity;
         creator: MinimalActor;
       }[]
     | null

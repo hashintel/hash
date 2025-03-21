@@ -1,6 +1,6 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityProperties } from "@local/hash-graph-types/entity";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 import { Paper, Stack } from "@mui/material";
@@ -27,7 +27,7 @@ import { useRows } from "./outgoing-links-section/use-rows";
 
 interface OutgoingLinksSectionPropsProps {
   isLinkEntity: boolean;
-  outgoingLinks: Entity<EntityProperties>[];
+  outgoingLinks: HashEntity<EntityProperties>[];
 }
 
 export const OutgoingLinksSection = ({

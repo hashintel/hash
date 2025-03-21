@@ -11,7 +11,7 @@ import type {
   Filter,
 } from "@local/hash-graph-client";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -349,7 +349,9 @@ export const updateEntityEmbeddings = async (
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     if ("entities" in params) {
-      entities = params.entities.map((entity) => new Entity(entity).toJSON());
+      entities = params.entities.map((entity) =>
+        new HashEntity(entity).toJSON(),
+      );
     } else {
       const queryResponse = await graphActivities.getEntitySubgraph({
         authentication: params.authentication,
@@ -382,7 +384,7 @@ export const updateEntityEmbeddings = async (
     }
 
     for (const serializedEntity of entities) {
-      const entity = new Entity(serializedEntity);
+      const entity = new HashEntity(serializedEntity);
       /**
        * Don't try to create embeddings for `FlowRun` entities, due to the size
        * of their property values.

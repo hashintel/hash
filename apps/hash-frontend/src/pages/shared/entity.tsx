@@ -3,7 +3,7 @@ import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
-  Entity as EntityClass,
+  HashEntity as EntityClass,
   getClosedMultiEntityTypeFromMap,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,

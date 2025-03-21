@@ -2,7 +2,7 @@ import type {
   BaseUrl,
   EntityTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
 
@@ -17,7 +17,7 @@ export type ProfilePageTab =
       entityType?: EntityTypeWithMetadata;
       pluralTitle?: string;
       title?: string;
-      entities?: Entity[];
+      entities?: HashEntity[];
       entitiesSubgraph?: Subgraph<EntityRootType>;
     };
 

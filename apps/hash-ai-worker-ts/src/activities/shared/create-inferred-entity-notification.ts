@@ -4,7 +4,7 @@ import {
 } from "@blockprotocol/type-system";
 import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export const createInferredEntityNotification = async ({
   graphApiClient,
@@ -12,7 +12,7 @@ export const createInferredEntityNotification = async ({
   operation,
   notifiedUserAccountId,
 }: {
-  entity: Entity;
+  entity: HashEntity;
   graphApiClient: GraphApi;
   operation: "create" | "update";
   notifiedUserAccountId: ActorId;

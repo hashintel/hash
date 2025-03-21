@@ -1,7 +1,7 @@
 import type { ActorId, EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -29,8 +29,8 @@ export const getSecretEntitiesForIntegration = async ({
   integrationEntityId: EntityId;
 }): Promise<
   {
-    usesUserSecretLink: Entity<UsesUserSecret>;
-    userSecret: Entity<UserSecret>;
+    usesUserSecretLink: HashEntity<UsesUserSecret>;
+    userSecret: HashEntity<UserSecret>;
   }[]
 > => {
   return await graphApiClient
@@ -78,8 +78,8 @@ export const getSecretEntitiesForIntegration = async ({
       const linkEntities = getRoots(subgraph);
 
       const linkAndSecretPairs: {
-        usesUserSecretLink: Entity<UsesUserSecret>;
-        userSecret: Entity<UserSecret>;
+        usesUserSecretLink: HashEntity<UsesUserSecret>;
+        userSecret: HashEntity<UserSecret>;
       }[] = [];
 
       for (const link of linkEntities) {
@@ -118,8 +118,8 @@ export const getSecretEntitiesForIntegration = async ({
         }
 
         linkAndSecretPairs.push({
-          usesUserSecretLink: link as Entity<UsesUserSecret>,
-          userSecret: target as Entity<UserSecret>,
+          usesUserSecretLink: link as HashEntity<UsesUserSecret>,
+          userSecret: target as HashEntity<UserSecret>,
         });
       }
 

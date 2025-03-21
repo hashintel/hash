@@ -11,7 +11,7 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -101,8 +101,8 @@ export interface MentionSuggesterProps {
 
 type EntitiesByType = {
   entityType: EntityTypeWithMetadata;
-  displayedEntities: Entity[];
-  allEntities: Entity[];
+  displayedEntities: HashEntity[];
+  allEntities: HashEntity[];
 }[];
 
 const numberOfEntitiesDisplayedPerSection = 4;
@@ -502,7 +502,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   const handleSubmit = useCallback(
-    (params?: { entity?: Entity; subMenuIndex?: number }) => {
+    (params?: { entity?: HashEntity; subMenuIndex?: number }) => {
       const { subMenuIndex } = params ?? {};
       if (!searchedEntities) {
         return;

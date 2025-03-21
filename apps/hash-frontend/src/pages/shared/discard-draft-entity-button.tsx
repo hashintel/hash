@@ -2,7 +2,7 @@ import { useMutation } from "@apollo/client";
 import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
 import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
-import { type Entity } from "@local/hash-graph-sdk/entity";
+import { type HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
@@ -24,7 +24,7 @@ import { Button } from "../../shared/ui";
 export const DiscardDraftEntityButton: FunctionComponent<
   {
     closedMultiEntityType: ClosedMultiEntityType;
-    draftEntity: Entity;
+    draftEntity: HashEntity;
     draftEntitySubgraph: Subgraph<EntityRootType>;
     onDiscardedEntity?: () => void;
   } & ButtonProps
@@ -43,7 +43,7 @@ export const DiscardDraftEntityButton: FunctionComponent<
   >(archiveEntityMutation);
 
   const discardDraftEntity = useCallback(
-    async (params: { draftEntity: Entity }) => {
+    async (params: { draftEntity: HashEntity }) => {
       await archiveNotificationsForEntity({
         targetEntityId: params.draftEntity.entityId,
       });

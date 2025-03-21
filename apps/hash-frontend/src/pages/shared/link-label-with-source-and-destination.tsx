@@ -13,7 +13,7 @@ import {
   EyeSlashRegularIcon,
 } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
@@ -77,7 +77,7 @@ const LeftOrRightEntity: FunctionComponent<{
   closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions | null;
   endAdornment?: ReactNode;
-  entity?: Entity;
+  entity?: HashEntity;
   label?: ReactNode;
   onEntityClick?: (entityId: EntityId) => void;
   openInNew?: boolean;
@@ -278,7 +278,7 @@ const LeftOrRightEntity: FunctionComponent<{
     ).reduce<{
       [linkEntityTypeId: string]: {
         linkEntityType: EntityTypeWithMetadata;
-        rightEntities: Entity[];
+        rightEntities: HashEntity[];
       };
     }>(
       (

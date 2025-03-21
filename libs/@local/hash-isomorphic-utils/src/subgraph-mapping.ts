@@ -1,10 +1,16 @@
 import type {
+  isEntityVertex,
+  Subgraph,
+  SubgraphRootType,
+} from "@blockprotocol/graph";
+import type {
   ActorId,
   BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
   DataTypeWithMetadata,
   EntityId,
+  EntityProperties,
   EntityTypeWithMetadata,
   OwnedById,
   PropertyObject,
@@ -24,27 +30,23 @@ import type {
   Entity as GraphApiEntity,
   EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
   EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
+  KnowledgeGraphVertex,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   PropertyTypeWithMetadata as GraphApiPropertyTypeWithMetadata,
   Subgraph as GraphApiSubgraph,
+  Vertices,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityProperties } from "@local/hash-graph-types/entity";
+import {
+  HashEntity,
+  type SerializedKnowledgeGraphVertex,
+  type SerializedSubgraph,
+  type SerializedVertices,
+} from "@local/hash-graph-sdk/entity";
 import type {
   DataTypeConversionTargets,
   EntityTypeResolveDefinitions,
 } from "@local/hash-graph-types/ontology";
-import type {
-  KnowledgeGraphVertex,
-  SerializedKnowledgeGraphVertex,
-  SerializedSubgraph,
-  SerializedVertices,
-  Subgraph,
-  SubgraphRootType,
-  Vertices,
-} from "@local/hash-subgraph";
-import { isEntityVertex } from "@local/hash-subgraph";
 
 import { systemEntityTypes, systemPropertyTypes } from "./ontology-type-ids.js";
 
@@ -57,7 +59,7 @@ export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
   userAccountId: ActorId | null,
   preserveProperties = false,
 ) =>
-  new Entity<T>({
+  new HashEntity<T>({
     ...entity,
     /**
      * Until cell-level permissions is implemented (H-814), remove user properties that shouldn't be generally visible
@@ -117,7 +119,7 @@ const deserializeKnowledgeGraphVertex = (
 ) => {
   return {
     kind: vertex.kind,
-    inner: new Entity(vertex.inner),
+    inner: new HashEntity(vertex.inner),
   } as KnowledgeGraphVertex;
 };
 

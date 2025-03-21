@@ -4,7 +4,7 @@ import {
   extractBaseUrl,
   extractDraftIdFromEntityId,
 } from "@blockprotocol/type-system";
-import type { Entity as EntityClass } from "@local/hash-graph-sdk/entity";
+import type { HashEntity as EntityClass } from "@local/hash-graph-sdk/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";

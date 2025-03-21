@@ -5,7 +5,7 @@ import {
   generateTimestamp,
 } from "@blockprotocol/type-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -73,7 +73,7 @@ export const createInitialDraftEntitySubgraph = (
     },
   };
 
-  const entity = new Entity(serializedEntity);
+  const entity = new HashEntity(serializedEntity);
 
   return {
     depths: {

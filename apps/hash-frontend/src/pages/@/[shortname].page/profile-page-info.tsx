@@ -5,7 +5,7 @@ import {
   IconButton,
   PenRegularIcon,
 } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
 import {
   Box,
@@ -174,7 +174,7 @@ const PinnedEntityTypeTabInfo: FunctionComponent<
   Extract<ProfilePageTab, { kind: "pinned-entity-type" | "profile-pages" }>
 > = ({ entities }) => {
   const latestEntityUpdatedAt = useMemo(() => {
-    const latestEntity = entities?.reduce<Entity | undefined>(
+    const latestEntity = entities?.reduce<HashEntity | undefined>(
       (prev, current) => {
         if (!prev) {
           return current;

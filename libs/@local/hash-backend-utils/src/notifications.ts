@@ -6,7 +6,7 @@ import type {
   Timestamp,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -109,7 +109,7 @@ export const createGraphChangeNotification = async (
   /**
    * We create the notification entity with the user's web bot, as we know it has the necessary permissions in the user's web
    */
-  const notificationEntity = await Entity.create<GraphChangeNotification>(
+  const notificationEntity = await HashEntity.create<GraphChangeNotification>(
     graphApi,
     { actorId: webMachineActorId },
     {
@@ -132,7 +132,7 @@ export const createGraphChangeNotification = async (
     },
   );
 
-  await Entity.create<OccurredInEntity>(
+  await HashEntity.create<OccurredInEntity>(
     graphApi,
     /**
      * We use the user's authority to create the link to the entity because it might be in a different web, e.g. an org's,

@@ -2,7 +2,7 @@ import { useMutation } from "@apollo/client";
 import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
 import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getEntityRevision } from "@local/hash-subgraph/stdlib";
@@ -75,9 +75,9 @@ const getRightOrLeftEntitySx = (params: {
 export const AcceptDraftEntityButton: FunctionComponent<
   {
     closedMultiEntityType: ClosedMultiEntityType;
-    draftEntity: Entity;
+    draftEntity: HashEntity;
     draftEntitySubgraph: Subgraph<EntityRootType>;
-    onAcceptedEntity: ((acceptedEntity: Entity) => void) | null;
+    onAcceptedEntity: ((acceptedEntity: HashEntity) => void) | null;
   } & ButtonProps
 > = ({
   closedMultiEntityType,
@@ -146,7 +146,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
   const { markNotificationsAsReadForEntity } = useNotificationCount();
 
   const acceptDraftEntity = useCallback(
-    async (params: { draftEntity: Entity }) => {
+    async (params: { draftEntity: HashEntity }) => {
       await markNotificationsAsReadForEntity({
         targetEntityId: params.draftEntity.entityId,
       });
@@ -167,7 +167,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
         throw new Error("An error occurred accepting the draft entity.");
       }
 
-      return new Entity(response.data.updateEntity);
+      return new HashEntity(response.data.updateEntity);
     },
     [markNotificationsAsReadForEntity, updateEntity, refetchDraftEntitiesCount],
   );

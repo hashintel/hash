@@ -4,7 +4,7 @@ import type {
   OwnedById,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
@@ -41,7 +41,7 @@ const createDummyFlow = async (params: { actorId: ActorId }) => {
     steps: [],
   });
 
-  const dummyFlowEntity = await Entity.create(
+  const dummyFlowEntity = await HashEntity.create(
     graphApiClient,
     { actorId },
     {

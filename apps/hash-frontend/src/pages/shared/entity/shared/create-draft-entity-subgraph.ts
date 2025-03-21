@@ -4,7 +4,7 @@ import type {
   EntityMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -18,7 +18,7 @@ export const createDraftEntitySubgraph = ({
   omitProperties,
 }: {
   currentSubgraph: Subgraph<EntityRootType> | undefined;
-  entity: Entity;
+  entity: HashEntity;
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   omitProperties: BaseUrl[];
 }) => {
@@ -44,7 +44,7 @@ export const createDraftEntitySubgraph = ({
   );
 
   const newEntity = Object.freeze(
-    new Entity({
+    new HashEntity({
       ...entity.toJSON(),
       metadata,
       properties: newProperties,

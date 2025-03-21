@@ -1,10 +1,19 @@
 import type {
+  DataTypeRootType,
+  EntityRevisionId,
+  EntityTypeRootType,
+  OntologyVertices,
+  PropertyTypeRootType,
+} from "@blockprotocol/graph";
+import type {
   ActorId,
   BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
+  Entity,
   EntityId,
   EntityMetadata,
+  EntityProperties,
   EntityUuid,
   LinkData,
   OwnedById,
@@ -32,12 +41,15 @@ import {
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
+  Edges,
   Entity as GraphApiEntity,
+  EntityVertexId,
   GraphApi,
+  GraphResolveDepths,
   PatchEntityParams as GraphApiPatchEntityParams,
+  SubgraphTemporalAxes,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
-import type { EntityProperties } from "@local/hash-graph-types/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
@@ -45,6 +57,43 @@ import type {
 import type { EntityValidationReport } from "@local/hash-graph-types/validation";
 
 import type { AuthenticationContext } from "./authentication-context.js";
+
+export type SerializedEntityVertex = {
+  kind: "entity";
+  inner: SerializedEntity;
+};
+
+export type SerializedKnowledgeGraphVertex = SerializedEntityVertex;
+
+export type SerializedKnowledgeGraphVertices = {
+  [entityId: EntityId]: {
+    [revisionId: EntityRevisionId]: SerializedKnowledgeGraphVertex;
+  };
+};
+
+export type SerializedVertices = OntologyVertices &
+  SerializedKnowledgeGraphVertices;
+
+export type SerializedEntityRootType = {
+  vertexId: EntityVertexId;
+  element: SerializedEntity;
+};
+
+export type SerializedSubgraphRootType =
+  | DataTypeRootType
+  | PropertyTypeRootType
+  | EntityTypeRootType
+  | SerializedEntityRootType;
+
+export type SerializedSubgraph<
+  RootType extends SerializedSubgraphRootType = SerializedSubgraphRootType,
+> = {
+  roots: RootType["vertexId"][];
+  vertices: SerializedVertices;
+  edges: Edges;
+  depths: GraphResolveDepths;
+  temporalAxes: SubgraphTemporalAxes;
+};
 
 /**
  * Types used in getEntitySubgraph response to indicate the count of these in the whole result set,
@@ -397,7 +446,7 @@ export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
   return {
     value: Object.fromEntries(
       Object.entries(property)
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
+
         .filter(([_key, value]) => value !== undefined)
         .map(([key, value]) => {
           if (!isBaseUrl(key)) {
@@ -771,7 +820,9 @@ export const generateChangedPropertyMetadataObject = (
   return clonedMetadata;
 };
 
-export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
+export class HashEntity<PropertyMap extends EntityProperties = EntityProperties>
+  implements Entity<PropertyMap>
+{
   #entity: EntityData<PropertyMap>;
 
   constructor(entity: EntityInput<PropertyMap["properties"]>) {
@@ -788,9 +839,9 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
     params: CreateEntityParameters<T>,
-  ): Promise<Entity<T>> {
+  ): Promise<HashEntity<T>> {
     return (
-      await Entity.createMultiple<[T]>(graphAPI, authentication, [params])
+      await HashEntity.createMultiple<[T]>(graphAPI, authentication, [params])
     )[0];
   }
 
@@ -798,7 +849,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
     params: { [I in keyof T]: CreateEntityParameters<T[I]> },
-  ): Promise<{ [I in keyof T]: Entity<T[I]> }> {
+  ): Promise<{ [I in keyof T]: HashEntity<T[I]> }> {
     return graphAPI
       .createEntities(
         authentication.actorId,
@@ -813,8 +864,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
           // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           entities.map((entity, index) => {
-            return new Entity<T[typeof index]>(entity);
-          }) as { [I in keyof T]: Entity<T[I]> },
+            return new HashEntity<T[typeof index]>(entity);
+          }) as { [I in keyof T]: HashEntity<T[I]> },
       );
   }
 
@@ -852,7 +903,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
         properties: propertyPatches,
         ...params,
       })
-      .then(({ data }) => new Entity(data) as this);
+      .then(({ data }) => new HashEntity(data) as this);
   }
 
   public async archive(
@@ -949,9 +1000,9 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
 
 export class LinkEntity<
   Properties extends EntityProperties = EntityProperties,
-> extends Entity<Properties> {
-  constructor(entity: EntityInput<Properties> | Entity) {
-    const input = (entity instanceof Entity ? entity.toJSON() : entity) as
+> extends HashEntity<Properties> {
+  constructor(entity: EntityInput<Properties> | HashEntity) {
+    const input = (entity instanceof HashEntity ? entity.toJSON() : entity) as
       | GraphApiEntity
       | EntityData<Properties>;
 

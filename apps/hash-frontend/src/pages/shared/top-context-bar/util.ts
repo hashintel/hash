@@ -3,7 +3,7 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export const isItemType = <
   Type extends
@@ -11,5 +11,5 @@ export const isItemType = <
     | DataTypeWithMetadata
     | PropertyTypeWithMetadata,
 >(
-  item: Entity | Type,
+  item: HashEntity | Type,
 ): item is Type => "schema" in item;
