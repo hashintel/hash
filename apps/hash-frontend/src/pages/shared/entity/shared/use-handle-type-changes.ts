@@ -18,6 +18,7 @@ import { useCallback } from "react";
 
 import { useGetClosedMultiEntityTypes } from "../../use-get-closed-multi-entity-type";
 import type { EntityEditorProps } from "../entity-editor";
+import { getEntityMultiTypeDependencies } from "../get-entity-multi-type-dependencies";
 import { createDraftEntitySubgraph } from "./create-draft-entity-subgraph";
 
 export const useHandleTypeChanges = ({
@@ -64,7 +65,15 @@ export const useHandleTypeChanges = ({
         throw new Error("Entity not found in subgraph");
       }
 
-      const newTypeDetails = await getClosedMultiEntityTypes([entityTypeIds]);
+      const requiredEntityTypeIds = getEntityMultiTypeDependencies({
+        entityId: entity.entityId,
+        entityTypeIds,
+        entitySubgraph,
+      });
+
+      const newTypeDetails = await getClosedMultiEntityTypes(
+        requiredEntityTypeIds,
+      );
 
       const outgoingLinks = getOutgoingLinksForEntity(
         entitySubgraph,

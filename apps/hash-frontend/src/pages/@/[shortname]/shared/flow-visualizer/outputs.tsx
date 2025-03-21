@@ -500,16 +500,16 @@ export const Outputs = ({
 
       const selectedEntityId = item.itemId;
 
-      // const persistedEntity = persistedEntities.find(
-      //   ({ entity }) =>
-      //     entity &&
-      //     new Entity(entity).metadata.recordId.entityId === selectedEntityId,
-      // );
+      const persistedEntity = persistedEntities.find(
+        ({ entity }) =>
+          entity &&
+          new Entity(entity).metadata.recordId.entityId === selectedEntityId,
+      );
 
-      // // If it's a persisted entity, no need to modify the slide item. The slide will get it from the database.
-      // if (persistedEntity) {
-      //   return item;
-      // }
+      // If it's a persisted entity, no need to modify the slide item. The slide will get it from the database.
+      if (persistedEntity) {
+        return item;
+      }
 
       const proposedEntity = proposedEntities.find(
         (entity) => entity.localEntityId === selectedEntityId,

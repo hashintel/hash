@@ -466,7 +466,7 @@ type EntityResultTableProps = {
 export const EntityResultTable = memo(
   ({
     dataIsLoading,
-    persistedEntities: _,
+    persistedEntities,
     persistedEntitiesSubgraph,
     persistedEntitiesTypesInfo,
     proposedEntities,
@@ -477,8 +477,6 @@ export const EntityResultTable = memo(
       fieldId: "entityLabel",
       direction: "asc",
     });
-
-    const persistedEntities = [];
 
     const hasEntities = !!(persistedEntities.length || proposedEntities.length);
 
@@ -566,8 +564,6 @@ export const EntityResultTable = memo(
           }[];
         }
       > = {};
-
-      console.log({ entityRecords });
 
       /**
        * We use this map to look up the target entities for links.

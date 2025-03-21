@@ -217,7 +217,6 @@ export const Entity = ({
       }
 
       const allRequiredMultiTypeIds = getEntityMultiTypeDependencies({
-        draftLinksToCreate,
         entityId,
         entityTypeIds,
         entitySubgraph: proposedEntitySubgraph ?? null,
@@ -519,8 +518,6 @@ export const Entity = ({
   if (!draftEntityTypesDetails || !draftEntitySubgraph || !entityLabel) {
     return <NextErrorComponent statusCode={404} />;
   }
-
-  console.log({ proposedEntitySubgraph, draftEntityTypesDetails });
 
   const haveChangesBeenMade =
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;

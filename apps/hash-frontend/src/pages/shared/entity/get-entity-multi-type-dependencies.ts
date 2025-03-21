@@ -12,8 +12,6 @@ import {
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 
-import type { DraftLinksToCreate } from "./shared/use-draft-link-state";
-
 const addEntityTypeIdsToSet = (
   uniqueJoinedMultiEntityTypeIds: Set<string>,
   entity: Entity,
@@ -24,19 +22,13 @@ const addEntityTypeIdsToSet = (
 
 /**
  * Get the set of unique multi-type ids that are referenced by the entity,
- * including its own entityTypeIds, those of any existing incoming/outgoing links (and their targets/sources),
- * and those of any links marked for creation (i.e. the user has selected one but not yet created it).
+ * including its own entityTypeIds, and those of any existing incoming/outgoing links (and their targets/sources).
  */
 export const getEntityMultiTypeDependencies = ({
-  draftLinksToCreate,
   entityId,
   entityTypeIds,
   entitySubgraph,
 }: {
-  /**
-   * The links marked for creation from the draft entity
-   */
-  draftLinksToCreate: DraftLinksToCreate;
   /**
    * The entityId of the entity
    */
@@ -78,15 +70,9 @@ export const getEntityMultiTypeDependencies = ({
     }
   }
 
-  for (const { linkEntity, rightEntity } of [
-    ...(entitySubgraph
-      ? getOutgoingLinkAndTargetEntities(entitySubgraph, entityId)
-      : []),
-    ...draftLinksToCreate.map((link) => ({
-      linkEntity: [link.linkEntity],
-      rightEntity: [link.rightEntity],
-    })),
-  ]) {
+  for (const { linkEntity, rightEntity } of entitySubgraph
+    ? getOutgoingLinkAndTargetEntities(entitySubgraph, entityId)
+    : []) {
     const linkEntityRevision = linkEntity[0];
 
     if (linkEntityRevision) {
