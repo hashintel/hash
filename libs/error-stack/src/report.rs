@@ -965,6 +965,7 @@ impl<C> Extend<Self> for Report<[C]> {
 ///
 /// use error_stack::{IntoReport as _, Report};
 ///
+/// # #[expect(dead_code)]
 /// fn example() -> Result<(), Report<io::Error>> {
 ///     // io::Error implements Into<Report<io::Error>>, so we can use into_report()
 ///     let err = io::Error::new(io::ErrorKind::Other, "oh no!");

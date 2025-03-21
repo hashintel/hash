@@ -1,72 +1,3 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
-
-pub mod __private {
-    #![doc(hidden)]
-    //! Implementation detail for macros.
-    //!
-    //! ⚠️ **Functionality in this module is considered unstable and is subject to change at any
-    //! time without a major version bump!** ⚠️
-    mod specialization {
-        #![allow(clippy::unused_self)]
-        //! [Autoref-Based Stable Specialization](https://github.com/dtolnay/case-studies/blob/master/autoref-specialization/README.md)
-        //! for macros.
-        //!
-        //! This is a stable implementation for specialization (only possible within macros, as
-        //! there is no trait bound for these things).
-        //!
-        //! The different tags [`ReportTag`] and [`ContextTag`] have a blanket implementation
-        //! returning a concrete type. This type is then used to create a [`Report`].
-        //!
-        //! [`ContextTag`] is implemented for <code>T: [Context]</code>s while [`ReportTag`] is
-        //! implement for [`Report`]s. Calling `my_report.__kind()` will always return a
-        //! [`Reporter`] while `my_context.__kind()` will return a [`ContextReporter`] so a
-        //! [`Report`] has the highest precedence when calling `.__kind()`. This will use an
-        //! identity function when creating a [`Report`] to ensure that no information will
-        //! be lost.
-        //!
-        //! Note: The methods on the tags are called `__kind` instead of `kind` to avoid misleading
-        //! suggestions from the Rust compiler, when calling `kind`. It would suggest implementing a
-        //! tag for the type which cannot and should not be implemented.
-
-        pub trait ReportTag {
-            #[inline]
-            fn __kind(&self) -> Reporter {
-                Reporter
-            }
-        }
-        impl<T> ReportTag for Report<T> {}
-
-        pub trait ContextTag {
-            #[inline]
-            fn __kind(&self) -> ContextReporter {
-                ContextReporter
-            }
-        }
-        impl<T> ContextTag for &T where T: ?Sized + Context {}
-        use crate::{Context, Report};
-
-        pub struct Reporter;
-        impl Reporter {
-            #[inline]
-            pub const fn report<T>(self, report: Report<T>) -> Report<T> {
-                report
-            }
-        }
-
-        pub struct ContextReporter;
-        impl ContextReporter {
-            #[inline]
-            #[track_caller]
-            pub fn report<C: Context>(self, context: C) -> Report<C> {
-                Report::new(context)
-            }
-        }
-    }
-
-    // Import anonymously to allow calling `__kind` but forbid implementing the tag-traits.
-    pub use self::specialization::{ContextTag as _, ReportTag as _};
-}
-
 /// Creates a [`Report`] from the given parameters.
 ///
 /// The parameters may either be [`Error`] or a [`Report`]. The returned [`Report`] will use the
@@ -125,11 +56,7 @@ pub mod __private {
 /// ```
 #[macro_export]
 macro_rules! report {
-    ($err:expr $(,)?) => {{
-        use $crate::__private::*;
-        let error = $err;
-        (&error).__kind().report(error)
-    }};
+    ($err:expr $(,)?) => {{ $crate::IntoReport::into_report($err) }};
 }
 
 /// Creates a [`Report`] and returns it as [`Result`].

@@ -529,7 +529,6 @@ pub use self::sink::ReportSink;
 pub use self::{
     compat::IntoReportCompat,
     frame::{AttachmentKind, Frame, FrameKind},
-    macros::*,
     report::{IntoReport, Report},
 };
 #[doc(inline)]

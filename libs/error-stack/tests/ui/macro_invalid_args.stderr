@@ -7,7 +7,7 @@ error: unexpected end of macro invocation
 note: while trying to match meta-variable `$err:expr`
   --> src/macros.rs
    |
-   |     ($err:expr $(,)?) => {{
+   |     ($err:expr $(,)?) => {{ $crate::IntoReport::into_report($err) }};
    |      ^^^^^^^^^
 
 error: unexpected end of macro invocation
@@ -46,43 +46,114 @@ note: while trying to match meta-variable `$cond:expr`
    |     ($cond:expr, $err:expr $(,)?) => {{
    |      ^^^^^^^^^^
 
-error[E0599]: the method `__kind` exists for reference `&&str`, but its trait bounds were not satisfied
+error[E0277]: the trait bound `&str: IntoReport` is not satisfied
+  --> tests/ui/macro_invalid_args.rs:17:21
+   |
+17 |     let _ = report!("Error");
+   |             --------^^^^^^^-
+   |             |       |
+   |             |       the trait `std::error::Error` is not implemented for `str`
+   |             required by a bound introduced by this call
+   |
+   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+   = note: required for `&str` to implement `std::error::Error`
+   = note: required for `&str` to implement `error_stack::Context`
+   = note: required for `error_stack::Report<&str>` to implement `From<&str>`
+   = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
+   = note: required for `&str` to implement `IntoReport`
+
+error[E0277]: the trait bound `&str: Into<error_stack::Report<&str>>` is not satisfied
   --> tests/ui/macro_invalid_args.rs:17:13
    |
 17 |     let _ = report!("Error");
-   |             ^^^^^^^^^^^^^^^^
+   |             ^^^^^^^^^^^^^^^^ the trait `std::error::Error` is not implemented for `str`
    |
-   = note: the following trait bounds were not satisfied:
-           `str: error_stack::Context`
-           which is required by `&str: __private::specialization::ContextTag`
-           `&str: error_stack::Context`
-           which is required by `&&str: __private::specialization::ContextTag`
+   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+   = note: required for `&str` to implement `std::error::Error`
+   = note: required for `&str` to implement `error_stack::Context`
+   = note: required for `error_stack::Report<&str>` to implement `From<&str>`
+   = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
+   = note: required for `&str` to implement `IntoReport`
    = note: this error originates in the macro `report` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0599]: the method `__kind` exists for reference `&&str`, but its trait bounds were not satisfied
+error[E0277]: the trait bound `&str: IntoReport` is not satisfied
+  --> tests/ui/macro_invalid_args.rs:29:11
+   |
+29 |     bail!("Error")
+   |     ------^^^^^^^-
+   |     |     |
+   |     |     the trait `std::error::Error` is not implemented for `str`
+   |     required by a bound introduced by this call
+   |
+   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+   = note: required for `&str` to implement `std::error::Error`
+   = note: required for `&str` to implement `error_stack::Context`
+   = note: required for `error_stack::Report<&str>` to implement `From<&str>`
+   = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
+   = note: required for `&str` to implement `IntoReport`
+
+error[E0308]: mismatched types
   --> tests/ui/macro_invalid_args.rs:29:5
    |
 29 |     bail!("Error")
-   |     ^^^^^^^^^^^^^^
+   |     ^^^^^^^^^^^^^^ expected `Report<RootError>`, found `Report<&str>`
    |
-   = note: the following trait bounds were not satisfied:
-           `str: error_stack::Context`
-           which is required by `&str: __private::specialization::ContextTag`
-           `&str: error_stack::Context`
-           which is required by `&&str: __private::specialization::ContextTag`
+   = note: expected struct `error_stack::Report<RootError>`
+              found struct `error_stack::Report<&str>`
    = note: this error originates in the macro `$crate::report` which comes from the expansion of the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0599]: the method `__kind` exists for reference `&&str`, but its trait bounds were not satisfied
+error[E0277]: the trait bound `&str: Into<error_stack::Report<&str>>` is not satisfied
+  --> tests/ui/macro_invalid_args.rs:29:5
+   |
+29 |     bail!("Error")
+   |     ^^^^^^^^^^^^^^ the trait `std::error::Error` is not implemented for `str`
+   |
+   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+   = note: required for `&str` to implement `std::error::Error`
+   = note: required for `&str` to implement `error_stack::Context`
+   = note: required for `error_stack::Report<&str>` to implement `From<&str>`
+   = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
+   = note: required for `&str` to implement `IntoReport`
+   = note: this error originates in the macro `$crate::report` which comes from the expansion of the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `&str: IntoReport` is not satisfied
+  --> tests/ui/macro_invalid_args.rs:37:27
+   |
+37 |     let _ = ensure!(true, "Error");
+   |             --------------^^^^^^^-
+   |             |             |
+   |             |             the trait `std::error::Error` is not implemented for `str`
+   |             required by a bound introduced by this call
+   |
+   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+   = note: required for `&str` to implement `std::error::Error`
+   = note: required for `&str` to implement `error_stack::Context`
+   = note: required for `error_stack::Report<&str>` to implement `From<&str>`
+   = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
+   = note: required for `&str` to implement `IntoReport`
+
+error[E0308]: mismatched types
   --> tests/ui/macro_invalid_args.rs:37:13
    |
 37 |     let _ = ensure!(true, "Error");
-   |             ^^^^^^^^^^^^^^^^^^^^^^
+   |             ^^^^^^^^^^^^^^^^^^^^^^ expected `Report<RootError>`, found `Report<&str>`
    |
-   = note: the following trait bounds were not satisfied:
-           `str: error_stack::Context`
-           which is required by `&str: __private::specialization::ContextTag`
-           `&str: error_stack::Context`
-           which is required by `&&str: __private::specialization::ContextTag`
+   = note: expected struct `error_stack::Report<RootError>`
+              found struct `error_stack::Report<&str>`
+   = note: this error originates in the macro `$crate::report` which comes from the expansion of the macro `ensure` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `&str: Into<error_stack::Report<&str>>` is not satisfied
+  --> tests/ui/macro_invalid_args.rs:37:13
+   |
+37 |     let _ = ensure!(true, "Error");
+   |             ^^^^^^^^^^^^^^^^^^^^^^ the trait `std::error::Error` is not implemented for `str`
+   |
+   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+   = note: required for `&str` to implement `std::error::Error`
+   = note: required for `&str` to implement `error_stack::Context`
+   = note: required for `error_stack::Report<&str>` to implement `From<&str>`
+   = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
+   = note: required for `&str` to implement `IntoReport`
    = note: this error originates in the macro `$crate::report` which comes from the expansion of the macro `ensure` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
