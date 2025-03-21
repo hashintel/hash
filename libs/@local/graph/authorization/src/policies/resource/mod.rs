@@ -17,12 +17,11 @@ use uuid::Uuid;
 pub use self::{
     entity::{EntityResource, EntityResourceConstraint, EntityResourceFilter},
     entity_type::{
-        EntityTypeId, EntityTypeResource, EntityTypeResourceConstraint, EntityTypeResourceFilter,
+        EntityTypeId, EntityTypeResource, EntityTypeResourceConstraint,
+        EntityTypeResourceConstraints, EntityTypeResourceFilter,
     },
 };
-use super::cedar::{
-    CedarExpressionParseError, CedarExpressionVisitor, FromCedarExpr, UnexpectedCedarExpression,
-};
+use super::cedar::{CedarExpressionVisitor, FromCedarExpr};
 use crate::policies::cedar::CedarEntityId as _;
 
 struct ResourceVariableVisitor;
@@ -35,14 +34,14 @@ impl CedarExpressionVisitor for ResourceVariableVisitor {
         write!(fmt, "a resource variable")
     }
 
-    fn visit_resource_variable(&self) -> Result<Option<Self::Value>, !> {
-        Ok(Some(()))
+    fn visit_resource_variable(&self) -> Option<Result<(), !>> {
+        Some(Ok(()))
     }
 
-    fn visit_unknown(&self, name: &str) -> Result<Option<Self::Value>, !> {
+    fn visit_unknown(&self, name: &str) -> Option<Result<(), !>> {
         match name {
-            "resource" => Ok(Some(())),
-            _ => Ok(None),
+            "resource" => Some(Ok(())),
+            _ => None,
         }
     }
 }

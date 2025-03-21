@@ -15,7 +15,7 @@ use crate::policies::{
 pub(crate) struct EntityTypeIdVisitor;
 
 impl CedarExpressionVisitor for EntityTypeIdVisitor {
-    type Error = ParseVersionedUrlError;
+    type Error = Report<ParseVersionedUrlError>;
     type Value = VersionedUrl;
 
     fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -25,41 +25,42 @@ impl CedarExpressionVisitor for EntityTypeIdVisitor {
     fn visit_euid(
         &self,
         euid: &ast::EntityUID,
-    ) -> Result<Option<Self::Value>, Report<ParseVersionedUrlError>> {
-        if *euid.entity_type() == **EntityTypeId::entity_type() {
-            Ok(Some(EntityTypeId::from_eid(euid.eid())?.into_url()))
-        } else {
-            Ok(None)
-        }
+    ) -> Option<Result<Self::Value, Report<ParseVersionedUrlError>>> {
+        (*euid.entity_type() == **EntityTypeId::entity_type())
+            .then(|| EntityTypeId::from_eid(euid.eid()).map(EntityTypeId::into_url))
     }
 }
 
 pub(crate) struct BaseUrlVisitor;
 
 impl CedarExpressionVisitor for BaseUrlVisitor {
-    type Error = ParseBaseUrlError;
+    type Error = Report<ParseBaseUrlError>;
     type Value = BaseUrl;
 
     fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("a base url string literal")
     }
 
-    fn visit_string(&self, string: &str) -> Result<Option<Self::Value>, Report<ParseBaseUrlError>> {
-        Ok(Some(BaseUrl::new(string.to_owned())?))
+    fn visit_string(&self, string: &str) -> Option<Result<Self::Value, Report<ParseBaseUrlError>>> {
+        Some(BaseUrl::new(string.to_owned()).map_err(Report::new))
     }
 }
 
 pub(crate) struct OntologyTypeVersionVisitor;
 
 impl CedarExpressionVisitor for OntologyTypeVersionVisitor {
-    type Error = TryFromIntError;
+    type Error = Report<TryFromIntError>;
     type Value = OntologyTypeVersion;
 
     fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("an ontology version literal")
     }
 
-    fn visit_long(&self, long: i64) -> Result<Option<Self::Value>, Report<TryFromIntError>> {
-        Ok(Some(OntologyTypeVersion::new(u32::try_from(long)?)))
+    fn visit_long(&self, long: i64) -> Option<Result<Self::Value, Self::Error>> {
+        Some(
+            u32::try_from(long)
+                .map(OntologyTypeVersion::new)
+                .map_err(Report::new),
+        )
     }
 }

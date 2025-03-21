@@ -14,7 +14,10 @@ use type_system::{
 use super::{
     Context, PartialResourceId, Policy, Request,
     cedar::FromCedarExpr,
-    resource::{EntityResourceFilter, EntityTypeResourceFilter},
+    resource::{
+        EntityResourceFilter, EntityTypeResourceConstraint, EntityTypeResourceConstraints,
+        EntityTypeResourceFilter,
+    },
 };
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -85,7 +88,7 @@ enum ConstraintConversionErrorKind {
 #[derive(Debug)]
 pub enum PolicyConstraint {
     Entity(EntityResourceFilter),
-    EntityType(EntityTypeResourceFilter),
+    EntityType(EntityTypeResourceConstraints),
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -223,7 +226,7 @@ impl PolicySet {
                 EntityResourceFilter::from_cedar(&expr).change_context(PolicyEvaluationError)?,
             ),
             Some(PartialResourceId::EntityType(None)) => PolicyConstraint::EntityType(
-                EntityTypeResourceFilter::from_cedar(&expr)
+                EntityTypeResourceConstraints::from_cedar(&expr)
                     .change_context(PolicyEvaluationError)?,
             ),
             _ => todo!(),

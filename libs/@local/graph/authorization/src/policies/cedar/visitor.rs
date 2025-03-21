@@ -3,7 +3,7 @@ use core::{error::Error, fmt};
 use std::sync::Arc;
 
 use cedar_policy_core::ast;
-use error_stack::{Report, ResultExt, bail};
+use error_stack::{IntoReport, Report, ResultExt, bail};
 use smol_str::SmolStr;
 
 #[derive(Debug, derive_more::Display)]
@@ -218,11 +218,11 @@ pub(crate) mod visitor_helpers {
         }
     }
 
-    pub(crate) fn visit_and<T: ComposableValue, E: Error + Send + Sync + 'static>(
-        visitor: &impl CedarExpressionVisitor<Value = T, Error = E>,
+    pub(crate) fn visit_and<V: CedarExpressionVisitor<Value: ComposableValue>>(
+        visitor: &V,
         lhs: &ast::Expr,
         rhs: &ast::Expr,
-    ) -> Option<Result<T, E>> {
+    ) -> Option<Result<V::Value, V::Error>> {
         let left = visitor.visit_expr(lhs)?;
         let right = visitor.visit_expr(rhs)?;
 
@@ -230,23 +230,23 @@ pub(crate) mod visitor_helpers {
             right.map(|right| {
                 let mut all_filters = Vec::new();
 
-                T::extend_all(&mut all_filters, left);
-                T::extend_all(&mut all_filters, right);
+                V::Value::extend_all(&mut all_filters, left);
+                V::Value::extend_all(&mut all_filters, right);
 
                 if all_filters.len() == 1 {
                     all_filters.pop().expect("should have exactly one filter")
                 } else {
-                    T::make_all(all_filters)
+                    V::Value::make_all(all_filters)
                 }
             })
         }))
     }
 
-    pub(crate) fn visit_or<T: ComposableValue, E: Error + Send + Sync + 'static>(
-        visitor: &impl CedarExpressionVisitor<Value = T, Error = E>,
+    pub(crate) fn visit_or<V: CedarExpressionVisitor<Value: ComposableValue>>(
+        visitor: &V,
         lhs: &ast::Expr,
         rhs: &ast::Expr,
-    ) -> Option<Result<T, E>> {
+    ) -> Option<Result<V::Value, V::Error>> {
         let left = visitor.visit_expr(lhs)?;
         let right = visitor.visit_expr(rhs)?;
 
@@ -254,29 +254,33 @@ pub(crate) mod visitor_helpers {
             right.map(|right| {
                 let mut any_filters = Vec::new();
 
-                T::extend_any(&mut any_filters, left);
-                T::extend_any(&mut any_filters, right);
+                V::Value::extend_any(&mut any_filters, left);
+                V::Value::extend_any(&mut any_filters, right);
 
                 if any_filters.len() == 1 {
                     any_filters.pop().expect("should have exactly one filter")
                 } else {
-                    T::make_any(any_filters)
+                    V::Value::make_any(any_filters)
                 }
             })
         }))
     }
 
-    pub(crate) fn visit_not<T: ComposableValue, E: Error + Send + Sync + 'static>(
-        visitor: &impl CedarExpressionVisitor<Value = T, Error = E>,
+    pub(crate) fn visit_not<V: CedarExpressionVisitor<Value: ComposableValue>>(
+        visitor: &V,
         expr: &ast::Expr,
-    ) -> Option<Result<T, E>> {
-        Some(visitor.visit_expr(expr)?.map(T::make_not))
+    ) -> Option<Result<V::Value, V::Error>> {
+        Some(visitor.visit_expr(expr)?.map(V::Value::make_not))
     }
 }
 
+#[expect(
+    unused_variables,
+    reason = "Default implementations don't use the parameters"
+)]
 pub(crate) trait CedarExpressionVisitor: Sized {
     type Value;
-    type Error;
+    type Error: IntoReport;
 
     fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result;
 
@@ -583,25 +587,23 @@ pub(crate) trait CedarExpressionParser: Sized {
     ) -> Result<V::Value, Report<CedarExpressionParseError>>;
 }
 
-struct SimpleParser;
+pub(crate) struct SimpleParser;
 
 impl CedarExpressionParser for SimpleParser {
     fn parse_expr<V: CedarExpressionVisitor>(
         &self,
         expr: &ast::Expr,
         visitor: &V,
-    ) -> Result<V::Value, Report<CedarExpressionParseError>>
-    where
-        Result<V::Value, V::Error>: ResultExt,
-    {
-        if let Some(value) = visitor.visit_expr(expr) {
-            value.change_context(CedarExpressionParseError::ParseError)
-        } else {
-            Err(Report::new(CedarExpressionParseError::unexpected_expr_err(
-                visitor,
-                expr.clone().into(),
-            )))
-        }
+    ) -> Result<V::Value, Report<CedarExpressionParseError>> {
+        visitor.visit_expr(expr).map_or_else(
+            || {
+                Err(Report::new(CedarExpressionParseError::unexpected_expr_err(
+                    visitor,
+                    expr.clone().into(),
+                )))
+            },
+            |value| value.change_context(CedarExpressionParseError::ParseError),
+        )
     }
 }
 

@@ -1,18 +1,19 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::{error::Error, fmt, iter, str::FromStr as _};
+use core::{fmt, iter, str::FromStr as _};
 use std::sync::LazyLock;
 
 use cedar_policy_core::{ast, extensions::Extensions};
-use error_stack::{Report, ResultExt as _, bail};
+use error_stack::{Report, ResultExt as _};
 use smol_str::SmolStr;
 use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
 use uuid::Uuid;
 
-use super::{ResourceFilterConversionError, entity_type::EntityTypeId};
+use super::entity_type::EntityTypeId;
 use crate::policies::{
     cedar::{
-        CedarEntityId, CedarExpressionParseError, CedarExpressionVisitor, EntityTypeIdVisitor,
-        FromCedarExpr, ToCedarExpr, UnexpectedCedarExpression,
+        CedarEntityId, CedarExpressionParseError, CedarExpressionParser as _,
+        CedarExpressionVisitor, EntityTypeIdVisitor, FromCedarExpr, SimpleParser, ToCedarExpr,
+        visitor_helpers::{self, ComposableValue},
     },
     resource::ResourceVariableVisitor,
 };
@@ -40,6 +41,36 @@ pub enum EntityResourceFilter {
     IsOfType { entity_type: VersionedUrl },
 }
 
+impl ComposableValue for EntityResourceFilter {
+    fn make_all(filters: Vec<Self>) -> Self {
+        Self::All { filters }
+    }
+
+    fn make_any(filters: Vec<Self>) -> Self {
+        Self::Any { filters }
+    }
+
+    fn make_not(filter: Self) -> Self {
+        Self::Not {
+            filter: Box::new(filter),
+        }
+    }
+
+    fn extend_all(filters: &mut Vec<Self>, filter: Self) {
+        match filter {
+            Self::All { filters: f } => filters.extend(f),
+            constraint => filters.push(constraint),
+        }
+    }
+
+    fn extend_any(filters: &mut Vec<Self>, filter: Self) {
+        match filter {
+            Self::Any { filters: f } => filters.extend(f),
+            constraint => filters.push(constraint),
+        }
+    }
+}
+
 fn versioned_url_to_euid(url: &VersionedUrl) -> ast::EntityUID {
     ast::EntityUID::from_components(
         ast::EntityType::clone(EntityTypeId::entity_type()),
@@ -48,126 +79,60 @@ fn versioned_url_to_euid(url: &VersionedUrl) -> ast::EntityUID {
     )
 }
 
-// New code for extensible entity attribute parsing
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum EntityAttribute {
-    EntityTypes,
-    // Other attributes can be added here in the future
-}
-
-struct AttributeVisitor;
-
-impl CedarExpressionVisitor for AttributeVisitor {
-    type Value = EntityAttribute;
-
-    fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "an entity attribute expression")
-    }
-
-    fn visit_get_attr(
-        &self,
-        expr: &ast::Expr,
-        attr: &str,
-    ) -> Result<Self::Value, Report<CedarExpressionParseError>> {
-        ResourceVariableVisitor.visit_expr(expr)?;
-
-        match attr {
-            "entity_types" => Ok(EntityAttribute::EntityTypes),
-            attr => bail!(CedarExpressionParseError::unexpected_expr_err(
-                self,
-                UnexpectedCedarExpression::GetAttr(expr.clone(), attr.to_owned())
-            )),
-        }
-    }
-}
-
 struct EntityFilterVisitor;
 
 impl CedarExpressionVisitor for EntityFilterVisitor {
+    type Error = Report<CedarExpressionParseError>;
     type Value = EntityResourceFilter;
 
     fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "an entity resource filter expression")
     }
 
-    fn visit_contains(
-        &self,
-        lhs: &ast::Expr,
-        rhs: &ast::Expr,
-    ) -> Result<Self::Value, Report<CedarExpressionParseError>> {
-        match AttributeVisitor.visit_expr(lhs)? {
-            EntityAttribute::EntityTypes => Ok(EntityResourceFilter::IsOfType {
-                entity_type: EntityTypeIdVisitor.visit_expr(rhs)?,
-            }),
-        }
-    }
-
-    fn visit_bool(&self, bool: bool) -> Result<Self::Value, Report<CedarExpressionParseError>> {
-        if bool {
-            Ok(EntityResourceFilter::All {
-                filters: Vec::new(),
-            })
-        } else {
-            Ok(EntityResourceFilter::Any {
-                filters: Vec::new(),
-            })
-        }
+    fn visit_bool(&self, bool: bool) -> Option<Result<Self::Value, Self::Error>> {
+        Some(Ok(visitor_helpers::visit_bool(bool)))
     }
 
     fn visit_and(
         &self,
         lhs: &ast::Expr,
         rhs: &ast::Expr,
-    ) -> Result<Self::Value, Report<CedarExpressionParseError>> {
-        let mut all_filters = Vec::new();
-
-        match self.visit_expr(lhs)? {
-            EntityResourceFilter::All { filters } => all_filters.extend(filters),
-            constraint => all_filters.push(constraint),
-        }
-        match self.visit_expr(rhs)? {
-            EntityResourceFilter::All { filters } => all_filters.extend(filters),
-            constraint => all_filters.push(constraint),
-        }
-
-        if all_filters.len() == 1 {
-            Ok(all_filters.pop().expect("should have exactly one filter"))
-        } else {
-            Ok(EntityResourceFilter::All {
-                filters: all_filters,
-            })
-        }
+    ) -> Option<Result<Self::Value, Self::Error>> {
+        visitor_helpers::visit_and(self, lhs, rhs)
     }
 
     fn visit_or(
         &self,
         lhs: &ast::Expr,
         rhs: &ast::Expr,
-    ) -> Result<Self::Value, Report<CedarExpressionParseError>> {
-        let mut any_filters = Vec::new();
-
-        match self.visit_expr(lhs)? {
-            EntityResourceFilter::Any { filters } => any_filters.extend(filters),
-            constraint => any_filters.push(constraint),
-        }
-        match self.visit_expr(rhs)? {
-            EntityResourceFilter::Any { filters } => any_filters.extend(filters),
-            constraint => any_filters.push(constraint),
-        }
-
-        if any_filters.len() == 1 {
-            Ok(any_filters.pop().expect("should have exactly one filter"))
-        } else {
-            Ok(EntityResourceFilter::Any {
-                filters: any_filters,
-            })
-        }
+    ) -> Option<Result<Self::Value, Self::Error>> {
+        visitor_helpers::visit_or(self, lhs, rhs)
     }
 
-    fn visit_not(&self, arg: &ast::Expr) -> Result<Self::Value, Report<CedarExpressionParseError>> {
-        Ok(EntityResourceFilter::Not {
-            filter: Box::new(self.visit_expr(arg)?),
-        })
+    fn visit_not(&self, arg: &ast::Expr) -> Option<Result<Self::Value, Self::Error>> {
+        visitor_helpers::visit_not(self, arg)
+    }
+
+    fn visit_contains(
+        &self,
+        lhs: &ast::Expr,
+        rhs: &ast::Expr,
+    ) -> Option<Result<Self::Value, Self::Error>> {
+        match lhs.expr_kind() {
+            ast::ExprKind::GetAttr { expr, attr } => {
+                let Ok(()) = ResourceVariableVisitor.visit_expr(expr)?;
+                match attr.as_str() {
+                    "entity_types" => Some(
+                        EntityTypeIdVisitor
+                            .visit_expr(rhs)?
+                            .change_context(CedarExpressionParseError::ParseError)
+                            .map(|entity_type| EntityResourceFilter::IsOfType { entity_type }),
+                    ),
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
     }
 }
 
@@ -204,10 +169,10 @@ impl ToCedarExpr for EntityResourceFilter {
 }
 
 impl FromCedarExpr for EntityResourceFilter {
-    fn from_cedar(expr: &ast::Expr) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
-        EntityFilterVisitor
-            .visit_expr(expr)
-            .change_context(ResourceFilterConversionError)
+    type Error = Report<CedarExpressionParseError>;
+
+    fn from_cedar(expr: &ast::Expr) -> Result<Self, Self::Error> {
+        SimpleParser.parse_expr(expr, &EntityFilterVisitor)
     }
 }
 
@@ -232,6 +197,8 @@ impl EntityResource<'_> {
 }
 
 impl CedarEntityId for EntityUuid {
+    type Error = Report<uuid::Error>;
+
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Entity"]));
@@ -242,7 +209,7 @@ impl CedarEntityId for EntityUuid {
         ast::Eid::new(self.to_string())
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
     }
 }
@@ -323,7 +290,7 @@ mod tests {
 
     use super::{EntityResourceConstraint, EntityResourceFilter};
     use crate::{
-        policies::{ResourceConstraint, cedar::ToCedarExpr, resource::tests::check_resource},
+        policies::{ResourceConstraint, resource::tests::check_resource},
         test_utils::check_deserialization_error,
     };
 
