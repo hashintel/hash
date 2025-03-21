@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import {
-  Entity,
+  HashEntity,
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
@@ -75,7 +75,7 @@ export const useBlockProtocolUpdateEntity = (
       }
 
       return {
-        data: new Entity(updatedEntity),
+        data: new HashEntity(updatedEntity),
       };
     },
     [updateFn, readonly],

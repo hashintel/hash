@@ -15,7 +15,7 @@ import {
   typedValues,
 } from "@local/advanced-types/typed-entries";
 import {
-  Entity,
+  HashEntity,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
 import type { EntityProperties } from "@local/hash-graph-types/entity";
@@ -236,7 +236,7 @@ type EntityResultRow = {
       targetEntityLabel: string;
     }[]
   >;
-  persistedEntity?: Entity;
+  persistedEntity?: HashEntity;
   properties: PropertyObject;
   propertiesMetadata: PropertyObjectMetadata;
   relevance: "Yes" | "No";
@@ -574,7 +574,7 @@ export const EntityResultTable = memo(
           record: ProposedEntityOutput | PersistedEntity;
           closedMultiEntityType: ClosedMultiEntityType;
           entityLabel: string;
-          entity: ProposedEntityOutput | Entity<EntityProperties>;
+          entity: ProposedEntityOutput | HashEntity<EntityProperties>;
         }
       > = {};
 
@@ -591,7 +591,7 @@ export const EntityResultTable = memo(
         const entity = isProposed
           ? record
           : record.entity
-            ? new Entity(record.entity)
+            ? new HashEntity(record.entity)
             : undefined;
 
         if (!entity) {

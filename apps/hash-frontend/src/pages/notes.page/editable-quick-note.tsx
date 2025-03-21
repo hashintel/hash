@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@apollo/client";
 import type { BaseUrl, OwnedById } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
@@ -86,7 +86,7 @@ const parseTextFromTextBlock = ({
 export const EditableQuickNote: FunctionComponent<{
   displayLabel?: boolean;
   displayActionButtons?: boolean;
-  quickNoteEntity: Entity;
+  quickNoteEntity: HashEntity;
   quickNoteSubgraph?: Subgraph<EntityRootType>;
   refetchQuickNotes?: () => Promise<void>;
   autoFocus?: boolean;

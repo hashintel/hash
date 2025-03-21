@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockCollection } from "@local/hash-isomorphic-utils/entity";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
@@ -111,7 +111,9 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
                 | LinkEntity<HasSpatiallyPositionedContent>,
               rightEntity: {
                 ...item.rightEntity,
-                blockChildEntity: new Entity(item.rightEntity.blockChildEntity),
+                blockChildEntity: new HashEntity(
+                  item.rightEntity.blockChildEntity,
+                ),
               },
             }),
           ),

@@ -3,12 +3,12 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 
 export const isType = (
   item:
-    | Entity
+    | HashEntity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata,
@@ -38,5 +38,5 @@ export const isTypeDataType = (
     | DataTypeWithMetadata,
 ) => type.schema.kind === "dataType";
 
-export const isEntityPageEntity = (item: Entity) =>
+export const isEntityPageEntity = (item: HashEntity) =>
   includesPageEntityTypeId(item.metadata.entityTypeIds);

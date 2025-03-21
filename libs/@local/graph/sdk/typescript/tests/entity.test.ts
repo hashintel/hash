@@ -6,7 +6,7 @@ import type {
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
 import { expect, test } from "vitest";
 
-import { Entity } from "../src/entity.js";
+import { HashEntity } from "../src/entity.js";
 
 const base_url_a = "https://example.com/property-type/a/" as BaseUrl;
 const base_url_aa = "https://example.com/property-type/aa/" as BaseUrl;
@@ -121,13 +121,13 @@ const createTestEntity = (): GraphApiEntity => ({
 
 test("Entity can be created from Graph API", () => {
   const testEntity = createTestEntity();
-  const entityInstance = new Entity(testEntity);
+  const entityInstance = new HashEntity(testEntity);
 
   expect(entityInstance.entityId).toBe(testEntity.metadata.recordId.entityId);
 });
 
 test("propertyMetadata access", () => {
-  const entityInstance = new Entity(createTestEntity());
+  const entityInstance = new HashEntity(createTestEntity());
 
   expect(entityInstance.propertyMetadata([base_url_a])).toEqual({
     value: {
@@ -253,7 +253,7 @@ test("propertyMetadata access", () => {
 });
 
 test("flattened properties", () => {
-  const entityInstance = new Entity(createTestEntity());
+  const entityInstance = new HashEntity(createTestEntity());
 
   expect(entityInstance.flattenedPropertiesMetadata()).toStrictEqual([
     {

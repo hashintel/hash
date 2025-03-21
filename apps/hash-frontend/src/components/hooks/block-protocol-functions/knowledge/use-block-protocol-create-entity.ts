@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import type { OwnedById } from "@blockprotocol/type-system";
 import {
-  Entity,
+  HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import { useCallback } from "react";
@@ -102,7 +102,7 @@ export const useBlockProtocolCreateEntity = (
       }
 
       return {
-        data: new Entity(createdEntity),
+        data: new HashEntity(createdEntity),
       };
     },
     [createFn, ownedById, readonly],

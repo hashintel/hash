@@ -1,5 +1,5 @@
 import type { OwnedById } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Skeleton } from "@mui/material";
@@ -18,10 +18,10 @@ import { useCreateBlockCollection } from "../shared/use-create-block-collection"
 import { EditableQuickNote } from "./editable-quick-note";
 
 export const CreateQuickNote: FunctionComponent<{
-  initialQuickNoteEntity?: Entity | null;
+  initialQuickNoteEntity?: HashEntity | null;
   initialQuickNoteEntitySubgraph?: Subgraph<EntityRootType>;
   refetchQuickNotes: () => Promise<void>;
-  onCreatingQuickNote: (quickNoteEntity: Entity) => void;
+  onCreatingQuickNote: (quickNoteEntity: HashEntity) => void;
 }> = ({
   initialQuickNoteEntity,
   initialQuickNoteEntitySubgraph,
@@ -55,7 +55,7 @@ export const CreateQuickNote: FunctionComponent<{
 
   const [creatingNewQuickNote, setCreatingNewQuickNote] = useState(false);
 
-  const [quickNoteEntity, setQuickNoteEntity] = useState<Entity>();
+  const [quickNoteEntity, setQuickNoteEntity] = useState<HashEntity>();
 
   const [quickNoteSubgraph, setQuickNoteSubgraph] =
     useState<Subgraph<EntityRootType>>();

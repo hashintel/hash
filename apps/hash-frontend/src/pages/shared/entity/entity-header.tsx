@@ -7,7 +7,7 @@ import {
   ArrowUpRightFromSquareRegularIcon,
   EntityOrTypeIcon,
 } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -41,7 +41,7 @@ export const EntityHeader = ({
 }: {
   closedMultiEntityType?: ClosedMultiEntityType;
   editBar?: ReactNode;
-  entity?: Entity;
+  entity?: HashEntity;
   entityLabel: string;
   entitySubgraph?: Subgraph<EntityRootType>;
   hideOpenInNew?: boolean;
@@ -50,7 +50,7 @@ export const EntityHeader = ({
   isModifyingEntity?: boolean;
   lightTitle?: boolean;
   onDraftArchived: () => void;
-  onDraftPublished: (entity: Entity) => void;
+  onDraftPublished: (entity: HashEntity) => void;
   onUnarchived: () => void;
   showTabs?: boolean;
 }) => {

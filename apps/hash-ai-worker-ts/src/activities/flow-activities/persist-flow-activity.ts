@@ -5,7 +5,7 @@ import type {
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { LocalFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -59,7 +59,7 @@ export const persistFlowActivity = async (
       provenance,
     });
   } else {
-    await Entity.create<FlowRun>(graphApiClient, userAuthentication, {
+    await HashEntity.create<FlowRun>(graphApiClient, userAuthentication, {
       ownedById: webId,
       entityUuid: flowRunId,
       entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],

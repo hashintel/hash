@@ -6,7 +6,7 @@ import type {
 } from "@blockprotocol/type-system";
 import type { LinkEntity } from "@local/hash-graph-sdk/entity";
 import {
-  Entity,
+  HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -441,7 +441,7 @@ const getDraftEntityIds = (
 };
 
 const mapEntityToGqlBlock = (
-  entity: Entity<Block>,
+  entity: HashEntity<Block>,
   entitySubgraph: Subgraph<EntityRootType>,
 ): GqlBlock => {
   if (
@@ -521,7 +521,7 @@ export const save = async ({
           linkEntity: LinkEntity<
             HasIndexedContent | HasSpatiallyPositionedContent
           >[];
-          rightEntity: Entity<Block>[];
+          rightEntity: HashEntity<Block>[];
         }[]
       >(subgraph, blockCollectionEntity!.metadata.recordId.entityId)
         .filter(
@@ -575,7 +575,7 @@ export const save = async ({
 
   let currentBlocks = blockAndLinkList.map(({ blockEntity }) => ({
     ...blockEntity,
-    blockChildEntity: new Entity(blockEntity.blockChildEntity),
+    blockChildEntity: new HashEntity(blockEntity.blockChildEntity),
   }));
 
   let placeholders: UpdateBlockCollectionContentsResultPlaceholder[] = [];
@@ -597,7 +597,7 @@ export const save = async ({
       res.data.updateBlockCollectionContents.blockCollection.contents.map(
         (contentItem) => ({
           ...contentItem.rightEntity,
-          blockChildEntity: new Entity(
+          blockChildEntity: new HashEntity(
             contentItem.rightEntity.blockChildEntity,
           ),
         }),

@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import type { ActorGroupId, ActorId } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { Box, Skeleton, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -38,7 +38,7 @@ type AccountAuthorizationRelationshipsByAccount = {
 };
 
 export const ShareEntitySection: FunctionComponent<{
-  entity: Entity;
+  entity: HashEntity;
   authorizationRelationships?: AuthorizationRelationship[];
 }> = ({ entity, authorizationRelationships }) => {
   const { entityId } = entity.metadata.recordId;

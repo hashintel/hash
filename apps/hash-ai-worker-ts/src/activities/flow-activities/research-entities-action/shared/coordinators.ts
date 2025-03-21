@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   ProposedEntity,
   WorkerIdentifiers,
@@ -44,7 +44,7 @@ export type CoordinatingAgentInput = {
   /**
    * Full details of entities that already exist, provided as inputs to the research task.
    */
-  existingEntities?: Entity[];
+  existingEntities?: HashEntity[];
   /**
    * Natural language summaries of any entities that already exist, for LLM consumption
    */

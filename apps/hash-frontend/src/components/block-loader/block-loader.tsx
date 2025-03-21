@@ -15,7 +15,7 @@ import {
   isEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import {
@@ -265,7 +265,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
             ...entityOrTypeEditionMap,
             [latestSubgraphEditionTimestamp]: {
               kind: "entity",
-              inner: new Entity({
+              inner: new HashEntity({
                 ...entityVertex.inner.toJSON(),
                 properties: rewrittenPropertiesForTextualContent(
                   (
@@ -290,7 +290,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
             kind: "entity",
             // TODO: `Entity` should not be created here
             //   see https://linear.app/hash/issue/H-2786/avoid-constructing-graphentity-in-block-loader
-            inner: new Entity({
+            inner: new HashEntity({
               metadata: {
                 recordId: entityInStore.metadata.recordId as EntityRecordId,
                 entityTypeIds: [

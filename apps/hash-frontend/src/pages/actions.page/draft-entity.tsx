@@ -1,5 +1,5 @@
 import {
-  type Entity,
+  type HashEntity,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
@@ -22,7 +22,7 @@ import { DraftEntityWeb } from "./draft-entity/draft-entity-web";
 
 export const DraftEntity: FunctionComponent<{
   closedMultiEntityTypesRootMap?: ClosedMultiEntityTypesRootMap;
-  entity: Entity;
+  entity: HashEntity;
   entityTypeDisplayInfoByBaseUrl: EntityTypeDisplayInfoByBaseUrl;
   subgraph: Subgraph<EntityRootType>;
   selected: boolean;

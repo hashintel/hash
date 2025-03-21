@@ -7,7 +7,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { isValueMetadata } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
@@ -331,12 +331,12 @@ export type NewEntityInput = {
 };
 
 export type ExistingEntityForMatching = Pick<
-  Entity,
+  HashEntity,
   "entityId" | "properties" | "propertiesMetadata"
 > & {
-  metadata: Pick<Entity["metadata"], "entityTypeIds"> & {
+  metadata: Pick<HashEntity["metadata"], "entityTypeIds"> & {
     provenance: {
-      edition: Pick<Entity["metadata"]["provenance"]["edition"], "sources">;
+      edition: Pick<HashEntity["metadata"]["provenance"]["edition"], "sources">;
     };
   };
 };

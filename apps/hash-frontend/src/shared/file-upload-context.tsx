@@ -7,7 +7,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
-  Entity,
+  HashEntity,
   LinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
@@ -93,7 +93,7 @@ type FileUploadRequestData = {
 };
 
 type FileUploadEntities = {
-  fileEntity: Entity<FileEntity>;
+  fileEntity: HashEntity<FileEntity>;
   linkEntity?: LinkEntity;
 };
 
@@ -272,7 +272,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             throw new Error(errors?.[0]?.message ?? "unknown error");
           }
 
-          fileEntity = new Entity<FileEntity>(data.createFileFromUrl);
+          fileEntity = new HashEntity<FileEntity>(data.createFileFromUrl);
 
           if (makePublic) {
             /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -334,7 +334,9 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
               throw new Error(errors?.[0]?.message ?? "unknown error");
             }
 
-            fileEntity = new Entity<FileEntity>(data.requestFileUpload.entity);
+            fileEntity = new HashEntity<FileEntity>(
+              data.requestFileUpload.entity,
+            );
 
             if (makePublic) {
               /** @todo: make entity public as part of `createEntity` query once this is supported */

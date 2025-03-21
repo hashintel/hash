@@ -4,7 +4,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
@@ -44,7 +44,7 @@ import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-hea
 import type { ProfilePageTab } from "./util";
 
 const EntityRow: FunctionComponent<{
-  entity: Entity;
+  entity: HashEntity;
   entityType?: EntityTypeWithMetadata;
   profile: User | Org;
   entitiesSubgraph: Subgraph<EntityRootType>;

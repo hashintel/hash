@@ -2,7 +2,7 @@ import type {
   MessageParam as AnthropicMessage,
   ToolResultBlockParam as AnthropicToolResultBlockParam,
 } from "@anthropic-ai/sdk/resources/messages";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { OpenAI } from "openai";
 
@@ -13,7 +13,7 @@ export type LlmMessageTextContent = {
 
 export type LlmFileMessageContent = {
   type: "file";
-  fileEntity: Pick<Entity<File>, "entityId" | "properties"> & {
+  fileEntity: Pick<HashEntity<File>, "entityId" | "properties"> & {
     metadata?: undefined;
   };
 };

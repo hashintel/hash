@@ -1,6 +1,6 @@
 import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
@@ -27,7 +27,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   } = cell.data.linkRow;
 
   const onSelectForSingleLink = (
-    selectedEntity: Entity,
+    selectedEntity: HashEntity,
     selectedEntityLabel: string,
   ) => {
     const { linkEntity: currentLink, rightEntity: currentLinkedEntity } =

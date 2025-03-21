@@ -1,18 +1,54 @@
 import type {
   DraftId,
   EntityId,
+  EntityMetadata,
   EntityUuid,
+  LinkData,
   OwnedById,
   PropertyArrayMetadata,
   PropertyArrayWithMetadata,
   PropertyMetadata,
+  PropertyObject,
   PropertyObjectMetadata,
   PropertyObjectWithMetadata,
+  PropertyPath,
   PropertyValueMetadata,
   PropertyValueWithMetadata,
   PropertyWithMetadata,
+  VersionedUrl,
 } from "@blockprotocol/type-system-rs";
 import { validate as validateUuid } from "uuid";
+
+export type EntityProperties = {
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
+  properties: PropertyObject;
+  propertiesWithMetadata: PropertyObjectWithMetadata;
+};
+
+export interface Entity<
+  PropertyMap extends EntityProperties = EntityProperties,
+> {
+  metadata: EntityMetadata;
+
+  entityId: EntityId;
+
+  properties: PropertyMap["properties"];
+
+  propertiesWithMetadata: PropertyMap["propertiesWithMetadata"];
+
+  propertiesMetadata: PropertyObjectMetadata;
+
+  propertyMetadata: (path: PropertyPath) => PropertyMetadata | undefined;
+
+  flattenedPropertiesMetadata: () => {
+    path: PropertyPath;
+    metadata: PropertyMetadata["metadata"];
+  }[];
+
+  linkData: LinkData | undefined;
+
+  toJSON: () => string;
+}
 
 export const ENTITY_ID_DELIMITER = "~";
 

@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box, Divider, Popover, Typography } from "@mui/material";
 import {
   bindMenu,
@@ -25,7 +25,7 @@ import {
 } from "./share-dropdown-menu/edit-authorization-status-menu";
 import { ShareEntitySection } from "./share-dropdown-menu/share-entity-section";
 
-export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
+export const ShareDropdownMenu: FunctionComponent<{ entity: HashEntity }> = ({
   entity,
 }) => {
   const { entityId } = entity.metadata.recordId;

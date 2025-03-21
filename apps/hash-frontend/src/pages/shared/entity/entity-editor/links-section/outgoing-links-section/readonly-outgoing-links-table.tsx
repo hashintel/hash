@@ -5,7 +5,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
@@ -103,14 +103,14 @@ const createColumns = (customColumns: CustomEntityLinksColumn[]) => {
 };
 
 type OutgoingLinkRow = {
-  targetEntity: Entity;
+  targetEntity: HashEntity;
   targetEntityLabel: string;
   targetEntityProperties: { [propertyTitle: string]: string };
   targetEntityTypes: Pick<
     PartialEntityType,
     "icon" | "$id" | "inverse" | "title"
   >[];
-  linkEntity: Entity;
+  linkEntity: HashEntity;
   linkEntityLabel: string;
   linkEntityProperties: { [propertyTitle: string]: string };
   linkEntityTypes: Pick<

@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Collapse, Divider } from "@mui/material";
 import { forwardRef, Fragment, useState } from "react";
@@ -13,7 +13,7 @@ export const NotesSection = forwardRef<
   {
     dayTimestamp: string;
     heading?: string;
-    quickNoteEntities: Entity[];
+    quickNoteEntities: HashEntity[];
     quickNotesSubgraph?: Subgraph<EntityRootType>;
     refetchQuickNotes: () => Promise<void>;
     navigateUp?: () => void;

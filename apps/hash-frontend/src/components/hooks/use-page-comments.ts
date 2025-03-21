@@ -4,7 +4,7 @@ import type {
   EntityMetadata,
   EntityTemporalMetadata,
 } from "@blockprotocol/type-system";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 import type {
@@ -20,8 +20,8 @@ export type PageThread = PageComment & {
 export type PageComment = {
   hasText: Array<TextToken>;
   textUpdatedAt: EntityTemporalMetadata;
-  author: Entity;
-  parent: Entity;
+  author: HashEntity;
+  parent: HashEntity;
   metadata: EntityMetadata;
 };
 
@@ -47,12 +47,12 @@ export const usePageComments = (pageEntityId?: EntityId): PageCommentsInfo => {
     data: pageComments
       ? pageComments.map((comment) => ({
           ...comment,
-          author: new Entity(comment.author),
-          parent: new Entity(comment.parent),
+          author: new HashEntity(comment.author),
+          parent: new HashEntity(comment.parent),
           replies: comment.replies.map((reply) => ({
             ...reply,
-            author: new Entity(reply.author),
-            parent: new Entity(reply.parent),
+            author: new HashEntity(reply.author),
+            parent: new HashEntity(reply.parent),
           })),
         }))
       : emptyComments,

@@ -8,7 +8,7 @@ import {
   typedKeys,
   typedValues,
 } from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { Subgraph } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
@@ -119,7 +119,7 @@ export type SimpleEntityWithoutHref = BaseSimpleEntityFields & {
 
 const createBaseSimpleEntityFields = (
   subgraph: Subgraph,
-  entity: Entity,
+  entity: HashEntity,
   typeTitles: string[],
 ): BaseSimpleEntityFields => {
   const properties: SimpleEntityWithoutHref["properties"] = {};

@@ -3,7 +3,7 @@ import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import {
-  Entity,
+  HashEntity,
   LinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
@@ -79,7 +79,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   const entityValues: Omit<
     CreateEntityParameters,
     "relationships" | "ownedById" | "draft" | "linkData"
-  > & { linkData: Entity["linkData"] } = {
+  > & { linkData: HashEntity["linkData"] } = {
     entityTypeIds,
     properties: mergePropertyObjectAndMetadata(properties, propertyMetadata),
     linkData,
@@ -124,8 +124,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       ]
     : undefined;
 
-  let entity: Entity;
-  let matchedEntityUpdate: MatchedEntityUpdate<Entity> | null = null;
+  let entity: HashEntity;
+  let matchedEntityUpdate: MatchedEntityUpdate<HashEntity> | null = null;
   let operation: "create" | "update";
 
   if (isFileEntity && fileUrl) {
@@ -215,7 +215,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       } else {
         entity = await backOff(
           () =>
-            Entity.create(
+            HashEntity.create(
               graphApiClient,
               { actorId: webBotActorId },
               {

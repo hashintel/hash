@@ -9,7 +9,7 @@ import {
   IconButton,
   RotateRegularIcon,
 } from "@hashintel/design-system";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   CheckpointLog,
   StepProgressLog,
@@ -59,7 +59,7 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
 
   const entity = isPersistedEntity
     ? log.persistedEntity.entity
-      ? new Entity(log.persistedEntity.entity)
+      ? new HashEntity(log.persistedEntity.entity)
       : undefined
     : log.proposedEntity;
 

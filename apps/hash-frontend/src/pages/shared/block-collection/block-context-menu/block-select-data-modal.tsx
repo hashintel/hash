@@ -9,7 +9,7 @@ import type {
 import type { ModalProps } from "@hashintel/design-system";
 import { IconButton, Modal } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolEntityTypes,
   blockProtocolLinkEntityTypes,
@@ -85,7 +85,7 @@ export const BlockSelectDataModal: FunctionComponent<
           blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
         ),
       )
-      .map(({ rightEntity }) => rightEntity[0] as Entity<Query>);
+      .map(({ rightEntity }) => rightEntity[0] as HashEntity<Query>);
 
     return existingQueries[0];
   }, [blockSubgraph, blockDataEntity]);

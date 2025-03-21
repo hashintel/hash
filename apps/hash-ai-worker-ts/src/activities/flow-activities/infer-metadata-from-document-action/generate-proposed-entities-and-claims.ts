@@ -8,7 +8,7 @@ import type {
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -56,7 +56,7 @@ const createClaim = async ({
   subjectText: string;
   userActorId: ActorId;
 }) => {
-  return await Entity.create<ClaimEntity>(
+  return await HashEntity.create<ClaimEntity>(
     graphApiClient,
     { actorId: creatorActorId },
     {

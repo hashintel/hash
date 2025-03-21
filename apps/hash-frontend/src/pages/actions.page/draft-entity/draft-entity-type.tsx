@@ -1,6 +1,6 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { ArrowUpRegularIcon, EntityOrTypeIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 
@@ -10,7 +10,7 @@ import type { EntityTypeDisplayInfoByBaseUrl } from "../draft-entities/types";
 const iconSx = { fontSize: 14, marginRight: 0.5 };
 
 export const DraftEntityType: FunctionComponent<{
-  entity: Entity;
+  entity: HashEntity;
   entityTypeDisplayInfoByBaseUrl: EntityTypeDisplayInfoByBaseUrl;
 }> = ({ entity, entityTypeDisplayInfoByBaseUrl }) => {
   const entityType =
