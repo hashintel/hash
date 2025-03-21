@@ -29,7 +29,6 @@ export const EntityEditorContextProvider = ({
   children,
   closedMultiEntityType,
   closedMultiEntityTypesDefinitions,
-  closedMultiEntityTypesMap,
   customEntityLinksColumns,
   defaultOutgoingLinkFilters,
   draftLinksToArchive,
@@ -37,6 +36,7 @@ export const EntityEditorContextProvider = ({
   entityLabel,
   entitySubgraph,
   isDirty,
+  linkAndDestinationEntitiesClosedMultiEntityTypesMap,
   onEntityClick,
   onEntityUpdated,
   onTypeClick,
@@ -111,7 +111,6 @@ export const EntityEditorContextProvider = ({
     () => ({
       closedMultiEntityType,
       closedMultiEntityTypesDefinitions,
-      closedMultiEntityTypesMap,
       customEntityLinksColumns,
       defaultOutgoingLinkFilters,
       draftLinksToArchive,
@@ -124,6 +123,7 @@ export const EntityEditorContextProvider = ({
       isLocalDraftOnly:
         extractEntityUuidFromEntityId(entity.metadata.recordId.entityId) ===
         "draft",
+      linkAndDestinationEntitiesClosedMultiEntityTypesMap,
       onEntityClick,
       onEntityUpdated,
       onTypeClick,
@@ -139,7 +139,6 @@ export const EntityEditorContextProvider = ({
     [
       closedMultiEntityType,
       closedMultiEntityTypesDefinitions,
-      closedMultiEntityTypesMap,
       customEntityLinksColumns,
       defaultOutgoingLinkFilters,
       draftLinksToArchive,
@@ -149,6 +148,7 @@ export const EntityEditorContextProvider = ({
       entitySubgraph,
       handleTypesChange,
       isDirty,
+      linkAndDestinationEntitiesClosedMultiEntityTypesMap,
       onEntityClick,
       onEntityUpdated,
       onTypeClick,

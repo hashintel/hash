@@ -6,6 +6,7 @@ import type {
   EntityUuid,
   LeftClosedTemporalInterval,
   Timestamp,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
@@ -19,22 +20,20 @@ import type {
   Filter,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
   fullOntologyResolveDepths,
-  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  getDataTypes,
-  getEntityTypes,
-  getPropertyTypes,
-} from "@local/hash-subgraph/stdlib";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
@@ -42,16 +41,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
   FlowRun,
+  GetClosedMultiEntityTypesQuery,
+  GetClosedMultiEntityTypesQueryVariables,
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
-  QueryEntityTypesQuery,
-  QueryEntityTypesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
+import { getClosedMultiEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../../shared/get-file-properties";
-import { useSlideStack } from "../../../../shared/slide-stack";
+import { SlideStackProvider } from "../../../../shared/slide-stack";
+import type { SlideItem } from "../../../../shared/slide-stack/types";
 import { ClaimsOutput } from "./outputs/claims-output";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
@@ -295,6 +295,12 @@ type OutputsProps = {
   relevantEntityIds: EntityId[];
 };
 
+/**
+ * The Outputs component displays the results of a flow run:
+ * 1. A table or graph view of entities (proposed before they are saved to the database – persisted afterwards)
+ * 2. A list of claims made in relation to entities
+ * 3. Any deliverables produced by the flow (e.g. a spreadsheet or report document)
+ */
 export const Outputs = ({
   persistedEntities,
   proposedEntities,
@@ -349,43 +355,63 @@ export const Outputs = ({
     [persistedEntities],
   );
 
+  const uniqueProposedEntityTypeSets = useMemo(() => {
+    /**
+     * Extract unique sets of entity type IDs from proposed entities.
+     * For example, if multiple entities have the same set of types [A, B],
+     * we only include this combination once in the result.
+     */
+    const uniqueTypeIdSets = new Set<string>();
+
+    for (const entity of proposedEntities) {
+      const sortedTypeIds = [...entity.entityTypeIds].sort();
+
+      const typeIdSetKey = sortedTypeIds.join(",");
+      uniqueTypeIdSets.add(typeIdSetKey);
+    }
+
+    return Array.from(uniqueTypeIdSets).map(
+      (typeIdSetKey) =>
+        typeIdSetKey.split(",").filter((id) => id.length > 0) as VersionedUrl[],
+    );
+  }, [proposedEntities]);
+
   const {
     data: proposedEntitiesTypesData,
     previousData: previousProposedEntitiesTypesData,
-  } = useQuery<QueryEntityTypesQuery, QueryEntityTypesQueryVariables>(
-    queryEntityTypesQuery,
-    {
-      fetchPolicy: "cache-and-network",
-      variables: {
-        filter: {
-          any: [
-            ...new Set(
-              proposedEntities.flatMap(
-                (proposedEntity) => proposedEntity.entityTypeIds,
-              ),
-            ),
-          ].map((entityTypeId) =>
-            generateVersionedUrlMatchingFilter(entityTypeId, {
-              forEntityType: true,
-            }),
-          ),
-        },
-        ...fullOntologyResolveDepths,
-      },
-      skip: proposedEntities.length === 0,
+  } = useQuery<
+    GetClosedMultiEntityTypesQuery,
+    GetClosedMultiEntityTypesQueryVariables
+  >(getClosedMultiEntityTypesQuery, {
+    fetchPolicy: "cache-and-network",
+    variables: {
+      entityTypeIds: uniqueProposedEntityTypeSets,
+      includeArchived: false,
     },
-  );
+    skip: proposedEntities.length === 0,
+  });
 
-  const proposedEntitiesTypesSubgraph = useMemo(() => {
+  const proposedEntitiesTypesInfo = useMemo(() => {
     if (!proposedEntitiesTypesData) {
       return previousProposedEntitiesTypesData
-        ? deserializeSubgraph(
-            previousProposedEntitiesTypesData.queryEntityTypes,
-          )
+        ? {
+            closedMultiEntityTypes:
+              previousProposedEntitiesTypesData.getClosedMultiEntityTypes
+                .closedMultiEntityTypes,
+            definitions:
+              previousProposedEntitiesTypesData.getClosedMultiEntityTypes
+                .definitions,
+          }
         : undefined;
     }
 
-    return deserializeSubgraph(proposedEntitiesTypesData.queryEntityTypes);
+    return {
+      closedMultiEntityTypes:
+        proposedEntitiesTypesData.getClosedMultiEntityTypes
+          .closedMultiEntityTypes,
+      definitions:
+        proposedEntitiesTypesData.getClosedMultiEntityTypes.definitions,
+    };
   }, [proposedEntitiesTypesData, previousProposedEntitiesTypesData]);
 
   const {
@@ -404,6 +430,7 @@ export const Outputs = ({
           },
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: true,
+          includeEntityTypes: "resolved",
         },
       },
       skip: !persistedEntities.length,
@@ -425,13 +452,52 @@ export const Outputs = ({
     );
   }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
 
-  const { pushToSlideStack } = useSlideStack();
-
-  const handleEntityClick = useCallback(
-    (selectedEntityId: EntityId) => {
-      if (!selectedFlowRun?.webId) {
-        return undefined;
+  const persistedEntitiesTypesInfo = useMemo<
+    | {
+        closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
+        definitions: ClosedMultiEntityTypesDefinitions;
       }
+    | undefined
+  >(() => {
+    const data =
+      previousPersistedEntitiesSubgraphData ?? persistedEntitiesSubgraphData;
+
+    if (!data) {
+      return;
+    }
+
+    if (
+      !data.getEntitySubgraph.closedMultiEntityTypes ||
+      !data.getEntitySubgraph.definitions
+    ) {
+      throw new Error(
+        "No closed multi entity types or definitions found on persistedEntitiesSubgraphData",
+      );
+    }
+
+    return {
+      closedMultiEntityTypes: data.getEntitySubgraph.closedMultiEntityTypes,
+      definitions: data.getEntitySubgraph.definitions,
+    };
+  }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
+
+  /**
+   * Because proposed entities are not in the database, we need to use a custom SlideStackProvider,
+   * so that when entities are clicked in the result table/graph, we can intercept the click and
+   * build a mock subgraph to provide to the entity slide.
+   *
+   * This function rewrites the slide item to add the subgraph to proposed entities.
+   *
+   * @param item The slide item to potentially modify
+   * @returns The modified slide item with a subgraph for proposed entities, or the original item for persisted entities
+   */
+  const rewriteSlideItemOverride = useCallback(
+    (item: SlideItem): SlideItem => {
+      if (item.kind !== "entity") {
+        return item;
+      }
+
+      const selectedEntityId = item.itemId;
 
       const persistedEntity = persistedEntities.find(
         ({ entity }) =>
@@ -439,94 +505,78 @@ export const Outputs = ({
           new Entity(entity).metadata.recordId.entityId === selectedEntityId,
       );
 
+      // If it's a persisted entity, no need to modify the slide item. The slide will get it from the database.
       if (persistedEntity) {
-        pushToSlideStack({
-          kind: "entity",
-          itemId: selectedEntityId,
-        });
-        return;
+        return item;
       }
 
       const proposedEntity = proposedEntities.find(
         (entity) => entity.localEntityId === selectedEntityId,
       );
 
-      if (proposedEntity) {
-        if (!proposedEntitiesTypesSubgraph) {
-          return undefined;
-        }
-
-        const mockedEntity = mockEntityFromProposedEntity(proposedEntity);
-
-        const entityTypes = getEntityTypes(proposedEntitiesTypesSubgraph);
-        const propertyTypes = getPropertyTypes(proposedEntitiesTypesSubgraph);
-        const dataTypes = getDataTypes(proposedEntitiesTypesSubgraph);
-
-        const now = currentTimestamp();
-
-        const mockSubgraph = buildSubgraph(
-          {
-            dataTypes,
-            propertyTypes,
-            entityTypes,
-
-            /**
-             * @todo H-3162: also handle proposed entities which link to existing persisted entities
-             *   -- requires having fetched them.
-             */
-            entities: proposedEntities.map((entity) =>
-              entity.localEntityId === selectedEntityId
-                ? mockedEntity
-                : mockEntityFromProposedEntity(entity),
-            ),
-          },
-          [mockedEntity.metadata.recordId],
-          {
-            ...fullOntologyResolveDepths,
-            hasLeftEntity: {
-              outgoing: 1,
-              incoming: 1,
-            },
-            hasRightEntity: {
-              outgoing: 1,
-              incoming: 1,
-            },
-          },
-          {
-            initial: currentTimeInstantTemporalAxes,
-            resolved: {
-              pinned: {
-                axis: "transactionTime",
-                timestamp: now,
-              },
-              variable: {
-                axis: "decisionTime",
-                interval: {
-                  start: {
-                    kind: "inclusive",
-                    limit: generateTimestamp(new Date(0)),
-                  },
-                  end: { kind: "inclusive", limit: now },
-                },
-              },
-            },
-          },
-        ) as unknown as Subgraph<EntityRootType>;
-
-        pushToSlideStack({
-          kind: "entity",
-          itemId: selectedEntityId,
-          proposedEntitySubgraph: mockSubgraph,
-        });
+      if (!proposedEntity) {
+        return item;
       }
+
+      if (!proposedEntitiesTypesInfo) {
+        return item;
+      }
+
+      const mockedEntity = mockEntityFromProposedEntity(proposedEntity);
+
+      // Build a subgraph for the entity slide, which includes the entity and linked entities among the proposed entities
+      const now = currentTimestamp();
+
+      const mockSubgraph = buildSubgraph(
+        {
+          dataTypes: [],
+          propertyTypes: [],
+          entityTypes: [],
+          entities: proposedEntities.map((entity) =>
+            entity.localEntityId === selectedEntityId
+              ? mockedEntity
+              : mockEntityFromProposedEntity(entity),
+          ),
+        },
+        [mockedEntity.metadata.recordId],
+        {
+          ...zeroedGraphResolveDepths,
+          hasLeftEntity: {
+            outgoing: 1,
+            incoming: 1,
+          },
+          hasRightEntity: {
+            outgoing: 1,
+            incoming: 1,
+          },
+        },
+        {
+          initial: currentTimeInstantTemporalAxes,
+          resolved: {
+            pinned: {
+              axis: "transactionTime",
+              timestamp: now,
+            },
+            variable: {
+              axis: "decisionTime",
+              interval: {
+                start: {
+                  kind: "inclusive",
+                  limit: generateTimestamp(new Date(0)),
+                },
+                end: { kind: "inclusive", limit: now },
+              },
+            },
+          },
+        },
+      ) as unknown as Subgraph<EntityRootType>;
+
+      return {
+        ...item,
+        proposedEntitySubgraph: mockSubgraph,
+      };
     },
-    [
-      persistedEntities,
-      proposedEntitiesTypesSubgraph,
-      proposedEntities,
-      pushToSlideStack,
-      selectedFlowRun?.webId,
-    ],
+    [persistedEntities, proposedEntities, proposedEntitiesTypesInfo],
   );
 
   useEffect(() => {
@@ -587,7 +637,7 @@ export const Outputs = ({
   }, [persistedEntities, proposedEntities]);
 
   return (
-    <>
+    <SlideStackProvider rewriteSlideItemOverride={rewriteSlideItemOverride}>
       <Box position="relative">
         <Stack
           alignItems="center"
@@ -658,46 +708,31 @@ export const Outputs = ({
               dataIsLoading={
                 hasEntities &&
                 !persistedEntitiesSubgraph &&
-                !proposedEntitiesTypesSubgraph
+                !proposedEntitiesTypesInfo
               }
-              onEntityClick={handleEntityClick}
-              onEntityTypeClick={(entityTypeId) => {
-                pushToSlideStack({
-                  kind: "entityType",
-                  itemId: entityTypeId,
-                });
-              }}
               persistedEntities={persistedEntities}
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
+              persistedEntitiesTypesInfo={persistedEntitiesTypesInfo}
               proposedEntities={proposedEntities}
-              proposedEntitiesTypesSubgraph={proposedEntitiesTypesSubgraph}
+              proposedEntitiesTypesInfo={proposedEntitiesTypesInfo}
               relevantEntityIds={relevantEntityIds}
             />
           ) : (
             <EntityResultGraph
-              onEntityClick={handleEntityClick}
-              onEntityTypeClick={(entityTypeId) => {
-                pushToSlideStack({
-                  kind: "entityType",
-                  itemId: entityTypeId,
-                });
-              }}
-              entities={entitiesForGraph}
-              subgraphWithTypes={
-                persistedEntitiesSubgraph ?? proposedEntitiesTypesSubgraph
+              closedMultiEntityTypesRootMap={
+                persistedEntitiesTypesInfo?.closedMultiEntityTypes ??
+                proposedEntitiesTypesInfo?.closedMultiEntityTypes
               }
+              entities={entitiesForGraph}
             />
           ))}
         {visibleSection === "claims" && (
-          <ClaimsOutput
-            onEntityClick={handleEntityClick}
-            proposedEntities={proposedEntities}
-          />
+          <ClaimsOutput proposedEntities={proposedEntities} />
         )}
         {visibleSection === "deliverables" && (
           <Deliverables deliverables={deliverables} />
         )}
       </Stack>
-    </>
+    </SlideStackProvider>
   );
 };

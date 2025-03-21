@@ -260,7 +260,8 @@ export const IncomingLinksTable = memo(
     });
 
     const {
-      closedMultiEntityTypesMap,
+      linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+        closedMultiEntityTypesMap,
       closedMultiEntityTypesDefinitions,
       customEntityLinksColumns: customColumns,
       draftLinksToArchive,
