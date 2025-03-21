@@ -11,6 +11,14 @@ use error_stack::{Report, ResultExt as _, ensure};
 pub(crate) use self::{conversion::*, visitor::*};
 use crate::policies::error::FromCedarRefernceError;
 
+pub(crate) trait FromCedarExpr: Sized {
+    fn from_cedar(expr: &ast::Expr) -> Result<Self, Report<impl Error + Send + Sync + 'static>>;
+}
+
+pub(crate) trait ToCedarExpr {
+    fn to_cedar(&self) -> ast::Expr;
+}
+
 pub(crate) trait CedarEntityId: Sized + 'static {
     fn entity_type() -> &'static Arc<ast::EntityType>;
 

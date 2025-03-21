@@ -10,8 +10,15 @@ use type_system::{
     web::OwnedById,
 };
 
-use super::ResourceFilterConversionError;
-use crate::policies::{cedar::CedarEntityId, set::PolicyConstraint};
+use super::{ResourceFilterConversionError, ResourceVariableVisitor};
+use crate::policies::{
+    cedar::{
+        BaseUrlVisitor, CedarEntityId, CedarExpressionParseError, CedarExpressionVisitor,
+        FromCedarExpr, OntologyTypeVersionVisitor, ToCedarExpr, UnexpectedCedarExpression,
+        visitor_helpers::{self, ComposableValue},
+    },
+    set::PolicyConstraint,
+};
 
 #[derive(
     Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
@@ -86,9 +93,97 @@ pub enum EntityTypeResourceFilter {
     IsVersion { version: OntologyTypeVersion },
 }
 
-impl EntityTypeResourceFilter {
-    #[must_use]
-    pub(crate) fn to_cedar(&self) -> ast::Expr {
+impl ComposableValue for EntityTypeResourceFilter {
+    fn make_all(filters: Vec<Self>) -> Self {
+        Self::All { filters }
+    }
+
+    fn make_any(filters: Vec<Self>) -> Self {
+        Self::Any { filters }
+    }
+
+    fn make_not(filter: Self) -> Self {
+        Self::Not {
+            filter: Box::new(filter),
+        }
+    }
+
+    fn extend_all(filters: &mut Vec<Self>, filter: Self) {
+        match filter {
+            EntityTypeResourceFilter::All { filters: f } => filters.extend(f),
+            constraint => filters.push(constraint),
+        }
+    }
+
+    fn extend_any(filters: &mut Vec<Self>, filter: Self) {
+        match filter {
+            EntityTypeResourceFilter::Any { filters: f } => filters.extend(f),
+            constraint => filters.push(constraint),
+        }
+    }
+}
+
+// New code for extensible entity attribute parsing
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum EntityTypeAttribute {
+    BaseUrl,
+    Version,
+}
+struct EntityTypeFilterVisitor;
+
+impl CedarExpressionVisitor for EntityTypeFilterVisitor {
+    type Error = CedarExpressionParseError;
+    type Value = EntityTypeResourceFilter;
+
+    fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "an entity type resource filter expression")
+    }
+
+    fn visit_bool(
+        &self,
+        bool: bool,
+    ) -> Result<Option<Self::Value>, Report<CedarExpressionParseError>> {
+        Ok(visitor_helpers::visit_bool(bool))
+    }
+
+    fn visit_and(
+        &self,
+        lhs: &ast::Expr,
+        rhs: &ast::Expr,
+    ) -> Result<Self::Value, Report<CedarExpressionParseError>> {
+        visitor_helpers::visit_and(self, lhs, rhs)
+    }
+
+    fn visit_or(
+        &self,
+        lhs: &ast::Expr,
+        rhs: &ast::Expr,
+    ) -> Result<Self::Value, Report<CedarExpressionParseError>> {
+        visitor_helpers::visit_or(self, lhs, rhs)
+    }
+
+    fn visit_not(&self, arg: &ast::Expr) -> Result<Self::Value, Report<CedarExpressionParseError>> {
+        visitor_helpers::visit_not(self, arg)
+    }
+
+    fn visit_eq(
+        &self,
+        lhs: &ast::Expr,
+        rhs: &ast::Expr,
+    ) -> Result<Self::Value, Report<CedarExpressionParseError>> {
+        match AttributeVisitor.visit_expr(lhs)? {
+            EntityTypeAttribute::BaseUrl => Ok(EntityTypeResourceFilter::IsBaseUrl {
+                base_url: BaseUrlVisitor.visit_expr(rhs)?,
+            }),
+            EntityTypeAttribute::Version => Ok(EntityTypeResourceFilter::IsVersion {
+                version: OntologyTypeVersionVisitor.visit_expr(rhs)?,
+            }),
+        }
+    }
+}
+
+impl ToCedarExpr for EntityTypeResourceFilter {
+    fn to_cedar(&self) -> ast::Expr {
         match self {
             Self::All { filters } => filters
                 .iter()
@@ -117,41 +212,13 @@ impl EntityTypeResourceFilter {
             ),
         }
     }
+}
 
-    fn from_policy_constraint(
-        constraint: PolicyConstraint,
-    ) -> Result<Self, Report<ResourceFilterConversionError>> {
-        match constraint {
-            PolicyConstraint::All { filters } => Ok(Self::All {
-                filters: filters
-                    .into_iter()
-                    .map(Self::from_policy_constraint)
-                    .collect::<Result<Vec<_>, _>>()?,
-            }),
-            PolicyConstraint::Any { filters } => Ok(Self::Any {
-                filters: filters
-                    .into_iter()
-                    .map(Self::from_policy_constraint)
-                    .collect::<Result<Vec<_>, _>>()?,
-            }),
-            PolicyConstraint::Not { filter } => Ok(Self::Not {
-                filter: Box::new(Self::from_policy_constraint(*filter)?),
-            }),
-            PolicyConstraint::IsBaseUrl { base_url } => Ok(Self::IsBaseUrl { base_url }),
-            PolicyConstraint::IsVersion { version } => Ok(Self::IsVersion { version }),
-            _ => bail!(ResourceFilterConversionError::UnsupportedPolicyConstraint(
-                constraint
-            )),
-        }
-    }
-
-    pub(crate) fn try_from_cedar(
-        expr: &ast::Expr,
-    ) -> Result<Self, Report<ResourceFilterConversionError>> {
-        Self::from_policy_constraint(
-            PolicyConstraint::try_from_cedar(expr)
-                .change_context(ResourceFilterConversionError::InvalidCedarExpr)?,
-        )
+impl FromCedarExpr for EntityTypeResourceFilter {
+    fn from_cedar(expr: &ast::Expr) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+        EntityTypeFilterVisitor
+            .visit_expr(expr)
+            .change_context(ResourceFilterConversionError)
     }
 }
 
@@ -166,7 +233,7 @@ impl CedarEntityId for EntityTypeId {
         ast::Eid::new(self.as_url().to_string())
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<ParseVersionedUrlError>> {
         Ok(Self::new(VersionedUrl::from_str(eid.as_ref())?))
     }
 }
@@ -187,6 +254,28 @@ pub enum EntityTypeResourceConstraint {
         filter: EntityTypeResourceFilter,
     },
 }
+
+// struct EntityTypeResourceConstraintVisitor;
+
+// impl CedarExpressionVisitor for EntityTypeResourceConstraintVisitor {
+//     type Value = EntityTypeResourceConstraint;
+
+//     fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write!(fmt, "an entity type resource constraint expression")
+//     }
+
+//     fn visit_bool(&self, bool: bool) -> Result<Self::Value, Report<CedarExpressionVisitorError>>
+// {         Ok(Self::Value::Any {
+//             filter: EntityTypeFilterVisitor.visit_bool(bool)?,
+//         })
+//     }
+
+//     fn visit_eq(
+//         &self,
+//         lhs: &ast::Expr,
+//         rhs: &ast::Expr,
+//     ) -> Result<Self::Value, Report<CedarExpressionVisitorError>> {
+// }
 
 impl EntityTypeResourceConstraint {
     #[must_use]
@@ -261,7 +350,11 @@ mod tests {
                 filter: EntityTypeResourceFilter::All { filters: vec![] },
             }),
             json!({
-                "type": "entityType"
+                "type": "entityType",
+                "filter": {
+                    "type": "all",
+                    "filters": [],
+                },
             }),
             "resource is HASH::EntityType",
         )?;
@@ -326,6 +419,10 @@ mod tests {
             json!({
                 "type": "entityType",
                 "webId": web_id,
+                "filter": {
+                    "type": "all",
+                    "filters": [],
+                },
             }),
             format!(r#"resource is HASH::EntityType in HASH::Web::"{web_id}""#),
         )?;
@@ -338,6 +435,10 @@ mod tests {
             json!({
                 "type": "entityType",
                 "webId": null,
+                "filter": {
+                    "type": "all",
+                    "filters": [],
+                },
             }),
             "resource is HASH::EntityType in ?resource",
         )?;

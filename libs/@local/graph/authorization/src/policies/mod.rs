@@ -9,19 +9,20 @@ mod context;
 mod set;
 mod validation;
 
-use alloc::{collections::BTreeMap, sync::Arc};
+use alloc::{borrow::Cow, collections::BTreeMap, sync::Arc};
 use core::{fmt, str::FromStr as _};
 
 use cedar::CedarEntityId as _;
 use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
 use error_stack::{Report, ResultExt as _};
+use type_system::knowledge::entity::id::EntityUuid;
 use uuid::Uuid;
 
 pub(crate) use self::cedar::cedar_resource_type;
 use self::{
     action::{ActionConstraint, ActionId},
     principal::{ActorId, PrincipalConstraint},
-    resource::{ResourceConstraint, ResourceId},
+    resource::{EntityTypeId, ResourceConstraint, ResourceId},
 };
 pub use self::{
     context::{Context, ContextBuilder, ContextError},
@@ -106,12 +107,45 @@ impl RequestContext {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PartialResourceId<'a> {
+    Entity(Option<EntityUuid>),
+    EntityType(Option<Cow<'a, EntityTypeId>>),
+}
+
 #[derive(Debug)]
 pub struct Request<'a> {
     pub actor: ActorId,
     pub action: ActionId,
-    pub resource: Option<&'a ResourceId<'a>>,
+    pub resource: Option<&'a PartialResourceId<'a>>,
     pub context: RequestContext,
+}
+
+impl PartialResourceId<'_> {
+    fn to_euid(&self) -> ast::EntityUIDEntry {
+        match self {
+            Self::Entity(entity_uuid) => entity_uuid.as_ref().map_or_else(
+                || ast::EntityUIDEntry::Unknown {
+                    ty: Some((**EntityUuid::entity_type()).clone()),
+                    loc: None,
+                },
+                |entity_uuid| ast::EntityUIDEntry::Known {
+                    euid: Arc::new(entity_uuid.to_euid()),
+                    loc: None,
+                },
+            ),
+            Self::EntityType(entity_type_id) => entity_type_id.as_ref().map_or_else(
+                || ast::EntityUIDEntry::Unknown {
+                    ty: Some((**EntityTypeId::entity_type()).clone()),
+                    loc: None,
+                },
+                |entity_type_id| ast::EntityUIDEntry::Known {
+                    euid: Arc::new(entity_type_id.to_euid()),
+                    loc: None,
+                },
+            ),
+        }
+    }
 }
 
 impl Request<'_> {
@@ -130,10 +164,7 @@ impl Request<'_> {
                     ty: None,
                     loc: None,
                 },
-                |resource| ast::EntityUIDEntry::Known {
-                    euid: Arc::new(resource.to_euid()),
-                    loc: None,
-                },
+                PartialResourceId::to_euid,
             ),
             Some(self.context.to_cedar()),
             Some(PolicyValidator::schema()),
@@ -161,23 +192,6 @@ impl Policy {
     pub(crate) fn try_from_cedar(
         policy: &ast::StaticPolicy,
     ) -> Result<Self, Report<InvalidPolicy>> {
-        // let resource_filter = match policy.condition().expr_kind() {
-        //     ast::ExprKind::Lit(ast::Literal::Bool(true)) => None,
-        //     ast::ExprKind::BinaryApp {
-        //         op: ast::BinaryOp::Contains,
-        //         arg1,
-        //         arg2,
-        //     } => {
-        //         let resource_filter =
-        //             if arg1.expr_kind() == ast::ExprKind::Lit(ast::Literal::Bool(true)) {
-        //                 Some(arg2)
-        //             } else {
-        //                 None
-        //             };
-        //     }
-        //     _ => return Err(InvalidPolicy::InvalidSyntax.into()),
-        // };
-
         Ok(Self {
             id: PolicyId::new(
                 Uuid::from_str(policy.id().as_ref()).change_context(InvalidPolicy::InvalidId)?,
@@ -312,8 +326,8 @@ mod tests {
 
         use super::*;
         use crate::policies::{
-            ActionConstraint, ActionId, Authorized, ContextBuilder, Effect, PolicyId,
-            PrincipalConstraint, Request, RequestContext, ResourceConstraint,
+            ActionConstraint, ActionId, Authorized, ContextBuilder, Effect, PartialResourceId,
+            PolicyId, PrincipalConstraint, Request, RequestContext, ResourceConstraint,
             principal::{
                 ActorId,
                 user::{User, UserId, UserPrincipalConstraint},
@@ -384,7 +398,7 @@ mod tests {
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/actor/v/2")?,
                 ]),
             };
-            let resource_id = ResourceId::Entity(user_entity.id);
+            let resource_id = PartialResourceId::Entity(Some(user_entity.id));
             let mut context = ContextBuilder::default();
             context.add_entity(&user_entity);
             let context = context.build()?;
