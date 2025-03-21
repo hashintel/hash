@@ -7,7 +7,7 @@ use core::{
 };
 
 use common::*;
-use error_stack::{Report, report};
+use error_stack::{IntoReport as _, Report};
 
 #[derive(Debug)]
 struct MyError;
@@ -22,9 +22,15 @@ impl Error for MyError {}
 
 #[test]
 fn push_append() {
-    let mut err1 = report!(MyError).attach_printable("Not Supported").expand();
-    let err2 = report!(MyError).attach_printable("Not Supported");
-    let mut err3 = report!(MyError).attach_printable("Not Supported").expand();
+    let mut err1 = MyError
+        .into_report()
+        .attach_printable("Not Supported")
+        .expand();
+    let err2 = MyError.into_report().attach_printable("Not Supported");
+    let mut err3 = MyError
+        .into_report()
+        .attach_printable("Not Supported")
+        .expand();
 
     let count = expect_count(2) * 3;
 
@@ -37,9 +43,12 @@ fn push_append() {
 
 #[test]
 fn push() {
-    let mut err1 = report!(MyError).attach_printable("Not Supported").expand();
-    let err2 = report!(MyError).attach_printable("Not Supported");
-    let err3 = report!(MyError).attach_printable("Not Supported");
+    let mut err1 = MyError
+        .into_report()
+        .attach_printable("Not Supported")
+        .expand();
+    let err2 = MyError.into_report().attach_printable("Not Supported");
+    let err3 = MyError.into_report().attach_printable("Not Supported");
 
     let count = expect_count(2) * 3;
 
@@ -52,9 +61,12 @@ fn push() {
 
 #[test]
 fn extend() {
-    let mut err1 = report!(MyError).attach_printable("Not Supported").expand();
-    let err2 = report!(MyError).attach_printable("Not Supported");
-    let err3 = report!(MyError).attach_printable("Not Supported");
+    let mut err1 = MyError
+        .into_report()
+        .attach_printable("Not Supported")
+        .expand();
+    let err2 = MyError.into_report().attach_printable("Not Supported");
+    let err3 = MyError.into_report().attach_printable("Not Supported");
 
     err1.extend([err2, err3]);
     assert_eq!(err1.current_frames().len(), 3);
@@ -63,10 +75,13 @@ fn extend() {
 
 #[test]
 fn collect_single() {
-    let report: Option<Report<[MyError]>> =
-        vec![report!(MyError), report!(MyError), report!(MyError)]
-            .into_iter()
-            .collect();
+    let report: Option<Report<[MyError]>> = vec![
+        MyError.into_report(),
+        MyError.into_report(),
+        MyError.into_report(),
+    ]
+    .into_iter()
+    .collect();
 
     let report = report.expect("should be some");
     assert_eq!(report.current_frames().len(), 3);
@@ -76,9 +91,9 @@ fn collect_single() {
 #[test]
 fn collect_multiple() {
     let report: Option<Report<[MyError]>> = vec![
-        report!(MyError).expand(),
-        report!(MyError).expand(),
-        report!(MyError).expand(),
+        MyError.into_report().expand(),
+        MyError.into_report().expand(),
+        MyError.into_report().expand(),
     ]
     .into_iter()
     .collect();
