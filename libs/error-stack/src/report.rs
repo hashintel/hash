@@ -950,28 +950,37 @@ impl<C> Extend<Self> for Report<[C]> {
 
 /// Provides methods to work with errors in the context of error-stack's reporting system.
 ///
-/// This trait allows both [`Report<C>`] instances and regular [`Error`] types to directly
-/// use error-stack's context enrichment operations. It abstracts away the need to convert
-/// to a [`Report`] first before attaching context or changing the error type.
+/// This trait allows both [`Report<C>`] instances and regular error types to be converted into a
+/// [`Report`]. It is automatically implemented for any type that can be converted into a [`Report`]
+/// via the [`Into`] trait.
+///
+/// This trait is particularly useful when working with functions that need to return a [`Report`],
+/// as it provides a consistent way to convert errors into reports without explicitly calling
+/// conversion methods.
+///
+/// # Examples
+///
+/// ```rust
+/// use std::io;
+///
+/// use error_stack::{IntoReport as _, Report};
+///
+/// fn example() -> Result<(), Report<io::Error>> {
+///     // io::Error implements Into<Report<io::Error>>, so we can use into_report()
+///     let err = io::Error::new(io::ErrorKind::Other, "oh no!");
+///     Err(err.into_report())
+/// }
+/// ```
 pub trait IntoReport {
-    /// The [`Context`] type of the resulting [`Report`].
+    /// The context type that will be used in the resulting [`Report`].
     type Context: ?Sized;
 
-    /// Convert the value to a [`Report`] with the given context.
+    /// Converts this value into a [`Report`].
     fn into_report(self) -> Report<Self::Context>;
 }
 
-impl<C> IntoReport for Report<C> {
+impl<C: ?Sized> IntoReport for Report<C> {
     type Context = C;
-
-    #[track_caller]
-    fn into_report(self) -> Report<Self::Context> {
-        self
-    }
-}
-
-impl<C> IntoReport for Report<[C]> {
-    type Context = [C];
 
     #[track_caller]
     fn into_report(self) -> Report<Self::Context> {
@@ -981,12 +990,12 @@ impl<C> IntoReport for Report<[C]> {
 
 impl<E> IntoReport for E
 where
-    E: Context,
+    E: Into<Report<E>>,
 {
     type Context = E;
 
     #[track_caller]
     fn into_report(self) -> Report<Self::Context> {
-        Report::new(self)
+        self.into()
     }
 }
