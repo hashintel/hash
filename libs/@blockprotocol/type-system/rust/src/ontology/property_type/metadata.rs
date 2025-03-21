@@ -22,18 +22,22 @@ pub struct PropertyTypeMetadata {
 }
 
 #[cfg(target_arch = "wasm32")]
-#[derive(tsify::Tsify)]
-#[serde(rename = "PropertyTypeMetadata", untagged)]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]
-enum PropertyTypeMetadataPatch {
-    #[serde(rename_all = "camelCase")]
-    Impl {
-        record_id: OntologyTypeRecordId,
-        #[serde(flatten)]
-        ownership: OntologyOwnership,
-        temporal_versioning: OntologyTemporalMetadata,
-        provenance: OntologyProvenance,
-    },
+mod metadata_patch {
+    use super::*;
+
+    #[derive(tsify_next::Tsify)]
+    #[serde(untagged)]
+    enum PropertyTypeMetadata {
+        #[serde(rename_all = "camelCase")]
+        Impl {
+            record_id: OntologyTypeRecordId,
+            #[serde(flatten)]
+            ownership: OntologyOwnership,
+            temporal_versioning: OntologyTemporalMetadata,
+            provenance: OntologyProvenance,
+        },
+    }
 }
 
 #[cfg(feature = "utoipa")]
@@ -85,12 +89,15 @@ impl ToSchema<'static> for PropertyTypeMetadata {
 pub type PropertyTypeWithMetadata = OntologyTypeWithMetadata<PropertyType>;
 
 #[cfg(target_arch = "wasm32")]
-#[derive(tsify::Tsify)]
-#[serde(rename = "PropertyTypeWithMetadata", rename_all = "camelCase")]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]
-struct PropertyTypeWithMetadataPatch {
-    schema: PropertyType,
-    metadata: PropertyTypeMetadata,
+mod with_metadata_patch {
+    use super::*;
+
+    #[derive(tsify_next::Tsify)]
+    struct PropertyTypeWithMetadata {
+        schema: PropertyType,
+        metadata: PropertyTypeMetadata,
+    }
 }
 
 #[cfg(feature = "utoipa")]

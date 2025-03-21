@@ -114,7 +114,7 @@ cedar-policy-core        = { version = "=4.3.3", default-features = false }
 cedar-policy-validator   = { version = "=4.3.3", default-features = false }
 clap                     = { version = "=4.5.32", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder             = { version = "=4.5.32", default-features = false, features = ["std"] }
-clap_complete            = { version = "=4.5.46", default-features = false }
+clap_complete            = { version = "=4.5.47", default-features = false }
 convert_case             = { version = "=0.8.0", default-features = false }
 criterion                = { version = "=0.5.1" }
 criterion-macro          = { version = "=0.4.0", default-features = false }
@@ -221,7 +221,7 @@ temporal-client          = { git = "https://github.com/temporalio/sdk-core", rev
 temporal-sdk-core-protos = { git = "https://github.com/temporalio/sdk-core", rev = "4a2368d" }
 test-fuzz                = { version = "=7.1.0", default-features = false }
 test-log                 = { version = "=0.2.17", default-features = false }
-test-strategy            = { version = "=0.4.0", default-features = false }
+test-strategy            = { version = "=0.4.1", default-features = false }
 text-size                = { version = "=1.1.1", default-features = false }
 thiserror                = { version = "=2.0.12", default-features = false }
 time                     = { version = "=0.3.40", default-features = false }
@@ -244,7 +244,7 @@ tracing-opentelemetry    = { version = "=0.29.0", default-features = false }
 tracing-subscriber       = { version = "=0.3.19", default-features = false }
 trait-variant            = { version = "=0.1.2", default-features = false }
 trybuild                 = { version = "=1.0.104", default-features = false }
-tsify                    = { version = "=0.4.5", default-features = false }
+tsify-next               = { version = "=0.5.5", default-features = false }
 unicode-ident            = { version = "=1.0.18", default-features = false }
 url                      = { version = "=2.5.4", default-features = false }
 utoipa                   = { version = "=4.2.3", default-features = false }

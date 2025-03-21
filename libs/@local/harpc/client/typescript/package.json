@@ -41,15 +41,15 @@
   "devDependencies": {
     "@effect/platform": "0.79.2",
     "@effect/platform-node": "0.75.2",
-    "@effect/vitest": "0.19.9",
+    "@effect/vitest": "0.19.10",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@rust/harpc-wire-protocol": "0.0.0-private",
     "@types/node": "22.13.10",
-    "@vitest/coverage-istanbul": "3.0.8",
+    "@vitest/coverage-istanbul": "3.0.9",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
-    "vitest": "3.0.8"
+    "vitest": "3.0.9"
   }
 }
