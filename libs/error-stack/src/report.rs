@@ -948,7 +948,7 @@ impl<C> Extend<Self> for Report<[C]> {
     }
 }
 
-/// Provides methods to work with errors in the context of error-stack's reporting system.
+/// Provides unified way to convert an error-like structure to a [`Report`].
 ///
 /// This trait allows both [`Report<C>`] instances and regular error types to be converted into a
 /// [`Report`]. It is automatically implemented for any type that can be converted into a [`Report`]
