@@ -1,0 +1,4 @@
+#MISE description="Lint TypeScript errors"
+
+export CARGO_TERM_PROGRESS_WHEN=never
+turbo run --continue dependencies-successful lint:tsc
