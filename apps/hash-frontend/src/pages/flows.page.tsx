@@ -201,7 +201,7 @@ const FlowsPageContent = () => {
           },
         ]}
         title={{ text: "Flows", Icon: InfinityLightIcon }}
-        subtitle="Pre-defined sequences of actions run by workers on your behalf"
+        subtitle="Processes that workers can monitor and manage"
       />
       <Container sx={{ my: 4, px: 4, height: tableHeight }}>
         <VirtualizedTable
