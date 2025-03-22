@@ -1,3 +1,4 @@
+use alloc::borrow::Cow;
 use core::{
     error::Error,
     fmt::{Debug, Display},
@@ -8,22 +9,21 @@ use error_stack::{Report, TryReportIteratorExt as _};
 use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
 
 use crate::{
-    category::Category,
+    category::{CanonicalCategoryId, CanonicalCategoryName, Category},
     config::ReportConfig,
     error::ResolveError,
     help::Help,
     label::Label,
     note::Note,
-    rob::RefOrBox,
     severity::Severity,
     span::{AbsoluteDiagnosticSpan, TransformSpan},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Diagnostic<'a, S> {
-    pub category: RefOrBox<'a, Category<'a>>,
-    pub severity: RefOrBox<'a, Severity<'a>>,
+pub struct Diagnostic<'a, C, S> {
+    pub category: C,
+    pub severity: Cow<'a, Severity<'a>>,
 
     pub message: Option<Box<str>>,
 
@@ -32,12 +32,9 @@ pub struct Diagnostic<'a, S> {
     pub help: Option<Help>,
 }
 
-impl<'a, S> Diagnostic<'a, S> {
+impl<'a, C, S> Diagnostic<'a, C, S> {
     #[must_use]
-    pub fn new(
-        category: impl Into<RefOrBox<'a, Category<'a>>>,
-        severity: impl Into<RefOrBox<'a, Severity<'a>>>,
-    ) -> Self {
+    pub fn new(category: impl Into<C>, severity: impl Into<Cow<'a, Severity<'a>>>) -> Self {
         Self {
             category: category.into(),
             severity: severity.into(),
@@ -49,7 +46,7 @@ impl<'a, S> Diagnostic<'a, S> {
     }
 }
 
-impl<'a> Diagnostic<'a, SpanId> {
+impl<'a, C> Diagnostic<'a, C, SpanId> {
     /// Resolve the diagnostic, into a proper diagnostic with span nodes.
     ///
     /// # Errors
@@ -58,7 +55,7 @@ impl<'a> Diagnostic<'a, SpanId> {
     pub fn resolve<S>(
         self,
         storage: &SpanStorage<S>,
-    ) -> Result<Diagnostic<'a, SpanNode<S>>, Report<[ResolveError]>>
+    ) -> Result<Diagnostic<'a, C, SpanNode<S>>, Report<[ResolveError]>>
     where
         S: Span + Clone,
     {
@@ -80,7 +77,10 @@ impl<'a> Diagnostic<'a, SpanId> {
     }
 }
 
-impl<S> Diagnostic<'_, SpanNode<S>> {
+impl<C, S> Diagnostic<'_, C, SpanNode<S>>
+where
+    C: Category,
+{
     pub fn report(
         &self,
         mut config: ReportConfig<impl TransformSpan<S>>,
@@ -98,13 +98,9 @@ impl<S> Diagnostic<'_, SpanNode<S>> {
         let mut generator = ColorGenerator::new();
 
         let mut builder = ariadne::Report::build(self.severity.as_ref().kind(), span)
-            .with_code(self.category.as_ref().canonical_id());
+            .with_code(CanonicalCategoryId::new(&self.category));
 
-        builder.set_message(
-            self.message
-                .as_deref()
-                .unwrap_or(&self.category.as_ref().name),
-        );
+        builder.set_message(self.message.as_deref().unwrap_or(&self.category.name()));
 
         if let Some(note) = &self.note {
             builder.set_note(note.colored(config.color));
@@ -128,8 +124,9 @@ impl<S> Diagnostic<'_, SpanNode<S>> {
     }
 }
 
-impl<S> Display for Diagnostic<'_, S>
+impl<C, S> Display for Diagnostic<'_, C, S>
 where
+    C: Category,
     S: Display,
 {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -137,9 +134,14 @@ where
             fmt,
             "[{}] {}",
             self.severity,
-            self.category.as_ref().canonical_name()
+            CanonicalCategoryName::new(&self.category)
         )
     }
 }
 
-impl<S> Error for Diagnostic<'_, S> where S: Debug + Display {}
+impl<C, S> Error for Diagnostic<'_, C, S>
+where
+    C: Debug + Category,
+    S: Debug + Display,
+{
+}

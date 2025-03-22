@@ -1,50 +1,91 @@
 use alloc::borrow::Cow;
 use core::fmt::Display;
 
-use crate::rob::RefOrBox;
+pub(crate) struct CanonicalCategoryId<C>(C);
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Category<'a> {
-    pub id: Cow<'a, str>,
-    pub name: Cow<'a, str>,
-    pub parent: Option<RefOrBox<'a, Category<'a>>>,
+impl<C> CanonicalCategoryId<C> {
+    pub(crate) const fn new(category: C) -> Self {
+        Self(category)
+    }
 }
 
-impl Category<'_> {
-    #[must_use]
-    pub fn canonical_id(&self) -> impl Display + '_ {
-        struct DisplayCategoryId<'a, 'b>(&'a Category<'b>);
+impl<C> Display for CanonicalCategoryId<C>
+where
+    C: Category,
+{
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.0.id(), fmt)?;
 
-        impl Display for DisplayCategoryId<'_, '_> {
-            fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                if let Some(parent) = &self.0.parent {
-                    DisplayCategoryId(parent.as_ref()).fmt(fmt)?;
-                    fmt.write_str("::")?;
-                }
+        let mut child = self.0.subcategory();
+        while let Some(category) = child {
+            fmt.write_str("::")?;
+            CanonicalCategoryId(category).fmt(fmt)?;
 
-                Display::fmt(&self.0.id, fmt)
-            }
+            child = category.subcategory();
         }
 
-        DisplayCategoryId(self)
+        Ok(())
+    }
+}
+
+pub(crate) struct CanonicalCategoryName<C>(C);
+
+impl<C> CanonicalCategoryName<C> {
+    pub(crate) const fn new(category: C) -> Self {
+        Self(category)
+    }
+}
+
+impl<C> Display for CanonicalCategoryName<C>
+where
+    C: Category,
+{
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.0.name(), fmt)?;
+
+        let mut child = self.0.subcategory();
+        while let Some(category) = child {
+            fmt.write_str(" / ")?;
+            CanonicalCategoryName(category).fmt(fmt)?;
+
+            child = category.subcategory();
+        }
+
+        Ok(())
+    }
+}
+
+pub trait Category {
+    fn id(&self) -> Cow<'_, str>;
+    fn name(&self) -> Cow<'_, str>;
+
+    fn subcategory(&self) -> Option<&dyn Category>;
+}
+
+impl Category for &dyn Category {
+    fn id(&self) -> Cow<'_, str> {
+        (**self).id()
     }
 
-    #[must_use]
-    pub fn canonical_name(&self) -> impl Display + '_ {
-        struct DisplayCategoryName<'a, 'b>(&'a Category<'b>);
+    fn name(&self) -> Cow<'_, str> {
+        (**self).name()
+    }
 
-        impl Display for DisplayCategoryName<'_, '_> {
-            fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                if let Some(parent) = &self.0.parent {
-                    DisplayCategoryName(parent.as_ref()).fmt(fmt)?;
-                    fmt.write_str(" / ")?;
-                }
+    fn subcategory(&self) -> Option<&dyn Category> {
+        (**self).subcategory()
+    }
+}
 
-                Display::fmt(&self.0.name, fmt)
-            }
-        }
+impl<C: Category> Category for &C {
+    fn id(&self) -> Cow<'_, str> {
+        (**self).id()
+    }
 
-        DisplayCategoryName(self)
+    fn name(&self) -> Cow<'_, str> {
+        (**self).name()
+    }
+
+    fn subcategory(&self) -> Option<&dyn Category> {
+        (**self).subcategory()
     }
 }
