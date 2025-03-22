@@ -7,7 +7,7 @@ use hql_span::SpanId;
 
 use super::{
     array::parse_array,
-    error::{duplicate_key, unexpected_token},
+    error::{ParserDiagnosticCategory, duplicate_key, unexpected_token},
     object::parse_object,
     stream::TokenStream,
 };
@@ -19,7 +19,7 @@ use crate::{
 pub(crate) fn parse_value<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Option<Token<'source>>,
-) -> Result<Value<'arena, 'source>, Diagnostic<'static, SpanId>> {
+) -> Result<Value<'arena, 'source>, Diagnostic<'static, ParserDiagnosticCategory, SpanId>> {
     let token = if let Some(token) = token {
         token
     } else {
@@ -69,7 +69,7 @@ pub(crate) fn parse_value<'arena, 'source>(
 fn parse_value_array<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Token<'source>,
-) -> Result<Value<'arena, 'source>, Diagnostic<'static, SpanId>> {
+) -> Result<Value<'arena, 'source>, Diagnostic<'static, ParserDiagnosticCategory, SpanId>> {
     let mut values = stream.arena.vec(None);
 
     let span = parse_array(stream, token, |lexer, token| {
@@ -94,7 +94,7 @@ fn parse_value_array<'arena, 'source>(
 fn parse_value_object<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Token<'source>,
-) -> Result<Value<'arena, 'source>, Diagnostic<'static, SpanId>> {
+) -> Result<Value<'arena, 'source>, Diagnostic<'static, ParserDiagnosticCategory, SpanId>> {
     let mut object: arena::HashMap<ObjectKey<'source>, Value<'arena, 'source>> =
         stream.arena.hash_map(None);
 

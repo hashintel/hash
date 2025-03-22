@@ -5,8 +5,8 @@ use core::fmt::Debug;
 use std::io::stdout;
 
 use hql_diagnostics::{
-    Diagnostic, category::Category, config::ReportConfig, help::Help, label::Label, rob::RefOrBox,
-    severity::Severity, span::DiagnosticSpan,
+    Diagnostic, category::DiagnosticCategory, config::ReportConfig, help::Help, label::Label,
+    rob::RefOrBox, severity::Severity, span::DiagnosticSpan,
 };
 use hql_span::{Span, SpanId, TextRange, storage::SpanStorage};
 use jsonptr::PointerBuf;
@@ -27,13 +27,13 @@ impl Span for JsonSpan {
 // The error is at the `-`
 const SOURCE: &str = r#"["let", "x-y", {"const": 2}]"#;
 
-const SYNTAX_CATEGORY: &Category = &Category {
+const SYNTAX_CATEGORY: &DiagnosticCategory = &DiagnosticCategory {
     id: Cow::Borrowed("syntax"),
     name: Cow::Borrowed("Syntax"),
     parent: None,
 };
 
-const INVALID_IDENTIFIER: &Category = &Category {
+const INVALID_IDENTIFIER: &DiagnosticCategory = &DiagnosticCategory {
     id: Cow::Borrowed("invalid-identifier"),
     name: Cow::Borrowed("Invalid Identifier"),
     parent: Some(RefOrBox::Ref(SYNTAX_CATEGORY)),

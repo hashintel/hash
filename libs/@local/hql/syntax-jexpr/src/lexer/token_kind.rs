@@ -4,7 +4,7 @@ use core::fmt::{self, Display, Write as _};
 use json_number::Number;
 use logos::Logos;
 
-use super::{error::LexingError, syntax_kind::SyntaxKind};
+use super::{error::LexerError, syntax_kind::SyntaxKind};
 use crate::lexer::parse::{parse_number, parse_string};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -49,7 +49,7 @@ pub(crate) enum TokenKind<'source> {
 // TODO: Remove this once `derive(Logos)` supports `+ use<'s>` for callback functions.
 //   see https://github.com/maciejhirsz/logos/issues/434
 impl<'s> Logos<'s> for TokenKind<'s> {
-    type Error = LexingError;
+    type Error = LexerError;
     type Extras = ();
     type Source = [u8];
 

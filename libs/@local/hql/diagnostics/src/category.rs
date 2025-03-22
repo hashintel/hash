@@ -1,17 +1,17 @@
 use alloc::borrow::Cow;
 use core::fmt::Display;
 
-pub(crate) struct CanonicalCategoryId<C>(C);
+pub(crate) struct CanonicalDiagnosticCategoryId<C>(C);
 
-impl<C> CanonicalCategoryId<C> {
+impl<C> CanonicalDiagnosticCategoryId<C> {
     pub(crate) const fn new(category: C) -> Self {
         Self(category)
     }
 }
 
-impl<C> Display for CanonicalCategoryId<C>
+impl<C> Display for CanonicalDiagnosticCategoryId<C>
 where
-    C: Category,
+    C: DiagnosticCategory,
 {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         Display::fmt(&self.0.id(), fmt)?;
@@ -19,7 +19,7 @@ where
         let mut child = self.0.subcategory();
         while let Some(category) = child {
             fmt.write_str("::")?;
-            CanonicalCategoryId(category).fmt(fmt)?;
+            CanonicalDiagnosticCategoryId(category).fmt(fmt)?;
 
             child = category.subcategory();
         }
@@ -28,17 +28,17 @@ where
     }
 }
 
-pub(crate) struct CanonicalCategoryName<C>(C);
+pub(crate) struct CanonicalDiagnosticCategoryName<C>(C);
 
-impl<C> CanonicalCategoryName<C> {
+impl<C> CanonicalDiagnosticCategoryName<C> {
     pub(crate) const fn new(category: C) -> Self {
         Self(category)
     }
 }
 
-impl<C> Display for CanonicalCategoryName<C>
+impl<C> Display for CanonicalDiagnosticCategoryName<C>
 where
-    C: Category,
+    C: DiagnosticCategory,
 {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         Display::fmt(&self.0.name(), fmt)?;
@@ -46,7 +46,7 @@ where
         let mut child = self.0.subcategory();
         while let Some(category) = child {
             fmt.write_str(" / ")?;
-            CanonicalCategoryName(category).fmt(fmt)?;
+            CanonicalDiagnosticCategoryName(category).fmt(fmt)?;
 
             child = category.subcategory();
         }
@@ -55,14 +55,14 @@ where
     }
 }
 
-pub trait Category {
+pub trait DiagnosticCategory {
     fn id(&self) -> Cow<'_, str>;
     fn name(&self) -> Cow<'_, str>;
 
-    fn subcategory(&self) -> Option<&dyn Category>;
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory>;
 }
 
-impl Category for &dyn Category {
+impl DiagnosticCategory for &dyn DiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         (**self).id()
     }
@@ -71,12 +71,12 @@ impl Category for &dyn Category {
         (**self).name()
     }
 
-    fn subcategory(&self) -> Option<&dyn Category> {
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         (**self).subcategory()
     }
 }
 
-impl<C: Category> Category for &C {
+impl<C: DiagnosticCategory> DiagnosticCategory for &C {
     fn id(&self) -> Cow<'_, str> {
         (**self).id()
     }
@@ -85,8 +85,34 @@ impl<C: Category> Category for &C {
         (**self).name()
     }
 
-    fn subcategory(&self) -> Option<&dyn Category> {
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         (**self).subcategory()
+    }
+}
+
+/// A simple category implementation representing a terminal node in the category hierarchy.
+///
+/// Terminal categories represent the endpoints in a category hierarchy and have no subcategories.
+/// They provide a lightweight way to create categories with static strings for both ID and name.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct TerminalDiagnosticCategory {
+    /// The unique identifier for this category.
+    pub id: &'static str,
+    /// The human-readable name of this category.
+    pub name: &'static str,
+}
+
+impl DiagnosticCategory for TerminalDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed(self.id)
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed(self.name)
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        None
     }
 }
 
@@ -97,8 +123,8 @@ mod tests {
 
     use super::*;
 
-    trait DebugCategory: Category + Debug {}
-    impl<T: Category + Debug> DebugCategory for T {}
+    trait DebugCategory: DiagnosticCategory + Debug {}
+    impl<T: DiagnosticCategory + Debug> DebugCategory for T {}
 
     #[derive(Debug)]
     struct TestCategory {
@@ -107,7 +133,7 @@ mod tests {
         child: Option<Box<dyn DebugCategory>>,
     }
 
-    impl Category for TestCategory {
+    impl DiagnosticCategory for TestCategory {
         fn id(&self) -> Cow<'_, str> {
             Cow::Borrowed(self.id)
         }
@@ -116,8 +142,10 @@ mod tests {
             Cow::Borrowed(self.name)
         }
 
-        fn subcategory(&self) -> Option<&dyn Category> {
-            self.child.as_deref().map(|child| child as &dyn Category)
+        fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+            self.child
+                .as_deref()
+                .map(|child| child as &dyn DiagnosticCategory)
         }
     }
 
@@ -129,7 +157,7 @@ mod tests {
             child: None,
         };
 
-        let canonical = CanonicalCategoryId::new(&category);
+        let canonical = CanonicalDiagnosticCategoryId::new(&category);
         assert_eq!(canonical.to_string(), "parser");
     }
 
@@ -147,7 +175,7 @@ mod tests {
             child: Some(Box::new(nested_category)),
         };
 
-        let canonical = CanonicalCategoryId::new(&category);
+        let canonical = CanonicalDiagnosticCategoryId::new(&category);
         assert_eq!(canonical.to_string(), "parser::syntax");
     }
 
@@ -171,7 +199,7 @@ mod tests {
             child: Some(Box::new(middle_category)),
         };
 
-        let canonical = CanonicalCategoryId::new(&category);
+        let canonical = CanonicalDiagnosticCategoryId::new(&category);
         assert_eq!(canonical.to_string(), "parser::syntax::unexpected");
     }
 
@@ -183,7 +211,7 @@ mod tests {
             child: None,
         };
 
-        let canonical = CanonicalCategoryName::new(&category);
+        let canonical = CanonicalDiagnosticCategoryName::new(&category);
         assert_eq!(canonical.to_string(), "Parser");
     }
 
@@ -201,7 +229,7 @@ mod tests {
             child: Some(Box::new(nested_category)),
         };
 
-        let canonical = CanonicalCategoryName::new(&category);
+        let canonical = CanonicalDiagnosticCategoryName::new(&category);
         assert_eq!(canonical.to_string(), "Parser / Syntax");
     }
 
@@ -225,7 +253,7 @@ mod tests {
             child: Some(Box::new(middle_category)),
         };
 
-        let canonical = CanonicalCategoryName::new(&category);
+        let canonical = CanonicalDiagnosticCategoryName::new(&category);
         assert_eq!(canonical.to_string(), "Parser / Syntax / Unexpected Token");
     }
 }

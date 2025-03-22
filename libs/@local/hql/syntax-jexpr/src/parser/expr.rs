@@ -9,7 +9,9 @@ use winnow::{
 };
 
 use super::{
-    array::parse_array, error::unexpected_token, expr_explicit::parse_expr_explicit,
+    array::parse_array,
+    error::{ParserDiagnosticCategory, unexpected_token},
+    expr_explicit::parse_expr_explicit,
     stream::TokenStream,
 };
 use crate::{
@@ -28,7 +30,7 @@ use crate::{
 pub(crate) fn parse_expr<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Option<Token<'source>>,
-) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
+) -> Result<Expr<'arena, 'source>, Diagnostic<'static, ParserDiagnosticCategory, SpanId>> {
     let token = if let Some(token) = token {
         token
     } else {

@@ -6,6 +6,7 @@ use hql_span::{SpanId, storage::SpanStorage};
 
 use super::error::unexpected_eof;
 use crate::{
+    error::JExprDiagnosticCategory,
     lexer::{Lexer, token::Token},
     span::Span,
 };
@@ -19,7 +20,9 @@ pub(crate) struct TokenStream<'arena, 'source> {
 }
 
 impl<'source> TokenStream<'_, 'source> {
-    pub(crate) fn next_or_err(&mut self) -> Result<Token<'source>, Diagnostic<'static, SpanId>> {
+    pub(crate) fn next_or_err(
+        &mut self,
+    ) -> Result<Token<'source>, Diagnostic<'static, JExprDiagnosticCategory, SpanId>> {
         let Some(token) = self.lexer.advance() else {
             let span = Span {
                 range: self.lexer.span(),
@@ -28,10 +31,10 @@ impl<'source> TokenStream<'_, 'source> {
             };
             let span = self.spans.insert(span);
 
-            return Err(unexpected_eof(span));
+            return Err(unexpected_eof(span).map_category(JExprDiagnosticCategory::Parser));
         };
 
-        token
+        token.map_err(|error| error.map_category(JExprDiagnosticCategory::Lexer))
     }
 
     pub(crate) fn insert_span(&self, span: Span) -> SpanId {

@@ -9,7 +9,9 @@ use error_stack::{Report, TryReportIteratorExt as _};
 use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
 
 use crate::{
-    category::{CanonicalCategoryId, CanonicalCategoryName, Category},
+    category::{
+        CanonicalDiagnosticCategoryId, CanonicalDiagnosticCategoryName, DiagnosticCategory,
+    },
     config::ReportConfig,
     error::ResolveError,
     help::Help,
@@ -42,6 +44,17 @@ impl<'a, C, S> Diagnostic<'a, C, S> {
             labels: Vec::new(),
             note: None,
             help: None,
+        }
+    }
+
+    pub fn map_category<T>(self, f: impl FnOnce(C) -> T) -> Diagnostic<'a, T, S> {
+        Diagnostic {
+            category: f(self.category),
+            severity: self.severity,
+            message: self.message,
+            labels: self.labels,
+            note: self.note,
+            help: self.help,
         }
     }
 }
@@ -79,7 +92,7 @@ impl<'a, C> Diagnostic<'a, C, SpanId> {
 
 impl<C, S> Diagnostic<'_, C, SpanNode<S>>
 where
-    C: Category,
+    C: DiagnosticCategory,
 {
     pub fn report(
         &self,
@@ -98,7 +111,7 @@ where
         let mut generator = ColorGenerator::new();
 
         let mut builder = ariadne::Report::build(self.severity.as_ref().kind(), span)
-            .with_code(CanonicalCategoryId::new(&self.category));
+            .with_code(CanonicalDiagnosticCategoryId::new(&self.category));
 
         builder.set_message(self.message.as_deref().unwrap_or(&self.category.name()));
 
@@ -126,7 +139,7 @@ where
 
 impl<C, S> Display for Diagnostic<'_, C, S>
 where
-    C: Category,
+    C: DiagnosticCategory,
     S: Display,
 {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -134,14 +147,14 @@ where
             fmt,
             "[{}] {}",
             self.severity,
-            CanonicalCategoryName::new(&self.category)
+            CanonicalDiagnosticCategoryName::new(&self.category)
         )
     }
 }
 
 impl<C, S> Error for Diagnostic<'_, C, S>
 where
-    C: Debug + Category,
+    C: Debug + DiagnosticCategory,
     S: Debug + Display,
 {
 }

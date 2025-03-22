@@ -4,7 +4,7 @@ use core::assert_matches::debug_assert_matches;
 use hql_diagnostics::{Diagnostic, help::Help, note::Note};
 use hql_span::{SpanId, TextRange};
 
-use super::stream::TokenStream;
+use super::{error::ParserDiagnosticCategory, stream::TokenStream};
 use crate::{
     lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
     parser::error::unexpected_token,
@@ -27,8 +27,8 @@ pub(crate) fn parse_object<'arena, 'source>(
     mut on_entry: impl FnMut(
         &mut TokenStream<'arena, 'source>,
         Key<'source>,
-    ) -> Result<(), Diagnostic<'static, SpanId>>,
-) -> Result<TextRange, Diagnostic<'static, SpanId>> {
+    ) -> Result<(), Diagnostic<'static, ParserDiagnosticCategory, SpanId>>,
+) -> Result<TextRange, Diagnostic<'static, ParserDiagnosticCategory, SpanId>> {
     debug_assert_matches!(token.kind, TokenKind::LBrace);
 
     let mut span = token.span;

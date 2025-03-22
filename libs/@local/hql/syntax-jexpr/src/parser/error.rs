@@ -1,108 +1,180 @@
 use alloc::borrow::Cow;
 
 use hql_diagnostics::{
-    Diagnostic, category::Category, help::Help, label::Label, rob::RefOrBox, severity::Severity,
+    Diagnostic,
+    category::{DiagnosticCategory, TerminalDiagnosticCategory},
+    help::Help,
+    label::Label,
+    severity::Severity,
 };
 use hql_span::SpanId;
 use winnow::error::{ContextError, ErrMode, ParseError};
 
-use crate::{
-    error::JEXPR_CATEGORY,
-    lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
+use crate::lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet};
+
+const UNEXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unexpected-eof",
+    name: "Unexpected end of input",
 };
 
-pub(crate) const PARSE: &Category = &Category {
-    id: Cow::Borrowed("parse"),
-    name: Cow::Borrowed("Parsing"),
-    parent: Some(RefOrBox::Ref(JEXPR_CATEGORY)),
+const EXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "expected-eof",
+    name: "Expected end of input",
 };
 
-pub(crate) const UNEXPECTED_EOF: &Category = &Category {
-    id: Cow::Borrowed("unexpected-eof"),
-    name: Cow::Borrowed("Unexpected end of input"),
-    parent: Some(RefOrBox::Ref(PARSE)),
+const UNEXPECTED_TOKEN: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unexpected-token",
+    name: "Unexpected token",
 };
 
-pub(crate) const EXPECTED_EOF: &Category = &Category {
-    id: Cow::Borrowed("expected-eof"),
-    name: Cow::Borrowed("Expected end of input"),
-    parent: Some(RefOrBox::Ref(PARSE)),
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ParserDiagnosticCategory {
+    UnexpectedEof,
+    ExpectedEof,
+    UnexpectedToken,
+    String(StringParserDiagnosticCategory),
+    Array(ArrayParserDiagnosticCategory),
+    Object(ObjectParserDiagnosticCategory),
+}
+
+impl DiagnosticCategory for ParserDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("parser")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("Parser")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            ParserDiagnosticCategory::UnexpectedEof => Some(&UNEXPECTED_EOF),
+            ParserDiagnosticCategory::ExpectedEof => Some(&EXPECTED_EOF),
+            ParserDiagnosticCategory::UnexpectedToken => Some(&UNEXPECTED_TOKEN),
+            ParserDiagnosticCategory::String(category) => Some(category),
+            ParserDiagnosticCategory::Array(category) => Some(category),
+            ParserDiagnosticCategory::Object(category) => Some(category),
+        }
+    }
+}
+
+const INVALID_IDENTIFIER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-identifier",
+    name: "Invalid Identifier",
 };
 
-pub(crate) const UNEXPECTED_TOKEN: &Category = &Category {
-    id: Cow::Borrowed("unexpected-token"),
-    name: Cow::Borrowed("Unexpected token"),
-    parent: Some(RefOrBox::Ref(PARSE)),
+const INVALID_SIGNATURE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-signature",
+    name: "Invalid Signature",
 };
 
-pub(crate) const STRING: &Category = &Category {
-    id: Cow::Borrowed("string"),
-    name: Cow::Borrowed("String"),
-    parent: Some(RefOrBox::Ref(PARSE)),
+const INVALID_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-type",
+    name: "Invalid Type",
 };
 
-pub(crate) const INVALID_IDENTIFIER: &Category = &Category {
-    id: Cow::Borrowed("invalid-identifier"),
-    name: Cow::Borrowed("Invalid Identifier"),
-    parent: Some(RefOrBox::Ref(STRING)),
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum StringParserDiagnosticCategory {
+    InvalidIdentifier,
+    InvalidSignature,
+    InvalidType,
+}
+
+impl DiagnosticCategory for StringParserDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("string")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("String")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            StringParserDiagnosticCategory::InvalidIdentifier => Some(&INVALID_IDENTIFIER),
+            StringParserDiagnosticCategory::InvalidSignature => Some(&INVALID_SIGNATURE),
+            StringParserDiagnosticCategory::InvalidType => Some(&INVALID_TYPE),
+        }
+    }
+}
+
+const EXPECTED_CALLEE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "expected-callee",
+    name: "Expected Callee",
 };
 
-pub(crate) const INVALID_SIGNATURE: &Category = &Category {
-    id: Cow::Borrowed("invalid-signature"),
-    name: Cow::Borrowed("Invalid Signature"),
-    parent: Some(RefOrBox::Ref(STRING)),
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ArrayParserDiagnosticCategory {
+    ExpectedCallee,
+}
+
+impl DiagnosticCategory for ArrayParserDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("array")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("Array")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            ArrayParserDiagnosticCategory::ExpectedCallee => Some(&EXPECTED_CALLEE),
+        }
+    }
+}
+
+const DUPLICATE_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-key",
+    name: "Duplicate Key",
 };
 
-pub(crate) const INVALID_TYPE: &Category = &Category {
-    id: Cow::Borrowed("invalid-type"),
-    name: Cow::Borrowed("Invalid Type"),
-    parent: Some(RefOrBox::Ref(STRING)),
+const REQUIRED_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "required-key",
+    name: "Required Key",
 };
 
-pub(crate) const ARRAY: &Category = &Category {
-    id: Cow::Borrowed("array"),
-    name: Cow::Borrowed("Array"),
-    parent: Some(RefOrBox::Ref(PARSE)),
+const UNKNOWN_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unknown-key",
+    name: "Unknown Key",
 };
 
-pub(crate) const EXPECTED_CALLEE: &Category = &Category {
-    id: Cow::Borrowed("expected-callee"),
-    name: Cow::Borrowed("Expected Callee"),
-    parent: Some(RefOrBox::Ref(ARRAY)),
+const EXPECTED_NON_EMPTY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "expected-non-empty",
+    name: "Expected Non-Empty Object",
 };
 
-pub(crate) const OBJECT: &Category = &Category {
-    id: Cow::Borrowed("object"),
-    name: Cow::Borrowed("Object"),
-    parent: Some(RefOrBox::Ref(PARSE)),
-};
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ObjectParserDiagnosticCategory {
+    DuplicateKey,
+    RequiredKey,
+    UnknownKey,
+    ExpectedNonEmpty,
+}
 
-pub(crate) const DUPLICATE_KEY: &Category = &Category {
-    id: Cow::Borrowed("duplicate-key"),
-    name: Cow::Borrowed("Duplicate Key"),
-    parent: Some(RefOrBox::Ref(OBJECT)),
-};
+impl DiagnosticCategory for ObjectParserDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("object")
+    }
 
-pub(crate) const REQUIRED_KEY: &Category = &Category {
-    id: Cow::Borrowed("required-key"),
-    name: Cow::Borrowed("Required Key"),
-    parent: Some(RefOrBox::Ref(OBJECT)),
-};
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("Object")
+    }
 
-pub(crate) const UNKNOWN_KEY: &Category = &Category {
-    id: Cow::Borrowed("unknown-key"),
-    name: Cow::Borrowed("Unknown Key"),
-    parent: Some(RefOrBox::Ref(OBJECT)),
-};
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            ObjectParserDiagnosticCategory::DuplicateKey => Some(&DUPLICATE_KEY),
+            ObjectParserDiagnosticCategory::RequiredKey => Some(&REQUIRED_KEY),
+            ObjectParserDiagnosticCategory::UnknownKey => Some(&UNKNOWN_KEY),
+            ObjectParserDiagnosticCategory::ExpectedNonEmpty => Some(&EXPECTED_NON_EMPTY),
+        }
+    }
+}
 
-pub(crate) const EXPECTED_NON_EMPTY_OBJECT: &Category = &Category {
-    id: Cow::Borrowed("expected-non-empty"),
-    name: Cow::Borrowed("Expected Non-Empty"),
-    parent: Some(RefOrBox::Ref(OBJECT)),
-};
-
-pub(crate) fn unexpected_eof(span: SpanId) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(UNEXPECTED_EOF, Severity::ERROR);
+pub(crate) fn unexpected_eof(
+    span: SpanId,
+) -> Diagnostic<'static, ParserDiagnosticCategory, SpanId> {
+    let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::UnexpectedEof, Severity::ERROR);
 
     diagnostic
         .labels
@@ -111,8 +183,8 @@ pub(crate) fn unexpected_eof(span: SpanId) -> Diagnostic<'static, SpanId> {
     diagnostic
 }
 
-pub(crate) fn expected_eof(span: SpanId) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(EXPECTED_EOF, Severity::ERROR);
+pub(crate) fn expected_eof(span: SpanId) -> Diagnostic<'static, ParserDiagnosticCategory, SpanId> {
+    let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::ExpectedEof, Severity::ERROR);
 
     diagnostic
         .labels
@@ -124,10 +196,11 @@ pub(crate) fn expected_eof(span: SpanId) -> Diagnostic<'static, SpanId> {
 pub(crate) fn unexpected_token(
     span: SpanId,
     expected: impl IntoIterator<Item = SyntaxKind>,
-) -> Diagnostic<'static, SpanId> {
+) -> Diagnostic<'static, ParserDiagnosticCategory, SpanId> {
     let expected = SyntaxKindSet::from_iter(expected);
 
-    let mut diagnostic = Diagnostic::new(UNEXPECTED_TOKEN, Severity::ERROR);
+    let mut diagnostic =
+        Diagnostic::new(ParserDiagnosticCategory::UnexpectedToken, Severity::ERROR);
 
     diagnostic.labels.push(Label::new(span, "Unexpected token"));
 
@@ -167,8 +240,11 @@ fn parse_error_display<I>(error: &ParseError<I, ErrMode<ContextError>>) -> Strin
 pub(crate) fn invalid_identifier<I>(
     span: SpanId,
     error: &ParseError<I, ErrMode<ContextError>>,
-) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(INVALID_IDENTIFIER, Severity::ERROR);
+) -> Diagnostic<'static, StringParserDiagnosticCategory, SpanId> {
+    let mut diagnostic = Diagnostic::new(
+        StringParserDiagnosticCategory::InvalidIdentifier,
+        Severity::ERROR,
+    );
 
     diagnostic
         .labels
@@ -180,8 +256,11 @@ pub(crate) fn invalid_identifier<I>(
 pub(crate) fn invalid_signature<I>(
     span: SpanId,
     error: &ParseError<I, ErrMode<ContextError>>,
-) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(INVALID_SIGNATURE, Severity::ERROR);
+) -> Diagnostic<'static, StringParserDiagnosticCategory, SpanId> {
+    let mut diagnostic = Diagnostic::new(
+        StringParserDiagnosticCategory::InvalidSignature,
+        Severity::ERROR,
+    );
 
     diagnostic
         .labels
@@ -193,8 +272,9 @@ pub(crate) fn invalid_signature<I>(
 pub(crate) fn invalid_type<I>(
     span: SpanId,
     error: &ParseError<I, ErrMode<ContextError>>,
-) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(INVALID_TYPE, Severity::ERROR);
+) -> Diagnostic<'static, StringParserDiagnosticCategory, SpanId> {
+    let mut diagnostic =
+        Diagnostic::new(StringParserDiagnosticCategory::InvalidType, Severity::ERROR);
 
     diagnostic
         .labels
@@ -203,8 +283,13 @@ pub(crate) fn invalid_type<I>(
     diagnostic
 }
 
-pub(crate) fn expected_callee(span: SpanId) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(EXPECTED_CALLEE, Severity::ERROR);
+pub(crate) fn expected_callee(
+    span: SpanId,
+) -> Diagnostic<'static, ArrayParserDiagnosticCategory, SpanId> {
+    let mut diagnostic = Diagnostic::new(
+        ArrayParserDiagnosticCategory::ExpectedCallee,
+        Severity::ERROR,
+    );
 
     diagnostic.labels.push(Label::new(span, "Expected callee"));
 
@@ -215,8 +300,14 @@ pub(crate) fn expected_callee(span: SpanId) -> Diagnostic<'static, SpanId> {
     diagnostic
 }
 
-pub(crate) fn duplicate_key(span: SpanId, duplicate: SpanId) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(DUPLICATE_KEY, Severity::ERROR);
+pub(crate) fn duplicate_key(
+    span: SpanId,
+    duplicate: SpanId,
+) -> Diagnostic<'static, ObjectParserDiagnosticCategory, SpanId> {
+    let mut diagnostic = Diagnostic::new(
+        ObjectParserDiagnosticCategory::DuplicateKey,
+        Severity::ERROR,
+    );
 
     diagnostic
         .labels
@@ -229,8 +320,12 @@ pub(crate) fn duplicate_key(span: SpanId, duplicate: SpanId) -> Diagnostic<'stat
     diagnostic
 }
 
-pub(crate) fn required_key(span: SpanId, key: impl AsRef<str>) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(REQUIRED_KEY, Severity::ERROR);
+pub(crate) fn required_key(
+    span: SpanId,
+    key: impl AsRef<str>,
+) -> Diagnostic<'static, ObjectParserDiagnosticCategory, SpanId> {
+    let mut diagnostic =
+        Diagnostic::new(ObjectParserDiagnosticCategory::RequiredKey, Severity::ERROR);
 
     diagnostic.labels.push(Label::new(
         span,
@@ -243,8 +338,9 @@ pub(crate) fn unknown_key(
     span: SpanId,
     key: impl AsRef<str>,
     expected: &[&'static str],
-) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(UNKNOWN_KEY, Severity::ERROR);
+) -> Diagnostic<'static, ObjectParserDiagnosticCategory, SpanId> {
+    let mut diagnostic =
+        Diagnostic::new(ObjectParserDiagnosticCategory::UnknownKey, Severity::ERROR);
 
     diagnostic
         .labels
@@ -272,8 +368,13 @@ pub(crate) fn unknown_key(
     diagnostic
 }
 
-pub(crate) fn expected_non_empty_object(span: SpanId) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(EXPECTED_NON_EMPTY_OBJECT, Severity::ERROR);
+pub(crate) fn expected_non_empty_object(
+    span: SpanId,
+) -> Diagnostic<'static, ObjectParserDiagnosticCategory, SpanId> {
+    let mut diagnostic = Diagnostic::new(
+        ObjectParserDiagnosticCategory::ExpectedNonEmpty,
+        Severity::ERROR,
+    );
 
     diagnostic
         .labels
