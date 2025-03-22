@@ -89,3 +89,143 @@ impl<C: Category> Category for &C {
         (**self).subcategory()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use alloc::string::ToString as _;
+    use core::fmt::Debug;
+
+    use super::*;
+
+    trait DebugCategory: Category + Debug {}
+    impl<T: Category + Debug> DebugCategory for T {}
+
+    #[derive(Debug)]
+    struct TestCategory {
+        id: &'static str,
+        name: &'static str,
+        child: Option<Box<dyn DebugCategory>>,
+    }
+
+    impl Category for TestCategory {
+        fn id(&self) -> Cow<'_, str> {
+            Cow::Borrowed(self.id)
+        }
+
+        fn name(&self) -> Cow<'_, str> {
+            Cow::Borrowed(self.name)
+        }
+
+        fn subcategory(&self) -> Option<&dyn Category> {
+            self.child.as_deref().map(|child| child as &dyn Category)
+        }
+    }
+
+    #[test]
+    fn canonical_id_single_category() {
+        let category = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: None,
+        };
+
+        let canonical = CanonicalCategoryId::new(&category);
+        assert_eq!(canonical.to_string(), "parser");
+    }
+
+    #[test]
+    fn canonical_id_nested_categories() {
+        let nested_category = TestCategory {
+            id: "syntax",
+            name: "Syntax",
+            child: None,
+        };
+
+        let category = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: Some(Box::new(nested_category)),
+        };
+
+        let canonical = CanonicalCategoryId::new(&category);
+        assert_eq!(canonical.to_string(), "parser::syntax");
+    }
+
+    #[test]
+    fn canonical_id_deeply_nested_categories() {
+        let inner_category = TestCategory {
+            id: "unexpected",
+            name: "Unexpected Token",
+            child: None,
+        };
+
+        let middle_category = TestCategory {
+            id: "syntax",
+            name: "Syntax",
+            child: Some(Box::new(inner_category)),
+        };
+
+        let category = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: Some(Box::new(middle_category)),
+        };
+
+        let canonical = CanonicalCategoryId::new(&category);
+        assert_eq!(canonical.to_string(), "parser::syntax::unexpected");
+    }
+
+    #[test]
+    fn canonical_name_single_category() {
+        let category = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: None,
+        };
+
+        let canonical = CanonicalCategoryName::new(&category);
+        assert_eq!(canonical.to_string(), "Parser");
+    }
+
+    #[test]
+    fn canonical_name_nested_categories() {
+        let nested_category = TestCategory {
+            id: "syntax",
+            name: "Syntax",
+            child: None,
+        };
+
+        let category = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: Some(Box::new(nested_category)),
+        };
+
+        let canonical = CanonicalCategoryName::new(&category);
+        assert_eq!(canonical.to_string(), "Parser / Syntax");
+    }
+
+    #[test]
+    fn canonical_name_deeply_nested_categories() {
+        let inner_category = TestCategory {
+            id: "unexpected",
+            name: "Unexpected Token",
+            child: None,
+        };
+
+        let middle_category = TestCategory {
+            id: "syntax",
+            name: "Syntax",
+            child: Some(Box::new(inner_category)),
+        };
+
+        let category = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: Some(Box::new(middle_category)),
+        };
+
+        let canonical = CanonicalCategoryName::new(&category);
+        assert_eq!(canonical.to_string(), "Parser / Syntax / Unexpected Token");
+    }
+}
