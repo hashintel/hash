@@ -489,7 +489,7 @@ __metadata:
     "@mui/icons-material": "npm:5.16.14"
     "@mui/material": "npm:5.16.14"
     "@mui/system": "npm:5.16.14"
-    "@next/bundle-analyzer": "npm:15.2.2"
+    "@next/bundle-analyzer": "npm:15.2.3"
     "@ory/client": "npm:1.1.41"
     "@ory/integrations": "npm:1.1.4"
     "@popperjs/core": "npm:2.11.8"
@@ -9547,12 +9547,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/bundle-analyzer@npm:15.2.2":
-  version: 15.2.2
-  resolution: "@next/bundle-analyzer@npm:15.2.2"
+"@next/bundle-analyzer@npm:15.2.3":
+  version: 15.2.3
+  resolution: "@next/bundle-analyzer@npm:15.2.3"
   dependencies:
     webpack-bundle-analyzer: "npm:4.10.1"
-  checksum: 10c0/f6bec38de2293719d30cabab36b85c33eff6c651f05d6bcac5524bccee9e007e34054cd90f8ccf6c63ffe60042739098a1ede70521f138b988b9eebc289df0ae
+  checksum: 10c0/3e4391f4ce081cf09c87a2ce2c38a911a7899f09cc4691ff91c78d9ccea9386962970580cca56768d3cf8078da689de3466b96bd133520ba3ddaee3d70a0eb12
   languageName: node
   linkType: hard
 
