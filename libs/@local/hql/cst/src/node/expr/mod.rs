@@ -12,7 +12,6 @@ pub use self::{
     tuple::TupleExpr,
 };
 use super::path::Path;
-use crate::Spanned;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExprKind<'heap> {
@@ -97,11 +96,4 @@ pub struct Expr<'heap> {
     pub span: SpanId,
 
     pub kind: ExprKind<'heap>,
-}
-
-impl Spanned for Expr<'_> {
-    /// Returns the span of this expression.
-    fn span(&self) -> SpanId {
-        self.span
-    }
 }

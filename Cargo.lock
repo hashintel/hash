@@ -2835,15 +2835,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gxhash"
-version = "3.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3ce1bab7aa741d4e7042b2aae415b78741f267a98a7271ea226cd5ba6c43d7d"
-dependencies = [
- "rustversion",
-]
-
-[[package]]
 name = "h2"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3704,7 +3695,9 @@ dependencies = [
  "foldhash",
  "hashbrown 0.15.2",
  "hql-span",
+ "hql-symbol",
  "json-number",
+ "lexical",
  "simple-mermaid",
 ]
 
@@ -3740,11 +3733,8 @@ dependencies = [
 name = "hql-symbol"
 version = "0.0.0"
 dependencies = [
- "bumpalo",
  "ecow",
- "gxhash",
  "hql-span",
- "indexmap 2.8.0",
 ]
 
 [[package]]

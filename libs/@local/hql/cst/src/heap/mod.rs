@@ -1,6 +1,6 @@
 mod ptr;
 
-use alloc::alloc::Allocator;
+use core::alloc::Allocator;
 
 use bumpalo::Bump;
 use hashbrown::DefaultHashBuilder;
@@ -31,27 +31,27 @@ impl Heap {
 
     pub fn vec<T>(&self, capacity: Option<usize>) -> Vec<'_, T> {
         capacity.map_or_else(
-            || Vec::new_in(&self),
-            |capacity| Vec::with_capacity_in(capacity, &self),
+            || Vec::new_in(self),
+            |capacity| Vec::with_capacity_in(capacity, self),
         )
     }
 
     pub fn hash_map<K, V>(&self, capacity: Option<usize>) -> HashMap<'_, K, V> {
         capacity.map_or_else(
-            || HashMap::new_in(&self),
-            |capacity| HashMap::with_capacity_in(capacity, &self),
+            || HashMap::new_in(self),
+            |capacity| HashMap::with_capacity_in(capacity, self),
         )
     }
 
     pub fn dequeue<T>(&self, capacity: Option<usize>) -> VecDeque<'_, T> {
         capacity.map_or_else(
-            || VecDeque::new_in(&self),
-            |capacity| VecDeque::with_capacity_in(capacity, &self),
+            || VecDeque::new_in(self),
+            |capacity| VecDeque::with_capacity_in(capacity, self),
         )
     }
 
     pub fn ptr<T: 'static>(&self, value: T) -> P<'_, T> {
-        P::new(value, &self)
+        P::new(value, self)
     }
 }
 
@@ -62,49 +62,54 @@ impl Default for Heap {
 }
 
 #[expect(unsafe_code, reason = "proxy to bump")]
+// SAFETY: this simply delegates to the bump allocator
 unsafe impl Allocator for &Heap {
     fn allocate_zeroed(
         &self,
-        layout: std::alloc::Layout,
-    ) -> Result<std::ptr::NonNull<[u8]>, std::alloc::AllocError> {
+        layout: core::alloc::Layout,
+    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
         (&self.bump).allocate_zeroed(layout)
     }
 
     unsafe fn grow(
         &self,
-        ptr: std::ptr::NonNull<u8>,
-        old_layout: std::alloc::Layout,
-        new_layout: std::alloc::Layout,
-    ) -> Result<std::ptr::NonNull<[u8]>, std::alloc::AllocError> {
+        ptr: core::ptr::NonNull<u8>,
+        old_layout: core::alloc::Layout,
+        new_layout: core::alloc::Layout,
+    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+        // SAFETY: this simply delegates to the bump allocator
         unsafe { (&self.bump).grow(ptr, old_layout, new_layout) }
     }
 
     unsafe fn grow_zeroed(
         &self,
-        ptr: std::ptr::NonNull<u8>,
-        old_layout: std::alloc::Layout,
-        new_layout: std::alloc::Layout,
-    ) -> Result<std::ptr::NonNull<[u8]>, std::alloc::AllocError> {
+        ptr: core::ptr::NonNull<u8>,
+        old_layout: core::alloc::Layout,
+        new_layout: core::alloc::Layout,
+    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+        // SAFETY: this simply delegates to the bump allocator
         unsafe { (&self.bump).grow_zeroed(ptr, old_layout, new_layout) }
     }
 
     unsafe fn shrink(
         &self,
-        ptr: std::ptr::NonNull<u8>,
-        old_layout: std::alloc::Layout,
-        new_layout: std::alloc::Layout,
-    ) -> Result<std::ptr::NonNull<[u8]>, std::alloc::AllocError> {
+        ptr: core::ptr::NonNull<u8>,
+        old_layout: core::alloc::Layout,
+        new_layout: core::alloc::Layout,
+    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+        // SAFETY: this simply delegates to the bump allocator
         unsafe { (&self.bump).shrink(ptr, old_layout, new_layout) }
     }
 
     fn allocate(
         &self,
-        layout: std::alloc::Layout,
-    ) -> Result<std::ptr::NonNull<[u8]>, std::alloc::AllocError> {
+        layout: core::alloc::Layout,
+    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
         (&self.bump).allocate(layout)
     }
 
-    unsafe fn deallocate(&self, ptr: std::ptr::NonNull<u8>, layout: std::alloc::Layout) {
+    unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, layout: core::alloc::Layout) {
+        // SAFETY: this simply delegates to the bump allocator
         unsafe { (&self.bump).deallocate(ptr, layout) }
     }
 }

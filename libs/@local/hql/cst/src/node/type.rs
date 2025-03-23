@@ -1,7 +1,8 @@
 use hql_span::SpanId;
+use hql_symbol::Ident;
 
-use super::{ident::Ident, path::Path};
-use crate::{Spanned, heap::P};
+use super::path::Path;
+use crate::heap::P;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructField<'heap> {
@@ -25,6 +26,7 @@ pub struct TupleType<'heap> {
     pub fields: P<'heap, [Type<'heap>]>,
 }
 
+// The AST refines additionally includes things like unions and intersections
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {
     // The unknown type (`?`)
@@ -46,10 +48,4 @@ pub struct Type<'heap> {
     pub span: SpanId,
 
     pub kind: TypeKind<'heap>,
-}
-
-impl Spanned for Type<'_> {
-    fn span(&self) -> SpanId {
-        self.span
-    }
 }

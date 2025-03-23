@@ -8,7 +8,8 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hql-span = { workspace = true, public = true }
+hql-span   = { workspace = true, public = true }
+hql-symbol = { workspace = true, public = true }
 
 # Public third-party dependencies
 ahash       = { workspace = true, public = true }
@@ -21,6 +22,7 @@ json-number = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
+lexical        = { workspace = true, features = ["parse", "format"] }
 simple-mermaid = { workspace = true }
 
 [lints]

@@ -8,17 +8,14 @@ version.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hql-span = {workspace = true, public = true}
+hql-span = { workspace = true, public = true }
 
 # Public third-party dependencies
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-ecow = {workspace = true}
-bumpalo = { workspace = true, features = ["allocator_api"] }
-gxhash = "3.5.0"
-indexmap = "2.8.0"
+ecow = { workspace = true }
 
 [lints]
 workspace = true

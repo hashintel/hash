@@ -42,58 +42,62 @@ impl<'heap, T: 'heap> P<'heap, T> {
 
     /// Move out of the pointer.
     /// Intended for chaining transformations not covered by `map`.
-    pub fn and_then<U, F>(self, f: F) -> U
+    pub fn and_then<U, F>(self, func: F) -> U
     where
         F: FnOnce(T) -> U,
     {
-        f(*self.ptr)
+        func(*self.ptr)
     }
 
     /// Equivalent to `and_then(|x| x)`.
+    #[must_use]
     pub fn into_inner(self) -> T {
         *self.ptr
     }
 
     /// Produce a new `P<T>` from `self` without reallocating.
-    pub fn map<F>(mut self, f: F) -> P<'heap, T>
+    #[must_use]
+    pub fn map<F>(mut self, func: F) -> Self
     where
         F: FnOnce(T) -> T,
     {
-        let x = f(*self.ptr);
+        let x = func(*self.ptr);
         *self.ptr = x;
 
         self
     }
 
     /// Optionally produce a new `P<T>` from `self` without reallocating.
-    pub fn filter_map<F>(mut self, f: F) -> Option<P<'heap, T>>
+    pub fn filter_map<F>(mut self, func: F) -> Option<Self>
     where
         F: FnOnce(T) -> Option<T>,
     {
-        *self.ptr = f(*self.ptr)?;
+        *self.ptr = func(*self.ptr)?;
         Some(self)
     }
 }
 
 impl<'heap, T> P<'heap, [T]> {
-    pub fn empty(heap: &'heap Heap) -> P<'heap, [T]> {
+    pub fn empty(heap: &'heap Heap) -> Self {
         P {
             ptr: Box::new_in([], heap),
         }
     }
 
-    pub fn from_vec(vec: super::Vec<'heap, T>) -> P<'heap, [T]> {
+    #[must_use]
+    pub fn from_vec(vec: super::Vec<'heap, T>) -> Self {
         P {
             ptr: vec.into_boxed_slice(),
         }
     }
 
+    #[must_use]
     pub fn into_vec(self) -> super::Vec<'heap, T> {
         self.ptr.into_vec()
     }
 }
 
-impl<'heap, T: ?Sized> Deref for P<'heap, T> {
+impl<T: ?Sized> Deref for P<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -101,40 +105,41 @@ impl<'heap, T: ?Sized> Deref for P<'heap, T> {
     }
 }
 
-impl<'heap, T: ?Sized> DerefMut for P<'heap, T> {
+impl<T: ?Sized> DerefMut for P<'_, T> {
     fn deref_mut(&mut self) -> &mut T {
         &mut self.ptr
     }
 }
 
 impl<'heap, T: Clone + 'heap> Clone for P<'heap, T> {
-    fn clone(&self) -> P<'heap, T> {
+    #[expect(clippy::explicit_auto_deref, reason = "false-positive")]
+    fn clone(&self) -> Self {
         P::new((**self).clone(), *Box::allocator(&self.ptr))
     }
 }
 
 impl<'heap, T: Clone + 'heap> Clone for P<'heap, [T]> {
-    fn clone(&self) -> P<'heap, [T]> {
+    fn clone(&self) -> Self {
         P {
             ptr: self.ptr.clone(),
         }
     }
 }
 
-impl<'heap, T: ?Sized + Debug> Debug for P<'heap, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.ptr, f)
+impl<T: ?Sized + Debug> Debug for P<'_, T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.ptr, fmt)
     }
 }
 
-impl<'heap, T: Display> Display for P<'heap, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&**self, f)
+impl<T: Display> Display for P<'_, T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&**self, fmt)
     }
 }
 
-impl<'heap, T> fmt::Pointer for P<'heap, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Pointer::fmt(&self.ptr, f)
+impl<T> fmt::Pointer for P<'_, T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Pointer::fmt(&self.ptr, fmt)
     }
 }

@@ -1,7 +1,7 @@
 use hql_span::SpanId;
 
 use super::Expr;
-use crate::{Spanned, heap::P, node::r#type::Type};
+use crate::{heap::P, node::r#type::Type};
 
 /// Represents a key-value entry in a struct literal.
 ///
@@ -23,10 +23,4 @@ pub struct StructExpr<'heap> {
     /// The sequence of key-value entries in this struct literal.
     pub entries: P<'heap, [StructEntry<'heap>]>,
     pub r#type: P<'heap, Type<'heap>>,
-}
-
-impl Spanned for StructExpr<'_> {
-    fn span(&self) -> SpanId {
-        self.span
-    }
 }
