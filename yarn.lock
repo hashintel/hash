@@ -429,7 +429,7 @@ __metadata:
     long: "npm:5.3.1"
     md5: "npm:2.3.0"
     mime-types: "npm:2.1.35"
-    nanoid: "npm:3.3.10"
+    nanoid: "npm:3.3.11"
     nodemailer: "npm:6.10.0"
     oembed-providers: "npm:1.0.20241022"
     openai: "npm:4.87.3"
@@ -35834,12 +35834,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nanoid@npm:3.3.10, nanoid@npm:^3.0.0, nanoid@npm:^3.3.4, nanoid@npm:^3.3.6, nanoid@npm:^3.3.8":
-  version: 3.3.10
-  resolution: "nanoid@npm:3.3.10"
+"nanoid@npm:3.3.11, nanoid@npm:^3.0.0, nanoid@npm:^3.3.4, nanoid@npm:^3.3.6, nanoid@npm:^3.3.8":
+  version: 3.3.11
+  resolution: "nanoid@npm:3.3.11"
   bin:
     nanoid: bin/nanoid.cjs
-  checksum: 10c0/34eca53d4d95cb538b05a9fa07e4b2ab941906852202edb00824c8004d71d34592704e40b0ae608bf756b1ffd91ff9359d2ea59f8d92e1a7b769e0ca46368e84
+  checksum: 10c0/40e7f70b3d15f725ca072dfc4f74e81fcf1fbb02e491cf58ac0c79093adc9b0a73b152bcde57df4b79cd097e13023d7504acb38404a4da7bc1cd8e887b82fe0b
   languageName: node
   linkType: hard
 
