@@ -1000,11 +1000,22 @@ checksum = "3a8241f3ebb85c056b509d4327ad0358fbbba6ffb340bf388f26350aeda225b1"
 
 [[package]]
 name = "bincode"
-version = "1.3.3"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+checksum = "36eaf5d7b090263e8150820482d5d93cd964a81e4019913c972f4edcc6edb740"
 dependencies = [
+ "bincode_derive",
  "serde",
+ "unty",
+]
+
+[[package]]
+name = "bincode_derive"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf95709a440f45e986983918d0e8a1f30a9b1df04918fc828670606804ac3c09"
+dependencies = [
+ "virtue",
 ]
 
 [[package]]
@@ -7927,9 +7938,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz"
-version = "7.1.0"
+version = "7.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82e52a217aa173f90181948c0b8217b184192ae73b1c8493d0d8cec921dd337c"
+checksum = "299e209dd5d28bbe612e6774be9883dd569477b96467d6d4dd7bedcd3cdb5898"
 dependencies = [
  "serde",
  "serde_combinators",
@@ -7940,9 +7951,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-internal"
-version = "7.1.0"
+version = "7.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88d0533ab2d6ad586406d5700beefac5801d1910a88e998d481c42fdefa65551"
+checksum = "6c27628334e242e6c81bacf0712cfb1e4cd1ec4fcfc6888eac89cb497b606493"
 dependencies = [
  "bincode",
  "cargo_metadata",
@@ -7951,9 +7962,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-macro"
-version = "7.1.0"
+version = "7.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0e01257b591370c00a2a411fbda9f38061d2314b2da719d99cfa71f49906182"
+checksum = "896fff0958bcb9866dc76788e6f00186fd4ccb74a764f978e21f43b999e6a295"
 dependencies = [
  "darling",
  "heck",
@@ -7966,9 +7977,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-runtime"
-version = "7.1.0"
+version = "7.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31e39a085aa75bf827963c64d831fff4ad9e8664f3b15bbbc30c2051244b3f54"
+checksum = "69ad1cf9fed27963399f7130d1523069c10d219e070cbdbc66b862a31bab715a"
 dependencies = [
  "hex",
  "num-traits",
@@ -8806,6 +8817,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
+name = "unty"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d49784317cd0d1ee7ec5c716dd598ec5b4483ea832a2dced265471cc0f690ae"
+
+[[package]]
 name = "ureq"
 version = "2.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8944,6 +8961,12 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "virtue"
+version = "0.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "051eb1abcf10076295e815102942cc58f9d5e3b4560e46e53c21e8ff6f3af7b1"
 
 [[package]]
 name = "vsimd"
