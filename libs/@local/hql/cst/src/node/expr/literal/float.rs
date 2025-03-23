@@ -2,17 +2,10 @@ use hql_span::SpanId;
 use hql_symbol::Symbol;
 use lexical::{FromLexicalWithOptions as _, ParseFloatOptions, ParseFloatOptionsBuilder, format};
 
-pub(crate) const PARSE_LOSSLESS: ParseFloatOptions =
-    match ParseFloatOptionsBuilder::new().lossy(false).build() {
-        Ok(options) => options,
-        Err(_) => panic!("Failed to build ParseFloatOptions"),
-    };
-
-pub(crate) const PARSE_LOSSY: ParseFloatOptions =
-    match ParseFloatOptionsBuilder::new().lossy(true).build() {
-        Ok(options) => options,
-        Err(_) => panic!("Failed to build ParseFloatOptions"),
-    };
+pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new().build() {
+    Ok(options) => options,
+    Err(_) => panic!("Failed to build ParseFloatOptions"),
+};
 
 /// A literal representation of a floating-point number.
 ///
@@ -28,38 +21,29 @@ pub struct FloatLiteral {
 impl FloatLiteral {
     // `f16` and `f128` are currently unsupported as they cannot be formatted or parsed from either
     // lexical or rust standard library
-
-    #[must_use]
-    pub fn as_f32(&self) -> Option<f32> {
-        f32::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE_LOSSLESS)
-            .ok()
-    }
+    //
+    // I'd like to have functions that are `_lossless` and `_lossy` that are lossless and lossy
+    // respectively. But I haven't found a way to do so.
+    // Note that this is also how Rust literals work, if the literal is too large it'll be lossily
+    // converted.
 
     #[expect(
         clippy::missing_panics_doc,
-        reason = "the panic should never happen, in case a panic happens that means that the \
-                  parser failed"
+        reason = "only panics if the value hasn't been parsed correctly"
     )]
     #[must_use]
-    pub fn as_f32_lossy(&self) -> f32 {
-        f32::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE_LOSSY)
+    pub fn as_f32(&self) -> f32 {
+        f32::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE)
             .expect("float literal should be formatted according to JSON specification")
     }
 
-    #[must_use]
-    pub fn as_f64(&self) -> Option<f64> {
-        f64::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE_LOSSLESS)
-            .ok()
-    }
-
     #[expect(
         clippy::missing_panics_doc,
-        reason = "the panic should never happen, in case a panic happens that means that the \
-                  parser failed"
+        reason = "only panics if the value hasn't been parsed correctly"
     )]
     #[must_use]
-    pub fn as_f64_lossy(&self) -> f64 {
-        f64::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE_LOSSY)
+    pub fn as_f64(&self) -> f64 {
+        f64::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE)
             .expect("float literal should be formatted according to JSON specification")
     }
 }
@@ -89,67 +73,58 @@ mod tests {
     }
 
     #[test]
-    fn float_literal_parses_valid_json_float() {
+    #[expect(clippy::float_cmp)]
+    fn valid_json_f32() {
         let literal = FloatLiteral {
             span: span_id(),
-            value: symbol("3.14159"),
+            value: symbol("123.456"),
         };
 
-        assert_eq!(literal.as_f32(), Some(3.14159));
-        assert_eq!(literal.as_f64(), Some(3.14159));
+        assert_eq!(literal.as_f32(), 123.456);
     }
 
     #[test]
-    fn float_literal_handles_scientific_notation() {
+    #[expect(clippy::float_cmp)]
+    fn valid_json_f64() {
         let literal = FloatLiteral {
             span: span_id(),
-            value: symbol("6.022e23"),
+            value: symbol("123.456789012345"),
         };
 
-        assert!(literal.as_f32().is_some());
-        assert!(literal.as_f64().is_some());
-        assert!(literal.as_f64().unwrap() > 6.0e23);
+        assert_eq!(literal.as_f64(), 123.456_789_012_345);
     }
 
     #[test]
-    fn float_literal_handles_negative_numbers() {
+    #[expect(clippy::float_cmp)]
+    fn scientific_notation() {
         let literal = FloatLiteral {
             span: span_id(),
-            value: symbol("-273.15"),
+            value: symbol("1.23e4"),
         };
 
-        assert_eq!(literal.as_f32(), Some(-273.15));
-        assert_eq!(literal.as_f64(), Some(-273.15));
+        assert_eq!(literal.as_f32(), 12300.0);
+        assert_eq!(literal.as_f64(), 12300.0);
     }
 
     #[test]
-    fn lossy_conversion_handles_precision_loss() {
-        // A value that exceeds f32 precision but fits in f64
-        let large_precise_number = "3.1415926535897932384626433832795028841971";
+    fn negative_scientific_notation() {
         let literal = FloatLiteral {
             span: span_id(),
-            value: symbol(large_precise_number),
+            value: symbol("-1.23e-2"),
         };
 
-        // The lossless conversion to f32 should fail due to precision loss
-        assert!(literal.as_f32().is_none());
-
-        // But the lossy conversion should work
-        assert!(literal.as_f32_lossy() > 3.14);
-        assert!(literal.as_f32_lossy() < 3.15);
-
-        // The f64 lossless conversion should work
-        assert!(literal.as_f64().is_some());
+        assert!((literal.as_f32() - (-0.0123)).abs() < f32::EPSILON);
+        assert!((literal.as_f64() - (-0.0123)).abs() < f64::EPSILON);
     }
 
     #[test]
-    fn invalid_float_format_returns_none() {
-        let invalid_literal = FloatLiteral {
+    #[should_panic(expected = "float literal should be formatted according to JSON specification")]
+    fn invalid_float() {
+        let literal = FloatLiteral {
             span: span_id(),
-            value: symbol("not_a_number"),
+            value: symbol("not-a-number"),
         };
 
-        assert_eq!(invalid_literal.as_f32(), None);
-        assert_eq!(invalid_literal.as_f64(), None);
+        let _value = literal.as_f64();
     }
 }
