@@ -2,7 +2,7 @@
 source: libs/@local/hql/syntax-jexpr/src/parser/value.rs
 expression: "{\"a\": 1, \"a\": b}"
 ---
-[31m[jexpr::parser::object::duplicate-key::duplicate-key::object::duplicate-key::duplicate-key] Error:[0m J-Expr Frontend
+[31m[jexpr::parser::object::duplicate-key] Error:[0m J-Expr Frontend
    ╭─[<unknown>:1:2]
    │
  1 │ {"a": 1, "a": b}

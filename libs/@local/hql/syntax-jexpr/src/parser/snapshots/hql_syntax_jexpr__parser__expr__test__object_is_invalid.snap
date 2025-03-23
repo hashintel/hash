@@ -2,7 +2,7 @@
 source: libs/@local/hql/syntax-jexpr/src/parser/expr.rs
 expression: "{\"unknown\": \"key\"}"
 ---
-[31m[jexpr::parser::object::unknown-key::unknown-key::object::unknown-key::unknown-key] Error:[0m J-Expr Frontend
+[31m[jexpr::parser::object::unknown-key] Error:[0m J-Expr Frontend
    ╭─[<unknown>:1:2]
    │
  1 │ {"unknown": "key"}
