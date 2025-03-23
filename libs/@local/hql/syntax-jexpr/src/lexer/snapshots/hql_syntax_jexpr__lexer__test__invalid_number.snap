@@ -2,7 +2,7 @@
 source: libs/@local/hql/syntax-jexpr/src/lexer/mod.rs
 expression: "{\"number\": 42.}"
 ---
-[31m[jexpr::lexing::invalid-number] Error:[0m Invalid Number Literal
+[31m[lexer::invalid-number] Error:[0m Lexer
    ╭─[ <unknown>:1:12 ]
    │
  1 │ {"number": 42.}

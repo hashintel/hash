@@ -7,7 +7,7 @@ use text_size::{TextRange, TextSize};
 
 use self::{
     error::{
-        LexingError, from_hifijson_num_error, from_hifijson_str_error,
+        LexerDiagnosticCategory, LexerError, from_hifijson_num_error, from_hifijson_str_error,
         from_unrecognized_character_error,
     },
     token::Token,
@@ -15,7 +15,7 @@ use self::{
 };
 use crate::span::Span;
 
-mod error;
+pub(crate) mod error;
 mod parse;
 pub(crate) mod syntax_kind;
 pub(crate) mod syntax_kind_set;
@@ -59,7 +59,7 @@ impl<'source> Lexer<'source> {
 
     pub(crate) fn advance(
         &mut self,
-    ) -> Option<Result<Token<'source>, Diagnostic<'static, SpanId>>> {
+    ) -> Option<Result<Token<'source>, Diagnostic<LexerDiagnosticCategory, SpanId>>> {
         let (kind, span) = self.inner.next()?;
 
         let span = {
@@ -72,17 +72,17 @@ impl<'source> Lexer<'source> {
 
         match kind {
             Ok(kind) => Some(Ok(Token { kind, span })),
-            Err(LexingError::Number { error, range }) => {
+            Err(LexerError::Number { error, range }) => {
                 let span = self.spans.insert(Span::new(range));
 
                 Some(Err(from_hifijson_num_error(&error, span)))
             }
-            Err(LexingError::String { error, range }) => {
+            Err(LexerError::String { error, range }) => {
                 let span = self.spans.insert(Span::new(range));
 
                 Some(Err(from_hifijson_str_error(&error, span)))
             }
-            Err(LexingError::UnrecognizedCharacter) => {
+            Err(LexerError::UnrecognizedCharacter) => {
                 let span = self.spans.insert(Span::new(span));
 
                 Some(Err(from_unrecognized_character_error(span)))
@@ -92,7 +92,7 @@ impl<'source> Lexer<'source> {
 }
 
 impl<'source> Iterator for Lexer<'source> {
-    type Item = Result<Token<'source>, Diagnostic<'static, SpanId>>;
+    type Item = Result<Token<'source>, Diagnostic<LexerDiagnosticCategory, SpanId>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.advance()

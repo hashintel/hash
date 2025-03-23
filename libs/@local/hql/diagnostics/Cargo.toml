@@ -32,9 +32,5 @@ serde_json = { workspace = true }
 [features]
 serde = ["dep:serde", "dep:serde_with", "hql-span/serde"]
 
-[[example]]
-name              = "jexpr"
-required-features = ["serde"]
-
 [lints]
 workspace = true
