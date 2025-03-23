@@ -7,8 +7,7 @@
 use alloc::sync::Arc;
 
 use hql_cst::{arena::Arena, expr::Expr};
-use hql_diagnostics::Diagnostic;
-use hql_span::{SpanId, storage::SpanStorage};
+use hql_span::storage::SpanStorage;
 
 use self::{
     error::{JExprDiagnostic, JExprDiagnosticCategory},
