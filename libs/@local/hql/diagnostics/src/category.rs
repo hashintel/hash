@@ -60,6 +60,21 @@ pub trait DiagnosticCategory {
     fn name(&self) -> Cow<'_, str>;
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory>;
+
+    fn is_category_equivalent(&self, other: &dyn DiagnosticCategory) -> bool {
+        if self.id() != other.id() {
+            return false;
+        }
+
+        let self_child = self.subcategory();
+        let other_child = other.subcategory();
+
+        match (self_child, other_child) {
+            (Some(self_child), Some(other_child)) => self_child.is_category_equivalent(other_child),
+            (None, None) => true,
+            _ => false,
+        }
+    }
 }
 
 impl DiagnosticCategory for &dyn DiagnosticCategory {
@@ -255,5 +270,184 @@ mod tests {
 
         let canonical = CanonicalDiagnosticCategoryName::new(&category);
         assert_eq!(canonical.to_string(), "Parser / Syntax / Unexpected Token");
+    }
+
+    #[test]
+    fn is_category_equivalent_identical_categories() {
+        let category1 = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: None,
+        };
+
+        let category2 = TestCategory {
+            id: "parser",
+            name: "Different Name", // Names don't matter for matching
+            child: None,
+        };
+
+        assert!(category1.is_category_equivalent(&category2));
+    }
+
+    #[test]
+    fn is_category_equivalent_different_categories() {
+        let category1 = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: None,
+        };
+
+        let category2 = TestCategory {
+            id: "lexer",
+            name: "Lexer",
+            child: None,
+        };
+
+        assert!(!category1.is_category_equivalent(&category2));
+    }
+
+    #[test]
+    fn is_category_equivalent_nested_categories_identical() {
+        let nested_category1 = TestCategory {
+            id: "syntax",
+            name: "Syntax",
+            child: None,
+        };
+
+        let category1 = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: Some(Box::new(nested_category1)),
+        };
+
+        let nested_category2 = TestCategory {
+            id: "syntax",
+            name: "Syntax Error", // Different name shouldn't matter
+            child: None,
+        };
+
+        let category2 = TestCategory {
+            id: "parser",
+            name: "Parser Module", // Different name shouldn't matter
+            child: Some(Box::new(nested_category2)),
+        };
+
+        assert!(category1.is_category_equivalent(&category2));
+    }
+
+    #[test]
+    fn is_category_equivalent_nested_categories_different() {
+        let nested_category1 = TestCategory {
+            id: "syntax",
+            name: "Syntax",
+            child: None,
+        };
+
+        let category1 = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: Some(Box::new(nested_category1)),
+        };
+
+        let nested_category2 = TestCategory {
+            id: "semantic", // Different ID
+            name: "Semantic",
+            child: None,
+        };
+
+        let category2 = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: Some(Box::new(nested_category2)),
+        };
+
+        assert!(!category1.is_category_equivalent(&category2));
+    }
+
+    #[test]
+    fn is_category_equivalent_different_hierarchy_depth() {
+        let category1 = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: None,
+        };
+
+        let nested_category = TestCategory {
+            id: "syntax",
+            name: "Syntax",
+            child: None,
+        };
+
+        let category2 = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: Some(Box::new(nested_category)),
+        };
+
+        // Different hierarchy depths should not match
+        assert!(!category1.is_category_equivalent(&category2));
+        assert!(!category2.is_category_equivalent(&category1));
+    }
+
+    #[test]
+    fn is_category_equivalent_deeply_nested_categories() {
+        let inner_category1 = TestCategory {
+            id: "unexpected",
+            name: "Unexpected Token",
+            child: None,
+        };
+
+        let middle_category1 = TestCategory {
+            id: "syntax",
+            name: "Syntax",
+            child: Some(Box::new(inner_category1)),
+        };
+
+        let category1 = TestCategory {
+            id: "parser",
+            name: "Parser",
+            child: Some(Box::new(middle_category1)),
+        };
+
+        let inner_category2 = TestCategory {
+            id: "unexpected",
+            name: "Unexpected Symbol", // Different name shouldn't matter
+            child: None,
+        };
+
+        let middle_category2 = TestCategory {
+            id: "syntax",
+            name: "Syntax Error", // Different name shouldn't matter
+            child: Some(Box::new(inner_category2)),
+        };
+
+        let category2 = TestCategory {
+            id: "parser",
+            name: "Parser Module", // Different name shouldn't matter
+            child: Some(Box::new(middle_category2)),
+        };
+
+        assert!(category1.is_category_equivalent(&category2));
+    }
+
+    #[test]
+    fn is_category_equivalent_terminal_categories() {
+        let terminal1 = TerminalDiagnosticCategory {
+            id: "syntax-error",
+            name: "Syntax Error",
+        };
+
+        let terminal2 = TerminalDiagnosticCategory {
+            id: "syntax-error",
+            name: "Different Name", // Name doesn't matter for matching
+        };
+
+        let terminal3 = TerminalDiagnosticCategory {
+            id: "type-error", // Different ID
+            name: "Type Error",
+        };
+
+        assert!(terminal1.is_category_equivalent(&terminal2));
+        assert!(!terminal1.is_category_equivalent(&terminal3));
     }
 }

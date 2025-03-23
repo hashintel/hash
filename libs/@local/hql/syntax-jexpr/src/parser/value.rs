@@ -2,8 +2,6 @@ use hql_cst::{
     arena,
     value::{ObjectKey, Value, ValueKind},
 };
-use hql_diagnostics::Diagnostic;
-use hql_span::SpanId;
 
 use super::{
     array::parse_array,
@@ -12,6 +10,7 @@ use super::{
     stream::TokenStream,
 };
 use crate::{
+    error::{JExprDiagnostic, JExprDiagnosticCategory},
     lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
     span::Span,
 };
@@ -19,7 +18,7 @@ use crate::{
 pub(crate) fn parse_value<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Option<Token<'source>>,
-) -> Result<Value<'arena, 'source>, Diagnostic<'static, ParserDiagnosticCategory, SpanId>> {
+) -> Result<Value<'arena, 'source>, JExprDiagnostic> {
     let token = if let Some(token) = token {
         token
     } else {
@@ -52,7 +51,8 @@ pub(crate) fn parse_value<'arena, 'source>(
                     SyntaxKind::LBracket,
                     SyntaxKind::LBrace,
                 ],
-            ));
+            )
+            .map_category(JExprDiagnosticCategory::Parser));
         }
     };
 
@@ -69,7 +69,7 @@ pub(crate) fn parse_value<'arena, 'source>(
 fn parse_value_array<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Token<'source>,
-) -> Result<Value<'arena, 'source>, Diagnostic<'static, ParserDiagnosticCategory, SpanId>> {
+) -> Result<Value<'arena, 'source>, JExprDiagnostic> {
     let mut values = stream.arena.vec(None);
 
     let span = parse_array(stream, token, |lexer, token| {
@@ -94,7 +94,7 @@ fn parse_value_array<'arena, 'source>(
 fn parse_value_object<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Token<'source>,
-) -> Result<Value<'arena, 'source>, Diagnostic<'static, ParserDiagnosticCategory, SpanId>> {
+) -> Result<Value<'arena, 'source>, JExprDiagnostic> {
     let mut object: arena::HashMap<ObjectKey<'source>, Value<'arena, 'source>> =
         stream.arena.hash_map(None);
 
@@ -106,7 +106,9 @@ fn parse_value_object<'arena, 'source>(
                 parent_id: None,
             });
 
-            return Err(duplicate_key(span, existing_key.span));
+            return Err(duplicate_key(span, existing_key.span)
+                .map_category(ParserDiagnosticCategory::Object)
+                .map_category(JExprDiagnosticCategory::Parser));
         }
 
         let key_span = stream.insert_span(Span {
@@ -150,16 +152,19 @@ mod test {
         arena::Arena,
         value::{Value, ValueKind},
     };
-    use hql_diagnostics::{Diagnostic, config::ReportConfig, span::DiagnosticSpan};
-    use hql_span::{SpanId, storage::SpanStorage};
+    use hql_diagnostics::{
+        category::DiagnosticCategory as _, config::ReportConfig, span::DiagnosticSpan,
+    };
+    use hql_span::storage::SpanStorage;
     use insta::assert_snapshot;
 
     use super::parse_value;
     use crate::{
+        error::{JExprDiagnostic, JExprDiagnosticCategory},
         lexer::Lexer,
         parser::{
             TokenStream,
-            error::{DUPLICATE_KEY, expected_eof},
+            error::{ObjectParserDiagnosticCategory, ParserDiagnosticCategory, expected_eof},
         },
         span::Span,
     };
@@ -201,7 +206,7 @@ mod test {
         arena: &'arena Arena,
         spans: Arc<SpanStorage<Span>>,
         source: &'source str,
-    ) -> Result<Value<'arena, 'source>, Diagnostic<'static, SpanId>> {
+    ) -> Result<Value<'arena, 'source>, JExprDiagnostic> {
         let mut stream = TokenStream {
             arena,
             lexer: Lexer::new(source.as_bytes(), Arc::clone(&spans)),
@@ -218,7 +223,7 @@ mod test {
             });
 
             // early eof is not handled by the parser itself
-            return Err(expected_eof(span));
+            return Err(expected_eof(span).map_category(JExprDiagnosticCategory::Parser));
         }
 
         Ok(value)
@@ -247,7 +252,14 @@ mod test {
         }
 
         if let Err(diagnostic) = &value_result {
-            let is_duplicate = diagnostic.category.as_ref().id == DUPLICATE_KEY.id;
+            let is_duplicate =
+                diagnostic
+                    .category
+                    .is_category_equivalent(&JExprDiagnosticCategory::Parser(
+                        ParserDiagnosticCategory::Object(
+                            ObjectParserDiagnosticCategory::DuplicateKey,
+                        ),
+                    ));
 
             if is_duplicate {
                 // we error out on duplicate keys, serde_json does not

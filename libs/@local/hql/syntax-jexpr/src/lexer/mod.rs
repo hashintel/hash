@@ -59,7 +59,7 @@ impl<'source> Lexer<'source> {
 
     pub(crate) fn advance(
         &mut self,
-    ) -> Option<Result<Token<'source>, Diagnostic<'static, LexerDiagnosticCategory, SpanId>>> {
+    ) -> Option<Result<Token<'source>, Diagnostic<LexerDiagnosticCategory, SpanId>>> {
         let (kind, span) = self.inner.next()?;
 
         let span = {
@@ -92,7 +92,7 @@ impl<'source> Lexer<'source> {
 }
 
 impl<'source> Iterator for Lexer<'source> {
-    type Item = Result<Token<'source>, Diagnostic<'static, LexerDiagnosticCategory, SpanId>>;
+    type Item = Result<Token<'source>, Diagnostic<LexerDiagnosticCategory, SpanId>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.advance()

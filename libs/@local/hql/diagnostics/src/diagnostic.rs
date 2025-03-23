@@ -1,4 +1,3 @@
-use alloc::borrow::Cow;
 use core::{
     error::Error,
     fmt::{Debug, Display},
@@ -23,9 +22,9 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Diagnostic<'a, C, S> {
+pub struct Diagnostic<C, S> {
     pub category: C,
-    pub severity: Cow<'a, Severity<'a>>,
+    pub severity: Box<Severity>,
 
     pub message: Option<Box<str>>,
 
@@ -34,9 +33,9 @@ pub struct Diagnostic<'a, C, S> {
     pub help: Option<Help>,
 }
 
-impl<'a, C, S> Diagnostic<'a, C, S> {
+impl<C, S> Diagnostic<C, S> {
     #[must_use]
-    pub fn new(category: impl Into<C>, severity: impl Into<Cow<'a, Severity<'a>>>) -> Self {
+    pub fn new(category: impl Into<C>, severity: impl Into<Box<Severity>>) -> Self {
         Self {
             category: category.into(),
             severity: severity.into(),
@@ -47,9 +46,9 @@ impl<'a, C, S> Diagnostic<'a, C, S> {
         }
     }
 
-    pub fn map_category<T>(self, f: impl FnOnce(C) -> T) -> Diagnostic<'a, T, S> {
+    pub fn map_category<T>(self, func: impl FnOnce(C) -> T) -> Diagnostic<T, S> {
         Diagnostic {
-            category: f(self.category),
+            category: func(self.category),
             severity: self.severity,
             message: self.message,
             labels: self.labels,
@@ -59,7 +58,7 @@ impl<'a, C, S> Diagnostic<'a, C, S> {
     }
 }
 
-impl<'a, C> Diagnostic<'a, C, SpanId> {
+impl<C> Diagnostic<C, SpanId> {
     /// Resolve the diagnostic, into a proper diagnostic with span nodes.
     ///
     /// # Errors
@@ -68,7 +67,7 @@ impl<'a, C> Diagnostic<'a, C, SpanId> {
     pub fn resolve<S>(
         self,
         storage: &SpanStorage<S>,
-    ) -> Result<Diagnostic<'a, C, SpanNode<S>>, Report<[ResolveError]>>
+    ) -> Result<Diagnostic<C, SpanNode<S>>, Report<[ResolveError]>>
     where
         S: Span + Clone,
     {
@@ -90,7 +89,7 @@ impl<'a, C> Diagnostic<'a, C, SpanId> {
     }
 }
 
-impl<C, S> Diagnostic<'_, C, SpanNode<S>>
+impl<C, S> Diagnostic<C, SpanNode<S>>
 where
     C: DiagnosticCategory,
 {
@@ -137,7 +136,7 @@ where
     }
 }
 
-impl<C, S> Display for Diagnostic<'_, C, S>
+impl<C, S> Display for Diagnostic<C, S>
 where
     C: DiagnosticCategory,
     S: Display,
@@ -152,7 +151,7 @@ where
     }
 }
 
-impl<C, S> Error for Diagnostic<'_, C, S>
+impl<C, S> Error for Diagnostic<C, S>
 where
     C: Debug + DiagnosticCategory,
     S: Debug + Display,

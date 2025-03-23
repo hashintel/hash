@@ -48,12 +48,12 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            ParserDiagnosticCategory::UnexpectedEof => Some(&UNEXPECTED_EOF),
-            ParserDiagnosticCategory::ExpectedEof => Some(&EXPECTED_EOF),
-            ParserDiagnosticCategory::UnexpectedToken => Some(&UNEXPECTED_TOKEN),
-            ParserDiagnosticCategory::String(category) => Some(category),
-            ParserDiagnosticCategory::Array(category) => Some(category),
-            ParserDiagnosticCategory::Object(category) => Some(category),
+            Self::UnexpectedEof => Some(&UNEXPECTED_EOF),
+            Self::ExpectedEof => Some(&EXPECTED_EOF),
+            Self::UnexpectedToken => Some(&UNEXPECTED_TOKEN),
+            Self::String(category) => Some(category),
+            Self::Array(category) => Some(category),
+            Self::Object(category) => Some(category),
         }
     }
 }
@@ -91,9 +91,9 @@ impl DiagnosticCategory for StringParserDiagnosticCategory {
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            StringParserDiagnosticCategory::InvalidIdentifier => Some(&INVALID_IDENTIFIER),
-            StringParserDiagnosticCategory::InvalidSignature => Some(&INVALID_SIGNATURE),
-            StringParserDiagnosticCategory::InvalidType => Some(&INVALID_TYPE),
+            Self::InvalidIdentifier => Some(&INVALID_IDENTIFIER),
+            Self::InvalidSignature => Some(&INVALID_SIGNATURE),
+            Self::InvalidType => Some(&INVALID_TYPE),
         }
     }
 }
@@ -119,7 +119,7 @@ impl DiagnosticCategory for ArrayParserDiagnosticCategory {
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            ArrayParserDiagnosticCategory::ExpectedCallee => Some(&EXPECTED_CALLEE),
+            Self::ExpectedCallee => Some(&EXPECTED_CALLEE),
         }
     }
 }
@@ -163,17 +163,15 @@ impl DiagnosticCategory for ObjectParserDiagnosticCategory {
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            ObjectParserDiagnosticCategory::DuplicateKey => Some(&DUPLICATE_KEY),
-            ObjectParserDiagnosticCategory::RequiredKey => Some(&REQUIRED_KEY),
-            ObjectParserDiagnosticCategory::UnknownKey => Some(&UNKNOWN_KEY),
-            ObjectParserDiagnosticCategory::ExpectedNonEmpty => Some(&EXPECTED_NON_EMPTY),
+            Self::DuplicateKey => Some(&DUPLICATE_KEY),
+            Self::RequiredKey => Some(&REQUIRED_KEY),
+            Self::UnknownKey => Some(&UNKNOWN_KEY),
+            Self::ExpectedNonEmpty => Some(&EXPECTED_NON_EMPTY),
         }
     }
 }
 
-pub(crate) fn unexpected_eof(
-    span: SpanId,
-) -> Diagnostic<'static, ParserDiagnosticCategory, SpanId> {
+pub(crate) fn unexpected_eof(span: SpanId) -> Diagnostic<ParserDiagnosticCategory, SpanId> {
     let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::UnexpectedEof, Severity::ERROR);
 
     diagnostic
@@ -183,7 +181,7 @@ pub(crate) fn unexpected_eof(
     diagnostic
 }
 
-pub(crate) fn expected_eof(span: SpanId) -> Diagnostic<'static, ParserDiagnosticCategory, SpanId> {
+pub(crate) fn expected_eof(span: SpanId) -> Diagnostic<ParserDiagnosticCategory, SpanId> {
     let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::ExpectedEof, Severity::ERROR);
 
     diagnostic
@@ -196,7 +194,7 @@ pub(crate) fn expected_eof(span: SpanId) -> Diagnostic<'static, ParserDiagnostic
 pub(crate) fn unexpected_token(
     span: SpanId,
     expected: impl IntoIterator<Item = SyntaxKind>,
-) -> Diagnostic<'static, ParserDiagnosticCategory, SpanId> {
+) -> Diagnostic<ParserDiagnosticCategory, SpanId> {
     let expected = SyntaxKindSet::from_iter(expected);
 
     let mut diagnostic =
@@ -240,7 +238,7 @@ fn parse_error_display<I>(error: &ParseError<I, ErrMode<ContextError>>) -> Strin
 pub(crate) fn invalid_identifier<I>(
     span: SpanId,
     error: &ParseError<I, ErrMode<ContextError>>,
-) -> Diagnostic<'static, StringParserDiagnosticCategory, SpanId> {
+) -> Diagnostic<StringParserDiagnosticCategory, SpanId> {
     let mut diagnostic = Diagnostic::new(
         StringParserDiagnosticCategory::InvalidIdentifier,
         Severity::ERROR,
@@ -256,7 +254,7 @@ pub(crate) fn invalid_identifier<I>(
 pub(crate) fn invalid_signature<I>(
     span: SpanId,
     error: &ParseError<I, ErrMode<ContextError>>,
-) -> Diagnostic<'static, StringParserDiagnosticCategory, SpanId> {
+) -> Diagnostic<StringParserDiagnosticCategory, SpanId> {
     let mut diagnostic = Diagnostic::new(
         StringParserDiagnosticCategory::InvalidSignature,
         Severity::ERROR,
@@ -272,7 +270,7 @@ pub(crate) fn invalid_signature<I>(
 pub(crate) fn invalid_type<I>(
     span: SpanId,
     error: &ParseError<I, ErrMode<ContextError>>,
-) -> Diagnostic<'static, StringParserDiagnosticCategory, SpanId> {
+) -> Diagnostic<StringParserDiagnosticCategory, SpanId> {
     let mut diagnostic =
         Diagnostic::new(StringParserDiagnosticCategory::InvalidType, Severity::ERROR);
 
@@ -283,9 +281,7 @@ pub(crate) fn invalid_type<I>(
     diagnostic
 }
 
-pub(crate) fn expected_callee(
-    span: SpanId,
-) -> Diagnostic<'static, ArrayParserDiagnosticCategory, SpanId> {
+pub(crate) fn expected_callee(span: SpanId) -> Diagnostic<ArrayParserDiagnosticCategory, SpanId> {
     let mut diagnostic = Diagnostic::new(
         ArrayParserDiagnosticCategory::ExpectedCallee,
         Severity::ERROR,
@@ -303,7 +299,7 @@ pub(crate) fn expected_callee(
 pub(crate) fn duplicate_key(
     span: SpanId,
     duplicate: SpanId,
-) -> Diagnostic<'static, ObjectParserDiagnosticCategory, SpanId> {
+) -> Diagnostic<ObjectParserDiagnosticCategory, SpanId> {
     let mut diagnostic = Diagnostic::new(
         ObjectParserDiagnosticCategory::DuplicateKey,
         Severity::ERROR,
@@ -323,7 +319,7 @@ pub(crate) fn duplicate_key(
 pub(crate) fn required_key(
     span: SpanId,
     key: impl AsRef<str>,
-) -> Diagnostic<'static, ObjectParserDiagnosticCategory, SpanId> {
+) -> Diagnostic<ObjectParserDiagnosticCategory, SpanId> {
     let mut diagnostic =
         Diagnostic::new(ObjectParserDiagnosticCategory::RequiredKey, Severity::ERROR);
 
@@ -338,7 +334,7 @@ pub(crate) fn unknown_key(
     span: SpanId,
     key: impl AsRef<str>,
     expected: &[&'static str],
-) -> Diagnostic<'static, ObjectParserDiagnosticCategory, SpanId> {
+) -> Diagnostic<ObjectParserDiagnosticCategory, SpanId> {
     let mut diagnostic =
         Diagnostic::new(ObjectParserDiagnosticCategory::UnknownKey, Severity::ERROR);
 
@@ -370,7 +366,7 @@ pub(crate) fn unknown_key(
 
 pub(crate) fn expected_non_empty_object(
     span: SpanId,
-) -> Diagnostic<'static, ObjectParserDiagnosticCategory, SpanId> {
+) -> Diagnostic<ObjectParserDiagnosticCategory, SpanId> {
     let mut diagnostic = Diagnostic::new(
         ObjectParserDiagnosticCategory::ExpectedNonEmpty,
         Severity::ERROR,

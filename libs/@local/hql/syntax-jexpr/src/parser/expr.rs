@@ -1,8 +1,7 @@
 use alloc::borrow::Cow;
 
 use hql_cst::expr::{Expr, ExprKind, call::Call};
-use hql_diagnostics::Diagnostic;
-use hql_span::{SpanId, TextRange};
+use hql_span::TextRange;
 use winnow::{
     LocatingSlice, Parser as _,
     error::{ContextError, ErrMode, ParseError},
@@ -15,6 +14,7 @@ use super::{
     stream::TokenStream,
 };
 use crate::{
+    error::{JExprDiagnostic, JExprDiagnosticCategory},
     lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
     parser::{
         IntoTextRange as _,
@@ -30,7 +30,7 @@ use crate::{
 pub(crate) fn parse_expr<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Option<Token<'source>>,
-) -> Result<Expr<'arena, 'source>, Diagnostic<'static, ParserDiagnosticCategory, SpanId>> {
+) -> Result<Expr<'arena, 'source>, JExprDiagnostic> {
     let token = if let Some(token) = token {
         token
     } else {
@@ -55,7 +55,8 @@ pub(crate) fn parse_expr<'arena, 'source>(
             Err(unexpected_token(
                 span,
                 [SyntaxKind::String, SyntaxKind::LBracket, SyntaxKind::LBrace],
-            ))
+            )
+            .map_category(JExprDiagnosticCategory::Parser))
         }
     }
 }
@@ -63,7 +64,7 @@ pub(crate) fn parse_expr<'arena, 'source>(
 fn parse_call<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Token<'source>,
-) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
+) -> Result<Expr<'arena, 'source>, JExprDiagnostic> {
     let mut r#fn = None;
     let mut args = stream.arena.vec(None);
 
@@ -84,7 +85,11 @@ fn parse_call<'arena, 'source>(
         parent_id: None,
     });
 
-    let r#fn = r#fn.ok_or_else(|| expected_callee(span))?;
+    let r#fn = r#fn.ok_or_else(|| {
+        expected_callee(span)
+            .map_category(ParserDiagnosticCategory::Array)
+            .map_category(JExprDiagnosticCategory::Parser)
+    })?;
 
     Ok(Expr {
         kind: ExprKind::Call(Call {
@@ -99,7 +104,7 @@ fn parse_string<'arena, 'source>(
     stream: &TokenStream<'arena, 'source>,
     value: &Cow<'source, str>,
     span: TextRange,
-) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
+) -> Result<Expr<'arena, 'source>, JExprDiagnostic> {
     enum ParseDecision {
         Path,
         Signature,
@@ -185,7 +190,9 @@ fn parse_string<'arena, 'source>(
         ParseDecision::Signature => invalid_signature(span, &error),
     };
 
-    Err(diagnostic)
+    Err(diagnostic
+        .map_category(ParserDiagnosticCategory::String)
+        .map_category(JExprDiagnosticCategory::Parser))
 }
 
 #[cfg(test)]

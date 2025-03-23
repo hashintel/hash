@@ -1,10 +1,10 @@
 use core::assert_matches::debug_assert_matches;
 
-use hql_diagnostics::Diagnostic;
-use hql_span::{SpanId, TextRange};
+use hql_span::TextRange;
 
 use super::stream::TokenStream;
 use crate::{
+    error::{JExprDiagnostic, JExprDiagnosticCategory},
     lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
     parser::error::unexpected_token,
     span::Span,
@@ -28,8 +28,8 @@ pub(crate) fn parse_array<'arena, 'source>(
     mut on_item: impl FnMut(
         &mut TokenStream<'arena, 'source>,
         Option<Token<'source>>,
-    ) -> Result<(), Diagnostic<'static, SpanId>>,
-) -> Result<TextRange, Diagnostic<'static, SpanId>> {
+    ) -> Result<(), JExprDiagnostic>,
+) -> Result<TextRange, JExprDiagnostic> {
     debug_assert_matches!(token.kind, TokenKind::LBracket);
     let mut span = token.span;
 
@@ -59,10 +59,10 @@ pub(crate) fn parse_array<'arena, 'source>(
                 parent_id: None,
             });
 
-            return Err(unexpected_token(
-                span,
-                [SyntaxKind::Comma, SyntaxKind::RBracket],
-            ));
+            return Err(
+                unexpected_token(span, [SyntaxKind::Comma, SyntaxKind::RBracket])
+                    .map_category(JExprDiagnosticCategory::Parser),
+            );
         };
 
         stream.descend(

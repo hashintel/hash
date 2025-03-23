@@ -3,14 +3,14 @@ use hql_cst::{
     r#type::Type,
     value::Value,
 };
-use hql_diagnostics::{Diagnostic, help::Help};
+use hql_diagnostics::help::Help;
 use hql_span::SpanId;
 use winnow::{LocatingSlice, Parser as _};
 
 use super::{
     error::{
-        duplicate_key, expected_non_empty_object, invalid_type, required_key, unexpected_token,
-        unknown_key,
+        ParserDiagnosticCategory, duplicate_key, expected_non_empty_object, invalid_type,
+        required_key, unexpected_token, unknown_key,
     },
     object::{Key, parse_object},
     stream::TokenStream,
@@ -19,6 +19,7 @@ use super::{
     value::parse_value,
 };
 use crate::{
+    error::{JExprDiagnostic, JExprDiagnosticCategory},
     lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
     span::Span,
 };
@@ -32,13 +33,13 @@ trait ObjectState<'arena, 'source> {
         &mut self,
         stream: &mut TokenStream<'arena, 'source>,
         key: Key<'source>,
-    ) -> Result<(), Diagnostic<'static, SpanId>>;
+    ) -> Result<(), JExprDiagnostic>;
 
     fn finalize(
         self,
         stream: &mut TokenStream<'arena, 'source>,
         span: SpanId,
-    ) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>>;
+    ) -> Result<Expr<'arena, 'source>, JExprDiagnostic>;
 }
 
 struct ConstantState<'arena, 'source> {
@@ -64,7 +65,7 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
         &mut self,
         stream: &mut TokenStream<'arena, 'source>,
         key: Key<'source>,
-    ) -> Result<(), Diagnostic<'static, SpanId>> {
+    ) -> Result<(), JExprDiagnostic> {
         match (self, key.value.as_ref()) {
             (
                 Self {
@@ -79,7 +80,9 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
                     parent_id: None,
                 });
 
-                return Err(duplicate_key(span, value.span));
+                return Err(duplicate_key(span, value.span)
+                    .map_category(ParserDiagnosticCategory::Object)
+                    .map_category(JExprDiagnosticCategory::Parser));
             }
             (this, "const") => {
                 let value = parse_value(stream, None)?;
@@ -99,7 +102,9 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
                     parent_id: None,
                 });
 
-                return Err(duplicate_key(span, value.span));
+                return Err(duplicate_key(span, value.span)
+                    .map_category(ParserDiagnosticCategory::Object)
+                    .map_category(JExprDiagnosticCategory::Parser));
             }
             (this, "type") => {
                 let token = stream.next_or_err()?;
@@ -110,7 +115,8 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
                 });
 
                 let TokenKind::String(value) = token.kind else {
-                    let mut diagnostic = unexpected_token(span, [SyntaxKind::String]);
+                    let mut diagnostic = unexpected_token(span, [SyntaxKind::String])
+                        .map_category(JExprDiagnosticCategory::Parser);
 
                     diagnostic.help = Some(Help::new(
                         "The type of a constant must be a type expression, not any other kind of \
@@ -129,7 +135,11 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
                             parent_id: Some(span),
                         },
                     })
-                    .map_err(|error| invalid_type(span, &error))?;
+                    .map_err(|error| {
+                        invalid_type(span, &error)
+                            .map_category(ParserDiagnosticCategory::String)
+                            .map_category(JExprDiagnosticCategory::Parser)
+                    })?;
 
                 this.r#type = Some(r#type);
             }
@@ -140,7 +150,9 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
                     parent_id: None,
                 });
 
-                return Err(unknown_key(span, key.value, &["const", "type"]));
+                return Err(unknown_key(span, key.value, &["const", "type"])
+                    .map_category(ParserDiagnosticCategory::Object)
+                    .map_category(JExprDiagnosticCategory::Parser));
             }
         }
 
@@ -151,8 +163,13 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
         self,
         _: &mut TokenStream<'arena, 'source>,
         span: SpanId,
-    ) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
-        let r#const = self.r#const.ok_or_else(|| required_key(span, "const"))?;
+    ) -> Result<Expr<'arena, 'source>, JExprDiagnostic> {
+        let r#const = self.r#const.ok_or_else(|| {
+            required_key(span, "const")
+                .map_category(ParserDiagnosticCategory::Object)
+                .map_category(JExprDiagnosticCategory::Parser)
+        })?;
+
         let r#type = self.r#type;
 
         Ok(Expr {
@@ -174,7 +191,7 @@ enum State<'arena, 'source> {
 pub(crate) fn parse_expr_explicit<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Token<'source>,
-) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
+) -> Result<Expr<'arena, 'source>, JExprDiagnostic> {
     let mut state = State::Unknown;
 
     let span = parse_object(stream, token, |stream, key| {
@@ -190,7 +207,9 @@ pub(crate) fn parse_expr_explicit<'arena, 'source>(
                         parent_id: None,
                     });
 
-                    return Err(unknown_key(span, key.value, &["const", "type"]));
+                    return Err(unknown_key(span, key.value, &["const", "type"])
+                        .map_category(ParserDiagnosticCategory::Object)
+                        .map_category(JExprDiagnosticCategory::Parser));
                 }
             }
             State::Constant(constant) => {
@@ -208,7 +227,9 @@ pub(crate) fn parse_expr_explicit<'arena, 'source>(
     });
 
     match state {
-        State::Unknown => Err(expected_non_empty_object(span)),
+        State::Unknown => Err(expected_non_empty_object(span)
+            .map_category(ParserDiagnosticCategory::Object)
+            .map_category(JExprDiagnosticCategory::Parser)),
         State::Constant(constant) => constant.finalize(stream, span),
     }
 }

@@ -1,9 +1,13 @@
 use alloc::borrow::Cow;
 
-use hql_diagnostics::category::DiagnosticCategory;
+use hql_diagnostics::{Diagnostic, category::DiagnosticCategory};
+use hql_span::SpanId;
 
 use crate::{lexer::error::LexerDiagnosticCategory, parser::error::ParserDiagnosticCategory};
 
+pub type JExprDiagnostic = Diagnostic<JExprDiagnosticCategory, SpanId>;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JExprDiagnosticCategory {
     Lexer(LexerDiagnosticCategory),
     Parser(ParserDiagnosticCategory),

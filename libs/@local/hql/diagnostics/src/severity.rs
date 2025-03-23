@@ -14,9 +14,9 @@ use anstyle::{Ansi256Color, AnsiColor, Color};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", cfg_eval, serde_with::serde_as)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Severity<'a> {
+pub struct Severity {
     /// Unique identifier of the severity.
-    id: Cow<'a, str>,
+    id: Cow<'static, str>,
 
     /// Priority code of the severity.
     ///
@@ -26,7 +26,7 @@ pub struct Severity<'a> {
     code: u16,
 
     /// Human-readable name of the severity.
-    name: Cow<'a, str>,
+    name: Cow<'static, str>,
 
     /// Color of the severity.
     ///
@@ -37,22 +37,22 @@ pub struct Severity<'a> {
 
 // the impl is split into multiple blocks because of rustfmt reordering. The severity values are
 // always descending.
-impl Severity<'static> {
-    pub const CRITICAL: &Self = &Self {
+impl Severity {
+    pub const CRITICAL: Self = Self {
         id: Cow::Borrowed("critical"),
         code: 500,
 
         name: Cow::Borrowed("Critical"),
         color: Color::Ansi(AnsiColor::Red),
     };
-    pub const ERROR: &Self = &Self {
+    pub const ERROR: Self = Self {
         id: Cow::Borrowed("error"),
         code: 400,
 
         name: Cow::Borrowed("Error"),
         color: Color::Ansi(AnsiColor::Red),
     };
-    pub const WARNING: &Self = &Self {
+    pub const WARNING: Self = Self {
         id: Cow::Borrowed("warning"),
         code: 300,
 
@@ -61,8 +61,8 @@ impl Severity<'static> {
     };
 }
 
-impl Severity<'static> {
-    pub const INFO: &Self = &Self {
+impl Severity {
+    pub const INFO: Self = Self {
         id: Cow::Borrowed("note"),
         code: 200,
 
@@ -71,8 +71,8 @@ impl Severity<'static> {
     };
 }
 
-impl Severity<'static> {
-    pub const DEBUG: &Self = &Self {
+impl Severity {
+    pub const DEBUG: Self = Self {
         id: Cow::Borrowed("debug"),
         code: 100,
 
@@ -81,7 +81,7 @@ impl Severity<'static> {
     };
 }
 
-impl Severity<'_> {
+impl Severity {
     #[must_use]
     #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub fn id(&self) -> &str {
@@ -109,20 +109,8 @@ impl Severity<'_> {
     }
 }
 
-impl Display for Severity<'_> {
+impl Display for Severity {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         Display::fmt(&self.name, fmt)
-    }
-}
-
-impl<'a> From<Severity<'a>> for Cow<'a, Severity<'a>> {
-    fn from(severity: Severity<'a>) -> Self {
-        Cow::Owned(severity)
-    }
-}
-
-impl<'a> From<&'a Severity<'a>> for Cow<'a, Severity<'a>> {
-    fn from(severity: &'a Severity<'a>) -> Self {
-        Cow::Borrowed(severity)
     }
 }

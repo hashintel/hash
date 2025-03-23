@@ -43,9 +43,9 @@ impl DiagnosticCategory for LexerDiagnosticCategory {
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            LexerDiagnosticCategory::InvalidString => Some(&INVALID_STRING),
-            LexerDiagnosticCategory::InvalidNumber => Some(&INVALID_NUMBER),
-            LexerDiagnosticCategory::InvalidCharacter => Some(&INVALID_CHARACTER),
+            Self::InvalidString => Some(&INVALID_STRING),
+            Self::InvalidNumber => Some(&INVALID_NUMBER),
+            Self::InvalidCharacter => Some(&INVALID_CHARACTER),
         }
     }
 }
@@ -53,7 +53,7 @@ impl DiagnosticCategory for LexerDiagnosticCategory {
 pub(crate) fn from_hifijson_str_error(
     error: &hifijson::str::Error,
     span: SpanId,
-) -> Diagnostic<'static, LexerDiagnosticCategory, SpanId> {
+) -> Diagnostic<LexerDiagnosticCategory, SpanId> {
     let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidString, Severity::ERROR);
 
     let help = match error {
@@ -86,7 +86,7 @@ pub(crate) fn from_hifijson_str_error(
 pub(crate) fn from_hifijson_num_error(
     error: &hifijson::num::Error,
     span: SpanId,
-) -> Diagnostic<'static, LexerDiagnosticCategory, SpanId> {
+) -> Diagnostic<LexerDiagnosticCategory, SpanId> {
     let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Severity::ERROR);
 
     let message = match error {
@@ -102,7 +102,7 @@ pub(crate) fn from_hifijson_num_error(
 
 pub(crate) fn from_unrecognized_character_error(
     span: SpanId,
-) -> Diagnostic<'static, LexerDiagnosticCategory, SpanId> {
+) -> Diagnostic<LexerDiagnosticCategory, SpanId> {
     let mut diagnostic =
         Diagnostic::new(LexerDiagnosticCategory::InvalidCharacter, Severity::ERROR);
 

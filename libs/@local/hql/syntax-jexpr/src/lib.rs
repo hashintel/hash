@@ -11,6 +11,7 @@ use hql_diagnostics::Diagnostic;
 use hql_span::{SpanId, storage::SpanStorage};
 
 use self::{
+    error::{JExprDiagnostic, JExprDiagnosticCategory},
     parser::{TokenStream, error::expected_eof},
     span::Span,
 };
@@ -43,7 +44,7 @@ impl<'arena> Parser<'arena> {
     pub fn parse_expr<'source>(
         &self,
         source: &'source [u8],
-    ) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
+    ) -> Result<Expr<'arena, 'source>, JExprDiagnostic> {
         let lexer = lexer::Lexer::new(source, Arc::clone(&self.spans));
         let mut stream = TokenStream {
             arena: self.arena,
@@ -61,7 +62,7 @@ impl<'arena> Parser<'arena> {
                 parent_id: None,
             });
 
-            return Err(expected_eof(span));
+            return Err(expected_eof(span).map_category(JExprDiagnosticCategory::Parser));
         }
 
         Ok(expr)

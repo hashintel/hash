@@ -1,12 +1,11 @@
 use alloc::sync::Arc;
 
 use hql_cst::arena::Arena;
-use hql_diagnostics::Diagnostic;
 use hql_span::{SpanId, storage::SpanStorage};
 
 use super::error::unexpected_eof;
 use crate::{
-    error::JExprDiagnosticCategory,
+    error::{JExprDiagnostic, JExprDiagnosticCategory},
     lexer::{Lexer, token::Token},
     span::Span,
 };
@@ -20,9 +19,7 @@ pub(crate) struct TokenStream<'arena, 'source> {
 }
 
 impl<'source> TokenStream<'_, 'source> {
-    pub(crate) fn next_or_err(
-        &mut self,
-    ) -> Result<Token<'source>, Diagnostic<'static, JExprDiagnosticCategory, SpanId>> {
+    pub(crate) fn next_or_err(&mut self) -> Result<Token<'source>, JExprDiagnostic> {
         let Some(token) = self.lexer.advance() else {
             let span = Span {
                 range: self.lexer.span(),
