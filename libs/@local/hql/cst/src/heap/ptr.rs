@@ -28,11 +28,12 @@ use super::Heap;
 /// An owned smart pointer.
 ///
 /// See the [module level documentation][crate::ptr] for details.
+#[derive(PartialEq, Eq, Hash)]
 pub struct P<'heap, T: ?Sized> {
     ptr: alloc::boxed::Box<T, &'heap Heap>,
 }
 
-impl<'heap, T: 'static> P<'heap, T> {
+impl<'heap, T: 'heap> P<'heap, T> {
     pub fn new(value: T, heap: &'heap Heap) -> Self {
         P {
             ptr: alloc::boxed::Box::new_in(value, heap),
@@ -106,9 +107,17 @@ impl<'heap, T: ?Sized> DerefMut for P<'heap, T> {
     }
 }
 
-impl<'heap, T: Clone + 'static> Clone for P<'heap, T> {
+impl<'heap, T: Clone + 'heap> Clone for P<'heap, T> {
     fn clone(&self) -> P<'heap, T> {
         P::new((**self).clone(), *Box::allocator(&self.ptr))
+    }
+}
+
+impl<'heap, T: Clone + 'heap> Clone for P<'heap, [T]> {
+    fn clone(&self) -> P<'heap, [T]> {
+        P {
+            ptr: self.ptr.clone(),
+        }
     }
 }
 

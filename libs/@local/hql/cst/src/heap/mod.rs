@@ -1,11 +1,11 @@
 mod ptr;
 
-use std::alloc::Allocator;
+use alloc::alloc::Allocator;
 
 use bumpalo::Bump;
 use hashbrown::DefaultHashBuilder;
 
-use self::ptr::P;
+pub use self::ptr::P;
 
 pub type Vec<'heap, T> = alloc::vec::Vec<T, &'heap Heap>;
 pub type VecDeque<'heap, T> = alloc::collections::vec_deque::VecDeque<T, &'heap Heap>;

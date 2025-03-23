@@ -9,6 +9,7 @@ extern crate alloc;
 
 pub mod expr;
 mod heap;
+pub mod node;
 pub mod symbol;
 pub mod r#type;
 pub mod value;

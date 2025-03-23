@@ -3,7 +3,7 @@ use core::fmt::{self, Display, Write as _};
 use hql_span::SpanId;
 
 use super::ExprKind;
-use crate::{Spanned, arena, symbol::Symbol, r#type::Type};
+use crate::{Spanned, symbol::Symbol, r#type::Type};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct List<'arena, T> {
