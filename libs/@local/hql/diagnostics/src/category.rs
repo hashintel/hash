@@ -19,7 +19,7 @@ where
         let mut child = self.0.subcategory();
         while let Some(category) = child {
             fmt.write_str("::")?;
-            CanonicalDiagnosticCategoryId(category).fmt(fmt)?;
+            fmt.write_str(&category.id())?;
 
             child = category.subcategory();
         }
@@ -46,7 +46,7 @@ where
         let mut child = self.0.subcategory();
         while let Some(category) = child {
             fmt.write_str(" / ")?;
-            CanonicalDiagnosticCategoryName(category).fmt(fmt)?;
+            fmt.write_str(&category.name())?;
 
             child = category.subcategory();
         }
