@@ -64,7 +64,7 @@
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.15",
     "@sentry/webpack-plugin": "2.23.0",
     "@types/lodash.debounce": "4.0.9",
-    "@types/react": "19.0.10",
+    "@types/react": "19.0.12",
     "@types/react-dom": "19.0.4",
     "@types/webextension-polyfill": "0.12.2",
     "@types/ws": "8.18.0",
