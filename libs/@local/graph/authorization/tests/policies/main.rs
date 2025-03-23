@@ -12,7 +12,7 @@ use core::{error::Error, str::FromStr as _};
 use std::sync::LazyLock;
 
 use hash_graph_authorization::policies::{
-    ContextBuilder, PolicySet, Request, RequestContext,
+    Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
     action::ActionId,
     principal::{
         ActorId,
@@ -22,7 +22,7 @@ use hash_graph_authorization::policies::{
         user::UserId,
         web::WebRoleId,
     },
-    resource::{EntityResource, EntityTypeId, EntityTypeResource, ResourceId},
+    resource::{EntityResource, EntityTypeId, EntityTypeResource},
     store::{MemoryPolicyStore, PolicyStore},
 };
 use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
@@ -249,43 +249,63 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
     println!("system_web_machine_policy_set:\n{system_web_machine_policy_set:?}");
 
     // Only the system machine can instantiate a machine
-    assert!(!system_web_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(system.web.machine.id),
-            action: ActionId::Instantiate,
-            resource: &ResourceId::EntityType(Cow::Borrowed(&machine_type.id)),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(system_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(system.machine.id),
-            action: ActionId::Instantiate,
-            resource: &ResourceId::EntityType(Cow::Borrowed(&machine_type.id)),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
+    assert!(matches!(
+        system_web_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(system.web.machine.id),
+                action: ActionId::Instantiate,
+                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
+                    &machine_type.id
+                )))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Never
+    ));
+    assert!(matches!(
+        system_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(system.machine.id),
+                action: ActionId::Instantiate,
+                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
+                    &machine_type.id
+                )))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
 
-    assert!(system_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(system.machine.id),
-            action: ActionId::Instantiate,
-            resource: &ResourceId::EntityType(Cow::Borrowed(&document_type.id)),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(system_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(system.machine.id),
-            action: ActionId::Instantiate,
-            resource: &ResourceId::EntityType(Cow::Borrowed(&document_type.id)),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
+    assert!(matches!(
+        system_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(system.machine.id),
+                action: ActionId::Instantiate,
+                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
+                    &document_type.id
+                )))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        system_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(system.machine.id),
+                action: ActionId::Instantiate,
+                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
+                    &document_type.id
+                )))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
 
     Ok(())
 }
@@ -348,89 +368,122 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
 
     eprintln!("context:\n{context:?}");
 
-    assert!(!user_policy_set.evaluate(
-        &Request {
-            actor: ActorId::User(user.id),
-            action: ActionId::Instantiate,
-            resource: &ResourceId::EntityType(Cow::Borrowed(&machine_type.id)),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(user_policy_set.evaluate(
-        &Request {
-            actor: ActorId::User(user.id),
-            action: ActionId::Instantiate,
-            resource: &ResourceId::EntityType(Cow::Borrowed(&document_type.id)),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(user_policy_set.evaluate(
-        &Request {
-            actor: ActorId::User(user.id),
-            action: ActionId::Instantiate,
-            resource: &ResourceId::EntityType(Cow::Borrowed(&web_type.id)),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
+    assert!(matches!(
+        user_policy_set.evaluate(
+            &Request {
+                actor: ActorId::User(user.id),
+                action: ActionId::Instantiate,
+                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
+                    &machine_type.id
+                )))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Never
+    ));
+    assert!(matches!(
+        user_policy_set.evaluate(
+            &Request {
+                actor: ActorId::User(user.id),
+                action: ActionId::Instantiate,
+                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
+                    &document_type.id
+                )))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        user_policy_set.evaluate(
+            &Request {
+                actor: ActorId::User(user.id),
+                action: ActionId::Instantiate,
+                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
+                    &web_type.id
+                )))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
 
-    assert!(user_policy_set.evaluate(
-        &Request {
-            actor: ActorId::User(user.id),
-            action: ActionId::View,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(user_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(user.web.machine.id),
-            action: ActionId::View,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(!user_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(system.machine.id),
-            action: ActionId::View,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
+    assert!(matches!(
+        user_policy_set.evaluate(
+            &Request {
+                actor: ActorId::User(user.id),
+                action: ActionId::View,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        user_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(user.web.machine.id),
+                action: ActionId::View,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        user_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(system.machine.id),
+                action: ActionId::View,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Never
+    ));
 
-    assert!(user_policy_set.evaluate(
-        &Request {
-            actor: ActorId::User(user.id),
-            action: ActionId::Update,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(user_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(user.web.machine.id),
-            action: ActionId::Update,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(!user_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(system.machine.id),
-            action: ActionId::Update,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
+    assert!(matches!(
+        user_policy_set.evaluate(
+            &Request {
+                actor: ActorId::User(user.id),
+                action: ActionId::Update,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        user_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(user.web.machine.id),
+                action: ActionId::Update,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        user_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(system.machine.id),
+                action: ActionId::Update,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Never
+    ));
 
     Ok(())
 }
@@ -492,89 +545,118 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         .with_policies(policy_store.get_policies(ActorId::Machine(system.machine.id))?)?;
     println!("system_machine_policy_set:\n{system_machine_policy_set:?}");
 
-    assert!(org_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(org_web.machine.id),
-            action: ActionId::View,
-            resource: &ResourceId::Entity(EntityUuid::new(user.web.machine.id.into_uuid())),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
+    assert!(matches!(
+        org_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(org_web.machine.id),
+                action: ActionId::View,
+                resource: Some(&PartialResourceId::Entity(Some(EntityUuid::new(
+                    user.web.machine.id.into_uuid()
+                )))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
 
-    assert!(user_policy_set.evaluate(
-        &Request {
-            actor: ActorId::User(user.id),
-            action: ActionId::View,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(org_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(org_web.machine.id),
-            action: ActionId::View,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(!system_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(user.web.machine.id),
-            action: ActionId::View,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(!system_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(system.web.machine.id),
-            action: ActionId::View,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
+    assert!(matches!(
+        user_policy_set.evaluate(
+            &Request {
+                actor: ActorId::User(user.id),
+                action: ActionId::View,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        org_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(org_web.machine.id),
+                action: ActionId::View,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        system_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(user.web.machine.id),
+                action: ActionId::View,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Never
+    ));
+    assert!(matches!(
+        system_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(system.web.machine.id),
+                action: ActionId::View,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Never
+    ));
 
-    assert!(user_policy_set.evaluate(
-        &Request {
-            actor: ActorId::User(user.id),
-            action: ActionId::Update,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(org_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(org_web.machine.id),
-            action: ActionId::Update,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(!user_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(user.web.machine.id),
-            action: ActionId::Update,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(!system_machine_policy_set.evaluate(
-        &Request {
-            actor: ActorId::Machine(system.web.machine.id),
-            action: ActionId::Update,
-            resource: &ResourceId::Entity(web_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
+    assert!(matches!(
+        user_policy_set.evaluate(
+            &Request {
+                actor: ActorId::User(user.id),
+                action: ActionId::Update,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        org_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(org_web.machine.id),
+                action: ActionId::Update,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        user_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(user.web.machine.id),
+                action: ActionId::Update,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Never
+    ));
+    assert!(matches!(
+        system_machine_policy_set.evaluate(
+            &Request {
+                actor: ActorId::Machine(system.web.machine.id),
+                action: ActionId::Update,
+                resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Never
+    ));
 
     Ok(())
 }
@@ -596,24 +678,34 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
         PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
     println!("user_policy_set:\n{user_policy_set:?}");
 
-    assert!(user_policy_set.evaluate(
-        &Request {
-            actor: ActorId::User(user.id),
-            action: ActionId::View,
-            resource: &ResourceId::Entity(system.hash_instance_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
-    assert!(!user_policy_set.evaluate(
-        &Request {
-            actor: ActorId::User(user.id),
-            action: ActionId::Update,
-            resource: &ResourceId::Entity(system.hash_instance_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
+    assert!(matches!(
+        user_policy_set.evaluate(
+            &Request {
+                actor: ActorId::User(user.id),
+                action: ActionId::View,
+                resource: Some(&PartialResourceId::Entity(Some(
+                    system.hash_instance_entity.id
+                ))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        user_policy_set.evaluate(
+            &Request {
+                actor: ActorId::User(user.id),
+                action: ActionId::Update,
+                resource: Some(&PartialResourceId::Entity(Some(
+                    system.hash_instance_entity.id
+                ))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Never
+    ));
 
     Ok(())
 }
@@ -638,24 +730,73 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
         PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
     println!("user_policy_set:\n{user_policy_set:?}");
 
-    assert!(user_policy_set.evaluate(
+    assert!(matches!(
+        user_policy_set.evaluate(
+            &Request {
+                actor: ActorId::User(user.id),
+                action: ActionId::View,
+                resource: Some(&PartialResourceId::Entity(Some(
+                    system.hash_instance_entity.id
+                ))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+    assert!(matches!(
+        user_policy_set.evaluate(
+            &Request {
+                actor: ActorId::User(user.id),
+                action: ActionId::Update,
+                resource: Some(&PartialResourceId::Entity(Some(
+                    system.hash_instance_entity.id
+                ))),
+                context: RequestContext::default(),
+            },
+            &context,
+        )?,
+        Authorized::Always
+    ));
+
+    Ok(())
+}
+
+#[test]
+fn partial_resource_evaluation() -> Result<(), Box<dyn Error>> {
+    let mut context = ContextBuilder::default();
+    let mut policy_store = MemoryPolicyStore::default();
+
+    let system = TestSystem::generate(&mut policy_store, &mut context)?;
+
+    let user = TestUser::generate(&mut policy_store, &mut context)?;
+    policy_store.assign_role(
+        ActorId::User(user.id),
+        RoleId::Team(system.hash_instance_admins_admin_role),
+    )?;
+
+    policy_store.extend_context(&mut context, ActorId::User(user.id))?;
+    let context = context.build()?;
+
+    let user_policy_set =
+        PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
+    println!("user_policy_set:\n{user_policy_set:?}");
+
+    match user_policy_set.evaluate(
         &Request {
             actor: ActorId::User(user.id),
-            action: ActionId::View,
-            resource: &ResourceId::Entity(system.hash_instance_entity.id),
+            action: ActionId::Instantiate,
+            resource: Some(&PartialResourceId::EntityType(None)),
             context: RequestContext::default(),
         },
         &context,
-    )?);
-    assert!(user_policy_set.evaluate(
-        &Request {
-            actor: ActorId::User(user.id),
-            action: ActionId::Update,
-            resource: &ResourceId::Entity(system.hash_instance_entity.id),
-            context: RequestContext::default(),
-        },
-        &context,
-    )?);
+    )? {
+        Authorized::Partial(expr) => {
+            println!("expr:\n{expr:#?}");
+        }
+        Authorized::Always => panic!("expected partial evaluation, got always"),
+        Authorized::Never => panic!("expected partial evaluation, got never"),
+    }
 
     Ok(())
 }

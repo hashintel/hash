@@ -6,7 +6,11 @@ use cedar_policy_core::{
 };
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 
-use super::{Context, Policy, Request};
+use super::{
+    Context, Policy, Request,
+    cedar::{CedarExpressionParser as _, SimpleParser},
+    evaluation::{PermissionCondition, PermissionConditionVisitor},
+};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("policy set insertion failed")]
@@ -31,6 +35,16 @@ impl fmt::Debug for PolicySet {
         }
         Ok(())
     }
+}
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("policy constraint error")]
+pub struct PolicyConstraintError;
+
+#[derive(Debug)]
+pub enum Authorized {
+    Always,
+    Never,
+    Partial(PermissionCondition),
 }
 
 impl PolicySet {
@@ -106,20 +120,58 @@ impl PolicySet {
         &self,
         request: &Request,
         context: &Context,
-    ) -> Result<bool, Report<PolicyEvaluationError>> {
+    ) -> Result<Authorized, Report<PolicyEvaluationError>> {
         let authorizer = Authorizer::new();
 
         let response =
-            authorizer.is_authorized(request.to_cedar(), self.policies(), context.entities());
+            authorizer.is_authorized_core(request.to_cedar(), self.policies(), context.entities());
+
+        let decision = response.decision();
 
         response
-            .diagnostics
             .errors
             .into_iter()
             .map(|error| Err(Report::new(error)))
             .try_collect_reports::<()>()
             .change_context(PolicyEvaluationError)?;
 
-        Ok(response.decision == Decision::Allow)
+        if let Some(decision) = decision {
+            return Ok(match decision {
+                Decision::Allow => Authorized::Always,
+                Decision::Deny => Authorized::Never,
+            });
+        }
+
+        let forbids = response
+            .residual_forbids
+            .values()
+            .map(|(expr, _)| (**expr).clone())
+            .fold(ast::Expr::val(true), |acc, expr| {
+                if acc == ast::Expr::val(true) {
+                    ast::Expr::not(expr)
+                } else {
+                    ast::Expr::and(acc, ast::Expr::not(expr))
+                }
+            });
+        let permits = response
+            .residual_permits
+            .values()
+            .map(|(expr, _)| (**expr).clone())
+            .fold(ast::Expr::val(false), |acc, expr| {
+                if acc == ast::Expr::val(false) {
+                    expr
+                } else {
+                    ast::Expr::or(acc, expr)
+                }
+            });
+
+        Ok(Authorized::Partial(
+            SimpleParser
+                .parse_expr(
+                    &ast::Expr::and(forbids, permits),
+                    &PermissionConditionVisitor,
+                )
+                .change_context(PolicyEvaluationError)?,
+        ))
     }
 }

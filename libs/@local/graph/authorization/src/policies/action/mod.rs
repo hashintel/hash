@@ -4,7 +4,7 @@
 )]
 
 use alloc::sync::Arc;
-use core::{error::Error, fmt, str::FromStr};
+use core::fmt;
 use std::sync::LazyLock;
 
 use cedar_policy_core::ast;
@@ -23,6 +23,8 @@ pub enum ActionId {
 }
 
 impl CedarEntityId for ActionId {
+    type Error = Report<InvalidActionConstraint>;
+
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Action"]));
@@ -33,16 +35,8 @@ impl CedarEntityId for ActionId {
         ast::Eid::new(self.to_string())
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
-        Ok(serde_plain::from_str(eid.as_ref())?)
-    }
-}
-
-impl FromStr for ActionId {
-    type Err = Report<impl Error + Send + Sync + 'static>;
-
-    fn from_str(action: &str) -> Result<Self, Self::Err> {
-        Ok(serde_plain::from_str(action)?)
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
+        serde_plain::from_str(eid.as_ref()).change_context(InvalidActionConstraint::InvalidAction)
     }
 }
 

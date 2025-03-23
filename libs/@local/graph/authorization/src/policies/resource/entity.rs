@@ -3,13 +3,19 @@ use core::{error::Error, iter, str::FromStr as _};
 use std::sync::LazyLock;
 
 use cedar_policy_core::{ast, extensions::Extensions};
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use smol_str::SmolStr;
 use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
 use uuid::Uuid;
 
 use super::entity_type::EntityTypeId;
-use crate::policies::cedar::CedarEntityId;
+use crate::policies::{
+    cedar::{
+        CedarEntityId, CedarExpressionParseError, CedarExpressionParser as _, FromCedarExpr,
+        SimpleParser, ToCedarExpr,
+    },
+    evaluation::{PermissionCondition, PermissionConditionVisitor, ResourceAttribute},
+};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -27,9 +33,60 @@ pub struct EntityResource<'a> {
     deny_unknown_fields
 )]
 pub enum EntityResourceFilter {
-    IsType { entity_type: VersionedUrl },
-    IsAllTypes { entity_types: Vec<VersionedUrl> },
-    IsAnyType { entity_types: Vec<VersionedUrl> },
+    All { filters: Vec<Self> },
+    Any { filters: Vec<Self> },
+    Not { filter: Box<Self> },
+
+    IsOfType { entity_type: VersionedUrl },
+}
+
+#[derive(Debug, derive_more::Display)]
+#[display("expression is not supported: {_0:?}")]
+pub struct InvalidEntityResourceFilter(PermissionCondition);
+
+impl Error for InvalidEntityResourceFilter {}
+
+impl TryFrom<PermissionCondition> for EntityResourceFilter {
+    type Error = Report<InvalidEntityResourceFilter>;
+
+    fn try_from(condition: PermissionCondition) -> Result<Self, Self::Error> {
+        match condition {
+            PermissionCondition::Not(condition) => Ok(Self::Not {
+                filter: Box::new(Self::try_from(*condition)?),
+            }),
+            PermissionCondition::All(conditions) => Ok(Self::All {
+                filters: conditions
+                    .into_iter()
+                    .map(Self::try_from)
+                    .collect::<Result<_, _>>()?,
+            }),
+            PermissionCondition::Any(conditions) => Ok(Self::Any {
+                filters: conditions
+                    .into_iter()
+                    .map(Self::try_from)
+                    .collect::<Result<_, _>>()?,
+            }),
+            PermissionCondition::Attribute(resource_attribute) => {
+                Self::try_from(resource_attribute)
+            }
+            condition => Err(Report::new(InvalidEntityResourceFilter(condition))),
+        }
+    }
+}
+
+impl TryFrom<ResourceAttribute> for EntityResourceFilter {
+    type Error = Report<InvalidEntityResourceFilter>;
+
+    fn try_from(attribute: ResourceAttribute) -> Result<Self, Self::Error> {
+        match attribute {
+            ResourceAttribute::IsOfType(entity_type) => Ok(Self::IsOfType { entity_type }),
+            ResourceAttribute::BaseUrl(_) | ResourceAttribute::OntologyTypeVersion(_) => {
+                Err(Report::new(InvalidEntityResourceFilter(
+                    PermissionCondition::Attribute(attribute),
+                )))
+            }
+        }
+    }
 }
 
 fn versioned_url_to_euid(url: &VersionedUrl) -> ast::EntityUID {
@@ -40,40 +97,46 @@ fn versioned_url_to_euid(url: &VersionedUrl) -> ast::EntityUID {
     )
 }
 
-impl EntityResourceFilter {
-    #[must_use]
-    pub(crate) fn to_cedar(&self) -> ast::Expr {
+impl ToCedarExpr for EntityResourceFilter {
+    fn to_cedar(&self) -> ast::Expr {
         match self {
-            Self::IsType { entity_type } => ast::Expr::contains(
+            Self::All { filters } => {
+                filters
+                    .iter()
+                    .map(Self::to_cedar)
+                    .reduce(ast::Expr::and)
+                    .unwrap_or_else(|| ast::Expr::val(true))
+                // }
+            }
+            Self::Any { filters } => {
+                filters
+                    .iter()
+                    .map(Self::to_cedar)
+                    .reduce(ast::Expr::or)
+                    .unwrap_or_else(|| ast::Expr::val(false))
+                // }
+            }
+            Self::Not { filter } => ast::Expr::not(filter.to_cedar()),
+
+            Self::IsOfType { entity_type } => ast::Expr::contains(
                 ast::Expr::get_attr(
                     ast::Expr::var(ast::Var::Resource),
                     SmolStr::new_static("entity_types"),
                 ),
                 ast::Expr::val(versioned_url_to_euid(entity_type)),
             ),
-            Self::IsAllTypes { entity_types } => ast::Expr::contains_all(
-                ast::Expr::get_attr(
-                    ast::Expr::var(ast::Var::Resource),
-                    SmolStr::new_static("entity_types"),
-                ),
-                ast::Expr::set(
-                    entity_types
-                        .iter()
-                        .map(|url| ast::Expr::val(versioned_url_to_euid(url))),
-                ),
-            ),
-            Self::IsAnyType { entity_types } => ast::Expr::contains_any(
-                ast::Expr::get_attr(
-                    ast::Expr::var(ast::Var::Resource),
-                    SmolStr::new_static("entity_types"),
-                ),
-                ast::Expr::set(
-                    entity_types
-                        .iter()
-                        .map(|url| ast::Expr::val(versioned_url_to_euid(url))),
-                ),
-            ),
         }
+    }
+}
+
+impl FromCedarExpr for EntityResourceFilter {
+    type Error = Report<CedarExpressionParseError>;
+
+    fn from_cedar(expr: &ast::Expr) -> Result<Self, Self::Error> {
+        SimpleParser
+            .parse_expr(expr, &PermissionConditionVisitor)?
+            .try_into()
+            .change_context(CedarExpressionParseError::ParseError)
     }
 }
 
@@ -98,6 +161,8 @@ impl EntityResource<'_> {
 }
 
 impl CedarEntityId for EntityUuid {
+    type Error = Report<uuid::Error>;
+
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Entity"]));
@@ -108,7 +173,7 @@ impl CedarEntityId for EntityUuid {
         ast::Eid::new(self.to_string())
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
     }
 }
@@ -117,8 +182,7 @@ impl CedarEntityId for EntityUuid {
 #[serde(untagged, rename_all_fields = "camelCase", deny_unknown_fields)]
 pub enum EntityResourceConstraint {
     Any {
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        filter: Option<EntityResourceFilter>,
+        filter: EntityResourceFilter,
     },
     Exact {
         #[serde(deserialize_with = "Option::deserialize")]
@@ -127,8 +191,7 @@ pub enum EntityResourceConstraint {
     Web {
         #[serde(deserialize_with = "Option::deserialize")]
         web_id: Option<OwnedById>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        filter: Option<EntityResourceFilter>,
+        filter: EntityResourceFilter,
     },
 }
 
@@ -150,9 +213,7 @@ impl EntityResourceConstraint {
         match self {
             Self::Any { filter } => (
                 ast::ResourceConstraint::is_entity_type(Arc::clone(EntityUuid::entity_type())),
-                filter
-                    .as_ref()
-                    .map_or_else(|| ast::Expr::val(true), EntityResourceFilter::to_cedar),
+                filter.to_cedar(),
             ),
             Self::Exact { id } => id.map_or_else(
                 || (ast::ResourceConstraint::is_eq_slot(), ast::Expr::val(true)),
@@ -177,9 +238,7 @@ impl EntityResourceConstraint {
                         )
                     },
                 ),
-                filter
-                    .as_ref()
-                    .map_or_else(|| ast::Expr::val(true), EntityResourceFilter::to_cedar),
+                filter.to_cedar(),
             ),
         }
     }
@@ -202,7 +261,9 @@ mod tests {
     #[test]
     fn constraint_any() -> Result<(), Box<dyn Error>> {
         check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Any { filter: None }),
+            ResourceConstraint::Entity(EntityResourceConstraint::Any {
+                filter: EntityResourceFilter::All { filters: vec![] },
+            }),
             json!({
                 "type": "entity"
             }),
@@ -224,16 +285,16 @@ mod tests {
     fn constraint_any_with_filter() -> Result<(), Box<dyn Error>> {
         check_resource(
             ResourceConstraint::Entity(EntityResourceConstraint::Any {
-                filter: Some(EntityResourceFilter::IsType {
+                filter: EntityResourceFilter::IsOfType {
                     entity_type: VersionedUrl::from_str(
                         "https://hash.ai/@h/types/entity-type/machine/v/1",
                     )?,
-                }),
+                },
             }),
             json!({
                 "type": "entity",
                 "filter": {
-                    "type": "isType",
+                    "type": "isOfType",
                     "entityType": "https://hash.ai/@h/types/entity-type/machine/v/1"
                 },
             }),
@@ -292,7 +353,7 @@ mod tests {
         check_resource(
             ResourceConstraint::Entity(EntityResourceConstraint::Web {
                 web_id: Some(web_id),
-                filter: None,
+                filter: EntityResourceFilter::All { filters: vec![] },
             }),
             json!({
                 "type": "entity",
@@ -304,7 +365,7 @@ mod tests {
         check_resource(
             ResourceConstraint::Entity(EntityResourceConstraint::Web {
                 web_id: None,
-                filter: None,
+                filter: EntityResourceFilter::All { filters: vec![] },
             }),
             json!({
                 "type": "entity",
@@ -331,17 +392,17 @@ mod tests {
         check_resource(
             ResourceConstraint::Entity(EntityResourceConstraint::Web {
                 web_id: Some(web_id),
-                filter: Some(EntityResourceFilter::IsType {
+                filter: EntityResourceFilter::IsOfType {
                     entity_type: VersionedUrl::from_str(
                         "https://hash.ai/@h/types/entity-type/machine/v/1",
                     )?,
-                }),
+                },
             }),
             json!({
                 "type": "entity",
                 "webId": web_id,
                 "filter": {
-                    "type": "isType",
+                    "type": "isOfType",
                     "entityType": "https://hash.ai/@h/types/entity-type/machine/v/1"
                 },
             }),
@@ -351,17 +412,17 @@ mod tests {
         check_resource(
             ResourceConstraint::Entity(EntityResourceConstraint::Web {
                 web_id: None,
-                filter: Some(EntityResourceFilter::IsType {
+                filter: EntityResourceFilter::IsOfType {
                     entity_type: VersionedUrl::from_str(
                         "https://hash.ai/@h/types/entity-type/machine/v/1",
                     )?,
-                }),
+                },
             }),
             json!({
                 "type": "entity",
                 "webId": null,
                 "filter": {
-                    "type": "isType",
+                    "type": "isOfType",
                     "entityType": "https://hash.ai/@h/types/entity-type/machine/v/1"
                 },
             }),
