@@ -6,7 +6,7 @@
 
 use alloc::sync::Arc;
 
-use hql_cst::{arena::Arena, expr::Expr};
+use hql_cst::{arena::MemoryPool, expr::Expr};
 use hql_span::storage::SpanStorage;
 
 use self::{
@@ -23,12 +23,12 @@ pub(crate) mod parser;
 pub mod span;
 
 pub struct Parser<'arena> {
-    arena: &'arena Arena,
+    arena: &'arena MemoryPool,
     spans: Arc<SpanStorage<Span>>,
 }
 
 impl<'arena> Parser<'arena> {
-    pub fn new(arena: &'arena Arena, spans: impl Into<Arc<SpanStorage<Span>>>) -> Self {
+    pub fn new(arena: &'arena MemoryPool, spans: impl Into<Arc<SpanStorage<Span>>>) -> Self {
         Self {
             arena,
             spans: spans.into(),

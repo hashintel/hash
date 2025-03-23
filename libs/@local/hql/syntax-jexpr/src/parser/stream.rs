@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use hql_cst::arena::Arena;
+use hql_cst::arena::MemoryPool;
 use hql_span::{SpanId, storage::SpanStorage};
 
 use super::error::unexpected_eof;
@@ -11,7 +11,7 @@ use crate::{
 };
 
 pub(crate) struct TokenStream<'arena, 'source> {
-    pub arena: &'arena Arena,
+    pub arena: &'arena MemoryPool,
     pub lexer: Lexer<'source>,
 
     pub spans: Arc<SpanStorage<Span>>,

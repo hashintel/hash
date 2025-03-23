@@ -53,7 +53,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use hql_cst::arena::Arena;
+    use hql_cst::arena::MemoryPool;
     use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{

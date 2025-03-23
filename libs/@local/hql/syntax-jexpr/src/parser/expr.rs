@@ -201,7 +201,7 @@ mod test {
     use alloc::sync::Arc;
     use core::assert_matches::assert_matches;
 
-    use hql_cst::arena::Arena;
+    use hql_cst::arena::MemoryPool;
     use hql_diagnostics::{config::ReportConfig, span::DiagnosticSpan};
     use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
