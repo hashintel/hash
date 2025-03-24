@@ -45,7 +45,7 @@
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_linear.svg",
     "summaryHtml": "Issues, users, organizations, projects, milestones, and much more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/linear",
-    "availability": "Available",
+    "availability": "Available"
   },
   {
     "name": "Slack",
