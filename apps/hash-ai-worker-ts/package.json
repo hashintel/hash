@@ -101,7 +101,7 @@
     "@types/lodash": "4.17.16",
     "@types/md5": "2.3.5",
     "@types/mime-types": "2.1.4",
-    "@types/node": "22.13.11",
+    "@types/node": "22.13.13",
     "@types/papaparse": "5.3.15",
     "@types/sanitize-html": "2.13.0",
     "@vitest/coverage-istanbul": "3.0.9",
