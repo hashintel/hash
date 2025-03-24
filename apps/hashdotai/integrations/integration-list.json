@@ -4,7 +4,7 @@
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_linear.svg",
     "summaryHtml": "Issues, users, organizations, projects, milestones, and much more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/linear",
-    "aboutParas": ["two-way sync", "jointly maintained"],
+    "aboutParas": ["two-way sync"],
     "availability": "Available",
     "frequency": "Real-time",
     "supportedTypes": [
@@ -65,15 +65,13 @@
         "additionalInfo": {
           "header": "Did you know?",
           "copyHtml": "<div>Comparable live-updating <a href='/dashboards'>dashboards</a> can already be created in HASH by using existing supported Linear data. <a href='https://example.com' target='_blank'>Read the tutorial</a></div>"
-        },
-        "votes": 5812
+        }
       },
       {
         "title": "Linear Something Else",
         "status": "planned",
         "feasibility": "unblocked",
-        "explanation": "Something else, and an explanation why unsupported.",
-        "votes": 701
+        "explanation": "Something else, and an explanation why unsupported."
       }
     ],
     "examples": [
@@ -126,7 +124,139 @@
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_slack.svg",
     "summaryHtml": "<div><strong>In HASH:</strong> see messages and teammates</div><div><strong>In Slack:</strong> create/find entities and types</div>",
     "integrationUrl": "https://app.hash.ai/settings/integrations/slack",
-    "availability": "Considered",
-    "votes": 15320
+    "availability": "Considered"
+  },
+  {
+    "name": "SAP S/4HANA",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_sap.svg",
+    "summaryHtml": "Manage order-to-cash, procure-to-pay, plan-to-product, request-to-service and other key enterprise processes.",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/sap-s4hana",
+    "availability": "Considered"
+  },
+  {
+    "name": "DocuSign",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_docusign.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/docusign",
+    "availability": "Considered"
+  },
+  {
+    "name": "Gmail",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_google-mail.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/google-mail",
+    "availability": "Considered"
+  },
+  {
+    "name": "Google Drive",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_google-drive.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/google-drive",
+    "availability": "Considered"
+  },
+  {
+    "name": "Google Calendar",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_google-calendar.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/google-calendar",
+    "availability": "Considered"
+  },
+  {
+    "name": "Dropbox",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_dropbox.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/dropbox",
+    "availability": "Considered"
+  },
+  {
+    "name": "Box",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_box.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/box",
+    "availability": "Considered"
+  },
+  {
+    "name": "Trello",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_trello.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/trello",
+    "availability": "Considered"
+  },
+  {
+    "name": "Apple Notes",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_apple-notes.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/apple-notes",
+    "availability": "Considered"
+  },
+  {
+    "name": "Discord",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_discord.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/discord",
+    "availability": "Considered"
+  },
+  {
+    "name": "Microsoft Teams",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_microsoft-teams.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/microsoft-teams",
+    "availability": "Considered"
+  },
+  {
+    "name": "Messenger",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_messenger.svg",
+    "summaryHtml": "View, triage and respond to Facebook Messenger messages in a centralized location",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/messenger",
+    "availability": "Considered"
+  },
+  {
+    "name": "Instagram",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_instagram.svg",
+    "summaryHtml": "Respond to Instagram messages in a centralized location, track follower/following relationships, engagement and more",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/instagram",
+    "availability": "Considered"
+  },
+  {
+    "name": "Notion",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_notion.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/notion",
+    "availability": "Considered"
+  },
+  {
+    "name": "Sentry",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_sentry.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/sentry",
+    "availability": "Considered"
+  },
+  {
+    "name": "Zoom",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_zoom.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/zoom",
+    "availability": "Considered"
+  },
+  {
+    "name": "GitHub",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_github.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/github",
+    "availability": "Considered"
+  },
+  {
+    "name": "Figma",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_figma.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/figma",
+    "availability": "Considered"
+  },
+  {
+    "name": "Asana",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_asana.svg",
+    "summaryHtml": "",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/asana",
+    "availability": "Considered"
   }
 ]
