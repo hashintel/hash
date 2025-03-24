@@ -1,5 +1,12 @@
 [
   {
+    "name": "Blue Yonder",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_blue-yonder.svg",
+    "summaryHtml": "End-to-end supply chain, warehouse, returns, transportation, order management and other data",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/blue-yonder",
+    "availability": "Considered"
+  },
+  {
     "name": "Celonis",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_celonis.svg",
     "summaryHtml": "Access or manage processes, records, KPIs, filters, triggers and knowledge from Celonis",
@@ -9,8 +16,22 @@
   {
     "name": "OMP",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_omp.svg",
-    "summaryHtml": "Network design, S&OP, demand management, operational planning, scheduling data and more",
+    "summaryHtml": "Network design, S&OP, demand management, operational planning, scheduling and other data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/omp",
+    "availability": "Considered"
+  },
+  {
+    "name": "Kiaxis Maestro",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_kinaxis-maestro.svg",
+    "summaryHtml": "Network design, S&OP, demand management, operational planning, scheduling and other data",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/kinaxis-maestro",
+    "availability": "Considered"
+  },
+  {
+    "name": "Coupa",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_coupa.svg",
+    "summaryHtml": "Supply chain design, planning and other total spend management data",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/coupa",
     "availability": "Considered"
   },
   {
