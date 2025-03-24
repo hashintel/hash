@@ -1,5 +1,19 @@
 [
   {
+    "name": "Celonis",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_celonis.svg",
+    "summaryHtml": "Access or manage processes, records, KPIs, filters, triggers and knowledge from Celonis",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/celonis",
+    "availability": "Considered"
+  },
+  {
+    "name": "OMP",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_omp.svg",
+    "summaryHtml": "Network design, S&OP, demand management, operational planning, scheduling data and more",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/omp",
+    "availability": "Considered"
+  },
+  {
     "name": "Linear",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_linear.svg",
     "summaryHtml": "Issues, users, organizations, projects, milestones, and much more",
