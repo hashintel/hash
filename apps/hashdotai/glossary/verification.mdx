@@ -7,7 +7,16 @@ tags: ["Software Engineering"]
 
 **Verification** is the process of analyzing the _correctness_, _safety_, and _liveness_ of a modeled system before deployment. It ensures that the system behaves as expected, e.g. that it is free from _deadlocks_, _livelocks_, _starvation_ and other undesired states and inconsistencies, and that it meets certain standards. Verification is separate from "validation".
 
-# Unexpected behaviors
+# Correctness
+
+Checking correctness involves ensuring that the process does what it is supposed to do, according to its goals and requirements, e.g. that an `Order` is always moved through specific desired stages and is always eventually `Fulfilled` (or ends up in some other desired terminal state, such as `Cancelled`).
+
+# Safety
+
+There are also things that we want processes to _not_ do, and **safety requirements** specify what states we do not want a process to end up in. For example, creating a `Refund` for an `Order` without any `Payment Confirmation`. Some rules about what must or must not happen in in the system can be defined as either correctness conditions that must hold at all times ("invariants"), or negatively as safety requirements that must not be violated.
+# Liveness
+
+Part of model verification involves checking that nothing is unexpectedly blocking progress, and that something desired eventually happens ("liveness"). Several things can prevent this.
 
 ## Livelocks
 
