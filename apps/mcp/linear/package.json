@@ -24,7 +24,7 @@
     "@modelcontextprotocol/sdk": "1.7.0",
     "dotenv-flow": "3.3.0",
     "zod": "3.24.2",
-    "zod-to-json-schema": "3.24.4"
+    "zod-to-json-schema": "3.24.5"
   },
   "devDependencies": {
     "@types/dotenv-flow": "3.3.3",
