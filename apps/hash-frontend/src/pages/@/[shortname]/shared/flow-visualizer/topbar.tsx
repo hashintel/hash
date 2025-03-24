@@ -1,10 +1,10 @@
 import { useMutation } from "@apollo/client";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import {
   AngleRightRegularIcon,
   PlaySolidIcon,
   Select,
 } from "@hashintel/design-system";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   generateFlowDefinitionPath,
   generateWorkerRunPath,

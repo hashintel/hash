@@ -1,18 +1,41 @@
-import type { Timestamp } from "@blockprotocol/graph";
-import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
-
-import type { EntityRevisionId, Subgraph, Vertices } from "../../../main.js";
-import { isEntityVertex } from "../../../main.js";
-import { mustBeDefined } from "../../../shared/invariant.js";
+import type { EntityRevisionId } from "@blockprotocol/graph";
 import {
   intervalContainsTimestamp,
   intervalForTimestamp,
   intervalIsStrictlyAfterInterval,
   intervalOverlapsInterval,
-} from "../../interval.js";
+} from "@blockprotocol/graph/stdlib";
+import type {
+  ActorGroupId,
+  ActorId,
+  EntityId,
+  TemporalBound,
+  TemporalInterval,
+} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+
+import type {
+  ActorEntityId,
+  ActorGroupEntityId,
+  Subgraph,
+  Vertices,
+} from "../../../main.js";
+import { isEntityVertex } from "../../../main.js";
+import { mustBeDefined } from "../../../shared/invariant.js";
+
+/** If the underlying `EntityUuid` is an `AccountId`, use this cast to convert the type */
+export const extractActorId = extractEntityUuidFromEntityId as (
+  entityId: ActorEntityId,
+  // The type cannot be cast directly to `AccountId`, so we do it over two casts, but without `unknown`
+) => string as (entityId: ActorEntityId) => ActorId;
+
+/** If the underlying `EntityUuid` is an `AccountGroupId`, use this cast to convert the type */
+export const extractActorGroupId = extractEntityUuidFromEntityId as (
+  entityId: ActorGroupEntityId,
+  // The type cannot be cast directly to `AccountGroupId`, so we do it over two casts, but without `unknown`
+) => string as (entityId: ActorGroupEntityId) => ActorGroupId;
 
 /**
  * Returns all {@link Entity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their
@@ -93,7 +116,7 @@ const getRevisionsForEntity = (
 export const getEntityRevision = (
   subgraph: Subgraph,
   entityId: EntityId,
-  targetRevisionInformation?: EntityRevisionId | Timestamp | Date,
+  targetRevisionInformation?: EntityRevisionId | Date,
 ): Entity | undefined => {
   const entityRevisions = getRevisionsForEntity(subgraph, entityId);
 
@@ -121,7 +144,7 @@ export const getEntityRevision = (
     const targetTime =
       typeof targetRevisionInformation === "string"
         ? targetRevisionInformation
-        : targetRevisionInformation.toISOString();
+        : (targetRevisionInformation.toISOString() as EntityRevisionId);
 
     for (const revisionTimestamp of revisionVersions) {
       const vertex = mustBeDefined(entityRevisions[revisionTimestamp]);
@@ -141,7 +164,7 @@ export const getEntityRevision = (
           vertex.inner.metadata.temporalVersioning[
             subgraph.temporalAxes.resolved.variable.axis
           ],
-          targetTime as EntityRevisionId,
+          targetTime,
         )
       ) {
         return vertex.inner;
@@ -165,7 +188,7 @@ export const getEntityRevision = (
 export const getEntityRevisionsByEntityId = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] => {
   const entityRevisions = getRevisionsForEntity(subgraph, entityId);
 

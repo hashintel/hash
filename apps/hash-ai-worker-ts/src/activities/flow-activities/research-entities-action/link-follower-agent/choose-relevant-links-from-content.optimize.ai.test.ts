@@ -3,6 +3,7 @@ import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import type { Url } from "@blockprotocol/type-system";
 import dedent from "dedent";
 import { test } from "vitest";
 
@@ -18,7 +19,7 @@ import {
 const ftse350MetricPrompt = "Find all the FTSE350 stock market constituents.";
 
 const ftse350WebPage = await getWebPageActivity({
-  url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+  url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
   sanitizeForLlm: true,
 });
 
@@ -100,7 +101,7 @@ const ftse350Metric: MetricDefinition = {
 };
 
 const marksAndSpencersInvestorsPage = await getWebPageActivity({
-  url: "https://corporate.marksandspencer.com/investors",
+  url: "https://corporate.marksandspencer.com/investors" as Url,
   sanitizeForLlm: true,
 });
 
@@ -181,7 +182,7 @@ const marksAndSpencersAnnualInvestorsReport: MetricDefinition = {
 };
 
 const gpuSpecsPage = await getWebPageActivity({
-  url: "https://www.techpowerup.com/gpu-specs/",
+  url: "https://www.techpowerup.com/gpu-specs/" as Url,
   sanitizeForLlm: true,
 });
 

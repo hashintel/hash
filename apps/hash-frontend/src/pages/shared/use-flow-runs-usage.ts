@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { EntityUuid } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -20,7 +21,6 @@ import {
 } from "@local/hash-isomorphic-utils/service-usage";
 import type { UsageRecord } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type { EntityRootType } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,

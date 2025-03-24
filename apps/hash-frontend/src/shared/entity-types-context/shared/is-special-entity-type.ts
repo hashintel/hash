@@ -1,10 +1,12 @@
-import type { EntityTypeReference } from "@blockprotocol/type-system";
+import type {
+  EntityTypeReference,
+  EntityTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import type {
   EntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system/dist/cjs";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 

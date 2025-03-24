@@ -1,9 +1,8 @@
+import type { ActorId, OwnedById } from "@blockprotocol/type-system";
 import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
 } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
@@ -23,7 +22,7 @@ import type { BeforeUpdateEntityHookCallback } from "../update-entity-hooks";
 
 const validateAccountShortname = async (
   context: ImpureGraphContext,
-  authentication: { actorId: AccountId },
+  authentication: { actorId: ActorId },
   shortname: string,
 ) => {
   if (shortnameContainsInvalidCharacter({ shortname })) {

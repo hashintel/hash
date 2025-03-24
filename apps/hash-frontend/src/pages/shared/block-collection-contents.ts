@@ -1,5 +1,5 @@
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import {

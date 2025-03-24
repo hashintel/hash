@@ -1,9 +1,11 @@
 import { useQuery } from "@apollo/client";
-import type { ClosedDataType } from "@blockprotocol/type-system";
+import type {
+  ClosedDataType,
+  PropertyValueMetadata,
+} from "@blockprotocol/type-system";
+import { isValueMetadata } from "@blockprotocol/type-system";
 import { Autocomplete, Chip } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
-import type { PropertyMetadataValue } from "@local/hash-graph-types/entity";
-import { isValueMetadata } from "@local/hash-graph-types/entity";
 import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 import {
   createConversionFunction,
@@ -127,7 +129,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   useEffect(() => {
     if (
       chosenDataType &&
-      (valueMetadata as PropertyMetadataValue | undefined)?.metadata
+      (valueMetadata as PropertyValueMetadata | undefined)?.metadata
         .dataTypeId !== chosenDataType.dataType.$id
     ) {
       const { propertyMetadata } = generateNewMetadataObject({

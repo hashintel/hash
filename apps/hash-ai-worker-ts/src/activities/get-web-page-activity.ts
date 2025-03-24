@@ -1,3 +1,4 @@
+import type { Url } from "@blockprotocol/type-system";
 import type {
   FlowInternetAccessSettings,
   WebPage,
@@ -130,7 +131,7 @@ export const sanitizeHtmlForLlmConsumption = (params: {
 };
 
 const getWebPageFromPuppeteer = async (
-  url: string,
+  url: Url,
 ): Promise<WebPage | { error: string }> => {
   /** @todo: consider re-using the same `browser` instance across requests  */
   const browser = await puppeteer.launch({
@@ -187,7 +188,7 @@ const getWebPageFromPuppeteer = async (
 };
 
 const getWebPageFromBrowser = async (
-  url: string,
+  url: Url,
 ): Promise<WebPage | { error: string }> => {
   const externalResponse = await requestExternalInput({
     requestId: generateUuid(),
@@ -208,7 +209,7 @@ const getWebPageFromBrowser = async (
 };
 
 export const getWebPageActivity = async (params: {
-  url: string;
+  url: Url;
   sanitizeForLlm?: boolean;
 }): Promise<WebPage | { error: string }> => {
   const { sanitizeForLlm, url } = params;

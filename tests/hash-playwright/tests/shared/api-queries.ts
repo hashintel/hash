@@ -1,9 +1,6 @@
+import type { LinkData, OwnedById } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityProperties,
-  LinkData,
-} from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";

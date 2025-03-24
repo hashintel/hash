@@ -1,4 +1,4 @@
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { BaseUrl } from "@blockprotocol/type-system";
 import type {
   ProposedEntity,
   WorkerIdentifiers,

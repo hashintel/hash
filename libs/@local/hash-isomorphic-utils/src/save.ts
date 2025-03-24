@@ -1,12 +1,14 @@
 import type { ApolloClient } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { LinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   Entity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,

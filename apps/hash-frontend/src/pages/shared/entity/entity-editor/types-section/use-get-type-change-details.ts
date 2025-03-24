@@ -1,15 +1,15 @@
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { extractVersion } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractVersion,
+  mustHaveAtLeastOne,
+} from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import {
   getClosedMultiEntityTypeFromMap,
   getPropertyTypeForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import {
-  componentsFromVersionedUrl,
-  extractBaseUrl,
-} from "@local/hash-subgraph/type-system-patch";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { useCallback } from "react";
 
 import { useGetClosedMultiEntityTypes } from "../../../use-get-closed-multi-entity-type";
@@ -33,7 +33,7 @@ export const useGetTypeChangeDetails = () => {
       const {
         closedMultiEntityTypes,
         closedMultiEntityTypesDefinitions: proposedDefinitions,
-      } = await getClosedMultiEntityTypes(newEntityTypeIds);
+      } = await getClosedMultiEntityTypes([newEntityTypeIds]);
 
       const proposedClosedMultiType = getClosedMultiEntityTypeFromMap(
         closedMultiEntityTypes,

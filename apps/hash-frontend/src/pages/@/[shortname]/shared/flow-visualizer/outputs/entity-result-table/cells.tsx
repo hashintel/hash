@@ -1,6 +1,6 @@
+import type { EntityId, PropertyValue } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import type { ValueMetadata } from "@local/hash-graph-client/api";
-import type { EntityId, PropertyValue } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import {

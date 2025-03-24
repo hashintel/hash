@@ -1,11 +1,8 @@
 use core::time::Duration;
 
 use error_stack::Report;
-use opentelemetry::{
-    global,
-    trace::{TraceError, TracerProvider as _},
-};
-use opentelemetry_otlp::{SpanExporter, WithExportConfig as _};
+use opentelemetry::{global, trace::TracerProvider as _};
+use opentelemetry_otlp::{ExporterBuildError, SpanExporter, WithExportConfig as _};
 use opentelemetry_sdk::{
     Resource,
     propagation::TraceContextPropagator,
@@ -29,20 +26,19 @@ pub struct OpenTelemetryConfig {
 
 const OPENTELEMETRY_TIMEOUT_DURATION: Duration = Duration::from_secs(5);
 
-pub type OtlpLayer<S>
-where
-    S: Subscriber + for<'a> LookupSpan<'a>,
-= impl Layer<S>;
-
 /// Creates a layer which connects to the `OpenTelemetry` collector.
 ///
 /// # Errors
 ///
 /// Errors if the `OpenTelemetry` configuration is invalid.
+#[expect(
+    clippy::min_ident_chars,
+    reason = "False positive lint on generic bounds"
+)]
 pub fn layer<S>(
     config: &OpenTelemetryConfig,
     handle: &Handle,
-) -> Result<OtlpLayer<S>, Report<TraceError>>
+) -> Result<impl Layer<S> + use<S>, Report<ExporterBuildError>>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
@@ -57,12 +53,6 @@ where
     // Allow correlating trace IDs
     global::set_text_map_propagator(TraceContextPropagator::new());
 
-    let exporter = SpanExporter::builder()
-        .with_tonic()
-        .with_endpoint(endpoint)
-        .with_timeout(OPENTELEMETRY_TIMEOUT_DURATION)
-        .build()?;
-
     // Configure sampler args with the following environment variables:
     //   - OTEL_TRACES_SAMPLER_ARG
     //   - OTEL_TRACES_SAMPLER
@@ -72,7 +62,13 @@ where
     //   - OTEL_SPAN_EVENT_COUNT_LIMIT
     //   - OTEL_SPAN_LINK_COUNT_LIMIT
     let tracer = trace::SdkTracerProvider::builder()
-        .with_batch_exporter(exporter)
+        .with_batch_exporter(
+            SpanExporter::builder()
+                .with_tonic()
+                .with_endpoint(endpoint)
+                .with_timeout(OPENTELEMETRY_TIMEOUT_DURATION)
+                .build()?,
+        )
         .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
             0.1,
         ))))

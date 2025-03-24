@@ -1,13 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  OwnedById,
+  PropertyPatchOperation,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityId,
-  PropertyPatchOperation,
-} from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import produce from "immer";

@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 import type { EntitySlideProps } from "./entity-slide";
 

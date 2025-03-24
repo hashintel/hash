@@ -30,6 +30,7 @@
     "test:integration": "./scripts/test.sh"
   },
   "dependencies": {
+    "@blockprotocol/type-system": "0.1.2-canary.0",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
@@ -57,7 +58,7 @@
     "@types/dotenv-flow": "3.3.3",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
-    "rollup": "4.35.0",
+    "rollup": "4.36.0",
     "typescript": "5.7.3"
   }
 }

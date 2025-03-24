@@ -1,3 +1,13 @@
+import type {
+  ActorId,
+  BaseUrl,
+  LinkData,
+  OwnedById,
+} from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   AllFilter,
@@ -5,10 +15,6 @@ import type {
   GraphApi,
 } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { LinkData } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -22,10 +28,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityTypeRootType } from "@local/hash-subgraph";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { logger } from "./activity-logger.js";
@@ -45,7 +47,7 @@ export const findExistingEntity = async ({
   proposedEntity,
   includeDrafts,
 }: {
-  actorId: AccountId;
+  actorId: ActorId;
   dereferencedEntityTypes?: DereferencedEntityType[];
   graphApiClient: GraphApi;
   ownedById: OwnedById;
@@ -147,10 +149,8 @@ export const findExistingEntity = async ({
     /**
      * @todo H-3363 account for inherited label properties
      */
-    const labelProperty = type.labelProperty as BaseUrl | undefined;
-
-    return labelProperty && proposedEntity.properties[labelProperty]
-      ? [labelProperty]
+    return type.labelProperty && proposedEntity.properties[type.labelProperty]
+      ? [type.labelProperty]
       : [];
   });
 
@@ -290,7 +290,7 @@ export const findExistingLinkEntity = async ({
   ownedById,
   proposedEntity,
 }: {
-  actorId: AccountId;
+  actorId: ActorId;
   graphApiClient: GraphApi;
   includeDrafts: boolean;
   linkData: LinkData;

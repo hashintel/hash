@@ -1,18 +1,18 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
 import type {
+  ActorId,
+  BaseUrl,
   EntityId,
+  OwnedById,
   PropertyMetadata,
   PropertyValue,
-} from "@local/hash-graph-types/entity";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type {
-  BaseUrl,
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { SerializedSubgraph } from "@local/hash-subgraph";
 
 import type { MinimalActor } from "../../../../shared/use-actors";
@@ -96,7 +96,7 @@ export type SourceOrTargetFilterData = {
 };
 
 export type GenerateEntitiesTableDataParams = {
-  actorsByAccountId: Record<AccountId, MinimalActor | null>;
+  actorsByAccountId: Record<ActorId, MinimalActor | null>;
   closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
   definitions: ClosedMultiEntityTypesDefinitions;
   entities: SerializedEntity[];
@@ -110,7 +110,7 @@ export type GenerateEntitiesTableDataParams = {
 };
 
 export type ActorTableFilterData = {
-  accountId: AccountId;
+  actorId: ActorId;
   displayName?: string;
   count: number;
 };

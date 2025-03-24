@@ -13,13 +13,13 @@ import type {
   ReadOrModifyResourceError,
   UploadFileData as BpUploadFileData,
 } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   LinkData,
   PropertyObject,
-} from "@local/hash-graph-types/entity";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 

@@ -947,3 +947,56 @@ impl<C> Extend<Self> for Report<[C]> {
         }
     }
 }
+
+/// Provides unified way to convert an error-like structure to a [`Report`].
+///
+/// This trait allows both [`Report<C>`] instances and regular error types to be converted into a
+/// [`Report`]. It is automatically implemented for any type that can be converted into a [`Report`]
+/// via the [`Into`] trait.
+///
+/// This trait is particularly useful when working with functions that need to return a [`Report`],
+/// as it provides a consistent way to convert errors into reports without explicitly calling
+/// conversion methods.
+///
+/// # Examples
+///
+/// ```rust
+/// use std::io;
+///
+/// use error_stack::{IntoReport as _, Report};
+///
+/// # #[expect(dead_code)]
+/// fn example() -> Result<(), Report<io::Error>> {
+///     // io::Error implements Into<Report<io::Error>>, so we can use into_report()
+///     let err = io::Error::new(io::ErrorKind::Other, "oh no!");
+///     Err(err.into_report())
+/// }
+/// ```
+pub trait IntoReport {
+    /// The context type that will be used in the resulting [`Report`].
+    type Context: ?Sized;
+
+    /// Converts this value into a [`Report`].
+    fn into_report(self) -> Report<Self::Context>;
+}
+
+impl<C: ?Sized> IntoReport for Report<C> {
+    type Context = C;
+
+    #[track_caller]
+    fn into_report(self) -> Report<Self::Context> {
+        self
+    }
+}
+
+impl<E> IntoReport for E
+where
+    E: Into<Report<E>>,
+{
+    type Context = E;
+
+    #[track_caller]
+    fn into_report(self) -> Report<Self::Context> {
+        self.into()
+    }
+}

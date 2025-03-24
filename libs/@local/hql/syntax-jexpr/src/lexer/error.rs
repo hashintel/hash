@@ -1,42 +1,60 @@
 use alloc::{borrow::Cow, sync::Arc};
 
 use hql_diagnostics::{
-    Diagnostic, category::Category, help::Help, label::Label, rob::RefOrBox, severity::Severity,
+    Diagnostic,
+    category::{DiagnosticCategory, TerminalDiagnosticCategory},
+    help::Help,
+    label::Label,
+    severity::Severity,
 };
 use hql_span::SpanId;
 use text_size::TextRange;
 
-use crate::error::JEXPR_CATEGORY;
-
-const LEXING: &Category = &Category {
-    id: Cow::Borrowed("lexing"),
-    name: Cow::Borrowed("Lexing"),
-    parent: Some(RefOrBox::Ref(JEXPR_CATEGORY)),
+const INVALID_STRING: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-string",
+    name: "Invalid String Literal",
 };
 
-const INVALID_STRING: &Category = &Category {
-    id: Cow::Borrowed("invalid-string"),
-    name: Cow::Borrowed("Invalid String Literal"),
-    parent: Some(RefOrBox::Ref(LEXING)),
+const INVALID_NUMBER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-number",
+    name: "Invalid Number Literal",
 };
 
-const INVALID_NUMBER: &Category = &Category {
-    id: Cow::Borrowed("invalid-number"),
-    name: Cow::Borrowed("Invalid Number Literal"),
-    parent: Some(RefOrBox::Ref(LEXING)),
+const INVALID_CHARACTER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-character",
+    name: "Invalid Character",
 };
 
-const INVALID_CHARACTER: &Category = &Category {
-    id: Cow::Borrowed("invalid-character"),
-    name: Cow::Borrowed("Invalid Character"),
-    parent: Some(RefOrBox::Ref(LEXING)),
-};
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LexerDiagnosticCategory {
+    InvalidString,
+    InvalidNumber,
+    InvalidCharacter,
+}
+
+impl DiagnosticCategory for LexerDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("lexer")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("Lexer")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            Self::InvalidString => Some(&INVALID_STRING),
+            Self::InvalidNumber => Some(&INVALID_NUMBER),
+            Self::InvalidCharacter => Some(&INVALID_CHARACTER),
+        }
+    }
+}
 
 pub(crate) fn from_hifijson_str_error(
     error: &hifijson::str::Error,
     span: SpanId,
-) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(INVALID_STRING, Severity::ERROR);
+) -> Diagnostic<LexerDiagnosticCategory, SpanId> {
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidString, Severity::ERROR);
 
     let help = match error {
         hifijson::str::Error::Control => Some(Cow::Borrowed(
@@ -68,8 +86,8 @@ pub(crate) fn from_hifijson_str_error(
 pub(crate) fn from_hifijson_num_error(
     error: &hifijson::num::Error,
     span: SpanId,
-) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(INVALID_NUMBER, Severity::ERROR);
+) -> Diagnostic<LexerDiagnosticCategory, SpanId> {
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Severity::ERROR);
 
     let message = match error {
         hifijson::num::Error::ExpectedDigit => "Expected a digit",
@@ -82,8 +100,11 @@ pub(crate) fn from_hifijson_num_error(
     diagnostic
 }
 
-pub(crate) fn from_unrecognized_character_error(span: SpanId) -> Diagnostic<'static, SpanId> {
-    let mut diagnostic = Diagnostic::new(INVALID_CHARACTER, Severity::ERROR);
+pub(crate) fn from_unrecognized_character_error(
+    span: SpanId,
+) -> Diagnostic<LexerDiagnosticCategory, SpanId> {
+    let mut diagnostic =
+        Diagnostic::new(LexerDiagnosticCategory::InvalidCharacter, Severity::ERROR);
 
     diagnostic
         .labels
@@ -93,7 +114,7 @@ pub(crate) fn from_unrecognized_character_error(span: SpanId) -> Diagnostic<'sta
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub(crate) enum LexingError {
+pub(crate) enum LexerError {
     String {
         error: Arc<hifijson::str::Error>,
         range: TextRange,

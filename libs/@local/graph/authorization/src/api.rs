@@ -2,13 +2,13 @@ use core::error::Error;
 use std::collections::HashMap;
 
 use error_stack::Report;
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use type_system::{
     knowledge::entity::id::{EntityId, EntityUuid},
     ontology::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
-    web::OwnedById,
+    provenance::ActorId,
+    web::{ActorGroupId, OwnedById},
 };
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
     schema::{
-        AccountGroupPermission, AccountGroupRelationAndSubject, AccountIdOrPublic,
+        AccountGroupPermission, AccountGroupRelationAndSubject, ActorIdOrPublic,
         DataTypePermission, DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject,
         EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypePermission,
         PropertyTypeRelationAndSubject, WebPermission, WebRelationAndSubject,
@@ -34,15 +34,15 @@ pub trait AuthorizationApi: Send + Sync {
     ////////////////////////////////////////////////////////////////////////////
     fn check_account_group_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: AccountGroupPermission,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
     fn get_account_group_relations(
         &self,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>>> + Send;
 
@@ -51,7 +51,7 @@ pub trait AuthorizationApi: Send + Sync {
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                AccountGroupId,
+                ActorGroupId,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,
@@ -63,7 +63,7 @@ pub trait AuthorizationApi: Send + Sync {
     ////////////////////////////////////////////////////////////////////////////
     fn check_web_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: WebPermission,
         web: OwnedById,
         consistency: Consistency<'_>,
@@ -71,7 +71,7 @@ pub trait AuthorizationApi: Send + Sync {
 
     fn check_webs_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: WebPermission,
         entities: impl IntoIterator<Item = OwnedById, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
@@ -118,7 +118,7 @@ pub trait AuthorizationApi: Send + Sync {
     ////////////////////////////////////////////////////////////////////////////
     fn check_entity_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: EntityPermission,
         entity: EntityId,
         consistency: Consistency<'_>,
@@ -126,7 +126,7 @@ pub trait AuthorizationApi: Send + Sync {
 
     fn get_entities(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: EntityPermission,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<Vec<EntityUuid>, Report<ReadError>>> + Send;
@@ -136,7 +136,7 @@ pub trait AuthorizationApi: Send + Sync {
         entity: EntityUuid,
         permission: EntityPermission,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<Vec<AccountIdOrPublic>, Report<ReadError>>> + Send;
+    ) -> impl Future<Output = Result<Vec<ActorIdOrPublic>, Report<ReadError>>> + Send;
 
     fn modify_entity_relations(
         &mut self,
@@ -152,7 +152,7 @@ pub trait AuthorizationApi: Send + Sync {
 
     fn check_entities_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -171,7 +171,7 @@ pub trait AuthorizationApi: Send + Sync {
     ////////////////////////////////////////////////////////////////////////////
     fn check_entity_type_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: EntityTypePermission,
         entity_type: EntityTypeUuid,
         consistency: Consistency<'_>,
@@ -191,7 +191,7 @@ pub trait AuthorizationApi: Send + Sync {
 
     fn check_entity_types_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -210,7 +210,7 @@ pub trait AuthorizationApi: Send + Sync {
     ////////////////////////////////////////////////////////////////////////////
     fn check_property_type_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: PropertyTypePermission,
         property_type: PropertyTypeUuid,
         consistency: Consistency<'_>,
@@ -230,7 +230,7 @@ pub trait AuthorizationApi: Send + Sync {
 
     fn check_property_types_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -249,7 +249,7 @@ pub trait AuthorizationApi: Send + Sync {
     ////////////////////////////////////////////////////////////////////////////
     fn check_data_type_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: DataTypePermission,
         data_type: DataTypeUuid,
         consistency: Consistency<'_>,
@@ -269,7 +269,7 @@ pub trait AuthorizationApi: Send + Sync {
 
     fn check_data_types_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -291,9 +291,9 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn check_account_group_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: AccountGroupPermission,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         (**self)
@@ -303,7 +303,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn get_account_group_relations(
         &self,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
         (**self)
@@ -316,7 +316,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                AccountGroupId,
+                ActorGroupId,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,
@@ -327,7 +327,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn check_web_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: WebPermission,
         web: OwnedById,
         consistency: Consistency<'_>,
@@ -361,7 +361,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn check_entity_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: EntityPermission,
         entity: EntityId,
         consistency: Consistency<'_>,
@@ -387,7 +387,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn check_entities_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -407,7 +407,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn check_entity_type_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: EntityTypePermission,
         entity_type: EntityTypeUuid,
         consistency: Consistency<'_>,
@@ -433,7 +433,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn check_entity_types_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -455,7 +455,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn check_property_type_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: PropertyTypePermission,
         property_type: PropertyTypeUuid,
         consistency: Consistency<'_>,
@@ -481,7 +481,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn check_property_types_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -503,7 +503,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn check_data_type_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: DataTypePermission,
         data_type: DataTypeUuid,
         consistency: Consistency<'_>,
@@ -529,7 +529,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn check_data_types_permission(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -551,7 +551,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn get_entities(
         &self,
-        actor: AccountId,
+        actor: ActorId,
         permission: EntityPermission,
         consistency: Consistency<'_>,
     ) -> Result<Vec<EntityUuid>, Report<ReadError>> {
@@ -563,7 +563,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         entity: EntityUuid,
         permission: EntityPermission,
         consistency: Consistency<'_>,
-    ) -> Result<Vec<AccountIdOrPublic>, Report<ReadError>> {
+    ) -> Result<Vec<ActorIdOrPublic>, Report<ReadError>> {
         (**self)
             .get_entity_accounts(entity, permission, consistency)
             .await

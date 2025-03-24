@@ -33,7 +33,6 @@ impl Format {
         }
     }
 
-    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     fn appendix(&self) -> &[String] {
         &self.appendix
     }

@@ -1,16 +1,16 @@
+import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
+import {
+  extractDraftIdFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import {
   ArrowUpRightFromSquareRegularIcon,
   EntityOrTypeIcon,
 } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
-import type { ClosedMultiEntityType } from "@local/hash-graph-types/ontology";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  extractDraftIdFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import type { ReactNode } from "react";
@@ -31,6 +31,7 @@ export const EntityHeader = ({
   entitySubgraph,
   hideOpenInNew,
   isInSlide,
+  isLocalDraft,
   isModifyingEntity,
   lightTitle,
   onDraftArchived,
@@ -45,6 +46,7 @@ export const EntityHeader = ({
   entitySubgraph?: Subgraph<EntityRootType>;
   hideOpenInNew?: boolean;
   isInSlide: boolean;
+  isLocalDraft: boolean;
   isModifyingEntity?: boolean;
   lightTitle?: boolean;
   onDraftArchived: () => void;
@@ -53,9 +55,10 @@ export const EntityHeader = ({
   showTabs?: boolean;
 }) => {
   const { shortname } = useUserOrOrgShortnameByOwnedById({
-    ownedById: entity
-      ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
-      : null,
+    ownedById:
+      entity && !isLocalDraft
+        ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+        : null,
   });
 
   const icon = closedMultiEntityType

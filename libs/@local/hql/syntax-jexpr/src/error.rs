@@ -1,12 +1,34 @@
 use alloc::borrow::Cow;
 
-use hql_diagnostics::category::Category;
+use hql_diagnostics::{Diagnostic, category::DiagnosticCategory};
+use hql_span::SpanId;
 
-pub(crate) const JEXPR_CATEGORY: &Category = &Category {
-    id: Cow::Borrowed("jexpr"),
-    name: Cow::Borrowed("J-Expr Frontend"),
-    parent: None,
-};
+use crate::{lexer::error::LexerDiagnosticCategory, parser::error::ParserDiagnosticCategory};
+
+pub type JExprDiagnostic = Diagnostic<JExprDiagnosticCategory, SpanId>;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum JExprDiagnosticCategory {
+    Lexer(LexerDiagnosticCategory),
+    Parser(ParserDiagnosticCategory),
+}
+
+impl DiagnosticCategory for JExprDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("jexpr")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("J-Expr Frontend")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            Self::Lexer(lexer) => Some(lexer),
+            Self::Parser(parser) => Some(parser),
+        }
+    }
+}
 
 #[cfg(test)]
 pub(crate) mod test {

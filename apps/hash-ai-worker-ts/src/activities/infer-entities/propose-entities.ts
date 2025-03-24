@@ -1,9 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";

@@ -1,9 +1,6 @@
 import { useQuery } from "@apollo/client";
+import type { ActorGroupId, ActorId } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -38,7 +35,7 @@ export const useUserOrOrg = (
     temporalAxes?: QueryTemporalAxesUnresolved;
   } & (
     | { shortname?: string }
-    | { accountOrAccountGroupId?: AccountId | AccountGroupId }
+    | { accountOrAccountGroupId?: ActorId | ActorGroupId }
   ),
 ) => {
   const { data, loading, refetch } = useQuery<
@@ -96,7 +93,10 @@ export const useUserOrOrg = (
         includeDrafts: false,
       },
     },
-    skip: !("accountOrAccountGroupId" in params) && !("shortname" in params),
+    skip:
+      !(
+        "accountOrAccountGroupId" in params && params.accountOrAccountGroupId
+      ) && !("shortname" in params && params.shortname),
     fetchPolicy: "cache-and-network",
   });
 

@@ -1,9 +1,8 @@
 import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
+import type { EntityId, OwnedById } from "@blockprotocol/type-system";
 import { IconButton, Skeleton } from "@hashintel/design-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
@@ -58,7 +57,7 @@ import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
-  showAllDependencies: boolean = false,
+  showAllDependencies = false,
 ) => {
   /**
    * Flows may organize their steps into 'groups'.

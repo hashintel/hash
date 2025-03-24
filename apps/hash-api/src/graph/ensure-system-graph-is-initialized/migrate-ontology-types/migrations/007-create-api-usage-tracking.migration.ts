@@ -1,5 +1,5 @@
+import type { OwnedById } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { ServiceFeature } from "@local/hash-isomorphic-utils/system-types/shared";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";

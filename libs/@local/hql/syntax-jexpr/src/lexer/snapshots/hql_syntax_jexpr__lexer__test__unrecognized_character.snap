@@ -2,8 +2,8 @@
 source: libs/@local/hql/syntax-jexpr/src/lexer/mod.rs
 expression: "{\"ferris\": 🦀}"
 ---
-[31m[jexpr::lexing::invalid-character] Error:[0m Invalid Character
-   ╭─[<unknown>:1:12]
+[31m[lexer::invalid-character] Error:[0m Lexer
+   ╭─[ <unknown>:1:12 ]
    │
  1 │ {"ferris": 🦀}
    │            ┬─  

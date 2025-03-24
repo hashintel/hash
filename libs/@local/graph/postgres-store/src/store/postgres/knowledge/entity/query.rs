@@ -12,7 +12,7 @@ use type_system::{
             id::{EntityId, EntityRecordId, EntityUuid},
             metadata::EntityTemporalMetadata,
         },
-        property::metadata::PropertyMetadataObject,
+        property::metadata::PropertyObjectMetadata,
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     web::OwnedById,
@@ -147,7 +147,7 @@ impl QueryRecordDecode for Entity {
         let property_metadata = row
             .get::<_, Option<serde_json::Value>>(indices.property_metadata)
             .map(|value| {
-                PropertyMetadataObject::deserialize(value)
+                PropertyObjectMetadata::deserialize(value)
                     .expect("Failed to deserialize property metadata")
             })
             .unwrap_or_default();

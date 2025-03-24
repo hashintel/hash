@@ -1,10 +1,10 @@
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import type {
+  BaseUrl,
   EntityId,
   PropertyPatchOperation,
-} from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+  ProvidedEntityEditionProvenance,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ClaimProperties } from "@local/hash-isomorphic-utils/system-types/claim";

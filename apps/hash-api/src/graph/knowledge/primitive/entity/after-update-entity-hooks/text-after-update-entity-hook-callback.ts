@@ -1,9 +1,8 @@
+import type { EntityUuid, OwnedById } from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entity";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 
 import {
   archiveNotification,

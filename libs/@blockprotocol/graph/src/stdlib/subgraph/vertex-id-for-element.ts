@@ -1,11 +1,11 @@
 import type {
   EntityRecordId,
-  GraphElementVertexId,
   OntologyTypeRecordId,
-  Subgraph,
-} from "../../types.js";
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+
+import type { GraphElementVertexId, Subgraph } from "../../types.js";
 import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
-import { typedEntries } from "../../util.js";
 
 /**
  * Searches the vertices of the subgraph for an element that matches a given {@link EntityRecordId} or
@@ -35,7 +35,7 @@ export const getVertexIdForRecordId = (
         return {
           baseId,
           revisionId,
-        };
+        } as GraphElementVertexId;
       }
     }
   }

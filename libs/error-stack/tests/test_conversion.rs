@@ -1,10 +1,12 @@
 #![cfg(feature = "std")]
-#![cfg_attr(nightly, feature(error_generic_member_access))]
+#![cfg_attr(nightly, feature(error_generic_member_access, never_type))]
 #![allow(clippy::std_instead_of_core)]
 
 use core::fmt;
 use std::{error::Error, io};
 
+#[cfg(nightly)]
+use error_stack::IntoReport;
 use error_stack::{FrameKind, Report, ResultExt as _};
 
 fn io_error() -> Result<(), io::Error> {
@@ -109,4 +111,24 @@ fn boxed_error() {
         *core::error::request_ref::<u32>(report.as_ref()).expect("requested value not found"),
         10
     );
+}
+
+#[cfg(nightly)]
+#[test]
+fn never_report() {
+    trait NeverReport: Sized {
+        type Error: IntoReport;
+
+        fn never_report(self) -> Result<Self, Self::Error>;
+    }
+
+    impl NeverReport for () {
+        type Error = !;
+
+        fn never_report(self) -> Result<Self, Self::Error> {
+            Ok(())
+        }
+    }
+
+    let Ok(()) = ().never_report();
 }

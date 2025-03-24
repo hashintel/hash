@@ -1,6 +1,6 @@
+import type { BaseUrl } from "@blockprotocol/type-system";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { Box } from "@mui/material";
 
 import { EntitiesVisualizer } from "../entities-visualizer";

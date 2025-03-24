@@ -165,8 +165,18 @@ export const SlideStack: FunctionComponent<{
 
 export const SlideStackProvider = ({
   children,
+  rewriteSlideItemOverride,
 }: {
   children: React.ReactNode;
+  /**
+   * If provided, this function will be called with the item to be added to the slide stack.
+   * It can then undergo transformations before being added to the slide stack.
+   * The use case that prompted this is Flow outputs, where some entities are not in the db, and are in a 'proposed' state.
+   * For these entities, we need to manually provide the subgraph to the EntitySlide.
+   * The Flow outputs component (outputs.tsx) achieves this by wrapping components that might add to a stack with its own SlideStackProvider,
+   * and can intercept calls for entities being added to the stack, check if they're 'proposed', and if so, provide the subgraph.
+   */
+  rewriteSlideItemOverride?: (item: SlideItem) => SlideItem;
 }) => {
   const [items, setItems] = useState<
     { item: SlideItem; ref: RefObject<HTMLDivElement | null> }[]
@@ -181,7 +191,9 @@ export const SlideStackProvider = ({
   }
 
   const pushToSlideStack = useCallback(
-    (item: SlideItem) => {
+    (uncheckedItem: SlideItem) => {
+      const item = rewriteSlideItemOverride?.(uncheckedItem) ?? uncheckedItem;
+
       setItems((prev) => [
         ...prev.slice(0, currentIndex + 1),
         { item, ref: createRef() },
@@ -193,7 +205,7 @@ export const SlideStackProvider = ({
         setCurrentIndex((prevIndex) => prevIndex + 1);
       }
     },
-    [currentIndex, items.length],
+    [currentIndex, items.length, rewriteSlideItemOverride],
   );
 
   const replaceItem = useCallback(

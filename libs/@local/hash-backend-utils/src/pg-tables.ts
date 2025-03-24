@@ -3,14 +3,16 @@
  * names are converted from snake_case to camelCase for consistency.
  */
 import type { JsonObject } from "@blockprotocol/core";
-import type { EditionCreatedById } from "@local/hash-graph-types/account";
-import type { Uuid } from "@local/hash-graph-types/branded";
+import type {
+  EditionCreatedById,
+  EntityEditionId,
+} from "@blockprotocol/type-system";
 
 import type { Wal2JsonMsg } from "./wal2json.js";
 
 type EntityEditionRecord = {
   archived: boolean;
-  entityEditionId: Uuid;
+  entityEditionId: EntityEditionId;
   properties: JsonObject;
   editionCreatedById?: EditionCreatedById; // the UUID of the user who created this edition
 };
@@ -31,7 +33,7 @@ export const entityEditionRecordFromRealtimeMessage = (
 
   return {
     archived: obj.archived as boolean,
-    entityEditionId: obj.entity_edition_id as Uuid,
+    entityEditionId: obj.entity_edition_id as EntityEditionId,
     properties: JSON.parse(obj.properties as string) as JsonObject,
     editionCreatedById: obj.edition_created_by_id as
       | EditionCreatedById

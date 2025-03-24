@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { OwnedById } from "@blockprotocol/type-system";
 import type { Node } from "prosemirror-model";
 import type { EditorView } from "prosemirror-view";
 

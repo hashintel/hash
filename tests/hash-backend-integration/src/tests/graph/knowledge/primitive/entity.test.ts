@@ -17,14 +17,14 @@ import {
   getClosedMultiEntityTypes,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import type {
+  EntityTypeWithMetadata,
+  OwnedById,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,

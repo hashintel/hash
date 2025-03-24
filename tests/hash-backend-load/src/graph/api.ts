@@ -1,9 +1,9 @@
+import type { ActorId } from "@blockprotocol/type-system-rs";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import opentelemetry from "@opentelemetry/api";
@@ -18,7 +18,7 @@ export const getGraphApiClient = (): GraphApi => {
       }),
       {
         host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
-        port: parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
+        port: Number.parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
         requestInterceptor: (request) => {
           opentelemetry.propagation.inject(
             opentelemetry.context.active(),
@@ -33,8 +33,8 @@ export const getGraphApiClient = (): GraphApi => {
   return __graphApi;
 };
 
-let __systemAccountId: AccountId | undefined;
-export const getSystemAccountId = async (): Promise<AccountId> => {
+let __systemAccountId: ActorId | undefined;
+export const getSystemAccountId = async (): Promise<ActorId> => {
   if (!__systemAccountId) {
     __systemAccountId = await getGraphApiClient()
       .getEntityTypes(publicUserAccountId, {
@@ -54,7 +54,7 @@ export const getSystemAccountId = async (): Promise<AccountId> => {
             "Critical: No organization entity type found in the graph. Did you forgot to migrate the Node API?",
           );
         }
-        return entityType.metadata.provenance.edition.createdById as AccountId;
+        return entityType.metadata.provenance.edition.createdById as ActorId;
       });
   }
 

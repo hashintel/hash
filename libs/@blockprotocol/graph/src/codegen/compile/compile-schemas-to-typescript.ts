@@ -4,12 +4,12 @@ import type {
   EntityType,
   PropertyType,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
+import { validateVersionedUrl } from "@blockprotocol/type-system";
+import { typedValues } from "@local/advanced-types/typed-entries";
 import { compile as compileJsonSchema } from "json-schema-to-typescript";
 
 import { mustBeDefined } from "../../util/must-be-defined.js";
-import { typedValues } from "../../util/typed-object-iter.js";
 import type { CompileContext } from "../context.js";
 import type { CompiledTsType, JsonSchema } from "../shared.js";
 import { redundantTypePlaceholder } from "../shared.js";

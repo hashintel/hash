@@ -1,12 +1,12 @@
+import type { EntityRevisionId } from "@blockprotocol/graph";
+import {
+  isBaseUrl,
+  isEntityId,
+  type OntologyTypeVersion,
+} from "@blockprotocol/type-system";
 import type { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
 
-import type {
-  EntityRevisionId,
-  OntologyTypeRevisionId,
-  Subgraph,
-} from "../../src/main.js";
-import { isEntityId } from "../../src/types/shared/branded.js";
+import type { Subgraph } from "../../src/main.js";
 
 export const mapRoots = (
   roots: SubgraphGraphApi["roots"],
@@ -20,7 +20,7 @@ export const mapRoots = (
     } else if (isBaseUrl(root.baseId)) {
       return {
         baseId: root.baseId,
-        revisionId: root.revisionId as OntologyTypeRevisionId,
+        revisionId: root.revisionId as OntologyTypeVersion,
       };
     } else {
       throw new Error(

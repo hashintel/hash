@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@blockprotocol/type-system";
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import { useCallback } from "react";
 
 import type {

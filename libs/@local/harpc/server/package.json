@@ -17,7 +17,7 @@
     "@rust/harpc-types": "0.0.0-private"
   },
   "devDependencies": {
-    "@rust/harpc-client": "0.0.0-private",
-    "@rust/hash-graph-types": "0.0.0-private"
+    "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@rust/harpc-client": "0.0.0-private"
   }
 }

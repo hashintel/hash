@@ -1,4 +1,4 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 

@@ -2,6 +2,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import type { Url } from "@blockprotocol/type-system";
+
 import { getWebPageActivity } from "../src/activities/get-web-page-activity.js";
 
 /**
@@ -14,7 +16,7 @@ import { getWebPageActivity } from "../src/activities/get-web-page-activity.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const url = process.argv[2];
+const url = process.argv[2] as Url;
 
 if (!url) {
   console.error(

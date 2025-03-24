@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use super::{Constraint, ConstraintError, ConstraintValidator, JsonSchemaValueType};
 use crate::{
-    knowledge::Value,
+    knowledge::PropertyValue,
     ontology::{
         data_type::schema::ResolveClosedDataTypeError,
         json_schema::{SingleValueConstraints, ValueConstraints},
@@ -23,7 +23,7 @@ use crate::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub enum StringFormat {
     Uri,
@@ -214,7 +214,7 @@ pub enum StringTypeTag {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(untagged, rename_all = "camelCase", deny_unknown_fields)]
 pub enum StringSchema {
     Constrained(StringConstraints),
@@ -252,7 +252,7 @@ impl Constraint for StringSchema {
                         .map(|value| {
                             constraints.validate_value(&value).change_context(
                                 ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
-                                    Value::String(value),
+                                    PropertyValue::String(value),
                                 ),
                             )
                         })
@@ -287,8 +287,8 @@ impl Constraint for StringSchema {
                 ensure!(
                     !intersection.is_empty(),
                     ResolveClosedDataTypeError::ConflictingEnumValues(
-                        lhs.into_iter().map(Value::String).collect(),
-                        rhs.into_iter().map(Value::String).collect(),
+                        lhs.into_iter().map(PropertyValue::String).collect(),
+                        rhs.into_iter().map(PropertyValue::String).collect(),
                     )
                 );
 
@@ -306,19 +306,19 @@ impl Constraint for StringSchema {
     }
 }
 
-impl ConstraintValidator<Value> for StringSchema {
+impl ConstraintValidator<PropertyValue> for StringSchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &Value) -> bool {
-        if let Value::String(string) = value {
+    fn is_valid(&self, value: &PropertyValue) -> bool {
+        if let PropertyValue::String(string) = value {
             self.is_valid(string.as_str())
         } else {
             false
         }
     }
 
-    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
-        if let Value::String(string) = value {
+    fn validate_value(&self, value: &PropertyValue) -> Result<(), Report<ConstraintError>> {
+        if let PropertyValue::String(string) = value {
             self.validate_value(string.as_str())
         } else {
             bail!(ConstraintError::InvalidType {
@@ -347,8 +347,8 @@ impl ConstraintValidator<str> for StringSchema {
             Self::Enum { r#enum } => {
                 if !r#enum.iter().any(|item| item == value) {
                     bail!(ConstraintError::InvalidEnumValue {
-                        actual: Value::String(value.to_owned()),
-                        expected: r#enum.iter().cloned().map(Value::String).collect(),
+                        actual: PropertyValue::String(value.to_owned()),
+                        expected: r#enum.iter().cloned().map(PropertyValue::String).collect(),
                     });
                 }
             }
@@ -358,7 +358,7 @@ impl ConstraintValidator<str> for StringSchema {
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StringConstraints {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -584,8 +584,8 @@ mod tests {
             &string_schema,
             json!("bar"),
             [ConstraintError::InvalidEnumValue {
-                actual: Value::String("bar".to_owned()),
-                expected: vec![Value::String("foo".to_owned())],
+                actual: PropertyValue::String("bar".to_owned()),
+                expected: vec![PropertyValue::String("foo".to_owned())],
             }],
         );
     }
@@ -992,12 +992,12 @@ mod tests {
                     }))
                     .expect("Failed to parse schema"),
                 ),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::String(
-                    "foo".to_owned(),
-                )),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::String(
-                    "bar".to_owned(),
-                )),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
+                    PropertyValue::String("foo".to_owned()),
+                ),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
+                    PropertyValue::String("bar".to_owned()),
+                ),
             ],
         );
     }

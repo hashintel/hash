@@ -1,3 +1,4 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
 import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -14,7 +15,6 @@ import {
   IconButton,
   LoadingSpinner,
 } from "@hashintel/design-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";

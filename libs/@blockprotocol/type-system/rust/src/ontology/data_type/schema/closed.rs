@@ -10,7 +10,7 @@ use thiserror::Error;
 
 use super::{DataType, DataTypeEdge, ValueLabel};
 use crate::{
-    knowledge::Value,
+    knowledge::PropertyValue,
     ontology::{
         InheritanceDepth, VersionedUrl, data_type::DataTypeUuid, json_schema::ValueConstraints,
     },
@@ -22,7 +22,7 @@ use crate::{
 /// data types (via `allOf` references). It represents the complete set of constraints
 /// and metadata that apply to a particular data type after resolution.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedDataType {
     #[serde(rename = "$id")]
@@ -61,17 +61,17 @@ pub enum ResolveClosedDataTypeError {
     #[error("The data type constraints intersected to different types.")]
     IntersectedDifferentTypes,
     #[error("The value {} does not satisfy the constraint: {}", .0, json!(.1))]
-    UnsatisfiedConstraint(Value, ValueConstraints),
+    UnsatisfiedConstraint(PropertyValue, ValueConstraints),
     #[error("The value {0} does not satisfy the constraint")]
-    UnsatisfiedEnumConstraintVariant(Value),
+    UnsatisfiedEnumConstraintVariant(PropertyValue),
     #[error("No value satisfy the constraint: {}", json!(.0))]
     UnsatisfiedEnumConstraint(ValueConstraints),
     #[error("Conflicting const values: {0} and {1}")]
-    ConflictingConstValues(Value, Value),
+    ConflictingConstValues(PropertyValue, PropertyValue),
     #[error("Conflicting enum values, no common values found: {} and {}", json!(.0), json!(.1))]
-    ConflictingEnumValues(Vec<Value>, Vec<Value>),
+    ConflictingEnumValues(Vec<PropertyValue>, Vec<PropertyValue>),
     #[error("The const value is not in the enum values: {} and {}", .0, json!(.1))]
-    ConflictingConstEnumValue(Value, Vec<Value>),
+    ConflictingConstEnumValue(PropertyValue, Vec<PropertyValue>),
     #[error("The constraint is unsatisfiable: {}", json!(.0))]
     UnsatisfiableConstraint(ValueConstraints),
     #[error("The constraints are incompatible: {} <=> {}", json!(.0), json!(.1))]

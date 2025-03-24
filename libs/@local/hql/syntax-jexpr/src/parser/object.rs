@@ -1,11 +1,12 @@
 use alloc::borrow::Cow;
 use core::assert_matches::debug_assert_matches;
 
-use hql_diagnostics::{Diagnostic, help::Help, note::Note};
-use hql_span::{SpanId, TextRange};
+use hql_diagnostics::{help::Help, note::Note};
+use hql_span::TextRange;
 
 use super::stream::TokenStream;
 use crate::{
+    error::{JExprDiagnostic, JExprDiagnosticCategory},
     lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
     parser::error::unexpected_token,
     span::Span,
@@ -27,8 +28,8 @@ pub(crate) fn parse_object<'arena, 'source>(
     mut on_entry: impl FnMut(
         &mut TokenStream<'arena, 'source>,
         Key<'source>,
-    ) -> Result<(), Diagnostic<'static, SpanId>>,
-) -> Result<TextRange, Diagnostic<'static, SpanId>> {
+    ) -> Result<(), JExprDiagnostic>,
+) -> Result<TextRange, JExprDiagnostic> {
     debug_assert_matches!(token.kind, TokenKind::LBrace);
 
     let mut span = token.span;
@@ -59,10 +60,10 @@ pub(crate) fn parse_object<'arena, 'source>(
                 parent_id: None,
             });
 
-            return Err(unexpected_token(
-                span,
-                [SyntaxKind::Comma, SyntaxKind::RBrace],
-            ));
+            return Err(
+                unexpected_token(span, [SyntaxKind::Comma, SyntaxKind::RBrace])
+                    .map_category(JExprDiagnosticCategory::Parser),
+            );
         };
 
         let key_span = key.span;
@@ -73,7 +74,8 @@ pub(crate) fn parse_object<'arena, 'source>(
                 parent_id: None,
             });
 
-            let mut diagnostic = unexpected_token(span, [SyntaxKind::String]);
+            let mut diagnostic = unexpected_token(span, [SyntaxKind::String])
+                .map_category(JExprDiagnosticCategory::Parser);
 
             // try to be extra helpful if they chose to use a number as a key
             if key.kind.syntax() == SyntaxKind::Number {
@@ -94,7 +96,8 @@ pub(crate) fn parse_object<'arena, 'source>(
                 parent_id: None,
             });
 
-            let mut diagnostic = unexpected_token(span, [SyntaxKind::Colon]);
+            let mut diagnostic = unexpected_token(span, [SyntaxKind::Colon])
+                .map_category(JExprDiagnosticCategory::Parser);
 
             diagnostic.help = Some(Help::new("Did you forget to add a colon?"));
 

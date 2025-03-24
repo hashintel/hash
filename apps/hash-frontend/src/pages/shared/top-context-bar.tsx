@@ -1,10 +1,10 @@
-import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+} from "@blockprotocol/type-system";
+import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SxProps, Theme } from "@mui/material";
 import {
@@ -29,8 +29,8 @@ import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions
 import { ShareDropdownMenu } from "./top-context-bar/share-dropdown-menu";
 import { isItemType } from "./top-context-bar/util";
 
-export { isItemType as isItemEntityType };
 export { useContextBarActionsContext } from "./top-context-bar/context-bar-actions-context";
+export { isItemType as isItemEntityType };
 
 const PageRestoredMessageWrapper: FunctionComponent<{
   children: ReactNode;

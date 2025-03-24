@@ -1,30 +1,30 @@
+import type {
+  DataTypeVertex as DataTypeVertexBp,
+  EntityRevisionId,
+  EntityTypeVertex as EntityTypeVertexBp,
+  EntityVertexId as EntityVertexIdBp,
+  GraphElementVertexId as GraphElementVertexIdBp,
+  OntologyTypeVertexId as OntologyTypeVertexIdBp,
+  OntologyVertex as OntologyVertexBp,
+  OntologyVertices as OntologyVerticesBp,
+  PropertyTypeVertex as PropertyTypeVertexBp,
+  VertexId as VertexIdBp,
+} from "@blockprotocol/graph";
 import {
-  type DataTypeVertex as DataTypeVertexBp,
-  type EntityTypeVertex as EntityTypeVertexBp,
-  type EntityVertexId as EntityVertexIdBp,
-  type GraphElementVertexId as GraphElementVertexIdBp,
   isEntityVertexId as isEntityVertexIdBp,
   isOntologyTypeVertexId as isOntologyTypeVertexIdBp,
-  type OntologyTypeVertexId as OntologyTypeVertexIdBp,
-  type OntologyVertex as OntologyVertexBp,
-  type OntologyVertices as OntologyVerticesBp,
-  type PropertyTypeVertex as PropertyTypeVertexBp,
-  type VertexId as VertexIdBp,
 } from "@blockprotocol/graph";
-import type { Subtype } from "@local/advanced-types/subtype";
-import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityId,
-  EntityProperties,
-} from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
+  EntityId,
   EntityTypeWithMetadata,
+  OntologyTypeVersion,
   PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-
-import type { EntityRevisionId, OntologyTypeRevisionId } from "../element.js";
+} from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
+import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 export type DataTypeVertex = Subtype<
   DataTypeVertexBp,
@@ -88,7 +88,7 @@ export type EntityVertexId = Subtype<
 >;
 export type OntologyTypeVertexId = Subtype<
   OntologyTypeVertexIdBp,
-  VertexId<BaseUrl, OntologyTypeRevisionId>
+  VertexId<BaseUrl, OntologyTypeVersion>
 >;
 export type GraphElementVertexId = Subtype<
   GraphElementVertexIdBp,
@@ -107,7 +107,7 @@ export type OntologyVertices = Subtype<
   OntologyVerticesBp,
   {
     [baseUrl: BaseUrl]: {
-      [revisionId: OntologyTypeRevisionId]: OntologyVertex;
+      [revisionId: OntologyTypeVersion]: OntologyVertex;
     };
   }
 >;

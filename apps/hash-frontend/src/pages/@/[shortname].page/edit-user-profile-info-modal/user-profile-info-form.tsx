@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
+import type { OwnedById } from "@blockprotocol/type-system";
 import { Select, TextField } from "@hashintel/design-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,

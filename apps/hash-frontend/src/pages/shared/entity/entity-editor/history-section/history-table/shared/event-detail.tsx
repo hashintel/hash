@@ -2,7 +2,7 @@ import {
   isValueMetadata,
   type PropertyMetadata,
   type PropertyValue,
-} from "@local/hash-graph-types/entity";
+} from "@blockprotocol/type-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
