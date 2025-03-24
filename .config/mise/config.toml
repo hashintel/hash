@@ -7,7 +7,7 @@ node        = { version = "22.14.0", postinstall = "corepack enable" }
 'npm:turbo' = "2.4.4"
 
 # Helper to install tools
-cargo-binstall = "1.10.22"
+cargo-binstall = "1.12.2"
 uv             = "0.6.9"
 
 # Tools to compile the project
@@ -18,15 +18,15 @@ protoc            = "30.1"
 
 # CLI tools
 biome                  = "1.9.5-nightly.ff02a0b"
-"cargo:cargo-hack"     = "0.6.35"
-"cargo:cargo-insta"    = "1.42.1"
+"cargo:cargo-hack"     = "0.6.36"
+"cargo:cargo-insta"    = "1.42.2"
 "cargo:cargo-llvm-cov" = "0.6.16"
-"cargo:cargo-nextest"  = "0.9.80"
+"cargo:cargo-nextest"  = "0.9.92"
 just                   = "1.40.0"
 markdownlint-cli2      = "0.17.2"
 "npm:@napi-rs/cli"     = "2.18.4"
-"npm:@redocly/cli"     = "1.32.1"
-"npm:renovate"         = "39.166.0"
+"npm:@redocly/cli"     = "1.34.0"
+"npm:renovate"         = "39.212.2"
 "pipx:sqlfluff"        = "3.3.1"
-sentry-cli             = "2.41.1"
+sentry-cli             = "2.42.4"
 taplo                  = "0.9.3"
