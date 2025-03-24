@@ -1,12 +1,14 @@
 import type { ApolloQueryResult } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
 } from "@local/hash-graph-client";
-import { type Entity } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { ConversionRequest } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { useMemo } from "react";

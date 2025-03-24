@@ -3,7 +3,7 @@ mod provenance;
 use std::collections::HashMap;
 
 pub use self::provenance::ValueProvenance;
-use super::Value;
+use super::PropertyValue;
 use crate::{
     knowledge::Confidence,
     ontology::{BaseUrl, VersionedUrl},
@@ -11,6 +11,7 @@ use crate::{
 
 #[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ValueMetadata {
     #[serde(default, skip_serializing_if = "ValueProvenance::is_empty")]
@@ -29,5 +30,5 @@ pub struct ValueMetadata {
     pub original_data_type_id: Option<VersionedUrl>,
 
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub canonical: HashMap<BaseUrl, Value>,
+    pub canonical: HashMap<BaseUrl, PropertyValue>,
 }

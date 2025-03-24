@@ -1,16 +1,17 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
-  extractVersion,
-} from "@blockprotocol/type-system/slim";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import { typedValues } from "@local/advanced-types/typed-entries";
 
-import type { EntityTypeWithMetadata } from "../../../types/ontology/entity-type.js";
 import type {
   OntologyTypeVertexId,
+  OntologyVertices,
   Subgraph,
 } from "../../../types/subgraph.js";
 import { isEntityTypeVertex } from "../../../types/subgraph/vertices.js";
-import { typedValues } from "../../../util.js";
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph
@@ -43,7 +44,7 @@ export const getEntityTypeById = (
     extractBaseUrl(entityTypeId),
     extractVersion(entityTypeId),
   ];
-  const vertex = subgraph.vertices[baseUrl]?.[version];
+  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[version];
 
   if (!vertex) {
     return undefined;
@@ -68,7 +69,9 @@ export const getEntityTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): EntityTypeWithMetadata | undefined => {
-  const vertex = subgraph.vertices[vertexId.baseId]?.[vertexId.revisionId];
+  const vertex = (subgraph.vertices as OntologyVertices)[vertexId.baseId]?.[
+    vertexId.revisionId
+  ];
 
   if (!vertex) {
     return undefined;
@@ -91,7 +94,7 @@ export const getEntityTypesByBaseUrl = (
   subgraph: Subgraph,
   baseUrl: BaseUrl,
 ): EntityTypeWithMetadata[] => {
-  const versionObject = subgraph.vertices[baseUrl];
+  const versionObject = (subgraph.vertices as OntologyVertices)[baseUrl];
 
   if (!versionObject) {
     return [];

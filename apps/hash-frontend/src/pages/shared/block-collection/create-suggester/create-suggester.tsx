@@ -1,5 +1,5 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { OwnedById } from "@blockprotocol/type-system";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { Popper } from "@mui/material";

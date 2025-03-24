@@ -1,5 +1,5 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-import { scalars } from "@local/hash-isomorphic-utils/graphql/scalar-mapping";
+import { baseGraphQlCodegenConfig } from "@local/hash-isomorphic-utils/graphql/base-codegen-config";
 
 const config: CodegenConfig = {
   overwrite: true,
@@ -21,13 +21,8 @@ const config: CodegenConfig = {
         afterOneFileWrite: ["biome format --write --vcs-use-ignore-file=false"],
       },
       config: {
-        avoidOptionals: {
-          defaultValue: true,
-        },
         noSchemaStitching: true,
-        skipTypename: true,
-        // Use shared scalars
-        scalars,
+        ...baseGraphQlCodegenConfig,
       },
     },
   },

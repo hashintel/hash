@@ -1,16 +1,17 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
-  extractVersion,
-} from "@blockprotocol/type-system/slim";
+import type {
+  BaseUrl,
+  PropertyTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import { typedValues } from "@local/advanced-types/typed-entries";
 
-import type { PropertyTypeWithMetadata } from "../../../types/ontology/property-type.js";
 import type {
   OntologyTypeVertexId,
+  OntologyVertices,
   Subgraph,
 } from "../../../types/subgraph.js";
 import { isPropertyTypeVertex } from "../../../types/subgraph/vertices.js";
-import { typedValues } from "../../../util.js";
 
 /**
  * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph
@@ -43,7 +44,7 @@ export const getPropertyTypeById = (
     extractBaseUrl(propertyTypeId),
     extractVersion(propertyTypeId),
   ];
-  const vertex = subgraph.vertices[baseUrl]?.[version];
+  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[version];
 
   if (!vertex) {
     return undefined;
@@ -68,7 +69,9 @@ export const getPropertyTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): PropertyTypeWithMetadata | undefined => {
-  const vertex = subgraph.vertices[vertexId.baseId]?.[vertexId.revisionId];
+  const vertex = (subgraph.vertices as OntologyVertices)[vertexId.baseId]?.[
+    vertexId.revisionId
+  ];
 
   if (!vertex) {
     return undefined;
@@ -91,7 +94,7 @@ export const getPropertyTypesByBaseUrl = (
   subgraph: Subgraph,
   baseUrl: BaseUrl,
 ): PropertyTypeWithMetadata[] => {
-  const versionObject = subgraph.vertices[baseUrl];
+  const versionObject = (subgraph.vertices as OntologyVertices)[baseUrl];
 
   if (!versionObject) {
     return [];

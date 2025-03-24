@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { OwnedById } from "@blockprotocol/type-system";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   blockProtocolPropertyTypes,

@@ -1,9 +1,6 @@
+import type { ActorGroupId, ActorId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -54,7 +51,7 @@ export const getHashInstanceFromEntity = ({
  */
 export const getHashInstance = async (
   { graphApi }: { graphApi: GraphApi },
-  { actorId }: { actorId: AccountId },
+  { actorId }: { actorId: ActorId },
 ): Promise<HashInstance> => {
   const entities = await backOff(
     () =>
@@ -99,8 +96,8 @@ export const getHashInstance = async (
  */
 export const isUserHashInstanceAdmin = async (
   ctx: { graphApi: GraphApi },
-  authentication: { actorId: AccountId },
-  { userAccountId }: { userAccountId: AccountId },
+  authentication: { actorId: ActorId },
+  { userAccountId }: { userAccountId: ActorId },
 ) => {
   // console.info(`[${userAccountId}] Fetching HASH Instance entity`);
   const hashInstance = await getHashInstance(ctx, authentication).catch(
@@ -139,8 +136,8 @@ export const isUserHashInstanceAdmin = async (
  */
 export const getHashInstanceAdminAccountGroupId = async (
   ctx: { graphApi: GraphApi },
-  authentication: { actorId: AccountId },
-): Promise<AccountGroupId> => {
+  authentication: { actorId: ActorId },
+): Promise<ActorGroupId> => {
   const hashInstance = await getHashInstance(ctx, authentication);
 
   const systemAccountId = await getMachineActorId(
@@ -170,5 +167,5 @@ export const getHashInstanceAdminAccountGroupId = async (
     );
   }
 
-  return entityAdmin.subjectId as AccountGroupId;
+  return entityAdmin.subjectId as ActorGroupId;
 };

@@ -1,10 +1,10 @@
 import { useMutation } from "@apollo/client";
+import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
+import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import { type Entity } from "@local/hash-graph-sdk/entity";
-import type { ClosedMultiEntityType } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import {
   getIncomingLinksForEntity,
   getOutgoingLinksForEntity,

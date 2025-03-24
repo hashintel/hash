@@ -1,3 +1,12 @@
+import type {
+  DataTypeWithMetadata,
+  Entity,
+  EntityRecordId,
+  EntityTypeWithMetadata,
+  OntologyTypeRecordId,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
+
 import {
   inferDataTypeEdgesInSubgraphByMutation,
   inferEntityEdgesInSubgraphByMutation,
@@ -11,21 +20,13 @@ import {
   addPropertyTypeVerticesToSubgraphByMutation,
 } from "../../internal/mutate-subgraph/element.js";
 import type {
-  DataTypeWithMetadata,
-  Entity,
-  EntityRecordId,
   EntityRootType,
-  EntityTypeWithMetadata,
   EntityVertexId,
   GraphResolveDepths,
-  OntologyTypeRecordId,
-  OntologyTypeVertexId,
-  PropertyTypeWithMetadata,
   Subgraph,
   SubgraphTemporalAxes,
 } from "../../types.js";
 import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
-import { typedEntries } from "../../util.js";
 import { getVertexIdForRecordId } from "./vertex-id-for-element.js";
 
 /**
@@ -132,7 +133,7 @@ export const buildSubgraph = (
   for (const rootRecordId of rootRecordIds) {
     try {
       const vertexId = getVertexIdForRecordId(subgraph, rootRecordId);
-      subgraph.roots.push(vertexId);
+      subgraph.roots.push(vertexId as EntityVertexId);
     } catch {
       missingRootVertexIds.push(rootRecordId);
     }
@@ -149,62 +150,4 @@ export const buildSubgraph = (
   }
 
   return subgraph;
-};
-
-/**
- * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`
- *
- * This function will infer/add edges to a subgraph based on the vertices that are already present.
- * The {@link Subgraph} must not have any edges already present, as this would result in invalid state.
- * It will add edges for:
- *  - data type vertices
- *  - property type vertices
- *  - entity type vertices
- *  - entity vertices
- *
- * This operation MUTATES the given {@link Subgraph} - you should know why you need to do it.
- *
- * @param {Subgraph} subgraph – the subgraph to mutate by adding edges
- */
-export const inferSubgraphEdges = (
-  subgraph: Subgraph<EntityRootType>,
-): void => {
-  // Construct object with vertex ids for each vertex kind
-  const vertexIds = typedEntries(subgraph.vertices).reduce(
-    (
-      acc: {
-        dataTypeVertexIds: OntologyTypeVertexId[];
-        propertyTypeVertexIds: OntologyTypeVertexId[];
-        entityTypeVertexIds: OntologyTypeVertexId[];
-        entityVertexIds: EntityVertexId[];
-      },
-      [baseId, revisionObject],
-    ) => {
-      for (const [revisionId, vertex] of typedEntries(revisionObject)) {
-        acc[`${vertex.kind}VertexIds`].push({
-          baseId,
-          revisionId,
-        });
-      }
-
-      return acc;
-    },
-    {
-      dataTypeVertexIds: [],
-      propertyTypeVertexIds: [],
-      entityTypeVertexIds: [],
-      entityVertexIds: [],
-    },
-  );
-
-  inferDataTypeEdgesInSubgraphByMutation(subgraph, vertexIds.dataTypeVertexIds);
-  inferPropertyTypeEdgesInSubgraphByMutation(
-    subgraph,
-    vertexIds.propertyTypeVertexIds,
-  );
-  inferEntityTypeEdgesInSubgraphByMutation(
-    subgraph,
-    vertexIds.entityTypeVertexIds,
-  );
-  inferEntityEdgesInSubgraphByMutation(subgraph, vertexIds.entityVertexIds);
 };

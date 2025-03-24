@@ -2,7 +2,7 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(cfg_eval)]
+#![feature(cfg_eval, trait_alias)]
 
 extern crate alloc;
 
@@ -18,6 +18,5 @@ pub mod span;
 
 #[cfg(feature = "serde")]
 pub(crate) mod encoding;
-pub mod rob;
 
 pub use diagnostic::Diagnostic;

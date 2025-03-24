@@ -6,7 +6,7 @@ pub mod vertices;
 mod record;
 
 use core::hash::Hash;
-use std::collections::hash_map::{RandomState, RawEntryMut};
+use std::collections::hash_map::Entry;
 
 pub use self::record::SubgraphRecord;
 use self::{
@@ -50,8 +50,8 @@ impl Subgraph {
 
     fn vertex_entry_mut<R: SubgraphRecord>(
         &mut self,
-        vertex_id: &R::VertexId,
-    ) -> RawEntryMut<R::VertexId, R, RandomState> {
+        vertex_id: R::VertexId,
+    ) -> Entry<R::VertexId, R> {
         vertex_id.subgraph_entry_mut(&mut self.vertices)
     }
 
@@ -63,8 +63,8 @@ impl Subgraph {
     where
         R::VertexId: Eq + Hash,
     {
-        if let RawEntryMut::Vacant(entry) = self.vertex_entry_mut(&vertex_id) {
-            entry.insert(vertex_id, record);
+        if let Entry::Vacant(entry) = self.vertex_entry_mut(vertex_id) {
+            entry.insert(record);
         }
     }
 

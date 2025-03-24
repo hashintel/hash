@@ -1,22 +1,6 @@
 /**
  * The extended standard library of functions for interacting with a {@link Subgraph}.
  */
-export { compareBounds } from "./stdlib/bound.js";
-export {
-  intervalCompareWithInterval,
-  intervalContainsInterval,
-  intervalContainsTimestamp,
-  intervalForTimestamp,
-  intervalIntersectionWithInterval,
-  intervalIsAdjacentToInterval,
-  intervalIsStrictlyAfterInterval,
-  intervalIsStrictlyBeforeInterval,
-  intervalMergeWithInterval,
-  intervalOverlapsInterval,
-  intervalUnionWithInterval,
-  sortIntervals,
-  unionOfIntervals,
-} from "./stdlib/interval.js";
 export { getPropertyTypesReferencedByEntityType } from "./stdlib/subgraph/edge/entity-type.js";
 export {
   getIncomingLinkAndSourceEntities,
@@ -34,6 +18,8 @@ export {
   getJsonSchemaTypeFromValue,
 } from "./stdlib/subgraph/element/data-type.js";
 export {
+  extractActorGroupId,
+  extractActorId,
   getEntities,
   getEntityRevision,
   getEntityRevisionsByEntityId,
@@ -62,4 +48,3 @@ export {
   guessSchemaForPropertyValue,
 } from "./stdlib/subgraph/element/property-type.js";
 export * from "./stdlib/subgraph/roots.js";
-export { getLatestInstantIntervalForSubgraph } from "./stdlib/subgraph/temporal-axes.js";

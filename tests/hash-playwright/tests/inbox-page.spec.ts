@@ -1,3 +1,4 @@
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -8,7 +9,6 @@ import type {
   OccurredInEntity,
 } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { Page } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { createEntity, getUser } from "./shared/api-queries";
 import { loginUsingTempForm } from "./shared/login-using-temp-form";

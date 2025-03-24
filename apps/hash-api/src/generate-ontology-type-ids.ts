@@ -2,22 +2,20 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import type {
+  DataType,
+  DataTypeWithMetadata,
+  EntityType,
+  EntityTypeWithMetadata,
+  PropertyType,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type {
-  DataType,
-  EntityType,
-  PropertyType,
-} from "@local/hash-graph-client";
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   ImpureGraphContext,
@@ -184,7 +182,10 @@ const generateOntologyIds = async () => {
   });
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_HTTP_HOST");
-  const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10);
+  const graphApiPort = Number.parseInt(
+    getRequiredEnv("HASH_GRAPH_HTTP_PORT"),
+    10,
+  );
 
   const graphApi = createGraphClient(logger, {
     host: graphApiHost,
@@ -306,8 +307,8 @@ const generateOntologyIds = async () => {
     `../../../libs/@local/hash-isomorphic-utils/src/${outputFileName}`,
   );
 
-  const importStatement = `import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";\n\n`;
+  const importStatement = `import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@blockprotocol/type-system";\n\n`;
 
   const fileText =
     importStatement +

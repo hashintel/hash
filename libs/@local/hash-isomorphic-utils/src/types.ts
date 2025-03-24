@@ -1,14 +1,15 @@
 import type {
+  BaseUrl,
+  EntityId,
   EntityType,
+  PropertyPath,
   PropertyType,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 import type {
   GetEntitiesRequest as GetEntitiesRequestGraphApi,
   GetEntitySubgraphRequest as GetEntitySubgraphRequestGraphApi,
 } from "@local/hash-graph-client";
-import type { EntityId, PropertyPath } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export type TextToken =
   | {

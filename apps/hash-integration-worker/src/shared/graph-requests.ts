@@ -1,25 +1,27 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorId,
+  EntityId,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
 
 export const getEntitiesByLinearId = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorId };
   linearId: string;
   entityTypeId?: VersionedUrl;
   webOwnedById?: OwnedById;
@@ -68,7 +70,7 @@ export const getEntitiesByLinearId = async (params: {
 
 export const getEntityOutgoingLinks = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorId };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {
@@ -122,7 +124,7 @@ export const getEntityOutgoingLinks = async (params: {
 
 export const getLatestEntityById = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorId };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {

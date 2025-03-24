@@ -13,13 +13,11 @@ import type {
 } from "@blockprotocol/graph";
 import type {
   EntityType,
+  EntityTypeWithMetadata,
   PropertyType,
+  PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
 import type { EmptyObject } from "@local/hash-isomorphic-utils/util";
 import type {
   DataTypeRootType,

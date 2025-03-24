@@ -1,4 +1,4 @@
-import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { Box } from "@mui/material";
 import { useMemo } from "react";

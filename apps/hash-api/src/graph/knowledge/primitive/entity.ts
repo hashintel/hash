@@ -1,4 +1,19 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorGroupId,
+  ActorId,
+  BaseUrl,
+  EntityId,
+  LinkData,
+  PropertyObject,
+  PropertyPatchOperation,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  extractDraftIdFromEntityId,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
@@ -7,7 +22,6 @@ import type {
   AllFilter,
   CountEntitiesParams,
   DiffEntityResult,
-  EntityMetadata,
   EntityPermission,
   Filter,
   GraphResolveDepths,
@@ -15,18 +29,7 @@ import type {
 } from "@local/hash-graph-client";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
-import type {
-  EntityId,
-  EntityProperties,
-  LinkData,
-  PropertyObject,
-  PropertyPatchOperation,
-} from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -43,18 +46,12 @@ import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
-import type {
-  DiffEntityInput,
-  EntityAuthorizationRelationship,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
 import {
-  extractDraftIdFromEntityId,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  type DiffEntityInput,
+  type EntityAuthorizationRelationship,
+  type EntityRootType,
   isEntityVertex,
-  splitEntityId,
+  type Subgraph,
 } from "@local/hash-subgraph";
 import { ApolloError } from "apollo-server-errors";
 
@@ -830,7 +827,7 @@ export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
 };
 
 export const addEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: AccountId | AccountGroupId },
+  { entityId: EntityId; administrator: ActorId | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.addEntityAdministrator(
@@ -841,7 +838,7 @@ export const addEntityAdministrator: ImpureGraphFunction<
 };
 
 export const removeEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: AccountId | AccountGroupId },
+  { entityId: EntityId; administrator: ActorId | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeEntityAdministrator(
@@ -852,14 +849,14 @@ export const removeEntityAdministrator: ImpureGraphFunction<
 };
 
 export const addEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: AccountId | AccountGroupId },
+  { entityId: EntityId; editor: ActorId | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.addEntityEditor(actorId, params.entityId, params.editor);
 };
 
 export const removeEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: AccountId | AccountGroupId },
+  { entityId: EntityId; editor: ActorId | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeEntityEditor(actorId, params.entityId, params.editor);

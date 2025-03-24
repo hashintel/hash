@@ -1,11 +1,13 @@
 import { useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
 } from "@local/hash-graph-client";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   ignoreNoisySystemTypesFilter,

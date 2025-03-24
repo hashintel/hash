@@ -1,4 +1,10 @@
-import { validateBaseUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  OntologyTypeVersion,
+  Timestamp,
+} from "@blockprotocol/type-system";
+import { isEntityId, validateBaseUrl } from "@blockprotocol/type-system";
 import type {
   Edges as EdgesGraphApi,
   EntityIdWithInterval as EntityIdWithIntervalGraphApi,
@@ -7,17 +13,9 @@ import type {
   OntologyOutwardEdge as OntologyOutwardEdgeGraphApi,
   OntologyTypeVertexId as OntologyTypeVertexIdGraphApi,
 } from "@local/hash-graph-client";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 
-import type {
-  Edges,
-  OntologyTypeRevisionId,
-  OutwardEdge,
-} from "../../src/main.js";
+import type { Edges, OutwardEdge } from "../../src/main.js";
 import {
-  isEntityId,
   isKnowledgeGraphOutwardEdge,
   isOntologyOutwardEdge,
 } from "../../src/main.js";
@@ -36,8 +34,8 @@ export const mapOutwardEdge = (
         ...outwardEdge,
         rightEndpoint: {
           baseId: outwardEdge.rightEndpoint.baseId as BaseUrl,
-          revisionId:
-            `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
+          revisionId: outwardEdge.rightEndpoint
+            .revisionId as OntologyTypeVersion,
         },
       };
     }
@@ -109,10 +107,9 @@ export const mapOutwardEdge = (
               baseId: (
                 outwardEdge.rightEndpoint as OntologyTypeVertexIdGraphApi
               ).baseId as BaseUrl,
-              revisionId: `${
-                (outwardEdge.rightEndpoint as OntologyTypeVertexIdGraphApi)
-                  .revisionId
-              }` as OntologyTypeRevisionId,
+              revisionId: (
+                outwardEdge.rightEndpoint as OntologyTypeVertexIdGraphApi
+              ).revisionId as OntologyTypeVersion,
             },
           };
     }
@@ -127,7 +124,7 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
     const result = validateBaseUrl(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUrl = result.inner as BaseUrl;
+      const baseUrl = result.inner;
 
       mappedEdges[baseUrl] = Object.fromEntries(
         Object.entries(inner).map(([version, outwardEdges]) => {

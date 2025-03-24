@@ -9,7 +9,6 @@
 #![feature(impl_trait_in_assoc_type)]
 #![feature(try_find)]
 #![feature(type_alias_impl_trait)]
-#![feature(hash_raw_entry)]
 #![feature(let_chains)]
 #![feature(never_type)]
 #![feature(extend_one)]

@@ -3,14 +3,14 @@ import {
   type EntityTypeRootType as EntityTypeRootTypeBp,
   type PropertyTypeRootType as PropertyTypeRootTypeBp,
 } from "@blockprotocol/graph";
-import type { Subtype } from "@local/advanced-types/subtype";
-import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityProperties } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+} from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
+import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type { Edges } from "./subgraph/edges.js";
 import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";

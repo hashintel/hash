@@ -1,5 +1,6 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
+import type { Url } from "@blockprotocol/type-system";
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
@@ -32,7 +33,7 @@ test(
       .schema;
 
     const webPage = await getWebPageActivity({
-      url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+      url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
       sanitizeForLlm: true,
     });
 
@@ -79,7 +80,7 @@ test(
       .schema;
 
     const webPage = await getWebPageActivity({
-      url: "https://openai.com/index/video-generation-models-as-world-simulators/",
+      url: "https://openai.com/index/video-generation-models-as-world-simulators/" as Url,
       sanitizeForLlm: true,
     });
 
@@ -120,7 +121,7 @@ test(
       .schema;
 
     const webPage = await getWebPageActivity({
-      url: "https://churchlab.hms.harvard.edu/index.php/lab-members#current",
+      url: "https://churchlab.hms.harvard.edu/index.php/lab-members#current" as Url,
       sanitizeForLlm: true,
     });
 

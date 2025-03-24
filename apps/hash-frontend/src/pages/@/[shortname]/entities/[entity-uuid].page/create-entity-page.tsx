@@ -1,15 +1,14 @@
 import { useMutation } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractEntityUuidFromEntityId,
+} from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import {
   Entity as EntityClass,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import {
-  entityIdFromComponents,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
 import { GlobalStyles, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";

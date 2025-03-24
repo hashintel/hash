@@ -1,8 +1,6 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import { Entity, propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityId,
-  EntityProperties,
-} from "@local/hash-graph-types/entity";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   UpdateEntityMutation,

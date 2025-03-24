@@ -45,7 +45,7 @@
     "@temporalio/workflow": "1.11.7",
     "agentkeepalive": "4.6.0",
     "apollo-datasource": "3.3.2",
-    "axios": "1.8.3",
+    "axios": "1.8.4",
     "dotenv-flow": "3.3.0",
     "exponential-backoff": "3.1.2",
     "googleapis": "133.0.0",
@@ -53,7 +53,7 @@
     "redis": "4.7.0",
     "slonik": "24.2.0",
     "uuid": "11.1.0",
-    "wait-on": "8.0.2",
+    "wait-on": "8.0.3",
     "winston": "3.17.0"
   },
   "devDependencies": {
@@ -63,10 +63,10 @@
     "@types/node": "22.13.10",
     "@types/uuid": "9.0.8",
     "@types/wait-on": "5.3.4",
-    "@vitest/coverage-istanbul": "3.0.8",
+    "@vitest/coverage-istanbul": "3.0.9",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
-    "vitest": "3.0.8"
+    "vitest": "3.0.9"
   }
 }

@@ -1,15 +1,17 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorGroupId,
+  EntityUuid,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type {
   ModifyRelationshipOperation,
   WebPermission,
 } from "@local/hash-graph-client";
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import type { WebAuthorizationRelationship } from "@local/hash-subgraph";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getOrgById } from "../../knowledge/system-types/org";
@@ -36,14 +38,14 @@ export const getWebShortname: ImpureGraphFunction<
   const namespace = (
     (await getUserById(ctx, authentication, {
       entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId as Uuid as OwnedById,
-        params.accountOrAccountGroupId as Uuid as EntityUuid,
+        params.accountOrAccountGroupId as ActorGroupId as OwnedById,
+        params.accountOrAccountGroupId as string as EntityUuid,
       ),
     }).catch(() => undefined)) ??
     (await getOrgById(ctx, authentication, {
       entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId as Uuid as OwnedById,
-        params.accountOrAccountGroupId as Uuid as EntityUuid,
+        params.accountOrAccountGroupId as ActorGroupId as OwnedById,
+        params.accountOrAccountGroupId as string as EntityUuid,
       ),
     }).catch(() => undefined))
   )?.shortname;

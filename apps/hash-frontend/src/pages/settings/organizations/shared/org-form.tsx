@@ -1,5 +1,5 @@
+import type { OwnedById } from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,

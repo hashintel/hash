@@ -1,10 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   LinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -13,7 +13,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import type { PositionInput } from "../../../graphql/api-types.gen";
 import type { ImpureGraphFunction } from "../../context-types";

@@ -23,7 +23,7 @@ use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::{
         entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
-        property::{PropertyObject, PropertyWithMetadataObject},
+        property::{PropertyObject, PropertyObjectWithMetadata},
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
@@ -203,7 +203,7 @@ async fn insert<A: AuthorizationApi>(
                 entity_uuid: Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
                 decision_time: None,
                 entity_type_ids: HashSet::from([type_id.clone()]),
-                properties: PropertyWithMetadataObject::from_parts(properties.clone(), None)
+                properties: PropertyObjectWithMetadata::from_parts(properties.clone(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,

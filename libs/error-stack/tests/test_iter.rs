@@ -8,7 +8,7 @@ use core::{
 };
 
 mod common;
-use error_stack::{Report, report};
+use error_stack::{IntoReport as _, Report};
 
 #[derive(Debug)]
 struct Char(char);
@@ -44,20 +44,20 @@ impl Error for Char {}
 /// ╰─▶ H
 /// ```
 fn build() -> Report<[Char]> {
-    let mut report_c = report!(Char('C')).expand();
-    let report_d = report!(Char('D'));
+    let mut report_c = Char('C').into_report().expand();
+    let report_d = Char('D').into_report();
 
     report_c.push(report_d);
     let mut report_b = report_c.change_context(Char('B')).expand();
 
-    let report_f = report!(Char('F'));
+    let report_f = Char('F').into_report();
     let report_e = report_f.change_context(Char('E'));
 
     report_b.push(report_e);
 
     let mut report_a = report_b.change_context(Char('A')).expand();
 
-    let report_h = report!(Char('H'));
+    let report_h = Char('H').into_report();
     let report_g = report_h.change_context(Char('G'));
 
     report_a.push(report_g);

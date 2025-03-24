@@ -1,6 +1,12 @@
 import type {
   BaseUrl,
   Conversions,
+  DataTypeMetadata,
+  DataTypeWithMetadata,
+  OntologyTemporalMetadata,
+  OntologyTypeRecordId,
+  OwnedById,
+  ProvidedOntologyEditionProvenance,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
@@ -12,19 +18,13 @@ import type {
   GetDataTypesParams,
   GetDataTypeSubgraphParams,
   ModifyRelationshipOperation,
-  OntologyTemporalMetadata,
-  ProvidedOntologyEditionProvenance,
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
 import type {
   ConstructDataTypeParams,
   DataTypeConversionTargets,
   DataTypeDirectConversionsMap,
-  DataTypeMetadata,
-  DataTypeWithMetadata,
-  OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -270,7 +270,7 @@ export const archiveDataType: ImpureGraphFunction<
     params,
   );
 
-  return temporalMetadata;
+  return temporalMetadata as OntologyTemporalMetadata;
 };
 
 /**
@@ -288,7 +288,7 @@ export const unarchiveDataType: ImpureGraphFunction<
     provenance,
   });
 
-  return temporalMetadata;
+  return temporalMetadata as OntologyTemporalMetadata;
 };
 
 export const getDataTypeConversionTargets: ImpureGraphFunction<

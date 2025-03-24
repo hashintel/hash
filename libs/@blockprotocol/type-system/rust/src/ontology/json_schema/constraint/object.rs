@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use super::{Constraint, ConstraintError, ConstraintValidator, JsonSchemaValueType};
-use crate::{knowledge::Value, ontology::data_type::schema::ResolveClosedDataTypeError};
+use crate::{knowledge::PropertyValue, ontology::data_type::schema::ResolveClosedDataTypeError};
 
 #[derive(Debug, Error)]
 pub enum ObjectValidationError {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum ObjectTypeTag {
     Object,
@@ -40,19 +40,19 @@ impl Constraint for ObjectSchema {
     }
 }
 
-impl ConstraintValidator<Value> for ObjectSchema {
+impl ConstraintValidator<PropertyValue> for ObjectSchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &Value) -> bool {
-        if let Value::Object(object) = value {
+    fn is_valid(&self, value: &PropertyValue) -> bool {
+        if let PropertyValue::Object(object) = value {
             self.is_valid(object)
         } else {
             false
         }
     }
 
-    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
-        if let Value::Object(object) = value {
+    fn validate_value(&self, value: &PropertyValue) -> Result<(), Report<ConstraintError>> {
+        if let PropertyValue::Object(object) = value {
             self.validate_value(object)
         } else {
             bail!(ConstraintError::InvalidType {
@@ -63,10 +63,10 @@ impl ConstraintValidator<Value> for ObjectSchema {
     }
 }
 
-impl ConstraintValidator<HashMap<String, Value>> for ObjectSchema {
+impl ConstraintValidator<HashMap<String, PropertyValue>> for ObjectSchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &HashMap<String, Value>) -> bool {
+    fn is_valid(&self, value: &HashMap<String, PropertyValue>) -> bool {
         match self {
             Self::Constrained(constraints) => constraints.is_valid(value),
         }
@@ -74,7 +74,7 @@ impl ConstraintValidator<HashMap<String, Value>> for ObjectSchema {
 
     fn validate_value(
         &self,
-        value: &HashMap<String, Value>,
+        value: &HashMap<String, PropertyValue>,
     ) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Constrained(constraints) => constraints
@@ -98,16 +98,16 @@ impl Constraint for ObjectConstraints {
     }
 }
 
-impl ConstraintValidator<HashMap<String, Value>> for ObjectConstraints {
+impl ConstraintValidator<HashMap<String, PropertyValue>> for ObjectConstraints {
     type Error = [ObjectValidationError];
 
-    fn is_valid(&self, _value: &HashMap<String, Value>) -> bool {
+    fn is_valid(&self, _value: &HashMap<String, PropertyValue>) -> bool {
         true
     }
 
     fn validate_value(
         &self,
-        _value: &HashMap<String, Value>,
+        _value: &HashMap<String, PropertyValue>,
     ) -> Result<(), Report<[ObjectValidationError]>> {
         Ok(())
     }

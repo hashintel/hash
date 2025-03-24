@@ -2,7 +2,7 @@ use error_stack::{Report, bail};
 use serde::{Deserialize, Serialize};
 
 use super::{Constraint, ConstraintError, ConstraintValidator, JsonSchemaValueType};
-use crate::{knowledge::Value, ontology::data_type::schema::ResolveClosedDataTypeError};
+use crate::{knowledge::PropertyValue, ontology::data_type::schema::ResolveClosedDataTypeError};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -23,14 +23,14 @@ impl Constraint for BooleanSchema {
     }
 }
 
-impl ConstraintValidator<Value> for BooleanSchema {
+impl ConstraintValidator<PropertyValue> for BooleanSchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &Value) -> bool {
-        matches!(value, Value::Bool(_))
+    fn is_valid(&self, value: &PropertyValue) -> bool {
+        matches!(value, PropertyValue::Bool(_))
     }
 
-    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &PropertyValue) -> Result<(), Report<ConstraintError>> {
         if self.is_valid(value) {
             Ok(())
         } else {

@@ -1,4 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import {
@@ -6,7 +7,6 @@ import {
   LinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -19,7 +19,6 @@ import type {
   HasSubject,
 } from "@local/hash-isomorphic-utils/system-types/claim";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import { backOff } from "exponential-backoff";

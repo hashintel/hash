@@ -341,20 +341,24 @@ pub fn env_filter(level: Option<Level>) -> EnvFilter {
     )
 }
 
-type ConcreteLayer<S, W, F>
-where
-    S: Subscriber + for<'a> LookupSpan<'a>,
-    W: for<'writer> MakeWriter<'writer> + 'static,
-    F: for<'write> FormatFields<'write> + 'static,
-= impl Layer<S>;
+// type ConcreteLayer<S, W, F>
+// where
+//     S: Subscriber + for<'a> LookupSpan<'a>,
+//     W: for<'writer> MakeWriter<'writer> + 'static,
+//     F: for<'write> FormatFields<'write> + 'static,
+// = impl Layer<S>;
 
+#[expect(
+    clippy::min_ident_chars,
+    reason = "False positive lint on generic bounds"
+)]
 fn layer<S, W, F>(
     format: LogFormat,
     level: Option<Level>,
     writer: W,
     fields: F,
     ansi: AnsiSupport,
-) -> ConcreteLayer<S, W, F>
+) -> impl Layer<S> + use<S, W, F>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
     W: for<'writer> MakeWriter<'writer> + 'static,
@@ -416,13 +420,17 @@ where
     (layer, guard)
 }
 
-pub type ConsoleLayer<S>
-where
-    S: Subscriber + for<'a> LookupSpan<'a>,
-= impl Layer<S>;
+// pub type ConsoleLayer<S>
+// where
+//     S: Subscriber + for<'a> LookupSpan<'a>,
+// = impl Layer<S>;
 
+#[expect(
+    clippy::min_ident_chars,
+    reason = "False positive lint on generic bounds"
+)]
 #[must_use]
-pub fn console_layer<S>(config: &ConsoleConfig) -> ConsoleLayer<S>
+pub fn console_layer<S>(config: &ConsoleConfig) -> impl Layer<S> + use<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {

@@ -1,4 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  PartialEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -7,8 +11,6 @@ import {
   getDisplayFieldsForClosedEntityType,
   getPropertyTypeForClosedMultiEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { PartialEntityType } from "@local/hash-graph-types/ontology";
 import {
   generateEntityLabel,
   generateLinkEntityLabel,
@@ -258,7 +260,8 @@ export const IncomingLinksTable = memo(
     });
 
     const {
-      closedMultiEntityTypesMap,
+      linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+        closedMultiEntityTypesMap,
       closedMultiEntityTypesDefinitions,
       customEntityLinksColumns: customColumns,
       draftLinksToArchive,
@@ -583,12 +586,12 @@ export const IncomingLinksTable = memo(
             switch (field) {
               case "linkTypes": {
                 const aValue =
-                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+                  /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */
                   a.data.linkEntityTypes[0]!.inverse?.title ||
                   a.data.linkEntityTypes[0]!.title;
 
                 const bValue =
-                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+                  /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */
                   b.data.linkEntityTypes[0]!.inverse?.title ||
                   b.data.linkEntityTypes[0]!.title;
 

@@ -1,15 +1,16 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
 import type {
+  ActorId,
   EntityId,
   EntityUuid,
-  PropertyMetadataObject,
+  OwnedById,
   PropertyObject,
-} from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  PropertyObjectMetadata,
+  ProvidedEntityEditionProvenance,
+  Url,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { Status } from "@local/status";
 
 import type { FlowRun } from "../graphql/api-types.gen.js";
@@ -22,7 +23,7 @@ export type DeepReadOnly<T> = {
 };
 
 export type WebPage = {
-  url: string;
+  url: Url;
   title: string;
   htmlContent: string;
   innerText: string;
@@ -42,7 +43,7 @@ export type ProposedEntity = {
     isObjectOf: EntityId[];
   };
   provenance: ProvidedEntityEditionProvenance;
-  propertyMetadata: PropertyMetadataObject;
+  propertyMetadata: PropertyObjectMetadata;
   localEntityId: EntityId;
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   summary?: string;
@@ -639,7 +640,7 @@ export type ExternalInputResponseSignal<
   RequestType extends ExternalInputRequestType = ExternalInputRequestType,
 > = {
   [Type in RequestType]: {
-    resolvedBy: AccountId;
+    resolvedBy: ActorId;
     requestId: string;
     type: Type;
     data: ExternalInputResponseByType[Type];
@@ -659,7 +660,7 @@ export type ExternalInputRequest<
   /** The time at which the request was resolved */
   resolvedAt?: string;
   /** The user that responded to the request (or the user whose device responded to the request) */
-  resolvedBy?: AccountId;
+  resolvedBy?: ActorId;
   /** The time at which the request was made */
   raisedAt: string;
 };

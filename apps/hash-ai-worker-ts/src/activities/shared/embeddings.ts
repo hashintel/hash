@@ -1,13 +1,15 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Embedding, PropertyType } from "@local/hash-graph-client";
-import type { Property, PropertyObject } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
+  Property,
+  PropertyObject,
+  PropertyType,
   PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import type { Embedding } from "@local/hash-graph-client";
 import OpenAI from "openai";
 
 type Usage = OpenAI.CreateEmbeddingResponse.Usage;

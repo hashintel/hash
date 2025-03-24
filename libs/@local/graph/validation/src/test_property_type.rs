@@ -7,7 +7,7 @@ use hash_graph_store::entity::ValidateEntityComponents;
 use serde_json::json;
 use type_system::{
     knowledge::{
-        property::metadata::PropertyMetadata,
+        property::metadata::{PropertyMetadata, PropertyValueMetadata},
         value::{ValueMetadata, metadata::ValueProvenance},
     },
     ontology::VersionedUrl,
@@ -400,7 +400,7 @@ async fn user_id() {
 
     validate_property(
         json!("1"),
-        Some(PropertyMetadata::Value {
+        Some(PropertyMetadata::Value(PropertyValueMetadata {
             metadata: ValueMetadata {
                 provenance: ValueProvenance::default(),
                 confidence: None,
@@ -408,7 +408,7 @@ async fn user_id() {
                 original_data_type_id: Some(text_data_type_id),
                 canonical: HashMap::default(),
             },
-        }),
+        })),
         hash_graph_test_data::property_type::USER_ID_V2,
         property_types,
         data_types,
@@ -424,7 +424,7 @@ async fn user_id() {
 
     validate_property(
         json!(1),
-        Some(PropertyMetadata::Value {
+        Some(PropertyMetadata::Value(PropertyValueMetadata {
             metadata: ValueMetadata {
                 provenance: ValueProvenance::default(),
                 confidence: None,
@@ -432,7 +432,7 @@ async fn user_id() {
                 original_data_type_id: Some(number_data_type_id),
                 canonical: HashMap::default(),
             },
-        }),
+        })),
         hash_graph_test_data::property_type::USER_ID_V2,
         property_types,
         data_types,

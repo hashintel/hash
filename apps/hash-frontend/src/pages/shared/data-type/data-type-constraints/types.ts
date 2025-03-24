@@ -1,10 +1,10 @@
 import type {
+  BaseUrl,
   Conversions,
   DataType,
   SingleValueConstraints,
   StringFormat,
 } from "@blockprotocol/type-system";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export type InheritedConstraint<T> = {
   from: DataType;

@@ -1,4 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { PresignedPutUpload } from "@local/hash-backend-utils/file-storage";
 import {
@@ -7,14 +12,11 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import mime from "mime-types";
 
 import type {

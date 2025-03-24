@@ -1,8 +1,7 @@
 import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityId, OwnedById } from "@blockprotocol/type-system";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import type { BoxProps } from "@mui/material";

@@ -1,5 +1,11 @@
 import type { GraphResolveDepths } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorId,
+  EntityId,
+  Timestamp,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { splitEntityId } from "@blockprotocol/type-system";
 import type {
   DataTypeQueryToken,
   EntityQueryToken,
@@ -8,9 +14,6 @@ import type {
   PropertyTypeQueryToken,
   Selector,
 } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type {
   DataTypeRelationAndSubject,
   EntityRelationAndSubject,
@@ -19,7 +22,6 @@ import type {
   QueryTemporalAxesUnresolved,
   SubgraphRootType,
 } from "@local/hash-subgraph";
-import { splitEntityId } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
@@ -283,7 +285,7 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
 ) => deserializeSubgraph<RootType>(subgraph);
 
 export const createDefaultAuthorizationRelationships = (params: {
-  actorId: AccountId;
+  actorId: ActorId;
 }): EntityRelationAndSubject[] => [
   {
     relation: "administrator",
@@ -318,7 +320,7 @@ export const createDefaultAuthorizationRelationships = (params: {
 export const createOrgMembershipAuthorizationRelationships = ({
   memberAccountId,
 }: {
-  memberAccountId: AccountId;
+  memberAccountId: ActorId;
 }): EntityRelationAndSubject[] => [
   {
     relation: "setting",

@@ -1,10 +1,12 @@
-import { atLeastOne } from "@blockprotocol/type-system";
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  BaseUrl,
+  EntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   componentsFromVersionedUrl,
-  extractBaseUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 

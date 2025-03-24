@@ -3,15 +3,12 @@ import type {
   DataType,
   EntityType,
   PropertyType,
-} from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
-  extractVersion,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import ts from "typescript";
 
 import { mustBeDefined } from "../../util/must-be-defined.js";
-import { typedEntries, typedKeys } from "../../util/typed-object-iter.js";
 import type { PreprocessContext } from "../context.js";
 import type { JsonSchema } from "../shared.js";
 import { generatedTypeSuffix } from "../shared.js";

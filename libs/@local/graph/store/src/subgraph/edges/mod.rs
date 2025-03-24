@@ -58,10 +58,8 @@ where
     {
         let vertex_base_id = vertex_id.base_id();
         self.edges
-            .raw_entry_mut()
-            .from_key(vertex_base_id)
-            .or_insert_with(|| (vertex_base_id.clone(), BTreeMap::new()))
-            .1
+            .entry(vertex_base_id.clone())
+            .or_default()
             .entry(vertex_id.revision_id())
             .or_default()
             .entry(EdgeData {

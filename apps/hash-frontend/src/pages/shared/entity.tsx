@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
+import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   Entity as EntityClass,
@@ -7,7 +8,6 @@ import {
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -19,7 +19,6 @@ import {
   blockProtocolPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { splitEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import NextErrorComponent from "next/error";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -41,6 +40,7 @@ import { EntityEditor } from "./entity/entity-editor";
 import { EntityEditorContainer } from "./entity/entity-editor-container";
 import { EntityHeader } from "./entity/entity-header";
 import { EntityPageLoadingState } from "./entity/entity-page-loading-state";
+import { getEntityMultiTypeDependencies } from "./entity/get-entity-multi-type-dependencies";
 import { QueryEditor } from "./entity/query-editor";
 import { QueryEditorToggle } from "./entity/query-editor-toggle";
 import { createDraftEntitySubgraph } from "./entity/shared/create-draft-entity-subgraph";
@@ -165,8 +165,8 @@ export const Entity = ({
         EntityEditorProps,
         | "closedMultiEntityType"
         | "closedMultiEntityTypesDefinitions"
-        | "closedMultiEntityTypesMap"
         | "entitySubgraph"
+        | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
       >
     >();
 
@@ -177,10 +177,19 @@ export const Entity = ({
   const [draftEntityTypesDetails, setDraftEntityTypesDetails] = useState<
     | Pick<
         EntityEditorProps,
-        "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
+        | "closedMultiEntityType"
+        | "closedMultiEntityTypesDefinitions"
+        | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
       >
     | undefined
   >();
+
+  const [
+    draftLinksToCreate,
+    setDraftLinksToCreate,
+    draftLinksToArchive,
+    setDraftLinksToArchive,
+  ] = useDraftLinkState();
 
   const { getClosedMultiEntityTypes } = useGetClosedMultiEntityTypes();
 
@@ -207,13 +216,21 @@ export const Entity = ({
         throw new Error("No entity type ids found");
       }
 
-      void getClosedMultiEntityTypes(entityTypeIds).then((result) => {
+      const allRequiredMultiTypeIds = getEntityMultiTypeDependencies({
+        entityId,
+        entityTypeIds,
+        entitySubgraph: proposedEntitySubgraph ?? null,
+      });
+
+      void getClosedMultiEntityTypes(allRequiredMultiTypeIds).then((result) => {
         const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
           result.closedMultiEntityTypes,
           mustHaveAtLeastOne(entityTypeIds),
         );
 
         setDraftEntityTypesDetails({
+          linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+            result.closedMultiEntityTypes,
           closedMultiEntityType,
           closedMultiEntityTypesDefinitions:
             result.closedMultiEntityTypesDefinitions,
@@ -223,6 +240,8 @@ export const Entity = ({
   }, [
     draftLocalEntity,
     draftEntityTypesDetails,
+    draftLinksToCreate,
+    entityId,
     getClosedMultiEntityTypes,
     proposedEntitySubgraph,
   ]);
@@ -232,13 +251,6 @@ export const Entity = ({
   );
 
   const [isDirty, setIsDirty] = useState(!!draftLocalEntity);
-
-  const [
-    draftLinksToCreate,
-    setDraftLinksToCreate,
-    draftLinksToArchive,
-    setDraftLinksToArchive,
-  ] = useDraftLinkState();
 
   const { data: getEntitySubgraphData, refetch } = useQuery<
     GetEntitySubgraphQuery,
@@ -272,6 +284,8 @@ export const Entity = ({
       );
 
       setDraftEntityTypesDetails({
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+          closedMultiEntityTypes,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions: definitions,
       });
@@ -280,7 +294,8 @@ export const Entity = ({
         entitySubgraph: subgraph,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions: definitions,
-        closedMultiEntityTypesMap: closedMultiEntityTypes,
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+          closedMultiEntityTypes,
       });
 
       setDraftEntitySubgraph(subgraph);
@@ -364,6 +379,8 @@ export const Entity = ({
     if (dataFromDb) {
       setDraftEntitySubgraph(dataFromDb.entitySubgraph);
       setDraftEntityTypesDetails({
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+          dataFromDb.linkAndDestinationEntitiesClosedMultiEntityTypesMap,
         closedMultiEntityType: dataFromDb.closedMultiEntityType,
         closedMultiEntityTypesDefinitions:
           dataFromDb.closedMultiEntityTypesDefinitions,
@@ -519,9 +536,6 @@ export const Entity = ({
       )}
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditor
-          closedMultiEntityTypesMap={
-            dataFromDb?.closedMultiEntityTypesMap ?? null
-          }
           {...draftEntityTypesDetails}
           draftLinksToCreate={draftLinksToCreate}
           draftLinksToArchive={draftLinksToArchive}
@@ -634,6 +648,7 @@ export const Entity = ({
             entitySubgraph={draftEntitySubgraph}
             hideOpenInNew={!!proposedEntitySubgraph || !!draftLocalEntity}
             isInSlide={isInSlide}
+            isLocalDraft={!!draftLocalEntity}
             isModifyingEntity={haveChangesBeenMade}
             onDraftArchived={onRemoteDraftArchived}
             onDraftPublished={onRemoteDraftPublished}
@@ -644,9 +659,6 @@ export const Entity = ({
           />
           <EntityEditorContainer isInSlide={isInSlide}>
             <EntityEditor
-              closedMultiEntityTypesMap={
-                dataFromDb?.closedMultiEntityTypesMap ?? null
-              }
               defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
               {...draftEntityTypesDetails}
               draftLinksToCreate={draftLinksToCreate}

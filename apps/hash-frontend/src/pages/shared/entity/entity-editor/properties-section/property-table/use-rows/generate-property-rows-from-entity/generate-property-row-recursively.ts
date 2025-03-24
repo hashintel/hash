@@ -1,13 +1,11 @@
 import type {
+  BaseUrl,
+  ClosedMultiEntityType,
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  BaseUrl,
-  ClosedMultiEntityType,
-  ClosedMultiEntityTypesDefinitions,
-} from "@local/hash-graph-types/ontology";
+import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-types/ontology";
 import { getPermittedDataTypes } from "@local/hash-isomorphic-utils/data-types";
 import get from "lodash/get";
 

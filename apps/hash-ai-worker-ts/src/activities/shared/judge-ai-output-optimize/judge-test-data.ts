@@ -1,5 +1,4 @@
-import type { JsonValue } from "@blockprotocol/graph";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyValue } from "@blockprotocol/type-system";
 
 import type { LlmParams } from "../get-llm-response/types.js";
 
@@ -7,7 +6,7 @@ type CorrectedValue =
   | {
       jsonPath: string[];
       type: "correct-missing" | "correct-incorrect";
-      isProvidedValueCorrect: (value: JsonValue) => boolean;
+      isProvidedValueCorrect: (value: PropertyValue) => boolean;
     }
   | {
       jsonPath: string[];

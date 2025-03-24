@@ -1,13 +1,10 @@
+import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import { Skeleton } from "@hashintel/design-system";
 import {
   type Entity,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-types/ontology";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Container, Divider, Typography } from "@mui/material";

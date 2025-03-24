@@ -1,9 +1,13 @@
+import type { EntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type {
   CreateEntityParameters,
   Entity,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -19,10 +23,6 @@ import type {
   Block as BlockEntity,
   HasData,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 
 import type {
   ImpureGraphFunction,

@@ -1,5 +1,5 @@
+import type { ActorId } from "@blockprotocol/type-system";
 import type { Filter, GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -13,7 +13,7 @@ export const getSubgraphFromFilter = async ({
   graphApiClient,
   traversalDepth,
 }: {
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorId };
   filter: Filter;
   graphApiClient: GraphApi;
   traversalDepth: number;

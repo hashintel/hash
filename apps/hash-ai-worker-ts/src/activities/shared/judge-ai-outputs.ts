@@ -1,4 +1,4 @@
-import type { JsonValue } from "@blockprotocol/graph";
+import type { PropertyValue } from "@blockprotocol/type-system";
 import get from "lodash/get.js";
 
 import { logger } from "./activity-logger.js";
@@ -32,7 +32,7 @@ export type JudgeCorrection = {
   reasoning: string;
   jsonPath: string[];
   correctionType: "correct-missing" | "correct-incorrect" | "delete-unfounded";
-  correctValue?: JsonValue;
+  correctValue?: PropertyValue;
 };
 
 type JudgeVerdict = {
@@ -47,7 +47,7 @@ const correctionTypeDescriptions = `The types of correction you may issue:
 - "delete-unfounded": The AI provided a value for a field that cannot be inferred from the context. You do not provide a correct value, as one cannot be determined.`;
 
 export const judgeSystemPrompt = `# Task
-You are an expert reviewer judging the accuracy and completeness of an AI model's outputs. 
+You are an expert reviewer judging the accuracy and completeness of an AI model's outputs.
 
 You consider a conversation between a user and an AI model, along with any special instructions and/or tools the AI was provided with.
 
@@ -341,7 +341,7 @@ export const judgeAiOutputs = async ({
   const errors: string[] = [];
   for (const correction of toolCall.input.corrections) {
     const existingValue = get(lastAiMessage, correction.jsonPath) as
-      | JsonValue
+      | PropertyValue
       | undefined;
 
     if (

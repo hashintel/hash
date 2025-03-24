@@ -1,14 +1,14 @@
+import type {
+  EntityTypeWithMetadata,
+  OwnedById,
+  PropertyTypeWithMetadata,
+  ProvidedEntityEditionProvenance,
+} from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   defaultEntityTypeAuthorizationRelationships,
   defaultPropertyTypeAuthorizationRelationships,
@@ -166,7 +166,7 @@ const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
 const seedFlowTestTypes = async () => {
   const graphApi = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
-    port: parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
+    port: Number.parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
   });
 
   const context = { graphApi, provenance };

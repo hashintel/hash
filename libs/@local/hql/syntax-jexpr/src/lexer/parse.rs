@@ -5,7 +5,7 @@ use hql_span::{TextRange, TextSize};
 use json_number::Number;
 use logos::Lexer;
 
-use super::{error::LexingError, token_kind::TokenKind};
+use super::{error::LexerError, token_kind::TokenKind};
 
 fn ptr_offset(start: *const u8, current: *const u8) -> usize {
     debug_assert!(current >= start);
@@ -18,7 +18,7 @@ fn ptr_offset(start: *const u8, current: *const u8) -> usize {
 )]
 pub(crate) fn parse_string<'source>(
     lexer: &mut Lexer<'source, TokenKind<'source>>,
-) -> Result<Cow<'source, str>, LexingError> {
+) -> Result<Cow<'source, str>, LexerError> {
     // the first character is '"' so we can skip it
     let slice = lexer.remainder();
     let mut lex = SliceLexer::new(slice);
@@ -28,7 +28,7 @@ pub(crate) fn parse_string<'source>(
         let consumed = ptr_offset(slice.as_ptr(), lex.as_slice().as_ptr());
         let range = TextRange::empty(TextSize::from((span.end + consumed) as u32));
 
-        LexingError::String {
+        LexerError::String {
             error: Arc::new(error),
             range,
         }
@@ -45,7 +45,7 @@ pub(crate) fn parse_string<'source>(
 )]
 pub(crate) fn parse_number<'source>(
     lexer: &mut Lexer<'source, TokenKind<'source>>,
-) -> Result<Cow<'source, Number>, LexingError> {
+) -> Result<Cow<'source, Number>, LexerError> {
     let span = lexer.span();
     // this time we cannot automatically exclude the first character
     let slice = &lexer.source()[span.start..];
@@ -54,7 +54,7 @@ pub(crate) fn parse_number<'source>(
         let consumed = ptr_offset(slice.as_ptr(), lex.as_slice().as_ptr());
         let range = TextRange::empty(TextSize::from((span.start + consumed) as u32));
 
-        LexingError::Number {
+        LexerError::Number {
             error: Arc::new(error),
             range,
         }

@@ -1,5 +1,12 @@
 import { useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  BaseUrl,
+  ClosedMultiEntityType,
+  EntityId,
+  OwnedById,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl, isBaseUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -15,17 +22,9 @@ import {
   type Entity,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  ClosedMultiEntityType,
-} from "@local/hash-graph-types/ontology";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactElement } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

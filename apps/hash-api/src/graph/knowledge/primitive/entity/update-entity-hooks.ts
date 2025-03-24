@@ -1,7 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  PropertyPatchOperation,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { PropertyPatchOperation } from "@local/hash-graph-types/entity";
 
 import type { ImpureGraphContext } from "../../../context-types";
 

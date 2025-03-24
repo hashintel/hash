@@ -1,6 +1,10 @@
-import { type OriginProvenance, SourceType } from "@local/hash-graph-client";
+import type {
+  EntityUuid,
+  OriginProvenance,
+  Url,
+} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -13,7 +17,6 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
@@ -167,7 +170,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
       } = simplifyProperties(entity.properties);
 
       return {
-        url: unsignedUrl,
+        url: unsignedUrl as Url,
         title: displayName ?? fileName ?? unsignedUrl.split("/").pop()!,
         summary: description ?? "",
         fromSearchQuery: "User-provided resource",
@@ -482,7 +485,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
       return sourcesUsedToProposeEntity.flatMap((source) => {
         if (
           source.location?.uri &&
-          source.type === SourceType.Document &&
+          source.type === "document" &&
           /**
            * Exclude files we already have an entity for
            */

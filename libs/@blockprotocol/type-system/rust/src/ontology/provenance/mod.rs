@@ -32,6 +32,7 @@ use crate::{
 /// - Types that are created and owned by the local system
 /// - Types that have been fetched from external sources
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum OntologyOwnership {
@@ -47,10 +48,12 @@ pub enum OntologyOwnership {
     Remote {
         /// Timestamp when the ontology type was fetched from the remote source
         #[serde(with = "hash_codec::serde::time")]
+        #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
         fetched_at: OffsetDateTime,
     },
 }
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OntologyProvenance {
@@ -58,6 +61,7 @@ pub struct OntologyProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvidedOntologyEditionProvenance {
@@ -68,6 +72,7 @@ pub struct ProvidedOntologyEditionProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OntologyEditionProvenance {

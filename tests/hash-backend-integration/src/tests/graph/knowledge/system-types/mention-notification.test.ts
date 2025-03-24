@@ -25,8 +25,8 @@ import {
 import type { Text } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import { getTextFromEntity } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { OwnedById } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,

@@ -1,6 +1,6 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Box } from "@mui/material";
 import type { FunctionComponent } from "react";

@@ -37,12 +37,12 @@
     "@dnd-kit/utilities": "3.2.2",
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
-    "@mui/material": "5.16.14",
+    "@mui/material": "5.17.1",
     "clsx": "1.2.1",
     "lodash.clonedeep": "4.5.0",
     "lodash.debounce": "4.0.8",
     "lodash.isequal": "4.5.0",
-    "react-textarea-autosize": "8.5.7"
+    "react-textarea-autosize": "8.5.8"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",

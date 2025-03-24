@@ -1,13 +1,13 @@
-import {
-  mustHaveAtLeastOne,
-  type VersionedUrl,
+import type {
+  ActorId,
+  BaseUrl,
+  OwnedById,
+  PropertyObjectWithMetadata,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   fullOntologyResolveDepths,
@@ -43,7 +43,7 @@ export const upgradeWebEntities = async ({
   migrateProperties,
   webOwnedById,
 }: {
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorId };
   context: ImpureGraphContext<false, true>;
   entityTypeBaseUrls: BaseUrl[];
   migrationState: MigrationState;
@@ -158,7 +158,7 @@ export const upgradeWebEntities = async ({
 
         const temporaryEntityTypePermissionsGranted: Record<
           VersionedUrl,
-          AccountId
+          ActorId
         > = {};
 
         /**
