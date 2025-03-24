@@ -40,7 +40,7 @@ Potential solutions include:
 
 ## Processes (Flows)
 
-Processes in HASH are represented as what mathematicians call "_colored Petri nets_". Unlike most representations of process models, Petri nets can be formally verified, which means we can check their integrity in a number of different ways, including by looking at properties such as:
+Processes in HASH are represented as what mathematicians call "_Petri nets_". Unlike most representations of process models, Petri nets can be formally verified, which means we can check their integrity in a number of different ways, including by looking at properties such as:
 
 1. **Reachability**
   - A state is considered _reachable_ if it can be achieved from an initial marking by firing a sequence of transitions.
@@ -63,3 +63,4 @@ Processes in HASH are represented as what mathematicians call "_colored Petri ne
   - **Example:** In a ticketing system, fairness ensures that all users eventually get service rather than some requests being delayed indefinitely.
   - **Verification:** HASH checks _reachability properties_ to check for transitions which are never executed.
 
+Right now, process modeling in HASH is in beta, and we'll be building out these formal verification tools in the near future.
