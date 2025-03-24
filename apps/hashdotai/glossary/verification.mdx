@@ -66,7 +66,7 @@ Processes in HASH are represented as what mathematicians call "_Petri nets_". Un
   - A Petri net is considered _live_ if all transitions remain potentially fireable (i.e. no part of the system permanently stops working).
   - Ensures that no process is permanently blocked (e.g. there are no _deadlocks_).
   - **Example:** In an order-processing workflow, if all necessary conditions are satisfied (e.g., payment confirmed, stock available) but the **"Dispatch Order"** transition still never fires, there is a liveness problem. This could indicate a deadlock or some other form of blocking that prevents the system from progressing.
-  - **Verification:** Uses a _reachability graph_ to check if every transition is eventually fireable. Repeating execution cycles are used to find deadlocks.
+  - **Verification:** Uses a _reachability graph_ to check if every transition is eventually fireable. Repeating execution cycles that fail to progress are indicative of livelocks, and a state from which no further transitions are possible deadlocks.
 4. **Fairness**
   - Ensures that all transitions have a chance to fire, avoiding starvation.
   - Important in concurrent and distributed systems, where some processes should not dominate resource usage.
