@@ -489,7 +489,7 @@ __metadata:
     "@mui/icons-material": "npm:5.17.1"
     "@mui/material": "npm:5.17.1"
     "@mui/system": "npm:5.17.1"
-    "@next/bundle-analyzer": "npm:15.2.3"
+    "@next/bundle-analyzer": "npm:15.2.4"
     "@ory/client": "npm:1.1.41"
     "@ory/integrations": "npm:1.1.4"
     "@popperjs/core": "npm:2.11.8"
@@ -545,7 +545,7 @@ __metadata:
     marked: "npm:4.3.0"
     material-ui-popup-state: "npm:4.1.0"
     millify: "npm:6.1.0"
-    next: "npm:15.2.3"
+    next: "npm:15.2.4"
     next-seo: "npm:6.6.0"
     nextjs-progressbar: "npm:0.0.16"
     notistack: "npm:2.0.8"
@@ -752,7 +752,7 @@ __metadata:
     katex: "npm:0.16.21"
     md5: "npm:2.3.0"
     mock-block-dock: "npm:0.0.21"
-    next: "npm:15.2.3"
+    next: "npm:15.2.4"
     next-mdx-remote: "npm:4.4.1"
     next-seo: "npm:6.6.0"
     nextjs-progressbar: "npm:0.0.16"
@@ -8924,7 +8924,7 @@ __metadata:
     immer: "npm:9.0.21"
     jsonschema: "npm:1.5.0"
     lodash-es: "npm:4.17.21"
-    next: "npm:15.2.3"
+    next: "npm:15.2.4"
     pluralize: "npm:8.0.0"
     prosemirror-commands: "npm:1.3.1"
     prosemirror-dropcursor: "npm:1.6.1"
@@ -9547,19 +9547,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/bundle-analyzer@npm:15.2.3":
-  version: 15.2.3
-  resolution: "@next/bundle-analyzer@npm:15.2.3"
+"@next/bundle-analyzer@npm:15.2.4":
+  version: 15.2.4
+  resolution: "@next/bundle-analyzer@npm:15.2.4"
   dependencies:
     webpack-bundle-analyzer: "npm:4.10.1"
-  checksum: 10c0/3e4391f4ce081cf09c87a2ce2c38a911a7899f09cc4691ff91c78d9ccea9386962970580cca56768d3cf8078da689de3466b96bd133520ba3ddaee3d70a0eb12
+  checksum: 10c0/71d52392f0b98fce0336b99aed0c47e7f4585de71439c64bf8159aeee251431e85ffed13bb831d1ed92a6aa6e7414c83f7d4594e5fae5e8ebbe288db60207200
   languageName: node
   linkType: hard
 
-"@next/env@npm:15.2.3":
-  version: 15.2.3
-  resolution: "@next/env@npm:15.2.3"
-  checksum: 10c0/52e60419f71b991bdab23fc23f05d221dfe07b725140a110eedc158b2612cebcaa71a74726e2f78b1d53ae162ae0a745fdc3263a2bc76eda013cac057a30f05e
+"@next/env@npm:15.2.4":
+  version: 15.2.4
+  resolution: "@next/env@npm:15.2.4"
+  checksum: 10c0/2880ebf83cee801ea118b3e5e2cf12582cf775d3bd4aa12ce4ce3f4aabbee96b72a1c72bb71e91b85df54ed57fe9141ce2bd14e9e5fc4f1f6f0233ab0129ddc6
   languageName: node
   linkType: hard
 
@@ -9572,58 +9572,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-arm64@npm:15.2.3":
-  version: 15.2.3
-  resolution: "@next/swc-darwin-arm64@npm:15.2.3"
+"@next/swc-darwin-arm64@npm:15.2.4":
+  version: 15.2.4
+  resolution: "@next/swc-darwin-arm64@npm:15.2.4"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-x64@npm:15.2.3":
-  version: 15.2.3
-  resolution: "@next/swc-darwin-x64@npm:15.2.3"
+"@next/swc-darwin-x64@npm:15.2.4":
+  version: 15.2.4
+  resolution: "@next/swc-darwin-x64@npm:15.2.4"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-gnu@npm:15.2.3":
-  version: 15.2.3
-  resolution: "@next/swc-linux-arm64-gnu@npm:15.2.3"
+"@next/swc-linux-arm64-gnu@npm:15.2.4":
+  version: 15.2.4
+  resolution: "@next/swc-linux-arm64-gnu@npm:15.2.4"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-musl@npm:15.2.3":
-  version: 15.2.3
-  resolution: "@next/swc-linux-arm64-musl@npm:15.2.3"
+"@next/swc-linux-arm64-musl@npm:15.2.4":
+  version: 15.2.4
+  resolution: "@next/swc-linux-arm64-musl@npm:15.2.4"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-gnu@npm:15.2.3":
-  version: 15.2.3
-  resolution: "@next/swc-linux-x64-gnu@npm:15.2.3"
+"@next/swc-linux-x64-gnu@npm:15.2.4":
+  version: 15.2.4
+  resolution: "@next/swc-linux-x64-gnu@npm:15.2.4"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-musl@npm:15.2.3":
-  version: 15.2.3
-  resolution: "@next/swc-linux-x64-musl@npm:15.2.3"
+"@next/swc-linux-x64-musl@npm:15.2.4":
+  version: 15.2.4
+  resolution: "@next/swc-linux-x64-musl@npm:15.2.4"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@next/swc-win32-arm64-msvc@npm:15.2.3":
-  version: 15.2.3
-  resolution: "@next/swc-win32-arm64-msvc@npm:15.2.3"
+"@next/swc-win32-arm64-msvc@npm:15.2.4":
+  version: 15.2.4
+  resolution: "@next/swc-win32-arm64-msvc@npm:15.2.4"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@next/swc-win32-x64-msvc@npm:15.2.3":
-  version: 15.2.3
-  resolution: "@next/swc-win32-x64-msvc@npm:15.2.3"
+"@next/swc-win32-x64-msvc@npm:15.2.4":
+  version: 15.2.4
+  resolution: "@next/swc-win32-x64-msvc@npm:15.2.4"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -35953,19 +35953,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next@npm:15.2.3, next@npm:>=12.0.10":
-  version: 15.2.3
-  resolution: "next@npm:15.2.3"
+"next@npm:15.2.4, next@npm:>=12.0.10":
+  version: 15.2.4
+  resolution: "next@npm:15.2.4"
   dependencies:
-    "@next/env": "npm:15.2.3"
-    "@next/swc-darwin-arm64": "npm:15.2.3"
-    "@next/swc-darwin-x64": "npm:15.2.3"
-    "@next/swc-linux-arm64-gnu": "npm:15.2.3"
-    "@next/swc-linux-arm64-musl": "npm:15.2.3"
-    "@next/swc-linux-x64-gnu": "npm:15.2.3"
-    "@next/swc-linux-x64-musl": "npm:15.2.3"
-    "@next/swc-win32-arm64-msvc": "npm:15.2.3"
-    "@next/swc-win32-x64-msvc": "npm:15.2.3"
+    "@next/env": "npm:15.2.4"
+    "@next/swc-darwin-arm64": "npm:15.2.4"
+    "@next/swc-darwin-x64": "npm:15.2.4"
+    "@next/swc-linux-arm64-gnu": "npm:15.2.4"
+    "@next/swc-linux-arm64-musl": "npm:15.2.4"
+    "@next/swc-linux-x64-gnu": "npm:15.2.4"
+    "@next/swc-linux-x64-musl": "npm:15.2.4"
+    "@next/swc-win32-arm64-msvc": "npm:15.2.4"
+    "@next/swc-win32-x64-msvc": "npm:15.2.4"
     "@swc/counter": "npm:0.1.3"
     "@swc/helpers": "npm:0.5.15"
     busboy: "npm:1.6.0"
@@ -36010,7 +36010,7 @@ __metadata:
       optional: true
   bin:
     next: dist/bin/next
-  checksum: 10c0/d9f374d42e422b1fc6ef3499e46318b572717c4dd35db04c25bec3b998e693d927ec8edaa7aa819f71aae7ae74645f498184e08ad261e35baeeaac560e915b9c
+  checksum: 10c0/a5c02cc0d9347e867e80ffa092ce46f00b190632e5414fb625a47eac2df25e97bdec7d193cfb6435624a7d9137543a33ca0c584bb01e838223aa32582207b766
   languageName: node
   linkType: hard
 
