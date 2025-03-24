@@ -4485,9 +4485,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@chainsafe/libp2p-noise@npm:16.0.3":
-  version: 16.0.3
-  resolution: "@chainsafe/libp2p-noise@npm:16.0.3"
+"@chainsafe/libp2p-noise@npm:16.1.0":
+  version: 16.1.0
+  resolution: "@chainsafe/libp2p-noise@npm:16.1.0"
   dependencies:
     "@chainsafe/as-chacha20poly1305": "npm:^0.1.0"
     "@chainsafe/as-sha256": "npm:^1.0.0"
@@ -4497,7 +4497,7 @@ __metadata:
     "@noble/ciphers": "npm:^1.1.3"
     "@noble/curves": "npm:^1.1.0"
     "@noble/hashes": "npm:^1.3.1"
-    it-length-prefixed: "npm:^9.0.1"
+    it-length-prefixed: "npm:^10.0.1"
     it-length-prefixed-stream: "npm:^1.0.0"
     it-pair: "npm:^2.0.6"
     it-pipe: "npm:^3.0.1"
@@ -4506,7 +4506,7 @@ __metadata:
     uint8arraylist: "npm:^2.4.3"
     uint8arrays: "npm:^5.0.0"
     wherearewe: "npm:^2.0.1"
-  checksum: 10c0/c12fb48f611fc3bff8544d72f0e10e4afdc41895e2f062f77b8dda3cd6653492d67d01e2a7a5c5a89f50b7ba2e9e64ede2c0a06cdb556867d4f4a2fab7ffcd03
+  checksum: 10c0/b537e8397b4be4192e738bfe88d1c6eff48052184164c77adddfac248275f5e5555093d829d758338f341d0039571034fb047e0e87d11b8081a93431078c5745
   languageName: node
   linkType: hard
 
@@ -8757,7 +8757,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/harpc-client@workspace:libs/@local/harpc/client/typescript"
   dependencies:
-    "@chainsafe/libp2p-noise": "npm:16.0.3"
+    "@chainsafe/libp2p-noise": "npm:16.1.0"
     "@chainsafe/libp2p-yamux": "npm:7.0.1"
     "@effect/platform": "npm:0.79.2"
     "@effect/platform-node": "npm:0.75.2"
@@ -31478,19 +31478,6 @@ __metadata:
     uint8arraylist: "npm:^2.0.0"
     uint8arrays: "npm:^5.0.1"
   checksum: 10c0/9b32946eee33296f77718423a183ad09654d3dfc9b1a06efe91bd650c83285dd7201268ad40dc1040cd25f5a0c5e28349c1a5ca121ca3fc9dd52ab4e272a0711
-  languageName: node
-  linkType: hard
-
-"it-length-prefixed@npm:^9.0.1":
-  version: 9.1.0
-  resolution: "it-length-prefixed@npm:9.1.0"
-  dependencies:
-    it-reader: "npm:^6.0.1"
-    it-stream-types: "npm:^2.0.1"
-    uint8-varint: "npm:^2.0.1"
-    uint8arraylist: "npm:^2.0.0"
-    uint8arrays: "npm:^5.0.1"
-  checksum: 10c0/4a64c51a14a50e65e502dc65aafc1f867c08aad0e7a82f8e0245c378e1484287d0d0f8ae73b451f96f8221f32c6b9db5f93f88f6be3ef992de23d92d0dc7a9ea
   languageName: node
   linkType: hard
 
