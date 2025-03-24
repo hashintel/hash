@@ -14,6 +14,7 @@ Checking correctness involves ensuring that the process does what it is supposed
 # Safety
 
 There are also things that we want processes to _not_ do, and **safety requirements** specify what states we do not want a process to end up in. For example, creating a `Refund` for an `Order` without any `Payment Confirmation`. Some rules about what must or must not happen in in the system can be defined as either correctness conditions that must hold at all times ("invariants"), or negatively as safety requirements that must not be violated.
+
 # Liveness
 
 Part of model verification involves checking that nothing is unexpectedly blocking progress, and that something desired eventually happens ("liveness"). Several things can prevent this.
