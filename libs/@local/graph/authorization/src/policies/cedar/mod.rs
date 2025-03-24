@@ -1,4 +1,5 @@
 mod entity;
+mod expression_tree;
 mod ontology;
 mod visitor;
 mod web;
@@ -9,6 +10,7 @@ use core::iter;
 use cedar_policy_core::ast;
 use error_stack::{IntoReport, Report, ResultExt as _, ensure};
 
+pub use self::expression_tree::PolicyExpressionTree;
 pub(crate) use self::{
     entity::EntityUuidVisitor,
     ontology::{BaseUrlVisitor, EntityTypeIdVisitor, OntologyTypeVersionVisitor},

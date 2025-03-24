@@ -26,6 +26,7 @@ use self::{
     resource::{EntityTypeId, ResourceConstraint},
 };
 pub use self::{
+    cedar::PolicyExpressionTree,
     context::{Context, ContextBuilder, ContextError},
     set::{
         Authorized, PolicyConstraintError, PolicyEvaluationError, PolicySet,

@@ -9,12 +9,8 @@ use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web
 use uuid::Uuid;
 
 use super::entity_type::EntityTypeId;
-use crate::policies::{
-    cedar::{
-        CedarEntityId, CedarExpressionParseError, CedarExpressionParser as _, FromCedarExpr,
-        SimpleParser, ToCedarExpr,
-    },
-    evaluation::{PermissionCondition, PermissionConditionVisitor, ResourceAttribute},
+use crate::policies::cedar::{
+    CedarEntityId, CedarExpressionParseError, FromCedarExpr, PolicyExpressionTree, ToCedarExpr,
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -42,49 +38,32 @@ pub enum EntityResourceFilter {
 
 #[derive(Debug, derive_more::Display)]
 #[display("expression is not supported: {_0:?}")]
-pub struct InvalidEntityResourceFilter(PermissionCondition);
+pub struct InvalidEntityResourceFilter(PolicyExpressionTree);
 
 impl Error for InvalidEntityResourceFilter {}
 
-impl TryFrom<PermissionCondition> for EntityResourceFilter {
+impl TryFrom<PolicyExpressionTree> for EntityResourceFilter {
     type Error = Report<InvalidEntityResourceFilter>;
 
-    fn try_from(condition: PermissionCondition) -> Result<Self, Self::Error> {
+    fn try_from(condition: PolicyExpressionTree) -> Result<Self, Self::Error> {
         match condition {
-            PermissionCondition::Not(condition) => Ok(Self::Not {
+            PolicyExpressionTree::Not(condition) => Ok(Self::Not {
                 filter: Box::new(Self::try_from(*condition)?),
             }),
-            PermissionCondition::All(conditions) => Ok(Self::All {
+            PolicyExpressionTree::All(conditions) => Ok(Self::All {
                 filters: conditions
                     .into_iter()
                     .map(Self::try_from)
                     .collect::<Result<_, _>>()?,
             }),
-            PermissionCondition::Any(conditions) => Ok(Self::Any {
+            PolicyExpressionTree::Any(conditions) => Ok(Self::Any {
                 filters: conditions
                     .into_iter()
                     .map(Self::try_from)
                     .collect::<Result<_, _>>()?,
             }),
-            PermissionCondition::Attribute(resource_attribute) => {
-                Self::try_from(resource_attribute)
-            }
+            PolicyExpressionTree::IsOfType(entity_type) => Ok(Self::IsOfType { entity_type }),
             condition => Err(Report::new(InvalidEntityResourceFilter(condition))),
-        }
-    }
-}
-
-impl TryFrom<ResourceAttribute> for EntityResourceFilter {
-    type Error = Report<InvalidEntityResourceFilter>;
-
-    fn try_from(attribute: ResourceAttribute) -> Result<Self, Self::Error> {
-        match attribute {
-            ResourceAttribute::IsOfType(entity_type) => Ok(Self::IsOfType { entity_type }),
-            ResourceAttribute::BaseUrl(_) | ResourceAttribute::OntologyTypeVersion(_) => {
-                Err(Report::new(InvalidEntityResourceFilter(
-                    PermissionCondition::Attribute(attribute),
-                )))
-            }
         }
     }
 }
@@ -133,8 +112,8 @@ impl FromCedarExpr for EntityResourceFilter {
     type Error = Report<CedarExpressionParseError>;
 
     fn from_cedar(expr: &ast::Expr) -> Result<Self, Self::Error> {
-        SimpleParser
-            .parse_expr(expr, &PermissionConditionVisitor)?
+        PolicyExpressionTree::from_expr(expr)
+            .change_context(CedarExpressionParseError::ParseError)?
             .try_into()
             .change_context(CedarExpressionParseError::ParseError)
     }
