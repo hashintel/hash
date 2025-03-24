@@ -40,27 +40,27 @@ Potential solutions include:
 
 ## Processes (Flows)
 
-Processes in HASH are represented as what mathematicians call "_Petri nets_". Unlike most representations of process models, Petri nets can be formally verified, which means we can check their integrity in a number of different ways, including by looking at properties such as:
+Processes in HASH are represented as what mathematicians call "_Petri nets_". Unlike many representations of process models, Petri nets can be formally verified, which means we can check their integrity in a number of different ways, including by looking at properties such as:
 
 1. **Reachability**
   - A state is considered _reachable_ if it can be achieved from an initial marking by firing a sequence of transitions.
   - Helps determine if a process can get stuck or fail to reach a goal state.
   - **Example:** Can an order-processing system always reach the "Order Completed" state?
-  - **Verification:** HASH constructs a _reachability graph_ and uses _state-space exploration_ to check if any given target state can be reached. If it cannot, the process map editor is notified.
+  - **Verification:** Construct a _reachability graph_ and uses _state-space exploration_ to check if any given target state can be reached.
 2. **Boundedness** (Safeness)
   - A Petri net is _k-bounded_ if no place contains more than _k tokens_ at any time.
   - A _1-bounded_ net (Safe Petri Net) ensures that places hold at most one token, preventing overflow issues.
   - Helps prevent resource exhaustion in concurrent systems.
-  - **Verification:** HASH analyzes the _incidence matrix_ and _state-space exploration_ to check if any place can exceed k tokens.
+  - **Verification:** Analyze the _incidence matrix_ and _state-space exploration_ to check if any place can exceed k tokens.
 3. **Liveness**
   - A Petri net is considered _live_ if all transitions remain potentially fireable (i.e. no part of the system permanently stops working).
-  - Ensures that no process is permanently blocked (i.e. there are no _deadlocks_).
-  - **Example:** In an order-processing workflow, the **"Dispatch Order"** transition should always be possible if stock is available. If not, there’s a deadlock.
-  - **Verification:** HASH uses the _reachability graph_ already computed to check if every transition is eventually fireable. Repeating execution cycles are used to find deadlocks.
+  - Ensures that no process is permanently blocked (e.g. there are no _deadlocks_).
+  - **Example:** In an order-processing workflow, if all necessary conditions are satisfied (e.g., payment confirmed, stock available) but the **"Dispatch Order"** transition still never fires, there is a liveness problem. This could indicate a deadlock or some other form of blocking that prevents the system from progressing.
+  - **Verification:** Uses a _reachability graph_ to check if every transition is eventually fireable. Repeating execution cycles are used to find deadlocks.
 4. **Fairness**
   - Ensures that all transitions have a chance to fire, avoiding starvation.
   - Important in concurrent and distributed systems, where some processes should not dominate resource usage.
   - **Example:** In a ticketing system, fairness ensures that all users eventually get service rather than some requests being delayed indefinitely.
-  - **Verification:** HASH checks _reachability properties_ to check for transitions which are never executed.
+  - **Verification:** Check _reachability properties_ to detect transitions which are never executed.
 
 Right now, process modeling in HASH is in beta, and we have not yet built in support for the above formal verification techniques, although hope to in the future.
