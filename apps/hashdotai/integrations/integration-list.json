@@ -55,6 +55,38 @@
     "availability": "Considered"
   },
   {
+    "name": "Oracle Cloud SCM",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_oracle.svg",
+    "productUrl": "https://www.oracle.com/scm/",
+    "summaryHtml": "Oracle Fusion Cloud Supply Chain & Manufacturing data made accessible",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/oracle-cloud-scm",
+    "availability": "Considered"
+  },
+  {
+    "name": "Oracle Cloud ERP",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_oracle.svg",
+    "productUrl": "https://www.oracle.com/erp/",
+    "summaryHtml": "Oracle Fusion Cloud Enterprise Resource Planning data made accessible",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/oracle-cloud-erp",
+    "availability": "Considered"
+  },
+  {
+    "name": "Oracle Cloud EPM",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_oracle.svg",
+    "productUrl": "https://www.oracle.com/performance-management/",
+    "summaryHtml": "Oracle Fusion Cloud Enterprise Performance Management data made accessible",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/oracle-cloud-epm",
+    "availability": "Considered"
+  },
+  {
+    "name": "Oracle Cloud HCM",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_oracle.svg",
+    "productUrl": "https://www.oracle.com/human-capital-management/",
+    "summaryHtml": "Oracle Fusion Cloud Human Capital Management & Oracle ME data made accessible",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/oracle-cloud-hcm",
+    "availability": "Considered"
+  },
+  {
     "name": "SAP S/4HANA",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_sap.svg",
     "summaryHtml": "Manage order-to-cash, procure-to-pay, plan-to-product, request-to-service and other key enterprise processes.",
