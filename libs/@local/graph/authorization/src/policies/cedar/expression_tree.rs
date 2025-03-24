@@ -225,13 +225,11 @@ impl PolicyExpressionTree {
             (AttributeType::BaseUrl, ast::ExprKind::Lit(ast::Literal::String(string))) => {
                 BaseUrl::new(string.to_string())
                     .change_context(ParseBinaryExpressionError::Right)
-                    .attach_printable_lazy(|| string.clone())
                     .map(Self::BaseUrl)
             }
             (AttributeType::OntologyTypeVersion, ast::ExprKind::Lit(ast::Literal::Long(long))) => {
                 u32::try_from(*long)
                     .change_context(ParseBinaryExpressionError::Right)
-                    .attach_printable(*long)
                     .map(|version| Self::OntologyTypeVersion(OntologyTypeVersion::new(version)))
             }
             (AttributeType::Resource, ast::ExprKind::Lit(ast::Literal::EntityUID(euid))) => {
