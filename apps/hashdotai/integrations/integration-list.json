@@ -70,7 +70,7 @@
   {
     "name": "Slack",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_slack.svg",
-    "productUrl": "https://slack.com/"
+    "productUrl": "https://slack.com/",
     "summaryHtml": "<div><strong>In HASH:</strong> see messages and teammates</div><div><strong>In Slack:</strong> create/find entities and types</div>",
     "integrationUrl": "https://app.hash.ai/settings/integrations/slack",
     "availability": "Considered",
