@@ -148,15 +148,15 @@ bench *arguments:
 [no-cd]
 coverage *arguments:
   cargo llvm-cov nextest --all-features --all-targets --cargo-profile coverage {{arguments}}
-  cargo llvm-cov --all-features --profile coverage --doc {{arguments}}
+  cargo llvm-cov --all-features --profile coverage --doc
 
 # Run the test suite and optionally generate a coverage report when `$TEST_COVERAGE` is set to `true`
 [no-cd]
-test-or-coverage:
+test-or-coverage *arguments:
   #!/usr/bin/env bash
   set -eo pipefail
   if [[ "$TEST_COVERAGE" = 'true' || "$TEST_COVERAGE" = '1' ]]; then
-    just coverage --lcov --output-path lcov.info
+    just coverage --lcov --output-path lcov.info {{arguments}}
   else
-    just test --no-fail-fast
+    just test --no-fail-fast {{arguments}}
   fi
