@@ -1,5 +1,5 @@
 [package]
-name              = "hql-span"
+name              = "hql-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

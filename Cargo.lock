@@ -3686,6 +3686,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "hql-core"
+version = "0.0.0"
+dependencies = [
+ "orx-concurrent-vec",
+ "serde",
+ "simple-mermaid",
+ "text-size",
+]
+
+[[package]]
 name = "hql-cst"
 version = "0.0.0"
 dependencies = [
@@ -3694,7 +3704,7 @@ dependencies = [
  "ecow",
  "foldhash",
  "hashbrown 0.15.2",
- "hql-span",
+ "hql-core",
  "hql-symbol",
  "json-number",
  "lexical",
@@ -3709,7 +3719,7 @@ dependencies = [
  "anstyle-yansi",
  "ariadne",
  "error-stack",
- "hql-span",
+ "hql-core",
  "jsonptr",
  "serde",
  "serde_json",
@@ -3720,21 +3730,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "hql-span"
-version = "0.0.0"
-dependencies = [
- "orx-concurrent-vec",
- "serde",
- "simple-mermaid",
- "text-size",
-]
-
-[[package]]
 name = "hql-symbol"
 version = "0.0.0"
 dependencies = [
  "ecow",
- "hql-span",
+ "hql-core",
 ]
 
 [[package]]
@@ -3744,9 +3744,9 @@ dependencies = [
  "ariadne",
  "ecow",
  "hifijson",
+ "hql-core",
  "hql-cst",
  "hql-diagnostics",
- "hql-span",
  "insta",
  "json-number",
  "jsonptr",

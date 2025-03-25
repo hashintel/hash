@@ -1,13 +1,6 @@
-//! # HashQL Span
-//!
-//! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(never_type)]
-extern crate alloc;
-
 pub mod entry;
+pub mod node;
 pub mod storage;
-pub mod tree;
 
 pub use text_size::{TextRange, TextSize};
 

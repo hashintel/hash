@@ -1,6 +1,6 @@
 use orx_concurrent_vec::ConcurrentVec;
 
-use crate::{Span, SpanId, entry::Entry, tree::SpanNode};
+use super::{Span, SpanId, entry::Entry, node::SpanNode};
 
 /// A collection of spans within a single source.
 ///
