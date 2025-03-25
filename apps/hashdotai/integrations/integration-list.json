@@ -230,7 +230,7 @@
   {
     "name": "Messenger",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_messenger.svg",
-    "productUrl": "https://about.meta.com/technologies/messenger/"
+    "productUrl": "https://about.meta.com/technologies/messenger/",
     "summaryHtml": "Contacts, messages, attachments, and more centralized alongside other data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/messenger",
     "availability": "Considered",
