@@ -2,14 +2,16 @@
   {
     "name": "Anaplan",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_anaplan.svg",
-    "summaryHtml": "",
+    "productUrl": "https://www.anaplan.com/platform/",
+    "summaryHtml": "Demand planning, scenario forecasting, and decision-making data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/anaplan",
     "availability": "Considered",
     "category": ["Enterprise", "Supply Chain"]
   },
   {
-    "name": "Blue Yonder",
+    "name": "Blue Yonder Platform",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_blue-yonder.svg",
+    "productUrl": "https://blueyonder.com/solutions/blue-yonder-platform",
     "summaryHtml": "End-to-end supply chain, warehouse, returns, transportation, order management and other data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/blue-yonder",
     "availability": "Considered",
@@ -18,6 +20,7 @@
   {
     "name": "Celonis",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_celonis.svg",
+    "productUrl": "https://www.celonis.com/platform/process-mining/",
     "summaryHtml": "Access or manage processes, records, KPIs, filters, triggers and knowledge from Celonis",
     "integrationUrl": "https://app.hash.ai/settings/integrations/celonis",
     "availability": "Considered",
@@ -27,16 +30,18 @@
   {
     "name": "OMP",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_omp.svg",
-    "summaryHtml": "Network design, S&OP, demand management, operational planning, scheduling and other data",
+    "productUrl": "https://omp.com/solution/technology",
+    "summaryHtml": "Network design, S&OP, demand management, operational planning, scheduling, and more and other data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/omp",
     "availability": "Considered",
     "audience": ["Enterprise"],
     "category": ["Supply Chain"]
   },
   {
-    "name": "Kiaxis Maestro",
+    "name": "Kinaxis Maestro",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_kinaxis-maestro.svg",
-    "summaryHtml": "Network design, S&OP, demand management, operational planning, scheduling and other data",
+    "productUrl": "https://www.kinaxis.com/en/solutions/platform",
+    "summaryHtml": "Supply chain orchestration, planning, and execution data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/kinaxis-maestro",
     "availability": "Considered",
     "audience": ["Enterprise"],
@@ -45,6 +50,7 @@
   {
     "name": "Coupa",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_coupa.svg",
+    "productUrl": "https://www.coupa.com/products/",
     "summaryHtml": "Supply chain design, planning and other total spend management data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/coupa",
     "availability": "Considered",
@@ -54,6 +60,7 @@
   {
     "name": "Linear",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_linear.svg",
+    "productUrl": "https://linear.app/",
     "summaryHtml": "Issues, users, organizations, projects, milestones, and much more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/linear",
     "availability": "Available",
@@ -63,6 +70,7 @@
   {
     "name": "Slack",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_slack.svg",
+    "productUrl": "https://slack.com/"
     "summaryHtml": "<div><strong>In HASH:</strong> see messages and teammates</div><div><strong>In Slack:</strong> create/find entities and types</div>",
     "integrationUrl": "https://app.hash.ai/settings/integrations/slack",
     "availability": "Considered",
@@ -112,7 +120,8 @@
   {
     "name": "SAP S/4HANA",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_sap.svg",
-    "summaryHtml": "Manage order-to-cash, procure-to-pay, plan-to-product, request-to-service and other key enterprise processes.",
+    "productUrl": "https://www.sap.com/products/erp/s4hana.html",
+    "summaryHtml": "Order-to-cash, procure-to-pay, plan-to-product, request-to-service, and other processes",
     "integrationUrl": "https://app.hash.ai/settings/integrations/sap-s4hana",
     "availability": "Considered",
     "audience": ["Enterprise"],
@@ -121,7 +130,8 @@
   {
     "name": "DocuSign",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_docusign.svg",
-    "summaryHtml": "",
+    "productUrl": "https://www.docusign.com/products/electronic-signature",
+    "summaryHtml": "Securely e-signed documents/agreements, templates, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/docusign",
     "availability": "Considered",
     "audience": ["Enterprise", "Startup"],
@@ -130,7 +140,8 @@
   {
     "name": "Gmail",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_google-mail.svg",
-    "summaryHtml": "",
+    "productUrl": "https://workspace.google.com/gmail/",
+    "summaryHtml": "Sent, received, draft and scheduled emails, categories, and chats",
     "integrationUrl": "https://app.hash.ai/settings/integrations/google-mail",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
@@ -139,7 +150,8 @@
   {
     "name": "Google Drive",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_google-drive.svg",
-    "summaryHtml": "",
+    "productUrl": "https://workspace.google.com/products/drive/",
+    "summaryHtml": "Shared files and folders, including Google Workspace (G Suite) docs",
     "integrationUrl": "https://app.hash.ai/settings/integrations/google-drive",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
@@ -148,7 +160,8 @@
   {
     "name": "Google Calendar",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_google-calendar.svg",
-    "summaryHtml": "",
+    "productUrl": "https://workspace.google.com/products/calendar/",
+    "summaryHtml": "Scheduling, calendars, events, out of office, focus time, tasks and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/google-calendar",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
@@ -157,7 +170,8 @@
   {
     "name": "Dropbox",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_dropbox.svg",
-    "summaryHtml": "",
+    "productUrl": "https://www.dropbox.com/dropbox",
+    "summaryHtml": "Shared files and folders in HASH",
     "integrationUrl": "https://app.hash.ai/settings/integrations/dropbox",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
@@ -166,7 +180,8 @@
   {
     "name": "Box",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_box.svg",
-    "summaryHtml": "",
+    "productUrl": "https://www.box.com/products-and-features",
+    "summaryHtml": "Shared files, hubs, canvases, notes, e-signing, and more ",
     "integrationUrl": "https://app.hash.ai/settings/integrations/box",
     "availability": "Considered",
     "audience": ["Enterprise", "Startup"],
@@ -175,7 +190,8 @@
   {
     "name": "Trello",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_trello.svg",
-    "summaryHtml": "",
+    "productUrl": "https://trello.com/home",
+    "summaryHtml": "Cards, lists, boards, workspaces, views, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/trello",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
@@ -184,7 +200,8 @@
   {
     "name": "Apple Notes",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_apple-notes.svg",
-    "summaryHtml": "",
+    "productUrl": "https://www.icloud.com/notes/",
+    "summaryHtml": "Private/shared notes, and folders (inc. smart folders)",
     "integrationUrl": "https://app.hash.ai/settings/integrations/apple-notes",
     "availability": "Considered",
     "audience": ["Enterprise"],
@@ -193,7 +210,8 @@
   {
     "name": "Discord",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_discord.svg",
-    "summaryHtml": "",
+    "productUrl": "https://discord.com/",
+    "summaryHtml": "Messages (inc. threads), attachments, contacts, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/discord",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
@@ -202,7 +220,8 @@
   {
     "name": "Microsoft Teams",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_microsoft-teams.svg",
-    "summaryHtml": "",
+    "productUrl": "https://www.microsoft.com/microsoft-teams",
+    "summaryHtml": "Messages, files, contacts, status tracking, recordings, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/microsoft-teams",
     "availability": "Considered",
     "audience": ["Enterprise", "Startup"],
@@ -211,7 +230,8 @@
   {
     "name": "Messenger",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_messenger.svg",
-    "summaryHtml": "View, triage and respond to messages from Facebook Messenger in a centralized location",
+    "productUrl": "https://about.meta.com/technologies/messenger/"
+    "summaryHtml": "Contacts, messages, attachments, and more centralized alongside other data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/messenger",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
@@ -220,7 +240,8 @@
   {
     "name": "Instagram",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_instagram.svg",
-    "summaryHtml": "Respond to Instagram messages in a centralized location, track follower/following relationships, engagement and more",
+    "productUrl": "https://about.meta.com/technologies/instagram",
+    "summaryHtml": "Direct messages, follower/following relationships, posts, engagement, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/instagram",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
@@ -229,7 +250,8 @@
   {
     "name": "Notion",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_notion.svg",
-    "summaryHtml": "",
+    "productUrl": "https://www.notion.com/product",
+    "summaryHtml": "Hierarchical pages with rich blocks synced with HASH",
     "integrationUrl": "https://app.hash.ai/settings/integrations/notion",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
@@ -238,7 +260,8 @@
   {
     "name": "Sentry",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_sentry.svg",
-    "summaryHtml": "",
+    "productUrl": "https://sentry.io/features",
+    "summaryHtml": "Issues, traces, profiles, replays, user feedback, crons, alerts, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/sentry",
     "availability": "Considered",
     "audience": ["Enterprise", "Startup"],
@@ -247,16 +270,18 @@
   {
     "name": "Zoom",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_zoom.svg",
-    "summaryHtml": "",
+    "productUrl": "https://www.zoom.com/en/products/collaboration-tools/",
+    "summaryHtml": "Call scheduling, recording, whiteboards, worfklows, docs, clips, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/zoom",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
-    "category": ["Communications"]
+    "category": ["Docs & Files", "Communications"]
   },
   {
     "name": "GitHub",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_github.svg",
-    "summaryHtml": "",
+    "productUrl": "https://github.com/features",
+    "summaryHtml": "Repos, pull requests, issues, discussions, actions, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/github",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
@@ -265,7 +290,8 @@
   {
     "name": "Figma",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_figma.svg",
-    "summaryHtml": "",
+    "productUrl": "https://www.figma.com/design/",
+    "summaryHtml": "Projects, files, artboards, drafts, users, and more ",
     "integrationUrl": "https://app.hash.ai/settings/integrations/figma",
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
@@ -274,7 +300,8 @@
   {
     "name": "Asana",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_asana.svg",
-    "summaryHtml": "",
+    "productUrl": "https://asana.com/product",
+    "summaryHtml": "Tasks, projects, views, status updates, time tracking, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/asana",
     "availability": "Considered",
     "audience": ["Enterprise", "Startup"],
