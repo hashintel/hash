@@ -5,13 +5,13 @@ pub mod literal;
 pub mod r#struct;
 pub mod tuple;
 
-use hql_span::SpanId;
+use hql_core::span::SpanId;
 
 pub use self::{
     call::CallExpr, dict::DictExpr, list::ListExpr, literal::LiteralExpr, r#struct::StructExpr,
     tuple::TupleExpr,
 };
-use super::path::Path;
+use super::{id::NodeId, path::Path};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExprKind<'heap> {
@@ -93,6 +93,7 @@ pub enum ExprKind<'heap> {
 /// An expression node in the CST.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Expr<'heap> {
+    pub id: NodeId,
     pub span: SpanId,
 
     pub kind: ExprKind<'heap>,

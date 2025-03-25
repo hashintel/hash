@@ -2,10 +2,13 @@ pub mod float;
 pub mod integer;
 pub mod string;
 
-use hql_span::SpanId;
+use hql_core::span::SpanId;
 
 pub use self::{float::FloatLiteral, integer::IntegerLiteral, string::StringLiteral};
-use crate::{heap::P, node::r#type::Type};
+use crate::{
+    heap::P,
+    node::{id::NodeId, r#type::Type},
+};
 
 /// Represents the different kinds of literal values in the language.
 ///
@@ -31,6 +34,7 @@ pub enum LiteralKind {
 /// span that tracks its location in the source code.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LiteralExpr<'heap> {
+    pub id: NodeId,
     pub span: SpanId,
 
     pub kind: LiteralKind,

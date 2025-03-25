@@ -1,8 +1,10 @@
-use hql_span::SpanId;
-use hql_symbol::Symbol;
+use hql_core::{span::SpanId, symbol::Symbol};
+
+use crate::node::id::NodeId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StringLiteral {
+    pub id: NodeId,
     pub span: SpanId,
 
     pub value: Symbol,

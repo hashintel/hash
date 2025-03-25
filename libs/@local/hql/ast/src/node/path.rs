@@ -1,13 +1,14 @@
 use core::{fmt, fmt::Display};
 
-use hql_span::SpanId;
-use hql_symbol::Ident;
+use hql_core::{span::SpanId, symbol::Ident};
 
-use super::generic::Generic;
+use super::{generic::Generic, id::NodeId};
 use crate::heap::P;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PathSegment<'heap> {
+    pub id: NodeId,
+
     pub ident: Ident,
     // Type parameters attached to this path
     pub args: P<'heap, [Generic<'heap>]>,
