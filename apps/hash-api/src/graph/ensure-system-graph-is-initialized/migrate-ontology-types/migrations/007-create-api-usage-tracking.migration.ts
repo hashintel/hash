@@ -1,8 +1,7 @@
-import type { OwnedById } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { Entity, OwnedById } from "@blockprotocol/type-system";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { ServiceFeature } from "@local/hash-isomorphic-utils/system-types/shared";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import { logger } from "../../../../logger";
 import { createEntity } from "../../../knowledge/primitive/entity";
@@ -183,7 +182,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Records Usage Of",
         inverse: {
           title: "Usage Recorded By",
@@ -201,7 +200,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Created",
         inverse: {
           title: "Created By",
@@ -219,7 +218,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Updated",
         inverse: {
           title: "Updated By",

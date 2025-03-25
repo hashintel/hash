@@ -1,11 +1,10 @@
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
-import type { Subgraph } from "@local/hash-subgraph";
 import type { GraphQLResolveInfo } from "graphql";
 import type { ResolveTree } from "graphql-parse-resolve-info";
 import { parseResolveInfo } from "graphql-parse-resolve-info";
 
 import { checkPermissionsOnEntitiesInSubgraph } from "../../../../graph/knowledge/primitive/entity";
-import type { SubgraphAndPermissions } from "../../../api-types.gen";
+import type { Subgraph, SubgraphAndPermissions } from "../../../api-types.gen";
 import type { GraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 

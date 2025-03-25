@@ -36,9 +36,9 @@ export type EntityTypeRootType = {
   element: EntityTypeWithMetadata;
 };
 
-export type EntityRootType = {
+export type EntityRootType<EntityImpl extends Entity = Entity> = {
   vertexId: EntityVertexId;
-  element: Entity;
+  element: EntityImpl;
 };
 
 export type SubgraphRootType =

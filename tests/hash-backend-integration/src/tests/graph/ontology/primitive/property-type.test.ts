@@ -12,9 +12,10 @@ import {
   unarchivePropertyType,
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import type {
-  OwnedById,
-  PropertyTypeWithMetadata,
+import {
+  isOwnedOntologyElementMetadata,
+  type OwnedById,
+  type PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
@@ -24,7 +25,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
-import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";

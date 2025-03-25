@@ -1,5 +1,11 @@
 import { useLazyQuery } from "@apollo/client";
 import type {
+  EntityRootType,
+  GraphResolveDepths,
+  KnowledgeGraphVertices,
+  Subgraph,
+} from "@blockprotocol/graph";
+import type {
   CreatedById,
   EditionCreatedById,
   Entity as EntityBp,
@@ -11,12 +17,6 @@ import type {
 import { currentTimestamp } from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import type {
-  EntityRootType,
-  GraphResolveDepths,
-  KnowledgeGraphVertices,
-  Subgraph,
-} from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import type {

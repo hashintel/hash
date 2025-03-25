@@ -1,8 +1,9 @@
-import type { EntityId } from "@blockprotocol/type-system";
+import type { Entity, EntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { EntityRelationAndSubject } from "@local/hash-graph-client/dist/api.d";
 import type {
   CreateEntityParameters,
-  Entity,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
@@ -17,7 +18,6 @@ import type {
   TextPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 import type {
   ImpureGraphFunction,
@@ -49,12 +49,12 @@ export type Comment = {
    */
   resolvedAt?: string;
   deletedAt?: string;
-  entity: Entity<CommentEntity>;
+  entity: HashEntity<CommentEntity>;
 };
 
 function assertCommentEntity(
-  entity: Entity,
-): asserts entity is Entity<CommentEntity> {
+  entity: HashEntity,
+): asserts entity is HashEntity<CommentEntity> {
   if (
     !entity.metadata.entityTypeIds.includes(
       systemEntityTypes.comment.entityTypeId,
@@ -69,7 +69,7 @@ function assertCommentEntity(
 }
 
 export const getCommentFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: HashEntity },
   Comment
 > = ({ entity }) => {
   assertCommentEntity(entity);

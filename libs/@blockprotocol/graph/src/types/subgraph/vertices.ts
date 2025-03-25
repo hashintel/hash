@@ -5,7 +5,6 @@ import type {
   EntityId,
   EntityTypeWithMetadata,
   OntologyTypeVersion,
-  PropertyObject,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { validateBaseUrl } from "@blockprotocol/type-system";
@@ -28,22 +27,22 @@ export type EntityTypeVertex = {
   inner: EntityTypeWithMetadata;
 };
 
-export type EntityVertex<
-  Properties extends PropertyObject | null = PropertyObject,
-> = { kind: "entity"; inner: Entity<Properties> };
+export type EntityVertex<EntityImpl extends Entity = Entity> = {
+  kind: "entity";
+  inner: EntityImpl;
+};
 
 export type OntologyVertex =
   | DataTypeVertex
   | PropertyTypeVertex
   | EntityTypeVertex;
 
-export type KnowledgeGraphVertex<
-  Properties extends PropertyObject | null = PropertyObject,
-> = EntityVertex<Properties>;
+export type KnowledgeGraphVertex<EntityImpl extends Entity = Entity> =
+  EntityVertex<EntityImpl>;
 
-export type Vertex<Properties extends PropertyObject | null = PropertyObject> =
+export type Vertex<EntityImpl extends Entity = Entity> =
   | OntologyVertex
-  | KnowledgeGraphVertex<Properties>;
+  | KnowledgeGraphVertex<EntityImpl>;
 
 export const isDataTypeVertex = (vertex: Vertex): vertex is DataTypeVertex => {
   return vertex.kind === "dataType";
@@ -104,13 +103,15 @@ export const isEntityVertexId = (
 };
 
 export type OntologyVertices = {
-  [baseId: BaseUrl]: {
+  /** Branding the keys causes too much complication with accessing the vertices. */
+  [baseUrl: string]: {
     [revisionId: OntologyTypeVersion]: OntologyVertex;
   };
 };
 
 export type KnowledgeGraphVertices = {
-  [baseId: EntityId]: {
+  /** Branding the keys causes too much complication with accessing the vertices. */
+  [entityId: string]: {
     [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
   };
 };

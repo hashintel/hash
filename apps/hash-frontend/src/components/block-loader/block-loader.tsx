@@ -1,8 +1,11 @@
 import type {
   BlockGraphProperties,
   EntityRevisionId,
+  EntityRootType,
+  EntityVertex,
   GraphEmbedderMessageCallbacks,
   Subgraph as BpSubgraph,
+  Subgraph,
 } from "@blockprotocol/graph";
 import type {
   EntityId,
@@ -24,11 +27,6 @@ import {
 } from "@local/hash-isomorphic-utils/entity-store";
 import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
-import type {
-  EntityRootType,
-  EntityVertex,
-  Subgraph,
-} from "@local/hash-subgraph";
 import type { FunctionComponent } from "react";
 import {
   useCallback,
@@ -255,7 +253,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
       if (!entityInStore || !draftEntityIsNewer) {
         if (isBlockEntity) {
-          // @ts-expect-error –– @todo fix this
           const entityVertex = entityOrTypeEditionMap[
             latestSubgraphEditionTimestamp
           ] as EntityVertex;

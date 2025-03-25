@@ -1,5 +1,6 @@
 import type {
   BaseUrl,
+  OntologyTypeRecordId,
   OntologyTypeVersion,
   ParseBaseUrlError,
   ParseVersionedUrlError,
@@ -192,4 +193,68 @@ export const extractVersion = (url: VersionedUrl): OntologyTypeVersion => {
   const [_match, _baseUrl, version] = groups;
 
   return Number(version) as OntologyTypeVersion;
+};
+
+/**
+ * Extract the baseUrl and version from a versioned URL
+ *
+ * @param versionedUrl a versioned URL
+ * @throws {ParseVersionedUrlError} if the versionedUrl is invalid
+ */
+export const componentsFromVersionedUrl = (
+  versionedUrl: VersionedUrl,
+): {
+  baseUrl: BaseUrl;
+  version: OntologyTypeVersion;
+} => {
+  const baseUrl = extractBaseUrl(versionedUrl);
+  const version = extractVersion(versionedUrl);
+
+  return {
+    baseUrl,
+    version,
+  };
+};
+
+class InvalidVersionedUrlComponentsError extends Error {
+  components: { baseUrl: BaseUrl; version: number };
+  error: ParseVersionedUrlError;
+
+  constructor(
+    components: { baseUrl: BaseUrl; version: number },
+    error: ParseVersionedUrlError,
+  ) {
+    super(
+      `Failed to create versioned URL from components: ${JSON.stringify(
+        error,
+      )}`,
+    );
+    this.name = "InvalidVersionedUrlComponentsError";
+    this.components = components;
+    this.error = error;
+  }
+}
+
+export const versionedUrlFromComponents = (
+  baseUrl: BaseUrl,
+  version: number,
+): VersionedUrl => {
+  const versionedUrl = `${baseUrl}v/${version}`;
+
+  const validationResult = validateVersionedUrl(versionedUrl);
+
+  if (validationResult.type === "Err") {
+    throw new InvalidVersionedUrlComponentsError(
+      { baseUrl, version },
+      validationResult.inner,
+    );
+  } else {
+    return validationResult.inner;
+  }
+};
+
+export const ontologyTypeRecordIdToVersionedUrl = (
+  ontologyTypeRecordId: OntologyTypeRecordId,
+): VersionedUrl => {
+  return `${ontologyTypeRecordId.baseUrl}v/${ontologyTypeRecordId.version}`;
 };

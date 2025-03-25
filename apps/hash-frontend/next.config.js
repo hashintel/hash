@@ -157,7 +157,6 @@ export default withSentryConfig(
         "@local/advanced-types",
         "@local/hash-graph-client",
         "@local/hash-isomorphic-utils",
-        "@local/hash-subgraph",
         "react-syntax-highlighter",
         "@tldraw/polyfills",
         "@tldraw/tldraw",

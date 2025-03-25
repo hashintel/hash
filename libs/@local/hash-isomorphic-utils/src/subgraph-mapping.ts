@@ -1,8 +1,11 @@
 import type {
-  isEntityVertex,
+  Edges,
+  EntityRootType,
   Subgraph,
   SubgraphRootType,
+  SubgraphTemporalAxes,
 } from "@blockprotocol/graph";
+import { isEntityVertex } from "@blockprotocol/graph";
 import type {
   ActorId,
   BaseUrl,
@@ -10,11 +13,11 @@ import type {
   ClosedMultiEntityType,
   DataTypeWithMetadata,
   EntityId,
-  EntityProperties,
   EntityTypeWithMetadata,
   OwnedById,
   PropertyObject,
   PropertyTypeWithMetadata,
+  TypeIdsAndPropertiesForEntity,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -54,7 +57,9 @@ const restrictedPropertyBaseUrls: string[] = [
   systemPropertyTypes.email.propertyTypeBaseUrl,
 ];
 
-export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
+export const mapGraphApiEntityToEntity = <
+  T extends TypeIdsAndPropertiesForEntity,
+>(
   entity: GraphApiEntity,
   userAccountId: ActorId | null,
   preserveProperties = false,
@@ -136,7 +141,7 @@ export const mapGraphApiVerticesToVertices = (
             typedEntries(inner).map(([version, vertex]) => [
               version,
               mapKnowledgeGraphVertex(
-                vertex as KnowledgeGraphVertexGraphApi,
+                vertex,
                 userAccountId,
                 preserveProperties,
               ),
@@ -190,7 +195,7 @@ export const mapGraphApiSubgraphToSubgraph = <
   subgraph: GraphApiSubgraph,
   userAccountId: ActorId | null,
   preserveProperties = false,
-) => {
+): Subgraph<RootType> => {
   return {
     ...subgraph,
     vertices: mapGraphApiVerticesToVertices(
@@ -204,19 +209,23 @@ export const mapGraphApiSubgraphToSubgraph = <
 export const serializeSubgraph = (subgraph: Subgraph): SerializedSubgraph => ({
   roots: subgraph.roots,
   vertices: serializeGraphVertices(subgraph.vertices),
-  edges: subgraph.edges,
+  edges: subgraph.edges as SerializedSubgraph["edges"],
   depths: subgraph.depths,
   temporalAxes: subgraph.temporalAxes,
 });
 
-export const deserializeSubgraph = <RootType extends SubgraphRootType>(
+export const deserializeSubgraph = <
+  RootType extends
+    | Exclude<SubgraphRootType, EntityRootType>
+    | EntityRootType<HashEntity>,
+>(
   subgraph: SerializedSubgraph,
 ): Subgraph<RootType> => ({
-  roots: subgraph.roots,
+  roots: subgraph.roots as RootType["vertexId"][],
   vertices: deserializeGraphVertices(subgraph.vertices),
-  edges: subgraph.edges,
+  edges: subgraph.edges as Edges,
   depths: subgraph.depths,
-  temporalAxes: subgraph.temporalAxes,
+  temporalAxes: subgraph.temporalAxes as SubgraphTemporalAxes,
 });
 
 export const mapGraphApiEntityTypesToEntityTypes = (

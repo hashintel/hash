@@ -1,6 +1,6 @@
+import type { Subgraph } from "@blockprotocol/graph";
 import type { Subgraph as ApiClientSubgraph } from "@local/hash-graph-client";
 import { mapGraphApiVerticesToVertices } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { Subgraph } from "@local/hash-subgraph";
 import { describe, expect, it } from "vitest";
 
 import { dereferenceEntityType } from "./dereference-entity-type.js";

@@ -1,10 +1,19 @@
-import type { ActorId, BaseUrl, EntityId } from "@blockprotocol/type-system";
+import type { EntityRootType } from "@blockprotocol/graph";
+import {
+  getRightEntityForLinkEntity,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import type {
+  ActorId,
+  BaseUrl,
+  Entity,
+  EntityId,
+} from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -26,11 +35,6 @@ import type {
   SyncLinearDataWith,
   SyncLinearDataWithProperties,
 } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  getRightEntityForLinkEntity,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 
 import type {
   ImpureGraphFunction,

@@ -3,7 +3,7 @@ import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type {
   CreateEntityParameters,
   Entity,
-  LinkEntity,
+  HashLinkEntity,
 } from "@local/hash-graph-sdk/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
@@ -479,7 +479,9 @@ export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
   Promise<
     {
-      linkEntity: LinkEntity<HasIndexedContent | HasSpatiallyPositionedContent>;
+      linkEntity: HashLinkEntity<
+        HasIndexedContent | HasSpatiallyPositionedContent
+      >;
       rightEntity: Block;
     }[]
   >,
@@ -498,8 +500,8 @@ export const getPageBlocks: ImpureGraphFunction<
               .linkEntityTypeId,
     },
   )) as
-    | LinkEntity<HasIndexedContent>[]
-    | LinkEntity<HasSpatiallyPositionedContent>[];
+    | HashLinkEntity<HasIndexedContent>[]
+    | HashLinkEntity<HasSpatiallyPositionedContent>[];
 
   return await Promise.all(
     outgoingBlockDataLinks

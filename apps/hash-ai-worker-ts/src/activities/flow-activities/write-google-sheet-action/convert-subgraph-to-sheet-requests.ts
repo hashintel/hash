@@ -1,3 +1,15 @@
+import {
+  type EntityRootType,
+  type EntityVertex,
+  isEntityVertex,
+  type Subgraph,
+} from "@blockprotocol/graph";
+import {
+  getEntityRevision,
+  getEntityTypeById,
+} from "@blockprotocol/graph/stdlib";
+import { getEntityTypeAndParentsById } from "@blockprotocol/graph/stdlib/subgraph/element/entity-type";
+import { getPropertyTypeForEntity } from "@blockprotocol/graph/stdlib/subgraph/element/property-type";
 import type {
   BaseUrl,
   EntityId,
@@ -12,18 +24,6 @@ import {
 import { isDraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  EntityRootType,
-  EntityVertex,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { isEntityVertex } from "@local/hash-subgraph";
-import {
-  getEntityRevision,
-  getEntityTypeAndParentsById,
-  getEntityTypeById,
-  getPropertyTypeForEntity,
-} from "@local/hash-subgraph/stdlib";
 import type { sheets_v4 } from "googleapis";
 
 import type { SheetOutputFormat } from "./shared/config.js";

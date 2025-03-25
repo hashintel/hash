@@ -4,8 +4,10 @@ import type {
   OntologyTypeVersion,
   OwnedById,
 } from "@blockprotocol/type-system";
-import { currentTimestamp } from "@blockprotocol/type-system";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  componentsFromVersionedUrl,
+  currentTimestamp,
+} from "@blockprotocol/type-system";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";

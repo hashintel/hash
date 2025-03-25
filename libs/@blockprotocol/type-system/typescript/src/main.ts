@@ -4,8 +4,6 @@
 
 export {
   atLeastOne,
-  type Entity,
-  type EntityMetadata,
   mustHaveAtLeastOne,
 } from "./common.js";
 export * from "./native.js";

@@ -33,7 +33,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";

@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType, GraphResolveDepths } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import type {

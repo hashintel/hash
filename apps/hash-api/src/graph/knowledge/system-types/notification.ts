@@ -1,12 +1,16 @@
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
 import type {
   CreateEntityParameters,
-  Entity,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -32,10 +36,6 @@ import type {
   OccurredInText,
 } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { Notification as NotificationEntity } from "@local/hash-isomorphic-utils/system-types/notification";
-import {
-  getOutgoingLinksForEntity,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 
 import type {
   ImpureGraphFunction,
@@ -55,7 +55,7 @@ import type { User } from "./user";
 
 type Notification = {
   archived?: boolean;
-  entity: Entity<NotificationEntity>;
+  entity: HashEntity<NotificationEntity>;
 };
 
 export const archiveNotification: ImpureGraphFunction<
@@ -85,18 +85,18 @@ export const archiveNotification: ImpureGraphFunction<
 };
 
 export type MentionNotification = {
-  entity: Entity<MentionNotificationEntity>;
+  entity: HashEntity<MentionNotificationEntity>;
 } & Omit<Notification, "entity">;
 
 export const isEntityMentionNotificationEntity = (
-  entity: Entity,
-): entity is Entity<MentionNotificationEntity> =>
+  entity: HashEntity,
+): entity is HashEntity<MentionNotificationEntity> =>
   entity.metadata.entityTypeIds.includes(
     systemEntityTypes.mentionNotification.entityTypeId,
   );
 
 export const getMentionNotificationFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: HashEntity },
   MentionNotification
 > = ({ entity }) => {
   if (!isEntityMentionNotificationEntity(entity)) {
@@ -287,7 +287,7 @@ export const getMentionNotification: ImpureGraphFunction<
     const outgoingLinks = getOutgoingLinksForEntity(
       entitiesSubgraph,
       entity.metadata.recordId.entityId,
-    ).map((linkEntity) => new LinkEntity(linkEntity));
+    ).map((linkEntity) => new HashLinkEntity(linkEntity));
 
     const triggeredByUserLink = outgoingLinks.find(({ metadata }) =>
       metadata.entityTypeIds.includes(
@@ -356,18 +356,18 @@ export const getMentionNotification: ImpureGraphFunction<
 };
 
 export type CommentNotification = {
-  entity: Entity<CommentNotificationEntity>;
+  entity: HashEntity<CommentNotificationEntity>;
 } & Omit<Notification, "entity">;
 
 export const isEntityCommentNotificationEntity = (
-  entity: Entity,
-): entity is Entity<CommentNotificationEntity> =>
+  entity: HashEntity,
+): entity is HashEntity<CommentNotificationEntity> =>
   entity.metadata.entityTypeIds.includes(
     systemEntityTypes.commentNotification.entityTypeId,
   );
 
 export const getCommentNotificationFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: HashEntity },
   CommentNotification
 > = ({ entity }) => {
   if (!isEntityCommentNotificationEntity(entity)) {
@@ -573,7 +573,7 @@ export const getCommentNotification: ImpureGraphFunction<
     const outgoingLinks = getOutgoingLinksForEntity(
       entitiesSubgraph,
       entity.metadata.recordId.entityId,
-    ).map((linkEntity) => new LinkEntity(linkEntity));
+    ).map((linkEntity) => new HashLinkEntity(linkEntity));
 
     const triggeredByUserLink = outgoingLinks.find(({ metadata }) =>
       metadata.entityTypeIds.includes(

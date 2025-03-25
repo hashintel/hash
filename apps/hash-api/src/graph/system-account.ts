@@ -2,7 +2,6 @@ import type { ActorId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import { createAccount } from "./account-permission-management";
 import type { ImpureGraphContext } from "./context-types";

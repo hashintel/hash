@@ -1,3 +1,5 @@
+import type { EntityTypeRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorId,
   BaseUrl,
@@ -27,8 +29,6 @@ import {
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityTypeRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { logger } from "./activity-logger.js";
 import type { DereferencedEntityType } from "./dereference-entity-type.js";

@@ -19,22 +19,23 @@ import type {
 } from "@blockprotocol/type-system-rs";
 import { validate as validateUuid } from "uuid";
 
-export type EntityProperties = {
+export type TypeIdsAndPropertiesForEntity = {
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   properties: PropertyObject;
   propertiesWithMetadata: PropertyObjectWithMetadata;
 };
 
 export interface Entity<
-  PropertyMap extends EntityProperties = EntityProperties,
+  TypeIdsAndProperties extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > {
   metadata: EntityMetadata;
 
   entityId: EntityId;
 
-  properties: PropertyMap["properties"];
+  properties: TypeIdsAndProperties["properties"];
 
-  propertiesWithMetadata: PropertyMap["propertiesWithMetadata"];
+  propertiesWithMetadata: TypeIdsAndProperties["propertiesWithMetadata"];
 
   propertiesMetadata: PropertyObjectMetadata;
 
@@ -46,8 +47,6 @@ export interface Entity<
   }[];
 
   linkData: LinkData | undefined;
-
-  toJSON: () => string;
 }
 
 export const ENTITY_ID_DELIMITER = "~";

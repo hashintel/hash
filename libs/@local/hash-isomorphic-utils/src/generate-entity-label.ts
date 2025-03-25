@@ -1,3 +1,6 @@
+import type { Subgraph } from "@blockprotocol/graph";
+import type { getEntityRevision } from "@blockprotocol/graph/stdlib";
+import { getBreadthFirstEntityTypesAndParents } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
@@ -16,11 +19,6 @@ import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
-import type { Subgraph } from "@local/hash-subgraph";
-import {
-  getBreadthFirstEntityTypesAndParents,
-  getEntityRevision,
-} from "@local/hash-subgraph/stdlib";
 
 import { simplifyProperties } from "./simplify-properties.js";
 

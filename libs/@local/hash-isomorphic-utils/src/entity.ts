@@ -1,5 +1,5 @@
 import type { EntityId } from "@blockprotocol/type-system";
-import type { HashEntity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Subgraph } from "@local/hash-subgraph";
 import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
 
@@ -26,8 +26,8 @@ export type BlockEntity = Omit<Block, "blockChildEntity"> & {
 
 export type BlockCollectionContentItem = {
   linkEntity:
-    | LinkEntity<HasIndexedContent>
-    | LinkEntity<HasSpatiallyPositionedContent>;
+    | HashLinkEntity<HasIndexedContent>
+    | HashLinkEntity<HasSpatiallyPositionedContent>;
   rightEntity: BlockEntity;
 };
 

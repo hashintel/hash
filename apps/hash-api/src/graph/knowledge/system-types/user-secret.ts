@@ -10,14 +10,16 @@ import type {
   VaultClient,
 } from "@local/hash-backend-utils/vault";
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
-import type { GraphApi } from "@local/hash-graph-client";
+import type {
+  EntityRelationAndSubject,
+  GraphApi,
+} from "@local/hash-graph-client";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 import type { Auth } from "googleapis";
 
 import { createEntity } from "../primitive/entity";

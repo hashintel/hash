@@ -1,12 +1,12 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Container } from "@mui/material";
 import {
   differenceInDays,
@@ -22,6 +22,7 @@ import { UserBlocksProvider } from "../blocks/user-blocks";
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
+  Subgraph,
 } from "../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { NoteIcon } from "../shared/icons/note-icon";

@@ -4,7 +4,7 @@ import type {
   OwnedById,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   HashEntity,
   mergePropertyObjectAndMetadata,
@@ -84,7 +84,7 @@ const calculateSaveActions = (
   ownedById: OwnedById,
   blocksAndLinks: {
     blockEntity: GqlBlock;
-    contentLinkEntity: LinkEntity<
+    contentLinkEntity: HashLinkEntity<
       HasIndexedContent | HasSpatiallyPositionedContent
     >;
   }[],
@@ -518,7 +518,7 @@ export const save = async ({
 
       const blocksAndLinks = getOutgoingLinkAndTargetEntities<
         {
-          linkEntity: LinkEntity<
+          linkEntity: HashLinkEntity<
             HasIndexedContent | HasSpatiallyPositionedContent
           >[];
           rightEntity: HashEntity<Block>[];

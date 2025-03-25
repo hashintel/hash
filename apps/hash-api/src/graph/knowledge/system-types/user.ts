@@ -3,12 +3,13 @@ import {
   type EntityId,
   type EntityUuid,
   extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
   type OwnedById,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
@@ -22,8 +23,6 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
-import type { ActorEntityId } from "@local/hash-subgraph";
-import { extractActorId } from "@local/hash-subgraph/stdlib";
 
 import type {
   KratosUserIdentity,
@@ -62,12 +61,12 @@ export type User = {
   shortname?: string;
   displayName?: string;
   isAccountSignupComplete: boolean;
-  entity: Entity<UserEntity>;
+  entity: HashEntity<UserEntity>;
 };
 
 function assertUserEntity(
-  entity: Entity,
-): asserts entity is Entity<UserEntity> {
+  entity: HashEntity,
+): asserts entity is HashEntity<UserEntity> {
   if (
     !entity.metadata.entityTypeIds.includes(systemEntityTypes.user.entityTypeId)
   ) {
@@ -79,9 +78,10 @@ function assertUserEntity(
   }
 }
 
-export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
-  entity,
-}) => {
+export const getUserFromEntity: PureGraphFunction<
+  { entity: HashEntity },
+  User
+> = ({ entity }) => {
   assertUserEntity(entity);
 
   const {
@@ -94,9 +94,9 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   const isAccountSignupComplete = !!shortname && !!displayName;
 
   return {
-    accountId: extractActorId(
-      entity.metadata.recordId.entityId as ActorEntityId,
-    ),
+    accountId: extractOwnedByIdFromEntityId(
+      entity.metadata.recordId.entityId,
+    ) as ActorId,
     shortname,
     displayName,
     isAccountSignupComplete,

@@ -1,3 +1,10 @@
+import type { Subgraph } from "@blockprotocol/graph";
+import {
+  getDataTypeById,
+  getEntityTypeAndParentsById,
+  getPropertyTypeById,
+  linkEntityTypeUrl,
+} from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   DataType,
@@ -12,19 +19,12 @@ import type {
 } from "@blockprotocol/type-system";
 import {
   atLeastOne,
+  componentsFromVersionedUrl,
   extractBaseUrl,
   extractVersion,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Subgraph } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import {
-  getDataTypeById,
-  getEntityTypeAndParentsById,
-  getPropertyTypeById,
-} from "@local/hash-subgraph/stdlib";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 

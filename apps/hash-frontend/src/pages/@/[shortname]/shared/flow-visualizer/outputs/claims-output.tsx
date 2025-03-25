@@ -1,5 +1,8 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -9,8 +12,6 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type {
@@ -93,7 +94,7 @@ export const ClaimsOutput = memo(({ proposedEntities }: ClaimsTableProps) => {
 
   const { claimsSubgraph, hasClaims } = useMemo(() => {
     if (claimsData) {
-      const subgraph = deserializeSubgraph<EntityRootType<Claim>>(
+      const subgraph = deserializeSubgraph<EntityRootType<HashEntity<Claim>>>(
         claimsData.getEntitySubgraph.subgraph,
       );
 

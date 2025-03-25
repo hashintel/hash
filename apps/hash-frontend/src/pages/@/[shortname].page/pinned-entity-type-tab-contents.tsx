@@ -1,3 +1,4 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityTypeWithMetadata,
   OwnedById,
@@ -6,13 +7,11 @@ import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
-  type EntityRootType,
-  linkEntityTypeUrl,
-  type Subgraph,
-} from "@local/hash-subgraph";
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   Box,
   Divider,
@@ -90,9 +89,11 @@ const EntityRow: FunctionComponent<{
               /**
                * @todo H-3363 use closed schema to take account of indirectly inherited link status
                */
-              entityType?.schema.$id === linkEntityTypeUrl ||
+              entityType?.schema.$id ===
+                blockProtocolEntityTypes.link.entityTypeId ||
               !!entityType?.schema.allOf?.some(
-                (allOf) => allOf.$ref === linkEntityTypeUrl,
+                (allOf) =>
+                  allOf.$ref === blockProtocolEntityTypes.link.entityTypeId,
               )
             }
           />

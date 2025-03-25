@@ -1,19 +1,19 @@
 import { useApolloClient } from "@apollo/client";
-import { intervalForTimestamp } from "@blockprotocol/graph/stdlib";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+  intervalForTimestamp,
+} from "@blockprotocol/graph/stdlib";
 import type { ActorGroupId } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
   extractEntityUuidFromEntityId,
 } from "@blockprotocol/type-system";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  getOutgoingLinksForEntity,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,
@@ -45,7 +45,7 @@ export const AuthInfoContext = createContext<AuthInfoContextValue | undefined>(
 );
 
 type AuthInfoProviderProps = {
-  initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType>;
+  initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType<HashEntity>>;
   children: ReactElement;
 };
 
@@ -80,7 +80,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
           systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
         ),
       )
-      .map((linkEntity) => new LinkEntity<IsMemberOf>(linkEntity));
+      .map((linkEntity) => new HashLinkEntity<IsMemberOf>(linkEntity));
   }, [authenticatedUserSubgraph]);
 
   const { orgs: resolvedOrgs, refetch: refetchOrgs } = useOrgsWithLinks({
@@ -94,7 +94,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
   });
 
   const constructUserValue = useCallback(
-    (subgraph: Subgraph<EntityRootType> | undefined) => {
+    (subgraph: Subgraph<EntityRootType<HashEntity>> | undefined) => {
       if (!subgraph) {
         return undefined;
       }
@@ -138,7 +138,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
           fetchPolicy: "network-only",
         })
         .then(({ data }) =>
-          mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
             data.me.subgraph,
           ),
         )

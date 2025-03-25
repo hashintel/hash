@@ -7,7 +7,7 @@ import type {
   UpdateOrganizationInput,
   UpdateUserInput,
 } from "@linear/sdk/dist/_generated_documents.js";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
   linearEntityTypes,
@@ -79,7 +79,7 @@ type OutgoingLinkMapping<
   addToLinearUpdateInput?: (
     updateInput: SupportedLinearUpdateInput[LinearType],
     matchingOutgoingLinks: {
-      linkEntity: LinkEntity;
+      linkEntity: HashLinkEntity;
       rightEntity: Entity;
     }[],
   ) => SupportedLinearUpdateInput[LinearType];

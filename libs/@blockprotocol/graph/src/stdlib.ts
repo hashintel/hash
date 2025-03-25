@@ -45,6 +45,9 @@ export {
   getEntityRevisionsByEntityId,
 } from "./stdlib/subgraph/element/entity.js";
 export {
+  getBreadthFirstEntityTypesAndParents,
+  getEntityTypeAndDescendantsById,
+  getEntityTypeAndParentsById,
   getEntityTypeById,
   getEntityTypeByVertexId,
   getEntityTypes,
@@ -54,6 +57,7 @@ export { mapElementsIntoRevisions } from "./stdlib/subgraph/element/map-revision
 export {
   getPropertyTypeById,
   getPropertyTypeByVertexId,
+  getPropertyTypeForEntity,
   getPropertyTypes,
   getPropertyTypesByBaseUrl,
 } from "./stdlib/subgraph/element/property-type.js";

@@ -1,5 +1,10 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type { EntityMetadata, OwnedById } from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -10,11 +15,6 @@ import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-pro
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {

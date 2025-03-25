@@ -1,5 +1,7 @@
 import type {
   BaseUrl,
+  EntityType,
+  PropertyType,
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -12,6 +14,7 @@ import type {
   Subgraph,
 } from "../../../types/subgraph.js";
 import { isPropertyTypeVertex } from "../../../types/subgraph/vertices.js";
+import { getBreadthFirstEntityTypesAndParents } from "./entity-type.js";
 
 /**
  * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph
@@ -108,4 +111,44 @@ export const getPropertyTypesByBaseUrl = (
 
     return vertex.inner;
   });
+};
+
+export const getPropertyTypeForEntity = (
+  subgraph: Subgraph,
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
+  propertyBaseUrl: BaseUrl,
+): {
+  propertyType: PropertyType;
+  refSchema: EntityType["properties"][BaseUrl];
+} => {
+  const entityTypeAndParents = getBreadthFirstEntityTypesAndParents(
+    subgraph,
+    entityTypeIds,
+  );
+
+  for (const entityType of entityTypeAndParents) {
+    const refSchema = entityType.schema.properties[propertyBaseUrl];
+
+    if (refSchema) {
+      const propertyTypeId =
+        "items" in refSchema ? refSchema.items.$ref : refSchema.$ref;
+      const propertyTypeWithMetadata = getPropertyTypeById(
+        subgraph,
+        propertyTypeId,
+      );
+      if (!propertyTypeWithMetadata) {
+        throw new Error(
+          `Property type ${propertyTypeId} not found in subgraph`,
+        );
+      }
+      return {
+        propertyType: propertyTypeWithMetadata.schema,
+        refSchema,
+      };
+    }
+  }
+
+  throw new Error(
+    `Property ${propertyBaseUrl} not found on entity types ${entityTypeIds.join(", ")} or any ancestors`,
+  );
 };

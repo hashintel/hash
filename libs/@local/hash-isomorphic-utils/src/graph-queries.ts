@@ -1,28 +1,32 @@
-import type { GraphResolveDepths } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  GraphResolveDepths,
+  QueryTemporalAxesUnresolved,
+  SubgraphRootType,
+} from "@blockprotocol/graph";
 import type {
   ActorId,
   EntityId,
   Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { splitEntityId } from "@blockprotocol/type-system";
+import {
+  componentsFromVersionedUrl,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import type {
   DataTypeQueryToken,
+  DataTypeRelationAndSubject,
   EntityQueryToken,
+  EntityRelationAndSubject,
   EntityTypeQueryToken,
+  EntityTypeRelationAndSubject,
   Filter,
   PropertyTypeQueryToken,
+  PropertyTypeRelationAndSubject,
   Selector,
 } from "@local/hash-graph-client";
-import type {
-  DataTypeRelationAndSubject,
-  EntityRelationAndSubject,
-  EntityTypeRelationAndSubject,
-  PropertyTypeRelationAndSubject,
-  QueryTemporalAxesUnresolved,
-  SubgraphRootType,
-} from "@local/hash-subgraph";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
 import {
@@ -279,7 +283,9 @@ export const pageOrNotificationNotArchivedFilter: Filter = {
 };
 
 export const mapGqlSubgraphFieldsFragmentToSubgraph = <
-  RootType extends SubgraphRootType,
+  RootType extends
+    | Exclude<SubgraphRootType, EntityRootType>
+    | EntityRootType<HashEntity>,
 >(
   subgraph: SubgraphFieldsFragment,
 ) => deserializeSubgraph<RootType>(subgraph);

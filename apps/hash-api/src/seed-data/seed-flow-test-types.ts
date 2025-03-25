@@ -1,26 +1,26 @@
-import type {
-  EntityTypeWithMetadata,
-  OwnedById,
-  PropertyTypeWithMetadata,
-  ProvidedEntityEditionProvenance,
+import {
+  type EntityTypeWithMetadata,
+  type OwnedById,
+  type PropertyTypeWithMetadata,
+  type ProvidedEntityEditionProvenance,
+  versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import type { EntityTypeRelationAndSubject } from "@local/hash-graph-client/dist/api.d";
 import {
   defaultEntityTypeAuthorizationRelationships,
   defaultPropertyTypeAuthorizationRelationships,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
   systemDataTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityTypeRelationAndSubject } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphFunction } from "../graph/context-types";
 import type {
@@ -333,7 +333,7 @@ const seedFlowTestTypes = async () => {
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Invested In",
         description: "Something that something is invested in",
         properties: [
@@ -360,7 +360,7 @@ const seedFlowTestTypes = async () => {
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Appears In Index",
         description: "The index that something appears in.",
         properties: [
@@ -519,7 +519,7 @@ const seedFlowTestTypes = async () => {
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Worked At",
         description: "Somewhere that someone or something worked at",
         properties: [
@@ -649,7 +649,7 @@ const seedFlowTestTypes = async () => {
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Author",
         description: "Something that has an author",
         properties: [
@@ -825,7 +825,7 @@ const seedFlowTestTypes = async () => {
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Provided By",
         description: "Something that is provided by something else.",
         properties: [],

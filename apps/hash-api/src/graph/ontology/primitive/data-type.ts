@@ -1,3 +1,4 @@
+import type { DataTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   Conversions,
@@ -15,9 +16,11 @@ import { publicUserAccountId } from "@local/hash-backend-utils/public-user-accou
 import type {
   ArchiveDataTypeParams,
   DataTypePermission,
+  DataTypeRelationAndSubject,
   GetDataTypesParams,
   GetDataTypeSubgraphParams,
   ModifyRelationshipOperation,
+  Subgraph as GraphApiSubgraph,
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
 import type {
@@ -33,13 +36,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserPermissionsOnDataType } from "@local/hash-isomorphic-utils/types";
-import type {
-  DataTypeAuthorizationRelationship,
-  DataTypeRelationAndSubject,
-  DataTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";

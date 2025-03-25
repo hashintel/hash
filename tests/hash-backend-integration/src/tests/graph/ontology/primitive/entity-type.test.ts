@@ -15,7 +15,11 @@ import {
   unarchiveEntityType,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
-import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import {
+  createPropertyType,
+  getPropertyTypes,
+} from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { getDataTypes } from "@blockprotocol/graph/stdlib";
 import type {
   ClosedEntityType,
   ClosedMultiEntityType,
@@ -23,7 +27,10 @@ import type {
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import { atLeastOne } from "@blockprotocol/type-system";
+import {
+  atLeastOne,
+  isOwnedOntologyElementMetadata,
+} from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
@@ -33,6 +40,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -40,11 +48,6 @@ import type {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
 } from "@local/hash-isomorphic-utils/types";
-import {
-  isOwnedOntologyElementMetadata,
-  linkEntityTypeUrl,
-} from "@local/hash-subgraph";
-import { getDataTypes, getPropertyTypes } from "@local/hash-subgraph/stdlib";
 import { assert, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -173,7 +176,7 @@ beforeAll(async () => {
         title: "Knows",
         description: "Knows of someone",
         type: "object",
-        allOf: [{ $ref: linkEntityTypeUrl }],
+        allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
         properties: {},
         ...({} as Record<SystemDefinedProperties, never>),
       },
@@ -194,7 +197,7 @@ beforeAll(async () => {
         title: "Previous Address",
         description: "A previous address of something.",
         type: "object",
-        allOf: [{ $ref: linkEntityTypeUrl }],
+        allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
         properties: {},
       },
       relationships: [

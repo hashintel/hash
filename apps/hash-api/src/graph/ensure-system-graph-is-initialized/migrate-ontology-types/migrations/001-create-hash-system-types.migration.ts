@@ -1,14 +1,9 @@
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  descriptionPropertyTypeUrl,
-  fileUrlPropertyTypeUrl,
-  linkEntityTypeUrl,
-  mimeTypePropertyTypeUrl,
-} from "@local/hash-subgraph";
 
 import { systemAccountId } from "../../../system-account";
 import type { MigrationFunction } from "../types";
@@ -207,14 +202,14 @@ const migrate: MigrationFunction = async ({
           blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
         properties: [
           {
-            propertyType: fileUrlPropertyTypeUrl,
+            propertyType: blockProtocolPropertyTypes.fileName.propertyTypeId,
             required: true,
           },
           {
-            propertyType: descriptionPropertyTypeUrl,
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
           },
           {
-            propertyType: mimeTypePropertyTypeUrl,
+            propertyType: blockProtocolPropertyTypes.mimeType.propertyTypeId,
           },
           {
             propertyType: fileStorageBucketPropertyType,
@@ -310,7 +305,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Data",
         inverse: {
           title: "Data For",
@@ -391,7 +386,7 @@ const migrate: MigrationFunction = async ({
   const hasIndexedContentLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Indexed Content",
         inverse: {
           title: "Indexed Content For",
@@ -513,7 +508,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Avatar",
         inverse: {
           title: "Avatar For",
@@ -531,7 +526,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Cover Image",
         inverse: {
           title: "Cover Image For",
@@ -549,7 +544,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Bio",
         inverse: {
           title: "Bio For",
@@ -583,7 +578,7 @@ const migrate: MigrationFunction = async ({
             required: true,
           },
           {
-            propertyType: descriptionPropertyTypeUrl,
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
             required: false,
           },
           {
@@ -823,7 +818,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Is Member Of",
         inverse: {
           title: "Has Member",
@@ -839,7 +834,7 @@ const migrate: MigrationFunction = async ({
   const hasServiceAccountLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Service Account",
         inverse: {
           title: "Service Account For",
@@ -1016,7 +1011,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Parent",
         inverse: {
           title: "Parent Of",
@@ -1175,7 +1170,7 @@ const migrate: MigrationFunction = async ({
   const hasSpatiallyPositionedContentLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Spatially Positioned Content",
         inverse: {
           title: "Spatially Positioned Content For",
@@ -1322,7 +1317,7 @@ const migrate: MigrationFunction = async ({
   const syncLinearDataWithLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Sync Linear Data With",
         description: "Something that syncs linear data with something.",
         properties: [
@@ -1342,7 +1337,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Uses User Secret",
         inverse: {
           title: "Used By",
@@ -1466,7 +1461,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Text",
         inverse: {
           title: "Text For",
@@ -1484,7 +1479,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Authored By",
         icon: "/icons/types/pen.svg",
         inverse: {
@@ -1587,7 +1582,7 @@ const migrate: MigrationFunction = async ({
   const occurredInEntityLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Occurred In Entity",
         inverse: {
           title: "Location Of",
@@ -1604,7 +1599,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Occurred In Block",
         inverse: {
           title: "Location Of",
@@ -1620,7 +1615,7 @@ const migrate: MigrationFunction = async ({
   const occurredInCommentLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Occurred In Comment",
         inverse: {
           title: "Location Of",
@@ -1637,7 +1632,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Occurred In Text",
         inverse: {
           title: "Location Of",
@@ -1655,7 +1650,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Triggered By User",
         inverse: {
           title: "Triggered",
@@ -1718,7 +1713,7 @@ const migrate: MigrationFunction = async ({
   const triggeredByCommentLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Triggered By Comment",
         inverse: {
           title: "Triggered",
@@ -1733,7 +1728,7 @@ const migrate: MigrationFunction = async ({
   const repliedToCommentLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Replied To Comment",
         inverse: {
           title: "Replied To By",

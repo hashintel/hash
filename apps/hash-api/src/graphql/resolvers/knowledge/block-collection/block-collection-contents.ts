@@ -1,4 +1,4 @@
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -11,7 +11,9 @@ import { mapBlockToGQL } from "../graphql-mapping";
 
 export const blockCollectionContents: ResolverFn<
   {
-    linkEntity: LinkEntity<HasSpatiallyPositionedContent | HasIndexedContent>;
+    linkEntity: HashLinkEntity<
+      HasSpatiallyPositionedContent | HasIndexedContent
+    >;
     rightEntity: UnresolvedBlockGQL;
   }[],
   Entity,

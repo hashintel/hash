@@ -1,3 +1,8 @@
+import type { EntityRootType } from "@blockprotocol/graph";
+import {
+  getBreadthFirstEntityTypesAndParents,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type {
   ActorId,
   BaseUrl,
@@ -5,7 +10,11 @@ import type {
   PropertyObjectWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import {
+  componentsFromVersionedUrl,
+  mustHaveAtLeastOne,
+  versionedUrlFromComponents,
+} from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
 import {
@@ -18,14 +27,6 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  getBreadthFirstEntityTypesAndParents,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
-import {
-  componentsFromVersionedUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphContext } from "../../../context-types";
 import {
@@ -104,7 +105,7 @@ export const upgradeWebEntities = async ({
     },
   );
 
-  const existingEntities = getRoots(subgraph);
+  const existingEntities = getRoots<EntityRootType>(subgraph);
 
   await Promise.all(
     existingEntities.map(async (entity) => {

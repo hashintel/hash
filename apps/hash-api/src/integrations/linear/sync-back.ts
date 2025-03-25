@@ -10,7 +10,7 @@ import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/tempora
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -89,7 +89,7 @@ export const processEntityChange = async (
     : await getLatestEntityById(
         graphContext,
         { actorId: linearMachineActorId },
-        { entityId: new LinkEntity(entity).linkData.leftEntityId },
+        { entityId: new HashLinkEntity(entity).linkData.leftEntityId },
       );
 
   const temporalClient = await createTemporalClient();
