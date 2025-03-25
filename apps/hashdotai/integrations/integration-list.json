@@ -4,56 +4,70 @@
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_anaplan.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/anaplan",
-    "availability": "Considered"
+    "availability": "Considered",
+    "category": ["Enterprise", "Supply Chain"]
   },
   {
     "name": "Blue Yonder",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_blue-yonder.svg",
     "summaryHtml": "End-to-end supply chain, warehouse, returns, transportation, order management and other data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/blue-yonder",
-    "availability": "Considered"
+    "availability": "Considered",
+    "category": ["Enterprise", "Supply Chain"]
   },
   {
     "name": "Celonis",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_celonis.svg",
     "summaryHtml": "Access or manage processes, records, KPIs, filters, triggers and knowledge from Celonis",
     "integrationUrl": "https://app.hash.ai/settings/integrations/celonis",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Process Mining", "Supply Chain"]
   },
   {
     "name": "OMP",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_omp.svg",
     "summaryHtml": "Network design, S&OP, demand management, operational planning, scheduling and other data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/omp",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain"]
   },
   {
     "name": "Kiaxis Maestro",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_kinaxis-maestro.svg",
     "summaryHtml": "Network design, S&OP, demand management, operational planning, scheduling and other data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/kinaxis-maestro",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain"]
   },
   {
     "name": "Coupa",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_coupa.svg",
     "summaryHtml": "Supply chain design, planning and other total spend management data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/coupa",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain"]
   },
   {
     "name": "Linear",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_linear.svg",
     "summaryHtml": "Issues, users, organizations, projects, milestones, and much more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/linear",
-    "availability": "Available"
+    "availability": "Available",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Project Management"]
   },
   {
     "name": "Slack",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_slack.svg",
     "summaryHtml": "<div><strong>In HASH:</strong> see messages and teammates</div><div><strong>In Slack:</strong> create/find entities and types</div>",
     "integrationUrl": "https://app.hash.ai/settings/integrations/slack",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Communications"]
   },
   {
     "name": "Oracle Cloud SCM",
@@ -61,7 +75,9 @@
     "productUrl": "https://www.oracle.com/scm/",
     "summaryHtml": "Oracle Fusion Cloud Supply Chain & Manufacturing data made accessible",
     "integrationUrl": "https://app.hash.ai/settings/integrations/oracle-cloud-scm",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain"]
   },
   {
     "name": "Oracle Cloud ERP",
@@ -69,7 +85,9 @@
     "productUrl": "https://www.oracle.com/erp/",
     "summaryHtml": "Oracle Fusion Cloud Enterprise Resource Planning data made accessible",
     "integrationUrl": "https://app.hash.ai/settings/integrations/oracle-cloud-erp",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain", "Finance"]
   },
   {
     "name": "Oracle Cloud EPM",
@@ -77,7 +95,9 @@
     "productUrl": "https://www.oracle.com/performance-management/",
     "summaryHtml": "Oracle Fusion Cloud Enterprise Performance Management data made accessible",
     "integrationUrl": "https://app.hash.ai/settings/integrations/oracle-cloud-epm",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain"]
   },
   {
     "name": "Oracle Cloud HCM",
@@ -85,139 +105,179 @@
     "productUrl": "https://www.oracle.com/human-capital-management/",
     "summaryHtml": "Oracle Fusion Cloud Human Capital Management & Oracle ME data made accessible",
     "integrationUrl": "https://app.hash.ai/settings/integrations/oracle-cloud-hcm",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Human Resources"]
   },
   {
     "name": "SAP S/4HANA",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_sap.svg",
     "summaryHtml": "Manage order-to-cash, procure-to-pay, plan-to-product, request-to-service and other key enterprise processes.",
     "integrationUrl": "https://app.hash.ai/settings/integrations/sap-s4hana",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain"]
   },
   {
     "name": "DocuSign",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_docusign.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/docusign",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Docs & Files", "Legal"]
   },
   {
     "name": "Gmail",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_google-mail.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/google-mail",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Communications"]
   },
   {
     "name": "Google Drive",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_google-drive.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/google-drive",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Docs & Files"]
   },
   {
     "name": "Google Calendar",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_google-calendar.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/google-calendar",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Communications", "Events"]
   },
   {
     "name": "Dropbox",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_dropbox.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/dropbox",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Docs & Files"]
   },
   {
     "name": "Box",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_box.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/box",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Docs & Files"]
   },
   {
     "name": "Trello",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_trello.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/trello",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Project Management"]
   },
   {
     "name": "Apple Notes",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_apple-notes.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/apple-notes",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Docs & Files"]
   },
   {
     "name": "Discord",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_discord.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/discord",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Communications"]
   },
   {
     "name": "Microsoft Teams",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_microsoft-teams.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/microsoft-teams",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Communications"]
   },
   {
     "name": "Messenger",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_messenger.svg",
-    "summaryHtml": "View, triage and respond to Facebook Messenger messages in a centralized location",
+    "summaryHtml": "View, triage and respond to messages from Facebook Messenger in a centralized location",
     "integrationUrl": "https://app.hash.ai/settings/integrations/messenger",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Communications"]
   },
   {
     "name": "Instagram",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_instagram.svg",
     "summaryHtml": "Respond to Instagram messages in a centralized location, track follower/following relationships, engagement and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/instagram",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Communications"]
   },
   {
     "name": "Notion",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_notion.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/notion",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Docs & Files"]
   },
   {
     "name": "Sentry",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_sentry.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/sentry",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Developer"]
   },
   {
     "name": "Zoom",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_zoom.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/zoom",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Communications"]
   },
   {
     "name": "GitHub",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_github.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/github",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Development"]
   },
   {
     "name": "Figma",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_figma.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/figma",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Individual", "Startup"],
+    "category": ["Design"]
   },
   {
     "name": "Asana",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_asana.svg",
     "summaryHtml": "",
     "integrationUrl": "https://app.hash.ai/settings/integrations/asana",
-    "availability": "Considered"
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Project Management"]
   }
 ]
