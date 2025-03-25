@@ -3689,6 +3689,7 @@ dependencies = [
 name = "hql-core"
 version = "0.0.0"
 dependencies = [
+ "ecow",
  "orx-concurrent-vec",
  "serde",
  "simple-mermaid",
@@ -3705,7 +3706,6 @@ dependencies = [
  "foldhash",
  "hashbrown 0.15.2",
  "hql-core",
- "hql-symbol",
  "json-number",
  "lexical",
  "simple-mermaid",
@@ -3727,14 +3727,6 @@ dependencies = [
  "simple-mermaid",
  "text-size",
  "thiserror 2.0.12",
-]
-
-[[package]]
-name = "hql-symbol"
-version = "0.0.0"
-dependencies = [
- "ecow",
- "hql-core",
 ]
 
 [[package]]

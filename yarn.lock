@@ -12847,9 +12847,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hql-span@npm:0.0.0-private, @rust/hql-span@workspace:libs/@local/hql/span":
+"@rust/hql-span@npm:0.0.0-private, @rust/hql-span@workspace:libs/@local/hql/core":
   version: 0.0.0-use.local
-  resolution: "@rust/hql-span@workspace:libs/@local/hql/span"
+  resolution: "@rust/hql-span@workspace:libs/@local/hql/core"
   languageName: unknown
   linkType: soft
 

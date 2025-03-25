@@ -88,7 +88,6 @@ hash-tracing.path                   = "libs/@local/tracing"
 hql-core.path                       = "libs/@local/hql/core"
 hql-cst.path                        = "libs/@local/hql/cst"
 hql-diagnostics.path                = "libs/@local/hql/diagnostics"
-hql-symbol.path                     = "libs/@local/hql/symbol"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies

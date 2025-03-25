@@ -8,8 +8,7 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hql-core   = { workspace = true, public = true }
-hql-symbol = { workspace = true, public = true }
+hql-core = { workspace = true, public = true }
 
 # Public third-party dependencies
 ahash       = { workspace = true, public = true }

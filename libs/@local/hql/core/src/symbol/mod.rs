@@ -16,7 +16,8 @@
 use core::{fmt, fmt::Display};
 
 use ecow::EcoString;
-use hql_span::SpanId;
+
+use crate::span::SpanId;
 
 /// Represents a symbol in HashQL.
 ///

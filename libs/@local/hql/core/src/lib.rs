@@ -7,3 +7,4 @@
 extern crate alloc;
 
 pub mod span;
+pub mod symbol;
