@@ -14,6 +14,7 @@ use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 use tracing::instrument;
 
+use super::expression::JoinType;
 use crate::store::postgres::query::{
     Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression, Function,
     JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord, SelectExpression,
@@ -192,18 +193,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     fn pin_ontology_table(&mut self, alias: Alias) {
+        let table = Table::OntologyTemporalMetadata.aliased(alias);
         if let Some(temporal_axes) = self.temporal_axes {
-            if self
-                .artifacts
-                .table_info
-                .tables
-                .insert(Table::OntologyTemporalMetadata.aliased(alias))
-            {
+            if self.artifacts.table_info.tables.insert(table) {
                 let transaction_time_index =
                     self.time_index(temporal_axes, TimeAxis::TransactionTime);
                 match temporal_axes {
                     QueryTemporalAxes::DecisionTime { .. } => {
-                        self.statement.where_expression.add_condition(
+                        self.add_condition(
                             Condition::TimeIntervalContainsTimestamp(
                                 Expression::ColumnReference {
                                     column: Column::OntologyTemporalMetadata(
@@ -213,12 +210,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 },
                                 Expression::Parameter(transaction_time_index),
                             ),
+                            Some(table),
                         );
                     }
                     QueryTemporalAxes::TransactionTime { .. } => {
-                        self.statement
-                            .where_expression
-                            .add_condition(Condition::Overlap(
+                        self.add_condition(
+                            Condition::Overlap(
                                 Expression::ColumnReference {
                                     column: Column::OntologyTemporalMetadata(
                                         OntologyTemporalMetadata::TransactionTime,
@@ -226,7 +223,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                     table_alias: Some(alias),
                                 },
                                 Expression::Parameter(transaction_time_index),
-                            ));
+                            ),
+                            Some(table),
+                        );
                     }
                 }
             }
@@ -234,22 +233,19 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     fn filter_temporal_metadata(&mut self, alias: Alias) {
-        if self
-            .artifacts
-            .table_info
-            .tables
-            .insert(Table::EntityTemporalMetadata.aliased(alias))
-        {
+        let table = Table::EntityTemporalMetadata.aliased(alias);
+        if self.artifacts.table_info.tables.insert(table) {
             if !self.include_drafts {
-                self.statement
-                    .where_expression
-                    .add_condition(Condition::Equal(
+                self.add_condition(
+                    Condition::Equal(
                         Some(Expression::ColumnReference {
                             column: Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId),
                             table_alias: Some(alias),
                         }),
                         None,
-                    ));
+                    ),
+                    Some(table),
+                );
             }
 
             if let Some(temporal_axes) = self.temporal_axes {
@@ -260,7 +256,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                 // Adds the pinned timestamp condition, so for the projected decision time, we use
                 // the transaction time and vice versa.
-                self.statement.where_expression.add_condition(
+                self.add_condition(
                     Condition::TimeIntervalContainsTimestamp(
                         Expression::ColumnReference {
                             column: Column::EntityTemporalMetadata(
@@ -270,10 +266,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         },
                         Expression::Parameter(pinned_time_index),
                     ),
+                    Some(table),
                 );
-                self.statement
-                    .where_expression
-                    .add_condition(Condition::Overlap(
+                self.add_condition(
+                    Condition::Overlap(
                         Expression::ColumnReference {
                             column: Column::EntityTemporalMetadata(
                                 EntityTemporalMetadata::from_time_axis(variable_axis),
@@ -281,7 +277,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             table_alias: Some(alias),
                         },
                         Expression::Parameter(variable_time_index),
-                    ));
+                    ),
+                    Some(table),
+                );
             }
         }
     }
@@ -355,6 +353,21 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
     }
 
+    fn add_condition(&mut self, condition: Condition, table: Option<AliasedTable>) {
+        // If a table is provided and we have a join on that table, we add the condition to the
+        // join.
+        if let Some(join) = table.and_then(|table| {
+            self.statement
+                .joins
+                .iter_mut()
+                .find(|join| join.table == table)
+        }) {
+            join.additional_conditions.push(condition);
+        } else {
+            self.statement.where_expression.add_condition(condition);
+        }
+    }
+
     /// Adds a new path to the selection which can be used as cursor.
     pub fn add_cursor_selection(
         &mut self,
@@ -391,7 +404,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     {
         let condition = self.compile_filter(filter)?;
         self.artifacts.condition_index += 1;
-        self.statement.where_expression.add_condition(condition);
+        self.add_condition(condition, None);
         Ok(())
     }
 
@@ -988,6 +1001,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             hook(self, current_table.alias);
         }
 
+        let mut is_outer_join_chain = false;
         for relation in path.relations() {
             let foreign_key_join = relation.joins();
             for foreign_key_reference in foreign_key_join {
@@ -1000,6 +1014,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         number: 0,
                     },
                 );
+
+                if is_outer_join_chain {
+                    join_expression.join = JoinType::LeftOuter;
+                } else if join_expression.join != JoinType::Inner {
+                    is_outer_join_chain = true;
+                }
 
                 // TODO: If we join on the same column as the previous join, we can reuse the that
                 //       join. For example, if we join on
@@ -1027,7 +1047,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 let mut found = false;
                 for existing in &self.statement.joins {
                     if existing.table == join_expression.table {
-                        if *existing == join_expression {
+                        if existing.on == join_expression.on
+                            && existing.on_alias == join_expression.on_alias
+                        {
                             // We already have a join statement for this column, so we can reuse it.
                             current_table = existing.table;
                             found = true;
@@ -1056,7 +1078,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     self.statement.joins.push(join_expression);
 
                     for condition in relation.additional_conditions(current_table) {
-                        self.statement.where_expression.add_condition(condition);
+                        self.add_condition(condition, Some(current_table));
                     }
 
                     if let Some(hook) = self.table_hooks.get(&current_table.table) {
