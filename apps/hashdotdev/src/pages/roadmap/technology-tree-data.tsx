@@ -415,7 +415,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "42",
     heading: "External API & Webhooks",
     body: "API endpoints for interfacing with HASH designed for external user consumption",
-    parentIds: ["35"],
+    parentIds: ["104"],
     status: "future",
     useCases: [
       "general",
@@ -944,5 +944,23 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     status: "next-up",
     useCases: ["general", "knowledge-management"],
     variant: "feature",
+  },
+  {
+    id: "103",
+    heading: "HashQL",
+    body: "Powerful, performant graph-based querying for entities and types",
+    parentIds: ["28"],
+    status: "in-progress",
+    useCases: ["general"],
+    variant: "infrastructure",
+  },
+  {
+    id: "104",
+    heading: "HaRPC",
+    body: "RPC protocol specifically optimized for HASH",
+    parentIds: ["35"],
+    status: "working-poc",
+    useCases: ["general"],
+    variant: "infrastructure",
   },
 ];
