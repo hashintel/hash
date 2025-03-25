@@ -1047,6 +1047,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 let mut found = false;
                 for existing in &self.statement.joins {
                     if existing.table == join_expression.table {
+                        // We only need to check the join conditions, not the join type or
+                        // additional conditions. This is enough to reuse an existing join
+                        // statement.
                         if existing.on == join_expression.on
                             && existing.on_alias == join_expression.on_alias
                         {
