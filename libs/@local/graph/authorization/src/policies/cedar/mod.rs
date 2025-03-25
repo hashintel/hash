@@ -1,12 +1,40 @@
+mod entity;
+mod expression_tree;
+mod ontology;
+mod visitor;
+mod web;
+
 use alloc::sync::Arc;
-use core::{error::Error, iter};
+use core::iter;
 
 use cedar_policy_core::ast;
-use error_stack::{Report, ResultExt as _, ensure};
+use error_stack::{IntoReport, Report, ResultExt as _, ensure};
 
+pub use self::expression_tree::PolicyExpressionTree;
+pub(crate) use self::{
+    entity::EntityUuidVisitor,
+    ontology::{BaseUrlVisitor, EntityTypeIdVisitor, OntologyTypeVersionVisitor},
+    visitor::{
+        CedarExpressionParseError, CedarExpressionParser, CedarExpressionVisitor, SimpleParser,
+        walk_expr,
+    },
+    web::WebIdVisitor,
+};
 use crate::policies::error::FromCedarRefernceError;
 
+pub(crate) trait FromCedarExpr: Sized {
+    type Error: IntoReport;
+
+    fn from_cedar(expr: &ast::Expr) -> Result<Self, Self::Error>;
+}
+
+pub(crate) trait ToCedarExpr {
+    fn to_cedar(&self) -> ast::Expr;
+}
+
 pub(crate) trait CedarEntityId: Sized + 'static {
+    type Error: IntoReport;
+
     fn entity_type() -> &'static Arc<ast::EntityType>;
 
     fn to_eid(&self) -> ast::Eid;
@@ -19,7 +47,7 @@ pub(crate) trait CedarEntityId: Sized + 'static {
         )
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>>;
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error>;
 
     fn from_euid(euid: &ast::EntityUID) -> Result<Self, Report<FromCedarRefernceError>> {
         let entity_type = Self::entity_type();

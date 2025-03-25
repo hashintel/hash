@@ -23,7 +23,7 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@chainsafe/libp2p-noise": "16.0.3",
+    "@chainsafe/libp2p-noise": "16.1.0",
     "@chainsafe/libp2p-yamux": "7.0.1",
     "@libp2p/crypto": "5.0.15",
     "@libp2p/identify": "3.0.26",
@@ -45,7 +45,7 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@rust/harpc-wire-protocol": "0.0.0-private",
-    "@types/node": "22.13.10",
+    "@types/node": "22.13.13",
     "@vitest/coverage-istanbul": "3.0.9",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",

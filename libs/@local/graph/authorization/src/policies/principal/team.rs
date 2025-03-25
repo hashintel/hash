@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{error::Error, fmt, iter, str::FromStr as _};
+use core::{fmt, iter, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
@@ -44,6 +44,8 @@ impl fmt::Display for TeamId {
 }
 
 impl CedarEntityId for TeamId {
+    type Error = Report<uuid::Error>;
+
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Team"]));
@@ -54,7 +56,7 @@ impl CedarEntityId for TeamId {
         ast::Eid::new(self.0.to_string())
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
     }
 }
@@ -101,6 +103,8 @@ impl fmt::Display for TeamRoleId {
 }
 
 impl CedarEntityId for TeamRoleId {
+    type Error = Report<uuid::Error>;
+
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Team", "Role"]));
@@ -111,7 +115,7 @@ impl CedarEntityId for TeamRoleId {
         ast::Eid::new(self.0.to_string())
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
     }
 }

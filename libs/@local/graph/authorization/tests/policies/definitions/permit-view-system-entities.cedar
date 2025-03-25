@@ -11,10 +11,6 @@ permit (
 )
 when
 {
-  resource.entity_types
-    .containsAny
-    (
-      [HASH::EntityType::"https://hash.ai/@h/types/entity-type/actor/v/2",
-       HASH::EntityType::"https://hash.ai/@h/types/entity-type/organization/v/2"]
-    )
+  resource.entity_types.contains(HASH::EntityType::"https://hash.ai/@h/types/entity-type/actor/v/2") ||
+  resource.entity_types.contains(HASH::EntityType::"https://hash.ai/@h/types/entity-type/organization/v/2")
 };

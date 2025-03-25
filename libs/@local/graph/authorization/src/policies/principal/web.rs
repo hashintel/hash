@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{error::Error, fmt, iter, str::FromStr as _};
+use core::{fmt, iter, str::FromStr as _};
 use std::{
     collections::{HashMap, HashSet},
     sync::LazyLock,
@@ -40,6 +40,8 @@ impl WebTeam {
 }
 
 impl CedarEntityId for OwnedById {
+    type Error = Report<uuid::Error>;
+
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Web"]));
@@ -50,7 +52,7 @@ impl CedarEntityId for OwnedById {
         ast::Eid::new(self.as_uuid().to_string())
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
     }
 }
@@ -110,6 +112,8 @@ impl fmt::Display for WebRoleId {
 }
 
 impl CedarEntityId for WebRoleId {
+    type Error = Report<uuid::Error>;
+
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Web", "Role"]));
@@ -120,7 +124,7 @@ impl CedarEntityId for WebRoleId {
         ast::Eid::new(self.0.to_string())
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
     }
 }
@@ -161,6 +165,8 @@ impl fmt::Display for WebTeamId {
 }
 
 impl CedarEntityId for WebTeamId {
+    type Error = Report<uuid::Error>;
+
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Web", "Team"]));
@@ -171,7 +177,7 @@ impl CedarEntityId for WebTeamId {
         ast::Eid::new(self.0.to_string())
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
     }
 }
@@ -242,6 +248,8 @@ impl fmt::Display for WebTeamRoleId {
 }
 
 impl CedarEntityId for WebTeamRoleId {
+    type Error = Report<uuid::Error>;
+
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Web", "Team", "Role"]));
@@ -252,7 +260,7 @@ impl CedarEntityId for WebTeamRoleId {
         ast::Eid::new(self.0.to_string())
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
         Ok(Self::new(Uuid::from_str(eid.as_ref())?))
     }
 }

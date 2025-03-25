@@ -2,11 +2,12 @@ mod parameter;
 mod path;
 
 use alloc::borrow::Cow;
-use core::{borrow::Borrow as _, fmt, hash::Hash};
+use core::{borrow::Borrow as _, error::Error, fmt, hash::Hash};
 use std::collections::HashMap;
 
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
+use hash_graph_authorization::policies::{PartialResourceId, PolicyExpressionTree};
 use hash_graph_types::ontology::DataTypeLookup;
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
@@ -476,6 +477,135 @@ where
     }
 }
 
+#[derive(Debug, derive_more::Display)]
+#[display("expression is not supported: {_0:?}")]
+pub struct InvalidPolicyExpressionTree(PolicyExpressionTree);
+
+impl Error for InvalidPolicyExpressionTree {}
+
+impl TryFrom<PolicyExpressionTree> for Filter<'_, Entity> {
+    type Error = Report<InvalidPolicyExpressionTree>;
+
+    fn try_from(expression: PolicyExpressionTree) -> Result<Self, Self::Error> {
+        match expression {
+            PolicyExpressionTree::All(expressions) => Ok(Self::All(
+                expressions
+                    .into_iter()
+                    .map(Self::try_from)
+                    .collect::<Result<_, _>>()?,
+            )),
+            PolicyExpressionTree::Any(expressions) => Ok(Self::Any(
+                expressions
+                    .into_iter()
+                    .map(Self::try_from)
+                    .collect::<Result<_, _>>()?,
+            )),
+            PolicyExpressionTree::Not(expression) => {
+                Ok(Self::Not(Box::new(Self::try_from(*expression)?)))
+            }
+            PolicyExpressionTree::IsOfType(entity_type) => Ok(Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::VersionedUrl,
+                        inheritance_depth: None,
+                    },
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Owned(entity_type.to_string())),
+                    convert: None,
+                }),
+            )),
+            PolicyExpressionTree::Is(PartialResourceId::Entity(Some(entity_uuid))) => {
+                Ok(Self::Equal(
+                    Some(FilterExpression::Path {
+                        path: EntityQueryPath::Uuid,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(entity_uuid.into_uuid()),
+                        convert: None,
+                    }),
+                ))
+            }
+            PolicyExpressionTree::Is(PartialResourceId::Entity(None)) => Ok(Self::All(vec![])),
+            PolicyExpressionTree::In(web_id) => Ok(Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::OwnedById,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(web_id.into_uuid()),
+                    convert: None,
+                }),
+            )),
+            _ => Err(Report::new(InvalidPolicyExpressionTree(expression))),
+        }
+    }
+}
+
+impl TryFrom<PolicyExpressionTree> for Filter<'_, EntityTypeWithMetadata> {
+    type Error = Report<InvalidPolicyExpressionTree>;
+
+    fn try_from(expression: PolicyExpressionTree) -> Result<Self, Self::Error> {
+        match expression {
+            PolicyExpressionTree::All(expressions) => Ok(Self::All(
+                expressions
+                    .into_iter()
+                    .map(Self::try_from)
+                    .collect::<Result<_, _>>()?,
+            )),
+            PolicyExpressionTree::Any(expressions) => Ok(Self::Any(
+                expressions
+                    .into_iter()
+                    .map(Self::try_from)
+                    .collect::<Result<_, _>>()?,
+            )),
+            PolicyExpressionTree::Not(expression) => {
+                Ok(Self::Not(Box::new(Self::try_from(*expression)?)))
+            }
+            PolicyExpressionTree::BaseUrl(base_url) => Ok(Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityTypeQueryPath::BaseUrl,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Owned(base_url.to_string())),
+                    convert: None,
+                }),
+            )),
+            PolicyExpressionTree::OntologyTypeVersion(ontology_type_version) => Ok(Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityTypeQueryPath::Version,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::OntologyTypeVersion(ontology_type_version),
+                    convert: None,
+                }),
+            )),
+            PolicyExpressionTree::Is(PartialResourceId::EntityType(Some(entity_type_id))) => {
+                Ok(Self::Equal(
+                    Some(FilterExpression::Path {
+                        path: EntityTypeQueryPath::VersionedUrl,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Text(Cow::Owned(entity_type_id.to_string())),
+                        convert: None,
+                    }),
+                ))
+            }
+            PolicyExpressionTree::Is(PartialResourceId::EntityType(None)) => Ok(Self::All(vec![])),
+            PolicyExpressionTree::In(web_id) => Ok(Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityTypeQueryPath::OwnedById,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(web_id.into_uuid()),
+                    convert: None,
+                }),
+            )),
+            _ => Err(Report::new(InvalidPolicyExpressionTree(expression))),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct ParameterConversion {
@@ -552,6 +682,7 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
 #[cfg(test)]
 mod tests {
 
+    use hash_graph_types::ontology::DataTypeLookup;
     use serde_json::json;
     use type_system::{
         knowledge::entity::id::{DraftId, EntityUuid},
