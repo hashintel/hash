@@ -652,8 +652,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "71",
     heading: "Git Datastore",
-    body: "libgit2 or Gitea-based backend for dedicated storage and processing of source code and Git repositories",
-    parentIds: ["65"],
+    body: "libgit2-based backend for dedicated storage and processing of source code and Git repositories",
+    parentIds: ["5"],
     status: "future",
     useCases: [
       "general",
