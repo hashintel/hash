@@ -1,4 +1,4 @@
-use hql_span::{SpanId, TextRange, TextSize, tree::SpanNode};
+use hql_core::span::{SpanId, TextRange, TextSize, node::SpanNode};
 
 pub trait TransformSpan<S> {
     fn transform(&mut self, span: &S) -> DiagnosticSpan;
@@ -25,7 +25,7 @@ pub struct DiagnosticSpan {
     pub parent_id: Option<SpanId>,
 }
 
-impl hql_span::Span for DiagnosticSpan {
+impl hql_core::span::Span for DiagnosticSpan {
     fn parent_id(&self) -> Option<SpanId> {
         self.parent_id
     }

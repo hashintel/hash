@@ -3,13 +3,13 @@ mod ptr;
 use core::alloc::Allocator;
 
 use bumpalo::Bump;
-use hashbrown::DefaultHashBuilder;
 
 pub use self::ptr::P;
 
 pub type Vec<'heap, T> = alloc::vec::Vec<T, &'heap Heap>;
 pub type VecDeque<'heap, T> = alloc::collections::vec_deque::VecDeque<T, &'heap Heap>;
-pub type HashMap<'heap, K, V> = hashbrown::HashMap<K, V, DefaultHashBuilder, &'heap Heap>;
+pub type HashMap<'heap, K, V, S = foldhash::fast::RandomState> =
+    hashbrown::HashMap<K, V, S, &'heap Heap>;
 
 #[derive(Debug)]
 pub struct Heap {

@@ -3689,13 +3689,10 @@ dependencies = [
 name = "hql-ast"
 version = "0.0.0"
 dependencies = [
- "ahash",
  "bumpalo",
- "ecow",
  "foldhash",
  "hashbrown 0.15.2",
  "hql-core",
- "json-number",
  "lexical",
  "simple-mermaid",
 ]
