@@ -633,8 +633,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "69",
-    heading: "Intelligent Global Search",
-    body: "Augment semantic Q&A with relevant and timely context from the global web",
+    heading: "Web-Based AI Workers",
+    body: "Automatically identify and extract structured data on relevant topics from around the web",
     parentIds: ["58"],
     status: "working-poc",
     useCases: ["general", "knowledge-management"],
