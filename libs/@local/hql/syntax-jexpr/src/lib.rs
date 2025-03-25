@@ -4,66 +4,69 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(assert_matches, new_range_api, box_into_boxed_slice)]
 
-use alloc::sync::Arc;
+// 🙈🦀 This code has been commented out and fill be changed as part of:
+// https://linear.app/hash/issue/H-4252/adjust-j-expr-to-new-syntax
 
-use hql_cst::{arena::MemoryPool, expr::Expr};
-use hql_span::storage::SpanStorage;
+// use alloc::sync::Arc;
 
-use self::{
-    error::{JExprDiagnostic, JExprDiagnosticCategory},
-    parser::{TokenStream, error::expected_eof},
-    span::Span,
-};
+// use hql_cst::{arena::MemoryPool, expr::Expr};
+// use hql_span::storage::SpanStorage;
 
-extern crate alloc;
+// use self::{
+//     error::{JExprDiagnostic, JExprDiagnosticCategory},
+//     parser::{TokenStream, error::expected_eof},
+//     span::Span,
+// };
 
-pub mod error;
-pub(crate) mod lexer;
-pub(crate) mod parser;
-pub mod span;
+// extern crate alloc;
 
-pub struct Parser<'arena> {
-    arena: &'arena MemoryPool,
-    spans: Arc<SpanStorage<Span>>,
-}
+// pub mod error;
+// pub(crate) mod lexer;
+// pub(crate) mod parser;
+// pub mod span;
 
-impl<'arena> Parser<'arena> {
-    pub fn new(arena: &'arena MemoryPool, spans: impl Into<Arc<SpanStorage<Span>>>) -> Self {
-        Self {
-            arena,
-            spans: spans.into(),
-        }
-    }
+// pub struct Parser<'arena> {
+//     arena: &'arena MemoryPool,
+//     spans: Arc<SpanStorage<Span>>,
+// }
 
-    /// Parse an expression from the given source.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the source is not a valid J-Expr expression.
-    pub fn parse_expr<'source>(
-        &self,
-        source: &'source [u8],
-    ) -> Result<Expr<'arena, 'source>, JExprDiagnostic> {
-        let lexer = lexer::Lexer::new(source, Arc::clone(&self.spans));
-        let mut stream = TokenStream {
-            arena: self.arena,
-            lexer,
-            spans: Arc::clone(&self.spans),
-            stack: Some(Vec::new()),
-        };
+// impl<'arena> Parser<'arena> {
+//     pub fn new(arena: &'arena MemoryPool, spans: impl Into<Arc<SpanStorage<Span>>>) -> Self {
+//         Self {
+//             arena,
+//             spans: spans.into(),
+//         }
+//     }
 
-        let expr = parser::parse_expr(&mut stream, None)?;
+//     /// Parse an expression from the given source.
+//     ///
+//     /// # Errors
+//     ///
+//     /// Returns an error if the source is not a valid J-Expr expression.
+//     pub fn parse_expr<'source>(
+//         &self,
+//         source: &'source [u8],
+//     ) -> Result<Expr<'arena, 'source>, JExprDiagnostic> {
+//         let lexer = lexer::Lexer::new(source, Arc::clone(&self.spans));
+//         let mut stream = TokenStream {
+//             arena: self.arena,
+//             lexer,
+//             spans: Arc::clone(&self.spans),
+//             stack: Some(Vec::new()),
+//         };
 
-        if stream.lexer.advance().is_some() {
-            let span = stream.spans.insert(Span {
-                range: stream.lexer.span(),
-                pointer: None,
-                parent_id: None,
-            });
+//         let expr = parser::parse_expr(&mut stream, None)?;
 
-            return Err(expected_eof(span).map_category(JExprDiagnosticCategory::Parser));
-        }
+//         if stream.lexer.advance().is_some() {
+//             let span = stream.spans.insert(Span {
+//                 range: stream.lexer.span(),
+//                 pointer: None,
+//                 parent_id: None,
+//             });
 
-        Ok(expr)
-    }
-}
+//             return Err(expected_eof(span).map_category(JExprDiagnosticCategory::Parser));
+//         }
+
+//         Ok(expr)
+//     }
+// }
