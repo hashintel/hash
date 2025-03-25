@@ -12830,9 +12830,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hql-cst@npm:0.0.0-private, @rust/hql-cst@workspace:libs/@local/hql/cst":
+"@rust/hql-cst@npm:0.0.0-private, @rust/hql-cst@workspace:libs/@local/hql/ast":
   version: 0.0.0-use.local
-  resolution: "@rust/hql-cst@workspace:libs/@local/hql/cst"
+  resolution: "@rust/hql-cst@workspace:libs/@local/hql/ast"
   dependencies:
     "@rust/hql-span": "npm:0.0.0-private"
   languageName: unknown

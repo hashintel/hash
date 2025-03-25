@@ -3686,18 +3686,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "hql-core"
-version = "0.0.0"
-dependencies = [
- "ecow",
- "orx-concurrent-vec",
- "serde",
- "simple-mermaid",
- "text-size",
-]
-
-[[package]]
-name = "hql-cst"
+name = "hql-ast"
 version = "0.0.0"
 dependencies = [
  "ahash",
@@ -3709,6 +3698,17 @@ dependencies = [
  "json-number",
  "lexical",
  "simple-mermaid",
+]
+
+[[package]]
+name = "hql-core"
+version = "0.0.0"
+dependencies = [
+ "ecow",
+ "orx-concurrent-vec",
+ "serde",
+ "simple-mermaid",
+ "text-size",
 ]
 
 [[package]]
@@ -3736,8 +3736,8 @@ dependencies = [
  "ariadne",
  "ecow",
  "hifijson",
+ "hql-ast",
  "hql-core",
- "hql-cst",
  "hql-diagnostics",
  "insta",
  "json-number",

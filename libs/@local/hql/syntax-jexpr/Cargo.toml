@@ -8,8 +8,8 @@ publish.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+hql-ast         = { workspace = true, public = true }
 hql-core        = { workspace = true, public = true }
-hql-cst         = { workspace = true, public = true }
 hql-diagnostics = { workspace = true, public = true }
 
 # Public third-party dependencies
