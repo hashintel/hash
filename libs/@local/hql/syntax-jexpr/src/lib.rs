@@ -4,7 +4,7 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(assert_matches, new_range_api, box_into_boxed_slice)]
 
-// 🙈🦀 This code has been commented out and fill be changed as part of:
+// 🙈🦀 This code has been commented out and will be changed as part of:
 // https://linear.app/hash/issue/H-4252/adjust-j-expr-to-new-syntax
 
 // use alloc::sync::Arc;
