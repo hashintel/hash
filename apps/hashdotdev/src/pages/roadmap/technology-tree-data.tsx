@@ -614,7 +614,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "60",
+    id: "61",
     heading: "Email Sending",
     body: "Support for user composition and triggering of emails via Flows",
     parentIds: ["40"],
@@ -623,7 +623,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "61",
+    id: "68",
     heading: "App Store",
     body: "Publish and distribute or discover user-created HASH Applications",
     parentIds: ["57"],
@@ -632,7 +632,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "62",
+    id: "69",
     heading: "Intelligent Global Search",
     body: "Augment semantic Q&A with relevant and timely context from the global web",
     parentIds: ["58"],
@@ -641,7 +641,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "63",
+    id: "70",
     heading: "Keyboard Navigability",
     body: "Full support for using HASH via keyboard alone",
     parentIds: ["72"],
@@ -650,7 +650,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "64",
+    id: "71",
     heading: "Git Datastore",
     body: "libgit2 or Gitea-based backend for dedicated storage and processing of source code and Git repositories",
     parentIds: ["65"],
@@ -665,7 +665,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "infrastructure",
   },
   {
-    id: "65",
+    id: "72",
     heading: "Shortcut Cheatsheet",
     body: "Easy, centralized in-app access to keyboard navigation documentation",
     parentIds: ["24"],
@@ -674,7 +674,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "66",
+    id: "73",
     heading: "Simulation Blocks",
     body: "Replaces hCore, enabling simulations and experiments to be created and run in HASH",
     parentIds: ["71"],
@@ -683,7 +683,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "67",
+    id: "74",
     heading: "Canvas AutoLayout",
     body: "Dynamically position blocks relative to one another",
     parentIds: ["18"],
@@ -692,7 +692,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "68",
+    id: "75",
     heading: "Upgraded Geospatial-3D",
     body: "Improved styles, performance, and combining the separate geospatial and 3D viewers in one",
     parentIds: ["73"],
@@ -701,7 +701,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "infrastructure",
   },
   {
-    id: "69",
+    id: "76",
     heading: "Optimized Simulation Run Storage",
     body: "Move to a more efficient data format for storing simulation data (e.g. Parquet)",
     parentIds: ["71"],
@@ -710,7 +710,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "infrastructure",
   },
   {
-    id: "70",
+    id: "77",
     heading: "REPL Block",
     body: "Support for individually executable blocks (JavaScript/Python notebook-style) within pages",
     parentIds: ["71"],
@@ -723,7 +723,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "experiment",
   },
   {
-    id: "71",
+    id: "78",
     heading: "Self-service hCloud",
     body: "Offered up until May 2023, we plan to re-introduce this as part of Flows",
     parentIds: ["76"],
@@ -732,7 +732,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "72",
+    id: "79",
     heading: "Improved scalability",
     body: "Intelligent offloading of infrequently accessed data into cold storage",
     parentIds: ["76"],
@@ -741,7 +741,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "infrastructure",
   },
   {
-    id: "73",
+    id: "80",
     heading: "Entity Labels",
     body: "Select properties that can be used to easily identify entities in HASH",
     parentIds: ["25"],
@@ -750,7 +750,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "74",
+    id: "82",
     heading: "Advanced Authorization",
     body: "More granular permissions and access control",
     parentIds: ["35"],
@@ -766,7 +766,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "75",
+    id: "83",
     heading: "Type Forking",
     body: "Duplicate types while retaining a reference to the original (distinct from extension)",
     parentIds: ["46"],
@@ -775,7 +775,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "76",
+    id: "84",
     heading: "Composite Blocks",
     body: "Nest blocks inside of one another to create more powerful user experiences",
     parentIds: ["41"],
@@ -784,7 +784,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "experiment",
   },
   {
-    id: "77",
+    id: "85",
     heading: "Desktop App",
     body: "macOS, Windows & Linux applications, with full offline mode",
     parentIds: ["18"],
@@ -793,7 +793,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "78",
+    id: "86",
     heading: "Mobile App",
     body: "iOS & Android applications, with full offline mode",
     parentIds: ["18"],
@@ -802,7 +802,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "79",
+    id: "87",
     heading: "Type Renaming & Redirection",
     body: "Rename types already in-use, and seamlessly redirect old consumers",
     parentIds: ["28"],
@@ -811,7 +811,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "80",
+    id: "88",
     heading: "Federated Instances",
     body: "Connect a local instance of HASH to the global web of instances",
     parentIds: ["40", "42"],
@@ -820,7 +820,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "81",
+    id: "89",
     heading: "One-click self-hosting",
     body: "Host your own HASH instance with no technical setup required",
     parentIds: ["85", "88"],
@@ -829,7 +829,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "82",
+    id: "90",
     heading: "Inline Comments",
     body: "Comment precisely (e.g. on a span of text, or part of an image) inside blocks",
     parentIds: ["19"],
@@ -838,7 +838,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "83",
+    id: "91",
     heading: "OAuth 2.0 & OIDC",
     body: "Create or log in to a HASH account using a third-party service like Google",
     parentIds: ["82"],
@@ -847,7 +847,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "84",
+    id: "92",
     heading: "Provisioning (LDAP)",
     body: "Use an external LDAP server to provision, deprovision and sync accounts",
     parentIds: ["82"],
@@ -856,7 +856,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "infrastructure",
   },
   {
-    id: "85",
+    id: "93",
     heading: "LDAP Server",
     body: "Use HASH as an LDAP server for authentication, authorization, and directory lookups",
     parentIds: ["92"],
@@ -865,7 +865,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "infrastructure",
   },
   {
-    id: "86",
+    id: "94",
     heading: "Sign in with HASH",
     body: "Authenticate users with external services via their hash.ai accounts",
     parentIds: ["91"],
@@ -874,7 +874,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "experiment",
   },
   {
-    id: "87",
+    id: "95",
     heading: "Custom OAuth Providers",
     body: "Allow user/member authentication using any arbitrary OAuth provider",
     parentIds: ["91"],
@@ -883,7 +883,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "infrastructure",
   },
   {
-    id: "88",
+    id: "96",
     heading: "SAML SSO",
     body: "Support for Single Sign On using older, legacy SAML systems",
     parentIds: ["95"],
@@ -892,7 +892,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "infrastructure",
   },
   {
-    id: "89",
+    id: "97",
     heading: "Browser Extension",
     body: "Find, use and create entities as you browse",
     parentIds: ["30", "33", "100"],
@@ -901,7 +901,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "90",
+    id: "98",
     heading: "Encrypted Properties",
     body: "Support for selectively encrypting individual properties on entity types",
     parentIds: ["82"],
@@ -910,7 +910,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "infrastructure",
   },
   {
-    id: "91",
+    id: "99",
     heading: "Quick Notes",
     body: "Support for one-click capturing reverse-chronological notes",
     parentIds: ["5"],
@@ -919,7 +919,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "92",
+    id: "100",
     heading: "Draft New Entities",
     body: "New suggested, incorrect or incomplete entities may be saved as drafts",
     parentIds: ["28"],
@@ -928,7 +928,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "93",
+    id: "101",
     heading: "Draft Updated Entities",
     body: "Updates or suggested changes to entities may be persisted as drafts prior to finalization",
     parentIds: ["100"],
@@ -937,7 +937,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "94",
+    id: "102",
     heading: "Dynamic Data Type Conversion",
     body: "Ability to convert between data types with fluctuating exchange rates",
     parentIds: ["44"],
@@ -946,7 +946,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "feature",
   },
   {
-    id: "95",
+    id: "103",
     heading: "HashQL",
     body: "Powerful, performant graph-based querying for entities and types",
     parentIds: ["28"],
@@ -955,7 +955,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "infrastructure",
   },
   {
-    id: "96",
+    id: "104",
     heading: "HaRPC",
     body: "RPC protocol specifically optimized for HASH",
     parentIds: ["35"],
