@@ -205,13 +205,13 @@ macro_rules! newtype {
             }
         }
 
-        impl core::fmt::Display for $name {
+        impl ::core::fmt::Display for $name {
             fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 core::fmt::Display::fmt(&self.0, fmt)
             }
         }
 
-        impl core::convert::TryFrom<u32> for $name {
+        impl ::core::convert::TryFrom<u32> for $name {
             type Error = $crate::id::IdError;
 
             fn try_from(value: u32) -> Result<Self, Self::Error> {
@@ -227,7 +227,7 @@ macro_rules! newtype {
             }
         }
 
-        impl core::convert::TryFrom<u64> for $name {
+        impl ::core::convert::TryFrom<u64> for $name {
             type Error = $crate::id::IdError;
 
             fn try_from(value: u64) -> Result<Self, Self::Error> {
@@ -243,7 +243,7 @@ macro_rules! newtype {
             }
         }
 
-        impl core::convert::TryFrom<usize> for $name {
+        impl ::core::convert::TryFrom<usize> for $name {
             type Error = $crate::id::IdError;
 
             fn try_from(value: usize) -> Result<Self, Self::Error> {
