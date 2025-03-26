@@ -16,7 +16,8 @@
       "dependsOn": ["^build"]
     },
     "doc:dependency-diagram": {
-      "dependsOn": ["@local/repo-chores#build"]
+      "cache": false,
+      "dependsOn": ["@rust/hash-repo-chores#build"]
     },
     "build": {
       "dependsOn": ["codegen"]
