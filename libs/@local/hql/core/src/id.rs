@@ -188,7 +188,7 @@ macro_rules! newtype {
                 self.0 as usize
             }
 
-            fn next(self) -> Option<Self> {
+            fn next(self) -> ::core::option::Option<Self> {
                 if self.0 == $max {
                     None
                 } else {
@@ -196,7 +196,7 @@ macro_rules! newtype {
                 }
             }
 
-            fn prev(self) -> Option<Self> {
+            fn prev(self) -> ::core::option::Option<Self> {
                 if self.0 == $min {
                     None
                 } else {
@@ -206,15 +206,15 @@ macro_rules! newtype {
         }
 
         impl ::core::fmt::Display for $name {
-            fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                core::fmt::Display::fmt(&self.0, fmt)
+            fn fmt(&self, fmt: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                ::core::fmt::Display::fmt(&self.0, fmt)
             }
         }
 
         impl ::core::convert::TryFrom<u32> for $name {
             type Error = $crate::id::IdError;
 
-            fn try_from(value: u32) -> Result<Self, Self::Error> {
+            fn try_from(value: u32) -> ::core::result::Result<Self, Self::Error> {
                 if $crate::id::newtype!(@internal in_bounds; value, u32, $min, $max) {
                     Ok(Self(value))
                 } else {
@@ -230,7 +230,7 @@ macro_rules! newtype {
         impl ::core::convert::TryFrom<u64> for $name {
             type Error = $crate::id::IdError;
 
-            fn try_from(value: u64) -> Result<Self, Self::Error> {
+            fn try_from(value: u64) -> ::core::result::Result<Self, Self::Error> {
                 if $crate::id::newtype!(@internal in_bounds; value, u64, $min, $max) {
                     Ok(Self(value as u32))
                 } else {
@@ -246,7 +246,7 @@ macro_rules! newtype {
         impl ::core::convert::TryFrom<usize> for $name {
             type Error = $crate::id::IdError;
 
-            fn try_from(value: usize) -> Result<Self, Self::Error> {
+            fn try_from(value: usize) -> ::core::result::Result<Self, Self::Error> {
                 if $crate::id::newtype!(@internal in_bounds; value, usize, $min, $max) {
                     Ok(Self(value as u32))
                 } else {
