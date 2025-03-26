@@ -86,9 +86,9 @@ hash-repo-chores.path               = "libs/@local/repo-chores/rust"
 hash-status.path                    = "libs/@local/status/rust"
 hash-temporal-client.path           = "libs/@local/temporal-client"
 hash-tracing.path                   = "libs/@local/tracing"
-hql-cst.path                        = "libs/@local/hql/cst"
+hql-ast.path                        = "libs/@local/hql/ast"
+hql-core.path                       = "libs/@local/hql/core"
 hql-diagnostics.path                = "libs/@local/hql/diagnostics"
-hql-span.path                       = "libs/@local/hql/span"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
@@ -146,7 +146,7 @@ hifijson                 = { version = "=0.2.2", default-features = false }
 http                     = { version = "=1.3.1", default-features = false }
 humansize                = { version = "=2.1.3", default-features = false }
 hyper                    = { version = "=1.6.0", default-features = false }
-image                    = { version = "=0.25.5", default-features = false }
+image                    = { version = "=0.25.6", default-features = false }
 include_dir              = { version = "=0.7.4", default-features = false }
 indoc                    = { version = "=2.0.6", default-features = false }
 inferno                  = { version = "=0.12.2", default-features = false }
@@ -175,7 +175,6 @@ napi                     = { version = "=2.16.17", default-features = false }
 napi-build               = { version = "=2.1.6", default-features = false }
 napi-derive              = { version = "=2.16.13", default-features = false }
 num-traits               = { version = "=0.2.19", default-features = false }
-once_cell                = { version = "=1.21.1", default-features = false }
 opentelemetry            = { version = "=0.29.0", default-features = false }
 opentelemetry-otlp       = { version = "=0.29.0", default-features = false }
 opentelemetry_sdk        = { version = "=0.29.0", default-features = false }
@@ -249,7 +248,6 @@ unicode-ident            = { version = "=1.0.18", default-features = false }
 url                      = { version = "=2.5.4", default-features = false }
 utoipa                   = { version = "=4.2.3", default-features = false }
 uuid                     = { version = "=1.16.0", default-features = false }
-virtue                   = { version = "=0.0.18", default-features = false }
 walkdir                  = { version = "=2.5.0", default-features = false }
 winnow                   = { version = "=0.7.4", default-features = false }
 

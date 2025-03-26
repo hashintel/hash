@@ -1,4 +1,4 @@
-use hql_cst::arena::{self, Arena};
+use hql_cst::arena::{self, MemoryPool};
 use hql_span::{SpanId, storage::SpanStorage};
 use winnow::{
     Parser,
@@ -18,7 +18,7 @@ enum VecOrOneValue<'a, T> {
 impl<'a, T> VecOrOneValue<'a, T> {
     fn as_vec<'this>(
         this: &'this mut Option<Self>,
-        arena: &'a Arena,
+        arena: &'a MemoryPool,
     ) -> &'this mut arena::Vec<'a, T> {
         // capacity of 0 will not allocate
         let value = this
@@ -43,12 +43,12 @@ impl<'a, T> VecOrOneValue<'a, T> {
 }
 
 struct VecOrOne<'a, T> {
-    arena: &'a Arena,
+    arena: &'a MemoryPool,
     value: Option<VecOrOneValue<'a, T>>,
 }
 
 impl<'a, T> VecOrOne<'a, T> {
-    const fn new(arena: &'a Arena, value: T) -> Self {
+    const fn new(arena: &'a MemoryPool, value: T) -> Self {
         Self {
             arena,
             value: Some(VecOrOneValue::One(value)),
@@ -83,7 +83,7 @@ impl<'a, T> VecOrOne<'a, T> {
 }
 
 pub(crate) fn separated_boxed1<Input, Output, Sep, Error, ParseNext, SepParser>(
-    arena: &Arena,
+    arena: &MemoryPool,
     parser: ParseNext,
     sep: SepParser,
 ) -> impl Parser<Input, arena::Box<'_, [Output]>, Error>
@@ -125,7 +125,7 @@ where
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ParseState<'arena, 'span> {
-    pub arena: &'arena Arena,
+    pub arena: &'arena MemoryPool,
     pub spans: &'span SpanStorage<Span>,
 
     pub parent_id: Option<SpanId>,

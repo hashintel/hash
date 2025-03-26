@@ -1,4 +1,4 @@
-use hql_span::SpanId;
+use hql_core::span::SpanId;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, thiserror::Error)]
 pub enum ResolveError {

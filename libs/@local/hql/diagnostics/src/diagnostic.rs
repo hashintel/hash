@@ -5,7 +5,7 @@ use core::{
 
 use ariadne::ColorGenerator;
 use error_stack::{Report, TryReportIteratorExt as _};
-use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
+use hql_core::span::{Span, SpanId, node::SpanNode, storage::SpanStorage};
 
 use crate::{
     category::{

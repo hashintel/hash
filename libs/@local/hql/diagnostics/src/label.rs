@@ -1,7 +1,7 @@
 use anstyle::Color;
 use ariadne::ColorGenerator;
 use error_stack::Report;
-use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
+use hql_core::span::{Span, SpanId, node::SpanNode, storage::SpanStorage};
 
 use crate::{
     error::ResolveError,

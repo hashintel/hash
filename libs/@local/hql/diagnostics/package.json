@@ -11,6 +11,6 @@
   },
   "dependencies": {
     "@rust/error-stack": "0.5.0",
-    "@rust/hql-span": "0.0.0-private"
+    "@rust/hql-core": "0.0.0-private"
   }
 }

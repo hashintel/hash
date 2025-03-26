@@ -9,7 +9,7 @@ authors.workspace = true
 [dependencies]
 # Public workspace dependencies
 error-stack = { workspace = true, public = true, features = ["unstable"] }
-hql-span    = { workspace = true, public = true }
+hql-core    = { workspace = true, public = true }
 
 # Public third-party dependencies
 anstyle   = { workspace = true, public = true }
@@ -30,7 +30,7 @@ jsonptr    = "0.7.0"
 serde_json = { workspace = true }
 
 [features]
-serde = ["dep:serde", "dep:serde_with", "hql-span/serde"]
+serde = ["dep:serde", "dep:serde_with", "hql-core/serde"]
 
 [lints]
 workspace = true

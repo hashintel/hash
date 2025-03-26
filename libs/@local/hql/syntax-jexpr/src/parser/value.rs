@@ -149,7 +149,7 @@ mod test {
     use alloc::sync::Arc;
 
     use hql_cst::{
-        arena::Arena,
+        arena::MemoryPool,
         value::{Value, ValueKind},
     };
     use hql_diagnostics::{
@@ -203,7 +203,7 @@ mod test {
     }
 
     fn parse_complete<'arena, 'source>(
-        arena: &'arena Arena,
+        arena: &'arena MemoryPool,
         spans: Arc<SpanStorage<Span>>,
         source: &'source str,
     ) -> Result<Value<'arena, 'source>, JExprDiagnostic> {
@@ -232,7 +232,7 @@ mod test {
     #[test_fuzz::test_fuzz]
     fn assert_eq_serde(input: &str) {
         let input = input.trim_end(); // we ignore whitespace, serde_json does not
-        let arena = Arena::new();
+        let arena = MemoryPool::new();
         let spans = Arc::new(SpanStorage::new());
 
         let value_result = parse_complete(&arena, spans, input);
@@ -331,7 +331,7 @@ mod test {
     }
 
     fn expect_err(expr: &str) -> String {
-        let arena = Arena::new();
+        let arena = MemoryPool::new();
         let spans = Arc::new(SpanStorage::new());
 
         let diagnostic = parse_complete(&arena, Arc::clone(&spans), expr)

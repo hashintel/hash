@@ -23,7 +23,7 @@ pub struct ReportConfig<F> {
     /// the [`SpanNode`].
     ///
     /// [`TransformSpan<S>`]: crate::span::TransformSpan
-    /// [`SpanNode`]: hql_span::tree::SpanNode
+    /// [`SpanNode`]: hql_core::span::node::SpanNode
     pub transform_span: F,
 }
 
