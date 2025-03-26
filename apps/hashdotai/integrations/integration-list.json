@@ -267,7 +267,7 @@
     "integrationUrl": "https://app.hash.ai/settings/integrations/sentry",
     "availability": "Considered",
     "audience": ["Enterprise", "Startup"],
-    "category": ["Developer"]
+    "category": ["Development"]
   },
   {
     "name": "Zoom",
