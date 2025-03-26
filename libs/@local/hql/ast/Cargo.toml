@@ -18,7 +18,7 @@ hashbrown = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-lexical        = { workspace = true, features = ["parse", "format"] }
+lexical        = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
 simple-mermaid = { workspace = true }
 
 [lints]

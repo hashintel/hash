@@ -38,8 +38,14 @@ impl Heap {
 
     pub fn hash_map<K, V>(&self, capacity: Option<usize>) -> HashMap<'_, K, V> {
         capacity.map_or_else(
-            || HashMap::new_in(self),
-            |capacity| HashMap::with_capacity_in(capacity, self),
+            || HashMap::with_hasher_in(foldhash::fast::RandomState::default(), self),
+            |capacity| {
+                HashMap::with_capacity_and_hasher_in(
+                    capacity,
+                    foldhash::fast::RandomState::default(),
+                    self,
+                )
+            },
         )
     }
 
