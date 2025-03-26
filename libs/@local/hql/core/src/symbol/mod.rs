@@ -38,7 +38,6 @@ impl Symbol {
         self.0.as_str()
     }
 
-    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
