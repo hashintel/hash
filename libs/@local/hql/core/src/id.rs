@@ -111,7 +111,7 @@ pub trait Id:
 ///
 /// # Syntax
 /// ```
-/// define_id!(pub struct NodeId(u32 is 0..=0xFFFF_FF00));
+/// hql_core::id::newtype!(pub struct NodeId(u32 is 0..=0xFFFF_FF00));
 /// ```
 ///
 /// This creates a newtype wrapper around [`u32`] with the Id trait fully implemented.
