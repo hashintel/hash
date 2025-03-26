@@ -1,7 +1,7 @@
 use hql_core::{span::SpanId, symbol::Ident};
 
 use super::{id::NodeId, r#type::Type};
-use crate::heap::P;
+use crate::heap;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Generic<'heap> {
@@ -9,5 +9,5 @@ pub struct Generic<'heap> {
     pub span: SpanId,
 
     pub name: Ident,
-    pub bound: Option<P<'heap, Type<'heap>>>,
+    pub bound: Option<heap::Box<'heap, Type<'heap>>>,
 }

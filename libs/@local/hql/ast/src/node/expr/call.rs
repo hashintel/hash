@@ -1,7 +1,7 @@
 use hql_core::{span::SpanId, symbol::Ident};
 
 use super::Expr;
-use crate::{heap::P, node::id::NodeId};
+use crate::{heap, node::id::NodeId};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LabeledArgument<'heap> {
@@ -18,7 +18,7 @@ pub struct Argument<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub value: P<'heap, Expr<'heap>>,
+    pub value: heap::Box<'heap, Expr<'heap>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -26,8 +26,8 @@ pub struct CallExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub function: P<'heap, Expr<'heap>>,
+    pub function: heap::Box<'heap, Expr<'heap>>,
 
-    pub arguments: P<'heap, Vec<Argument<'heap>>>,
-    pub labeled_arguments: P<'heap, Vec<LabeledArgument<'heap>>>,
+    pub arguments: heap::Box<'heap, Vec<Argument<'heap>>>,
+    pub labeled_arguments: heap::Box<'heap, Vec<LabeledArgument<'heap>>>,
 }

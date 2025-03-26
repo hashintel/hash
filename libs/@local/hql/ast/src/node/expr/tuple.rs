@@ -2,7 +2,7 @@ use hql_core::span::SpanId;
 
 use super::Expr;
 use crate::{
-    heap::P,
+    heap,
     node::{id::NodeId, r#type::Type},
 };
 
@@ -11,7 +11,7 @@ pub struct TupleElement<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub value: P<'heap, Expr<'heap>>,
+    pub value: heap::Box<'heap, Expr<'heap>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -19,6 +19,6 @@ pub struct TupleExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub elements: P<'heap, [TupleElement<'heap>]>,
-    pub r#type: P<'heap, Type<'heap>>,
+    pub elements: heap::Box<'heap, [TupleElement<'heap>]>,
+    pub r#type: heap::Box<'heap, Type<'heap>>,
 }

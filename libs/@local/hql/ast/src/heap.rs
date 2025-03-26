@@ -1,11 +1,8 @@
-mod ptr;
-
 use core::alloc::Allocator;
 
 use bumpalo::Bump;
 
-pub use self::ptr::P;
-
+pub type Box<'heap, T> = alloc::boxed::Box<T, &'heap Heap>;
 pub type Vec<'heap, T> = alloc::vec::Vec<T, &'heap Heap>;
 pub type VecDeque<'heap, T> = alloc::collections::vec_deque::VecDeque<T, &'heap Heap>;
 pub type HashMap<'heap, K, V, S = foldhash::fast::RandomState> =
@@ -29,14 +26,14 @@ impl Heap {
         }
     }
 
-    pub fn vec<T>(&self, capacity: Option<usize>) -> Vec<'_, T> {
+    pub fn vec<T>(&self, capacity: Option<usize>) -> Vec<T> {
         capacity.map_or_else(
             || Vec::new_in(self),
             |capacity| Vec::with_capacity_in(capacity, self),
         )
     }
 
-    pub fn hash_map<K, V>(&self, capacity: Option<usize>) -> HashMap<'_, K, V> {
+    pub fn hash_map<K, V>(&self, capacity: Option<usize>) -> HashMap<K, V> {
         capacity.map_or_else(
             || HashMap::with_hasher_in(foldhash::fast::RandomState::default(), self),
             |capacity| {
@@ -49,15 +46,15 @@ impl Heap {
         )
     }
 
-    pub fn dequeue<T>(&self, capacity: Option<usize>) -> VecDeque<'_, T> {
+    pub fn dequeue<T>(&self, capacity: Option<usize>) -> VecDeque<T> {
         capacity.map_or_else(
             || VecDeque::new_in(self),
             |capacity| VecDeque::with_capacity_in(capacity, self),
         )
     }
 
-    pub fn ptr<T: 'static>(&self, value: T) -> P<'_, T> {
-        P::new(value, self)
+    pub fn boxed<T>(&self, value: T) -> Box<T> {
+        alloc::boxed::Box::new_in(value, self)
     }
 }
 

@@ -3,7 +3,7 @@ use core::{fmt, fmt::Display};
 use hql_core::{span::SpanId, symbol::Ident};
 
 use super::{generic::Generic, id::NodeId};
-use crate::heap::P;
+use crate::heap;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PathSegment<'heap> {
@@ -11,14 +11,14 @@ pub struct PathSegment<'heap> {
 
     pub ident: Ident,
     // Type parameters attached to this path
-    pub args: P<'heap, [Generic<'heap>]>,
+    pub arguments: heap::Box<'heap, [Generic<'heap>]>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Path<'heap> {
     pub span: SpanId,
 
-    pub segments: P<'heap, [Ident]>,
+    pub segments: heap::Box<'heap, [Ident]>,
 }
 
 impl Display for Path<'_> {

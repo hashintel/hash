@@ -6,7 +6,7 @@ use hql_core::span::SpanId;
 
 pub use self::{float::FloatLiteral, integer::IntegerLiteral, string::StringLiteral};
 use crate::{
-    heap::P,
+    heap,
     node::{id::NodeId, r#type::Type},
 };
 
@@ -38,5 +38,5 @@ pub struct LiteralExpr<'heap> {
     pub span: SpanId,
 
     pub kind: LiteralKind,
-    pub r#type: P<'heap, Type<'heap>>,
+    pub r#type: heap::Box<'heap, Type<'heap>>,
 }

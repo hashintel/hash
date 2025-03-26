@@ -1,7 +1,7 @@
 use hql_core::{span::SpanId, symbol::Ident};
 
 use super::{id::NodeId, path::Path};
-use crate::heap::P;
+use crate::heap;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructField<'heap> {
@@ -17,7 +17,7 @@ pub struct StructType<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub fields: P<'heap, [StructField<'heap>]>,
+    pub fields: heap::Box<'heap, [StructField<'heap>]>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -34,7 +34,7 @@ pub struct TupleType<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub fields: P<'heap, [TupleField<'heap>]>,
+    pub fields: heap::Box<'heap, [TupleField<'heap>]>,
 }
 
 // The AST refines additionally includes things like unions and intersections
