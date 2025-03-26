@@ -200,7 +200,7 @@ jobs:
       - name: Validate Dependency Diagrams
         if: ${{ success() || failure() }}
         run: |
-          yarn doc:dependency-diagram
+          mise run doc:dependency-diagram
           git --no-pager diff --exit-code --color '**/docs/dependency-diagram.mmd'
 
       - name: Run yarn lint:constraints

@@ -12830,11 +12830,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hql-cst@npm:0.0.0-private, @rust/hql-cst@workspace:libs/@local/hql/cst":
+"@rust/hql-ast@npm:0.0.0-private, @rust/hql-ast@workspace:libs/@local/hql/ast":
   version: 0.0.0-use.local
-  resolution: "@rust/hql-cst@workspace:libs/@local/hql/cst"
+  resolution: "@rust/hql-ast@workspace:libs/@local/hql/ast"
   dependencies:
-    "@rust/hql-span": "npm:0.0.0-private"
+    "@rust/hql-core": "npm:0.0.0-private"
+  languageName: unknown
+  linkType: soft
+
+"@rust/hql-core@npm:0.0.0-private, @rust/hql-core@workspace:libs/@local/hql/core":
+  version: 0.0.0-use.local
+  resolution: "@rust/hql-core@workspace:libs/@local/hql/core"
   languageName: unknown
   linkType: soft
 
@@ -12843,13 +12849,7 @@ __metadata:
   resolution: "@rust/hql-diagnostics@workspace:libs/@local/hql/diagnostics"
   dependencies:
     "@rust/error-stack": "npm:0.5.0"
-    "@rust/hql-span": "npm:0.0.0-private"
-  languageName: unknown
-  linkType: soft
-
-"@rust/hql-span@npm:0.0.0-private, @rust/hql-span@workspace:libs/@local/hql/span":
-  version: 0.0.0-use.local
-  resolution: "@rust/hql-span@workspace:libs/@local/hql/span"
+    "@rust/hql-core": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
@@ -12857,9 +12857,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hql-syntax-jexpr@workspace:libs/@local/hql/syntax-jexpr"
   dependencies:
-    "@rust/hql-cst": "npm:0.0.0-private"
+    "@rust/hql-ast": "npm:0.0.0-private"
+    "@rust/hql-core": "npm:0.0.0-private"
     "@rust/hql-diagnostics": "npm:0.0.0-private"
-    "@rust/hql-span": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 

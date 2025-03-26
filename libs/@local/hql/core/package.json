@@ -1,0 +1,12 @@
+{
+  "name": "@rust/hql-core",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hql-core --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:unit": "cargo hack nextest run --feature-powerset --all-targets --no-tests warn && cargo test --all-features --doc"
+  }
+}

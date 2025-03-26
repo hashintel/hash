@@ -1,9 +1,6 @@
 {
   "extends": ["//"],
   "tasks": {
-    "doc:dependency-diagram": {
-      "outputs": ["docs/dependency-diagram.mmd"]
-    },
     "dev": {
       "cache": false,
       "persistent": true,

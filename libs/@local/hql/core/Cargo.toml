@@ -1,0 +1,27 @@
+[package]
+name              = "hql-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+ecow.workspace = true
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+orx-concurrent-vec = { workspace = true }
+serde              = { workspace = true, optional = true, features = ["alloc", "derive"] }
+simple-mermaid     = { workspace = true }
+text-size          = { workspace = true }
+
+[features]
+serde = ["dep:serde", "text-size/serde"]
+
+[lints]
+workspace = true

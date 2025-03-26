@@ -161,7 +161,7 @@ mod test {
         clippy::non_ascii_literal,
         reason = "using umlaute for XID_START testing purposes"
     )]
-    use hql_cst::arena::Arena;
+    use hql_cst::arena::MemoryPool;
     use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{
