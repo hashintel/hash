@@ -1,5 +1,5 @@
 {
-  "name": "@rust/hql-cst",
+  "name": "@rust/hql-ast",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",
@@ -10,6 +10,6 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets --no-tests warn && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@rust/hql-span": "0.0.0-private"
+    "@rust/hql-core": "0.0.0-private"
   }
 }
