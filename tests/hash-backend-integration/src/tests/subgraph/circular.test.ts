@@ -2,23 +2,26 @@ import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntitySubgraphResponse } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import { type ActorId, ENTITY_ID_DELIMITER } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import type { GetEntitySubgraphRequest } from "@local/hash-isomorphic-utils/types";
 import type {
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphEdgeKind,
   Subgraph,
-} from "@local/hash-subgraph";
+} from "@blockprotocol/graph";
 import {
   getEntities as getEntitiesSubgraph,
   getRoots,
-} from "@local/hash-subgraph/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import {
+  type ActorId,
+  type Entity,
+  ENTITY_ID_DELIMITER,
+} from "@blockprotocol/type-system";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import type { GetEntitySubgraphRequest } from "@local/hash-isomorphic-utils/types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../test-server";

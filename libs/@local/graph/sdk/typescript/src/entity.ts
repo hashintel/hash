@@ -29,6 +29,7 @@ import type {
   PropertyValueWithMetadata,
   PropertyWithMetadata,
   ProvidedEntityEditionProvenance,
+  Timestamp,
   TypeIdsAndPropertiesForEntity,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -38,9 +39,11 @@ import {
   isObjectMetadata,
   isValueMetadata,
 } from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
+  DiffEntityParams,
   Edges,
   Entity as GraphApiEntity,
   EntityVertexId,
@@ -126,6 +129,18 @@ export type PatchEntityParameters = Omit<
   propertyPatches?: PropertyPatchOperation[];
   provenance: ProvidedEntityEditionProvenance;
 };
+
+export type DiffEntityInput = Subtype<
+  DiffEntityParams,
+  {
+    firstEntityId: EntityId;
+    firstTransactionTime: Timestamp | null;
+    firstDecisionTime: Timestamp | null;
+    secondEntityId: EntityId;
+    secondDecisionTime: Timestamp | null;
+    secondTransactionTime: Timestamp | null;
+  }
+>;
 
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",

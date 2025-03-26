@@ -1,5 +1,9 @@
 import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   EntityId,
@@ -20,10 +24,6 @@ import type {
   QueryProperties,
   QueryPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";

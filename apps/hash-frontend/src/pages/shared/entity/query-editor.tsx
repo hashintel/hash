@@ -1,9 +1,9 @@
 import type { MultiFilter } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { Entity as EntityBp } from "@blockprotocol/type-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Stack, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useCallback, useState } from "react";

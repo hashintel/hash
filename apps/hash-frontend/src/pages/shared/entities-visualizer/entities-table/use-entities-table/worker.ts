@@ -1,3 +1,4 @@
+import { getEntityRevision } from "@blockprotocol/graph/stdlib";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import {
   extractOwnedByIdFromEntityId,
@@ -5,22 +6,21 @@ import {
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import {
-  HashEntity,
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import {
   generateEntityLabel,
   generateLinkEntityLabel,
 } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { getEntityRevision } from "@local/hash-subgraph/stdlib";
 import { format } from "date-fns";
 
 import type {
@@ -356,7 +356,10 @@ const generateTableData = async (
             icon = typeOrAncestor.icon;
           }
 
-          if (!isLink && typeOrAncestor.$id === linkEntityTypeUrl) {
+          if (
+            !isLink &&
+            typeOrAncestor.$id === blockProtocolEntityTypes.link.entityTypeId
+          ) {
             isLink = true;
           }
         }

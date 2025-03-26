@@ -1,6 +1,10 @@
+import {
+  type ActorId,
+  extractOwnedByIdFromEntityId,
+} from "@blockprotocol/type-system/*";
 import type { GetEntitiesRequest } from "@local/hash-graph-client/api";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -8,8 +12,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { ActorEntityId } from "@local/hash-subgraph";
-import { extractActorId } from "@local/hash-subgraph/stdlib";
 
 import { getGraphApiClient, getSystemAccountId } from "./api";
 
@@ -17,7 +19,7 @@ export const getUser = async (params: {
   authentication: AuthenticationContext;
   filter: GetEntitiesRequest["filter"];
   includeDrafts?: boolean;
-}): Promise<Entity<User> | undefined> => {
+}): Promise<HashEntity<User> | undefined> => {
   const systemAccountId = await getSystemAccountId();
   const [userEntity, ...unexpectedEntities] = await getGraphApiClient()
     .getEntities(systemAccountId, {
@@ -63,7 +65,7 @@ export const getUserByKratosIdentityId = async (params: {
   authentication: AuthenticationContext;
   kratosIdentityId: string;
   includeDrafts?: boolean;
-}): Promise<Entity<User> | undefined> =>
+}): Promise<HashEntity<User> | undefined> =>
   getUser({
     authentication: params.authentication,
     filter: {
@@ -84,7 +86,7 @@ export const completeUserRegistration = async (params: {
   kratosIdentityId: string;
   shortname: string;
   displayName: string;
-}): Promise<Entity<User>> => {
+}): Promise<HashEntity<User>> => {
   const authentication = { actorId: await getSystemAccountId() };
   const user = await getUserByKratosIdentityId({
     authentication,
@@ -98,9 +100,9 @@ export const completeUserRegistration = async (params: {
 
   const systemAccountId = await getSystemAccountId();
   const graphApi = getGraphApiClient();
-  const accountId = extractActorId(
-    user.metadata.recordId.entityId as ActorEntityId,
-  );
+  const accountId = extractOwnedByIdFromEntityId(
+    user.metadata.recordId.entityId,
+  ) as ActorId;
 
   await graphApi.modifyWebAuthorizationRelationships(systemAccountId, [
     {

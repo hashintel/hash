@@ -1,7 +1,7 @@
-import type { EntityId } from "@blockprotocol/type-system";
+import type { Subgraph } from "@blockprotocol/graph";
+import { getEntityRevisionsByEntityId } from "@blockprotocol/graph/stdlib";
+import type { Entity, EntityId, LinkEntity } from "@blockprotocol/type-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
-import type { Subgraph } from "@local/hash-subgraph";
-import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
 
 import type {
   DraftEntity,
@@ -21,13 +21,13 @@ import type { HasIndexedContent, Text } from "./system-types/shared.js";
 import type { TextToken } from "./types.js";
 
 export type BlockEntity = Omit<Block, "blockChildEntity"> & {
-  blockChildEntity: HashEntity;
+  blockChildEntity: Entity;
 };
 
 export type BlockCollectionContentItem = {
   linkEntity:
-    | HashLinkEntity<HasIndexedContent>
-    | HashLinkEntity<HasSpatiallyPositionedContent>;
+    | LinkEntity<HasIndexedContent>
+    | LinkEntity<HasSpatiallyPositionedContent>;
   rightEntity: BlockEntity;
 };
 
@@ -99,11 +99,11 @@ export const getFirstEntityRevision = (
 ) => {
   const entityRevisions = getEntityRevisionsByEntityId(subgraph, entityId);
 
-  if (entityRevisions.length === 0) {
+  if (!entityRevisions[0]) {
     throw new Error("Could not find entity revisions in subgraph");
   }
 
-  return entityRevisions.reduce<HashEntity>(
+  return entityRevisions.reduce<Entity>(
     (previousEarliestRevision, currentRevision) => {
       const currentCreatedAt = new Date(
         currentRevision.metadata.temporalVersioning.decisionTime.start.limit,
@@ -118,6 +118,6 @@ export const getFirstEntityRevision = (
         ? previousEarliestRevision
         : currentRevision;
     },
-    entityRevisions[0]!,
+    entityRevisions[0],
   );
 };

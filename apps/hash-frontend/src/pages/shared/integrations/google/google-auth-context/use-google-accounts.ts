@@ -1,4 +1,6 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -8,8 +10,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
@@ -61,9 +61,9 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
 
   return useMemo(() => {
     const subgraph = data
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<GoogleAccount>>(
-          data.getEntitySubgraph.subgraph,
-        )
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<
+          EntityRootType<HashEntity<GoogleAccount>>
+        >(data.getEntitySubgraph.subgraph)
       : undefined;
 
     const accounts = subgraph ? getRoots(subgraph) : [];

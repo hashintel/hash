@@ -1,4 +1,10 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import {
+  getEntityTypeById,
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   EntityId,
@@ -27,12 +33,6 @@ import {
   includesPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import type { FunctionComponent } from "react";
 import {
@@ -196,7 +196,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   const entitiesSubgraph = data
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
         data.getEntitySubgraph.subgraph,
       )
     : undefined;

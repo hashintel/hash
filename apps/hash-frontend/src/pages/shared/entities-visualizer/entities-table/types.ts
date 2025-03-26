@@ -8,12 +8,14 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  SerializedEntity,
+  SerializedSubgraph,
+} from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
-import type { SerializedSubgraph } from "@local/hash-subgraph";
 
 import type { MinimalActor } from "../../../../shared/use-actors";
 

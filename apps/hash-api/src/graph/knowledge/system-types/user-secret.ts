@@ -10,10 +10,8 @@ import type {
   VaultClient,
 } from "@local/hash-backend-utils/vault";
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
-import type {
-  EntityRelationAndSubject,
-  GraphApi,
-} from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -120,7 +118,7 @@ export const createUserSecret = async <
    * The user themselves can read the secret.
    * No other account requires access to it.
    */
-  const botEditorUserViewerOnly: EntityRelationAndSubject[] = [
+  const botEditorUserViewerOnly: EntityRelationAndSubjectBranded[] = [
     {
       relation: "editor",
       subject: {

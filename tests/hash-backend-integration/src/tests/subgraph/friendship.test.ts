@@ -21,9 +21,18 @@ import {
   getPropertyTypeSubgraph,
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import {
+  getIncomingLinksForEntity,
+  getLeftEntityForLinkEntity,
+  getOutgoingLinkAndTargetEntities,
+  getOutgoingLinksForEntity,
+  getRightEntityForLinkEntity,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type {
   ActorId,
   BaseUrl,
+  Entity,
   EntityTypeWithMetadata,
   Timestamp,
   VersionedUrl,
@@ -33,24 +42,14 @@ import type {
   GetEntitySubgraphRequest,
   GetEntityTypesParams,
   GetPropertyTypesParams,
+  QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { QueryTemporalAxesUnresolved } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import {
-  getEntityTypes as getEntityTypesFromSubgraph,
-  getIncomingLinksForEntity,
-  getLeftEntityForLinkEntity,
-  getOutgoingLinkAndTargetEntities,
-  getOutgoingLinksForEntity,
-  getRightEntityForLinkEntity,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../test-server";
@@ -131,7 +130,7 @@ const linkFilter: GetEntitySubgraphRequest["filter"] = {
       path: ["type", "inheritsFrom", "*", "versionedUrl"],
     },
     {
-      parameter: linkEntityTypeUrl,
+      parameter: blockProtocolEntityTypes.link.entityTypeId,
     },
   ],
 };
@@ -768,14 +767,14 @@ describe("non-zero, simple resolve depths", () => {
     const friendshipEntity = getRoots(subgraph)[0]!;
     expect(friendshipEntity).toStrictEqual(linkEntities[0]);
     expect(
-      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!)
+      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId])
         .length,
     ).toEqual(1);
     expect(
       Object.keys(
         subgraph.edges[friendshipEntity.metadata.recordId.entityId]![
           friendshipEntity.metadata.temporalVersioning.decisionTime.start.limit
-        ]!,
+        ],
       ).length,
     ).toEqual(2);
 
@@ -825,14 +824,14 @@ describe("non-zero, simple resolve depths", () => {
     const friendshipEntity = getRoots(subgraph)[0]!;
     expect(friendshipEntity).toStrictEqual(linkEntities[0]);
     expect(
-      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!)
+      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId])
         .length,
     ).toEqual(1);
     expect(
       Object.keys(
         subgraph.edges[friendshipEntity.metadata.recordId.entityId]![
           friendshipEntity.metadata.temporalVersioning.decisionTime.start.limit
-        ]!,
+        ],
       ).length,
     ).toEqual(2);
 

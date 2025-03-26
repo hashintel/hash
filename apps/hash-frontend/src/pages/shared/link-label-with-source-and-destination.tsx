@@ -1,7 +1,16 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import {
+  getEntityRevision,
+  getEntityTypeById,
+  getOutgoingLinkAndTargetEntities,
+  getPropertyTypeForEntity,
+} from "@blockprotocol/graph/stdlib";
 import type {
+  Entity,
   EntityId,
   EntityType,
   EntityTypeWithMetadata,
+  LinkEntity,
   PropertyValue,
 } from "@blockprotocol/type-system";
 import {
@@ -13,7 +22,6 @@ import {
   EyeSlashRegularIcon,
 } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { HashEntity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
@@ -25,13 +33,6 @@ import type {
 } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  getEntityRevision,
-  getEntityTypeById,
-  getOutgoingLinkAndTargetEntities,
-  getPropertyTypeForEntity,
-} from "@local/hash-subgraph/stdlib";
 import type { BoxProps } from "@mui/material";
 import {
   Box,
@@ -77,7 +78,7 @@ const LeftOrRightEntity: FunctionComponent<{
   closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions | null;
   endAdornment?: ReactNode;
-  entity?: HashEntity;
+  entity?: Entity;
   label?: ReactNode;
   onEntityClick?: (entityId: EntityId) => void;
   openInNew?: boolean;
@@ -278,7 +279,7 @@ const LeftOrRightEntity: FunctionComponent<{
     ).reduce<{
       [linkEntityTypeId: string]: {
         linkEntityType: EntityTypeWithMetadata;
-        rightEntities: HashEntity[];
+        rightEntities: Entity[];
       };
     }>(
       (

@@ -1,9 +1,9 @@
 import type {
   DataTypeWithMetadata,
+  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -16,7 +16,7 @@ export const isTypeArchived = (
     | DataTypeWithMetadata,
 ) => type.metadata.temporalVersioning.transactionTime.end.kind === "exclusive";
 
-export const isPageArchived = (pageEntity: HashEntity) => {
+export const isPageArchived = (pageEntity: Entity) => {
   if (!isEntityPageEntity(pageEntity)) {
     throw new Error("Not a page entity");
   }
@@ -30,7 +30,7 @@ export const isPageArchived = (pageEntity: HashEntity) => {
 
 export const isItemArchived = (
   item:
-    | HashEntity
+    | Entity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata,

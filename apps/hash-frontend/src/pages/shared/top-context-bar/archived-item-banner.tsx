@@ -1,12 +1,12 @@
 import { useMutation } from "@apollo/client";
 import type {
   DataTypeWithMetadata,
+  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box, Container, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
 import type { FunctionComponent } from "react";
@@ -29,7 +29,7 @@ import { isItemType } from "./util";
 
 type ArchivedItemBannerProps = {
   item:
-    | HashEntity
+    | Entity
     | EntityTypeWithMetadata
     | DataTypeWithMetadata
     | PropertyTypeWithMetadata;

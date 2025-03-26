@@ -1,4 +1,14 @@
 import { useQuery } from "@apollo/client";
+import type {
+  EntityRootType,
+  EntityTypeRootType,
+  Subgraph,
+} from "@blockprotocol/graph";
+import {
+  getEntityTypeById,
+  getRoots,
+  isEntityRootedSubgraph,
+} from "@blockprotocol/graph/stdlib";
 import type { EntityType } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
@@ -13,16 +23,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  EntityRootType,
-  EntityTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getRoots,
-  isEntityRootedSubgraph,
-} from "@local/hash-subgraph/stdlib";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
@@ -115,7 +115,7 @@ const chipStyles = { cursor: "pointer !important", ml: 1 };
 const EntityResult: FunctionComponent<{
   entity: HashEntity;
   onClick: () => void;
-  subgraph: Subgraph<EntityRootType>;
+  subgraph: Subgraph<EntityRootType<HashEntity>>;
 }> = ({ entity, onClick, subgraph }) => {
   const entityId = entity.metadata.recordId.entityId;
 
@@ -289,8 +289,11 @@ export const SearchBar: FunctionComponent = () => {
   });
 
   const deserializedEntitySubgraph = entityResultData
-    ? deserializeSubgraph(entityResultData.getEntitySubgraph.subgraph)
+    ? deserializeSubgraph<EntityRootType<HashEntity>>(
+        entityResultData.getEntitySubgraph.subgraph,
+      )
     : undefined;
+
   const entitySubgraph =
     deserializedEntitySubgraph &&
     isEntityRootedSubgraph(deserializedEntitySubgraph)

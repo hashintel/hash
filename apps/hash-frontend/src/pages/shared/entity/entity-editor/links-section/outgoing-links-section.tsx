@@ -1,8 +1,7 @@
+import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
+import type { Entity } from "@blockprotocol/type-system";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityProperties } from "@local/hash-graph-types/entity";
-import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 import { Paper, Stack } from "@mui/material";
 import { useCallback, useState } from "react";
 
@@ -27,7 +26,7 @@ import { useRows } from "./outgoing-links-section/use-rows";
 
 interface OutgoingLinksSectionPropsProps {
   isLinkEntity: boolean;
-  outgoingLinks: HashEntity<EntityProperties>[];
+  outgoingLinks: Entity[];
 }
 
 export const OutgoingLinksSection = ({

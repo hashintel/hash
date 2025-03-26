@@ -1,11 +1,14 @@
-import type { LinkData, OwnedById } from "@blockprotocol/type-system";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityProperties } from "@local/hash-graph-types/entity";
+import type { EntityRootType } from "@blockprotocol/graph";
+import type {
+  Entity,
+  LinkData,
+  OwnedById,
+  TypeIdsAndPropertiesForEntity,
+} from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";
 
@@ -46,12 +49,14 @@ export const getUser = async (requestContext: APIRequestContext) => {
     return !data
       ? undefined
       : getRoots(
-          deserializeSubgraph<EntityRootType<User>>(data.me.subgraph),
+          deserializeSubgraph<EntityRootType<HashEntity<User>>>(
+            data.me.subgraph,
+          ),
         )[0];
   });
 };
 
-export const createEntity = async <T extends EntityProperties>(
+export const createEntity = async <T extends TypeIdsAndPropertiesForEntity>(
   requestContext: APIRequestContext,
   params: {
     draft: boolean;

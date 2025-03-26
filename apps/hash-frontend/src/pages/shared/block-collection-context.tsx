@@ -1,5 +1,5 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 

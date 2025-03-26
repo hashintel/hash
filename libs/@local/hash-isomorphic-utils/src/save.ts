@@ -1,4 +1,9 @@
 import type { ApolloClient } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type {
   EntityId,
   OwnedById,
@@ -9,11 +14,6 @@ import {
   HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { generateNKeysBetween } from "fractional-indexing";
 import { isEqual } from "lodash-es";
 import type { Node } from "prosemirror-model";
@@ -475,7 +475,7 @@ const mapEntityToGqlBlock = (
     entity.properties["https://hash.ai/@h/types/property-type/component-id/"];
 
   return {
-    blockChildEntity: blockChildEntity.toJSON(),
+    blockChildEntity: new HashEntity(blockChildEntity).toJSON(),
     componentId,
     metadata: entity.metadata,
     properties: entity.properties,
@@ -510,9 +510,9 @@ export const save = async ({
       fetchPolicy: "network-only",
     })
     .then(({ data }) => {
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.getEntity.subgraph,
-      );
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+        EntityRootType<HashEntity>
+      >(data.getEntity.subgraph);
 
       const [blockCollectionEntity] = getRoots(subgraph);
 

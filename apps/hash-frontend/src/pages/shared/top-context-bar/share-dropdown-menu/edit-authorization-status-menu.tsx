@@ -1,6 +1,6 @@
 import type { MutationHookOptions } from "@apollo/client";
 import { useMutation } from "@apollo/client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@blockprotocol/type-system";
 import {
   Box,
   buttonClasses,
@@ -67,7 +67,7 @@ export const entityAuthorizationStatusIcons = {
 } as const;
 
 export const EditAuthorizationStatusMenu: FunctionComponent<{
-  entity: HashEntity;
+  entity: Entity;
   authorizationStatus: EntityAuthorizationStatus;
   isSharedWithOthers?: boolean;
 }> = ({ entity, authorizationStatus, isSharedWithOthers }) => {

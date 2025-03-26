@@ -1,4 +1,8 @@
-import type { EntityRevisionId } from "@blockprotocol/graph";
+import type {
+  EntityRevisionId,
+  EntityRootType,
+  Subgraph,
+} from "@blockprotocol/graph";
 import type {
   BaseUrl,
   EntityMetadata,
@@ -9,7 +13,6 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 
 export const createDraftEntitySubgraph = ({
   currentSubgraph,
@@ -17,7 +20,7 @@ export const createDraftEntitySubgraph = ({
   entityTypeIds,
   omitProperties,
 }: {
-  currentSubgraph: Subgraph<EntityRootType> | undefined;
+  currentSubgraph: Subgraph<EntityRootType<HashEntity>> | undefined;
   entity: HashEntity;
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   omitProperties: BaseUrl[];

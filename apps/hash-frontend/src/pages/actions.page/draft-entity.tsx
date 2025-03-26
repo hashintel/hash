@@ -1,10 +1,10 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
-  type HashEntity,
   getClosedMultiEntityTypeFromMap,
+  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Checkbox, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";

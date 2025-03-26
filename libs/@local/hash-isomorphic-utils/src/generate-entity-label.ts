@@ -1,6 +1,8 @@
 import type { Subgraph } from "@blockprotocol/graph";
-import type { getEntityRevision } from "@blockprotocol/graph/stdlib";
-import { getBreadthFirstEntityTypesAndParents } from "@blockprotocol/graph/stdlib";
+import {
+  getBreadthFirstEntityTypesAndParents,
+  getEntityRevision,
+} from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   ClosedMultiEntityType,

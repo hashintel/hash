@@ -1,6 +1,4 @@
 import type {
-  BaseUrl,
-  EntityId,
   OntologyTypeVersion,
   Timestamp,
 } from "@blockprotocol/type-system";
@@ -12,19 +10,17 @@ export * from "./edges/kind.js";
 export * from "./edges/outward-edge.js";
 export * from "./edges/variants.js";
 
-export type OntologyRootedEdges = Record<
-  BaseUrl,
-  {
+export type OntologyRootedEdges = {
+  [baseUrl: string]: {
     [revisionId: OntologyTypeVersion]: OntologyOutwardEdge[];
-  }
->;
+  };
+};
 
-export type KnowledgeGraphRootedEdges = Record<
-  EntityId,
-  {
+export type KnowledgeGraphRootedEdges = {
+  [entityId: string]: {
     [revisionId: Timestamp]: KnowledgeGraphOutwardEdge[];
-  }
->;
+  };
+};
 
 // We technically want to intersect (`&`) the types here, but as their property keys overlap it confuses things and we
 // end up with unsatisfiable values like `EntityVertex & DataTypeVertex`. While the union (`|`) is semantically

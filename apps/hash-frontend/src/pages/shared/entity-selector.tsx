@@ -1,4 +1,6 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId, EntityType } from "@blockprotocol/type-system";
 import {
   entityIdFromComponents,
@@ -24,8 +26,6 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo, useState } from "react";
 
 import type {
@@ -92,7 +92,7 @@ export const EntitySelector = <Multiple extends boolean>({
   });
 
   const entitiesSubgraph = entitiesData
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
         entitiesData.getEntitySubgraph.subgraph,
       )
     : undefined;

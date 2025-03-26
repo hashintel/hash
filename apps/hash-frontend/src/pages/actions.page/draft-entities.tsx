@@ -1,12 +1,12 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import { Skeleton } from "@hashintel/design-system";
 import {
-  type HashEntity,
   getClosedMultiEntityTypeFromMap,
+  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import {

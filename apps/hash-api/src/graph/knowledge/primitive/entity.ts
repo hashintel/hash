@@ -37,6 +37,7 @@ import type {
 } from "@local/hash-graph-client";
 import {
   type CreateEntityParameters,
+  type DiffEntityInput,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { HashLinkEntity } from "@local/hash-graph-sdk/entity";

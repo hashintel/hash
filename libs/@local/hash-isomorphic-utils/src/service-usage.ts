@@ -1,10 +1,10 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
 import type {
   ClosedTemporalBound,
   TemporalInterval,
 } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 
 import type { FlowUsageRecordCustomMetadata } from "./flows/types.js";
 import { systemLinkEntityTypes } from "./ontology-type-ids.js";

@@ -1,4 +1,6 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -10,8 +12,6 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   Box,
   InputAdornment,
@@ -112,7 +112,7 @@ export const LoadEntityMenuContent: FunctionComponent<
   const subgraph = useMemo(
     () =>
       queryResult
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
             queryResult.queryEntities.subgraph,
           )
         : undefined,

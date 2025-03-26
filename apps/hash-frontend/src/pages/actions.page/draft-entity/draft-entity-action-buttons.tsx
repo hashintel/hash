@@ -1,7 +1,7 @@
-import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { ClosedMultiEntityType, Entity } from "@blockprotocol/type-system";
 import { CloseIcon } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, buttonClasses } from "@mui/material";
 import type { FunctionComponent } from "react";
 
@@ -12,8 +12,8 @@ import { useDraftEntities } from "../draft-entities-context";
 
 export const DraftEntityActionButtons: FunctionComponent<{
   closedMultiEntityType: ClosedMultiEntityType;
-  entity: HashEntity;
-  subgraph: Subgraph<EntityRootType>;
+  entity: Entity;
+  subgraph: Subgraph<EntityRootType<HashEntity>>;
 }> = ({ closedMultiEntityType, entity, subgraph }) => {
   const { refetch } = useDraftEntities();
 

@@ -1,4 +1,15 @@
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type { Subgraph } from "@blockprotocol/graph";
+import {
+  getEntityTypeById,
+  getOutgoingLinksForEntity,
+  getPropertyTypeById,
+  getPropertyTypeForEntity,
+} from "@blockprotocol/graph/stdlib";
+import type {
+  Entity,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import {
   extractDraftIdFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -8,14 +19,6 @@ import {
   typedKeys,
   typedValues,
 } from "@local/advanced-types/typed-entries";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { Subgraph } from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getOutgoingLinksForEntity,
-  getPropertyTypeById,
-  getPropertyTypeForEntity,
-} from "@local/hash-subgraph/stdlib";
 
 /**
  * A simplified object representing an entity type, which will be converted to plain text for the response.
@@ -119,7 +122,7 @@ export type SimpleEntityWithoutHref = BaseSimpleEntityFields & {
 
 const createBaseSimpleEntityFields = (
   subgraph: Subgraph,
-  entity: HashEntity,
+  entity: Entity,
   typeTitles: string[],
 ): BaseSimpleEntityFields => {
   const properties: SimpleEntityWithoutHref["properties"] = {};

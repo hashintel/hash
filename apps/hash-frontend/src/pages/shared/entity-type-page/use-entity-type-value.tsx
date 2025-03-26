@@ -1,4 +1,8 @@
 import { useMutation } from "@apollo/client";
+import {
+  getEntityTypesByBaseUrl,
+  getPropertyTypesForEntityType,
+} from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   EntityType,
@@ -10,10 +14,6 @@ import type {
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import type { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
-import {
-  getEntityTypesByBaseUrl,
-  getPropertyTypesForEntityType,
-} from "@local/hash-subgraph/stdlib";
 import { useRouter } from "next/router";
 import {
   useCallback,

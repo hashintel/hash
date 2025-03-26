@@ -1,4 +1,13 @@
 import { useQuery } from "@apollo/client";
+import type {
+  EntityRootType,
+  EntityVertex,
+  LinkEntityAndRightEntity,
+} from "@blockprotocol/graph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -28,15 +37,6 @@ import type {
 import type { GraphChangeNotification as GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { MentionNotification as MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { User as UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type {
-  EntityRootType,
-  EntityVertex,
-  LinkEntityAndRightEntity,
-} from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useRef } from "react";
 
@@ -168,7 +168,7 @@ export const useNotificationsWithLinksContextValue =
       () =>
         notificationsWithOutgoingLinksData
           ? mapGqlSubgraphFieldsFragmentToSubgraph<
-              EntityRootType<NotificationProperties>
+              EntityRootType<HashEntity<NotificationProperties>>
             >(notificationsWithOutgoingLinksData.getEntitySubgraph.subgraph)
           : undefined,
       [notificationsWithOutgoingLinksData],
@@ -412,7 +412,7 @@ export const useNotificationsWithLinksContextValue =
                * false positive if the live entity and any of its drafts have editions at the exact same timestamp.
                */
               occurredInEntity = editions.find(
-                (vertex): vertex is EntityVertex =>
+                (vertex): vertex is EntityVertex<HashEntity> =>
                   vertex.kind === "entity" &&
                   vertex.inner.metadata.temporalVersioning.decisionTime.start
                     .limit === occurredInEntityEditionTimestamp,
@@ -431,7 +431,8 @@ export const useNotificationsWithLinksContextValue =
                * notification, but this might be a lot of data.
                */
               const anyAvailableEdition = editions.find(
-                (vertex): vertex is EntityVertex => vertex.kind === "entity",
+                (vertex): vertex is EntityVertex<HashEntity> =>
+                  vertex.kind === "entity",
               )?.inner;
 
               if (anyAvailableEdition) {

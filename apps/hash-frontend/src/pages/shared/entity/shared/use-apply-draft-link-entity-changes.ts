@@ -1,9 +1,9 @@
 import { useMutation } from "@apollo/client";
 import {
+  type Entity,
   extractDraftIdFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import type {
@@ -25,7 +25,7 @@ export const useApplyDraftLinkEntityChanges = () => {
   >(createEntityMutation);
 
   const applyDraftLinkEntityChanges = async (
-    leftEntity: HashEntity,
+    leftEntity: Entity,
     draftLinksToCreate: DraftLinksToCreate,
     draftLinksToArchive: DraftLinksToArchive,
   ) => {

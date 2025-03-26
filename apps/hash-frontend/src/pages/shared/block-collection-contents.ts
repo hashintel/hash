@@ -1,5 +1,14 @@
+import type {
+  EntityRootType,
+  GraphResolveDepths,
+  Subgraph,
+} from "@blockprotocol/graph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
-import type { HashEntity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import {
@@ -17,15 +26,6 @@ import type {
   HasIndexedContent,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type {
-  EntityRootType,
-  GraphResolveDepths,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 
 import type { GetEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
 
@@ -106,7 +106,7 @@ export const isBlockCollectionContentsEmpty = (params: {
 };
 
 export const getBlockCollectionContents = (params: {
-  blockCollectionSubgraph: Subgraph<EntityRootType>;
+  blockCollectionSubgraph: Subgraph<EntityRootType<HashEntity>>;
   blockCollectionEntityId: EntityId;
 }): BlockCollectionContentItem[] => {
   const { blockCollectionEntityId, blockCollectionSubgraph } = params;
@@ -119,8 +119,8 @@ export const getBlockCollectionContents = (params: {
   const outgoingContentLinks = getOutgoingLinkAndTargetEntities<
     {
       linkEntity:
-        | LinkEntity<HasIndexedContent>[]
-        | LinkEntity<HasSpatiallyPositionedContent>[];
+        | HashLinkEntity<HasIndexedContent>[]
+        | HashLinkEntity<HasSpatiallyPositionedContent>[];
       rightEntity: HashEntity<Block>[];
     }[]
   >(blockCollectionSubgraph, blockCollectionEntityId)

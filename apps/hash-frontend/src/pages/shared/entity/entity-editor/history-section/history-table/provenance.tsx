@@ -1,3 +1,4 @@
+import type { Subgraph } from "@blockprotocol/graph";
 import type {
   ActorId,
   EntityId,
@@ -12,7 +13,6 @@ import {
   WandMagicSparklesIcon,
 } from "@hashintel/design-system";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import type { Subgraph } from "@local/hash-subgraph";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";

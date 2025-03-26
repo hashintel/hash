@@ -20,8 +20,8 @@ import {
   useEntityTypeForm,
 } from "@hashintel/type-editor";
 import type { OntologyElementMetadata } from "@local/hash-graph-types/ontology";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -366,7 +366,10 @@ export const EntityType = ({
     const res = await updateEntityTypes(
       {
         ...rootType,
-        allOf: [{ $ref: linkEntityTypeUrl }, ...(rootType.allOf ?? [])],
+        allOf: [
+          { $ref: blockProtocolEntityTypes.link.entityTypeId },
+          ...(rootType.allOf ?? []),
+        ],
       },
       dependents,
     );

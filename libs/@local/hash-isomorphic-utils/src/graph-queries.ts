@@ -16,16 +16,18 @@ import {
 } from "@blockprotocol/type-system";
 import type {
   DataTypeQueryToken,
-  DataTypeRelationAndSubject,
   EntityQueryToken,
-  EntityRelationAndSubject,
   EntityTypeQueryToken,
-  EntityTypeRelationAndSubject,
   Filter,
   PropertyTypeQueryToken,
-  PropertyTypeRelationAndSubject,
   Selector,
 } from "@local/hash-graph-client";
+import type {
+  DataTypeRelationAndSubjectBranded,
+  EntityRelationAndSubjectBranded,
+  EntityTypeRelationAndSubjectBranded,
+  PropertyTypeRelationAndSubjectBranded,
+} from "@local/hash-graph-sdk/branded-authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
@@ -292,7 +294,7 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
 
 export const createDefaultAuthorizationRelationships = (params: {
   actorId: ActorId;
-}): EntityRelationAndSubject[] => [
+}): EntityRelationAndSubjectBranded[] => [
   {
     relation: "administrator",
     subject: {
@@ -327,7 +329,7 @@ export const createOrgMembershipAuthorizationRelationships = ({
   memberAccountId,
 }: {
   memberAccountId: ActorId;
-}): EntityRelationAndSubject[] => [
+}): EntityRelationAndSubjectBranded[] => [
   {
     relation: "setting",
     subject: {
@@ -350,7 +352,7 @@ export const createOrgMembershipAuthorizationRelationships = ({
   },
 ];
 
-export const defaultPropertyTypeAuthorizationRelationships: PropertyTypeRelationAndSubject[] =
+export const defaultPropertyTypeAuthorizationRelationships: PropertyTypeRelationAndSubjectBranded[] =
   [
     {
       relation: "setting",
@@ -367,7 +369,7 @@ export const defaultPropertyTypeAuthorizationRelationships: PropertyTypeRelation
     },
   ];
 
-export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndSubject[] =
+export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndSubjectBranded[] =
   [
     {
       relation: "setting",
@@ -390,7 +392,7 @@ export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndS
     },
   ];
 
-export const defaultDataTypeAuthorizationRelationships: DataTypeRelationAndSubject[] =
+export const defaultDataTypeAuthorizationRelationships: DataTypeRelationAndSubjectBranded[] =
   [
     {
       relation: "setting",

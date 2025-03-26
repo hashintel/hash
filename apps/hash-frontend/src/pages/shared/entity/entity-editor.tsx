@@ -1,3 +1,5 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
@@ -9,8 +11,6 @@ import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import type { RefObject } from "react";
 import { useMemo } from "react";

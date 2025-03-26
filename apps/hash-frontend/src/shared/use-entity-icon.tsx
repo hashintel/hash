@@ -1,9 +1,9 @@
 import type {
+  Entity,
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -32,7 +32,7 @@ export const entityTypeIcons: Record<VersionedUrl, ReactElement> = {
 };
 
 export const useEntityIcon = (params: {
-  entity?: HashEntity;
+  entity?: Entity;
   entityTypes?: EntityTypeWithMetadata[];
   pageIcon?: JSX.Element;
 }) => {

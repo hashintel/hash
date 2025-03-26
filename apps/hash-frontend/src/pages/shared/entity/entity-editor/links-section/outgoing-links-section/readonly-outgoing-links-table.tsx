@@ -1,11 +1,12 @@
+import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
 import type {
+  Entity,
   EntityId,
   PartialEntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
@@ -16,7 +17,6 @@ import {
   generateLinkEntityLabel,
 } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { LinkEntityAndRightEntity } from "@local/hash-subgraph";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
 import type { ReactElement } from "react";
 import {
@@ -103,14 +103,14 @@ const createColumns = (customColumns: CustomEntityLinksColumn[]) => {
 };
 
 type OutgoingLinkRow = {
-  targetEntity: HashEntity;
+  targetEntity: Entity;
   targetEntityLabel: string;
   targetEntityProperties: { [propertyTitle: string]: string };
   targetEntityTypes: Pick<
     PartialEntityType,
     "icon" | "$id" | "inverse" | "title"
   >[];
-  linkEntity: HashEntity;
+  linkEntity: Entity;
   linkEntityLabel: string;
   linkEntityProperties: { [propertyTitle: string]: string };
   linkEntityTypes: Pick<

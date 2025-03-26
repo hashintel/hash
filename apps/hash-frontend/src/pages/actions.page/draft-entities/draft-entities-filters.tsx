@@ -1,3 +1,4 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { ActorId, BaseUrl, OwnedById } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
@@ -5,7 +6,6 @@ import {
 } from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Fade, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
 import type {

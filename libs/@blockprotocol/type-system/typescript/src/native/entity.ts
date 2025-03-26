@@ -1,7 +1,7 @@
 import type {
   DraftId,
   EntityId,
-  EntityMetadata,
+  EntityMetadata as RustEntityMetadata,
   EntityUuid,
   LinkData,
   OwnedById,
@@ -23,6 +23,19 @@ export type TypeIdsAndPropertiesForEntity = {
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   properties: PropertyObject;
   propertiesWithMetadata: PropertyObjectWithMetadata;
+};
+
+/**
+ * This redefinition allows for (1) a generic with default, (2) 'at least one' entityTypeId,
+ * both of which the Rust->TS codegen does not support.
+ */
+export type EntityMetadata<
+  TypeIds extends [VersionedUrl, ...VersionedUrl[]] = [
+    VersionedUrl,
+    ...VersionedUrl[],
+  ],
+> = Omit<RustEntityMetadata, "entityTypeIds"> & {
+  entityTypeIds: TypeIds;
 };
 
 export interface Entity<
@@ -47,6 +60,13 @@ export interface Entity<
   }[];
 
   linkData: LinkData | undefined;
+}
+
+export interface LinkEntity<
+  TypeIdsAndProperties extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> extends Entity<TypeIdsAndProperties> {
+  linkData: LinkData;
 }
 
 export const ENTITY_ID_DELIMITER = "~";

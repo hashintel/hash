@@ -1,23 +1,23 @@
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import type { Entity } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { SyncLinearDataWithProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { useEffect, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
 export type LinearIntegration = {
-  entity: HashEntity;
+  entity: Entity;
   syncedWithWorkspaces: {
-    workspaceEntity: HashEntity;
+    workspaceEntity: Entity;
     linearTeamIds: string[];
   }[];
 };

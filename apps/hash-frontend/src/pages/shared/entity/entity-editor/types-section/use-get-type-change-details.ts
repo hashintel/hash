@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  componentsFromVersionedUrl,
   extractBaseUrl,
   extractVersion,
   mustHaveAtLeastOne,
@@ -9,7 +10,6 @@ import {
   getClosedMultiEntityTypeFromMap,
   getPropertyTypeForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { useCallback } from "react";
 
 import { useGetClosedMultiEntityTypes } from "../../../use-get-closed-multi-entity-type";

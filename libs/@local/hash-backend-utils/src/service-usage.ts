@@ -1,3 +1,5 @@
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorGroupId,
   ActorId,
@@ -9,6 +11,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
@@ -31,11 +34,6 @@ import type {
   RecordsUsageOf,
   UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type {
-  EntityRelationAndSubject,
-  EntityRootType,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { backOff } from "exponential-backoff";
 
 import { getHashInstanceAdminAccountGroupId } from "./hash-instance.js";
@@ -99,10 +97,9 @@ export const getWebServiceUsage = async (
           includeDrafts: false,
         })
         .then(({ data }) => {
-          return mapGraphApiSubgraphToSubgraph<EntityRootType<UsageRecord>>(
-            data.subgraph,
-            userAccountId,
-          );
+          return mapGraphApiSubgraphToSubgraph<
+            EntityRootType<HashEntity<UsageRecord>>
+          >(data.subgraph, userAccountId);
         }),
     {
       numOfAttempts: 3,
@@ -256,7 +253,7 @@ export const createUsageRecord = async (
   }
   const serviceFeatureEntity = serviceFeatureEntities[0]!;
 
-  const entityRelationships: EntityRelationAndSubject[] = [
+  const entityRelationships: EntityRelationAndSubjectBranded[] = [
     {
       relation: "administrator",
       subject: {

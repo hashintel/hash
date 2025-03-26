@@ -34,13 +34,13 @@ import {
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import type { UpdatePropertyType } from "@local/hash-graph-client";
 import type {
-  DataTypeRelationAndSubject,
-  EntityTypeInstantiatorSubject,
-  EntityTypeRelationAndSubject,
-  PropertyTypeRelationAndSubject,
-  UpdatePropertyType,
-} from "@local/hash-graph-client";
+  DataTypeRelationAndSubjectBranded,
+  EntityTypeInstantiatorSubjectBranded,
+  EntityTypeRelationAndSubjectBranded,
+  PropertyTypeRelationAndSubjectBranded,
+} from "@local/hash-graph-sdk/branded-authorization";
 import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
@@ -254,7 +254,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
   const { accountGroupId, machineActorId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
 
-  const relationships: DataTypeRelationAndSubject[] = [
+  const relationships: DataTypeRelationAndSubjectBranded[] = [
     {
       relation: "viewer",
       subject: {
@@ -346,7 +346,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   const { accountGroupId, machineActorId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
 
-  const relationships: PropertyTypeRelationAndSubject[] = [
+  const relationships: PropertyTypeRelationAndSubjectBranded[] = [
     {
       relation: "editor",
       subject: {
@@ -525,7 +525,7 @@ export const generateSystemEntityTypeSchema = (
 export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   {
     entityTypeDefinition: Omit<EntityTypeDefinition, "entityTypeId">;
-    instantiator: EntityTypeInstantiatorSubject | null;
+    instantiator: EntityTypeInstantiatorSubjectBranded | null;
   } & BaseCreateTypeIfNotExistsParameters,
   Promise<EntityTypeWithMetadata>
 > = async (
@@ -567,7 +567,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   const { accountGroupId, machineActorId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
 
-  const relationships: EntityTypeRelationAndSubject[] = [
+  const relationships: EntityTypeRelationAndSubjectBranded[] = [
     {
       relation: "editor",
       subject: {
@@ -970,7 +970,7 @@ export const getEntitiesByType: ImpureGraphFunction<
     temporalAxes: currentTimeInstantTemporalAxes,
   });
 
-export const anyUserInstantiator: EntityTypeInstantiatorSubject = {
+export const anyUserInstantiator: EntityTypeInstantiatorSubjectBranded = {
   kind: "public",
 };
 

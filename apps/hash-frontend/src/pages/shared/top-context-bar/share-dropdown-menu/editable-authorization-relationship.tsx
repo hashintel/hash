@@ -1,7 +1,7 @@
 import type { MutationHookOptions } from "@apollo/client";
 import { useMutation } from "@apollo/client";
+import type { Entity } from "@blockprotocol/type-system";
 import { Avatar } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   Box,
   buttonClasses,
@@ -71,7 +71,7 @@ const relationLabels: Record<EntityAuthorizationRelation, string> = {
 };
 
 export const EditableAuthorizationRelationships: FunctionComponent<{
-  objectEntity: HashEntity;
+  objectEntity: Entity;
   account?: User | Org;
   relationships: AuthorizationRelationship[];
 }> = ({ objectEntity, account, relationships }) => {

@@ -1,5 +1,5 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Collapse, Divider } from "@mui/material";
 import { format } from "date-fns";
 import { forwardRef, Fragment, useMemo, useState } from "react";
@@ -26,7 +26,7 @@ export const TodaySection = forwardRef<
   HTMLDivElement,
   {
     quickNoteEntities?: HashEntity[];
-    quickNotesSubgraph?: Subgraph<EntityRootType> | null;
+    quickNotesSubgraph?: Subgraph<EntityRootType<HashEntity>> | null;
     refetchQuickNotes: () => Promise<void>;
     navigateDown?: () => void;
   }

@@ -1,3 +1,8 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type {
   BaseUrl,
@@ -5,14 +10,9 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system-rs/pkg/type-system";
 import {
-  type HashEntity,
   getClosedMultiEntityTypeFromMap,
+  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  getOutgoingLinksForEntity,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback } from "react";
 
@@ -27,9 +27,9 @@ export const useHandleTypeChanges = ({
   setDraftEntityTypesDetails,
   setDraftLinksToArchive,
 }: {
-  entitySubgraph: Subgraph<EntityRootType> | undefined;
+  entitySubgraph: Subgraph<EntityRootType<HashEntity>> | undefined;
   setDraftEntitySubgraph: Dispatch<
-    SetStateAction<Subgraph<EntityRootType> | undefined>
+    SetStateAction<Subgraph<EntityRootType<HashEntity>> | undefined>
   >;
   setDraftEntityTypesDetails: (
     args: Pick<

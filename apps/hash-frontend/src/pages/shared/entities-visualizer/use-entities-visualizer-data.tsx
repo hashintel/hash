@@ -1,4 +1,5 @@
 import type { ApolloQueryResult } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   OwnedById,
@@ -10,7 +11,6 @@ import type {
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ConversionRequest } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import type { GetEntitySubgraphQuery } from "../../../graphql/api-types.gen";
@@ -40,7 +40,7 @@ export type EntitiesVisualizerData = Partial<
    */
   loading: boolean;
   refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
-  subgraph?: Subgraph<EntityRootType>;
+  subgraph?: Subgraph<EntityRootType<HashEntity>>;
 };
 
 export const useEntitiesVisualizerData = (params: {

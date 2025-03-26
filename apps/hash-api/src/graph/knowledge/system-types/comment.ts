@@ -1,6 +1,6 @@
 import type { Entity, EntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { EntityRelationAndSubject } from "@local/hash-graph-client/dist/api.d";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
 import type {
   CreateEntityParameters,
   HashEntity,
@@ -154,7 +154,7 @@ export const createComment: ImpureGraphFunction<
   const { ownedById, textualContent, parentEntityId, author } = params;
 
   // the author has full access, regardless of which web the comment belongs to (ownedById)
-  const relationships: EntityRelationAndSubject[] = [
+  const relationships: EntityRelationAndSubjectBranded[] = [
     {
       relation: "administrator",
       subject: {

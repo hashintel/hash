@@ -49,7 +49,7 @@ export type GetEntityData = {
 export type GetEntityMessageCallback = MessageCallback<
   GetEntityData,
   null,
-  MessageReturn<Subgraph<EntityRootType>>,
+  MessageReturn<Subgraph<EntityRootType<HashEntity>>>,
   ReadOrModifyResourceError
 >;
 
@@ -90,7 +90,7 @@ export type QueryEntitiesMessageCallback = MessageCallback<
   QueryEntitiesRequest,
   null,
   MessageReturn<{
-    results: Subgraph<EntityRootType>;
+    results: Subgraph<EntityRootType<HashEntity>>;
     operation: QueryOperationInput;
   }>,
   ReadOrModifyResourceError

@@ -6,6 +6,7 @@ import type {
   Timestamp,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
@@ -15,7 +16,6 @@ import type {
   GraphChangeNotification,
   OccurredInEntity,
 } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
-import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 import { getWebMachineActorId } from "./machine-actors.js";
 
@@ -24,8 +24,8 @@ export const createNotificationEntityPermissions = ({
 }: {
   machineActorId: ActorId;
 }): {
-  linkEntityRelationships: EntityRelationAndSubject[];
-  notificationEntityRelationships: EntityRelationAndSubject[];
+  linkEntityRelationships: EntityRelationAndSubjectBranded[];
+  notificationEntityRelationships: EntityRelationAndSubjectBranded[];
 } => ({
   linkEntityRelationships: [
     {

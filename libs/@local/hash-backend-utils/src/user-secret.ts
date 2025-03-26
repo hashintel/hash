@@ -1,3 +1,5 @@
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getEntityRevision, getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorId, EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -14,8 +16,6 @@ import {
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 
 export const getSecretEntitiesForIntegration = async ({
   authentication,
