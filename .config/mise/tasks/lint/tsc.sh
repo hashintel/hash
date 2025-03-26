@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 #MISE description="Lint TypeScript errors"
 
 export CARGO_TERM_PROGRESS_WHEN=never
