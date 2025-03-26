@@ -6,16 +6,18 @@
     "summaryHtml": "Demand planning, scenario forecasting, and decision-making data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/anaplan",
     "availability": "Considered",
-    "category": ["Enterprise", "Supply Chain"]
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain"]
   },
   {
     "name": "Blue Yonder Platform",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_blue-yonder.svg",
     "productUrl": "https://blueyonder.com/solutions/blue-yonder-platform",
-    "summaryHtml": "End-to-end supply chain, warehouse, returns, transportation, order management and other data",
+    "summaryHtml": "End-to-end supply chain, warehouse, returns, transportation, order management and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/blue-yonder",
     "availability": "Considered",
-    "category": ["Enterprise", "Supply Chain"]
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain"]
   },
   {
     "name": "Celonis",
@@ -31,7 +33,7 @@
     "name": "OMP",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_omp.svg",
     "productUrl": "https://omp.com/solution/technology",
-    "summaryHtml": "Network design, S&OP, demand management, operational planning, scheduling, and more and other data",
+    "summaryHtml": "Network design, S&OP, demand management, operational planning, scheduling, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/omp",
     "availability": "Considered",
     "audience": ["Enterprise"],
@@ -153,7 +155,7 @@
     "productUrl": "https://workspace.google.com/products/drive/",
     "summaryHtml": "Shared files and folders, including Google Workspace (G Suite) docs",
     "integrationUrl": "https://app.hash.ai/settings/integrations/google-drive",
-    "availability": "Considered",
+    "availability": "Available",
     "audience": ["Enterprise", "Individual", "Startup"],
     "category": ["Docs & Files"]
   },
@@ -265,7 +267,7 @@
     "integrationUrl": "https://app.hash.ai/settings/integrations/sentry",
     "availability": "Considered",
     "audience": ["Enterprise", "Startup"],
-    "category": ["Developer"]
+    "category": ["Development"]
   },
   {
     "name": "Zoom",
