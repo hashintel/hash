@@ -30,6 +30,12 @@
 //! Each expression node has a unique identifier (`id`) that can be used to track the node through
 //! various processing stages. Additionally, nodes carry a span identifier (`span`) that points to
 //! the location of the expression in the source code, facilitating error reporting and debugging.
+//!
+//! # Frontends
+//!
+//! While the AST itself is frontend-independent, the examples shown in this documentation use
+//! `JExpr`, which is a JSON-based syntax for HashQL. Other frontends may be added in the future,
+//! all mapping to this same core AST structure.
 pub mod call;
 pub mod closure;
 pub mod dict;
@@ -54,68 +60,122 @@ pub use self::{
 use super::{id::NodeId, path::Path};
 
 /// Represents the different kinds of expressions in HashQL.
+///
+/// This enum defines all the various expression types that can appear in a HashQL program.
+/// Each variant corresponds to a specific language construct and contains the detailed
+/// representation of that construct in the AST.
+///
+/// The examples below demonstrate the `JExpr` syntax (JSON-based frontend), as well as a fictional
+/// "documentation syntax" (used for readability) for each expression kind. Remember that these are
+/// just frontend representations - the AST itself is independent of any particular syntax.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExprKind<'heap> {
     /// A function call expression.
     ///
     /// Represents an expression that invokes a function with arguments.
+    /// Arguments can be positional or labeled (keyword arguments).
     ///
     /// # Examples
     ///
+    /// ## J-Expr
+    ///
     /// ```json
-    /// ["function", ...<args>, ...<kwargs>]
+    /// ["function", "arg1", "arg2", {":arg3": "value3"}, {":arg4": "value4"}]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// function(arg1, arg2, arg3=value3, arg4=value4)
     /// ```
     Call(CallExpr<'heap>),
 
     /// A struct instantiation expression.
     ///
     /// Creates a new anonymous struct instance with the specified fields.
+    /// In `HashQL`, structs are heterogeneous collections of named fields with associated values.
     ///
     /// # Examples
     ///
+    /// ## J-Expr
+    ///
     /// ```json
     /// {"#struct": {"field1": "value1", "field2": "value2"}}
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// (field1: value1, field2: value2)
     /// ```
     Struct(StructExpr<'heap>),
 
     /// A dictionary expression.
     ///
-    /// Creates a dictionary with key-value pairs.
+    /// Creates a dictionary (map) with key-value pairs. Unlike structs,
+    /// dictionaries have dynamically computed keys and support lookups,
+    /// but their values must be of a homogeneous type.
     ///
     /// # Examples
     ///
+    /// ## J-Expr
+    ///
     /// ```json
     /// {"#dict": {"key1": "value1", "key2": "value2"}}
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// {"key1": value1, "key2": value2}
     /// ```
     Dict(DictExpr<'heap>),
 
     /// A tuple expression.
     ///
-    /// Creates a tuple with multiple values.
+    /// Creates a tuple with multiple values. Tuples in `HashQL` are
+    /// fixed-size heterogeneous collections accessed by position.
     ///
     /// # Examples
     ///
+    /// ## J-Expr
+    ///
     /// ```json
     /// {"#tuple": ["value1", "value2", "value3"]}
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// (value1, value2, value3)
     /// ```
     Tuple(TupleExpr<'heap>),
 
     /// A list expression.
     ///
-    /// Creates a list containing multiple elements.
+    /// Creates a list containing multiple elements. Lists in `HashQL` are
+    /// homogeneous collections of values that can be accessed by index.
     ///
     /// # Examples
     ///
     /// ```json
     /// {"#list": ["value1", "value2", "value3"]}
     /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// [value1, value2, value3]
+    /// ```
     List(ListExpr<'heap>),
 
     /// A literal expression.
     ///
-    /// Represents a constant value like a number, string, or boolean.
+    /// Represents a constant value like a number, string, boolean, or null.
     ///
     /// # Examples
+    ///
+    /// ## J-Expr
     ///
     /// ```json
     /// {"#literal": 123}
@@ -123,65 +183,137 @@ pub enum ExprKind<'heap> {
     /// {"#literal": true}
     /// {"#literal": null}
     /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// 123
+    /// "hello"
+    /// true
+    /// null
+    /// ```
     Literal(LiteralExpr<'heap>),
 
     /// A variable reference expression.
     ///
-    /// References a variable or qualified path in the scope.
+    /// References a variable or qualified path.
     ///
     /// # Examples
     ///
+    /// ## J-Expr
+    ///
     /// ```json
+    /// "variable_name"
     /// "graph::user::name"
-    /// "graph::user::<A, B>"
+    /// "graph::user<A, B>"
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// variable_name
+    /// graph::user::name
+    /// graph::user<A, B>
     /// ```
     Path(Path<'heap>),
 
     /// A `let` binding expression (special form).
     ///
     /// Binds a value to a name within a scope. This is expanded from a function call
-    /// during AST transformation.
+    /// during AST transformation. In HashQL, `let` expressions create lexically
+    /// scoped bindings visible within the body expression.
     ///
     /// # Examples
     ///
+    /// ## J-Expr
+    ///
     /// ```json
-    /// ["let", <name>, <value>, <body>] // let name = value in body
+    /// ["let", "x", 42, <body>]
+    /// ["let", "x", "Int", 42, <body>]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// let x = 42 in <body>
+    /// let x: Int = 42 in <body>
     /// ```
     Let(LetExpr<'heap>),
 
     /// A module import expression (special form).
     ///
     /// Imports symbols from another module into the current scope. This is expanded
-    /// from a function call during AST transformation.
+    /// from a function call during AST transformation. HashQL supports selective
+    /// imports with optional renaming.
+    ///
+    /// # Examples
+    ///
+    /// ## J-Expr
     ///
     /// ```json
-    /// ["use", <path>, {"#struct": {"alice": "bob"}}] // use <path>::{alice as bob}
+    /// ["use", "path::to::module", {"#struct": {"item1": "_", "original": "renamed"}}, <body>]
+    /// ["use", "path::to::module", {"#tuple": ["item1", "original"]}, <body>]
+    /// ["use", "path::to::module", "*", <body>]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// use path::to::module::{item1, original as renamed} in <body>
+    /// use path::to::module::{item1, original} in <body>
+    /// use path::to::module::* in <body>
     /// ```
     Use(UseExpr<'heap>),
 
     /// An input parameter declaration (special form).
     ///
     /// Declares an input parameter for a function or query. This is expanded
-    /// from a function call during AST transformation.
+    /// from a function call during AST transformation. In `HashQL`, inputs
+    /// represent the external values that can be provided to a query.
     ///
-    /// In effectful languages these are often called the context or requirement of a parameter.
+    /// In effectful languages these are often called the context or requirements.
     ///
-    /// ## Examples
+    /// # Examples
+    ///
+    /// ## J-Expr
     ///
     /// ```json
-    /// ["input", <name>, <type>, <default>] // input name: type = default
+    /// ["input", "limit", "Int", <body>]
+    /// ["input", "limit", "Int", 10, <body>]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// input limit: Int in <body>
+    /// input limit: Int = 10 in <body>
     /// ```
     Input(InputExpr<'heap>),
 
     /// A closure expression (special form).
     ///
     /// Defines an anonymous function. This is expanded from a function call
-    /// during AST transformation.
+    /// during AST transformation. In `HashQL`, closures can capture variables
+    /// from their surrounding scope.
     ///
-    /// ## Examples
+    /// # Examples
+    ///
+    /// ## J-Expr
     ///
     /// ```json
-    /// ["fn", <generics>, <params>, <body>] // fn<generics>(params) => body
+    /// ["fn", [], {"#struct": {"x": "Int", "->": "Int"}}, ["*", "x", 2]]
+    ///
+    /// ["fn", {"#tuple": ["T"]}, {"#struct": {"x": "T", "y": "T", "->": "T"}, ["*", "x", "y"]}]
+    /// ["fn", {"#struct": {"T": "Int"}}, {"#struct": {"x": "T", "y": "T", "->": "_"}}, ["*", "x", "y"]]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// fn(x: Int): Int => *(x 2)
+    ///
+    /// fn<T>(x: T, y: T): T => *(x y)
+    /// fn<T: Int>(x: T, y: T): T => *(x y)
     /// ```
     Closure(ClosureExpr<'heap>),
 
@@ -190,36 +322,63 @@ pub enum ExprKind<'heap> {
     /// Evaluates a condition and returns one of two expressions based on the result.
     /// This is expanded from a function call during AST transformation.
     ///
-    /// ## Examples
+    /// # Examples
+    ///
+    /// ## J-Expr
     ///
     /// ```json
-    /// ["if", <condition>, <then>, <else>] // if condition => then else
+    /// ["if", [">", "x", 0], "positive", "non_positive"]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// if x > 0
+    ///     then positive
+    ///     else non_positive
     /// ```
     If(IfExpr<'heap>),
 
     /// A field access expression (special form).
     ///
-    /// Accesses a field of a struct or object. This is expanded from a function call
+    /// Accesses a field of a struct or tuple. This is expanded from a function call
     /// during AST transformation.
     ///
-    /// ## Examples
+    /// # Examples
+    ///
+    /// ## J-Expr
     ///
     /// ```json
-    /// "object.field"
-    /// [".", <value>, <field>]
+    /// [".", "user", "name"]
+    /// ["user.name"]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// user.name
     /// ```
     Field(FieldExpr<'heap>),
 
     /// An indexing expression (special form).
     ///
     /// Accesses an element of a collection by index. This is expanded from a function call
-    /// during AST transformation.
+    /// during AST transformation. Indexing works with lists, tuples, structs, dictionaries and
+    /// other indexed collections in `HashQL`.
     ///
-    /// ## Examples
+    /// # Examples
+    ///
+    /// ## J-Expr
     ///
     /// ```json
-    /// "array[index]"
-    /// ["[]", <value>, <index>]
+    /// ["[]", "items", 0]
+    /// ["items[0]"]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// items[0]
     /// ```
     Index(IndexExpr<'heap>),
     // potentially relevant in the future: Ignore (for destructuring assignment, e.g. `_`)

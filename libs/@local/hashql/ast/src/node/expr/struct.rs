@@ -1,4 +1,4 @@
-use hashql_core::span::SpanId;
+use hashql_core::{span::SpanId, symbol::Ident};
 
 use super::Expr;
 use crate::{
@@ -15,7 +15,7 @@ pub struct StructEntry<'heap> {
     pub span: SpanId,
 
     /// The expression representing the key of this entry.
-    pub key: heap::Box<'heap, Expr<'heap>>,
+    pub key: Ident,
     /// The expression representing the value of this entry.
     pub value: heap::Box<'heap, Expr<'heap>>,
 }
