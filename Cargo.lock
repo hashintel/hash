@@ -7787,9 +7787,9 @@ checksum = "1ac9aa371f599d22256307c24a9d748c041e548cbf599f35d890f9d365361790"
 
 [[package]]
 name = "tarpc"
-version = "0.35.0"
+version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14d1be17be018ebeec4c489449adb5ef227746775974c311ce79e09886ef83c7"
+checksum = "d6d259ae043d6480431fdef275cde94455179c9ab7dca1cf01a965902b5262dc"
 dependencies = [
  "anyhow",
  "fnv",
@@ -7802,7 +7802,7 @@ dependencies = [
  "serde",
  "static_assertions",
  "tarpc-plugins",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "tokio",
  "tokio-serde",
  "tokio-util",
