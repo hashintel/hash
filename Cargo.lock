@@ -3561,6 +3561,70 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashql-ast"
+version = "0.0.0"
+dependencies = [
+ "bumpalo",
+ "foldhash",
+ "hashbrown 0.15.2",
+ "hashql-core",
+ "lexical",
+ "simple-mermaid",
+]
+
+[[package]]
+name = "hashql-core"
+version = "0.0.0"
+dependencies = [
+ "ecow",
+ "orx-concurrent-vec",
+ "serde",
+ "simple-mermaid",
+ "text-size",
+]
+
+[[package]]
+name = "hashql-diagnostics"
+version = "0.0.0"
+dependencies = [
+ "anstyle",
+ "anstyle-yansi",
+ "ariadne",
+ "error-stack",
+ "hashql-core",
+ "jsonptr",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "simple-mermaid",
+ "text-size",
+ "thiserror 2.0.12",
+]
+
+[[package]]
+name = "hashql-syntax-jexpr"
+version = "0.0.0"
+dependencies = [
+ "ariadne",
+ "ecow",
+ "hashql-ast",
+ "hashql-core",
+ "hashql-diagnostics",
+ "hifijson",
+ "insta",
+ "json-number",
+ "jsonptr",
+ "logos",
+ "serde",
+ "serde_json",
+ "simple-mermaid",
+ "test-fuzz",
+ "text-size",
+ "unicode-ident",
+ "winnow",
+]
+
+[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3684,70 +3748,6 @@ dependencies = [
  "cfg-if",
  "libc",
  "windows 0.52.0",
-]
-
-[[package]]
-name = "hql-ast"
-version = "0.0.0"
-dependencies = [
- "bumpalo",
- "foldhash",
- "hashbrown 0.15.2",
- "hql-core",
- "lexical",
- "simple-mermaid",
-]
-
-[[package]]
-name = "hql-core"
-version = "0.0.0"
-dependencies = [
- "ecow",
- "orx-concurrent-vec",
- "serde",
- "simple-mermaid",
- "text-size",
-]
-
-[[package]]
-name = "hql-diagnostics"
-version = "0.0.0"
-dependencies = [
- "anstyle",
- "anstyle-yansi",
- "ariadne",
- "error-stack",
- "hql-core",
- "jsonptr",
- "serde",
- "serde_json",
- "serde_with",
- "simple-mermaid",
- "text-size",
- "thiserror 2.0.12",
-]
-
-[[package]]
-name = "hql-syntax-jexpr"
-version = "0.0.0"
-dependencies = [
- "ariadne",
- "ecow",
- "hifijson",
- "hql-ast",
- "hql-core",
- "hql-diagnostics",
- "insta",
- "json-number",
- "jsonptr",
- "logos",
- "serde",
- "serde_json",
- "simple-mermaid",
- "test-fuzz",
- "text-size",
- "unicode-ident",
- "winnow",
 ]
 
 [[package]]

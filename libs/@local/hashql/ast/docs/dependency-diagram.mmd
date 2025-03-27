@@ -1,0 +1,16 @@
+graph TD
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[<a href="../hashql_core/index.html">hashql-core</a>]
+    1[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    2[hashql-ast]
+    class 2 root
+    2 --> 0
+    1 --> 2

@@ -30,7 +30,7 @@ members = [
     "libs/@local/harpc/tower",
     "libs/@local/harpc/types",
     "libs/@local/harpc/wire-protocol",
-    "libs/@local/hql/*",
+    "libs/@local/hashql/*",
     "libs/@local/repo-chores/rust",
     "libs/@local/status/rust",
     "libs/@local/temporal-client",
@@ -86,9 +86,9 @@ hash-repo-chores.path               = "libs/@local/repo-chores/rust"
 hash-status.path                    = "libs/@local/status/rust"
 hash-temporal-client.path           = "libs/@local/temporal-client"
 hash-tracing.path                   = "libs/@local/tracing"
-hql-ast.path                        = "libs/@local/hql/ast"
-hql-core.path                       = "libs/@local/hql/core"
-hql-diagnostics.path                = "libs/@local/hql/diagnostics"
+hashql-ast.path                     = "libs/@local/hashql/ast"
+hashql-core.path                    = "libs/@local/hashql/core"
+hashql-diagnostics.path             = "libs/@local/hashql/diagnostics"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
