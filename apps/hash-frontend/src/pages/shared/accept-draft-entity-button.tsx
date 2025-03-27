@@ -75,9 +75,9 @@ const getRightOrLeftEntitySx = (params: {
 export const AcceptDraftEntityButton: FunctionComponent<
   {
     closedMultiEntityType: ClosedMultiEntityType;
-    draftEntity: Entity;
+    draftEntity: HashEntity;
     draftEntitySubgraph: Subgraph<EntityRootType<HashEntity>>;
-    onAcceptedEntity: ((acceptedEntity: Entity) => void) | null;
+    onAcceptedEntity: ((acceptedEntity: HashEntity) => void) | null;
   } & ButtonProps
 > = ({
   closedMultiEntityType,

@@ -19,8 +19,8 @@ import type {
   Ordering,
 } from "@local/hash-graph-client";
 import {
-  type HashEntity,
   getClosedMultiEntityTypeFromMap,
+  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";

@@ -1,8 +1,6 @@
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import {
-  type Entity,
-  extractEntityUuidFromEntityId,
-} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { PropsWithChildren } from "react";
 import {
   createContext,
@@ -18,7 +16,7 @@ import type { EntityEditorProps } from "../entity-editor";
 export type TableExpandStatus = Record<string, boolean>;
 
 interface Props extends EntityEditorProps {
-  entity: Entity;
+  entity: HashEntity;
   isLocalDraftOnly: boolean;
   propertyExpandStatus: TableExpandStatus;
   togglePropertyExpand: (id: string) => void;

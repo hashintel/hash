@@ -33,8 +33,8 @@ import type {
   Filter,
   GraphResolveDepths,
   ModifyRelationshipOperation,
-  Subgraph as GraphApiSubgraph,
 } from "@local/hash-graph-client";
+import type { EntityAuthorizationRelationship } from "@local/hash-graph-sdk/branded-authorization";
 import {
   type CreateEntityParameters,
   type DiffEntityInput,
@@ -60,7 +60,6 @@ import type {
 import { ApolloError } from "apollo-server-errors";
 
 import type {
-  EntityAuthorizationRelationship,
   EntityDefinition,
   GetEntitySubgraphResponse,
   LinkedEntityDefinition,
@@ -932,8 +931,12 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
 
   const entities: Entity[] = [];
   for (const editionMap of Object.values(subgraph.vertices)) {
-    const latestEditionTimestamp = Object.keys(editionMap).sort().pop()!;
+    const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
     const latestEdition = editionMap[latestEditionTimestamp];
+
+    if (!latestEdition) {
+      throw new Error("No latest edition found");
+    }
 
     if (isEntityVertex(latestEdition)) {
       entities.push(latestEdition.inner);

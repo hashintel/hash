@@ -5,6 +5,7 @@ import type {
   Subgraph,
 } from "@blockprotocol/graph";
 import type { EntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
@@ -49,7 +50,7 @@ export const useEntityById = ({
 
   return useMemo(() => {
     const subgraph = data
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
           data.getEntity.subgraph,
         )
       : undefined;

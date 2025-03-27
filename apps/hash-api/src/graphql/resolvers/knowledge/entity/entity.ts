@@ -1,6 +1,7 @@
 import type {
   ActorGroupId,
   ActorId,
+  Entity,
   EntityId,
   OwnedById,
 } from "@blockprotocol/type-system";
@@ -11,7 +12,7 @@ import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityValidationReport } from "@local/hash-graph-types/validation";
 import {
   createDefaultAuthorizationRelationships,
@@ -428,7 +429,7 @@ export const validateEntityResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const response = await Entity.validate(
+  const response = await HashEntity.validate(
     context.graphApi,
     authentication,
     params,
@@ -464,7 +465,7 @@ export const archiveEntitiesResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const archivedEntities: Entity[] = [];
+  const archivedEntities: HashEntity[] = [];
 
   const entitiesThatCouldNotBeArchived: EntityId[] = [];
 

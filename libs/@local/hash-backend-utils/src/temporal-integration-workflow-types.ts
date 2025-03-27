@@ -1,11 +1,12 @@
 import type {
   ActorId,
+  Entity,
   EntityId,
   OwnedById,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { Team } from "@linear/sdk";
-import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
 export type PartialEntity = {
   properties: Partial<Entity["properties"]>;

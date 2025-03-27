@@ -6,6 +6,7 @@ import {
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import type { EntityMetadata, OwnedById } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -63,7 +64,9 @@ export const useAccountPages = (
     }
 
     const typedSubgraph =
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(subgraph);
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
+        subgraph,
+      );
 
     return getRoots(typedSubgraph).map((latestPage) => {
       const pageOutgoingLinks = getOutgoingLinkAndTargetEntities(

@@ -47,9 +47,12 @@ export type SubgraphRootType =
   | EntityTypeRootType
   | EntityRootType;
 
-export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
+export type Subgraph<
+  RootType extends SubgraphRootType = SubgraphRootType,
+  EntityImpl extends Entity = Entity,
+> = {
   roots: RootType["vertexId"][];
-  vertices: Vertices;
+  vertices: Vertices<EntityImpl>;
   edges: Edges;
   depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;

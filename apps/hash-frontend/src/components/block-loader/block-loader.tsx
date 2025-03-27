@@ -7,6 +7,7 @@ import type {
   Subgraph as BpSubgraph,
   Subgraph,
 } from "@blockprotocol/graph";
+import type { KnowledgeGraphEditionMap } from "@blockprotocol/graph/types";
 import type {
   EntityId,
   EntityRecordId,
@@ -59,7 +60,7 @@ import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
 
 export type BlockLoaderProps = {
-  blockCollectionSubgraph?: Subgraph<EntityRootType>;
+  blockCollectionSubgraph?: Subgraph<EntityRootType<HashEntity>>;
   blockEntityId?: EntityId; // @todo make this always defined
   blockEntityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   blockMetadata: HashBlockMeta;
@@ -203,9 +204,10 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      * The block subgraph should have a single root: the block entity. We'll default to the API-provided one,
      * but might need to replace it if there's a later version in the entity store, since the version is part of the root identifier
      */
-    let roots: Subgraph<EntityRootType>["roots"] = subgraphToRewrite.roots;
+    let roots: Subgraph<EntityRootType<HashEntity>>["roots"] =
+      subgraphToRewrite.roots;
 
-    const newVertices: Subgraph<EntityRootType>["vertices"] = {};
+    const newVertices: Subgraph<EntityRootType<HashEntity>>["vertices"] = {};
 
     /**
      * Check all the vertices and rebuild the vertices object to meet the two requirements for rewriting the subgraph.
@@ -253,9 +255,15 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
       if (!entityInStore || !draftEntityIsNewer) {
         if (isBlockEntity) {
-          const entityVertex = entityOrTypeEditionMap[
-            latestSubgraphEditionTimestamp
-          ] as EntityVertex;
+          const entityVertex = (
+            entityOrTypeEditionMap as KnowledgeGraphEditionMap<HashEntity>
+          )[latestSubgraphEditionTimestamp];
+
+          if (!entityVertex) {
+            throw new Error(
+              `No entity vertex found for entity ${entityIdOrTypeId} at revision ${latestSubgraphEditionTimestamp}`,
+            );
+          }
 
           // If it's the block entity, rewrite the textual-content property of the latest edition to a plain string
           newVertices[entityIdOrTypeId] = {

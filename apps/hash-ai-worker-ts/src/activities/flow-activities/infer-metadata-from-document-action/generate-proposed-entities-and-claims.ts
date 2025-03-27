@@ -8,7 +8,7 @@ import type {
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { HashEntity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -196,7 +196,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     /**
      * Create the link between the existing document entity and the claim (document is the object)
      */
-    await LinkEntity.create<HasObject>(
+    await HashLinkEntity.create<HasObject>(
       graphApiClient,
       { actorId: aiAssistantAccountId },
       {

@@ -5,6 +5,7 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Container } from "@mui/material";
@@ -22,7 +23,6 @@ import { UserBlocksProvider } from "../blocks/user-blocks";
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
-  Subgraph,
 } from "../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { NoteIcon } from "../shared/icons/note-icon";
@@ -73,8 +73,18 @@ const NotesPage: NextPageWithLayout = () => {
     fetchPolicy: "cache-and-network",
   });
 
-  const quickNotesSubgraph = (quickNotesData ?? previouslyFetchedQuickNotesData)
-    ?.getEntitySubgraph.subgraph as Subgraph<EntityRootType> | undefined;
+  const quickNotesSubgraph = useMemo(() => {
+    const subgraph = (quickNotesData ?? previouslyFetchedQuickNotesData)
+      ?.getEntitySubgraph.subgraph;
+
+    if (!subgraph) {
+      return undefined;
+    }
+
+    return mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
+      subgraph,
+    );
+  }, [quickNotesData, previouslyFetchedQuickNotesData]);
 
   const latestQuickNoteEntities = useMemo<HashEntity[] | undefined>(() => {
     if (!quickNotesSubgraph) {

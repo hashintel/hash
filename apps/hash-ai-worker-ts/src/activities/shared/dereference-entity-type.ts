@@ -3,7 +3,6 @@ import {
   getDataTypeById,
   getEntityTypeAndParentsById,
   getPropertyTypeById,
-  linkEntityTypeUrl,
 } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
@@ -25,6 +24,7 @@ import {
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 
@@ -348,7 +348,8 @@ export const dereferenceEntityType = <
   );
 
   const isLink = entityTypeWithAncestors.some(
-    (entityType) => entityType.schema.$id === linkEntityTypeUrl,
+    (entityType) =>
+      entityType.schema.$id === blockProtocolEntityTypes.link.entityTypeId,
   );
 
   let labelProperty: BaseUrl | undefined;

@@ -60,7 +60,7 @@ export interface EntityEditorProps extends DraftLinkState {
   /**
    * The subgraph of the entity being edited – used to retrieve linked entities from (NOT types, which are taken from XType fields)
    */
-  entitySubgraph: Subgraph<EntityRootType>;
+  entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
   /**
    * A function to call when the types of the entity are changed
    */

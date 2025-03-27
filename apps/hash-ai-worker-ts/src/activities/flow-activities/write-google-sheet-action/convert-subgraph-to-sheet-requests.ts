@@ -6,10 +6,10 @@ import {
 } from "@blockprotocol/graph";
 import {
   getEntityRevision,
+  getEntityTypeAndParentsById,
   getEntityTypeById,
+  getPropertyTypeForEntity,
 } from "@blockprotocol/graph/stdlib";
-import { getEntityTypeAndParentsById } from "@blockprotocol/graph/stdlib/subgraph/element/entity-type";
-import { getPropertyTypeForEntity } from "@blockprotocol/graph/stdlib/subgraph/element/property-type";
 import type {
   BaseUrl,
   EntityId,
@@ -592,7 +592,7 @@ export const convertSubgraphToSheetRequests = ({
              */
             entityCells.push(
               createCellFromValue({
-                value: entity.linkData.leftEntityId,
+                value: leftEntityId,
               }),
             );
           }
@@ -627,7 +627,7 @@ export const convertSubgraphToSheetRequests = ({
           } else {
             entityCells.push(
               createCellFromValue({
-                value: entity.linkData.rightEntityId,
+                value: rightEntityId,
               }),
             );
           }

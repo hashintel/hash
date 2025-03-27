@@ -1,7 +1,7 @@
 import type { EntityId } from "@blockprotocol/type-system";
 import {
-  HashEntity,
   flattenPropertyMetadata,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {

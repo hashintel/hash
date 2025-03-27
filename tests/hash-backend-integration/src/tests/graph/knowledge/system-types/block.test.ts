@@ -16,7 +16,7 @@ import type {
   OwnedById,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -39,7 +39,7 @@ describe("Block", () => {
 
   const testBlockComponentId = "test-component-id";
 
-  let testBlockDataEntity: Entity;
+  let testBlockDataEntity: HashEntity;
 
   let dummyEntityType: EntityTypeWithMetadata;
 

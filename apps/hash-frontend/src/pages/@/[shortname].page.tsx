@@ -6,6 +6,7 @@ import {
 } from "@blockprotocol/graph/stdlib";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -171,7 +172,7 @@ const ProfilePage: NextPageWithLayout = () => {
   });
 
   const entitiesSubgraph = pinnedEntityTypesData
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
         pinnedEntityTypesData.getEntitySubgraph.subgraph,
       )
     : undefined;

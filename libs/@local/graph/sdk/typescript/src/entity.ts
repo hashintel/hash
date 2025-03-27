@@ -1,9 +1,13 @@
 import type {
   DataTypeRootType,
+  Edges,
   EntityRevisionId,
   EntityTypeRootType,
+  EntityVertexId,
+  GraphResolveDepths,
   OntologyVertices,
   PropertyTypeRootType,
+  SubgraphTemporalAxes,
 } from "@blockprotocol/graph";
 import type {
   ActorId,
@@ -44,13 +48,9 @@ import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   DiffEntityParams,
-  Edges,
   Entity as GraphApiEntity,
-  EntityVertexId,
   GraphApi,
-  GraphResolveDepths,
   PatchEntityParams as GraphApiPatchEntityParams,
-  SubgraphTemporalAxes,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
 import type {
@@ -466,7 +466,6 @@ export const mergePropertyObjectAndMetadata = <
   return {
     value: Object.fromEntries(
       Object.entries(property)
-
         .filter(([_key, value]) => value !== undefined)
         .map(([key, value]) => {
           if (!isBaseUrl(key)) {

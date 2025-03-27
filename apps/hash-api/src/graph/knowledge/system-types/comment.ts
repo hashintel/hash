@@ -1,4 +1,4 @@
-import type { Entity, EntityId } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
 import type {
@@ -326,7 +326,7 @@ export const deleteComment: ImpureGraphFunction<
  */
 export const getCommentParent: ImpureGraphFunction<
   { commentEntityId: EntityId },
-  Promise<Entity>
+  Promise<HashEntity>
 > = async (ctx, authentication, { commentEntityId }) => {
   const parentLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,

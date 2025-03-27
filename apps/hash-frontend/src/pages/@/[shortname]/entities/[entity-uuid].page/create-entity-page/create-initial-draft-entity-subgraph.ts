@@ -19,7 +19,7 @@ import {
 
 export const createInitialDraftEntitySubgraph = (
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
-): Subgraph<EntityRootType> => {
+): Subgraph<EntityRootType<HashEntity>> => {
   const now = currentTimestamp();
 
   const draftEntityVertexId = {

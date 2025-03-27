@@ -9,8 +9,7 @@ import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -36,7 +35,7 @@ export const supportedLinearTypeIds = [
 ];
 
 export const processEntityChange = async (
-  entity: Entity,
+  entity: HashEntity,
   graphApi: GraphApi,
 ) => {
   const { entityTypeIds } = entity.metadata;

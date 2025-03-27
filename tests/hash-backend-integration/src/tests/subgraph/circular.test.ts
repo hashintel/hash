@@ -142,7 +142,7 @@ const verticesEquals = (
   subgraph: Subgraph<EntityRootType>,
   entities: Entity[],
 ): boolean => {
-  const vertexIds = getEntitiesSubgraph(subgraph)
+  const vertexIds = getEntitiesSubgraph(subgraph, true)
     .map((vertex) => vertex.metadata.recordId.entityId)
     .sort();
   const entityIds = entities

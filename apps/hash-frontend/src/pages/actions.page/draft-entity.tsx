@@ -24,7 +24,7 @@ export const DraftEntity: FunctionComponent<{
   closedMultiEntityTypesRootMap?: ClosedMultiEntityTypesRootMap;
   entity: HashEntity;
   entityTypeDisplayInfoByBaseUrl: EntityTypeDisplayInfoByBaseUrl;
-  subgraph: Subgraph<EntityRootType>;
+  subgraph: Subgraph<EntityRootType<HashEntity>>;
   selected: boolean;
   toggleSelected: () => void;
 }> = ({

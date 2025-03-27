@@ -1,7 +1,6 @@
 import type { Subgraph } from "@blockprotocol/graph";
 import { getEntityRevisionsByEntityId } from "@blockprotocol/graph/stdlib";
 import type { Entity, EntityId, LinkEntity } from "@blockprotocol/type-system";
-import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   DraftEntity,

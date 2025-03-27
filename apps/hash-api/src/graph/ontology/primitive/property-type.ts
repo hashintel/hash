@@ -23,6 +23,7 @@ import type {
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
+import type { PropertyTypeAuthorizationRelationship } from "@local/hash-graph-sdk/branded-authorization";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -279,16 +280,13 @@ export const getPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
   graphApi
     .getPropertyTypeAuthorizationRelationships(actorId, params.propertyTypeId)
     .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: {
-              kind: "propertyType",
-              resourceId: params.propertyTypeId,
-            },
-            ...relationship,
-          }) as PropertyTypeAuthorizationRelationship,
-      ),
+      data.map((relationship) => ({
+        resource: {
+          kind: "propertyType",
+          resourceId: params.propertyTypeId,
+        },
+        ...relationship,
+      })),
     );
 
 export const modifyPropertyTypeAuthorizationRelationships: ImpureGraphFunction<

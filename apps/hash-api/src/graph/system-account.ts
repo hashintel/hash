@@ -1,4 +1,7 @@
-import type { ActorId } from "@blockprotocol/type-system";
+import {
+  type ActorId,
+  versionedUrlFromComponents,
+} from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";

@@ -4,7 +4,7 @@ import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import {
   HashEntity,
-  LinkEntity,
+  HashLinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import {
@@ -266,7 +266,9 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     const entityTypeId =
       `https://hash.ai/@h/types/entity-type/${linkType}/v/1` as const;
 
-    return LinkEntity.create<T extends "has-subject" ? HasSubject : HasObject>(
+    return HashLinkEntity.create<
+      T extends "has-subject" ? HasSubject : HasObject
+    >(
       graphApiClient,
       { actorId: webBotActorId },
       {

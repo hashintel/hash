@@ -1,11 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type {
-  Entity as EntityClass,
-  EntityId,
-  PropertyObject,
-} from "@blockprotocol/type-system";
+import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
@@ -86,7 +82,7 @@ interface EntityProps {
      * The parent should reroute to the appropriate page, slide etc, with the persisted entityId.
      */
     createFromLocalDraft: (params: {
-      localDraft: EntityClass;
+      localDraft: HashEntity;
       draftLinksToCreate: DraftLinksToCreate;
     }) => Promise<void>;
     /**
@@ -111,7 +107,7 @@ interface EntityProps {
    * Callback allowing the parent to take some action when an entity update is persisted to the database.
    * The form will reflect the changes, so parents need not do anything if the user is supposed to remain on the form.
    */
-  onEntityUpdatedInDb: (updatedEntity: EntityClass) => void | null;
+  onEntityUpdatedInDb: (updatedEntity: HashEntity) => void | null;
   /**
    * Callback for when a remote draft is archived (i.e. rejected).
    * The parent should take some action to reroute the user to another page or component.
@@ -125,12 +121,12 @@ interface EntityProps {
    * If the parent is SURE the entity is not a draft in the db, this can throw an error.
    * e.g. if creating a new entity, it cannot be a draft in the db.
    */
-  onRemoteDraftPublished: (publishedEntity: EntityClass) => void;
+  onRemoteDraftPublished: (publishedEntity: HashEntity) => void;
   /**
    * Optional callback to allow the parent to take some action based on the initial state of the entity,
    * useful for e.g. rerouting to another page if the entity is of a specific type,
    */
-  onEntityLoad?: (entity: EntityClass) => void;
+  onEntityLoad?: (entity: HashEntity) => void;
   /**
    * Optional callback to allow the parent to take some action when the entity's label changes,
    * e.g. if it's displaying it somewhere outside of this component (such as HTML <title>).
@@ -381,11 +377,7 @@ export const Entity = ({
     setDraftLinksToArchive([]);
 
     if (dataFromDb) {
-      setDraftEntitySubgraph(
-        mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-          dataFromDb.entitySubgraph,
-        ),
-      );
+      setDraftEntitySubgraph(dataFromDb.entitySubgraph);
       setDraftEntityTypesDetails({
         linkAndDestinationEntitiesClosedMultiEntityTypesMap:
           dataFromDb.linkAndDestinationEntitiesClosedMultiEntityTypesMap,

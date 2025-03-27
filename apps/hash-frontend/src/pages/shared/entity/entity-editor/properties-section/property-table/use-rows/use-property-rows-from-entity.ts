@@ -6,8 +6,8 @@ import type {
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import {
-  HashEntity,
   generateChangedPropertyMetadataObject,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { useMemo } from "react";
 

@@ -19,7 +19,7 @@ import { EditableQuickNote } from "./editable-quick-note";
 
 export const CreateQuickNote: FunctionComponent<{
   initialQuickNoteEntity?: HashEntity | null;
-  initialQuickNoteEntitySubgraph?: Subgraph<EntityRootType>;
+  initialQuickNoteEntitySubgraph?: Subgraph<EntityRootType<HashEntity>>;
   refetchQuickNotes: () => Promise<void>;
   onCreatingQuickNote: (quickNoteEntity: HashEntity) => void;
 }> = ({
@@ -58,7 +58,7 @@ export const CreateQuickNote: FunctionComponent<{
   const [quickNoteEntity, setQuickNoteEntity] = useState<HashEntity>();
 
   const [quickNoteSubgraph, setQuickNoteSubgraph] =
-    useState<Subgraph<EntityRootType>>();
+    useState<Subgraph<EntityRootType<HashEntity>>>();
 
   if (!quickNoteSubgraph && initialQuickNoteEntitySubgraph) {
     setQuickNoteSubgraph(initialQuickNoteEntitySubgraph);

@@ -60,7 +60,9 @@ export const isEntityTypeVertex = (
   return vertex.kind === "entityType";
 };
 
-export const isEntityVertex = (vertex: Vertex): vertex is EntityVertex => {
+export const isEntityVertex = <EntityImpl extends Entity>(
+  vertex: Vertex<EntityImpl>,
+): vertex is EntityVertex<EntityImpl> => {
   return vertex.kind === "entity";
 };
 
@@ -109,16 +111,18 @@ export type OntologyVertices = {
   };
 };
 
-export type KnowledgeGraphVertices = {
-  /** Branding the keys causes too much complication with accessing the vertices. */
-  [entityId: string]: {
-    [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
-  };
+export type KnowledgeGraphEditionMap<EntityImpl extends Entity = Entity> = {
+  [revisionId: EntityRevisionId]: KnowledgeGraphVertex<EntityImpl>;
 };
 
-export const isKnowledgeGraphVertex = (
-  vertex: OntologyVertex | KnowledgeGraphVertex,
-): vertex is KnowledgeGraphVertex => vertex.kind === "entity";
+export type KnowledgeGraphVertices<EntityImpl extends Entity = Entity> = {
+  /** Branding the keys causes too much complication with accessing the vertices. */
+  [entityId: string]: KnowledgeGraphEditionMap<EntityImpl>;
+};
+
+export const isKnowledgeGraphVertex = <EntityImpl extends Entity>(
+  vertex: OntologyVertex | KnowledgeGraphVertex<EntityImpl>,
+): vertex is KnowledgeGraphVertex<EntityImpl> => vertex.kind === "entity";
 
 export const isOntologyVertex = (
   vertex: OntologyVertex | KnowledgeGraphVertex,
@@ -127,4 +131,6 @@ export const isOntologyVertex = (
 // We technically want to intersect (`&`) the types here, but as their property keys overlap it confuses things and we
 // end up with unsatisfiable values like `EntityVertex & DataTypeVertex`. While the union (`|`) is semantically
 // incorrect, it structurally matches the types we want.
-export type Vertices = OntologyVertices | KnowledgeGraphVertices;
+export type Vertices<EntityImpl extends Entity = Entity> =
+  | OntologyVertices
+  | KnowledgeGraphVertices<EntityImpl>;

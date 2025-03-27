@@ -1,9 +1,9 @@
 import type {
-  Edges,
   EntityRootType,
+  KnowledgeGraphVertex,
   Subgraph,
   SubgraphRootType,
-  SubgraphTemporalAxes,
+  Vertices,
 } from "@blockprotocol/graph";
 import { isEntityVertex } from "@blockprotocol/graph";
 import type {
@@ -33,11 +33,9 @@ import type {
   Entity as GraphApiEntity,
   EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
   EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
-  KnowledgeGraphVertex,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   PropertyTypeWithMetadata as GraphApiPropertyTypeWithMetadata,
   Subgraph as GraphApiSubgraph,
-  Vertices,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 import {
@@ -112,7 +110,9 @@ const mapKnowledgeGraphVertex = (
   } as KnowledgeGraphVertex;
 };
 
-const serializeKnowledgeGraphVertex = (vertex: KnowledgeGraphVertex) => {
+const serializeKnowledgeGraphVertex = (
+  vertex: KnowledgeGraphVertex<HashEntity>,
+) => {
   return {
     kind: vertex.kind,
     inner: vertex.inner.toJSON(),
@@ -121,11 +121,11 @@ const serializeKnowledgeGraphVertex = (vertex: KnowledgeGraphVertex) => {
 
 const deserializeKnowledgeGraphVertex = (
   vertex: SerializedKnowledgeGraphVertex,
-) => {
+): KnowledgeGraphVertex<HashEntity> => {
   return {
     kind: vertex.kind,
     inner: new HashEntity(vertex.inner),
-  } as KnowledgeGraphVertex;
+  };
 };
 
 export const mapGraphApiVerticesToVertices = (
@@ -141,7 +141,7 @@ export const mapGraphApiVerticesToVertices = (
             typedEntries(inner).map(([version, vertex]) => [
               version,
               mapKnowledgeGraphVertex(
-                vertex,
+                vertex as KnowledgeGraphVertexGraphApi,
                 userAccountId,
                 preserveProperties,
               ),
@@ -151,7 +151,7 @@ export const mapGraphApiVerticesToVertices = (
     ]),
   ) as Vertices;
 
-export const serializeGraphVertices = (vertices: Vertices) =>
+export const serializeGraphVertices = (vertices: Vertices<HashEntity>) =>
   Object.fromEntries(
     typedEntries(vertices).map(([baseId, inner]) => [
       baseId,
@@ -166,7 +166,9 @@ export const serializeGraphVertices = (vertices: Vertices) =>
     ]),
   ) as SerializedVertices;
 
-export const deserializeGraphVertices = (vertices: SerializedVertices) =>
+export const deserializeGraphVertices = (
+  vertices: SerializedVertices,
+): Vertices<HashEntity> =>
   Object.fromEntries(
     typedEntries(vertices).map(([baseId, inner]) => [
       baseId,
@@ -179,7 +181,7 @@ export const deserializeGraphVertices = (vertices: SerializedVertices) =>
         ]),
       ),
     ]),
-  ) as Vertices;
+  ) as Vertices<HashEntity>;
 
 /**
  * A mapping function that can be used to map the subgraph returned by the Graph API to the HASH `Subgraph` definition.
@@ -209,7 +211,7 @@ export const mapGraphApiSubgraphToSubgraph = <
 export const serializeSubgraph = (subgraph: Subgraph): SerializedSubgraph => ({
   roots: subgraph.roots,
   vertices: serializeGraphVertices(subgraph.vertices),
-  edges: subgraph.edges as SerializedSubgraph["edges"],
+  edges: subgraph.edges,
   depths: subgraph.depths,
   temporalAxes: subgraph.temporalAxes,
 });
@@ -220,12 +222,12 @@ export const deserializeSubgraph = <
     | EntityRootType<HashEntity>,
 >(
   subgraph: SerializedSubgraph,
-): Subgraph<RootType> => ({
+): Subgraph<RootType, HashEntity> => ({
   roots: subgraph.roots as RootType["vertexId"][],
   vertices: deserializeGraphVertices(subgraph.vertices),
-  edges: subgraph.edges as Edges,
+  edges: subgraph.edges,
   depths: subgraph.depths,
-  temporalAxes: subgraph.temporalAxes as SubgraphTemporalAxes,
+  temporalAxes: subgraph.temporalAxes,
 });
 
 export const mapGraphApiEntityTypesToEntityTypes = (

@@ -1,5 +1,5 @@
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { ClosedMultiEntityType, Entity } from "@blockprotocol/type-system";
+import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
 import {
   extractDraftIdFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -41,7 +41,7 @@ export const EntityHeader = ({
 }: {
   closedMultiEntityType?: ClosedMultiEntityType;
   editBar?: ReactNode;
-  entity?: Entity;
+  entity?: HashEntity;
   entityLabel: string;
   entitySubgraph?: Subgraph<EntityRootType<HashEntity>>;
   hideOpenInNew?: boolean;
@@ -50,7 +50,7 @@ export const EntityHeader = ({
   isModifyingEntity?: boolean;
   lightTitle?: boolean;
   onDraftArchived: () => void;
-  onDraftPublished: (entity: Entity) => void;
+  onDraftPublished: (entity: HashEntity) => void;
   onUnarchived: () => void;
   showTabs?: boolean;
 }) => {

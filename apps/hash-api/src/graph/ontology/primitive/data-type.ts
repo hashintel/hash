@@ -25,7 +25,7 @@ import type {
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
 import type {
-  DataTypeAuthorizationRelationshipBranded,
+  DataTypeAuthorizationRelationship,
   DataTypeRelationAndSubjectBranded,
 } from "@local/hash-graph-sdk/branded-authorization";
 import type {
@@ -302,24 +302,21 @@ export const getDataTypeConversionTargets: ImpureGraphFunction<
 
 export const getDataTypeAuthorizationRelationships: ImpureGraphFunction<
   { dataTypeId: VersionedUrl },
-  Promise<DataTypeAuthorizationRelationshipBranded[]>
+  Promise<DataTypeAuthorizationRelationship[]>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
     .getDataTypeAuthorizationRelationships(actorId, params.dataTypeId)
     .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: { kind: "dataType", resourceId: params.dataTypeId },
-            ...relationship,
-          }) as DataTypeAuthorizationRelationshipBranded,
-      ),
+      data.map((relationship) => ({
+        resource: { kind: "dataType", resourceId: params.dataTypeId },
+        ...relationship,
+      })),
     );
 
 export const modifyDataTypeAuthorizationRelationships: ImpureGraphFunction<
   {
     operation: ModifyRelationshipOperation;
-    relationship: DataTypeAuthorizationRelationshipBranded;
+    relationship: DataTypeAuthorizationRelationship;
   }[],
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {

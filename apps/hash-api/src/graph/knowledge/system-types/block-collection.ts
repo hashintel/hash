@@ -1,6 +1,9 @@
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  Entity,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   HashLinkEntity,
   mergePropertyObjectAndMetadata,
@@ -101,7 +104,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     position: { canvasPosition, indexPosition },
   } = params;
 
-  const linkEntity: HashLinkEntity = await createLinkEntity<
+  const linkEntity = await createLinkEntity<
     HasSpatiallyPositionedContent | HasIndexedContent
   >(ctx, authentication, {
     // assume that link to block is owned by the same account as the blockCollection
@@ -119,9 +122,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
-  return linkEntity as
-    | Entity<HasSpatiallyPositionedContent>
-    | Entity<HasIndexedContent>;
+  return linkEntity;
 };
 
 /**

@@ -1,6 +1,6 @@
 import type { EntityTypeRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { useEffect } from "react";
 
 import type {
@@ -26,11 +26,8 @@ export const useEntityTypes = () => {
 
   useEffect(() => {
     void getEntityTypesSubgraph().then((apiSubgraph) => {
-      const mappedSubgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
-        apiSubgraph,
-        null,
-        true,
-      );
+      const mappedSubgraph =
+        mapGqlSubgraphFieldsFragmentToSubgraph<EntityTypeRootType>(apiSubgraph);
 
       const apiEntityTypes = getRoots<EntityTypeRootType>(mappedSubgraph);
 

@@ -45,7 +45,7 @@ export const DraftEntities: FunctionComponent<{
   sortOrder: SortOrder;
   selectedDraftEntityIds: EntityId[];
   setSelectedDraftEntityIds: Dispatch<SetStateAction<EntityId[]>>;
-  draftEntitiesWithLinkedDataSubgraph?: Subgraph<EntityRootType>;
+  draftEntitiesWithLinkedDataSubgraph?: Subgraph<EntityRootType<HashEntity>>;
 }> = ({
   closedMultiEntityTypesRootMap,
   entityTypeDisplayInfoByBaseUrl,

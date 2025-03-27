@@ -3,7 +3,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import type { ImpureGraphContext } from "../../../context-types";
 
@@ -21,7 +21,7 @@ export type BeforeCreateEntityHook = {
 export type AfterCreateEntityHookCallback = (params: {
   context: ImpureGraphContext;
   authentication: AuthenticationContext;
-  entity: Entity;
+  entity: HashEntity;
 }) => Promise<void>;
 
 export type AfterCreateEntityHook = {

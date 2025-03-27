@@ -254,8 +254,8 @@ export const createGraphActivities = ({
   async getSubgraphEntities(params: {
     subgraph: SerializedSubgraph;
   }): Promise<SerializedEntity[]> {
-    return getEntities(deserializeSubgraph(params.subgraph)).map((entity) =>
-      entity.toJSON(),
+    return getEntities(deserializeSubgraph(params.subgraph), false).map(
+      (entity) => entity.toJSON(),
     );
   },
 

@@ -1,4 +1,3 @@
-import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getBreadthFirstEntityTypesAndParents,
   getRoots,
@@ -105,7 +104,7 @@ export const upgradeWebEntities = async ({
     },
   );
 
-  const existingEntities = getRoots<EntityRootType>(subgraph);
+  const existingEntities = getRoots(subgraph);
 
   await Promise.all(
     existingEntities.map(async (entity) => {

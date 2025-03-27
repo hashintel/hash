@@ -8,7 +8,7 @@ import type {
 } from "@blockprotocol/type-system";
 import {
   HashEntity,
-  LinkEntity,
+  HashLinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import type {
@@ -94,7 +94,7 @@ type FileUploadRequestData = {
 
 type FileUploadEntities = {
   fileEntity: HashEntity<FileEntity>;
-  linkEntity?: LinkEntity;
+  linkEntity?: HashLinkEntity;
 };
 
 type FileUploadStatus =
@@ -524,7 +524,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           throw new Error(errors?.[0]?.message ?? "unknown error");
         }
 
-        const linkEntity = new LinkEntity(data.createEntity);
+        const linkEntity = new HashLinkEntity(data.createEntity);
 
         if (makePublic) {
           /** @todo: make entity public as part of `createEntity` query once this is supported */

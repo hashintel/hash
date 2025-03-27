@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import { buildSubgraph } from "@blockprotocol/graph/stdlib";
 import type {
   EntityEditionId,
@@ -440,13 +441,13 @@ export const Outputs = ({
   const persistedEntitiesSubgraph = useMemo(() => {
     if (!persistedEntitiesSubgraphData) {
       return previousPersistedEntitiesSubgraphData
-        ? deserializeSubgraph<EntityRootType>(
+        ? deserializeSubgraph<EntityRootType<HashEntity>>(
             previousPersistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
           )
         : undefined;
     }
 
-    return deserializeSubgraph<EntityRootType>(
+    return deserializeSubgraph<EntityRootType<HashEntity>>(
       persistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
     );
   }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
@@ -569,7 +570,7 @@ export const Outputs = ({
             },
           },
         },
-      ) as unknown as Subgraph<EntityRootType>;
+      ) as unknown as Subgraph<EntityRootType<HashEntity>>;
 
       return {
         ...item,

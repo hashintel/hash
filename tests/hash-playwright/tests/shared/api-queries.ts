@@ -1,11 +1,12 @@
 import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   Entity,
   LinkData,
   OwnedById,
   TypeIdsAndPropertiesForEntity,
 } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -84,6 +85,6 @@ export const createEntity = async <T extends TypeIdsAndPropertiesForEntity>(
     if (!data) {
       throw new Error("Entity not created");
     }
-    return new Entity<T>(data.createEntity);
+    return new HashEntity<T>(data.createEntity);
   });
 };

@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import type { OwnedById } from "@blockprotocol/type-system";
 import { Select, TextField } from "@hashintel/design-system";
-import type { HashEntity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -31,7 +31,7 @@ import { ServiceAccountsInput } from "./service-accounts-input";
 import { urlRegex } from "./util";
 
 export type UserProfileFormServiceAccount = {
-  existingLinkEntity?: LinkEntity;
+  existingLinkEntity?: HashLinkEntity;
   existingServiceAccountEntity?: HashEntity;
   kind: ServiceAccountKind;
   profileUrl: string;

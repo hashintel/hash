@@ -14,6 +14,7 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -190,8 +191,8 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
   { linearIntegrationEntityId: EntityId; includeDrafts?: boolean },
   Promise<
     {
-      syncLinearDataWithLinkEntity: Entity;
-      workspaceEntity: Entity;
+      syncLinearDataWithLinkEntity: HashEntity;
+      workspaceEntity: HashEntity;
     }[]
   >
 > = async (
@@ -230,11 +231,9 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
       includeDrafts,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        null,
-        true,
-      );
+      const subgraph = mapGraphApiSubgraphToSubgraph<
+        EntityRootType<HashEntity>
+      >(data.subgraph, null, true);
 
       const syncLinearDataWithLinkEntities = getRoots(subgraph);
 
@@ -243,7 +242,7 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
           const workspaceEntity = getRightEntityForLinkEntity(
             subgraph,
             syncLinearDataWithLinkEntity.metadata.recordId.entityId,
-          )![0]!;
+          )![0]! as HashEntity;
 
           return { syncLinearDataWithLinkEntity, workspaceEntity };
         },
