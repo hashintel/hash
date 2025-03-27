@@ -80,7 +80,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
         }
     }
 
-    pub(crate) async fn transaction(
+    pub(crate) async fn client(
         &mut self,
     ) -> Result<PostgresStore<impl AsClient, impl AuthorizationApi>, Report<StoreError>> {
         self.connection.transaction().await
