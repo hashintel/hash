@@ -1,11 +1,11 @@
 {
-"extends": ["//"],
-"tasks": {
+  "extends": ["//"],
+  "tasks": {
     "start:migrate:up": {
-    "cache": false
+      "cache": false
     },
     "start:migrate:down": {
-    "cache": false
+      "cache": false
     }
-}
+  }
 }
