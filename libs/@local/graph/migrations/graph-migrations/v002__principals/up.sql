@@ -84,7 +84,7 @@ BEGIN
     -- Create principal record for the actor with appropriate principal_type
     INSERT INTO principal (id, principal_type)
     VALUES (NEW.id, CAST(NEW.actor_type::text AS principal_type));
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -138,13 +138,16 @@ RETURNS TRIGGER AS $$
 DECLARE
     existing_type principal_type;
 BEGIN
+    -- Users are special - they have both a web entry and a team entry with the same ID.
+    -- This creates a 1:1 relationship between the user's web presence and team.
+    -- Other entities (machines, roles) don't need web entries as they're for internal use only.
     -- If this is a web, check if a user with the same ID exists
     IF NEW.team_type = 'web' THEN
         -- Check if there's already a principal with this ID and if it's a user
-        SELECT principal_type INTO existing_type 
-        FROM principal 
+        SELECT principal_type INTO existing_type
+        FROM principal
         WHERE id = NEW.id;
-        
+
         IF found AND existing_type = 'user' THEN
             -- This is the special case: web sharing ID with user
             -- Don't create a duplicate principal record
@@ -159,7 +162,7 @@ BEGIN
         INSERT INTO principal (id, principal_type)
         VALUES (NEW.id, CAST(NEW.team_type::text AS principal_type));
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
