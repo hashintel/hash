@@ -12830,36 +12830,36 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hql-ast@npm:0.0.0-private, @rust/hql-ast@workspace:libs/@local/hql/ast":
+"@rust/hashql-ast@npm:0.0.0-private, @rust/hashql-ast@workspace:libs/@local/hashql/ast":
   version: 0.0.0-use.local
-  resolution: "@rust/hql-ast@workspace:libs/@local/hql/ast"
+  resolution: "@rust/hashql-ast@workspace:libs/@local/hashql/ast"
   dependencies:
-    "@rust/hql-core": "npm:0.0.0-private"
+    "@rust/hashql-core": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
-"@rust/hql-core@npm:0.0.0-private, @rust/hql-core@workspace:libs/@local/hql/core":
+"@rust/hashql-core@npm:0.0.0-private, @rust/hashql-core@workspace:libs/@local/hashql/core":
   version: 0.0.0-use.local
-  resolution: "@rust/hql-core@workspace:libs/@local/hql/core"
+  resolution: "@rust/hashql-core@workspace:libs/@local/hashql/core"
   languageName: unknown
   linkType: soft
 
-"@rust/hql-diagnostics@npm:0.0.0-private, @rust/hql-diagnostics@workspace:libs/@local/hql/diagnostics":
+"@rust/hashql-diagnostics@npm:0.0.0-private, @rust/hashql-diagnostics@workspace:libs/@local/hashql/diagnostics":
   version: 0.0.0-use.local
-  resolution: "@rust/hql-diagnostics@workspace:libs/@local/hql/diagnostics"
+  resolution: "@rust/hashql-diagnostics@workspace:libs/@local/hashql/diagnostics"
   dependencies:
     "@rust/error-stack": "npm:0.5.0"
-    "@rust/hql-core": "npm:0.0.0-private"
+    "@rust/hashql-core": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
-"@rust/hql-syntax-jexpr@workspace:libs/@local/hql/syntax-jexpr":
+"@rust/hashql-syntax-jexpr@workspace:libs/@local/hashql/syntax-jexpr":
   version: 0.0.0-use.local
-  resolution: "@rust/hql-syntax-jexpr@workspace:libs/@local/hql/syntax-jexpr"
+  resolution: "@rust/hashql-syntax-jexpr@workspace:libs/@local/hashql/syntax-jexpr"
   dependencies:
-    "@rust/hql-ast": "npm:0.0.0-private"
-    "@rust/hql-core": "npm:0.0.0-private"
-    "@rust/hql-diagnostics": "npm:0.0.0-private"
+    "@rust/hashql-ast": "npm:0.0.0-private"
+    "@rust/hashql-core": "npm:0.0.0-private"
+    "@rust/hashql-diagnostics": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
