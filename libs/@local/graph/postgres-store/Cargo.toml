@@ -50,7 +50,8 @@ utoipa         = { workspace = true, optional = true, features = ["uuid"] }
 uuid           = { workspace = true, features = ["v4", "serde"] }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros"] }
+pretty_assertions = { workspace = true }
+tokio             = { workspace = true, features = ["macros"] }
 
 [features]
 clap = ["dep:clap"]

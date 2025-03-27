@@ -147,7 +147,7 @@ mod tests {
     ) {
         let (compiled_statement, compiled_parameters) = compiler.compile();
 
-        assert_eq!(
+        pretty_assertions::assert_eq!(
             trim_whitespace(&compiled_statement),
             trim_whitespace(expected_statement),
             "actual:\n{compiled_statement}\nexpected: {expected_statement}"
@@ -162,7 +162,7 @@ mod tests {
             .map(|parameter| format!("{parameter:?}"))
             .collect::<Vec<_>>();
 
-        assert_eq!(compiled_parameters, expected_parameters);
+        pretty_assertions::assert_eq!(compiled_parameters, expected_parameters);
     }
 
     #[test]
@@ -412,14 +412,14 @@ mod tests {
             r#"
             SELECT *
             FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
-            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+            LEFT OUTER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
               ON "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+            LEFT OUTER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
               ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id"
-            INNER JOIN "data_types" AS "data_types_0_3_0"
-              ON "data_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
+             AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+            LEFT OUTER JOIN "data_types" AS "data_types_0_3_0"
+             ON "data_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "data_types_0_3_0"."schema"->>'title' = $2
             "#,
             &[&pinned_timestamp, &"Text"],
@@ -460,22 +460,22 @@ mod tests {
             r#"
             SELECT *
             FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
-            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+            LEFT OUTER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
               ON "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+            LEFT OUTER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
               ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id"
-            INNER JOIN "data_types" AS "data_types_0_3_0"
+             AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+            LEFT OUTER JOIN "data_types" AS "data_types_0_3_0"
               ON "data_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
-            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_1_1_0"
+            LEFT OUTER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_1_1_0"
               ON "property_type_constrains_values_on_1_1_0"."source_property_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_1_2_0"
+            LEFT OUTER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_1_2_0"
               ON "ontology_temporal_metadata_1_2_0"."ontology_id" = "property_type_constrains_values_on_1_1_0"."target_data_type_ontology_id"
-            INNER JOIN "ontology_ids" AS "ontology_ids_1_3_0"
+             AND "ontology_temporal_metadata_1_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+            LEFT OUTER JOIN "ontology_ids" AS "ontology_ids_1_3_0"
               ON "ontology_ids_1_3_0"."ontology_id" = "ontology_temporal_metadata_1_2_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "data_types_0_3_0"."schema"->>'title' = $2
-              AND "ontology_temporal_metadata_1_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND ("ontology_ids_1_3_0"."base_url" = $3) AND ("ontology_ids_1_3_0"."version" = $4)
             "#,
             &[
@@ -514,14 +514,14 @@ mod tests {
             r#"
             SELECT *
             FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
-            INNER JOIN "property_type_constrains_properties_on" AS "property_type_constrains_properties_on_0_1_0"
+            LEFT OUTER JOIN "property_type_constrains_properties_on" AS "property_type_constrains_properties_on_0_1_0"
               ON "property_type_constrains_properties_on_0_1_0"."source_property_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+            LEFT OUTER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
               ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "property_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
-            INNER JOIN "property_types" AS "property_types_0_3_0"
+             AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+            LEFT OUTER JOIN "property_types" AS "property_types_0_3_0"
               ON "property_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "property_types_0_3_0"."schema"->>'title' = $2
             "#,
             &[&pinned_timestamp, &"Text"],
@@ -555,15 +555,15 @@ mod tests {
             r#"
             SELECT *
             FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
-            INNER JOIN "entity_type_constrains_properties_on" AS "entity_type_constrains_properties_on_0_1_0"
+            LEFT OUTER JOIN "entity_type_constrains_properties_on" AS "entity_type_constrains_properties_on_0_1_0"
               ON "entity_type_constrains_properties_on_0_1_0"."source_entity_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+             AND "entity_type_constrains_properties_on_0_1_0"."inheritance_depth" <= 0
+            LEFT OUTER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
               ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "entity_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
-            INNER JOIN "property_types" AS "property_types_0_3_0"
+             AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+            LEFT OUTER JOIN "property_types" AS "property_types_0_3_0"
               ON "property_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_type_constrains_properties_on_0_1_0"."inheritance_depth" <= 0
-              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "property_types_0_3_0"."schema"->>'title' = $2
             "#,
             &[&pinned_timestamp, &"Name"],
@@ -604,21 +604,21 @@ mod tests {
             SELECT *
             FROM "ontology_temporal_metadata"
               AS "ontology_temporal_metadata_0_0_0"
-            INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_1_0"
+            LEFT OUTER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_1_0"
               ON "entity_type_constrains_links_on_0_1_0"."source_entity_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+             AND "entity_type_constrains_links_on_0_1_0"."inheritance_depth" <= 0
+            LEFT OUTER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
               ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "entity_type_constrains_links_on_0_1_0"."target_entity_type_ontology_id"
-            INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_3_0"
+             AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+            LEFT OUTER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_3_0"
               ON "entity_type_constrains_links_on_0_3_0"."source_entity_type_ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
-            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_0"
+             AND "entity_type_constrains_links_on_0_3_0"."inheritance_depth" <= 0
+            LEFT OUTER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_0"
               ON "ontology_temporal_metadata_0_4_0"."ontology_id" = "entity_type_constrains_links_on_0_3_0"."target_entity_type_ontology_id"
-            INNER JOIN "entity_types" AS "entity_types_0_5_0"
+             AND "ontology_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+            LEFT OUTER JOIN "entity_types" AS "entity_types_0_5_0"
               ON "entity_types_0_5_0"."ontology_id" = "ontology_temporal_metadata_0_4_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_type_constrains_links_on_0_1_0"."inheritance_depth" <= 0
-              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_type_constrains_links_on_0_3_0"."inheritance_depth" <= 0
-              AND "ontology_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_types_0_5_0"."schema"->>'title' = $2
             "#,
             &[&pinned_timestamp, &"Friend Of"],
@@ -655,15 +655,15 @@ mod tests {
             r#"
             SELECT *
             FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
-            INNER JOIN "entity_type_inherits_from" AS "entity_type_inherits_from_0_1_0"
+            LEFT OUTER JOIN "entity_type_inherits_from" AS "entity_type_inherits_from_0_1_0"
               ON "entity_type_inherits_from_0_1_0"."source_entity_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+             AND "entity_type_inherits_from_0_1_0"."depth" <= 0
+            LEFT OUTER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
               ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "entity_type_inherits_from_0_1_0"."target_entity_type_ontology_id"
-            INNER JOIN "ontology_ids" AS "ontology_ids_0_3_0"
+             AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+            LEFT OUTER JOIN "ontology_ids" AS "ontology_ids_0_3_0"
               ON "ontology_ids_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_type_inherits_from_0_1_0"."depth" <= 0
-              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "ontology_ids_0_3_0"."base_url" = $2
             "#,
             &[
@@ -872,24 +872,24 @@ mod tests {
             LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
               ON "entity_has_left_entity_0_1_0"."left_web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_has_left_entity_0_1_0"."left_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+            LEFT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
               ON "entity_temporal_metadata_0_2_0"."web_id" = "entity_has_left_entity_0_1_0"."web_id"
              AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."entity_uuid"
+             AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
+             AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+             AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
             LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_3_0"
               ON "entity_has_right_entity_0_3_0"."web_id" = "entity_temporal_metadata_0_2_0"."web_id"
              AND "entity_has_right_entity_0_3_0"."entity_uuid" = "entity_temporal_metadata_0_2_0"."entity_uuid"
-            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
+            LEFT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
               ON "entity_temporal_metadata_0_4_0"."web_id" = "entity_has_right_entity_0_3_0"."right_web_id"
              AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_right_entity_0_3_0"."right_entity_uuid"
+             AND "entity_temporal_metadata_0_4_0"."draft_id" IS NULL
+             AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+             AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
-              AND "entity_temporal_metadata_0_4_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
               AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
             "#,
             &[
@@ -933,24 +933,24 @@ mod tests {
             LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
               ON "entity_has_right_entity_0_1_0"."right_web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_has_right_entity_0_1_0"."right_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+            LEFT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
               ON "entity_temporal_metadata_0_2_0"."web_id" = "entity_has_right_entity_0_1_0"."web_id"
              AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_right_entity_0_1_0"."entity_uuid"
+             AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
+             AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+             AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
             LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_3_0"
               ON "entity_has_left_entity_0_3_0"."web_id" = "entity_temporal_metadata_0_2_0"."web_id"
              AND "entity_has_left_entity_0_3_0"."entity_uuid" = "entity_temporal_metadata_0_2_0"."entity_uuid"
-            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
+            LEFT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
               ON "entity_temporal_metadata_0_4_0"."web_id" = "entity_has_left_entity_0_3_0"."left_web_id"
              AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_left_entity_0_3_0"."left_entity_uuid"
+             AND "entity_temporal_metadata_0_4_0"."draft_id" IS NULL
+             AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+             AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
-              AND "entity_temporal_metadata_0_4_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
               AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
             "#,
             &[
@@ -1109,40 +1109,40 @@ mod tests {
             LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
               ON "entity_has_left_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_has_left_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+            LEFT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
               ON "entity_temporal_metadata_0_2_0"."web_id" = "entity_has_left_entity_0_1_0"."left_web_id"
              AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."left_entity_uuid"
-            INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_0"
+             AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
+             AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+             AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+            LEFT OUTER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_0"
               ON "entity_is_of_type_0_3_0"."entity_edition_id" = "entity_temporal_metadata_0_2_0"."entity_edition_id"
-            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_0"
+             AND "entity_is_of_type_0_3_0"."inheritance_depth" <= 0
+            LEFT OUTER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_0"
               ON "ontology_temporal_metadata_0_4_0"."ontology_id" = "entity_is_of_type_0_3_0"."entity_type_ontology_id"
-            INNER JOIN "ontology_ids" AS "ontology_ids_0_5_0"
+             AND "ontology_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+            LEFT OUTER JOIN "ontology_ids" AS "ontology_ids_0_5_0"
               ON "ontology_ids_0_5_0"."ontology_id" = "ontology_temporal_metadata_0_4_0"."ontology_id"
             LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
               ON "entity_has_right_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_1"
+            LEFT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_1"
               ON "entity_temporal_metadata_0_2_1"."web_id" = "entity_has_right_entity_0_1_0"."right_web_id"
              AND "entity_temporal_metadata_0_2_1"."entity_uuid" = "entity_has_right_entity_0_1_0"."right_entity_uuid"
-            INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_1"
+             AND "entity_temporal_metadata_0_2_1"."draft_id" IS NULL
+             AND "entity_temporal_metadata_0_2_1"."transaction_time" @> $1::TIMESTAMPTZ
+             AND "entity_temporal_metadata_0_2_1"."decision_time" && $2
+            LEFT OUTER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_1"
               ON "entity_is_of_type_0_3_1"."entity_edition_id" = "entity_temporal_metadata_0_2_1"."entity_edition_id"
-            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_1"
+             AND "entity_is_of_type_0_3_1"."inheritance_depth" <= 0
+            LEFT OUTER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_1"
               ON "ontology_temporal_metadata_0_4_1"."ontology_id" = "entity_is_of_type_0_3_1"."entity_type_ontology_id"
-            INNER JOIN "ontology_ids" AS "ontology_ids_0_5_1"
+             AND "ontology_temporal_metadata_0_4_1"."transaction_time" @> $1::TIMESTAMPTZ
+            LEFT OUTER JOIN "ontology_ids" AS "ontology_ids_0_5_1"
               ON "ontology_ids_0_5_1"."ontology_id" = "ontology_temporal_metadata_0_4_1"."ontology_id"
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
-              AND "entity_is_of_type_0_3_0"."inheritance_depth" <= 0
-              AND "ontology_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_2_1"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_2_1"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_2_1"."decision_time" && $2
-              AND "entity_is_of_type_0_3_1"."inheritance_depth" <= 0
-              AND "ontology_temporal_metadata_0_4_1"."transaction_time" @> $1::TIMESTAMPTZ
               AND ("ontology_ids_0_5_0"."base_url" = $3)
               AND ("ontology_ids_0_5_1"."base_url" = $4)
             "#,

@@ -105,21 +105,21 @@ impl ReferenceTable {
                     DataTypeInheritsFrom::SourceDataTypeOntologyId,
                     inheritance_depth,
                 ),
-                join_type: JoinType::Inner,
+                join_type: JoinType::LeftOuter,
             },
             Self::PropertyTypeConstrainsValuesOn => ForeignKeyReference::Single {
                 on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::PropertyTypeConstrainsValuesOn(
                     PropertyTypeConstrainsValuesOn::SourcePropertyTypeOntologyId,
                 ),
-                join_type: JoinType::Inner,
+                join_type: JoinType::LeftOuter,
             },
             Self::PropertyTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
                 on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::PropertyTypeConstrainsPropertiesOn(
                     PropertyTypeConstrainsPropertiesOn::SourcePropertyTypeOntologyId,
                 ),
-                join_type: JoinType::Inner,
+                join_type: JoinType::LeftOuter,
             },
             Self::EntityTypeConstrainsPropertiesOn { inheritance_depth } => {
                 ForeignKeyReference::Single {
@@ -128,7 +128,7 @@ impl ReferenceTable {
                         EntityTypeConstrainsPropertiesOn::SourceEntityTypeOntologyId,
                         inheritance_depth,
                     ),
-                    join_type: JoinType::Inner,
+                    join_type: JoinType::LeftOuter,
                 }
             }
             Self::EntityTypeInheritsFrom { inheritance_depth } => ForeignKeyReference::Single {
@@ -137,7 +137,7 @@ impl ReferenceTable {
                     EntityTypeInheritsFrom::SourceEntityTypeOntologyId,
                     inheritance_depth,
                 ),
-                join_type: JoinType::Inner,
+                join_type: JoinType::LeftOuter,
             },
             Self::EntityTypeConstrainsLinksOn { inheritance_depth } => {
                 ForeignKeyReference::Single {
@@ -146,7 +146,7 @@ impl ReferenceTable {
                         EntityTypeConstrainsLinksOn::SourceEntityTypeOntologyId,
                         inheritance_depth,
                     ),
-                    join_type: JoinType::Inner,
+                    join_type: JoinType::LeftOuter,
                 }
             }
             Self::EntityTypeConstrainsLinkDestinationsOn { inheritance_depth } => {
@@ -156,7 +156,7 @@ impl ReferenceTable {
                         EntityTypeConstrainsLinkDestinationsOn::SourceEntityTypeOntologyId,
                         inheritance_depth,
                     ),
-                    join_type: JoinType::Inner,
+                    join_type: JoinType::LeftOuter,
                 }
             }
             Self::EntityIsOfType { inheritance_depth } => ForeignKeyReference::Single {
@@ -197,21 +197,21 @@ impl ReferenceTable {
                     inheritance_depth,
                 ),
                 join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
-                join_type: JoinType::Inner,
+                join_type: JoinType::RightOuter,
             },
             Self::PropertyTypeConstrainsValuesOn => ForeignKeyReference::Single {
                 on: Column::PropertyTypeConstrainsValuesOn(
                     PropertyTypeConstrainsValuesOn::TargetDataTypeOntologyId,
                 ),
                 join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
-                join_type: JoinType::Inner,
+                join_type: JoinType::RightOuter,
             },
             Self::PropertyTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
                 on: Column::PropertyTypeConstrainsPropertiesOn(
                     PropertyTypeConstrainsPropertiesOn::TargetPropertyTypeOntologyId,
                 ),
                 join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
-                join_type: JoinType::Inner,
+                join_type: JoinType::RightOuter,
             },
             Self::EntityTypeConstrainsPropertiesOn { inheritance_depth } => {
                 ForeignKeyReference::Single {
@@ -220,7 +220,7 @@ impl ReferenceTable {
                         inheritance_depth,
                     ),
                     join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
-                    join_type: JoinType::Inner,
+                    join_type: JoinType::RightOuter,
                 }
             }
             Self::EntityTypeInheritsFrom { inheritance_depth } => ForeignKeyReference::Single {
@@ -229,7 +229,7 @@ impl ReferenceTable {
                     inheritance_depth,
                 ),
                 join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
-                join_type: JoinType::Inner,
+                join_type: JoinType::RightOuter,
             },
             Self::EntityTypeConstrainsLinksOn { inheritance_depth } => {
                 ForeignKeyReference::Single {
@@ -238,7 +238,7 @@ impl ReferenceTable {
                         inheritance_depth,
                     ),
                     join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
-                    join_type: JoinType::Inner,
+                    join_type: JoinType::RightOuter,
                 }
             }
             Self::EntityTypeConstrainsLinkDestinationsOn { inheritance_depth } => {
@@ -248,7 +248,7 @@ impl ReferenceTable {
                         inheritance_depth,
                     ),
                     join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
-                    join_type: JoinType::Inner,
+                    join_type: JoinType::RightOuter,
                 }
             }
             Self::EntityIsOfType { inheritance_depth } => ForeignKeyReference::Single {

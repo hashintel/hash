@@ -1,7 +1,7 @@
 use core::{fmt, fmt::Write as _};
 
 use crate::store::postgres::query::{
-    Alias, AliasedTable, Expression, SelectStatement, Transpile,
+    Alias, AliasedTable, Condition, Expression, SelectStatement, Transpile,
     table::{Column, ForeignKeyReference},
 };
 
@@ -55,6 +55,7 @@ pub struct JoinExpression {
     pub table: AliasedTable,
     pub on_alias: Alias,
     pub on: Vec<JoinOn>,
+    pub additional_conditions: Vec<Condition>,
 }
 
 impl JoinExpression {
@@ -74,6 +75,7 @@ impl JoinExpression {
                 statement: None,
                 on_alias,
                 on: vec![JoinOn { join, on }],
+                additional_conditions: Vec::new(),
             },
             ForeignKeyReference::Double {
                 join: [join1, join2],
@@ -94,6 +96,7 @@ impl JoinExpression {
                         on: on2,
                     },
                 ],
+                additional_conditions: Vec::new(),
             },
         }
     }
@@ -128,6 +131,10 @@ impl Transpile for JoinExpression {
                 table_alias: Some(self.on_alias),
             }
             .transpile(fmt)?;
+        }
+        for condition in &self.additional_conditions {
+            fmt.write_str(" AND ")?;
+            condition.transpile(fmt)?;
         }
         Ok(())
     }
