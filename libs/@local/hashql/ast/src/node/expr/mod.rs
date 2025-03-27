@@ -1,3 +1,29 @@
+//! Expression nodes for the HashQL Abstract Syntax Tree.
+//!
+//! This module defines all expression types used in HashQL, a side-effect free, purely
+//! functional programming language for querying bi-temporal graphs. The expressions are
+//! organized into a hierarchy, with [`Expr`] at the root containing various specific
+//! expression kinds represented by the [`ExprKind`] enum.
+//!
+//! # Special Forms
+//!
+//! Several expression kinds (`Let`, `Use`, `Input`, `Closure`, `If`, `Field`, `Index`) are
+//! implemented as "special forms". Initially, these are parsed as ordinary function calls into the
+//! AST. During a subsequent AST transformation phase, these function calls are recognized by their
+//! names and expanded into their corresponding specialized AST nodes. For example, a `let`
+//! function call is transformed into a dedicated [`LetExpr`] structure in the AST after parsing.
+//!
+//! # Memory Management
+//!
+//! The AST is designed to work with arena allocation through the `'heap` lifetime,
+//! which references the memory region where nodes are allocated. This approach
+//! improves performance by minimizing allocations and deallocations during parsing
+//! and evaluation.
+//!
+//! Unlike other steps, in which the AST is interned in a "real" arena allocator, the AST is using
+//! `Box` to manage memory instead. This is important as some of the steps in the AST require that
+//! we do not deduplicate nodes yet. This makes each node in the tree larger, but also has the
+//! side-effect of easier access of the tree.
 pub mod call;
 pub mod closure;
 pub mod dict;
@@ -15,15 +41,13 @@ pub mod r#use;
 use hashql_core::span::SpanId;
 
 pub use self::{
-    call::CallExpr, dict::DictExpr, list::ListExpr, literal::LiteralExpr, r#struct::StructExpr,
-    tuple::TupleExpr,
-};
-use self::{
-    closure::ClosureExpr, field::FieldExpr, r#if::IfExpr, index::IndexExpr, input::InputExpr,
-    r#let::LetExpr, r#use::UseExpr,
+    call::CallExpr, closure::ClosureExpr, dict::DictExpr, field::FieldExpr, r#if::IfExpr,
+    index::IndexExpr, input::InputExpr, r#let::LetExpr, list::ListExpr, literal::LiteralExpr,
+    r#struct::StructExpr, tuple::TupleExpr, r#use::UseExpr,
 };
 use super::{id::NodeId, path::Path};
 
+/// Represents the different kinds of expressions in HashQL.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExprKind<'heap> {
     /// A function call expression.
@@ -33,9 +57,10 @@ pub enum ExprKind<'heap> {
     /// # Examples
     ///
     /// ```json
-    /// ["function", "arg1", "arg2", {":arg3": "arg3"}, {":arg4": "arg4"}]
+    /// ["function", ...<args>, ...<kwargs>]
     /// ```
     Call(CallExpr<'heap>),
+
     /// A struct instantiation expression.
     ///
     /// Creates a new anonymous struct instance with the specified fields.
@@ -46,6 +71,7 @@ pub enum ExprKind<'heap> {
     /// {"#struct": {"field1": "value1", "field2": "value2"}}
     /// ```
     Struct(StructExpr<'heap>),
+
     /// A dictionary expression.
     ///
     /// Creates a dictionary with key-value pairs.
@@ -56,6 +82,7 @@ pub enum ExprKind<'heap> {
     /// {"#dict": {"key1": "value1", "key2": "value2"}}
     /// ```
     Dict(DictExpr<'heap>),
+
     /// A tuple expression.
     ///
     /// Creates a tuple with multiple values.
@@ -66,6 +93,7 @@ pub enum ExprKind<'heap> {
     /// {"#tuple": ["value1", "value2", "value3"]}
     /// ```
     Tuple(TupleExpr<'heap>),
+
     /// A list expression.
     ///
     /// Creates a list containing multiple elements.
@@ -76,6 +104,7 @@ pub enum ExprKind<'heap> {
     /// {"#list": ["value1", "value2", "value3"]}
     /// ```
     List(ListExpr<'heap>),
+
     /// A literal expression.
     ///
     /// Represents a constant value like a number, string, or boolean.
@@ -89,6 +118,7 @@ pub enum ExprKind<'heap> {
     /// {"#literal": null}
     /// ```
     Literal(LiteralExpr<'heap>),
+
     /// A variable reference expression.
     ///
     /// References a variable or qualified path in the scope.
@@ -97,21 +127,104 @@ pub enum ExprKind<'heap> {
     ///
     /// ```json
     /// "graph::user::name"
+    /// "graph::user::<A, B>"
     /// ```
     Path(Path<'heap>),
 
-    // Special Forms (expanded from normal function calls
+    /// A `let` binding expression (special form).
+    ///
+    /// Binds a value to a name within a scope. This is expanded from a function call
+    /// during AST transformation.
+    ///
+    /// # Examples
+    ///
+    /// ```json
+    /// ["let", <name>, <value>, <body>] // let name = value in body
+    /// ```
     Let(LetExpr<'heap>),
+
+    /// A module import expression (special form).
+    ///
+    /// Imports symbols from another module into the current scope. This is expanded
+    /// from a function call during AST transformation.
+    ///
+    /// ```json
+    /// ["use", <path>, {"#struct": {"alice": "bob"}}] // use <path>::{alice as bob}
+    /// ```
     Use(UseExpr<'heap>),
+
+    /// An input parameter declaration (special form).
+    ///
+    /// Declares an input parameter for a function or query. This is expanded
+    /// from a function call during AST transformation.
+    ///
+    /// In effectful languages these are often called the context or requirement of a parameter.
+    ///
+    /// ## Examples
+    ///
+    /// ```json
+    /// ["input", <name>, <type>, <default>] // input name: type = default
+    /// ```
     Input(InputExpr<'heap>),
+
+    /// A closure expression (special form).
+    ///
+    /// Defines an anonymous function. This is expanded from a function call
+    /// during AST transformation.
+    ///
+    /// ## Examples
+    ///
+    /// ```json
+    /// ["fn", <generics>, <params>, <body>] // fn<generics>(params) => body
+    /// ```
     Closure(ClosureExpr<'heap>),
+
+    /// A conditional expression (special form).
+    ///
+    /// Evaluates a condition and returns one of two expressions based on the result.
+    /// This is expanded from a function call during AST transformation.
+    ///
+    /// ## Examples
+    ///
+    /// ```json
+    /// ["if", <condition>, <then>, <else>] // if condition => then else
+    /// ```
     If(IfExpr<'heap>),
+
+    /// A field access expression (special form).
+    ///
+    /// Accesses a field of a struct or object. This is expanded from a function call
+    /// during AST transformation.
+    ///
+    /// ## Examples
+    ///
+    /// ```json
+    /// "object.field"
+    /// [".", <value>, <field>]
+    /// ```
     Field(FieldExpr<'heap>),
+
+    /// An indexing expression (special form).
+    ///
+    /// Accesses an element of a collection by index. This is expanded from a function call
+    /// during AST transformation.
+    ///
+    /// ## Examples
+    ///
+    /// ```json
+    /// "array[index]"
+    /// ["[]", <value>, <index>]
+    /// ```
     Index(IndexExpr<'heap>),
     // potentially relevant in the future: Ignore (for destructuring assignment, e.g. `_`)
 }
 
-/// An expression node in the CST.
+/// An expression node in the HashQL Abstract Syntax Tree.
+///
+/// The `Expr` struct is the fundamental building block of the HashQL AST.
+/// It represents any kind of expression in the language and can be composed
+/// to form complex expressions. Every expression is allocated on a heap
+/// referenced by the `'heap` lifetime.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Expr<'heap> {
     pub id: NodeId,

@@ -13,6 +13,7 @@ pub struct InputExpr<'heap> {
 
     pub name: Ident,
     pub r#type: Option<heap::Box<'heap, Type<'heap>>>,
+    pub default: Option<heap::Box<'heap, Expr<'heap>>>,
 
     pub body: heap::Box<'heap, Expr<'heap>>,
 }
