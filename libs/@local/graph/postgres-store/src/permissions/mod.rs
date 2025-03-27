@@ -410,8 +410,8 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     pub async fn create_subteam(
         &mut self,
         id: Option<Uuid>,
-        parent_id: StandaloneTeamId,
-    ) -> Result<StandaloneTeamId, Report<PrincipalError>> {
+        parent_id: TeamId,
+    ) -> Result<SubteamId, Report<PrincipalError>> {
         let id = id.unwrap_or_else(Uuid::new_v4);
         let transaction = self
             .as_mut_client()
@@ -439,7 +439,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .await
             .change_context(PrincipalError::StoreError)?;
 
-        Ok(StandaloneTeamId::new(id))
+        Ok(SubteamId::new(id))
     }
 
     /// Checks if a subteam with the given ID exists.
@@ -449,7 +449,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     /// - [`StoreError`] if a database error occurs
     ///
     /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn is_subteam(&self, id: StandaloneTeamId) -> Result<bool, Report<PrincipalError>> {
+    pub async fn is_subteam(&self, id: SubteamId) -> Result<bool, Report<PrincipalError>> {
         let row = self
             .as_client()
             .query_one(
@@ -471,17 +471,14 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     ///
     /// [`SubteamNotFound`]: PrincipalError::SubteamNotFound
     /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn get_subteam(
-        &self,
-        id: StandaloneTeamId,
-    ) -> Result<StandaloneTeamId, Report<PrincipalError>> {
+    pub async fn get_subteam(&self, id: SubteamId) -> Result<SubteamId, Report<PrincipalError>> {
         let row = self
             .as_client()
             .query_one("SELECT id FROM subteam WHERE id = $1", &[id.as_uuid()])
             .await
             .change_context(PrincipalError::StoreError)?;
 
-        Ok(StandaloneTeamId::new(row.get(0)))
+        Ok(SubteamId::new(row.get(0)))
     }
 
     /// Gets all parents of a subteam.
@@ -635,10 +632,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     ///
     /// [`SubteamNotFound`]: PrincipalError::SubteamNotFound
     /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn delete_subteam(
-        &mut self,
-        id: StandaloneTeamId,
-    ) -> Result<(), Report<PrincipalError>> {
+    pub async fn delete_subteam(&mut self, id: SubteamId) -> Result<(), Report<PrincipalError>> {
         let num_deleted = self
             .as_mut_client()
             .execute(
@@ -649,12 +643,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .change_context(PrincipalError::StoreError)
             .attach_printable("Failed to execute delete query")?;
 
-        ensure!(
-            num_deleted > 0,
-            PrincipalError::SubteamNotFound {
-                id: SubteamId::new(*id.as_uuid())
-            }
-        );
+        ensure!(num_deleted > 0, PrincipalError::SubteamNotFound { id });
 
         Ok(())
     }

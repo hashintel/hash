@@ -108,7 +108,9 @@ async fn create_subteam() -> Result<(), Box<dyn Error>> {
     let mut transaction = db.transaction().await?;
 
     let parent_team_id = transaction.create_standalone_team(None).await?;
-    let subteam_id = transaction.create_subteam(None, parent_team_id).await?;
+    let subteam_id = transaction
+        .create_subteam(None, TeamId::Standalone(parent_team_id))
+        .await?;
     assert!(transaction.is_subteam(subteam_id).await?);
 
     let parents = transaction
@@ -135,7 +137,9 @@ async fn create_subteam_with_id() -> Result<(), Box<dyn Error>> {
 
     let parent_team_id = transaction.create_standalone_team(None).await?;
     let id = Uuid::new_v4();
-    let subteam_id = transaction.create_subteam(Some(id), parent_team_id).await?;
+    let subteam_id = transaction
+        .create_subteam(Some(id), TeamId::Standalone(parent_team_id))
+        .await?;
 
     assert_eq!(*subteam_id.as_uuid(), id);
     assert!(transaction.is_subteam(subteam_id).await?);
@@ -149,8 +153,12 @@ async fn test_team_hierarchy() -> Result<(), Box<dyn Error>> {
     let mut transaction = db.transaction().await?;
 
     let parent_team_id = transaction.create_standalone_team(None).await?;
-    let subteam_id1 = transaction.create_subteam(None, parent_team_id).await?;
-    let subteam_id2 = transaction.create_subteam(None, parent_team_id).await?;
+    let subteam_id1 = transaction
+        .create_subteam(None, TeamId::Standalone(parent_team_id))
+        .await?;
+    let subteam_id2 = transaction
+        .create_subteam(None, TeamId::Standalone(parent_team_id))
+        .await?;
 
     let children = transaction
         .get_team_children(TeamId::Standalone(parent_team_id))
@@ -210,7 +218,9 @@ async fn delete_subteam() -> Result<(), Box<dyn Error>> {
     let mut transaction = db.transaction().await?;
 
     let parent_team_id = transaction.create_standalone_team(None).await?;
-    let subteam_id = transaction.create_subteam(None, parent_team_id).await?;
+    let subteam_id = transaction
+        .create_subteam(None, TeamId::Standalone(parent_team_id))
+        .await?;
     assert!(transaction.is_subteam(subteam_id).await?);
 
     transaction.delete_subteam(subteam_id).await?;
