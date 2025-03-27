@@ -783,7 +783,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@modelcontextprotocol/sdk": "npm:1.7.0"
+    "@modelcontextprotocol/sdk": "npm:1.8.0"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/node": "npm:22.13.13"
     chokidar-cli: "npm:3.0.0"
@@ -806,7 +806,7 @@ __metadata:
   dependencies:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@modelcontextprotocol/sdk": "npm:1.7.0"
+    "@modelcontextprotocol/sdk": "npm:1.8.0"
     "@notionhq/client": "npm:2.3.0"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/node": "npm:22.13.13"
@@ -9196,12 +9196,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@modelcontextprotocol/sdk@npm:1.7.0"
+"@modelcontextprotocol/sdk@npm:1.8.0":
+  version: 1.8.0
+  resolution: "@modelcontextprotocol/sdk@npm:1.8.0"
   dependencies:
     content-type: "npm:^1.0.5"
     cors: "npm:^2.8.5"
+    cross-spawn: "npm:^7.0.3"
     eventsource: "npm:^3.0.2"
     express: "npm:^5.0.1"
     express-rate-limit: "npm:^7.5.0"
@@ -9209,7 +9210,7 @@ __metadata:
     raw-body: "npm:^3.0.0"
     zod: "npm:^3.23.8"
     zod-to-json-schema: "npm:^3.24.1"
-  checksum: 10c0/8d2bc586e5d8d9d2ffd927700a7eeb0ae0e24e63cc139283d74dd380e17cde14e252ec2e8f9edcfa4359e4b7b68ca2d4b01d1b341dd715b10d74566f9e34c1ca
+  checksum: 10c0/aa453697a9be5e431bc473508654cc77887b35125366c9ec81815d9302872baf708332694c1d5a7ff7d06ac4c22d8446667c24caba78c505f643990b17d95820
   languageName: node
   linkType: hard
 
