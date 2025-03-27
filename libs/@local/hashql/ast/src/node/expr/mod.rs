@@ -1,15 +1,26 @@
 pub mod call;
+pub mod closure;
 pub mod dict;
+pub mod field;
+pub mod r#if;
+pub mod index;
+pub mod input;
+pub mod r#let;
 pub mod list;
 pub mod literal;
 pub mod r#struct;
 pub mod tuple;
+pub mod r#use;
 
 use hashql_core::span::SpanId;
 
 pub use self::{
     call::CallExpr, dict::DictExpr, list::ListExpr, literal::LiteralExpr, r#struct::StructExpr,
     tuple::TupleExpr,
+};
+use self::{
+    closure::ClosureExpr, field::FieldExpr, r#if::IfExpr, index::IndexExpr, input::InputExpr,
+    r#let::LetExpr, r#use::UseExpr,
 };
 use super::{id::NodeId, path::Path};
 
@@ -88,6 +99,16 @@ pub enum ExprKind<'heap> {
     /// "graph::user::name"
     /// ```
     Path(Path<'heap>),
+
+    // Special Forms (expanded from normal function calls
+    Let(LetExpr<'heap>),
+    Use(UseExpr<'heap>),
+    Input(InputExpr<'heap>),
+    Closure(ClosureExpr<'heap>),
+    If(IfExpr<'heap>),
+    Field(FieldExpr<'heap>),
+    Index(IndexExpr<'heap>),
+    // potentially relevant in the future: Ignore (for destructuring assignment, e.g. `_`)
 }
 
 /// An expression node in the CST.
