@@ -12671,7 +12671,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-migrations@workspace:libs/@local/graph/migrations":
+"@rust/hash-graph-migrations@npm:0.0.0-private, @rust/hash-graph-migrations@workspace:libs/@local/graph/migrations":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-migrations@workspace:libs/@local/graph/migrations"
   dependencies:
@@ -12689,12 +12689,14 @@ __metadata:
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
+    "@rust/hash-graph-migrations": "npm:0.0.0-private"
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hash-graph-types": "npm:0.0.0-private"
     "@rust/hash-graph-validation": "npm:0.0.0-private"
     "@rust/hash-status": "npm:0.0.0-private"
     "@rust/hash-temporal-client": "npm:0.0.0-private"
+    "@rust/hash-tracing": "npm:0.0.0-private"
     tsx: "npm:4.19.3"
   languageName: unknown
   linkType: soft

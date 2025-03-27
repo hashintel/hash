@@ -2,7 +2,7 @@ use core::error::Error;
 
 use type_system::web::OwnedById;
 
-use crate::policies::principal::{ActorId, role::RoleId, team::TeamId, web::WebTeamId};
+use crate::policies::principal::{ActorId, role::RoleId, team::StandaloneTeamId, web::WebTeamId};
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create actor: {_variant}")]
@@ -50,7 +50,7 @@ impl Error for TeamCreationError {}
 #[display("Could not create team role: {_variant}")]
 pub enum TeamRoleCreationError {
     #[display("Team with ID `{team_id}` does not exist")]
-    TeamNotFound { team_id: TeamId },
+    TeamNotFound { team_id: StandaloneTeamId },
     #[display("Store operation failed")]
     StoreError,
 }
