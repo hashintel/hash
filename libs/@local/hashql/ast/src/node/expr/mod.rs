@@ -24,6 +24,12 @@
 //! `Box` to manage memory instead. This is important as some of the steps in the AST require that
 //! we do not deduplicate nodes yet. This makes each node in the tree larger, but also has the
 //! side-effect of easier access of the tree.
+//!
+//! # Node Identification and Source Location
+//!
+//! Each expression node has a unique identifier (`id`) that can be used to track the node through
+//! various processing stages. Additionally, nodes carry a span identifier (`span`) that points to
+//! the location of the expression in the source code, facilitating error reporting and debugging.
 pub mod call;
 pub mod closure;
 pub mod dict;
@@ -225,6 +231,10 @@ pub enum ExprKind<'heap> {
 /// It represents any kind of expression in the language and can be composed
 /// to form complex expressions. Every expression is allocated on a heap
 /// referenced by the `'heap` lifetime.
+///
+/// Each expression has a unique identifier and a span that points to its
+/// location in the source code, which are crucial for error reporting,
+/// debugging, and tracking nodes through transformation phases.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Expr<'heap> {
     pub id: NodeId,
