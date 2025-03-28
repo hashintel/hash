@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 
+use hashql_core::span::{SpanId, storage::SpanStorage};
 use hashql_diagnostics::Diagnostic;
-use hashql_span::{SpanId, storage::SpanStorage};
 use logos::SpannedIter;
 use text_size::{TextRange, TextSize};
 
@@ -103,8 +103,8 @@ impl<'source> Iterator for Lexer<'source> {
 mod test {
     use core::fmt::Write as _;
 
+    use hashql_core::span::storage::SpanStorage;
     use hashql_diagnostics::{config::ReportConfig, span::DiagnosticSpan};
-    use hashql_span::storage::SpanStorage;
     use insta::assert_snapshot;
 
     use super::Lexer;

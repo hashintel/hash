@@ -1,5 +1,6 @@
 use alloc::{borrow::Cow, sync::Arc};
 
+use hashql_core::span::SpanId;
 use hashql_diagnostics::{
     Diagnostic,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -7,7 +8,6 @@ use hashql_diagnostics::{
     label::Label,
     severity::Severity,
 };
-use hashql_span::SpanId;
 use text_size::TextRange;
 
 const INVALID_STRING: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
