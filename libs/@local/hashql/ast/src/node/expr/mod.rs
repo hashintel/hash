@@ -31,7 +31,7 @@
 //! various processing stages. Additionally, nodes carry a span identifier (`span`) that points to
 //! the location of the expression in the source code, facilitating error reporting and debugging.
 //!
-//! # Frontends
+//! # Frontend
 //!
 //! While the AST itself is frontend-independent, the examples shown in this documentation use
 //! `JExpr`, which is a JSON-based syntax for HashQL. Other frontends may be added in the future,
@@ -95,7 +95,7 @@ pub enum ExprKind<'heap> {
     /// A struct instantiation expression.
     ///
     /// Creates a new anonymous struct instance with the specified fields.
-    /// In `HashQL`, structs are heterogeneous collections of named fields with associated values.
+    /// In HashQL, structs are heterogeneous collections of named fields with associated values.
     ///
     /// # Examples
     ///
@@ -135,7 +135,7 @@ pub enum ExprKind<'heap> {
 
     /// A tuple expression.
     ///
-    /// Creates a tuple with multiple values. Tuples in `HashQL` are
+    /// Creates a tuple with multiple values. Tuples in HashQL are
     /// fixed-size heterogeneous collections accessed by position.
     ///
     /// # Examples
@@ -155,7 +155,7 @@ pub enum ExprKind<'heap> {
 
     /// A list expression.
     ///
-    /// Creates a list containing multiple elements. Lists in `HashQL` are
+    /// Creates a list containing multiple elements. Lists in HashQL are
     /// homogeneous collections of values that can be accessed by index.
     ///
     /// # Examples
@@ -319,7 +319,7 @@ pub enum ExprKind<'heap> {
     /// An input parameter declaration (special form).
     ///
     /// Declares an input parameter for a function or query. This is expanded
-    /// from a function call during AST transformation. In `HashQL`, inputs
+    /// from a function call during AST transformation. In HashQL, inputs
     /// represent the external values that can be provided to a query.
     ///
     /// In effectful languages these are often called the context or requirements.
@@ -344,7 +344,7 @@ pub enum ExprKind<'heap> {
     /// A closure expression (special form).
     ///
     /// Defines an anonymous function. This is expanded from a function call
-    /// during AST transformation. In `HashQL`, closures can capture variables
+    /// during AST transformation. In HashQL, closures can capture variables
     /// from their surrounding scope.
     ///
     /// # Examples
@@ -415,7 +415,7 @@ pub enum ExprKind<'heap> {
     ///
     /// Accesses an element of a collection by index. This is expanded from a function call
     /// during AST transformation. Indexing works with lists, tuples, structs, dictionaries and
-    /// other indexed collections in `HashQL`.
+    /// other indexed collections in HashQL.
     ///
     /// # Examples
     ///
