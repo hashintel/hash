@@ -14,9 +14,7 @@ pub struct StructEntry<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    /// The expression representing the key of this entry.
-    pub key: Ident,
-    /// The expression representing the value of this entry.
+    pub key: Ident, // what if we make `BaseUrl` a valid identifier?
     pub value: heap::Box<'heap, Expr<'heap>>,
 }
 

@@ -441,12 +441,14 @@ pub enum ExprKind<'heap> {
     /// ```json
     /// ["[]", "items", 0]
     /// ["items[0]"]
+    /// ["matrix[i][j]"]
     /// ```
     ///
     /// ## Documentation Format
     ///
     /// ```text
     /// items[0]
+    /// matrix[i][j]
     /// ```
     Index(IndexExpr<'heap>),
     // potentially relevant in the future: Ignore (for destructuring assignment, e.g. `_`)
