@@ -25,11 +25,17 @@ const INVALID_CHARACTER: TerminalDiagnosticCategory = TerminalDiagnosticCategory
     name: "Invalid Character",
 };
 
+const INVALID_UTF8: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-utf8",
+    name: "Invalid UTF-8 Sequence",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum LexerDiagnosticCategory {
     InvalidString,
     InvalidNumber,
     InvalidCharacter,
+    InvalidUtf8,
 }
 
 impl DiagnosticCategory for LexerDiagnosticCategory {
@@ -46,6 +52,7 @@ impl DiagnosticCategory for LexerDiagnosticCategory {
             Self::InvalidString => Some(&INVALID_STRING),
             Self::InvalidNumber => Some(&INVALID_NUMBER),
             Self::InvalidCharacter => Some(&INVALID_CHARACTER),
+            Self::InvalidUtf8 => Some(&INVALID_UTF8),
         }
     }
 }
@@ -109,6 +116,16 @@ pub(crate) fn from_unrecognized_character_error(
     diagnostic
         .labels
         .push(Label::new(span, Cow::Borrowed("Unrecognized character")));
+
+    diagnostic
+}
+
+pub(crate) fn from_invalid_utf8_error(span: SpanId) -> Diagnostic<LexerDiagnosticCategory, SpanId> {
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidUtf8, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, Cow::Borrowed("Invalid UTF-8 sequence")));
 
     diagnostic
 }

@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Family emoji with zero-width joiners
+expression: 👨‍👩‍👧‍👦
+---
+[31m[lexer::invalid-character] Error:[0m Lexer
+   ╭─[ <unknown>:1:1 ]
+   │
+ 1 │ 👨‍👩‍👧‍👦
+   │ ┬─  
+   │ ╰─── Unrecognized character
+───╯

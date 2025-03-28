@@ -8,7 +8,7 @@ use text_size::{TextRange, TextSize};
 use self::{
     error::{
         LexerDiagnosticCategory, LexerError, from_hifijson_num_error, from_hifijson_str_error,
-        from_unrecognized_character_error,
+        from_invalid_utf8_error, from_unrecognized_character_error,
     },
     token::Token,
     token_kind::TokenKind,
@@ -83,8 +83,41 @@ impl<'source> Lexer<'source> {
                 Some(Err(from_hifijson_str_error(&error, span)))
             }
             Err(LexerError::UnrecognizedCharacter) => {
-                let span = self.spans.insert(Span::new(span));
+                // we need to make sure that we're not inside of a unicode character
+                // The current slice is always a byte long, if we error out.
+                let current = self.inner.slice();
 
+                let first_byte = current[0];
+
+                // Determine UTF-8 sequence length from the leading byte
+                let expected_len = if first_byte & 0x80 == 0 {
+                    // ASCII character (0xxxxxxx)
+                    1
+                } else if first_byte & 0xE0 == 0xC0 {
+                    // 2-byte sequence (110xxxxx)
+                    2
+                } else if first_byte & 0xF0 == 0xE0 {
+                    // 3-byte sequence (1110xxxx)
+                    3
+                } else if first_byte & 0xF8 == 0xF0 {
+                    // 4-byte sequence (11110xxx)
+                    4
+                } else {
+                    // Invalid UTF-8 sequence
+                    let span = self.spans.insert(Span::new(span));
+                    return Some(Err(from_invalid_utf8_error(span)));
+                };
+
+                // Create a span that covers the entire sequence
+                let span =
+                    TextRange::new(span.start(), span.start() + TextSize::from(expected_len));
+
+                // make sure that the when advancing the parser we do not error out the next token
+                let length = self.inner.remainder().len();
+                self.inner
+                    .bump(usize::min((expected_len as usize) - 1, length));
+
+                let span = self.spans.insert(Span::new(span));
                 Some(Err(from_unrecognized_character_error(span)))
             }
         }
@@ -103,7 +136,6 @@ impl<'source> Iterator for Lexer<'source> {
 mod test {
     #![expect(clippy::non_ascii_literal)]
     use alloc::sync::Arc;
-    use core::fmt::Write as _;
 
     use hashql_core::span::{SpanId, storage::SpanStorage};
     use hashql_diagnostics::{Diagnostic, config::ReportConfig, span::DiagnosticSpan};
@@ -294,10 +326,26 @@ mod test {
         control_char_null("\"hello\u{0000}world\"") => "String with null control character",
         control_char_tab_inside_quotes("\"\thello\"") => "Tab character inside quotes",
         control_char_newline_inside_quotes("\"\nhello\"") => "Newline character inside quotes",
+
+        // Emoji tests - single emoji characters
+        emoji_simple("😀") => "Simple emoji (4 bytes)",
+        emoji_crab("🦀") => "Crab emoji (4 bytes)",
+        emoji_rocket("🚀") => "Rocket emoji (4 bytes)",
+        emoji_flag("🇺🇸") => "Flag emoji (multiple bytes)",
+
+        // Complex emoji sequences
+        emoji_family("👨‍👩‍👧‍👦") => "Family emoji with zero-width joiners",
+        emoji_scientist("👩🏾‍🔬") => "Emoji with skin tone modifier and profession",
+        emoji_variation("❤️") => "Emoji with variation selector",
+
+        // Multi-character Unicode sequences
+        emoji_sequence("🚀🦀💻") => "Multiple emoji characters in sequence",
+        japanese_text("こんにちは") => "Multiple Japanese characters",
+        mixed_characters("あa三b") => "Mix of single and multi-byte characters",
     }
 
     #[test]
-    fn test_lexer_span_range() {
+    fn lexer_span_range() {
         let source = r#"{"key": 42}"#;
         let storage = SpanStorage::new();
         let mut lexer = Lexer::new(source.as_bytes(), storage);
@@ -335,7 +383,7 @@ mod test {
     }
 
     #[test]
-    fn test_iterator_implementation() {
+    fn iterator_implementation() {
         let source = "[1, 2, 3]";
         let storage = SpanStorage::new();
         let lexer = Lexer::new(source.as_bytes(), storage);
@@ -348,7 +396,7 @@ mod test {
     }
 
     #[test]
-    fn test_custom_error_handling() {
+    fn custom_error_handling() {
         let source = r#"{"key": 42.}"#;
         let spans = Arc::new(SpanStorage::new());
         let result = parse(source, Arc::clone(&spans));
@@ -362,6 +410,50 @@ mod test {
                 "Expected InvalidNumber error, got {:?}",
                 diagnostic.category
             ),
+        }
+    }
+
+    #[test]
+    fn invalid_utf8_sequences() {
+        // We need to create some invalid UTF-8 sequences - this requires unsafe code
+        // or preparing binary data. Since this is a test, we'll use a controlled approach:
+
+        let invalid_sequences: [&[u8]; 8] = [
+            // Construct byte sequences for testing
+            &[0xC0, 0x80],             // Overlong encoding of NUL character
+            &[0xE0, 0x80, 0x80],       // Overlong encoding of NUL character
+            &[0xF0, 0x80, 0x80, 0x80], // Overlong encoding of NUL character
+            &[0xC0],                   // Incomplete 2-byte sequence
+            &[0xE0, 0x80],             // Incomplete 3-byte sequence
+            &[0xF0, 0x80, 0x80],       // Incomplete 4-byte sequence
+            &[0xF8],                   // Invalid leading byte
+            &[0xFF],                   // Invalid leading byte
+        ];
+
+        for bytes in invalid_sequences {
+            // Create a storage for spans
+            let storage = Arc::new(SpanStorage::new());
+
+            // Create a lexer directly from the bytes
+            let mut lexer = Lexer::new(bytes, Arc::clone(&storage));
+
+            // Get the first token
+            let result = lexer.next();
+
+            let diagnostic = result
+                .expect("Lexer should produce a result for invalid UTF-8")
+                .expect_err("Invalid UTF-8 should produce an error");
+
+            // For invalid UTF-8 we expect either InvalidCharacter or InvalidUtf8
+            assert!(
+                matches!(
+                    diagnostic.category,
+                    LexerDiagnosticCategory::InvalidCharacter
+                        | LexerDiagnosticCategory::InvalidUtf8
+                ),
+                "Expected InvalidCharacter or InvalidUtf8 error, got {:?}",
+                diagnostic.category
+            );
         }
     }
 }
