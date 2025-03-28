@@ -202,7 +202,7 @@ const migrate: MigrationFunction = async ({
           blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
         properties: [
           {
-            propertyType: blockProtocolPropertyTypes.fileName.propertyTypeId,
+            propertyType: blockProtocolPropertyTypes.fileUrl.propertyTypeId,
             required: true,
           },
           {

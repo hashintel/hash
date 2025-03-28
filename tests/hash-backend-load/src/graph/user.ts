@@ -1,7 +1,7 @@
 import {
   type ActorId,
   extractOwnedByIdFromEntityId,
-} from "@blockprotocol/type-system/*";
+} from "@blockprotocol/type-system";
 import type { GetEntitiesRequest } from "@local/hash-graph-client/api";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
