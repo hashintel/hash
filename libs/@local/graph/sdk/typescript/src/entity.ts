@@ -466,6 +466,7 @@ export const mergePropertyObjectAndMetadata = <
   return {
     value: Object.fromEntries(
       Object.entries(property)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
         .filter(([_key, value]) => value !== undefined)
         .map(([key, value]) => {
           if (!isBaseUrl(key)) {

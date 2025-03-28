@@ -30,6 +30,10 @@ import type {
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import type {
+  EntityTypeAuthorizationRelationship,
+  EntityTypeRelationAndSubjectBranded,
+} from "@local/hash-graph-sdk/branded-authorization";
+import type {
   ClosedEntityTypeWithMetadata,
   EntityTypeResolveDefinitions,
 } from "@local/hash-graph-types/ontology";
@@ -58,13 +62,10 @@ export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
   graphApi
     .getEntityTypeAuthorizationRelationships(actorId, params.entityTypeId)
     .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: { kind: "entityType", resourceId: params.entityTypeId },
-            ...relationship,
-          }) as EntityTypeAuthorizationRelationship,
-      ),
+      data.map((relationship) => ({
+        resource: { kind: "entityType", resourceId: params.entityTypeId },
+        ...(relationship as EntityTypeRelationAndSubjectBranded),
+      })),
     );
 
 export const modifyEntityTypeAuthorizationRelationships: ImpureGraphFunction<

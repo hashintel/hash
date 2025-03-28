@@ -309,7 +309,7 @@ export const getDataTypeAuthorizationRelationships: ImpureGraphFunction<
     .then(({ data }) =>
       data.map((relationship) => ({
         resource: { kind: "dataType", resourceId: params.dataTypeId },
-        ...relationship,
+        ...(relationship as DataTypeRelationAndSubjectBranded),
       })),
     );
 

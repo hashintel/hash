@@ -6,6 +6,7 @@ import type {
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphEdgeKind,
+  KnowledgeGraphRootedEdges,
   Subgraph,
 } from "@blockprotocol/graph";
 import {
@@ -171,10 +172,9 @@ const edgesEquals = (
   }
 
   return edges.every(({ source, edges: outwardEdges }) => {
-    const subgraphEdge =
-      subgraph.edges[source.metadata.recordId.entityId]![
-        source.metadata.temporalVersioning.decisionTime.start.limit
-      ]!;
+    const subgraphEdge = (subgraph.edges as KnowledgeGraphRootedEdges)[
+      source.metadata.recordId.entityId
+    ]![source.metadata.temporalVersioning.decisionTime.start.limit]!;
 
     if (outwardEdges.length !== subgraphEdge.length) {
       return false;

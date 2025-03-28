@@ -15,11 +15,8 @@ import {
   unarchiveEntityType,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
-import {
-  createPropertyType,
-  getPropertyTypes,
-} from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { getDataTypes } from "@blockprotocol/graph/stdlib";
+import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { getDataTypes, getPropertyTypes } from "@blockprotocol/graph/stdlib";
 import type {
   ClosedEntityType,
   ClosedMultiEntityType,
