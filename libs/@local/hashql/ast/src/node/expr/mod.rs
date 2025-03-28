@@ -81,14 +81,31 @@ pub enum ExprKind<'heap> {
     ///
     /// ## J-Expr
     ///
-    /// ```json
-    /// ["function", "arg1", "arg2", {":arg3": "value3"}, {":arg4": "value4"}]
+    /// ```
+    /// // Positional arguments only
+    /// ["add", 1, 2]
+    ///
+    /// // Labeled arguments only
+    /// ["add", {":name": "Alice"}, {":age": 30}]
+    ///
+    /// // Mix of positional and labeled arguments
+    /// ["format", 42, {":width": 10}, {":precision": 2}]
+    ///
+    /// // Advanced function call
+    /// ["let", "func", ["if", "condition", "fn1", "fn2"],
+    ///     ["func", "value"]
+    /// ]
     /// ```
     ///
     /// ## Documentation Format
     ///
     /// ```text
-    /// function(arg1, arg2, arg3=value3, arg4=value4)
+    /// add(1, 2)
+    /// add(alice: "Alice", age: 30)
+    /// format("Hello, {name}!", name: "Alice")
+    ///
+    /// let func = if condition then fn1 else fn2 in
+    /// func(value)
     /// ```
     Call(CallExpr<'heap>),
 
@@ -361,10 +378,10 @@ pub enum ExprKind<'heap> {
     /// ## Documentation Format
     ///
     /// ```text
-    /// fn(x: Int): Int => *(x 2)
+    /// fn(x: Int): Int => *(x, 2)
     ///
-    /// fn<T>(x: T, y: T): T => *(x y)
-    /// fn<T: Int>(x: T, y: T): T => *(x y)
+    /// fn<T>(x: T, y: T): T => *(x, y)
+    /// fn<T: Int>(x: T, y: T): T => *(x, y)
     /// ```
     Closure(ClosureExpr<'heap>),
 

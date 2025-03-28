@@ -18,7 +18,7 @@ use crate::{heap, node::id::NodeId};
 ///
 /// For this function call, there are two `Argument` instances:
 /// - One for the expression `x`
-/// - One for the expression `+(y 1)`
+/// - One for the expression `+(y, 1)`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Argument<'heap> {
     // TODO: we might be able to remove these
@@ -65,8 +65,6 @@ pub struct LabeledArgument<'heap> {
 ///
 /// ## J-Expr
 ///
-/// ### Basic Function Call
-///
 /// ```
 /// // Positional arguments only
 /// ["add", 1, 2]
@@ -76,14 +74,22 @@ pub struct LabeledArgument<'heap> {
 ///
 /// // Mix of positional and labeled arguments
 /// ["format", 42, {":width": 10}, {":precision": 2}]
-/// ```
 ///
-/// ### Complex Function Call
-///
-/// ```json
+/// // Advanced function call
 /// ["let", "func", ["if", "condition", "fn1", "fn2"],
 ///     ["func", "value"]
 /// ]
+/// ```
+///
+/// ## Documentation Format
+///
+/// ```text
+/// add(1, 2)
+/// add(alice: "Alice", age: 30)
+/// format("Hello, {name}!", name: "Alice")
+///
+/// let func = if condition then fn1 else fn2 in
+/// func(value)
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CallExpr<'heap> {
