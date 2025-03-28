@@ -1,5 +1,6 @@
 ---
-source: libs/@local/hql/syntax-jexpr/src/lexer/mod.rs
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Invalid escape sequence
 expression: "\"\\z\""
 ---
 [31m[lexer::invalid-string] Error:[0m Lexer

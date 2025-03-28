@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: JSON with tab indentation
+expression: "\t{\t\"key\"\t:\t42\t}\t"
+---
+{ "key" : 42 }

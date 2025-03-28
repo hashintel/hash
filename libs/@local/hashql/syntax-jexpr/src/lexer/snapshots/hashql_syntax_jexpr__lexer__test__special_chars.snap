@@ -1,0 +1,7 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: String with special characters
+expression: "\"\\b\\f\\n\\r\\t\""
+---
+"
+	"

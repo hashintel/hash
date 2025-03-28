@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Number with double minus
+expression: "--42"
+---
+[31m[lexer::invalid-number] Error:[0m Lexer
+   ╭─[ <unknown>:1:1 ]
+   │
+ 1 │ --42
+   │ │ 
+   │ ╰─ Expected a digit
+───╯

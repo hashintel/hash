@@ -1,5 +1,6 @@
 ---
-source: libs/@local/hql/syntax-jexpr/src/lexer/mod.rs
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Invalid number format (trailing decimal point)
 expression: "{\"number\": 42.}"
 ---
 [31m[lexer::invalid-number] Error:[0m Lexer

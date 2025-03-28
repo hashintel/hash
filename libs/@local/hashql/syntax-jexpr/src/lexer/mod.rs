@@ -101,59 +101,37 @@ impl<'source> Iterator for Lexer<'source> {
 
 #[cfg(test)]
 mod test {
+    #![expect(clippy::non_ascii_literal)]
+    use alloc::sync::Arc;
     use core::fmt::Write as _;
 
-    use hashql_core::span::storage::SpanStorage;
-    use hashql_diagnostics::{config::ReportConfig, span::DiagnosticSpan};
-    use insta::assert_snapshot;
+    use hashql_core::span::{SpanId, storage::SpanStorage};
+    use hashql_diagnostics::{Diagnostic, config::ReportConfig, span::DiagnosticSpan};
+    use insta::{assert_snapshot, with_settings};
+    use text_size::TextRange;
 
-    use super::Lexer;
+    use super::{Lexer, error::LexerDiagnosticCategory, token::Token};
     use crate::span::Span;
 
-    #[test]
-    fn ok() {
-        let input = r#"
-            {
-                "hello": "world",
-                "number": 42,
-                "array": [1, 2, 3],
-                "object": {
-                    "key": "value"
-                }
-            }
-        "#;
+    fn parse(
+        source: &str,
+        storage: impl Into<Arc<SpanStorage<Span>>>,
+    ) -> Result<Vec<Token>, Diagnostic<LexerDiagnosticCategory, SpanId>> {
+        let lexer = Lexer::new(source.as_bytes(), storage.into());
 
-        let tokens: Vec<_> = Lexer::new(input.as_bytes(), SpanStorage::new())
-            .map(|result| result.map(|token| token.kind))
-            .collect::<Result<_, _>>()
-            .expect("no malformed tokens");
-
-        let output = tokens.into_iter().fold(String::new(), |mut acc, token| {
-            write!(acc, "{token}").expect("infallible");
-
-            acc
-        });
-
-        assert_snapshot!(output, @r###"{"hello":"world","number":42,"array":[1,2,3],"object":{"key":"value"}}"###);
+        lexer.collect()
     }
 
-    fn parse_err(input: &str, skip: usize) -> String {
-        let mut lexer = Lexer::new(input.as_bytes(), SpanStorage::new());
-
-        for _ in 0..skip {
-            lexer.next();
-        }
-
-        let diagnostic = lexer
-            .next()
-            .expect("lexer should have lexed at least one token")
-            .expect_err("token should have been an error");
-
-        let diagnostic = diagnostic
-            .resolve(&lexer.spans)
+    fn render_diagnostic(
+        source: &str,
+        diagnostic: Diagnostic<LexerDiagnosticCategory, SpanId>,
+        spans: &SpanStorage<Span>,
+    ) -> String {
+        let resolved = diagnostic
+            .resolve(spans)
             .expect("span storage should have a reference to every span");
 
-        let report = diagnostic.report(
+        let report = resolved.report(
             ReportConfig {
                 color: false,
                 ..ReportConfig::default()
@@ -163,50 +141,227 @@ mod test {
 
         let mut output = Vec::new();
         report
-            .write_for_stdout(ariadne::Source::from(input), &mut output)
+            .write_for_stdout(ariadne::Source::from(source), &mut output)
             .expect("infallible");
 
         String::from_utf8(output).expect("output should be valid UTF-8")
     }
 
-    #[expect(clippy::non_ascii_literal, reason = "emoji for testing purposes")]
-    #[test]
-    fn unrecognized_character() {
-        let input = r#"{"ferris": 🦀}"#;
+    macro assert_parse($source:expr, $description:literal) {{
+        let tokens = parse($source, SpanStorage::new()).expect("should parse successfully");
+        // we're not super interested in the spans (a different test covers these)
+        let compiled = tokens
+            .into_iter()
+            .map(|token| token.kind.to_string())
+            .collect::<Vec<_>>()
+            .join(" ");
 
-        let output = parse_err(input, 3);
-        assert_snapshot!(insta::_macro_support::AutoName, output, input);
+        with_settings!({
+            description => $description
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, compiled, $source);
+        })
+    }}
+
+    macro assert_parse_fail($source:expr, $description:literal) {{
+        let spans = Arc::new(SpanStorage::new());
+        let diagnostic = parse($source, Arc::clone(&spans)).expect_err("should fail to parse");
+
+        let report = render_diagnostic($source, diagnostic, &spans);
+
+        with_settings!({
+            description => $description
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, report, $source);
+        })
+    }}
+
+    macro test_cases(
+        $(
+            $name:ident($source:expr) => $description:expr,
+        )*
+    ) {
+        $(
+            #[test]
+            fn $name() {
+                assert_parse!($source, $description);
+            }
+        )*
+    }
+
+    macro test_cases_fail(
+        $(
+            $name:ident($source:expr) => $description:expr,
+        )*
+    ) {
+        $(
+            #[test]
+            fn $name() {
+                assert_parse_fail!($source, $description);
+            }
+        )*
+    }
+
+    test_cases! {
+        // Object tests
+        empty_object("{}") => "Empty object",
+        simple_object(r#"{"key": "value"}"#) => "Simple key-value object",
+        nested_object(r#"{"outer": {"inner": "value"}}"#) => "Nested objects",
+        complex_object(r#"{"string": "text", "number": 42, "boolean": true, "null": null, "array": [1, 2, 3]}"#) =>
+            "Complex object with multiple value types",
+        multiple_properties(r#"{"prop1": "val1", "prop2": "val2", "prop3": "val3"}"#) =>
+            "Object with multiple properties",
+
+        // Array tests
+        empty_array("[]") => "Empty array",
+        simple_array("[1, 2, 3]") => "Simple number array",
+        mixed_array(r#"[1, "text", true, null]"#) => "Array with mixed types",
+        nested_array("[[1, 2], [3, 4]]") => "Nested arrays",
+        array_of_objects(r#"[{"id": 1}, {"id": 2}]"#) => "Array of objects",
+        object_with_arrays(r#"{"numbers": [1, 2, 3], "strings": ["a", "b", "c"]}"#) =>
+            "Object containing arrays",
+
+        // Value tests
+        bool_true("true") => "Boolean true value",
+        bool_false("false") => "Boolean false value",
+        null_value("null") => "Null value",
+
+        // String tests
+        empty_string(r#""""#) => "Empty string",
+        simple_string(r#""hello world""#) => "Simple string",
+        escaped_string(r#""hello \"world\"""#) => "String with escaped quotes",
+        unicode_string(r#""こんにちは世界""#) => "Unicode string",
+        escaped_unicode(r#""\u3053\u3093\u306B\u3061\u306F""#) => "String with escaped unicode",
+        special_chars(r#""\b\f\n\r\t""#) => "String with special characters",
+        surrogate_pair(r#""\uD834\uDD1E""#) => "String with surrogate pair",
+
+        // Number tests
+        integer("42") => "Integer number",
+        negative_integer("-42") => "Negative integer",
+        zero("0") => "Zero",
+        decimal("3.14159") => "Decimal number",
+        exponent("1.0e10") => "Number with exponent",
+        neg_exponent("1.0e-10") => "Number with negative exponent",
+
+        // Whitespace handling
+        space_indentation("  {  \n  \"key\"  :  42  \n  }  ") =>
+            "JSON with space indentation",
+        tab_indentation("\t{\t\"key\"\t:\t42\t}\t") =>
+            "JSON with tab indentation",
+        mixed_whitespace(" \t\r\n{ \t\r\n\"key\" \t\r\n: \t\r\n42 \t\r\n} \t\r\n") =>
+            "JSON with mixed whitespace",
+
+        // Complex combinations
+        complex_nested(r#"{"data": {"users": [{"name": "Alice", "roles": ["admin", "user"], "active": true}, {"name": "Bob", "roles": ["user"], "active": false}]}}"#) =>
+            "Complex nested structure",
+
+        // Syntax errors - these are completely valid as we're not parsing, we're just lexing
+        trailing_comma("[1, 2, 3,]") => "Array with trailing comma",
+        missing_comma("[1 2 3]") => "Array with missing commas",
+        extra_comma("[1,,2]") => "Array with extra comma",
+
+        // Number edge cases
+        max_precision_number("1.7976931348623157e308") => "Maximum precision double value",
+        min_precision_number("5e-324") => "Minimum precision double value",
+        integer_precision("9007199254740991") => "Maximum integer precision (2^53-1)",
+        arbitrary_precision("9007199254740992") => "Arbitrary precision integer",
+
+        // String escape sequences
+        serialized_json(r#""This JSON string has \"quotes\" and a \\ backslash""#) =>
+            "JSON with already-escaped characters",
+        escaped_controls(r#""\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007""#) =>
+            "String with escaped control characters",
+    }
+
+    test_cases_fail! {
+        // String errors
+        invalid_escape(r#""\z""#) => "Invalid escape sequence",
+        unterminated_string(r#""hello"#) => "Unterminated string literal",
+        control_character("\"hello \u{0007} world") => "String with ASCII control character",
+        missing_surrogate_pair(r#""\uD800""#) => "Missing low surrogate in surrogate pair",
+
+        // Number errors
+        invalid_number(r#"{"number": 42.}"#) => "Invalid number format (trailing decimal point)",
+        invalid_exponent("1e") => "Invalid exponent format",
+        plus_prefix("+42") => "Number with plus prefix",
+        double_minus("--42") => "Number with double minus",
+
+        // Structure errors
+        unrecognized_character(r#"{"ferris": 🦀}"#) => "Unrecognized emoji character",
+        invalid_literal(r#"{"value": True}"#) => "Incorrect case for true literal",
+
+        // Additional control character tests
+        control_char_null("\"hello\u{0000}world\"") => "String with null control character",
+        control_char_tab_inside_quotes("\"\thello\"") => "Tab character inside quotes",
+        control_char_newline_inside_quotes("\"\nhello\"") => "Newline character inside quotes",
     }
 
     #[test]
-    fn invalid_number() {
-        let input = r#"{"number": 42.}"#;
+    fn test_lexer_span_range() {
+        let source = r#"{"key": 42}"#;
+        let storage = SpanStorage::new();
+        let mut lexer = Lexer::new(source.as_bytes(), storage);
 
-        let output = parse_err(input, 3);
-        assert_snapshot!(insta::_macro_support::AutoName, output, input);
+        let advance = |lexer: &mut Lexer| {
+            lexer
+                .advance()
+                .expect("should have a token")
+                .expect("token should be valid")
+                .span
+        };
+
+        // First token should be '{'
+        let span = advance(&mut lexer);
+        assert_eq!(span, TextRange::new(0.into(), 1.into()));
+
+        // Next token should be the string "key"
+        let span = advance(&mut lexer);
+        assert_eq!(span, TextRange::new(1.into(), 6.into()));
+
+        // Next token should be ':'
+        let span = advance(&mut lexer);
+        assert_eq!(span, TextRange::new(6.into(), 7.into()));
+
+        // Next token should be the number 42
+        let span = advance(&mut lexer);
+        assert_eq!(span, TextRange::new(8.into(), 10.into()));
+
+        // Next token should be '}'
+        let span = advance(&mut lexer);
+        assert_eq!(span, TextRange::new(10.into(), 11.into()));
+
+        // Lexer should be exhausted
+        assert!(lexer.advance().is_none());
     }
 
     #[test]
-    fn unterminated_string() {
-        let input = r#""hello"#;
+    fn test_iterator_implementation() {
+        let source = "[1, 2, 3]";
+        let storage = SpanStorage::new();
+        let lexer = Lexer::new(source.as_bytes(), storage);
 
-        let output = parse_err(input, 0);
-        assert_snapshot!(insta::_macro_support::AutoName, output, input);
+        // Should get 7 tokens: [, 1, ,, 2, ,, 3, ]
+        let tokens: Vec<_> = lexer
+            .collect::<Result<_, _>>()
+            .expect("should parse successfully");
+        assert_eq!(tokens.len(), 7);
     }
 
     #[test]
-    fn missing_surrogate_pair() {
-        let input = r#""\uD800""#;
+    fn test_custom_error_handling() {
+        let source = r#"{"key": 42.}"#;
+        let spans = Arc::new(SpanStorage::new());
+        let result = parse(source, Arc::clone(&spans));
 
-        let output = parse_err(input, 0);
-        assert_snapshot!(insta::_macro_support::AutoName, output, input);
-    }
+        assert!(result.is_err(), "should fail to parse invalid number");
+        let diagnostic = result.expect_err("should fail to parse invalid number");
 
-    #[test]
-    fn invalid_escape() {
-        let input = r#""\z""#;
-
-        let output = parse_err(input, 0);
-        assert_snapshot!(insta::_macro_support::AutoName, output, input);
+        match diagnostic.category {
+            LexerDiagnosticCategory::InvalidNumber => {}
+            _ => panic!(
+                "Expected InvalidNumber error, got {:?}",
+                diagnostic.category
+            ),
+        }
     }
 }

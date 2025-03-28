@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Nested objects
+expression: "{\"outer\": {\"inner\": \"value\"}}"
+---
+{ "outer" : { "inner" : "value" } }

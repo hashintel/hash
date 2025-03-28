@@ -62,7 +62,11 @@ impl Display for TokenKind<'_> {
             Self::Colon => fmt.write_char(':'),
             Self::Comma => fmt.write_char(','),
             Self::Number(number) => Display::fmt(number, fmt),
-            Self::String(string) => write!(fmt, "\"{string}\""),
+            Self::String(string) => write!(
+                fmt,
+                "\"{}\"",
+                string.replace('\\', "\\\\").replace('"', "\\\"")
+            ),
         }
     }
 }
