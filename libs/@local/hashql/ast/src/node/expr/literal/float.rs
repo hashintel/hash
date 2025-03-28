@@ -55,10 +55,10 @@ impl FloatLiteral {
     /// Converts the float literal to a 32-bit floating-point number.
     ///
     /// This method parses the string representation of the literal according to
-    /// the JSON specification and returns the resulting f32 value.
+    /// the JSON specification and returns the resulting [`f32`] value.
     ///
-    /// Conversion is lossy, meaning that the resulting f32 value may not be exactly equal to the
-    /// original value.
+    /// Conversion is lossy, meaning that the resulting [`f32`] value may not be exactly equal to
+    /// the original value.
     ///
     /// # Panics
     ///
@@ -73,10 +73,10 @@ impl FloatLiteral {
     /// Converts the float literal to a 64-bit floating-point number.
     ///
     /// This method parses the string representation of the literal according to
-    /// the JSON specification and returns the resulting f64 value.
+    /// the JSON specification and returns the resulting [`f64`] value.
     ///
-    /// Conversion is lossy, meaning that the resulting f64 value may not be exactly equal to the
-    /// original value.
+    /// Conversion is lossy, meaning that the resulting [`f64`] value may not be exactly equal to
+    /// the original value.
     ///
     /// # Panics
     ///

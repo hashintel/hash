@@ -43,25 +43,25 @@ use bumpalo::Bump;
 /// A boxed value allocated on the `Heap`.
 ///
 /// This type should always be used with the `heap::` prefix to avoid confusion
-/// with the standard library `Box` type.
+/// with the standard library [`Box`](alloc::boxed::Box) type.
 pub type Box<'heap, T> = alloc::boxed::Box<T, &'heap Heap>;
 
 /// A vector allocated on the `Heap`.
 ///
 /// This type should always be used with the `heap::` prefix to avoid confusion
-/// with the standard library `Vec` type.
+/// with the standard library [`Vec`](alloc::vec::Vec) type.
 pub type Vec<'heap, T> = alloc::vec::Vec<T, &'heap Heap>;
 
 /// A double-ended queue allocated on the `Heap`.
 ///
 /// This type should always be used with the `heap::` prefix to avoid confusion
-/// with the standard library `VecDeque` type.
+/// with the standard library [`VecDeque`](alloc::collections::vec_deque::VecDeque) type.
 pub type VecDeque<'heap, T> = alloc::collections::vec_deque::VecDeque<T, &'heap Heap>;
 
 /// A hash map allocated on the `Heap` with an optional custom hasher.
 ///
 /// This type should always be used with the `heap::` prefix to avoid confusion
-/// with the standard library `HashMap` type.
+/// with the standard library [`HashMap`](std::collections::hash_map::HashMap) type.
 pub type HashMap<'heap, K, V, S = foldhash::fast::RandomState> =
     hashbrown::HashMap<K, V, S, &'heap Heap>;
 
@@ -99,7 +99,7 @@ impl Heap {
 
     /// Creates a new vector allocated on this heap.
     ///
-    /// The capacity is an optional initial capacity for the vector, a value of `None` indicates
+    /// The capacity is an optional initial capacity for the vector, a value of [`None`] indicates
     /// that the vector should be allocated with a default capacity.
     pub fn vec<T>(&self, capacity: Option<usize>) -> Vec<T> {
         capacity.map_or_else(
@@ -110,7 +110,7 @@ impl Heap {
 
     /// Creates a new hash map allocated on this heap.
     ///
-    /// The capacity is an optional initial capacity for the hash map, a value of `None` indicates
+    /// The capacity is an optional initial capacity for the hash map, a value of [`None`] indicates
     /// that the hash map should be allocated with a default capacity.
     pub fn hash_map<K, V>(&self, capacity: Option<usize>) -> HashMap<K, V> {
         capacity.map_or_else(
@@ -127,7 +127,7 @@ impl Heap {
 
     /// Creates a new deque allocated on this heap.
     ///
-    /// The capacity is an optional initial capacity for the deque, a value of `None` indicates
+    /// The capacity is an optional initial capacity for the deque, a value of [`None`] indicates
     /// that the deque should be allocated with a default capacity.
     pub fn dequeue<T>(&self, capacity: Option<usize>) -> VecDeque<T> {
         capacity.map_or_else(
