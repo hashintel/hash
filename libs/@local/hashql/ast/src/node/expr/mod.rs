@@ -242,7 +242,53 @@ pub enum ExprKind<'heap> {
     /// ```
     Let(LetExpr<'heap>),
 
+    /// A type definition expression (special form).
+    ///
+    /// Defines a type alias within a scope. This is expanded from a function call
+    /// during AST transformation. In HashQL, type expressions allow creating named
+    /// references to complex types.
+    /// These types use structural typing, meaning two types are considered equivalent
+    /// if they have the same structure, regardless of their names.
+    ///
+    /// # Examples
+    ///
+    /// ## J-Expr
+    ///
+    /// ```json
+    /// ["type", "UserId", "String", <body>]
+    /// ["type", "Point", {"#type": {"x": "Float", "y": "Float"}}, <body>]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// type UserId = String in <body>
+    /// type Point = {x: Float, y: Float} in <body>
+    /// ```
     Type(TypeExpr<'heap>),
+
+    /// A new type definition expression (special form).
+    ///
+    /// Creates a new distinct type based on an existing type. This is expanded
+    /// from a function call during AST transformation. Unlike type aliases (created with
+    /// the `type` expression), new types are not interchangeable with their underlying
+    /// type, providing stronger type safety through nominal typing.
+    ///
+    /// # Examples
+    ///
+    /// ## J-Expr
+    ///
+    /// ```json
+    /// ["newtype", "UserId", "String", <body>]
+    /// ["newtype", "Coordinates", {"#type": {"lat": "Float", "lng": "Float"}}, <body>]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// newtype UserId = String in <body>
+    /// newtype Coordinates = {lat: Float, lng: Float} in <body>
+    /// ```
     NewType(NewTypeExpr<'heap>),
 
     /// A module import expression (special form).
@@ -283,15 +329,15 @@ pub enum ExprKind<'heap> {
     /// ## J-Expr
     ///
     /// ```json
-    /// ["input", "limit", "Int", <body>]
-    /// ["input", "limit", "Int", 10, <body>]
+    /// ["input", "limit", "Int"]
+    /// ["input", "limit", "Int", 10]
     /// ```
     ///
     /// ## Documentation Format
     ///
     /// ```text
-    /// input limit: Int in <body>
-    /// input limit: Int = 10 in <body>
+    /// input(limit, Int)
+    /// input(limit, Int, 10)
     /// ```
     Input(InputExpr<'heap>),
 
