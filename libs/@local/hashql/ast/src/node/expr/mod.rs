@@ -289,7 +289,10 @@ pub enum ExprKind<'heap> {
     /// Creates a new distinct type based on an existing type. This is expanded
     /// from a function call during AST transformation. Unlike type aliases (created with
     /// the `type` expression), new types are not interchangeable with their underlying
-    /// type, providing stronger type safety through nominal typing.
+    /// type.
+    ///
+    /// When defining a new type, a constructor function of the same name is generated automatically
+    /// and brought into scope.
     ///
     /// # Examples
     ///
@@ -298,6 +301,10 @@ pub enum ExprKind<'heap> {
     /// ```json
     /// ["newtype", "UserId", "String", <body>]
     /// ["newtype", "Coordinates", {"#type": {"lat": "Float", "lng": "Float"}}, <body>]
+    ///
+    /// ["newtype", "AccountId", "String"
+    ///     ["AccountId", {"#literal": "1234"}]
+    /// ]
     /// ```
     ///
     /// ## Documentation Format
@@ -305,6 +312,9 @@ pub enum ExprKind<'heap> {
     /// ```text
     /// newtype UserId = String in <body>
     /// newtype Coordinates = {lat: Float, lng: Float} in <body>
+    ///
+    /// newtype AccountId = String in
+    ///     AccountId("1234")
     /// ```
     NewType(NewTypeExpr<'heap>),
 
