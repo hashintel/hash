@@ -38,7 +38,7 @@ pub struct Argument<'heap> {
 ///
 /// ## J-Expr
 ///
-/// ```
+/// ```json
 /// ["add", {":x": 1, ":y": 2}, {":z": 3}]
 /// ```
 ///
@@ -65,7 +65,7 @@ pub struct LabeledArgument<'heap> {
 ///
 /// ## J-Expr
 ///
-/// ```
+/// ```json
 /// // Positional arguments only
 /// ["add", 1, 2]
 ///

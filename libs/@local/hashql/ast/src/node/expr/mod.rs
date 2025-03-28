@@ -81,7 +81,7 @@ pub enum ExprKind<'heap> {
     ///
     /// ## J-Expr
     ///
-    /// ```
+    /// ```json
     /// // Positional arguments only
     /// ["add", 1, 2]
     ///
