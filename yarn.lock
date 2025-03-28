@@ -626,6 +626,7 @@ __metadata:
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/hash-subgraph": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
+    "@notionhq/client": "npm:2.3.0"
     "@sentry/node": "npm:7.120.3"
     "@temporalio/activity": "npm:1.11.7"
     "@temporalio/worker": "npm:1.11.7"
