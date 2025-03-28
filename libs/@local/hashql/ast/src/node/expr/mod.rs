@@ -46,8 +46,10 @@ pub mod input;
 pub mod r#let;
 pub mod list;
 pub mod literal;
+pub mod newtype;
 pub mod r#struct;
 pub mod tuple;
+pub mod r#type;
 pub mod r#use;
 
 use hashql_core::span::SpanId;
@@ -55,7 +57,7 @@ use hashql_core::span::SpanId;
 pub use self::{
     call::CallExpr, closure::ClosureExpr, dict::DictExpr, field::FieldExpr, r#if::IfExpr,
     index::IndexExpr, input::InputExpr, r#let::LetExpr, list::ListExpr, literal::LiteralExpr,
-    r#struct::StructExpr, tuple::TupleExpr, r#use::UseExpr,
+    newtype::NewTypeExpr, r#struct::StructExpr, tuple::TupleExpr, r#type::TypeExpr, r#use::UseExpr,
 };
 use super::{id::NodeId, path::Path};
 
@@ -239,6 +241,9 @@ pub enum ExprKind<'heap> {
     /// let x: Int = 42 in <body>
     /// ```
     Let(LetExpr<'heap>),
+
+    Type(TypeExpr<'heap>),
+    NewType(NewTypeExpr<'heap>),
 
     /// A module import expression (special form).
     ///
