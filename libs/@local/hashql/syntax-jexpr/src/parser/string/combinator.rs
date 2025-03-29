@@ -7,41 +7,32 @@ use winnow::{
     stream::{AsChar, Stream, StreamIsPartial},
 };
 
-enum VecOrOneValue<'heap, T> {
-    Vec(heap::Vec<'heap, T>),
+enum VecOrOneValue<T> {
+    Vec(Vec<T>),
     One(T),
 }
 
-impl<'heap, T> VecOrOneValue<'heap, T> {
-    fn as_vec<'this>(
-        this: &'this mut Option<Self>,
-        heap: &'heap Heap,
-    ) -> &'this mut heap::Vec<'heap, T> {
+impl<T> VecOrOneValue<T> {
+    fn as_vec(this: &mut Option<Self>) -> &mut Vec<T> {
         // capacity of 0 will not allocate
-        let value = this
-            .take()
-            .unwrap_or_else(|| VecOrOneValue::Vec(heap.vec(Some(0))));
+        let value = this.take().unwrap_or_else(|| Self::Vec(Vec::new()));
 
         let value = match value {
-            VecOrOneValue::Vec(value) => value,
-            VecOrOneValue::One(value) => {
-                let mut vec = heap.vec(Some(1));
-                vec.push(value);
-                vec
-            }
+            Self::Vec(value) => value,
+            Self::One(value) => vec![value],
         };
 
-        let value = this.insert(VecOrOneValue::Vec(value));
+        let value = this.insert(Self::Vec(value));
         match value {
-            VecOrOneValue::Vec(value) => value,
-            VecOrOneValue::One(_) => unreachable!(),
+            Self::Vec(value) => value,
+            Self::One(_) => unreachable!(),
         }
     }
 }
 
 struct VecOrOne<'heap, T> {
     heap: &'heap Heap,
-    value: Option<VecOrOneValue<'heap, T>>,
+    value: Option<VecOrOneValue<T>>,
 }
 
 impl<'heap, T> VecOrOne<'heap, T> {
@@ -54,7 +45,7 @@ impl<'heap, T> VecOrOne<'heap, T> {
 
     fn into_boxed_slice(self) -> heap::Box<'heap, [T]> {
         match self.value {
-            Some(VecOrOneValue::Vec(vec)) => vec.into_boxed_slice(),
+            Some(VecOrOneValue::Vec(vec)) => self.heap.boxed_slice(vec),
             Some(VecOrOneValue::One(value)) => Box::into_boxed_slice(self.heap.boxed(value)),
             None => self.heap.boxed([]),
         }
@@ -65,7 +56,7 @@ impl<'heap, T> VecOrOne<'heap, T> {
             return self;
         };
 
-        let vec = VecOrOneValue::as_vec(&mut self.value, self.heap);
+        let vec = VecOrOneValue::as_vec(&mut self.value);
         match value {
             VecOrOneValue::Vec(mut values) => {
                 vec.append(&mut values);

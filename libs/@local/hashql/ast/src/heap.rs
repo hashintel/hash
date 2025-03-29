@@ -112,6 +112,13 @@ impl Heap {
         )
     }
 
+    pub fn boxed_slice<T>(&self, vec: ::alloc::vec::Vec<T>) -> Box<[T]> {
+        let mut target = Vec::with_capacity_in(vec.len(), self);
+        target.extend(vec);
+
+        target.into_boxed_slice()
+    }
+
     /// Creates a new hash map allocated on this heap.
     ///
     /// The capacity is an optional initial capacity for the hash map, a value of [`None`] indicates
