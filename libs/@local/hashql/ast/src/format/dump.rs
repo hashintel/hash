@@ -25,7 +25,7 @@ use std::fmt::FormattingOptions;
 use hashql_core::span::SpanId;
 
 use crate::node::{
-    generic::GenericArgument,
+    generic::{GenericArgument, GenericParam, Generics},
     id::NodeId,
     path::{Path, PathSegment},
     r#type::{
@@ -293,5 +293,45 @@ impl SyntaxDump for GenericArgument<'_> {
         write_header(fmt, depth, "GenericArgument", Some(*id), Some(*span), None)?;
 
         r#type.syntax_dump(fmt, depth + 1)
+    }
+}
+
+impl SyntaxDump for GenericParam<'_> {
+    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
+        let Self {
+            id,
+            span,
+            name,
+            bound,
+        } = self;
+
+        write_header(
+            fmt,
+            depth,
+            "GenericParam",
+            Some(*id),
+            Some(*span),
+            Some(&format!("name: {name}")),
+        )?;
+
+        if let Some(bound) = &bound {
+            bound.syntax_dump(fmt, depth + 1)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl SyntaxDump for Generics<'_> {
+    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
+        let Self { id, span, params } = self;
+
+        write_header(fmt, depth, "Generics", Some(*id), Some(*span), None)?;
+
+        for param in params {
+            param.syntax_dump(fmt, depth + 1)?;
+        }
+
+        Ok(())
     }
 }

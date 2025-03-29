@@ -1,0 +1,29 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/path.rs
+description: Complex nested generics
+expression: "HashMap<String, Vec<Option<T>>>"
+info:
+  kind: Ok
+---
+Path#4294967040@19 (rooted: false)
+  PathSegment#4294967040@18 (name: HashMap)
+    GenericArgument#4294967040@5
+      Type#4294967040@4
+        TypeKind (Path)
+          Path#4294967040@4 (rooted: false)
+            PathSegment#4294967040@3 (name: String)
+    GenericArgument#4294967040@17
+      Type#4294967040@16
+        TypeKind (Path)
+          Path#4294967040@16 (rooted: false)
+            PathSegment#4294967040@15 (name: Vec)
+              GenericArgument#4294967040@14
+                Type#4294967040@13
+                  TypeKind (Path)
+                    Path#4294967040@13 (rooted: false)
+                      PathSegment#4294967040@12 (name: Option)
+                        GenericArgument#4294967040@11
+                          Type#4294967040@10
+                            TypeKind (Path)
+                              Path#4294967040@10 (rooted: false)
+                                PathSegment#4294967040@9 (name: T)

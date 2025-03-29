@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/path.rs
+description: Rooted path
+expression: "::foo"
+info:
+  kind: Ok
+---
+Path#4294967040@3 (rooted: true)
+  PathSegment#4294967040@2 (name: foo)

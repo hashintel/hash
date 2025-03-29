@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Invalid parameter name
+expression: "<123>"
+info:
+  kind: Err
+---
+<123>
+ ^

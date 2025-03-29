@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/path.rs
+description: Multi-segment path
+expression: "foo::bar::baz"
+info:
+  kind: Ok
+---
+Path#4294967040@7 (rooted: false)
+  PathSegment#4294967040@2 (name: foo)
+  PathSegment#4294967040@4 (name: bar)
+  PathSegment#4294967040@6 (name: baz)

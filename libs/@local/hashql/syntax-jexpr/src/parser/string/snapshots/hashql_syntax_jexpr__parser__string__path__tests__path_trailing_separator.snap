@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/path.rs
+description: Path with trailing separator
+expression: "foo::"
+info:
+  kind: Err
+---
+foo::
+   ^

@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Infer type as generic argument
+expression: _
+info:
+  kind: Ok
+---
+GenericArgument#4294967040@2
+  Type#4294967040@1
+    TypeKind (Infer)

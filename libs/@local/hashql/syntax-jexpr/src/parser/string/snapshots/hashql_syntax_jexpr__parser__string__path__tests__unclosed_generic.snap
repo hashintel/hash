@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/path.rs
+description: Unclosed generic argument
+expression: Vec<T
+info:
+  kind: Err
+---
+Vec<T
+   ^

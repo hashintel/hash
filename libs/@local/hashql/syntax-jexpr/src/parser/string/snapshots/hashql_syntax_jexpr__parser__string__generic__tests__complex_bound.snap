@@ -1,0 +1,23 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Complex type bound
+expression: "<K: Map<T, V>>"
+info:
+  kind: Ok
+---
+Generics#4294967040@14
+  GenericParam#4294967040@13 (name: K)
+    Type#4294967040@12
+      TypeKind (Path)
+        Path#4294967040@12 (rooted: false)
+          PathSegment#4294967040@11 (name: Map)
+            GenericArgument#4294967040@6
+              Type#4294967040@5
+                TypeKind (Path)
+                  Path#4294967040@5 (rooted: false)
+                    PathSegment#4294967040@4 (name: T)
+            GenericArgument#4294967040@10
+              Type#4294967040@9
+                TypeKind (Path)
+                  Path#4294967040@9 (rooted: false)
+                    PathSegment#4294967040@8 (name: V)

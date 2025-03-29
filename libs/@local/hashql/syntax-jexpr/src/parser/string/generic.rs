@@ -41,7 +41,7 @@ where
 {
     let context = input.state;
 
-    (parse_ident, opt(preceded(":", parse_type)))
+    (parse_ident, opt(preceded(ws(":"), parse_type)))
         .with_span()
         .map(|((name, bound), span)| GenericParam {
             id: NodeId::PLACEHOLDER,
@@ -61,9 +61,9 @@ where
     let context = input.state;
 
     delimited(
-        "<",
+        ws("<"),
         separated_boxed1(context.heap, parse_generic_param, ws(",")),
-        ">",
+        ws(">"),
     )
     .with_span()
     .map(|(params, span)| Generics {
@@ -72,4 +72,51 @@ where
         params,
     })
     .parse_next(input)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_generic_argument, parse_generics};
+    use crate::parser::string::test::{bind_parser, test_cases};
+
+    // Bind our parsers to create testing functions
+    bind_parser!(SyntaxDump; fn parse_generic_argument_test(parse_generic_argument));
+    bind_parser!(SyntaxDump; fn parse_generics_test(parse_generics));
+
+    // Tests for generic arguments
+    test_cases!(parse_generic_argument_test;
+        simple_type("Int") => "Simple type as generic argument",
+        complex_type("Map<K, V>") => "Generic type as generic argument",
+        nested_type("Option<Result<T, E>>") => "Nested generic types",
+        union_type("Int | String") => "Union type as generic argument",
+        intersection_type("Serializable & Equatable") => "Intersection type as generic argument",
+        tuple_type("(Int, String)") => "Tuple type as generic argument",
+        struct_type("(key: K, value: V)") => "Struct type as generic argument",
+        infer_type("_") => "Infer type as generic argument",
+        whitespace_handling_argument(" Int ") => "Generic argument with whitespace",
+    );
+
+    // Tests for generics (lists of generic parameters)
+    test_cases!(parse_generics_test;
+        single_param("<T>") => "Single generic parameter without bound",
+        multiple_params("<T, U, V>") => "Multiple generic parameters",
+
+        // With type bounds
+        param_with_bound("<T: Object>") => "Generic parameter with type bound",
+        mixed_bounds("<T, U: Comparable, V>") => "Mix of bounded and unbounded parameters",
+        complex_bound("<K: Map<T, V>>") => "Complex type bound",
+        union_bound("<T: A | B>") => "Union type as bound",
+        intersection_bound("<T: Serializable & Comparable>") => "Intersection type as bound",
+
+        // Whitespace variations
+        whitespace_handling("< T , U >") => "Generics with whitespace",
+        bound_whitespace("< T : Comparable >") => "Bound with whitespace",
+
+        // Error cases
+        unclosed_generics("<T, U") => "Unclosed generics",
+        empty_generics("<>") => "Empty generics",
+        missing_comma("<T U>") => "Missing comma between parameters",
+        invalid_bound("<T: >") => "Invalid bound specification",
+        invalid_parameter("<123>") => "Invalid parameter name",
+    );
 }

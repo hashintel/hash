@@ -7,8 +7,7 @@ use hashql_ast::node::{
 use winnow::{
     ModalResult, Parser as _,
     combinator::{
-        alt, delimited, dispatch, opt, peek, repeat, separated, separated_foldl1, separated_pair,
-        terminated,
+        alt, delimited, dispatch, opt, peek, repeat, separated, separated_pair, terminated,
     },
     error::ParserError,
     token::any,

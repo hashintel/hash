@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Missing comma between parameters
+expression: "<T U>"
+info:
+  kind: Err
+---
+<T U>
+   ^

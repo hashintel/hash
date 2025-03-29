@@ -1,0 +1,8 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/path.rs
+description: Empty path
+expression: ""
+info:
+  kind: Err
+---
+^
