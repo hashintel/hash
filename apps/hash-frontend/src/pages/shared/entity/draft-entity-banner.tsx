@@ -1,8 +1,8 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
 import { FeatherRegularIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 
@@ -33,11 +33,11 @@ const buttonSx: ButtonProps["sx"] = ({ palette }) => ({
 
 export const DraftEntityBanner: FunctionComponent<{
   closedMultiEntityType: ClosedMultiEntityType;
-  draftEntity: Entity;
-  draftEntitySubgraph: Subgraph<EntityRootType>;
+  draftEntity: HashEntity;
+  draftEntitySubgraph: Subgraph<EntityRootType<HashEntity>>;
   isModifyingEntity?: boolean;
   onDraftArchived: () => void;
-  onDraftPublished: (entity: Entity) => void;
+  onDraftPublished: (entity: HashEntity) => void;
   owningShortname: string;
 }> = ({
   closedMultiEntityType,

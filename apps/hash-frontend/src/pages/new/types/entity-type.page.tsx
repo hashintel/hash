@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useRouter } from "next/router";
 import { useContext } from "react";
 
@@ -28,7 +28,8 @@ const Page: NextPageWithLayout = () => {
   };
 
   const isCreateLinkEntityType =
-    initialData.extendsEntityTypeId === linkEntityTypeUrl;
+    initialData.extendsEntityTypeId ===
+    blockProtocolEntityTypes.link.entityTypeId;
 
   return (
     <NewTypePageContainer

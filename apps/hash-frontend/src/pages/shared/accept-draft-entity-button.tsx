@@ -1,11 +1,11 @@
 import { useMutation } from "@apollo/client";
-import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { getEntityRevision } from "@blockprotocol/graph/stdlib";
+import type { ClosedMultiEntityType, Entity } from "@blockprotocol/type-system";
 import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getEntityRevision } from "@local/hash-subgraph/stdlib";
 import type { BoxProps } from "@mui/material";
 import { Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -75,9 +75,9 @@ const getRightOrLeftEntitySx = (params: {
 export const AcceptDraftEntityButton: FunctionComponent<
   {
     closedMultiEntityType: ClosedMultiEntityType;
-    draftEntity: Entity;
-    draftEntitySubgraph: Subgraph<EntityRootType>;
-    onAcceptedEntity: ((acceptedEntity: Entity) => void) | null;
+    draftEntity: HashEntity;
+    draftEntitySubgraph: Subgraph<EntityRootType<HashEntity>>;
+    onAcceptedEntity: ((acceptedEntity: HashEntity) => void) | null;
   } & ButtonProps
 > = ({
   closedMultiEntityType,
@@ -148,7 +148,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
   const acceptDraftEntity = useCallback(
     async (params: { draftEntity: Entity }) => {
       await markNotificationsAsReadForEntity({
-        targetEntityId: params.draftEntity.entityId,
+        targetEntityId: params.draftEntity.metadata.recordId.entityId,
       });
 
       const response = await updateEntity({
@@ -167,7 +167,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
         throw new Error("An error occurred accepting the draft entity.");
       }
 
-      return new Entity(response.data.updateEntity);
+      return new HashEntity(response.data.updateEntity);
     },
     [markNotificationsAsReadForEntity, updateEntity, refetchDraftEntitiesCount],
   );
@@ -243,7 +243,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
               maxWidth: "100%",
             }}
             openInNew
-            linkEntity={new LinkEntity(draftEntity)}
+            linkEntity={new HashLinkEntity(draftEntity)}
             subgraph={draftEntitySubgraph}
             leftEntityEndAdornment={
               <LeftOrRightEntityEndAdornment isDraft={!!draftLeftEntity} />

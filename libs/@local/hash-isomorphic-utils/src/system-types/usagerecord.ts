@@ -3,7 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   AppliesFromPropertyValue,
@@ -237,7 +237,7 @@ export type UsageRecord = {
 
 export type UsageRecordCreatedLink = {
   linkEntity: Created;
-  rightEntity: Entity;
+  rightEntity: HashEntity;
 };
 
 export type UsageRecordIncurredInLink = {
@@ -283,5 +283,5 @@ export type UsageRecordRecordsUsageOfLink = {
 
 export type UsageRecordUpdatedLink = {
   linkEntity: Updated;
-  rightEntity: Entity;
+  rightEntity: HashEntity;
 };

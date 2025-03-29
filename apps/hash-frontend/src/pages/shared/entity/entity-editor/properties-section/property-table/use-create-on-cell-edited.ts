@@ -1,6 +1,6 @@
 import type { EditableGridCell, Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import cloneDeep from "lodash/cloneDeep";
 import set from "lodash/set";
 import { useCallback } from "react";
@@ -99,7 +99,7 @@ export const useCreateOnCellEdited = () => {
         );
 
         setEntity(
-          new Entity({
+          new HashEntity({
             ...entity.toJSON(),
             metadata: updatedMetadata,
             properties: updatedProperties,

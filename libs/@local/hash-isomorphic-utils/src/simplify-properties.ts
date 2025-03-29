@@ -4,7 +4,7 @@ import type {
   PropertyObject,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { camelCase } from "lodash-es";
 
 /** @see https://stackoverflow.com/a/65015868/17217717 */
@@ -35,7 +35,7 @@ export type SimpleProperties<Properties extends PropertyObject> = {
   >]: Properties[Key];
 };
 
-export type Simplified<T extends Entity | BpEntity> = {
+export type Simplified<T extends HashEntity | BpEntity> = {
   metadata: EntityMetadata;
   properties: SimpleProperties<T["properties"]>;
 };

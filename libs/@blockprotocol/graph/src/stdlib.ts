@@ -23,16 +23,13 @@ export {
   getPropertyTypesReferencedByEntityType,
 } from "./stdlib/subgraph/edge/entity-type.js";
 export {
+  getIncomingLinkAndSourceEntities,
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinkAndTargetEntities,
   getOutgoingLinksForEntity,
   getRightEntityForLinkEntity,
 } from "./stdlib/subgraph/edge/link-entity.js";
-export {
-  getDataTypesReferencedByPropertyType,
-  getPropertyTypesReferencedByPropertyType,
-} from "./stdlib/subgraph/edge/property-type.js";
 export {
   getDataTypeById,
   getDataTypeByVertexId,
@@ -45,6 +42,9 @@ export {
   getEntityRevisionsByEntityId,
 } from "./stdlib/subgraph/element/entity.js";
 export {
+  getBreadthFirstEntityTypesAndParents,
+  getEntityTypeAndDescendantsById,
+  getEntityTypeAndParentsById,
   getEntityTypeById,
   getEntityTypeByVertexId,
   getEntityTypes,
@@ -54,8 +54,10 @@ export { mapElementsIntoRevisions } from "./stdlib/subgraph/element/map-revision
 export {
   getPropertyTypeById,
   getPropertyTypeByVertexId,
+  getPropertyTypeForEntity,
   getPropertyTypes,
   getPropertyTypesByBaseUrl,
+  getPropertyTypesForEntityType,
 } from "./stdlib/subgraph/element/property-type.js";
 export {
   getRoots,

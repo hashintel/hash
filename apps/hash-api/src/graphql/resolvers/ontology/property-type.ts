@@ -1,8 +1,10 @@
+import type { PropertyTypeRootType } from "@blockprotocol/graph";
 import type {
   OntologyTemporalMetadata,
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
+import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   defaultPropertyTypeAuthorizationRelationships,
@@ -13,10 +15,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
   serializeSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  PropertyTypeRootType,
-  SerializedSubgraph,
-} from "@local/hash-subgraph";
 
 import {
   archivePropertyType,

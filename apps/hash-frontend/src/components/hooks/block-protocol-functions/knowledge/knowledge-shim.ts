@@ -9,8 +9,10 @@
 import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import type {
   CreateResourceError,
+  EntityRootType,
   QueryOperationInput,
   ReadOrModifyResourceError,
+  Subgraph,
   UploadFileData as BpUploadFileData,
 } from "@blockprotocol/graph";
 import type {
@@ -19,9 +21,8 @@ import type {
   PropertyObject,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 
 import type {
   FileEntityCreationInput,
@@ -48,7 +49,7 @@ export type GetEntityData = {
 export type GetEntityMessageCallback = MessageCallback<
   GetEntityData,
   null,
-  MessageReturn<Subgraph<EntityRootType>>,
+  MessageReturn<Subgraph<EntityRootType<HashEntity>>>,
   ReadOrModifyResourceError
 >;
 
@@ -61,7 +62,7 @@ export type UpdateEntityData = {
 export type UpdateEntityMessageCallback = MessageCallback<
   UpdateEntityData,
   null,
-  MessageReturn<Entity>,
+  MessageReturn<HashEntity>,
   ReadOrModifyResourceError
 >;
 
@@ -76,7 +77,7 @@ export type UploadFileRequestData = BpUploadFileData &
 export type UploadFileRequestCallback = MessageCallback<
   UploadFileRequestData,
   null,
-  MessageReturn<Entity<FileEntity>>,
+  MessageReturn<HashEntity<FileEntity>>,
   CreateResourceError
 >;
 
@@ -89,7 +90,7 @@ export type QueryEntitiesMessageCallback = MessageCallback<
   QueryEntitiesRequest,
   null,
   MessageReturn<{
-    results: Subgraph<EntityRootType>;
+    results: Subgraph<EntityRootType<HashEntity>>;
     operation: QueryOperationInput;
   }>,
   ReadOrModifyResourceError
@@ -104,7 +105,7 @@ export type CreateEntityRequest = {
 export type CreateEntityMessageCallback = MessageCallback<
   CreateEntityRequest,
   null,
-  MessageReturn<Entity>,
+  MessageReturn<HashEntity>,
   CreateResourceError
 >;
 

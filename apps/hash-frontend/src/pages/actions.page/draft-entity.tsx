@@ -1,10 +1,10 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
-  type Entity,
   getClosedMultiEntityTypeFromMap,
+  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Checkbox, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
@@ -22,9 +22,9 @@ import { DraftEntityWeb } from "./draft-entity/draft-entity-web";
 
 export const DraftEntity: FunctionComponent<{
   closedMultiEntityTypesRootMap?: ClosedMultiEntityTypesRootMap;
-  entity: Entity;
+  entity: HashEntity;
   entityTypeDisplayInfoByBaseUrl: EntityTypeDisplayInfoByBaseUrl;
-  subgraph: Subgraph<EntityRootType>;
+  subgraph: Subgraph<EntityRootType<HashEntity>>;
   selected: boolean;
   toggleSelected: () => void;
 }> = ({

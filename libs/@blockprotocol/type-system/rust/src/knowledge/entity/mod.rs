@@ -38,12 +38,10 @@ pub use self::{
 /// [`VersionedUrl`]: crate::ontology::VersionedUrl
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
     /// The entity's properties, structured as a hierarchical object with keys that correspond to
     /// property type URLs.
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Record<BaseUrl, Property>"))]
     pub properties: PropertyObject,
 
     /// Optional link data describing relationships to other entities.
@@ -127,7 +125,6 @@ impl Entity {
         Ok(())
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -505,7 +502,6 @@ mod tests {
                 ],
             );
         }
-
         #[test]
         fn object_nested_object_key_changed() {
             let old = property!({ create_base_url(1): { create_base_url(3): "foo" } });

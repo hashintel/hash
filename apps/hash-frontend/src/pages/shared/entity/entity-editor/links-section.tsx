@@ -1,10 +1,10 @@
-import type { NoisySystemTypeId } from "@local/hash-isomorphic-utils/graph-queries";
-import { noisySystemTypeIds } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   getIncomingLinkAndSourceEntities,
   getOutgoingLinksForEntity,
-} from "@local/hash-subgraph/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import type { NoisySystemTypeId } from "@local/hash-isomorphic-utils/graph-queries";
+import { noisySystemTypeIds } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Stack } from "@mui/material";
 
 import { useEntityEditor } from "./entity-editor-context";

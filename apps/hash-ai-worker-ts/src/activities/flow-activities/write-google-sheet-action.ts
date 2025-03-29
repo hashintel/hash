@@ -9,7 +9,7 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   createDefaultAuthorizationRelationships,
@@ -162,7 +162,8 @@ export const writeGoogleSheetAction: FlowActionActivity<{
           any: dataToWrite.persistedEntities
             .map((persistedEntity) =>
               persistedEntity.entity
-                ? new Entity(persistedEntity.entity).metadata.recordId.entityId
+                ? new HashEntity(persistedEntity.entity).metadata.recordId
+                    .entityId
                 : undefined,
             )
             .filter(isNotNullish)
@@ -400,7 +401,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     graphApiClient,
   });
 
-  let entityToReturn: Entity;
+  let entityToReturn: HashEntity;
   if (existingEntity) {
     const { existingEntityIsDraft, isExactMatch, patchOperations } =
       getEntityUpdate({
@@ -426,7 +427,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       actorId: userAccountId,
     });
 
-    entityToReturn = await Entity.create<GoogleSheetsFile>(
+    entityToReturn = await HashEntity.create<GoogleSheetsFile>(
       graphApiClient,
       { actorId: webBotActorId },
       {
@@ -439,7 +440,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       },
     );
 
-    await Entity.create<AssociatedWithAccount>(
+    await HashEntity.create<AssociatedWithAccount>(
       graphApiClient,
       { actorId: webBotActorId },
       {

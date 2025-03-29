@@ -1,6 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { ActorGroupId, ActorId } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { ActorGroupId, ActorId, Entity } from "@blockprotocol/type-system";
 import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { Box, Skeleton, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";

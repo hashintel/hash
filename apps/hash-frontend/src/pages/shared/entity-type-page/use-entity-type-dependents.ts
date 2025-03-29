@@ -1,4 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
+import type { EntityTypeRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   EntityType,
@@ -6,18 +8,16 @@ import type {
   OwnedById,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
+import {
+  componentsFromVersionedUrl,
+  extractBaseUrl,
+  isExternalOntologyElementMetadata,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  type EntityTypeRootType,
-  isExternalOntologyElementMetadata,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { useCallback, useMemo } from "react";
 
 import type {

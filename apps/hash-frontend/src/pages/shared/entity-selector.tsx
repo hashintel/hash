@@ -1,4 +1,6 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId, EntityType } from "@blockprotocol/type-system";
 import {
   entityIdFromComponents,
@@ -11,7 +13,7 @@ import type {
   TypeListSelectorDropdownProps,
 } from "@hashintel/design-system";
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
@@ -24,8 +26,6 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo, useState } from "react";
 
 import type {
@@ -35,7 +35,7 @@ import type {
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 type EntitySelectorProps<Multiple extends boolean = false> = Omit<
-  SelectorAutocompleteProps<Entity, Multiple>,
+  SelectorAutocompleteProps<HashEntity, Multiple>,
   | "inputValue"
   | "loading"
   | "options"
@@ -50,10 +50,10 @@ type EntitySelectorProps<Multiple extends boolean = false> = Omit<
   includeDrafts: boolean;
   multiple?: Multiple;
   onSelect: (
-    event: Multiple extends true ? Entity[] : Entity,
+    event: Multiple extends true ? HashEntity[] : HashEntity,
     closedMultiEntityTypeMap: ClosedMultiEntityTypesRootMap,
   ) => void;
-  value?: Multiple extends true ? Entity : Entity[];
+  value?: Multiple extends true ? HashEntity : HashEntity[];
 };
 
 export const EntitySelector = <Multiple extends boolean>({
@@ -92,7 +92,7 @@ export const EntitySelector = <Multiple extends boolean>({
   });
 
   const entitiesSubgraph = entitiesData
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
         entitiesData.getEntitySubgraph.subgraph,
       )
     : undefined;
@@ -169,7 +169,7 @@ export const EntitySelector = <Multiple extends boolean>({
   }, [entitiesSubgraph, entityIdsToFilterOut, includeDrafts]);
 
   return (
-    <SelectorAutocomplete<Entity, Multiple>
+    <SelectorAutocomplete<HashEntity, Multiple>
       loading={loading}
       onChange={(_, option) => {
         if (!closedMultiEntityTypesRootMap) {

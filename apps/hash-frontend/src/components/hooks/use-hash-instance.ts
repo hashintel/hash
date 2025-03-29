@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
@@ -16,7 +16,7 @@ import { getHashInstanceSettings } from "../../graphql/queries/knowledge/hash-in
  */
 export const useHashInstance = (): {
   loading: boolean;
-  hashInstance?: Simplified<Entity<HASHInstance>>;
+  hashInstance?: Simplified<HashEntity<HASHInstance>>;
   isUserAdmin: boolean;
 } => {
   const { data, loading } = useQuery<
@@ -29,13 +29,13 @@ export const useHashInstance = (): {
   const { hashInstanceSettings } = data ?? {};
 
   const hashInstance = useMemo<
-    Simplified<Entity<HASHInstance>> | undefined
+    Simplified<HashEntity<HASHInstance>> | undefined
   >(() => {
     if (!hashInstanceSettings) {
       return undefined;
     }
 
-    const deserializedHashInstanceEntity = new Entity<HASHInstance>(
+    const deserializedHashInstanceEntity = new HashEntity<HASHInstance>(
       hashInstanceSettings.entity,
     );
 

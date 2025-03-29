@@ -18,10 +18,10 @@ import type {
   OwnedById,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -42,9 +42,9 @@ describe("Link entity", () => {
   let testEntityType: EntityTypeWithMetadata;
   let friendLinkEntityType: EntityTypeWithMetadata;
   let acquaintanceLinkEntityType: EntityTypeWithMetadata;
-  let leftEntity: Entity;
-  let friendRightEntity: Entity;
-  let acquaintanceRightEntity: Entity;
+  let leftEntity: HashEntity;
+  let friendRightEntity: HashEntity;
+  let acquaintanceRightEntity: HashEntity;
 
   const createTestEntityType = (
     params: Omit<
@@ -99,7 +99,7 @@ describe("Link entity", () => {
           title: "Friends",
           description: "Friend of",
           type: "object",
-          allOf: [{ $ref: linkEntityTypeUrl }],
+          allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
           properties: {},
         },
         relationships: [
@@ -125,7 +125,7 @@ describe("Link entity", () => {
           title: "Acquaintance",
           description: "Acquainted with",
           type: "object",
-          allOf: [{ $ref: linkEntityTypeUrl }],
+          allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
           properties: {},
         },
         relationships: [
@@ -199,8 +199,8 @@ describe("Link entity", () => {
     };
   });
 
-  let linkEntityFriend: LinkEntity;
-  let linkEntityAcquaintance: LinkEntity;
+  let linkEntityFriend: HashLinkEntity;
+  let linkEntityAcquaintance: HashLinkEntity;
 
   it("can link entities", async () => {
     const authentication = { actorId: testUser.accountId };

@@ -17,14 +17,18 @@ import {
   getClosedMultiEntityTypes,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   EntityTypeWithMetadata,
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import {
+  getClosedMultiEntityTypeFromMap,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -32,15 +36,13 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
+  blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
   systemDataTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -95,7 +97,7 @@ describe("Entity CRU", () => {
           description: "Friend of",
           type: "object",
           properties: {},
-          allOf: [{ $ref: linkEntityTypeUrl }],
+          allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
         },
         relationships: [
           {
@@ -216,7 +218,7 @@ describe("Entity CRU", () => {
     };
   });
 
-  let createdEntity: Entity;
+  let createdEntity: HashEntity;
   it("can create an entity", async () => {
     const authentication = { actorId: testUser.accountId };
     createdEntity = await createEntity(graphContext, authentication, {
@@ -361,7 +363,7 @@ describe("Entity CRU", () => {
     }
   });
 
-  let updatedEntity: Entity;
+  let updatedEntity: HashEntity;
   it("can update an entity", async () => {
     expect(createdEntity.metadata.provenance.edition.createdById).toBe(
       testUser.accountId,

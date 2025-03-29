@@ -1,9 +1,13 @@
 import type {
   BlockGraphProperties,
   EntityRevisionId,
+  EntityRootType,
+  EntityVertex,
   GraphEmbedderMessageCallbacks,
   Subgraph as BpSubgraph,
+  Subgraph,
 } from "@blockprotocol/graph";
+import type { KnowledgeGraphEditionMap } from "@blockprotocol/graph/types";
 import type {
   EntityId,
   EntityRecordId,
@@ -15,7 +19,7 @@ import {
   isEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import {
@@ -24,11 +28,6 @@ import {
 } from "@local/hash-isomorphic-utils/entity-store";
 import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
-import type {
-  EntityRootType,
-  EntityVertex,
-  Subgraph,
-} from "@local/hash-subgraph";
 import type { FunctionComponent } from "react";
 import {
   useCallback,
@@ -61,7 +60,7 @@ import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
 
 export type BlockLoaderProps = {
-  blockCollectionSubgraph?: Subgraph<EntityRootType>;
+  blockCollectionSubgraph?: Subgraph<EntityRootType<HashEntity>>;
   blockEntityId?: EntityId; // @todo make this always defined
   blockEntityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   blockMetadata: HashBlockMeta;
@@ -205,9 +204,10 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      * The block subgraph should have a single root: the block entity. We'll default to the API-provided one,
      * but might need to replace it if there's a later version in the entity store, since the version is part of the root identifier
      */
-    let roots: Subgraph<EntityRootType>["roots"] = subgraphToRewrite.roots;
+    let roots: Subgraph<EntityRootType<HashEntity>>["roots"] =
+      subgraphToRewrite.roots;
 
-    const newVertices: Subgraph<EntityRootType>["vertices"] = {};
+    const newVertices: Subgraph<EntityRootType<HashEntity>>["vertices"] = {};
 
     /**
      * Check all the vertices and rebuild the vertices object to meet the two requirements for rewriting the subgraph.
@@ -255,17 +255,22 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
       if (!entityInStore || !draftEntityIsNewer) {
         if (isBlockEntity) {
-          // @ts-expect-error –– @todo fix this
-          const entityVertex = entityOrTypeEditionMap[
-            latestSubgraphEditionTimestamp
-          ] as EntityVertex;
+          const entityVertex = (
+            entityOrTypeEditionMap as KnowledgeGraphEditionMap<HashEntity>
+          )[latestSubgraphEditionTimestamp];
+
+          if (!entityVertex) {
+            throw new Error(
+              `No entity vertex found for entity ${entityIdOrTypeId} at revision ${latestSubgraphEditionTimestamp}`,
+            );
+          }
 
           // If it's the block entity, rewrite the textual-content property of the latest edition to a plain string
           newVertices[entityIdOrTypeId] = {
             ...entityOrTypeEditionMap,
             [latestSubgraphEditionTimestamp]: {
               kind: "entity",
-              inner: new Entity({
+              inner: new HashEntity({
                 ...entityVertex.inner.toJSON(),
                 properties: rewrittenPropertiesForTextualContent(
                   (
@@ -290,7 +295,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
             kind: "entity",
             // TODO: `Entity` should not be created here
             //   see https://linear.app/hash/issue/H-2786/avoid-constructing-graphentity-in-block-loader
-            inner: new Entity({
+            inner: new HashEntity({
               metadata: {
                 recordId: entityInStore.metadata.recordId as EntityRecordId,
                 entityTypeIds: [

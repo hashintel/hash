@@ -1,4 +1,6 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   OwnedById,
@@ -7,7 +9,9 @@ import type {
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
+  GraphResolveDepths,
 } from "@local/hash-graph-client";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   ignoreNoisySystemTypesFilter,
@@ -19,8 +23,6 @@ import type {
   ConversionRequest,
   GetEntitySubgraphRequest,
 } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
@@ -241,7 +243,7 @@ export const useEntityTypeEntities = (
   const subgraph = useMemo(
     () =>
       data?.getEntitySubgraph.subgraph
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
             data.getEntitySubgraph.subgraph,
           )
         : undefined,

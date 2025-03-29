@@ -1,9 +1,9 @@
 import {
   blockProtocolDataTypes,
+  blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import type { MigrationFunction } from "../types";
 import {
@@ -252,7 +252,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Affiliated With",
         inverse: {
           title: "Affiliated With",

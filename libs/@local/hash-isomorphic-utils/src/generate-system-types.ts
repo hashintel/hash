@@ -1,7 +1,6 @@
 import type { CodegenParameters } from "@blockprotocol/graph/codegen";
 import { codegen } from "@blockprotocol/graph/codegen";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import {
   blockProtocolEntityTypes,
@@ -28,7 +27,7 @@ const generateTypes = async (
   );
 
   for (const [name, { entityTypeId }] of typesToGenerate) {
-    if (entityTypeId === linkEntityTypeUrl) {
+    if (entityTypeId === blockProtocolEntityTypes.link.entityTypeId) {
       /**
        * We don't have a use-case for generating the TS types
        * for the link entity type yet, but this also breaks the

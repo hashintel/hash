@@ -1,5 +1,8 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
+  Entity,
   EntityTypeWithMetadata,
+  LinkEntity,
   PropertyTypeWithMetadata,
   PropertyValue,
 } from "@blockprotocol/type-system";
@@ -8,10 +11,8 @@ import {
   EntityOrTypeIcon,
   IconButton,
 } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import type { ListItemButtonProps } from "@mui/material";
 import {
   Box,
@@ -77,7 +78,7 @@ export type SubMenuItem =
     }
   | {
       kind: "outgoing-link";
-      linkEntity: Entity;
+      linkEntity: LinkEntity;
       linkEntityType: EntityTypeWithMetadata;
       targetEntity?: Entity;
       targetEntityLabel?: string;

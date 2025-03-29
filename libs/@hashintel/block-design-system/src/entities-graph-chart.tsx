@@ -1,4 +1,5 @@
-/* eslint-disable no-restricted-imports */
+import type { Subgraph } from "@blockprotocol/graph";
+import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
 import type {
   EntityId,
   EntityMetadata,
@@ -14,10 +15,8 @@ import type {
   GraphNode,
 } from "@hashintel/design-system";
 import { EChart } from "@hashintel/design-system";
+/* eslint-disable no-restricted-imports */
 import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { Subgraph } from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
-/* eslint-enable no-restricted-imports */
 import type { BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";

@@ -26,7 +26,7 @@ export const entityTypeTypedef = gql`
       inheritsFrom: OutgoingEdgeResolveDepthInput!
       latestOnly: Boolean = true
       includeArchived: Boolean = false
-    ): Subgraph!
+    ): GqlSubgraph!
 
     """
     Get a subgraph rooted at an entity type resolved by its versioned URL.
@@ -39,7 +39,7 @@ export const entityTypeTypedef = gql`
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
       inheritsFrom: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
-    ): Subgraph!
+    ): GqlSubgraph!
 
     """
     Get multiple 'closed multi entity types' at once.

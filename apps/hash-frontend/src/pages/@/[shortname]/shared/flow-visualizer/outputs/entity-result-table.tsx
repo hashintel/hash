@@ -1,3 +1,4 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   ClosedMultiEntityType,
   EntityEditionId,
@@ -5,6 +6,7 @@ import type {
   PropertyObject,
   PropertyObjectMetadata,
   PropertyType,
+  TypeIdsAndPropertiesForEntity,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
@@ -15,10 +17,9 @@ import {
   typedValues,
 } from "@local/advanced-types/typed-entries";
 import {
-  Entity,
   getClosedMultiEntityTypeFromMap,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityProperties } from "@local/hash-graph-types/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
@@ -26,7 +27,6 @@ import type {
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, TableCell } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -236,7 +236,7 @@ type EntityResultRow = {
       targetEntityLabel: string;
     }[]
   >;
-  persistedEntity?: Entity;
+  persistedEntity?: HashEntity;
   properties: PropertyObject;
   propertiesMetadata: PropertyObjectMetadata;
   relevance: "Yes" | "No";
@@ -574,7 +574,9 @@ export const EntityResultTable = memo(
           record: ProposedEntityOutput | PersistedEntity;
           closedMultiEntityType: ClosedMultiEntityType;
           entityLabel: string;
-          entity: ProposedEntityOutput | Entity<EntityProperties>;
+          entity:
+            | ProposedEntityOutput
+            | HashEntity<TypeIdsAndPropertiesForEntity>;
         }
       > = {};
 
@@ -591,7 +593,7 @@ export const EntityResultTable = memo(
         const entity = isProposed
           ? record
           : record.entity
-            ? new Entity(record.entity)
+            ? new HashEntity(record.entity)
             : undefined;
 
         if (!entity) {

@@ -14,7 +14,7 @@ export const propertyTypeTypedef = gql`
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       latestOnly: Boolean = true
       includeArchived: Boolean = false
-    ): Subgraph!
+    ): GqlSubgraph!
 
     """
     Get a subgraph rooted at an property type resolved by its versioned URL.
@@ -24,7 +24,7 @@ export const propertyTypeTypedef = gql`
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
-    ): Subgraph!
+    ): GqlSubgraph!
   }
 
   extend type Mutation {

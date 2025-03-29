@@ -1,5 +1,5 @@
+import type { Subgraph } from "@blockprotocol/graph";
 import { AngleRightRegularIcon, IconButton } from "@hashintel/design-system";
-import type { Subgraph } from "@local/hash-subgraph";
 import type { SxProps, Theme } from "@mui/material";
 import {
   Box,

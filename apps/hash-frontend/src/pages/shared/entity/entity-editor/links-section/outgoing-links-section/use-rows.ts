@@ -1,4 +1,7 @@
-import { intervalCompareWithInterval } from "@blockprotocol/graph/stdlib";
+import {
+  getOutgoingLinkAndTargetEntities,
+  intervalCompareWithInterval,
+} from "@blockprotocol/graph/stdlib";
 import type {
   PartialEntityType,
   VersionedUrl,
@@ -6,7 +9,6 @@ import type {
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";

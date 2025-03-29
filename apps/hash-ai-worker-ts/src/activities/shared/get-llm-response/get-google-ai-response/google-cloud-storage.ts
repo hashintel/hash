@@ -1,5 +1,5 @@
 import { Storage } from "@google-cloud/storage";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { logger } from "../../activity-logger.js";
@@ -53,7 +53,7 @@ export const getFileEntityFromGcpStorageUri = ({
   fileEntities,
   gcpStorageUri,
 }: {
-  fileEntities: Pick<Entity<File>, "entityId" | "properties">[];
+  fileEntities: Pick<HashEntity<File>, "entityId" | "properties">[];
   gcpStorageUri: string;
 }) => {
   const hashFileStorageKey = getHashFileStorageKeyFromGcpStorageUri({
@@ -81,7 +81,7 @@ export const uploadFileToGcpStorage = async ({
   fileEntity,
 }: {
   fileSystemPath: string;
-  fileEntity: Pick<Entity<File>, "entityId" | "properties">;
+  fileEntity: Pick<HashEntity<File>, "entityId" | "properties">;
 }) => {
   const storage = getGoogleCloudStorage();
 

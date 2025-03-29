@@ -1,5 +1,6 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { type EntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { memo } from "react";
 
 import { Entity } from "../entity";
@@ -16,7 +17,7 @@ export type EntitySlideProps = {
    * If the entity is a Flow proposal, it won't be persisted in the database yet.
    * This mock subgraph allows viewing it in the slide (and will disable attempting to request info from the db on it)
    */
-  proposedEntitySubgraph?: Subgraph<EntityRootType>;
+  proposedEntitySubgraph?: Subgraph<EntityRootType<HashEntity>>;
   replaceItem: (item: SlideItem) => void;
   removeItem: () => void;
 

@@ -1,3 +1,7 @@
+import {
+  getEntityTypeById,
+  getPropertyTypeById,
+} from "@blockprotocol/graph/stdlib";
 import type {
   EntityTypeWithMetadata,
   OwnedById,
@@ -8,10 +12,6 @@ import type {
   EditorOntologyFunctions,
   EntityTypeEditorProps,
 } from "@hashintel/type-editor";
-import {
-  getEntityTypeById,
-  getPropertyTypeById,
-} from "@local/hash-subgraph/stdlib";
 import { useCallback } from "react";
 
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";

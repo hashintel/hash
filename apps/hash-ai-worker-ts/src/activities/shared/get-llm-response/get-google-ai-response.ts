@@ -6,7 +6,7 @@ import {
   type GenerateContentResponse,
   type Part,
 } from "@google-cloud/vertexai";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -59,7 +59,7 @@ export const getGoogleAiResponse = async <ToolName extends string>(
   const timeBeforeRequest = Date.now();
 
   const contents: Content[] = [];
-  const fileEntities: Pick<Entity<File>, "entityId" | "properties">[] = [];
+  const fileEntities: Pick<HashEntity<File>, "entityId" | "properties">[] = [];
 
   for (const message of messages) {
     const parts: Part[] = [];

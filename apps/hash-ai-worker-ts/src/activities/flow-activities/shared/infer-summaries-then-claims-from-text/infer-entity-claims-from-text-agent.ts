@@ -5,7 +5,7 @@ import type {
   Url,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -663,7 +663,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
         /**
          * @todo H-3162: when we pass existing entities to Flows, we can link them directly to the claim here
          */
-        const createdClaim = await Entity.create<ClaimEntity>(
+        const createdClaim = await HashEntity.create<ClaimEntity>(
           graphApiClient,
           { actorId: aiAssistantAccountId },
           {

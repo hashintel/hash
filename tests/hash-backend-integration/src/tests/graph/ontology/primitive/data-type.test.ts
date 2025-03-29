@@ -13,9 +13,10 @@ import {
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/ontology/primitive/util";
-import type {
-  DataTypeWithMetadata,
-  OwnedById,
+import {
+  type DataTypeWithMetadata,
+  isOwnedOntologyElementMetadata,
+  type OwnedById,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
@@ -25,7 +26,6 @@ import {
   fullTransactionTimeAxis,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";

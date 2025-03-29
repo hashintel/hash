@@ -15,7 +15,6 @@
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
-    "@local/hash-subgraph": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@playwright/test": "1.51.1",
     "execa": "5.1.1",

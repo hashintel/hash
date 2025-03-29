@@ -26,6 +26,6 @@ export const orgTypedef = gql`
       The depths that \`hasRightEntity\` edges are resolved to.
       """
       hasRightEntity: EdgeResolveDepthsInput! = { outgoing: 0, incoming: 0 }
-    ): Subgraph!
+    ): GqlSubgraph!
   }
 `;
