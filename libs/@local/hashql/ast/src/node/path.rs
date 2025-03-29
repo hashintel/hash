@@ -18,6 +18,7 @@ use crate::heap;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PathSegment<'heap> {
     pub id: NodeId,
+    pub span: SpanId,
 
     pub name: Ident,
     /// Type parameters attached to this path segment

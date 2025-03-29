@@ -97,6 +97,10 @@ impl Heap {
         }
     }
 
+    pub fn empty_slice<T>(&self) -> Box<[T]> {
+        Box::new_in([], self)
+    }
+
     /// Creates a new vector allocated on this heap.
     ///
     /// The capacity is an optional initial capacity for the vector, a value of [`None`] indicates

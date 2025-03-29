@@ -164,111 +164,14 @@ where
 #[cfg(test)]
 mod tests {
     #![expect(clippy::non_ascii_literal)]
-    use hashql_ast::heap::Heap;
-    use hashql_core::span::{TextRange, storage::SpanStorage};
-    use insta::{assert_snapshot, with_settings};
-    use text_size::TextSize;
-    use winnow::{LocatingSlice, Parser as _, Stateful, error::ContextError};
 
-    use crate::{
-        parser::string::{context::Context, ident::parse_ident},
-        span::Span,
-    };
+    use super::parse_ident;
+    use crate::parser::string::test::{bind_parser, test_cases};
 
-    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-    #[repr(u32)]
-    enum ResultKind {
-        Ok,
-        Err,
-    }
-
-    impl ResultKind {
-        fn into_content(self) -> insta::internals::Content {
-            insta::internals::Content::UnitVariant(
-                "ResultKind",
-                self as u32,
-                match self {
-                    Self::Ok => "Ok",
-                    Self::Err => "Err",
-                },
-            )
-        }
-    }
-
-    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-    struct Info {
-        kind: ResultKind,
-    }
-
-    impl Info {
-        fn into_content(self) -> insta::internals::Content {
-            insta::internals::Content::Struct("Info", vec![("kind", self.kind.into_content())])
-        }
-    }
-
-    fn parse(source: &str) -> (String, Info) {
-        let heap = Heap::new();
-        let spans = SpanStorage::new();
-        let parent = spans.insert(Span {
-            range: TextRange::up_to(TextSize::of(source)),
-            pointer: None,
-            parent_id: None,
-        });
-
-        let context = Context {
-            heap: &heap,
-            spans: &spans,
-            parent,
-        };
-
-        let input = Stateful {
-            input: LocatingSlice::new(source),
-            state: context,
-        };
-
-        let result = parse_ident::<ContextError>.parse(input);
-        match result {
-            Ok(ident) => (
-                format!("{ident:#?}"),
-                Info {
-                    kind: ResultKind::Ok,
-                },
-            ),
-            Err(error) => (
-                error.to_string(),
-                Info {
-                    kind: ResultKind::Err,
-                },
-            ),
-        }
-    }
-
-    macro assert_parse($source:expr, $description:literal) {{
-        let (result, info) = parse($source);
-
-        with_settings!({
-            description => $description,
-            raw_info => &info.into_content(),
-        }, {
-            assert_snapshot!(insta::_macro_support::AutoName, result, $source);
-        })
-    }}
-
-    macro test_cases(
-        $(
-            $name:ident($source:expr) => $description:expr,
-        )*
-    ) {
-        $(
-            #[test]
-            fn $name() {
-                assert_parse!($source, $description);
-            }
-        )*
-    }
+    bind_parser!(fn parse(parse_ident));
 
     // Test cases for lexical identifiers
-    test_cases! {
+    test_cases! {parse;
         lexical_basic("hello") => "Basic lexical identifier",
         lexical_with_underscore("_hello") => "Lexical identifier starting with underscore",
         lexical_with_numbers("hello123") => "Lexical identifier with numbers",
@@ -277,7 +180,7 @@ mod tests {
     }
 
     // Test cases for Unicode identifiers
-    test_cases! {
+    test_cases! {parse;
         unicode_japanese("こんにちは") => "Japanese Unicode identifier",
         unicode_mixed("hello世界") => "Mixed ASCII and Unicode identifier",
         unicode_with_emoji("x☺") => "Identifier with emoji",
@@ -286,7 +189,7 @@ mod tests {
     }
 
     // Test cases for symbol identifiers
-    test_cases! {
+    test_cases! {parse;
         symbol_basic("++") => "Basic symbol",
         symbol_complex("<=>") => "Complex symbol combination",
         symbol_escaped("`++`") => "Escaped symbol",
@@ -297,7 +200,7 @@ mod tests {
     }
 
     // Test cases for URL identifiers
-    test_cases! {
+    test_cases! {parse;
         url_http("`http://example.com/`") => "Basic HTTP URL",
         url_https("`https://example.com/`") => "HTTPS URL",
         url_with_path("`https://example.com/path/to/resource/`") => "URL with path",
@@ -309,7 +212,7 @@ mod tests {
     }
 
     // Test cases for invalid inputs
-    test_cases! {
+    test_cases! {parse;
         invalid_url_no_trailing_slash("`https://example.com`") => "URL without trailing slash (invalid)",
         invalid_url_not_http("`ftp://example.com/`") => "Non-HTTP/HTTPS URL (invalid)",
         invalid_url_malformed("`http:///invalid/`") => "Malformed URL (invalid)",
@@ -319,7 +222,7 @@ mod tests {
     }
 
     // Test for colon in symbols - should be rejected
-    test_cases! {
+    test_cases! {parse;
         invalid_colon_symbol(":") => "Colon as bare symbol (should be rejected)",
         invalid_colon_symbol_compound("::") => "Compound colon symbol (should be rejected)",
         invalid_colon_symbol_mixed("->:") => "Symbol with colon (should be rejected)",
@@ -330,13 +233,13 @@ mod tests {
     }
 
     // Test mixed input scenarios
-    test_cases! {
+    test_cases! {parse;
         mixed_lexical_then_symbol("hello++") => "Lexical followed by symbol without space",
         mixed_with_whitespace("hello `symbol`") => "Lexical then symbol with space",
     }
 
     // Additional test for specific edge cases
-    test_cases! {
+    test_cases! {parse;
         edge_single_underscore("_") => "Single underscore identifier",
         edge_single_character("x") => "Single character identifier",
         edge_all_numbers_invalid("123") => "All numbers (invalid as lexical identifier)",
@@ -345,7 +248,7 @@ mod tests {
     }
 
     // Unicode normalization and edge cases
-    test_cases! {
+    test_cases! {parse;
         unicode_combining_marks("a\u{0308}\u{0323}") => "Identifier with multiple combining marks",
         unicode_homoglyphs("рaypal") => "Identifier with Cyrillic 'р' instead of Latin 'p'",
         unicode_zero_width("hello\u{200B}world") => "Identifier with zero-width space",
@@ -353,14 +256,14 @@ mod tests {
     }
 
     // Complex symbol tests
-    test_cases! {
+    test_cases! {parse;
         symbol_very_long(&"*".repeat(100)) => "Very long repeated symbol",
         symbol_mixed_blocks("≈∞♥★") => "Symbols from different Unicode blocks",
         symbol_with_whitespace("`+ +`") => "Symbol with internal whitespace in backticks",
     }
 
     // Complex URL tests
-    test_cases! {
+    test_cases! {parse;
         url_idn("`https://例子.测试/`") => "URL with internationalized domain name",
         url_ipv6("`https://[2001:db8::1]/`") => "URL with IPv6 address",
         url_percent_encoded("`https://example.com/%E2%82%AC/`") => "URL with percent-encoded characters",
@@ -368,7 +271,7 @@ mod tests {
     }
 
     // Error cases and boundaries
-    test_cases! {
+    test_cases! {parse;
         error_valid_start_invalid_continue("a\u{0000}bc") => "Identifier with null character",
         error_max_length_exceeded(&"a".repeat(10000)) => "Extremely long identifier",
         error_control_chars("test\u{0007}beep") => "Identifier with control character",

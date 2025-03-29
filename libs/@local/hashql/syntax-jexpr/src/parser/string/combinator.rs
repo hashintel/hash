@@ -1,9 +1,10 @@
 use hashql_ast::heap::{self, Heap};
 use winnow::{
     Parser,
-    combinator::{separated_foldl1, trace},
+    ascii::multispace0,
+    combinator::{delimited, separated_foldl1, trace},
     error::ParserError,
-    stream::Stream,
+    stream::{AsChar, Stream, StreamIsPartial},
 };
 
 enum VecOrOneValue<'heap, T> {
@@ -100,5 +101,21 @@ where
             },
         )
         .map(VecOrOne::into_boxed_slice),
+    )
+}
+
+/// A combinator that takes a parser `inner` and produces a parser that also consumes both
+/// leading and trailing whitespace, returning the output of `inner`.
+pub(crate) fn ws<Input, Output, Error, ParseNext>(
+    parser: ParseNext,
+) -> impl Parser<Input, Output, Error>
+where
+    Input: StreamIsPartial + Stream<Token: AsChar + Clone>,
+    ParseNext: Parser<Input, Output, Error>,
+    Error: ParserError<Input>,
+{
+    trace(
+        "ws", //
+        delimited(multispace0, parser, multispace0),
     )
 }
