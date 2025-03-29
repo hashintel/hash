@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: URL with port
+expression: "`https://example.com:8080/`"
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    name: Symbol(
+        "https://example.com:8080/",
+    ),
+    kind: BaseUrl,
+}

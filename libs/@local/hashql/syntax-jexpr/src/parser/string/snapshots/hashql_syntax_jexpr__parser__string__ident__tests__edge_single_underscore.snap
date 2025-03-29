@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Single underscore identifier
+expression: _
+info:
+  kind: Err
+---
+_
+ ^

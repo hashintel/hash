@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Colon in invalid URL-like string (should be rejected)
+expression: "`example:not-url/`"
+info:
+  kind: Err
+---
+`example:not-url/`
+^

@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Identifier with emoji
+expression: x☺
+info:
+  kind: Err
+---
+x☺
+ ^

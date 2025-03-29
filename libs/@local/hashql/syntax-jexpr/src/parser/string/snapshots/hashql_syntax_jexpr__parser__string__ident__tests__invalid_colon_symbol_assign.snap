@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Assignment with colon (should be rejected)
+expression: ":="
+info:
+  kind: Err
+---
+:=
+^

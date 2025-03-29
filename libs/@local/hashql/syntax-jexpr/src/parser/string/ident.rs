@@ -1,6 +1,6 @@
-use ada_url::{ParseUrlError, Url};
+use ada_url::Url;
 use hashql_core::symbol::{Ident, IdentKind, Symbol};
-use unicode_normalization::{IsNormalized, UnicodeNormalization, is_nfc_quick};
+use unicode_normalization::{IsNormalized, UnicodeNormalization as _, is_nfc_quick};
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory as _};
 use winnow::{
     ModalResult, Parser as _,
@@ -80,7 +80,7 @@ where
         .map(|(value, span): (&str, _)| Ident {
             span: context.span(span),
             name: intern(value),
-            kind: IdentKind::Lexical,
+            kind: IdentKind::Symbol,
         })
         .parse_next(input)
 }
@@ -159,4 +159,234 @@ where
         _ => parse_ident_symbol
     }
     .parse_next(input)
+}
+
+#[cfg(test)]
+mod tests {
+    #![expect(clippy::non_ascii_literal)]
+    use hashql_ast::heap::Heap;
+    use hashql_core::span::{TextRange, storage::SpanStorage};
+    use insta::{assert_snapshot, with_settings};
+    use text_size::TextSize;
+    use winnow::{LocatingSlice, Parser as _, Stateful, error::ContextError};
+
+    use crate::{
+        parser::string::{context::Context, ident::parse_ident},
+        span::Span,
+    };
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    #[repr(u32)]
+    enum ResultKind {
+        Ok,
+        Err,
+    }
+
+    impl ResultKind {
+        fn into_content(self) -> insta::internals::Content {
+            insta::internals::Content::UnitVariant(
+                "ResultKind",
+                self as u32,
+                match self {
+                    Self::Ok => "Ok",
+                    Self::Err => "Err",
+                },
+            )
+        }
+    }
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    struct Info {
+        kind: ResultKind,
+    }
+
+    impl Info {
+        fn into_content(self) -> insta::internals::Content {
+            insta::internals::Content::Struct("Info", vec![("kind", self.kind.into_content())])
+        }
+    }
+
+    fn parse(source: &str) -> (String, Info) {
+        let heap = Heap::new();
+        let spans = SpanStorage::new();
+        let parent = spans.insert(Span {
+            range: TextRange::up_to(TextSize::of(source)),
+            pointer: None,
+            parent_id: None,
+        });
+
+        let context = Context {
+            heap: &heap,
+            spans: &spans,
+            parent,
+        };
+
+        let input = Stateful {
+            input: LocatingSlice::new(source),
+            state: context,
+        };
+
+        let result = parse_ident::<ContextError>.parse(input);
+        match result {
+            Ok(ident) => (
+                format!("{ident:#?}"),
+                Info {
+                    kind: ResultKind::Ok,
+                },
+            ),
+            Err(error) => (
+                error.to_string(),
+                Info {
+                    kind: ResultKind::Err,
+                },
+            ),
+        }
+    }
+
+    macro assert_parse($source:expr, $description:literal) {{
+        let (result, info) = parse($source);
+
+        with_settings!({
+            description => $description,
+            raw_info => &info.into_content(),
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result, $source);
+        })
+    }}
+
+    macro test_cases(
+        $(
+            $name:ident($source:expr) => $description:expr,
+        )*
+    ) {
+        $(
+            #[test]
+            fn $name() {
+                assert_parse!($source, $description);
+            }
+        )*
+    }
+
+    // Test cases for lexical identifiers
+    test_cases! {
+        lexical_basic("hello") => "Basic lexical identifier",
+        lexical_with_underscore("_hello") => "Lexical identifier starting with underscore",
+        lexical_with_numbers("hello123") => "Lexical identifier with numbers",
+        lexical_mixed_case("HelloWorld") => "Lexical identifier with mixed case",
+        lexical_with_trailing("hello_world after") => "Lexical identifier with trailing content",
+    }
+
+    // Test cases for Unicode identifiers
+    test_cases! {
+        unicode_japanese("こんにちは") => "Japanese Unicode identifier",
+        unicode_mixed("hello世界") => "Mixed ASCII and Unicode identifier",
+        unicode_with_emoji("x☺") => "Identifier with emoji",
+        unicode_precomposed("café") => "Identifier with precomposed character",
+        unicode_decomposed("cafe\u{0301}") => "Identifier with decomposed character",
+    }
+
+    // Test cases for symbol identifiers
+    test_cases! {
+        symbol_basic("++") => "Basic symbol",
+        symbol_complex("<=>") => "Complex symbol combination",
+        symbol_escaped("`++`") => "Escaped symbol",
+        symbol_escaped_with_trailing("`++` next") => "Escaped symbol with trailing content",
+        symbol_unicode("…") => "Unicode symbol",
+        symbol_unicode_complex("≤≥≠") => "Complex Unicode symbols",
+        symbol_unicode_escaped("`§¶†‡`") => "Escaped Unicode symbols",
+    }
+
+    // Test cases for URL identifiers
+    test_cases! {
+        url_http("`http://example.com/`") => "Basic HTTP URL",
+        url_https("`https://example.com/`") => "HTTPS URL",
+        url_with_path("`https://example.com/path/to/resource/`") => "URL with path",
+        url_with_query("`https://example.com/?query=value&param=123/`") => "URL with query parameters",
+        url_with_trailing("`https://example.com/` next") => "URL with trailing content",
+        url_with_port("`https://example.com:8080/`") => "URL with port",
+        url_with_auth("`https://user:pass@example.com/`") => "URL with authentication",
+        url_with_fragment("`https://example.com/#fragment/`") => "URL with fragment",
+    }
+
+    // Test cases for invalid inputs
+    test_cases! {
+        invalid_url_no_trailing_slash("`https://example.com`") => "URL without trailing slash (invalid)",
+        invalid_url_not_http("`ftp://example.com/`") => "Non-HTTP/HTTPS URL (invalid)",
+        invalid_url_malformed("`http:///invalid/`") => "Malformed URL (invalid)",
+        invalid_unclosed_backtick("`unclosed") => "Unclosed backtick (invalid)",
+        invalid_empty("") => "Empty input (invalid)",
+        invalid_whitespace("   ") => "Whitespace only (invalid)",
+    }
+
+    // Test for colon in symbols - should be rejected
+    test_cases! {
+        invalid_colon_symbol(":") => "Colon as bare symbol (should be rejected)",
+        invalid_colon_symbol_compound("::") => "Compound colon symbol (should be rejected)",
+        invalid_colon_symbol_mixed("->:") => "Symbol with colon (should be rejected)",
+        invalid_colon_symbol_assign(":=") => "Assignment with colon (should be rejected)",
+        invalid_colon_symbol_backticks("`:`") => "Colon in backticks (should be rejected)",
+        invalid_colon_symbol_backticks_compound("`:=`") => "Compound colon in backticks (should be rejected)",
+        invalid_colon_in_fake_url("`example:not-url/`") => "Colon in invalid URL-like string (should be rejected)",
+    }
+
+    // Test mixed input scenarios
+    test_cases! {
+        mixed_lexical_then_symbol("hello++") => "Lexical followed by symbol without space",
+        mixed_with_whitespace("hello `symbol`") => "Lexical then symbol with space",
+    }
+
+    // Additional test for specific edge cases
+    test_cases! {
+        edge_single_underscore("_") => "Single underscore identifier",
+        edge_single_character("x") => "Single character identifier",
+        edge_all_numbers_invalid("123") => "All numbers (invalid as lexical identifier)",
+        edge_dash_only("-") => "Single dash as symbol",
+        edge_complex_operators("<=>=><=>") => "Complex operator chain",
+    }
+
+    // Unicode normalization and edge cases
+    test_cases! {
+        unicode_combining_marks("a\u{0308}\u{0323}") => "Identifier with multiple combining marks",
+        unicode_homoglyphs("рaypal") => "Identifier with Cyrillic 'р' instead of Latin 'p'",
+        unicode_zero_width("hello\u{200B}world") => "Identifier with zero-width space",
+        unicode_normalization_nfd("a\u{0308}") => "Character with combining diaeresis (NFD)",
+    }
+
+    // Complex symbol tests
+    test_cases! {
+        symbol_very_long(&"*".repeat(100)) => "Very long repeated symbol",
+        symbol_mixed_blocks("≈∞♥★") => "Symbols from different Unicode blocks",
+        symbol_with_whitespace("`+ +`") => "Symbol with internal whitespace in backticks",
+    }
+
+    // Complex URL tests
+    test_cases! {
+        url_idn("`https://例子.测试/`") => "URL with internationalized domain name",
+        url_ipv6("`https://[2001:db8::1]/`") => "URL with IPv6 address",
+        url_percent_encoded("`https://example.com/%E2%82%AC/`") => "URL with percent-encoded characters",
+        url_complex("`https://sub.many.levels.example.co.uk:8443/very/deep/path/?q=complex&t=true#section/`") => "Complex URL with multiple components",
+    }
+
+    // Error cases and boundaries
+    test_cases! {
+        error_valid_start_invalid_continue("a\u{0000}bc") => "Identifier with null character",
+        error_max_length_exceeded(&"a".repeat(10000)) => "Extremely long identifier",
+        error_control_chars("test\u{0007}beep") => "Identifier with control character",
+    }
+
+    #[test]
+    fn unicode_normalization() {
+        // The precomposed character "é" (U+00E9)
+        let precomposed = "café";
+
+        // The decomposed version: "e" + combining acute accent (U+0065 U+0301)
+        let decomposed = "cafe\u{0301}";
+
+        // Parse both forms
+        let (precomposed_result, _) = parse(precomposed);
+        let (decomposed_result, _) = parse(decomposed);
+
+        // They should be identical after parsing due to normalization
+        assert_eq!(precomposed_result, decomposed_result);
+    }
 }

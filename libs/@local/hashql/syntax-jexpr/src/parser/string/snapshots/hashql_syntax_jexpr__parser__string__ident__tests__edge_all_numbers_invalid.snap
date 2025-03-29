@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: All numbers (invalid as lexical identifier)
+expression: "123"
+info:
+  kind: Err
+---
+123
+^

@@ -7,10 +7,10 @@ use winnow::{BStr, LocatingSlice, Stateful};
 use crate::span::Span;
 
 #[derive(Debug, Copy, Clone)]
-struct Context<'heap, 'span> {
-    heap: &'heap Heap,
-    spans: &'span SpanStorage<Span>,
-    parent: SpanId,
+pub(crate) struct Context<'heap, 'span> {
+    pub heap: &'heap Heap,
+    pub spans: &'span SpanStorage<Span>,
+    pub parent: SpanId,
 }
 
 impl Context<'_, '_> {
