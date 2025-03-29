@@ -8,16 +8,16 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
-    1[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
-    2[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    3[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
-    4[hash-graph-test-server]
-    class 4 root
-    5[<a href="../hash_graph_type_defs/index.html">hash-graph-type-defs</a>]
-    6[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
+    0[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    1[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    2[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    3[hash-graph-test-server]
+    class 3 root
+    4[<a href="../hash_graph_type_defs/index.html">hash-graph-type-defs</a>]
+    5[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
+    6[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
     7[<a href="../error_stack/index.html">error-stack</a>]
-    8[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    8[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
     9[<a href="../harpc_client/index.html">harpc-client</a>]
     10[<a href="../harpc_codec/index.html">harpc-codec</a>]
     11[<a href="../harpc_net/index.html">harpc-net</a>]
@@ -30,11 +30,13 @@ graph TD
     18[<a href="../hash_graph/index.html">hash-graph</a>]
     19[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
     20[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
-    21[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
-    22[<a href="../type_system/index.html">type-system</a>]
-    23[<a href="../hash_status/index.html">hash-status</a>]
-    24[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    5 --> 23
+    21[<a href="../type_system/index.html">type-system</a>]
+    22[<a href="../hash_status/index.html">hash-status</a>]
+    23[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    24[<a href="../hash_tracing/index.html">hash-tracing</a>]
+    25[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    4 --> 22
+    5 --> 0
     9 --> 13
     10 --> 7
     10 --> 15
@@ -42,7 +44,7 @@ graph TD
     11 --> 17
     11 -.-> 10
     12 -.-> 9
-    12 -.-> 22
+    12 -.-> 21
     13 --> 14
     14 --> 11
     14 -.-> 11
@@ -50,22 +52,23 @@ graph TD
     16 --> 15
     16 -.-> 15
     17 --> 16
-    18 --> 4
+    18 --> 3
     19 --> 12
-    19 --> 0
+    19 --> 25
+    19 --> 4
     19 --> 5
-    19 --> 6
-    20 --> 22
-    6 --> 1
-    8 --> 22
+    20 --> 21
+    6 --> 21
+    21 -.-> 2
+    8 --> 0
+    23 --> 21
     21 --> 1
-    22 --> 2
-    24 --> 22
-    22 -.-> 3
-    0 --> 21
+    24 --> 7
+    25 --> 8
+    25 --> 22
+    25 -.-> 24
+    0 --> 20
+    0 --> 6
     0 --> 23
-    1 --> 20
-    1 --> 8
-    1 --> 24
-    2 --> 17
-    4 --> 19
+    1 --> 17
+    3 --> 19

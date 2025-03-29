@@ -6,7 +6,9 @@
   "scripts": {
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-migrations --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
-    "lint:clippy": "just clippy"
+    "lint:clippy": "just clippy",
+    "start:migrate:down": "cargo run --package hash-graph-migrations --bin cli --features cli -- run --user postgres --password postgres --target 0",
+    "start:migrate:up": "cargo run --package hash-graph-migrations --bin cli --features cli -- run --user postgres --password postgres"
   },
   "dependencies": {
     "@rust/error-stack": "0.5.0",

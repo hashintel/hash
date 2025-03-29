@@ -22,7 +22,7 @@ use super::{
         ActorId, PrincipalConstraint,
         machine::{Machine, MachineId, MachinePrincipalConstraint},
         role::RoleId,
-        team::{Team, TeamId, TeamPrincipalConstraint, TeamRole, TeamRoleId},
+        team::{StandaloneTeamId, Team, TeamPrincipalConstraint, TeamRole, TeamRoleId},
         user::{User, UserId, UserPrincipalConstraint},
         web::{
             Web, WebPrincipalConstraint, WebRole, WebRoleId, WebTeam, WebTeamId, WebTeamRole,
@@ -52,7 +52,7 @@ pub enum RoleCreationParameter {
         web_id: OwnedById,
     },
     Team {
-        team_id: TeamId,
+        team_id: StandaloneTeamId,
     },
     WebTeam {
         web_id: OwnedById,
@@ -97,7 +97,7 @@ pub trait PolicyStore {
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: TeamCreationError::StoreError
-    fn create_team(&mut self) -> Result<TeamId, Report<TeamCreationError>>;
+    fn create_team(&mut self) -> Result<StandaloneTeamId, Report<TeamCreationError>>;
 
     /// Creates a new team role within the given team and returns its ID.
     ///
@@ -110,7 +110,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: TeamRoleCreationError::StoreError
     fn create_team_role(
         &mut self,
-        team_id: TeamId,
+        team_id: StandaloneTeamId,
     ) -> Result<TeamRoleId, Report<TeamRoleCreationError>>;
 
     /// Creates a new web and returns its ID.
@@ -279,7 +279,7 @@ enum PrincipalIndex {
     Actor(ActorId),
     Role(RoleId),
     Web(OwnedById),
-    Team(TeamId),
+    Team(StandaloneTeamId),
     WebTeam(WebTeamId),
 }
 
@@ -361,7 +361,7 @@ impl From<&PrincipalConstraint> for PrincipalIndex {
 #[derive(Debug, Default)]
 pub struct MemoryPolicyStore {
     webs: HashMap<OwnedById, Web>,
-    teams: HashMap<TeamId, Team>,
+    teams: HashMap<StandaloneTeamId, Team>,
     actors: HashMap<ActorId, Actor>,
     roles: HashMap<RoleId, Role>,
     policies: HashMap<PrincipalIndex, HashMap<PolicyId, Policy>>,
@@ -409,9 +409,9 @@ impl PolicyStore for MemoryPolicyStore {
         Ok(machine_id)
     }
 
-    fn create_team(&mut self) -> Result<TeamId, Report<TeamCreationError>> {
+    fn create_team(&mut self) -> Result<StandaloneTeamId, Report<TeamCreationError>> {
         loop {
-            let team_id = TeamId::new(Uuid::new_v4());
+            let team_id = StandaloneTeamId::new(Uuid::new_v4());
             if let Entry::Vacant(entry) = self.teams.entry(team_id) {
                 entry.insert(Team {
                     id: team_id,
@@ -424,7 +424,7 @@ impl PolicyStore for MemoryPolicyStore {
 
     fn create_team_role(
         &mut self,
-        team_id: TeamId,
+        team_id: StandaloneTeamId,
     ) -> Result<TeamRoleId, Report<TeamRoleCreationError>> {
         let Some(team) = self.teams.get_mut(&team_id) else {
             bail!(TeamRoleCreationError::TeamNotFound { team_id })

@@ -26,10 +26,9 @@ use core::fmt;
 use std::path::{Path, PathBuf};
 
 pub mod ontology;
-
-pub mod store;
-
+pub mod permissions;
 pub mod snapshot;
+pub mod store;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Environment {

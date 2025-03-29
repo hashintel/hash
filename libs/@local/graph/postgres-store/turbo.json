@@ -5,6 +5,9 @@
       "cache": false,
       "persistent": true,
       "dependsOn": ["@apps/hash-graph#dev:migrate"]
+    },
+    "test:integration": {
+      "dependsOn": ["@rust/hash-graph-migrations#start:migrate:up"]
     }
   }
 }

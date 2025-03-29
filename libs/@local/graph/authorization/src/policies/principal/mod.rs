@@ -10,7 +10,7 @@ use type_system::web::OwnedById;
 pub use self::actor::{Actor, ActorId};
 use self::{
     machine::{MachineId, MachinePrincipalConstraint},
-    team::{TeamId, TeamPrincipalConstraint, TeamRoleId},
+    team::{StandaloneTeamId, TeamPrincipalConstraint, TeamRoleId},
     user::{UserId, UserPrincipalConstraint},
     web::{WebPrincipalConstraint, WebRoleId, WebTeamId, WebTeamRoleId},
 };
@@ -79,10 +79,10 @@ impl InPrincipalConstraint {
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             }))
-        } else if *principal.entity_type() == **TeamId::entity_type() {
+        } else if *principal.entity_type() == **StandaloneTeamId::entity_type() {
             Ok(Self::Team(TeamPrincipalConstraint::InTeam {
                 id: Some(
-                    TeamId::from_eid(principal.eid())
+                    StandaloneTeamId::from_eid(principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             }))
