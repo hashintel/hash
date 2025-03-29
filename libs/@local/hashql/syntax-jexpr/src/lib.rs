@@ -2,7 +2,15 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(assert_matches, new_range_api, box_into_boxed_slice, decl_macro)]
+#![feature(
+    assert_matches,
+    new_range_api,
+    box_into_boxed_slice,
+    decl_macro,
+    portable_simd,
+    result_flattening,
+    ascii_char
+)]
 
 // use alloc::sync::Arc;
 
@@ -18,8 +26,9 @@
 extern crate alloc;
 
 // pub mod error;
+pub mod error;
 pub(crate) mod lexer;
-// pub(crate) mod parser;
+pub(crate) mod parser;
 pub mod span;
 
 // pub struct Parser<'arena> {
