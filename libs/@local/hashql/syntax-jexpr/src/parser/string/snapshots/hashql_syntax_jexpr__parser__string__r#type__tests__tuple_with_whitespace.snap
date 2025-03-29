@@ -1,0 +1,20 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Tuple with whitespace
+expression: "( Int , String )"
+info:
+  kind: Ok
+---
+Type#4294967040@16
+  TypeKind (Tuple)
+    TupleType#4294967040@16
+      TupleField#4294967040@7
+        Type#4294967040@6
+          TypeKind (Path)
+            Path#4294967040@6 (rooted: false)
+              PathSegment#4294967040@5 (name: Int)
+      TupleField#4294967040@15
+        Type#4294967040@14
+          TypeKind (Path)
+            Path#4294967040@14 (rooted: false)
+              PathSegment#4294967040@13 (name: String)

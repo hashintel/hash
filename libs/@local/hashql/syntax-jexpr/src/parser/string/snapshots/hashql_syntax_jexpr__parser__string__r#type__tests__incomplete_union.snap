@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Incomplete union
+expression: Int |
+info:
+  kind: Err
+---
+Int |
+    ^

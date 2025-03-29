@@ -1,0 +1,20 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Struct with whitespace
+expression: "( name : String , age : Int )"
+info:
+  kind: Ok
+---
+Type#4294967040@18
+  TypeKind (Struct)
+    StructType#4294967040@18
+      StructField#4294967040@12 (name: name)
+        Type#4294967040@11
+          TypeKind (Path)
+            Path#4294967040@11 (rooted: false)
+              PathSegment#4294967040@10 (name: String)
+      StructField#4294967040@17 (name: age)
+        Type#4294967040@16
+          TypeKind (Path)
+            Path#4294967040@16 (rooted: false)
+              PathSegment#4294967040@15 (name: Int)

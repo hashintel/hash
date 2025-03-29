@@ -38,7 +38,16 @@ impl Info {
     }
 }
 
-pub(crate) macro bind_parser(fn $name:ident($parser:ident)) {
+macro format_result {
+    (Debug; $ident:ident) => {
+        format!("{:#?}", $ident)
+    },
+    (SyntaxDump; $ident:ident) => {
+        hashql_ast::format::SyntaxDump::syntax_dump_to_string(&$ident)
+    }
+}
+
+pub(crate) macro bind_parser($format:ident; fn $name:ident($parser:ident)) {
     // this could also be a function, but then you run into issues with lifetimes, so this is easier
     fn $name(source: &str) -> (String, Info) {
         let heap = Heap::new();
@@ -63,7 +72,7 @@ pub(crate) macro bind_parser(fn $name:ident($parser:ident)) {
         let result = $parser::<ContextError>.parse(input);
         match result {
             Ok(ident) => (
-                format!("{ident:#?}"),
+                format_result!($format; ident),
                 Info {
                     kind: ResultKind::Ok,
                 },

@@ -69,7 +69,7 @@ mod tests {
     use crate::parser::string::test::{bind_parser, test_cases};
 
     // Bind our parser to create a testing function
-    bind_parser!(fn parse(parse_path));
+    bind_parser!(SyntaxDump; fn parse(parse_path));
 
     // TODO: tests
 }

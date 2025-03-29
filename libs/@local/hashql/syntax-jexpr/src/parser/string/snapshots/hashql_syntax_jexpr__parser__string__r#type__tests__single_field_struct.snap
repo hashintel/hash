@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Single-field struct
+expression: "(name: String)"
+info:
+  kind: Ok
+---
+Type#4294967040@13
+  TypeKind (Struct)
+    StructType#4294967040@13
+      StructField#4294967040@12 (name: name)
+        Type#4294967040@11
+          TypeKind (Path)
+            Path#4294967040@11 (rooted: false)
+              PathSegment#4294967040@10 (name: String)

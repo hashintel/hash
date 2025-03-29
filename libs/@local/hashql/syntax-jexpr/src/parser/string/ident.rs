@@ -168,7 +168,7 @@ mod tests {
     use super::parse_ident;
     use crate::parser::string::test::{bind_parser, test_cases};
 
-    bind_parser!(fn parse(parse_ident));
+    bind_parser!(Debug; fn parse(parse_ident));
 
     // Test cases for lexical identifiers
     test_cases! {parse;

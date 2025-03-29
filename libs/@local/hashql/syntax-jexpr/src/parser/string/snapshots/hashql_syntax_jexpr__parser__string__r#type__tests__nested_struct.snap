@@ -1,0 +1,24 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Nested struct type
+expression: "(person: (name: String, age: Int))"
+info:
+  kind: Ok
+---
+Type#4294967040@28
+  TypeKind (Struct)
+    StructType#4294967040@28
+      StructField#4294967040@27 (name: person)
+        Type#4294967040@26
+          TypeKind (Struct)
+            StructType#4294967040@26
+              StructField#4294967040@20 (name: name)
+                Type#4294967040@19
+                  TypeKind (Path)
+                    Path#4294967040@19 (rooted: false)
+                      PathSegment#4294967040@18 (name: String)
+              StructField#4294967040@25 (name: age)
+                Type#4294967040@24
+                  TypeKind (Path)
+                    Path#4294967040@24 (rooted: false)
+                      PathSegment#4294967040@23 (name: Int)

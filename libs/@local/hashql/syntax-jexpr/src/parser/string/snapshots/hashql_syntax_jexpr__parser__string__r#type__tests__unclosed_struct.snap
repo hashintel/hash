@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Unclosed struct
+expression: "(name: String, age: Int"
+info:
+  kind: Err
+---
+(name: String, age: Int
+                       ^

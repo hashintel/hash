@@ -1,0 +1,45 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Complex entity type with nested fields
+expression: "(id: ID, attrs: (name: String, metadata: (created: Timestamp, modified: Timestamp | Null)))"
+info:
+  kind: Ok
+---
+Type#4294967040@52
+  TypeKind (Struct)
+    StructType#4294967040@52
+      StructField#4294967040@12 (name: id)
+        Type#4294967040@11
+          TypeKind (Path)
+            Path#4294967040@11 (rooted: false)
+              PathSegment#4294967040@10 (name: ID)
+      StructField#4294967040@51 (name: attrs)
+        Type#4294967040@50
+          TypeKind (Struct)
+            StructType#4294967040@50
+              StructField#4294967040@25 (name: name)
+                Type#4294967040@24
+                  TypeKind (Path)
+                    Path#4294967040@24 (rooted: false)
+                      PathSegment#4294967040@23 (name: String)
+              StructField#4294967040@49 (name: metadata)
+                Type#4294967040@48
+                  TypeKind (Struct)
+                    StructType#4294967040@48
+                      StructField#4294967040@38 (name: created)
+                        Type#4294967040@37
+                          TypeKind (Path)
+                            Path#4294967040@37 (rooted: false)
+                              PathSegment#4294967040@36 (name: Timestamp)
+                      StructField#4294967040@47 (name: modified)
+                        Type#4294967040@46
+                          TypeKind (Union)
+                            UnionType#4294967040@46
+                              Type#4294967040@42
+                                TypeKind (Path)
+                                  Path#4294967040@42 (rooted: false)
+                                    PathSegment#4294967040@41 (name: Timestamp)
+                              Type#4294967040@45
+                                TypeKind (Path)
+                                  Path#4294967040@45 (rooted: false)
+                                    PathSegment#4294967040@44 (name: Null)
