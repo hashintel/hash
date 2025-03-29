@@ -61,3 +61,15 @@ where
         })
         .parse_next(input)
 }
+
+#[cfg(test)]
+mod tests {
+    #![expect(clippy::non_ascii_literal)]
+    use super::parse_path;
+    use crate::parser::string::test::{bind_parser, test_cases};
+
+    // Bind our parser to create a testing function
+    bind_parser!(fn parse(parse_path));
+
+    // TODO: tests
+}

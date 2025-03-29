@@ -134,7 +134,7 @@ where
             let is_valid_url = Url::can_parse(value, None);
             // the URL must be either http or https
             let is_http_or_https = value.starts_with("http://") || value.starts_with("https://");
-            let ends_with_slash = value.ends_with("/");
+            let ends_with_slash = value.ends_with('/');
 
             is_valid_url && is_http_or_https && ends_with_slash
         })
