@@ -13,7 +13,7 @@ use crate::{
 };
 
 pub(crate) struct ParserState<'heap, 'source> {
-    arena: &'heap Heap,
+    heap: &'heap Heap,
     lexer: Lexer<'source>,
     peek: Option<Token<'source>>,
 
@@ -84,5 +84,13 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
 
     pub(crate) fn insert_span(&mut self, span: Span) -> SpanId {
         self.spans.insert(span)
+    }
+
+    pub(crate) fn spans(&self) -> &SpanStorage<Span> {
+        &self.spans
+    }
+
+    pub(crate) fn heap(&self) -> &'heap Heap {
+        self.heap
     }
 }

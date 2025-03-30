@@ -1,0 +1,18 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Field access with whitespace before name
+expression: ".  field"
+info:
+  kind: Ok
+---
+Field(
+    Ident {
+        span: SpanId(
+            1,
+        ),
+        name: Symbol(
+            "field",
+        ),
+        kind: Lexical,
+    },
+)

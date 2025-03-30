@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Starting with index access
+expression: "[0]"
+info:
+  kind: Err
+---
+[0]
+^

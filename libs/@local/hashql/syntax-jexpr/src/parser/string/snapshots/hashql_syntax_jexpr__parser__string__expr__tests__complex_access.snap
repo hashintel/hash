@@ -1,0 +1,36 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Complex mixed access chain
+expression: "foo.bar[0].baz[42].qux"
+info:
+  kind: Ok
+---
+Expr#4294967040@13
+  ExprKind (Field)
+    FieldExpr#4294967040@13 (field: qux)
+      Expr#4294967040@12
+        ExprKind (Index)
+          IndexExpr#4294967040@12
+            Expr#4294967040@11
+              ExprKind (Field)
+                FieldExpr#4294967040@11 (field: baz)
+                  Expr#4294967040@10
+                    ExprKind (Index)
+                      IndexExpr#4294967040@10
+                        Expr#4294967040@9
+                          ExprKind (Field)
+                            FieldExpr#4294967040@9 (field: bar)
+                              Expr#4294967040@3
+                                ExprKind (Path)
+                                  Path#4294967040@3 (rooted: false)
+                                    PathSegment#4294967040@2 (name: foo)
+                        Expr#4294967040@5
+                          ExprKind (Literal)
+                            LiteralExpr#4294967040@5
+                              LiteralKind (Integer)
+                                IntegerLiteral#4294967040@5 (0)
+            Expr#4294967040@7
+              ExprKind (Literal)
+                LiteralExpr#4294967040@7
+                  LiteralKind (Integer)
+                    IntegerLiteral#4294967040@7 (42)

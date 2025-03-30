@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Numeric field access
+expression: foo.123
+info:
+  kind: Ok
+---
+Expr#4294967040@5
+  ExprKind (Field)
+    FieldExpr#4294967040@5 (field: 123)
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: foo)
