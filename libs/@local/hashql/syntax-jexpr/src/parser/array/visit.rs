@@ -1,3 +1,5 @@
+use hashql_core::span::SpanId;
+use hashql_diagnostics::Diagnostic;
 use text_size::TextRange;
 
 use super::error::ArrayDiagnostic;
@@ -142,11 +144,14 @@ fn error_on_typo(
     reason = "API contract, we want to signify to the user, we're now proceeding with this \
               specific token. Not that we hold it temporary, but instead that we consume it."
 )]
-pub(crate) fn visit_array<'arena, 'source>(
+pub(crate) fn visit_array<'arena, 'source, C>(
     state: &mut ParserState<'arena, 'source>,
     token: Token<'source>,
-    mut on_item: impl FnMut(&mut ParserState<'arena, 'source>) -> Result<(), ArrayDiagnostic>,
-) -> Result<TextRange, ArrayDiagnostic> {
+    mut on_item: impl FnMut(&mut ParserState<'arena, 'source>) -> Result<(), Diagnostic<C, SpanId>>,
+) -> Result<TextRange, Diagnostic<C, SpanId>>
+where
+    C: From<ArrayDiagnosticCategory>,
+{
     debug_assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
     let mut span = token.span;
@@ -155,21 +160,23 @@ pub(crate) fn visit_array<'arena, 'source>(
     loop {
         let next = state
             .peek()
-            .change_category(ArrayDiagnosticCategory::Lexer)?;
+            .change_category(ArrayDiagnosticCategory::Lexer)
+            .change_category(C::from)?;
 
         let (next_kind, next_span) = (next.kind.syntax(), next.span);
 
         if next_kind == SyntaxKind::RBracket {
             state
                 .advance()
-                .change_category(ArrayDiagnosticCategory::Lexer)?;
+                .change_category(ArrayDiagnosticCategory::Lexer)
+                .change_category(C::from)?;
 
             span = span.cover(next_span);
             break;
         }
 
         if index == 0 {
-            error_on_typo_start(state)?;
+            error_on_typo_start(state).change_category(C::from)?;
         } else if index != 0 {
             // we need to check if the next token is a comma
             // in case it isn't we error out
@@ -177,9 +184,10 @@ pub(crate) fn visit_array<'arena, 'source>(
                 // advance the cursor to the next token and continue as it nothing has happened
                 state
                     .advance()
-                    .change_category(ArrayDiagnosticCategory::Lexer)?;
+                    .change_category(ArrayDiagnosticCategory::Lexer)
+                    .change_category(C::from)?;
 
-                error_on_typo(state, next_span)?;
+                error_on_typo(state, next_span).change_category(C::from)?;
             } else {
                 // get the token where we expected a comma, but do *not* commit.
                 let span = state.insert_span(Span {
@@ -193,7 +201,8 @@ pub(crate) fn visit_array<'arena, 'source>(
                     span,
                     ArrayDiagnosticCategory::ExpectedSeparator,
                     EXPECTED_ARRAY_SEP,
-                ));
+                ))
+                .change_category(C::from);
             }
         }
 
@@ -226,7 +235,7 @@ mod tests {
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
         let mut items_count = 0;
-        let result = visit_array(&mut state, token, |_| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |_| {
             // This callback should not be called for an empty array
             items_count += 1;
             Ok(())
@@ -248,7 +257,7 @@ mod tests {
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
         let mut items_count = 0;
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             let token = state.advance().expect("should have at least one token");
             assert_eq!(token.kind.syntax(), SyntaxKind::Number);
             items_count += 1;
@@ -270,7 +279,7 @@ mod tests {
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
         let mut items = Vec::new();
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             let token = state.advance().expect("should have at least one token");
             items.push(token.kind.syntax());
             Ok(())
@@ -294,7 +303,7 @@ mod tests {
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
         let mut items = Vec::new();
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             let token = state.advance().expect("should have at least one token");
             items.push(token.kind.syntax());
             Ok(())
@@ -323,7 +332,7 @@ mod tests {
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
         let mut callback_count = 0;
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             state.advance().expect("should have at least one token");
 
             callback_count += 1;
@@ -351,7 +360,7 @@ mod tests {
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
         let mut callback_count = 0;
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             state.advance().expect("should have at least one token");
             callback_count += 1;
             Ok(())
@@ -409,7 +418,7 @@ mod tests {
         let token = state.advance().expect("should have at least one token");
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             state.advance().expect("should have at least one token");
             Ok(())
         });
@@ -433,7 +442,7 @@ mod tests {
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
         let mut items_count = 0;
-        let result = visit_array(&mut state, token, |_| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |_| {
             items_count += 1;
             Ok(())
         });
@@ -453,7 +462,7 @@ mod tests {
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
         let mut items = Vec::new();
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             let token = state.advance().expect("should have at least one token");
             items.push(token.kind.syntax());
             Ok(())
@@ -477,13 +486,13 @@ mod tests {
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
         let mut outer_items = Vec::new();
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             let token = state.advance().expect("should have at least one token");
             outer_items.push(token.kind.syntax());
 
             if token.kind.syntax() == SyntaxKind::LBracket {
                 let mut inner_items = Vec::new();
-                let inner_result = visit_array(state, token, |state| {
+                let inner_result: Result<_, ArrayDiagnostic> = visit_array(state, token, |state| {
                     let token = state.advance().expect("should have at least one token");
                     inner_items.push(token.kind.syntax());
                     Ok(())
@@ -550,14 +559,14 @@ mod tests {
         let mut outer_callback_count = 0;
         let mut inner_callback_count = 0;
 
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             let token = state.advance().expect("should have at least one token");
             assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
             outer_callback_count += 1;
 
             visit_array(state, token, |_| {
                 inner_callback_count += 1;
-                Ok(())
+                Ok::<(), ArrayDiagnostic>(())
             })
             .expect("should be able to parse empty nested array");
 
@@ -582,7 +591,7 @@ mod tests {
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
         let mut items = Vec::new();
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             let token = state.advance().expect("should have at least one token");
             items.push(token.kind.syntax());
 
@@ -624,7 +633,7 @@ mod tests {
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
         let mut items = Vec::new();
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             let token = state.advance().expect("should have at least one token");
             items.push(token.kind.syntax());
             Ok(())
@@ -647,7 +656,7 @@ mod tests {
         let token = state.advance().expect("should have at least one token");
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             state.advance().expect("should have at least one token");
             Ok(())
         });
@@ -671,7 +680,7 @@ mod tests {
         let token = state.advance().expect("should have at least one token");
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             state.advance().expect("should have at least one token");
             Ok(())
         });
@@ -695,7 +704,7 @@ mod tests {
         let token = state.advance().expect("should have at least one token");
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             state.advance().expect("should have at least one token");
             Ok(())
         });
@@ -719,7 +728,7 @@ mod tests {
         let token = state.advance().expect("should have at least one token");
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             state.advance().expect("should have at least one token");
             Ok(())
         });
@@ -742,7 +751,7 @@ mod tests {
         let token = state.advance().expect("should have at least one token");
         assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
 
-        let result = visit_array(&mut state, token, |state| {
+        let result: Result<_, ArrayDiagnostic> = visit_array(&mut state, token, |state| {
             state.advance().expect("should have at least one token");
             Ok(())
         });
