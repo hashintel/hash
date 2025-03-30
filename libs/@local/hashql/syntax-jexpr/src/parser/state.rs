@@ -1,11 +1,12 @@
-use std::sync::Arc;
+use alloc::sync::Arc;
+use core::mem;
 
 use hashql_ast::heap::Heap;
 use hashql_core::span::{SpanId, storage::SpanStorage};
 
 use super::error::{ParserDiagnostic, ParserDiagnosticCategory, expected_eof};
 use crate::{
-    error::ResultExt,
+    error::ResultExt as _,
     lexer::{
         Lexer,
         error::{LexerDiagnostic, unexpected_eof},
@@ -57,25 +58,36 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
             .flatten()
     }
 
-    pub(crate) fn peek(&mut self) -> Result<&Token<'source>, LexerDiagnostic> {
+    pub(crate) fn peek(&mut self) -> Result<Option<&Token<'source>>, LexerDiagnostic> {
+        match &mut self.peek {
+            Some(token) => Ok(Some(token)),
+            peek @ None => {
+                let Some(token) = self.lexer.advance() else {
+                    return Ok(None);
+                };
+
+                *peek = Some(token?);
+                Ok(Some(peek.as_ref().unwrap_or_else(|| unreachable!())))
+            }
+        }
+    }
+
+    pub(crate) fn peek_or_error(&mut self) -> Result<&Token<'source>, LexerDiagnostic> {
+        // we inline this from peek, because otherwise we'd have lifetime problems
         match &mut self.peek {
             Some(token) => Ok(token),
             peek @ None => {
-                let token = self
-                    .lexer
-                    .advance()
-                    .ok_or_else(|| {
-                        let span = self.spans.insert(Span {
-                            range: self.lexer.span(),
-                            pointer: None,
-                            parent_id: None,
-                        });
+                let Some(token) = self.lexer.advance() else {
+                    let span = self.spans.insert(Span {
+                        range: self.lexer.span(),
+                        pointer: None,
+                        parent_id: None,
+                    });
 
-                        unexpected_eof(span)
-                    })
-                    .flatten()?;
+                    return Err(unexpected_eof(span));
+                };
 
-                *peek = Some(token);
+                *peek = Some(token?);
                 Ok(peek.as_ref().unwrap_or_else(|| unreachable!()))
             }
         }

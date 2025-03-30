@@ -1,6 +1,7 @@
 use hashql_ast::node::expr::Expr;
 
 use super::{
+    array::parse_array,
     error::{ParserDiagnostic, ParserDiagnosticCategory, unexpected_token},
     state::ParserState,
     string::parse_string,
@@ -28,7 +29,7 @@ pub(crate) fn parse_expr<'heap, 'source>(
         SyntaxKind::String => {
             parse_string(state, token).change_category(ParserDiagnosticCategory::String)
         }
-        SyntaxKind::LBracket => todo!("parse function call"),
+        SyntaxKind::LBracket => parse_array(state, token),
         SyntaxKind::LBrace => todo!("parse objects"),
         _ => {
             let span = state.insert_span(Span {
