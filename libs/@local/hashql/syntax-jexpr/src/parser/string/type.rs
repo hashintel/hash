@@ -11,18 +11,14 @@ use winnow::{
     ModalParser, ModalResult, Parser as _,
     ascii::multispace0,
     combinator::{
-        alt, cut_err, delimited, dispatch, empty, fail, opt, peek, preceded, repeat, separated,
-        separated_pair, terminated,
+        alt, cut_err, dispatch, fail, opt, peek, preceded, repeat, separated, separated_pair,
+        terminated,
     },
-    error::{AddContext, ErrMode, ParserError, StrContext, StrContextValue},
+    error::{AddContext, ParserError, StrContext, StrContextValue},
     token::any,
 };
 
-use super::{
-    combinator::{separated_boxed1, ws},
-    context::Input,
-    ident::parse_ident,
-};
+use super::{combinator::ws, context::Input, ident::parse_ident};
 use crate::parser::string::path::parse_path;
 
 fn parse_type_infer<'heap, 'span, 'source, E>(
@@ -61,55 +57,6 @@ where
         .parse_next(input)
 }
 
-fn parse_type_tuple<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
-) -> ModalResult<Type<'heap>, E>
-where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
-{
-    let context = input.state;
-
-    let empty = "()".with_span().map(|(_, span)| TupleType {
-        id: NodeId::PLACEHOLDER,
-        span: context.span(span),
-        fields: context.heap.empty_slice(),
-    });
-
-    let fields = delimited(
-        ws("("),
-        (
-            repeat(1.., terminated(parse_type_tuple_field, ws(","))),
-            opt(parse_type_tuple_field),
-        )
-            .map(|(types, last): (Vec<_>, _)| {
-                let required_length = types.len() + usize::from(last.is_some());
-
-                let mut vec = context.heap.vec(Some(required_length));
-
-                vec.extend(types);
-                vec.extend(last);
-
-                vec.into_boxed_slice()
-            }),
-        ws(")"),
-    )
-    .with_span()
-    .map(|(fields, span)| TupleType {
-        id: NodeId::PLACEHOLDER,
-        span: context.span(span),
-        fields,
-    });
-
-    alt((empty, fields))
-        .map(|tuple| Type {
-            id: NodeId::PLACEHOLDER,
-            span: tuple.span,
-            kind: TypeKind::Tuple(tuple),
-        })
-        .parse_next(input)
-}
-
 fn parse_type_struct_field<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<StructField<'heap>, E>
@@ -128,60 +75,6 @@ where
             r#type,
         })
         .parse_next(input)
-}
-
-fn parse_type_struct<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
-) -> ModalResult<Type<'heap>, E>
-where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
-{
-    let context = input.state;
-
-    let empty = "(:)".with_span().map(|(_, span)| StructType {
-        id: NodeId::PLACEHOLDER,
-        span: context.span(span),
-        fields: context.heap.empty_slice(),
-    });
-
-    let fields = delimited(
-        ws("("),
-        terminated(
-            separated_boxed1(context.heap, parse_type_struct_field, ws(",")),
-            opt(ws(",")),
-        ),
-        ws(")"),
-    )
-    .with_span()
-    .map(|(fields, span)| StructType {
-        id: NodeId::PLACEHOLDER,
-        span: context.span(span),
-        fields,
-    });
-
-    alt((empty, fields))
-        .map(|r#struct| Type {
-            id: NodeId::PLACEHOLDER,
-            span: r#struct.span,
-            kind: TypeKind::Struct(r#struct),
-        })
-        .parse_next(input)
-}
-
-fn parse_type_paren_old<'heap, 'span, 'source, E>(
-    input: &mut Input<'heap, 'span, 'source>,
-) -> ModalResult<Type<'heap>, E>
-where
-    E: ParserError<Input<'heap, 'span, 'source>>
-        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
-{
-    delimited(
-        ws("("),
-        parse_type,
-        ws(cut_err(")").context(StrContext::Expected(StrContextValue::CharLiteral(')')))),
-    )
-    .parse_next(input)
 }
 
 fn parse_type_paren_empty_tuple<'heap, 'span, 'source, E>(
