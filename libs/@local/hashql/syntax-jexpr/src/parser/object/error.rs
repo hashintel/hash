@@ -12,11 +12,26 @@ use hashql_diagnostics::{
 
 use crate::lexer::error::LexerDiagnosticCategory;
 
-pub(crate) type ArrayDiagnostic = Diagnostic<ArrayDiagnosticCategory, SpanId>;
+pub(crate) type ObjectDiagnostic = Diagnostic<ObjectDiagnosticCategory, SpanId>;
 
 const EXPECTED_SEPARATOR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "expected-separator",
     name: "Expected array separator or closing bracket",
+};
+
+const EXPECTED_COLON: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "expected-colon",
+    name: "Expected colon",
+};
+
+const EXPECTED_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "expected-key",
+    name: "Expected key",
+};
+
+const EXPECTED_VALUE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "expected-value",
+    name: "Expected value",
 };
 
 const LEADING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -34,22 +49,31 @@ const CONSECUTIVE_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory
     name: "Consecutive commas",
 };
 
+const CONSECUTIVE_COLON: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "consecutive-colon",
+    name: "Consecutive colons",
+};
+
 const EMPTY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "empty",
-    name: "Expected non-empty array",
+    name: "Expected non-empty object",
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum ArrayDiagnosticCategory {
+pub enum ObjectDiagnosticCategory {
     Lexer(LexerDiagnosticCategory),
     ExpectedSeparator,
+    ExpectedColon,
+    ExpectedKey,
+    ExpectedValue,
     LeadingComma,
     TrailingComma,
     ConsecutiveComma,
+    ConsecutiveColon,
     Empty,
 }
 
-impl DiagnosticCategory for ArrayDiagnosticCategory {
+impl DiagnosticCategory for ObjectDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         match self {
             Self::Lexer(category) => category.id(),
@@ -66,31 +90,39 @@ impl DiagnosticCategory for ArrayDiagnosticCategory {
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            Self::Lexer(category) => Some(category),
+            Self::Lexer(lexer) => Some(lexer),
+            Self::ExpectedColon => Some(&EXPECTED_COLON),
             Self::ExpectedSeparator => Some(&EXPECTED_SEPARATOR),
+            Self::ExpectedKey => Some(&EXPECTED_KEY),
+            Self::ExpectedValue => Some(&EXPECTED_VALUE),
             Self::LeadingComma => Some(&LEADING_COMMA),
             Self::TrailingComma => Some(&TRAILING_COMMA),
             Self::ConsecutiveComma => Some(&CONSECUTIVE_COMMA),
+            Self::ConsecutiveColon => Some(&CONSECUTIVE_COLON),
             Self::Empty => Some(&EMPTY),
         }
     }
 }
 
-impl From<LexerDiagnosticCategory> for ArrayDiagnosticCategory {
+impl From<LexerDiagnosticCategory> for ObjectDiagnosticCategory {
     fn from(value: LexerDiagnosticCategory) -> Self {
         Self::Lexer(value)
     }
 }
 
-const EMPTY_HELP: &str = r##"In J-Expr syntax, arrays must contain at least one element that represents the function to be called. For example: ["add", {"#literal": 1}, {"#literal": 2}] calls the 'add' function with arguments 1 and 2."##;
+const EMPTY_HELP: &str = r##"In J-Expr syntax, objects must contain at least one key-value pair. For example: `{"#literal": 1}`"##;
 
-const EMPTY_NOTE: &str = r##"Valid examples:
-- `["get", "user"]` - Calls 'get' with argument 'user'
-- `["map", ["identity"], [{"#literal": 1}, {"#literal": 2}, {"#literal": 3}]]` - Calls 'map' with a function and array
+const EMPTY_NOTE: &str = r##"The following constructs are supported:
+- `{"#struct": ..., "#type"?: ...}`
+- `{"#dict": ..., "#type"?: ...}`
+- `{"#tuple": ..., "#type"?: ...}`
+- `{"#list": ..., "#type"?: ...}`
+- `{"#literal": ...}`
+- `{"#type": ...}`
 "##;
 
-pub(crate) fn empty(span: SpanId) -> ArrayDiagnostic {
-    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::Empty, Severity::ERROR);
+pub(crate) fn empty(span: SpanId) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::Empty, Severity::ERROR);
 
     diagnostic
         .labels
@@ -103,8 +135,8 @@ pub(crate) fn empty(span: SpanId) -> ArrayDiagnostic {
 }
 
 #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-pub(crate) fn trailing_commas(spans: &[SpanId]) -> ArrayDiagnostic {
-    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::TrailingComma, Severity::ERROR);
+pub(crate) fn trailing_commas(spans: &[SpanId]) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::TrailingComma, Severity::ERROR);
 
     for (index, &span) in spans.iter().rev().enumerate() {
         let message = if index == 0 {
@@ -120,15 +152,15 @@ pub(crate) fn trailing_commas(spans: &[SpanId]) -> ArrayDiagnostic {
 
     diagnostic.help = Some(Help::new(
         "Unlike JavaScript or some other languages, J-Expr does not support trailing commas in \
-         arrays",
+         objects",
     ));
 
     diagnostic
 }
 
 #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-pub(crate) fn leading_commas(spans: &[SpanId]) -> ArrayDiagnostic {
-    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::LeadingComma, Severity::ERROR);
+pub(crate) fn leading_commas(spans: &[SpanId]) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::LeadingComma, Severity::ERROR);
 
     for (index, &span) in spans.iter().rev().enumerate() {
         let message = if index == 0 {
@@ -144,16 +176,16 @@ pub(crate) fn leading_commas(spans: &[SpanId]) -> ArrayDiagnostic {
 
     diagnostic.help = Some(Help::new(
         "Unlike JavaScript or some other languages, J-Expr does not support leading commas in \
-         arrays",
+         objects",
     ));
 
     diagnostic
 }
 
 #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
+pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ObjectDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(ArrayDiagnosticCategory::ConsecutiveComma, Severity::ERROR);
+        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveComma, Severity::ERROR);
 
     for (index, &span) in spans.iter().rev().enumerate() {
         let message = if index == 0 {
@@ -169,7 +201,32 @@ pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
 
     diagnostic.help = Some(Help::new(
         "Unlike JavaScript or some other languages, J-Expr does not support consecutive commas in \
-         arrays",
+         objects",
+    ));
+
+    diagnostic
+}
+
+#[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+pub(crate) fn consecutive_colons(spans: &[SpanId]) -> ObjectDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveColon, Severity::ERROR);
+
+    for (index, &span) in spans.iter().rev().enumerate() {
+        let message = if index == 0 {
+            "Remove this colon"
+        } else {
+            "... and this colon"
+        };
+
+        diagnostic
+            .labels
+            .push(Label::new(span, message).with_order(index as i32));
+    }
+
+    diagnostic.help = Some(Help::new(
+        "J-Expr does not support consecutive colons in objects. Each key should have exactly one \
+         colon followed by a value.",
     ));
 
     diagnostic

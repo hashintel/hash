@@ -3,6 +3,7 @@ use alloc::sync::Arc;
 use circular_buffer::CircularBuffer;
 use hashql_ast::heap::Heap;
 use hashql_core::span::{SpanId, storage::SpanStorage};
+use text_size::TextRange;
 
 use super::error::{ParserDiagnostic, ParserDiagnosticCategory, expected_eof};
 use crate::{
@@ -164,6 +165,14 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
 
     pub(crate) fn insert_span(&self, span: Span) -> SpanId {
         self.spans.insert(span)
+    }
+
+    pub(crate) fn insert_range(&self, range: TextRange) -> SpanId {
+        self.spans.insert(Span {
+            range,
+            pointer: Some(self.current_pointer()),
+            parent_id: None,
+        })
     }
 
     pub(crate) fn spans(&self) -> &SpanStorage<Span> {
@@ -333,6 +342,7 @@ mod tests {
         assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
     }
 
+    #[expect(unused_mut)]
     #[test]
     fn finish_behavior() {
         // Test finish with tokens remaining

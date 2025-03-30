@@ -29,7 +29,7 @@ use crate::{
               fatal"
 )]
 pub(crate) fn parse_string<'heap, 'source>(
-    state: &mut ParserState<'heap, 'source>,
+    state: &ParserState<'heap, 'source>,
     token: Token<'source>,
 ) -> Result<Expr<'heap>, StringDiagnostic> {
     let TokenKind::String(value) = token.kind else {

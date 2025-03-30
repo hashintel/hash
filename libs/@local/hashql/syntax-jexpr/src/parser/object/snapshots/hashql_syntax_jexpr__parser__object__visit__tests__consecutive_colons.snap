@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/visit.rs
+description: Object with consecutive colons should fail
+expression: "{\"a\":: 1}"
+---
+[31m[array::consecutive-colon] Error:[0m Array
+   ╭─[ <unknown>:1:6 ]
+   │
+ 1 │ {"a":: 1}
+   │      ┬  
+   │      ╰── Remove this colon
+   │ 
+   │ Help: J-Expr does not support consecutive colons in objects. Each key should have exactly one colon followed by a value.
+───╯
