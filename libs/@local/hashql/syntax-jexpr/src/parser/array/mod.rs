@@ -2,7 +2,10 @@ pub(crate) mod error;
 mod visit;
 
 use hashql_ast::node::{
-    expr::{CallExpr, Expr, ExprKind, call::Argument},
+    expr::{
+        CallExpr, Expr, ExprKind,
+        call::{Argument, LabeledArgument},
+    },
     id::NodeId,
 };
 
@@ -10,10 +13,45 @@ use self::{error::empty, visit::visit_array};
 use super::error::ParserDiagnostic;
 use crate::{
     error::ResultExt as _,
-    lexer::{syntax_kind::SyntaxKind, token::Token},
-    parser::{expr::parse_expr, state::ParserState},
+    lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
+    parser::{error::ParserDiagnosticCategory, expr::parse_expr, state::ParserState},
     span::Span,
 };
+
+// peek twice, we know if it's a labeled argument if the first token is `{` and the second a
+// string that starts with `:`.
+// TODO: move this to separate function
+fn parse_labelled_argument<'heap>(
+    state: &mut ParserState<'heap, '_>,
+) -> Result<Option<Vec<LabeledArgument<'heap>>>, ParserDiagnostic> {
+    let Some(peek1) = state
+        .peek()
+        .change_category(ParserDiagnosticCategory::Lexer)?
+    else {
+        return Ok(None);
+    };
+
+    if peek1.kind.syntax() != SyntaxKind::LBrace {
+        return Ok(None);
+    }
+
+    let Some(peek2) = state
+        .peek2()
+        .change_category(ParserDiagnosticCategory::Lexer)?
+    else {
+        return Ok(None);
+    };
+
+    let TokenKind::String(key) = &peek2.kind else {
+        return Ok(None);
+    };
+
+    if !key.starts_with(':') {
+        return Ok(None);
+    }
+
+    todo!("Implement parse_labelled_argument")
+}
 
 pub(crate) fn parse_array<'heap, 'source>(
     state: &mut ParserState<'heap, 'source>,
@@ -23,18 +61,24 @@ pub(crate) fn parse_array<'heap, 'source>(
 
     let mut function = None;
     let mut arguments = Vec::new();
+    let mut labeled_arguments = Vec::new();
 
     let span = visit_array(state, token, |state| {
-        // TODO: support for labeled arguments
-        let expr = parse_expr(state)?;
-
         match &mut function {
-            Some(_) => arguments.push(Argument {
-                id: NodeId::PLACEHOLDER,
-                span: expr.span,
-                value: expr,
-            }),
-            function @ None => *function = Some(expr),
+            Some(_) => {
+                if let Some(labeled) = parse_labelled_argument(state)? {
+                    labeled_arguments.extend(labeled);
+                }
+
+                let expr = parse_expr(state)?;
+
+                arguments.push(Argument {
+                    id: NodeId::PLACEHOLDER,
+                    span: expr.span,
+                    value: expr,
+                });
+            }
+            function @ None => *function = Some(parse_expr(state)?),
         }
 
         Ok(())
@@ -61,8 +105,7 @@ pub(crate) fn parse_array<'heap, 'source>(
             span,
             function: heap.boxed(function),
             arguments: heap.boxed_slice(arguments),
-            // TODO:
-            labeled_arguments: heap.empty_slice(),
+            labeled_arguments: heap.boxed_slice(labeled_arguments),
         }),
     })
 }

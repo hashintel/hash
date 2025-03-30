@@ -22,7 +22,7 @@ const EXPECTED_ARRAY_SEP: SyntaxKindSet =
 // this is issued when we just started, e.g. are at `[`, this means that *any* `,` is invalid
 fn error_on_typo_start(state: &mut ParserState<'_, '_>) -> Result<(), ArrayDiagnostic> {
     let next = state
-        .peek_or_error()
+        .peek_required()
         .change_category(ArrayDiagnosticCategory::Lexer)?;
 
     if !matches!(next.kind.syntax(), SyntaxKind::Comma) {
@@ -33,7 +33,7 @@ fn error_on_typo_start(state: &mut ParserState<'_, '_>) -> Result<(), ArrayDiagn
 
     loop {
         let token = state
-            .peek_or_error()
+            .peek_required()
             .change_category(ArrayDiagnosticCategory::Lexer)?;
 
         let token_kind = token.kind.syntax();
@@ -69,7 +69,7 @@ fn error_on_typo(
     initial_span: TextRange,
 ) -> Result<(), ArrayDiagnostic> {
     let next = state
-        .peek_or_error()
+        .peek_required()
         .change_category(ArrayDiagnosticCategory::Lexer)?;
 
     if !matches!(next.kind.syntax(), SyntaxKind::Comma | SyntaxKind::RBracket) {
@@ -85,7 +85,7 @@ fn error_on_typo(
 
     loop {
         let token = state
-            .peek_or_error()
+            .peek_required()
             .change_category(ArrayDiagnosticCategory::Lexer)?;
 
         let (token_kind, token_span) = (token.kind.syntax(), token.span);
@@ -159,7 +159,7 @@ where
 
     loop {
         let next = state
-            .peek_or_error()
+            .peek_required()
             .change_category(ArrayDiagnosticCategory::Lexer)
             .change_category(C::from)?;
 

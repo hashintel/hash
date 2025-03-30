@@ -96,6 +96,7 @@ pub(crate) fn empty(span: SpanId) -> ArrayDiagnostic {
     diagnostic
 }
 
+#[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn trailing_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::TrailingComma, Severity::ERROR);
 
@@ -119,6 +120,7 @@ pub(crate) fn trailing_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     diagnostic
 }
 
+#[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn leading_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::LeadingComma, Severity::ERROR);
 
@@ -142,6 +144,7 @@ pub(crate) fn leading_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     diagnostic
 }
 
+#[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     let mut diagnostic =
         Diagnostic::new(ArrayDiagnosticCategory::ConsecutiveComma, Severity::ERROR);

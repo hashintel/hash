@@ -20,6 +20,7 @@ text-size = { workspace = true, public = true }
 
 # Private third-party dependencies
 ada-url                 = "3.1.0"
+circular-buffer         = "1.1.0"
 ecow                    = { workspace = true }
 hifijson                = { workspace = true, features = ["alloc"] }
 json-number             = { workspace = true }

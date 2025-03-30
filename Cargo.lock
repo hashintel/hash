@@ -1443,6 +1443,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "circular-buffer"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23bdce1da528cadbac4654b5632bfcd8c6c63e25b1d42cea919a95958790b51d"
+
+[[package]]
 name = "clang-sys"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3618,6 +3624,7 @@ version = "0.0.0"
 dependencies = [
  "ada-url",
  "ariadne",
+ "circular-buffer",
  "ecow",
  "hashql-ast",
  "hashql-core",
