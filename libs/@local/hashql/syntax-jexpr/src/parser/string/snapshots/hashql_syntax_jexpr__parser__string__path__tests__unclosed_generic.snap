@@ -6,4 +6,6 @@ info:
   kind: Err
 ---
 Vec<T
-   ^
+     ^
+invalid path
+expected `>`

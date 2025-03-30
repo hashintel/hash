@@ -5,20 +5,20 @@ expression: "(data: (Int, String))"
 info:
   kind: Ok
 ---
-Type#4294967040@26
+Type#4294967040@16
   TypeKind (Struct)
-    StructType#4294967040@26
-      StructField#4294967040@25 (name: data)
-        Type#4294967040@24
+    StructType#4294967040@16
+      StructField#4294967040@15 (name: data)
+        Type#4294967040@14
           TypeKind (Tuple)
-            TupleType#4294967040@24
-              TupleField#4294967040@15
-                Type#4294967040@14
+            TupleType#4294967040@14
+              TupleField#4294967040@5
+                Type#4294967040@5
                   TypeKind (Path)
-                    Path#4294967040@14 (rooted: false)
-                      PathSegment#4294967040@13 (name: Int)
-              TupleField#4294967040@23
-                Type#4294967040@22
+                    Path#4294967040@5 (rooted: false)
+                      PathSegment#4294967040@4 (name: Int)
+              TupleField#4294967040@13
+                Type#4294967040@12
                   TypeKind (Path)
-                    Path#4294967040@22 (rooted: false)
-                      PathSegment#4294967040@21 (name: String)
+                    Path#4294967040@12 (rooted: false)
+                      PathSegment#4294967040@11 (name: String)

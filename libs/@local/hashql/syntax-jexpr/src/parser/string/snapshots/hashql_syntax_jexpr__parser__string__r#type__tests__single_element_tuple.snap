@@ -5,11 +5,11 @@ expression: "(Int,)"
 info:
   kind: Ok
 ---
-Type#4294967040@8
+Type#4294967040@5
   TypeKind (Tuple)
-    TupleType#4294967040@8
-      TupleField#4294967040@7
-        Type#4294967040@6
+    TupleType#4294967040@5
+      TupleField#4294967040@4
+        Type#4294967040@4
           TypeKind (Path)
-            Path#4294967040@6 (rooted: false)
-              PathSegment#4294967040@5 (name: Int)
+            Path#4294967040@4 (rooted: false)
+              PathSegment#4294967040@3 (name: Int)

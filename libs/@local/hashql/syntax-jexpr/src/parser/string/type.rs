@@ -1,15 +1,20 @@
+use core::ops::Range;
+
 use hashql_ast::node::{
     id::NodeId,
     r#type::{
         IntersectionType, StructField, StructType, TupleField, TupleType, Type, TypeKind, UnionType,
     },
 };
+use hashql_core::symbol::Ident;
 use winnow::{
-    ModalResult, Parser as _,
+    ModalParser, ModalResult, Parser as _,
+    ascii::multispace0,
     combinator::{
-        alt, delimited, dispatch, opt, peek, repeat, separated, separated_pair, terminated,
+        alt, cut_err, delimited, dispatch, empty, fail, opt, peek, preceded, repeat, separated,
+        separated_pair, terminated,
     },
-    error::{AddContext, ParserError, StrContext},
+    error::{AddContext, ErrMode, ParserError, StrContext, StrContextValue},
     token::any,
 };
 
@@ -164,6 +169,203 @@ where
         .parse_next(input)
 }
 
+fn parse_type_paren_old<'heap, 'span, 'source, E>(
+    input: &mut Input<'heap, 'span, 'source>,
+) -> ModalResult<Type<'heap>, E>
+where
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+{
+    delimited(
+        ws("("),
+        parse_type,
+        ws(cut_err(")").context(StrContext::Expected(StrContextValue::CharLiteral(')')))),
+    )
+    .parse_next(input)
+}
+
+fn parse_type_paren_empty_tuple<'heap, 'span, 'source, E>(
+    start_span: Range<usize>,
+) -> impl ModalParser<Input<'heap, 'span, 'source>, Type<'heap>, E>
+where
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+{
+    move |input: &mut Input<'heap, 'span, 'source>| {
+        let context = input.state;
+
+        cut_err(')')
+            .span()
+            .map(|span| {
+                let span = context.span(Range {
+                    start: start_span.start,
+                    end: span.end,
+                });
+
+                Type {
+                    id: NodeId::PLACEHOLDER,
+                    span,
+                    kind: TypeKind::Tuple(TupleType {
+                        id: NodeId::PLACEHOLDER,
+                        span,
+                        fields: context.heap.empty_slice(),
+                    }),
+                }
+            })
+            .context(StrContext::Expected(StrContextValue::CharLiteral(')')))
+            .parse_next(input)
+    }
+}
+
+fn parse_type_paren_empty_struct<'heap, 'span, 'source, E>(
+    start_span: Range<usize>,
+) -> impl ModalParser<Input<'heap, 'span, 'source>, Type<'heap>, E>
+where
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+{
+    move |input: &mut Input<'heap, 'span, 'source>| {
+        let context = input.state;
+
+        cut_err(":)")
+            .span()
+            .map(|span| {
+                let span = context.span(Range {
+                    start: start_span.start,
+                    end: span.end,
+                });
+
+                Type {
+                    id: NodeId::PLACEHOLDER,
+                    span,
+                    kind: TypeKind::Struct(StructType {
+                        id: NodeId::PLACEHOLDER,
+                        span,
+                        fields: context.heap.empty_slice(),
+                    }),
+                }
+            })
+            .context(StrContext::Expected(StrContextValue::StringLiteral(":)")))
+            .parse_next(input)
+    }
+}
+
+fn parse_type_paren_struct<'heap, 'span, 'source, E>(
+    ident: Ident,
+    partial_field_span: Range<usize>,
+
+    start_span: Range<usize>,
+) -> impl ModalParser<Input<'heap, 'span, 'source>, Type<'heap>, E>
+where
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+{
+    move |input: &mut Input<'heap, 'span, 'source>| {
+        let context = input.state;
+
+        // to now construct the first field, we just need to parse the type
+        let (field_type, field_range) = parse_type.with_span().parse_next(input)?;
+
+        let field_span = context.span(Range {
+            start: partial_field_span.start,
+            end: field_range.end,
+        });
+
+        let mut field = Some(StructField {
+            id: NodeId::PLACEHOLDER,
+            span: field_span,
+            name: ident.clone(),
+            r#type: field_type,
+        });
+
+        let fields = terminated(
+            repeat(0.., preceded(ws(","), parse_type_struct_field)),
+            opt(","),
+        )
+        .with_span();
+
+        terminated(
+            fields,
+            ws(cut_err(')').context(StrContext::Expected(StrContextValue::CharLiteral(')')))),
+        )
+        .map(move |(mut fields, mut span): (Vec<_>, _)| {
+            let field = field.take().expect("Parser called more than once");
+
+            span.start = start_span.start;
+            let span = context.span(span);
+
+            fields.insert(0, field);
+
+            Type {
+                id: NodeId::PLACEHOLDER,
+                span,
+                kind: TypeKind::Struct(StructType {
+                    id: NodeId::PLACEHOLDER,
+                    span,
+                    fields: context.heap.boxed_slice(fields),
+                }),
+            }
+        })
+        .parse_next(input)
+    }
+}
+
+fn parse_type_paren_tuple<'heap, 'span, 'source, E>(
+    first: Type<'heap>,
+
+    start_span: Range<usize>,
+) -> impl ModalParser<Input<'heap, 'span, 'source>, Type<'heap>, E>
+where
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+{
+    let mut first = Some(first);
+
+    move |input: &mut Input<'heap, 'span, 'source>| {
+        let context = input.state;
+
+        terminated(
+            (
+                cut_err(','),
+                repeat(0.., terminated(parse_type_tuple_field, ws(","))),
+                opt(parse_type_tuple_field),
+            ),
+            ws(cut_err(')').context(StrContext::Expected(StrContextValue::CharLiteral(')')))),
+        )
+        .with_span()
+        .map(|((_, rest, last), mut span): ((_, Vec<_>, _), _)| {
+            let first = first.take().expect("Parser called more than once");
+
+            let first = TupleField {
+                id: NodeId::PLACEHOLDER,
+                span: first.span,
+                r#type: first,
+            };
+
+            span.start = start_span.start;
+            let span = context.span(span);
+
+            let mut fields = Vec::with_capacity(rest.len() + 2);
+            fields.push(first);
+            fields.extend(rest);
+            if let Some(last) = last {
+                fields.push(last);
+            }
+
+            Type {
+                id: NodeId::PLACEHOLDER,
+                span,
+                kind: TypeKind::Tuple(TupleType {
+                    id: NodeId::PLACEHOLDER,
+                    span,
+                    fields: context.heap.boxed_slice(fields),
+                }),
+            }
+        })
+        .parse_next(input)
+    }
+}
+
 fn parse_type_paren<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Type<'heap>, E>
@@ -171,7 +373,67 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    delimited(ws("("), parse_type, ws(")")).parse_next(input)
+    enum ParseDecision<'heap> {
+        Struct(Ident, Range<usize>),
+        TupleOrParen(Type<'heap>),
+    }
+
+    let start_span = ws("(").span().parse_next(input)?;
+
+    // when we're inside parenthesis we can be one of the following:
+    // - a group
+    // - a tuple
+    // - a struct
+
+    // take a look at the next token, to determine if what we're parsing an empty variant, in that
+    // case we can return it
+    match peek(any).parse_next(input)? {
+        // empty struct
+        ':' => return parse_type_paren_empty_struct(start_span).parse_next(input),
+        // empty tuple
+        ')' => return parse_type_paren_empty_tuple(start_span).parse_next(input),
+        _ => {}
+    }
+
+    // Now that the empty variants are out of the way, we need to determine, are we in a struct,
+    // tuple or paren?
+    let decision = alt((
+        terminated(parse_ident, ws(":"))
+            .with_span()
+            .map(|(ident, span)| ParseDecision::Struct(ident, span)),
+        parse_type.map(ParseDecision::TupleOrParen),
+    ))
+    .parse_next(input)?;
+
+    // given our parse decision we now know if we're in a struct, or not, in case we are, fall back
+    // to the struct parser
+    match decision {
+        ParseDecision::Struct(ident, partial_field_span) => {
+            parse_type_paren_struct(ident, partial_field_span, start_span).parse_next(input)
+        }
+        ParseDecision::TupleOrParen(r#type) => {
+            // To finally figure out if we're in a paren or tuple, check the next character, if it's
+            // a `)` we're in a paren, otherwise in a tuple
+
+            let _: &str = multispace0.parse_next(input)?;
+
+            match peek(opt(any)).parse_next(input)? {
+                Some(')') => {
+                    let mut r#type = Some(r#type);
+                    cut_err(")")
+                        .context(StrContext::Expected(StrContextValue::CharLiteral(')')))
+                        .map(|_| r#type.take().expect("Parser called more than once"))
+                        .parse_next(input)
+                }
+                Some(',') => parse_type_paren_tuple(r#type, start_span).parse_next(input),
+                _ => fail
+                    .context(StrContext::Expected(StrContextValue::CharLiteral(')')))
+                    .context(StrContext::Expected(StrContextValue::CharLiteral(',')))
+                    .context(StrContext::Expected(StrContextValue::CharLiteral(':')))
+                    .parse_next(input),
+            }
+        }
+    }
 }
 
 fn parse_type_atom<'heap, 'span, 'source, E>(
@@ -189,7 +451,7 @@ where
 
     dispatch! {peek(any);
         '_' => parse_type_infer,
-        '(' => alt((parse_type_paren, parse_type_tuple, parse_type_struct)),
+        '(' => parse_type_paren,
         _ => path
     }
     .parse_next(input)
@@ -280,7 +542,9 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    ws(parse_type_intersection).parse_next(input)
+    ws(parse_type_intersection)
+        .context(StrContext::Label("type"))
+        .parse_next(input)
 }
 
 #[cfg(test)]

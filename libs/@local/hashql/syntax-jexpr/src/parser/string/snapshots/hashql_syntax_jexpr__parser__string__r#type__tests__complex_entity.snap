@@ -5,41 +5,41 @@ expression: "(id: ID, attrs: (name: String, metadata: (created: Timestamp, modif
 info:
   kind: Ok
 ---
-Type#4294967040@52
+Type#4294967040@31
   TypeKind (Struct)
-    StructType#4294967040@52
-      StructField#4294967040@12 (name: id)
-        Type#4294967040@11
+    StructType#4294967040@31
+      StructField#4294967040@5 (name: id)
+        Type#4294967040@4
           TypeKind (Path)
-            Path#4294967040@11 (rooted: false)
-              PathSegment#4294967040@10 (name: ID)
-      StructField#4294967040@51 (name: attrs)
-        Type#4294967040@50
+            Path#4294967040@4 (rooted: false)
+              PathSegment#4294967040@3 (name: ID)
+      StructField#4294967040@30 (name: attrs)
+        Type#4294967040@29
           TypeKind (Struct)
-            StructType#4294967040@50
-              StructField#4294967040@25 (name: name)
-                Type#4294967040@24
+            StructType#4294967040@29
+              StructField#4294967040@11 (name: name)
+                Type#4294967040@10
                   TypeKind (Path)
-                    Path#4294967040@24 (rooted: false)
-                      PathSegment#4294967040@23 (name: String)
-              StructField#4294967040@49 (name: metadata)
-                Type#4294967040@48
+                    Path#4294967040@10 (rooted: false)
+                      PathSegment#4294967040@9 (name: String)
+              StructField#4294967040@28 (name: metadata)
+                Type#4294967040@27
                   TypeKind (Struct)
-                    StructType#4294967040@48
-                      StructField#4294967040@38 (name: created)
-                        Type#4294967040@37
+                    StructType#4294967040@27
+                      StructField#4294967040@17 (name: created)
+                        Type#4294967040@16
                           TypeKind (Path)
-                            Path#4294967040@37 (rooted: false)
-                              PathSegment#4294967040@36 (name: Timestamp)
-                      StructField#4294967040@47 (name: modified)
-                        Type#4294967040@46
+                            Path#4294967040@16 (rooted: false)
+                              PathSegment#4294967040@15 (name: Timestamp)
+                      StructField#4294967040@26 (name: modified)
+                        Type#4294967040@25
                           TypeKind (Union)
-                            UnionType#4294967040@46
-                              Type#4294967040@42
+                            UnionType#4294967040@25
+                              Type#4294967040@21
                                 TypeKind (Path)
-                                  Path#4294967040@42 (rooted: false)
-                                    PathSegment#4294967040@41 (name: Timestamp)
-                              Type#4294967040@45
+                                  Path#4294967040@21 (rooted: false)
+                                    PathSegment#4294967040@20 (name: Timestamp)
+                              Type#4294967040@24
                                 TypeKind (Path)
-                                  Path#4294967040@45 (rooted: false)
-                                    PathSegment#4294967040@44 (name: Null)
+                                  Path#4294967040@24 (rooted: false)
+                                    PathSegment#4294967040@23 (name: Null)

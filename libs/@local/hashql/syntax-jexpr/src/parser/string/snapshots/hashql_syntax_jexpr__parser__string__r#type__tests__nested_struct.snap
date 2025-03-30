@@ -5,20 +5,20 @@ expression: "(person: (name: String, age: Int))"
 info:
   kind: Ok
 ---
-Type#4294967040@28
+Type#4294967040@14
   TypeKind (Struct)
-    StructType#4294967040@28
-      StructField#4294967040@27 (name: person)
-        Type#4294967040@26
+    StructType#4294967040@14
+      StructField#4294967040@13 (name: person)
+        Type#4294967040@12
           TypeKind (Struct)
-            StructType#4294967040@26
-              StructField#4294967040@20 (name: name)
-                Type#4294967040@19
+            StructType#4294967040@12
+              StructField#4294967040@6 (name: name)
+                Type#4294967040@5
                   TypeKind (Path)
-                    Path#4294967040@19 (rooted: false)
-                      PathSegment#4294967040@18 (name: String)
-              StructField#4294967040@25 (name: age)
-                Type#4294967040@24
+                    Path#4294967040@5 (rooted: false)
+                      PathSegment#4294967040@4 (name: String)
+              StructField#4294967040@11 (name: age)
+                Type#4294967040@10
                   TypeKind (Path)
-                    Path#4294967040@24 (rooted: false)
-                      PathSegment#4294967040@23 (name: Int)
+                    Path#4294967040@10 (rooted: false)
+                      PathSegment#4294967040@9 (name: Int)

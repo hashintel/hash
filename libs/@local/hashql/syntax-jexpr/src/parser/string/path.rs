@@ -4,8 +4,8 @@ use hashql_ast::node::{
 };
 use winnow::{
     ModalResult, Parser as _,
-    combinator::{delimited, opt},
-    error::{AddContext, ParserError, StrContext},
+    combinator::{cut_err, delimited, opt},
+    error::{AddContext, ParserError, StrContext, StrContextValue},
 };
 
 use super::{
@@ -25,9 +25,9 @@ where
     let context = input.state;
 
     let arguments = opt(delimited(
-        "<",
+        ws("<"),
         separated_boxed1(context.heap, parse_generic_argument, ws(",")),
-        ">",
+        ws(cut_err(">").context(StrContext::Expected(StrContextValue::CharLiteral('>')))),
     ));
 
     (parse_ident, arguments)
@@ -61,6 +61,7 @@ where
             rooted,
             segments,
         })
+        .context(StrContext::Label("path"))
         .parse_next(input)
 }
 

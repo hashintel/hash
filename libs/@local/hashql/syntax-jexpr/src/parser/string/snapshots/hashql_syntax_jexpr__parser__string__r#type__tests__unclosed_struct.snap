@@ -7,3 +7,5 @@ info:
 ---
 (name: String, age: Int
                        ^
+invalid type
+expected `)`

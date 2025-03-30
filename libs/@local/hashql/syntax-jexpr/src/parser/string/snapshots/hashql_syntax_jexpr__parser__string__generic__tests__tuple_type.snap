@@ -5,17 +5,17 @@ expression: "(Int, String)"
 info:
   kind: Ok
 ---
-GenericArgument#4294967040@17
-  Type#4294967040@16
+GenericArgument#4294967040@14
+  Type#4294967040@13
     TypeKind (Tuple)
-      TupleType#4294967040@16
-        TupleField#4294967040@7
-          Type#4294967040@6
+      TupleType#4294967040@13
+        TupleField#4294967040@4
+          Type#4294967040@4
             TypeKind (Path)
-              Path#4294967040@6 (rooted: false)
-                PathSegment#4294967040@5 (name: Int)
-        TupleField#4294967040@15
-          Type#4294967040@14
+              Path#4294967040@4 (rooted: false)
+                PathSegment#4294967040@3 (name: Int)
+        TupleField#4294967040@12
+          Type#4294967040@11
             TypeKind (Path)
-              Path#4294967040@14 (rooted: false)
-                PathSegment#4294967040@13 (name: String)
+              Path#4294967040@11 (rooted: false)
+                PathSegment#4294967040@10 (name: String)

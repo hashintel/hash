@@ -6,4 +6,6 @@ info:
   kind: Err
 ---
 (Int & String
-     ^
+             ^
+invalid type
+expected `)`, `,`, `:`
