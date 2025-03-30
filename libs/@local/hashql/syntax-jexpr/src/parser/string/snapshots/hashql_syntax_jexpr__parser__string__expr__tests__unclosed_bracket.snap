@@ -7,3 +7,5 @@ info:
 ---
 [42
    ^
+invalid index
+expected `]`

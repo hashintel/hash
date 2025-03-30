@@ -7,3 +7,5 @@ info:
 ---
 `example:not-url/`
  ^
+invalid identifier
+expected http(s) url with trailing `/`

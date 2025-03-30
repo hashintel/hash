@@ -1,11 +1,10 @@
-use ada_url::Url;
+use ada_url::{SchemeType, Url};
 use hashql_core::symbol::{Ident, IdentKind, Symbol};
 use unicode_normalization::{IsNormalized, UnicodeNormalization as _, is_nfc_quick};
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory as _};
 use winnow::{
     ModalResult, Parser as _,
-    ascii::Caseless,
-    combinator::{alt, cut_err, delimited, dispatch, fail, opt, peek},
+    combinator::{alt, cut_err, delimited, dispatch, fail, peek},
     error::{AddContext, ParserError, StrContext, StrContextValue},
     token::{any, one_of, take_while},
 };
@@ -75,7 +74,11 @@ where
     let context = input.state;
 
     let bare = || take_while(1.., is_symbol);
-    let escaped = delimited('`', bare(), '`');
+    let escaped = delimited(
+        '`',
+        bare(),
+        cut_err('`').context(StrContext::Expected(StrContextValue::CharLiteral('`'))),
+    );
 
     alt((escaped, bare()))
         .take()
@@ -116,6 +119,11 @@ static ALLOWED_URL_CHARS: [bool; 256] = {
     ]
 };
 
+fn is_url_char(char: char) -> bool {
+    char.as_ascii()
+        .is_some_and(|char| ALLOWED_URL_CHARS[char as usize])
+}
+
 fn parse_ident_url<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Ident, E>
@@ -125,31 +133,35 @@ where
 {
     let context = input.state;
 
-    let scheme = (Caseless("http"), opt("s"), "://");
-    let rest = take_while(1.., |char: char| {
-        char.as_ascii()
-            .is_some_and(|char| ALLOWED_URL_CHARS[char as usize])
-    });
-
-    let url = (scheme, cut_err(rest));
-
-    delimited('`', url.take(), '`')
-        .verify(|value| {
-            // TODO: proper errors for this, maybe we should even parse
-
+    let url = (one_of(is_url_char), cut_err(take_while(1.., is_url_char)))
+        .take()
+        .verify(|value: &str| {
             // check if the value is an actual URL, we have only parsed what *looks* like a URL
-            let is_valid_url = Url::can_parse(value, None);
+            let Ok(url) = Url::parse(value, None) else {
+                return false;
+            };
+
+            let scheme = matches!(url.scheme_type(), SchemeType::Http | SchemeType::Https);
             let ends_with_slash = value.ends_with('/');
 
-            is_valid_url && ends_with_slash
+            scheme && ends_with_slash
         })
-        .with_span()
-        .map(|(url, span)| Ident {
-            span: context.span(span),
-            name: intern(url),
-            kind: IdentKind::BaseUrl,
-        })
-        .parse_next(input)
+        .context(StrContext::Expected(StrContextValue::Description(
+            "http(s) url with trailing `/`",
+        )));
+
+    delimited(
+        '`',
+        url,
+        cut_err('`').context(StrContext::Expected(StrContextValue::CharLiteral('`'))),
+    )
+    .with_span()
+    .map(|(url, span)| Ident {
+        span: context.span(span),
+        name: intern(url),
+        kind: IdentKind::BaseUrl,
+    })
+    .parse_next(input)
 }
 
 pub(crate) fn parse_ident<'heap, 'span, 'source, E>(
@@ -165,6 +177,7 @@ where
         char if is_symbol(char) => cut_err(parse_ident_symbol),
         _ => fail
     }
+    .context(StrContext::Label("identifier"))
     .parse_next(input)
 }
 
@@ -224,6 +237,7 @@ mod tests {
         invalid_url_not_http("`ftp://example.com/`") => "Non-HTTP/HTTPS URL (invalid)",
         invalid_url_malformed("`http:///invalid/`") => "Malformed URL (invalid)",
         invalid_unclosed_backtick("`unclosed") => "Unclosed backtick (invalid)",
+        invalid_unclosed_backtick_url("`https://example.com/") => "Unclosed backtick in URL (invalid)",
         invalid_empty("") => "Empty input (invalid)",
         invalid_whitespace("   ") => "Whitespace only (invalid)",
     }

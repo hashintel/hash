@@ -6,4 +6,6 @@ info:
   kind: Err
 ---
 foo.bar[0
-       ^
+         ^
+invalid index
+expected `]`

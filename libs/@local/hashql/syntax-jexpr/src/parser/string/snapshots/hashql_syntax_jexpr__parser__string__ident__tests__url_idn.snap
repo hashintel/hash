@@ -6,4 +6,6 @@ info:
   kind: Err
 ---
 `https://例子.测试/`
-         ^
+ ^
+invalid identifier
+expected http(s) url with trailing `/`

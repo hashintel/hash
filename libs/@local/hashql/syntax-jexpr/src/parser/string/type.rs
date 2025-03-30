@@ -66,15 +66,19 @@ where
 {
     let context = input.state;
 
-    separated_pair(parse_ident, ws(":"), parse_type)
-        .with_span()
-        .map(|((name, r#type), span)| StructField {
-            id: NodeId::PLACEHOLDER,
-            span: context.span(span),
-            name,
-            r#type,
-        })
-        .parse_next(input)
+    separated_pair(
+        parse_ident,
+        ws(cut_err(":").context(StrContext::Expected(StrContextValue::CharLiteral(':')))),
+        parse_type,
+    )
+    .with_span()
+    .map(|((name, r#type), span)| StructField {
+        id: NodeId::PLACEHOLDER,
+        span: context.span(span),
+        name,
+        r#type,
+    })
+    .parse_next(input)
 }
 
 fn parse_type_paren_empty_tuple<'heap, 'span, 'source, E>(
@@ -504,6 +508,7 @@ mod tests {
         unclosed_tuple("(Int, String") => "Unclosed tuple",
         unclosed_struct("(name: String, age: Int") => "Unclosed struct",
         missing_field_type("(name: )") => "Missing field type",
+        missing_colon("(name: String, age Int)") => "Missing field type",
         invalid_field_separator("(name String)") => "Invalid field separator",
         unclosed_parenthesized("(Int & String") => "Unclosed parenthesized type",
         incomplete_union("Int |") => "Incomplete union",

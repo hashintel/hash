@@ -7,3 +7,5 @@ info:
 ---
 <>
   ^
+invalid generics
+expected `>`

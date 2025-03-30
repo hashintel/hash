@@ -4,8 +4,8 @@ use hashql_ast::node::{
 };
 use winnow::{
     ModalResult, Parser as _,
-    combinator::{delimited, opt, preceded},
-    error::{AddContext, ParserError, StrContext},
+    combinator::{cut_err, delimited, opt, preceded},
+    error::{AddContext, ParserError, StrContext, StrContextValue},
 };
 
 use super::{
@@ -31,6 +31,7 @@ where
             span: context.span(span),
             r#type: context.heap.boxed(r#type),
         })
+        .context(StrContext::Label("generic argument"))
         .parse_next(input)
 }
 
@@ -51,6 +52,7 @@ where
             name,
             bound: bound.map(|bound| context.heap.boxed(bound)),
         })
+        .context(StrContext::Label("generic parameter"))
         .parse_next(input)
 }
 
@@ -66,7 +68,7 @@ where
     delimited(
         ws("<"),
         separated_boxed1(context.heap, parse_generic_param, ws(",")),
-        ws(">"),
+        ws(cut_err(">").context(StrContext::Expected(StrContextValue::CharLiteral('>')))),
     )
     .with_span()
     .map(|(params, span)| Generics {
@@ -74,6 +76,7 @@ where
         span: context.span(span),
         params,
     })
+    .context(StrContext::Label("generics"))
     .parse_next(input)
 }
 

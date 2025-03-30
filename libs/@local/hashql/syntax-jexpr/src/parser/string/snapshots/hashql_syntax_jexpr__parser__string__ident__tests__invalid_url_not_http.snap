@@ -7,3 +7,5 @@ info:
 ---
 `ftp://example.com/`
  ^
+invalid identifier
+expected http(s) url with trailing `/`

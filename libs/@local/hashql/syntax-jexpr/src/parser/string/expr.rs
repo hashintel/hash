@@ -9,8 +9,8 @@ use hashql_core::symbol::{Ident, IdentKind, Symbol};
 use winnow::{
     ModalResult, Parser as _,
     ascii::{digit1, multispace0},
-    combinator::{alt, delimited, dispatch, fail, peek, preceded, repeat},
-    error::{AddContext, ParserError, StrContext},
+    combinator::{alt, cut_err, delimited, dispatch, fail, peek, preceded, repeat},
+    error::{AddContext, ParserError, StrContext, StrContextValue},
     token::any,
 };
 
@@ -53,7 +53,8 @@ fn parse_index_access<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Access<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -74,8 +75,9 @@ where
                 r#type: None,
             })
         }),
-        ws("]"),
+        ws(cut_err("]").context(StrContext::Expected(StrContextValue::CharLiteral(']')))),
     )
+    .context(StrContext::Label("index"))
     .parse_next(input)
 }
 
@@ -99,6 +101,8 @@ where
                     '[' => parse_index_access,
                     '.' => parse_field_access,
                     _ => fail
+                        .context(StrContext::Expected(StrContextValue::CharLiteral('[')))
+                        .context(StrContext::Expected(StrContextValue::CharLiteral('.')))
                 }
                 .with_span(),
             ),
@@ -146,6 +150,7 @@ where
 
             expr
         })
+        .context(StrContext::Label("expression"))
         .parse_next(input)
 }
 

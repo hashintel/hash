@@ -7,3 +7,5 @@ info:
 ---
 `unclosed
  ^
+invalid identifier
+expected http(s) url with trailing `/`
