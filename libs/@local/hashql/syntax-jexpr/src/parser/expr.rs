@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     error::ResultExt as _,
-    lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet, token_kind::TokenKind},
+    lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
     span::Span,
 };
 

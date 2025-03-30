@@ -98,13 +98,17 @@ pub(crate) fn from_hifijson_str_error(
 
     diagnostic
 }
-
 pub(crate) fn unexpected_eof(span: SpanId) -> LexerDiagnostic {
     let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Severity::ERROR);
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Unexpected end of input"));
+    diagnostic.labels.push(Label::new(
+        span,
+        "Unexpected end of file while parsing expression",
+    ));
+
+    diagnostic.help = Some(Help::new(Cow::Borrowed(
+        "Make sure all expressions, brackets, and string literals are properly closed",
+    )));
 
     diagnostic
 }
@@ -116,12 +120,17 @@ pub(crate) fn from_hifijson_num_error(
     let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Severity::ERROR);
 
     let message = match error {
-        hifijson::num::Error::ExpectedDigit => "Expected a digit",
+        hifijson::num::Error::ExpectedDigit => "Expected a digit in number literal",
     };
 
     diagnostic
         .labels
         .push(Label::new(span, Cow::Borrowed(message)));
+
+    diagnostic.help = Some(Help::new(Cow::Borrowed(
+        "JSON numbers must contain digits and follow the format: \
+         `[-]digits[.digits][(e|E)[+|-]digits]`",
+    )));
 
     diagnostic
 }
@@ -130,9 +139,15 @@ pub(crate) fn from_unrecognized_character_error(span: SpanId) -> LexerDiagnostic
     let mut diagnostic =
         Diagnostic::new(LexerDiagnosticCategory::InvalidCharacter, Severity::ERROR);
 
-    diagnostic
-        .labels
-        .push(Label::new(span, Cow::Borrowed("Unrecognized character")));
+    diagnostic.labels.push(Label::new(
+        span,
+        Cow::Borrowed("Unrecognized character in JSON expression"),
+    ));
+
+    diagnostic.help = Some(Help::new(Cow::Borrowed(
+        "J-Expr only supports standard JSON syntax. Make sure you're using valid JSON tokens like \
+         {}, [], strings, numbers, true/false, or null.",
+    )));
 
     diagnostic
 }
@@ -140,9 +155,15 @@ pub(crate) fn from_unrecognized_character_error(span: SpanId) -> LexerDiagnostic
 pub(crate) fn from_invalid_utf8_error(span: SpanId) -> LexerDiagnostic {
     let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidUtf8, Severity::ERROR);
 
-    diagnostic
-        .labels
-        .push(Label::new(span, Cow::Borrowed("Invalid UTF-8 sequence")));
+    diagnostic.labels.push(Label::new(
+        span,
+        Cow::Borrowed("Malformed UTF-8 byte sequence detected"),
+    ));
+
+    diagnostic.help = Some(Help::new(Cow::Borrowed(
+        "J-Expr requires valid UTF-8 encoded input. Check for corrupted characters or ensure your \
+         source is properly encoded as UTF-8.",
+    )));
 
     diagnostic
 }

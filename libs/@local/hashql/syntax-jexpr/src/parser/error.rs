@@ -61,9 +61,10 @@ pub(crate) fn unexpected_token(span: SpanId, expected: SyntaxKindSet) -> ParserD
     let mut diagnostic =
         Diagnostic::new(ParserDiagnosticCategory::UnexpectedToken, Severity::ERROR);
 
+    // More descriptive label that indicates the token wasn't expected in this context
     diagnostic
         .labels
-        .push(Label::new(span, UNEXPECTED_TOKEN.name));
+        .push(Label::new(span, "Unexpected token in this context"));
 
     let length = expected.len();
     let expected = expected
@@ -74,7 +75,7 @@ pub(crate) fn unexpected_token(span: SpanId, expected: SyntaxKindSet) -> ParserD
                 acc.push_str(", ");
             }
 
-            if i == length - 1 {
+            if i == length - 1 && i > 0 {
                 acc.push_str("or ");
             }
 
@@ -83,7 +84,7 @@ pub(crate) fn unexpected_token(span: SpanId, expected: SyntaxKindSet) -> ParserD
             acc
         });
 
-    diagnostic.help = Some(Help::new(format!("Expected {expected}",)));
+    diagnostic.help = Some(Help::new(format!("Expected {expected} at this position")));
 
     diagnostic
 }
@@ -93,7 +94,11 @@ pub(crate) fn expected_eof(span: SpanId) -> ParserDiagnostic {
 
     diagnostic
         .labels
-        .push(Label::new(span, "Expected end of input"));
+        .push(Label::new(span, "Unexpected token after end of expression"));
+
+    diagnostic.help = Some(Help::new(
+        "Remove this token or check for missing delimiters in the preceding expression",
+    ));
 
     diagnostic
 }

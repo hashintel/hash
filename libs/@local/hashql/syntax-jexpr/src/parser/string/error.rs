@@ -7,6 +7,7 @@ use hashql_diagnostics::{
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     help::Help,
     label::Label,
+    note::Note,
     severity::Severity,
 };
 use text_size::{TextRange, TextSize};
@@ -70,10 +71,12 @@ pub(crate) fn invalid_expr<I>(
         _ => None,
     });
 
-    diagnostic.labels.push(Label::new(
-        span,
-        expression.map_or_else(|| INVALID_EXPR.name.to_owned(), ToOwned::to_owned),
-    ));
+    let label_text = expression.map_or_else(
+        || format!("Invalid syntax at this position"),
+        |expr| format!("Invalid {expr} syntax"),
+    );
+
+    diagnostic.labels.push(Label::new(span, label_text));
 
     let expected = error
         .context()
@@ -86,17 +89,27 @@ pub(crate) fn invalid_expr<I>(
     if !expected.is_empty() {
         let mut buffer = String::new();
 
-        buffer.push_str("Expected ");
+        if expected.len() == 1 {
+            let _ = write!(buffer, "Expected {}", expected[0]);
+        } else {
+            buffer.push_str("Expected one of: ");
 
-        for (index, expected) in expected.iter().enumerate() {
-            if index != 0 {
-                buffer.push_str(", ");
+            for (index, value) in expected.iter().enumerate() {
+                match index {
+                    0 => {}
+                    i if i == expected.len() - 1 => buffer.push_str(" or "),
+                    _ => buffer.push_str(", "),
+                }
+
+                let _ = write!(buffer, "{value}");
             }
-
-            let _ = write!(buffer, "{expected}");
         }
 
         diagnostic.help = Some(Help::new(buffer));
+
+        diagnostic.note = Some(Note::new(
+            "Check for missing delimiters, incorrect operators, or typos in identifiers.",
+        ));
     }
 
     diagnostic
