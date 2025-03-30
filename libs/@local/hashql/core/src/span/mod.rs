@@ -2,7 +2,7 @@ pub mod entry;
 pub mod node;
 pub mod storage;
 
-use core::fmt::Display;
+use core::fmt::{self, Display};
 
 pub use text_size::{TextRange, TextSize};
 
@@ -65,7 +65,7 @@ impl SpanId {
 }
 
 impl Display for SpanId {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, fmt)
     }
 }

@@ -1,6 +1,6 @@
 mod combinator;
 mod context;
-mod error;
+pub(crate) mod error;
 mod expr;
 mod generic;
 mod ident;
@@ -10,19 +10,27 @@ pub(crate) mod test;
 mod r#type;
 
 use hashql_ast::node::expr::Expr;
+use winnow::{LocatingSlice, Parser as _, Stateful, error::ContextError};
 
-use self::{context::Context, error::StringDiagnostic};
+use self::{context::Context, error::StringDiagnostic, expr::parse_expr};
 use super::state::ParserState;
 use crate::{
-    lexer::{syntax_kind::SyntaxKind, token::Token},
+    lexer::{token::Token, token_kind::TokenKind},
     span::Span,
 };
 
-fn parse_string<'heap, 'source>(
+#[expect(
+    clippy::panic_in_result_fn,
+    reason = "If this happened, the contract with the function has been violated, therefore is \
+              fatal"
+)]
+pub(crate) fn parse_string<'heap, 'source>(
     state: &mut ParserState<'heap, 'source>,
-    token: &Token<'source>,
+    token: Token<'source>,
 ) -> Result<Expr<'heap>, StringDiagnostic> {
-    debug_assert_eq!(token.kind.syntax(), SyntaxKind::String);
+    let TokenKind::String(value) = token.kind else {
+        panic!("Expected string token")
+    };
 
     let id = state.insert_span(Span {
         range: token.span,
@@ -35,6 +43,11 @@ fn parse_string<'heap, 'source>(
         spans: state.spans(),
         parent: id,
     };
+
+    let expr = parse_expr::<ContextError>.parse(Stateful {
+        input: LocatingSlice::new(&value),
+        state: context,
+    });
 
     todo!()
 }

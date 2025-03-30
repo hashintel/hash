@@ -9,6 +9,7 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
+use super::string::error::StringDiagnosticCategory;
 use crate::lexer::{error::LexerDiagnosticCategory, syntax_kind_set::SyntaxKindSet};
 
 pub(crate) type ParserDiagnostic = Diagnostic<ParserDiagnosticCategory, SpanId>;
@@ -18,10 +19,17 @@ const UNEXPECTED_TOKEN: TerminalDiagnosticCategory = TerminalDiagnosticCategory 
     name: "Unexpected token",
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+const EXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "expected-eof",
+    name: "Expected EOF",
+};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ParserDiagnosticCategory {
     Lexer(LexerDiagnosticCategory),
+    String(StringDiagnosticCategory),
     UnexpectedToken,
+    ExpectedEof,
 }
 
 impl DiagnosticCategory for ParserDiagnosticCategory {
@@ -42,15 +50,14 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
             Self::Lexer(category) => Some(category),
+            Self::String(category) => Some(category),
             Self::UnexpectedToken => Some(&UNEXPECTED_TOKEN),
+            Self::ExpectedEof => Some(&EXPECTED_EOF),
         }
     }
 }
 
-pub(crate) fn unexpected_token(
-    span: SpanId,
-    expected: SyntaxKindSet,
-) -> Diagnostic<ParserDiagnosticCategory, SpanId> {
+pub(crate) fn unexpected_token(span: SpanId, expected: SyntaxKindSet) -> ParserDiagnostic {
     let mut diagnostic =
         Diagnostic::new(ParserDiagnosticCategory::UnexpectedToken, Severity::ERROR);
 
@@ -77,6 +84,16 @@ pub(crate) fn unexpected_token(
         });
 
     diagnostic.help = Some(Help::new(format!("Expected {expected}",)));
+
+    diagnostic
+}
+
+pub(crate) fn expected_eof(span: SpanId) -> ParserDiagnostic {
+    let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::ExpectedEof, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Expected end of input"));
 
     diagnostic
 }

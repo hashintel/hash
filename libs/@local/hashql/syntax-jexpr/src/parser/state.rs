@@ -3,7 +3,9 @@ use std::sync::Arc;
 use hashql_ast::heap::Heap;
 use hashql_core::span::{SpanId, storage::SpanStorage};
 
+use super::error::{ParserDiagnostic, ParserDiagnosticCategory, expected_eof};
 use crate::{
+    error::ResultExt,
     lexer::{
         Lexer,
         error::{LexerDiagnostic, unexpected_eof},
@@ -22,6 +24,20 @@ pub(crate) struct ParserState<'heap, 'source> {
 }
 
 impl<'heap, 'source> ParserState<'heap, 'source> {
+    pub(crate) fn new(
+        heap: &'heap Heap,
+        lexer: Lexer<'source>,
+        spans: Arc<SpanStorage<Span>>,
+    ) -> Self {
+        Self {
+            heap,
+            lexer,
+            peek: None,
+            spans,
+            stack: Vec::new(),
+        }
+    }
+
     pub(crate) fn advance(&mut self) -> Result<Token<'source>, LexerDiagnostic> {
         if let Some(token) = self.peek.take() {
             return Ok(token);
@@ -76,6 +92,32 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
 
         self.stack.pop();
         result
+    }
+
+    pub(crate) fn finish(mut self) -> Result<(), ParserDiagnostic> {
+        if let Some(peek) = &self.peek {
+            let span = self.insert_span(Span {
+                range: peek.span,
+                pointer: Some(self.current_pointer()),
+                parent_id: None,
+            });
+
+            return Err(expected_eof(span));
+        }
+
+        if let Some(token) = self.lexer.advance() {
+            let token = token.change_category(ParserDiagnosticCategory::Lexer)?;
+
+            let span = self.insert_span(Span {
+                range: token.span,
+                pointer: Some(self.current_pointer()),
+                parent_id: None,
+            });
+
+            return Err(expected_eof(span));
+        }
+
+        Ok(())
     }
 
     pub(crate) fn current_pointer(&self) -> jsonptr::PointerBuf {

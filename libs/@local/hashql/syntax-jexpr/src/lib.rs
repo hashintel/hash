@@ -12,77 +12,49 @@
     ascii_char
 )]
 
-// use alloc::sync::Arc;
-
-// use hashql_cst::{arena::MemoryPool, expr::Expr};
-// use hashql_span::storage::SpanStorage;
-
-// use self::{
-//     error::{JExprDiagnostic, JExprDiagnosticCategory},
-//     parser::{TokenStream, error::expected_eof},
-//     span::Span,
-// };
-
 extern crate alloc;
 
-// pub mod error;
+use alloc::sync::Arc;
+
+use hashql_ast::{heap::Heap, node::expr::Expr};
+use hashql_core::span::storage::SpanStorage;
+
+use self::{
+    error::{JExprDiagnostic, JExprDiagnosticCategory, ResultExt as _},
+    parser::state::ParserState,
+    span::Span,
+};
+
 pub mod error;
 pub(crate) mod lexer;
 pub(crate) mod parser;
 pub mod span;
 
-// pub struct Parser<'arena> {
-//     arena: &'arena MemoryPool,
-//     spans: Arc<SpanStorage<Span>>,
-// }
+pub struct Parser<'heap> {
+    heap: &'heap Heap,
+    spans: Arc<SpanStorage<Span>>,
+}
 
-// impl<'arena> Parser<'arena> {
-//     pub fn new(arena: &'arena MemoryPool, spans: impl Into<Arc<SpanStorage<Span>>>) -> Self {
-//         Self {
-//             arena,
-//             spans: spans.into(),
-//         }
-//     }
+impl<'heap> Parser<'heap> {
+    pub fn new(heap: &'heap Heap, spans: impl Into<Arc<SpanStorage<Span>>>) -> Self {
+        Self {
+            heap,
+            spans: spans.into(),
+        }
+    }
 
-//     /// Parse an expression from the given source.
-//     ///
-//     /// # Errors
-//     ///
-//     /// Returns an error if the source is not a valid J-Expr expression.
-//     pub fn parse_expr<'source>(
-//         &self,
-//         source: &'source [u8],
-//     ) -> Result<Expr<'arena, 'source>, JExprDiagnostic> {
-//         let lexer = lexer::Lexer::new(source, Arc::clone(&self.spans));
-//         let mut stream = TokenStream {
-//             arena: self.arena,
-//             lexer,
-//             spans: Arc::clone(&self.spans),
-//             stack: Some(Vec::new()),
-//         };
+    pub fn parse_expr<'source>(&self, source: &[u8]) -> Result<Expr<'heap>, JExprDiagnostic> {
+        let lexer = lexer::Lexer::new(source, Arc::clone(&self.spans));
 
-//         let expr = parser::parse_expr(&mut stream, None)?;
+        let mut state = ParserState::new(self.heap, lexer, Arc::clone(&self.spans));
 
-//         if stream.lexer.advance().is_some() {
-//             let span = stream.spans.insert(Span {
-//                 range: stream.lexer.span(),
-//                 pointer: None,
-//                 parent_id: None,
-//             });
+        let expr = parser::expr::parse_expr(&mut state)
+            .change_category(JExprDiagnosticCategory::Parser)?;
 
-//             return Err(expected_eof(span).map_category(JExprDiagnosticCategory::Parser));
-//         }
+        state
+            .finish()
+            .change_category(JExprDiagnosticCategory::Parser)?;
 
-//         Ok(expr)
-//     }
-// }
-
-#[cfg(test)]
-mod tests {
-    // This test is needed here to satisfy the CI test runner, and will be removed once the code has
-    // been refactored.
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+        Ok(expr)
     }
 }

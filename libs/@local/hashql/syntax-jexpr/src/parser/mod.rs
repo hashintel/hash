@@ -1,4 +1,4 @@
-mod error;
-mod expr;
-mod state;
+pub(crate) mod error;
+pub(crate) mod expr;
+pub(crate) mod state;
 mod string;

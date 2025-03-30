@@ -1,4 +1,32 @@
-use hashql_diagnostics::Diagnostic;
+use alloc::borrow::Cow;
+
+use hashql_core::span::SpanId;
+use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
+
+use crate::parser::error::ParserDiagnosticCategory;
+
+pub type JExprDiagnostic = Diagnostic<JExprDiagnosticCategory, SpanId>;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum JExprDiagnosticCategory {
+    Parser(ParserDiagnosticCategory),
+}
+
+impl DiagnosticCategory for JExprDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("jexpr")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("J-Expr Syntax")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            Self::Parser(parser) => Some(parser),
+        }
+    }
+}
 
 pub(crate) trait ResultExt {
     type Ok;
