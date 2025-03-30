@@ -16,7 +16,7 @@
 //! The [`Symbol`] type is designed as an opaque wrapper around its internal string storage.
 //! This encapsulation enables future optimizations such as string interning (either through
 //! the `string_interner` crate or a custom implementation) without requiring API changes.
-use core::{fmt, fmt::Display};
+use core::fmt::{self, Display, Formatter};
 
 use ecow::EcoString;
 
@@ -112,6 +112,12 @@ impl Symbol {
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
+    }
+}
+
+impl Display for Symbol {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, fmt)
     }
 }
 

@@ -19,12 +19,23 @@
 //!
 //! Child nodes are indented with 2 spaces beneath their parent.
 
-use core::fmt::{self, Display, Formatter};
-use std::fmt::FormattingOptions;
+use core::fmt::{self, Display, Formatter, FormattingOptions};
 
 use hashql_core::span::SpanId;
 
 use crate::node::{
+    expr::{
+        CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
+        LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr, UseExpr,
+        call::{Argument, LabeledArgument},
+        closure::{ClosureParam, ClosureSig},
+        dict::DictEntry,
+        list::ListElement,
+        literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral},
+        r#struct::StructEntry,
+        tuple::TupleElement,
+        r#use::{Glob, UseBinding, UseKind},
+    },
     generic::{GenericArgument, GenericParam, Generics},
     id::NodeId,
     path::{Path, PathSegment},
@@ -101,15 +112,61 @@ pub trait SyntaxDump {
     }
 }
 
-impl SyntaxDump for Type<'_> {
-    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span, kind } = self;
+macro_rules! impl_syntax_dump {
+    (@dump child; $this:ident; $fmt:ident; $depth:ident; ?$field:ident $($rest:tt)*) => {
+        if let Some(field) = &$this.$field {
+            field.syntax_dump($fmt, $depth + 1)?;
+        }
 
-        write_header(fmt, depth, "Type", Some(*id), Some(*span), None)?;
+        impl_syntax_dump!(@dump child; $this; $fmt; $depth; $($rest)*);
+    };
 
-        kind.syntax_dump(fmt, depth + 1)
-    }
+    (@dump child; $this:ident; $fmt:ident; $depth:ident; []$field:ident $($rest:tt)*) => {
+        for field in &$this.$field {
+            field.syntax_dump($fmt, $depth + 1)?;
+        }
+
+        impl_syntax_dump!(@dump child; $this; $fmt; $depth; $($rest)*);
+    };
+
+    (@dump child; $this:ident; $fmt:ident; $depth:ident; $field:ident $($rest:tt)*) => {
+        $this.$field.syntax_dump($fmt, $depth + 1)?;
+
+        impl_syntax_dump!(@dump child; $this; $fmt; $depth; $($rest)*);
+    };
+
+    (@dump child; $this:ident; $fmt:ident; $depth:ident;) => {};
+
+    (struct $name:ident($($properties:ident),*); $($fields:tt)*) => {
+        #[expect(clippy::allow_attributes)]
+        #[allow(unused_mut)]
+        impl SyntaxDump for $name<'_> {
+            fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
+                let Self { id, span, .. } = self;
+
+                let mut properties = Vec::<String>::new();
+                $(
+                    properties.push(format!("{}: {}", stringify!($properties), self.$properties));
+                )*
+
+                let properties = if properties.is_empty() {
+                    None
+                } else {
+                    Some(properties.join(", "))
+                };
+
+                write_header(fmt, depth, stringify!($name), Some(*id), Some(*span), properties.as_deref())?;
+
+                impl_syntax_dump!(@dump child; self; fmt; depth; $($fields)*);
+
+                Ok(())
+            }
+        }
+    };
 }
+
+#[rustfmt::skip]
+impl_syntax_dump!(struct Type(); kind);
 
 impl SyntaxDump for TypeKind<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
@@ -146,192 +203,295 @@ impl SyntaxDump for TypeKind<'_> {
     }
 }
 
-impl SyntaxDump for TupleType<'_> {
+impl_syntax_dump!(struct TupleType(); []fields);
+#[rustfmt::skip]
+impl_syntax_dump!(struct TupleField(); r#type);
+
+impl_syntax_dump!(struct StructType(); []fields);
+#[rustfmt::skip]
+impl_syntax_dump!(struct StructField(name); r#type);
+
+impl_syntax_dump!(struct UnionType(); []types);
+impl_syntax_dump!(struct IntersectionType(); []types);
+
+impl_syntax_dump!(struct Path(rooted); []segments);
+impl_syntax_dump!(struct PathSegment(name); []arguments);
+
+#[rustfmt::skip]
+impl_syntax_dump!(struct GenericArgument(); r#type);
+#[rustfmt::skip]
+impl_syntax_dump!(struct GenericParam(name); ?bound);
+impl_syntax_dump!(struct Generics(); []params);
+
+#[rustfmt::skip]
+impl_syntax_dump!(struct Argument(); value);
+#[rustfmt::skip]
+impl_syntax_dump!(struct LabeledArgument(label); value);
+impl_syntax_dump!(struct CallExpr(); function []arguments []labeled_arguments);
+
+#[rustfmt::skip]
+impl_syntax_dump!(struct StructEntry(key); value);
+impl_syntax_dump!(struct StructExpr(); []entries ?r#type);
+
+#[rustfmt::skip]
+impl_syntax_dump!(struct DictEntry(); key value);
+impl_syntax_dump!(struct DictExpr(); []entries ?r#type);
+
+#[rustfmt::skip]
+impl_syntax_dump!(struct TupleElement(); value);
+impl_syntax_dump!(struct TupleExpr(); []elements ?r#type);
+
+#[rustfmt::skip]
+impl_syntax_dump!(struct ListElement(); value);
+impl_syntax_dump!(struct ListExpr(); []elements ?r#type);
+
+impl SyntaxDump for FloatLiteral {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span, fields } = self;
+        let Self { id, span, value } = self;
 
-        write_header(fmt, depth, "TupleType", Some(*id), Some(*span), None)?;
+        write_header(
+            fmt,
+            depth,
+            "FloatLiteral",
+            Some(*id),
+            Some(*span),
+            Some(&format!("{value}")),
+        )
+    }
+}
 
-        for field in fields {
-            field.syntax_dump(fmt, depth + 1)?;
+impl SyntaxDump for IntegerLiteral {
+    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
+        let Self { id, span, value } = self;
+
+        write_header(
+            fmt,
+            depth,
+            "IntegerLiteral",
+            Some(*id),
+            Some(*span),
+            Some(&format!("{value}")),
+        )
+    }
+}
+
+impl SyntaxDump for StringLiteral {
+    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
+        let Self { id, span, value } = self;
+
+        write_header(
+            fmt,
+            depth,
+            "StringLiteral",
+            Some(*id),
+            Some(*span),
+            Some(&format!("{value}")),
+        )
+    }
+}
+
+impl SyntaxDump for LiteralKind {
+    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
+        match self {
+            Self::Null => write_header(fmt, depth, "LiteralKind", None, None, Some("Null")),
+            Self::Boolean(true) => {
+                write_header(fmt, depth, "LiteralKind", None, None, Some("True"))
+            }
+            Self::Boolean(false) => {
+                write_header(fmt, depth, "LiteralKind", None, None, Some("False"))
+            }
+            Self::Float(float) => {
+                write_header(fmt, depth, "LiteralKind", None, None, Some("Float"))?;
+
+                float.syntax_dump(fmt, depth + 1)
+            }
+            Self::Integer(integer) => {
+                write_header(fmt, depth, "LiteralKind", None, None, Some("Integer"))?;
+
+                integer.syntax_dump(fmt, depth + 1)
+            }
+            Self::String(string) => {
+                write_header(fmt, depth, "LiteralKind", None, None, Some("String"))?;
+
+                string.syntax_dump(fmt, depth + 1)
+            }
         }
-
-        Ok(())
     }
 }
 
-impl SyntaxDump for TupleField<'_> {
-    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span, r#type } = self;
+#[rustfmt::skip]
+impl_syntax_dump!(struct LiteralExpr(); kind ?r#type);
 
-        write_header(fmt, depth, "TupleField", Some(*id), Some(*span), None)?;
+impl_syntax_dump!(struct LetExpr(name); value ?r#type body);
 
-        r#type.syntax_dump(fmt, depth + 1)
-    }
-}
+impl_syntax_dump!(struct TypeExpr(name); value body);
 
-impl SyntaxDump for StructType<'_> {
-    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span, fields } = self;
+impl_syntax_dump!(struct NewTypeExpr(name); value body);
 
-        write_header(fmt, depth, "StructType", Some(*id), Some(*span), None)?;
-
-        for field in fields {
-            field.syntax_dump(fmt, depth + 1)?;
-        }
-
-        Ok(())
-    }
-}
-
-impl SyntaxDump for StructField<'_> {
+impl SyntaxDump for UseBinding {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self {
             id,
             span,
             name,
-            r#type,
+            alias,
         } = self;
+
+        let mut properties = vec![format!("name: {name}")];
+        if let Some(alias) = alias {
+            properties.push(format!("alias: {alias}"));
+        }
 
         write_header(
             fmt,
             depth,
-            "StructField",
+            "UseBinding",
             Some(*id),
             Some(*span),
-            Some(&format!("name: {name}")),
-        )?;
-
-        r#type.syntax_dump(fmt, depth + 1)
+            Some(&properties.join(", ")),
+        )
     }
 }
 
-impl SyntaxDump for UnionType<'_> {
+impl SyntaxDump for Glob {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span, types } = self;
+        let Self { id, span } = self;
 
-        write_header(fmt, depth, "UnionType", Some(*id), Some(*span), None)?;
+        write_header(fmt, depth, "Glob", Some(*id), Some(*span), None)
+    }
+}
 
-        for r#type in types {
-            r#type.syntax_dump(fmt, depth + 1)?;
+impl SyntaxDump for UseKind<'_> {
+    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
+        match self {
+            UseKind::Named(bindings) => {
+                write_header(fmt, depth, "UseKind", None, None, Some("Named"))?;
+
+                for binding in bindings {
+                    binding.syntax_dump(fmt, depth + 1)?;
+                }
+
+                Ok(())
+            }
+            UseKind::Glob(glob) => {
+                write_header(fmt, depth, "UseKind", None, None, Some("Glob"))?;
+
+                glob.syntax_dump(fmt, depth + 1)
+            }
         }
-
-        Ok(())
     }
 }
 
-impl SyntaxDump for IntersectionType<'_> {
+impl_syntax_dump!(struct UseExpr(); path kind body);
+
+impl_syntax_dump!(struct InputExpr(name); ?r#type ?default);
+
+#[rustfmt::skip]
+impl_syntax_dump!(struct ClosureParam(name); r#type);
+impl_syntax_dump!(struct ClosureSig(); generics []inputs output);
+impl_syntax_dump!(struct ClosureExpr(); sig body);
+
+#[rustfmt::skip]
+impl_syntax_dump!(struct IfExpr(); test then ?r#else);
+
+#[rustfmt::skip]
+impl_syntax_dump!(struct FieldExpr(field); value);
+
+impl_syntax_dump!(struct IndexExpr(); value index);
+
+impl SyntaxDump for ExprKind<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span, types } = self;
+        match self {
+            Self::Call(call_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Call"))?;
 
-        write_header(fmt, depth, "IntersectionType", Some(*id), Some(*span), None)?;
+                call_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::Struct(struct_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Struct"))?;
 
-        for r#type in types {
-            r#type.syntax_dump(fmt, depth + 1)?;
+                struct_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::Dict(dict_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Dict"))?;
+
+                dict_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::Tuple(tuple_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Tuple"))?;
+
+                tuple_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::List(list_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("List"))?;
+
+                list_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::Literal(literal_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Literal"))?;
+
+                literal_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::Path(path) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Path"))?;
+
+                path.syntax_dump(fmt, depth + 1)
+            }
+            Self::Let(let_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Let"))?;
+
+                let_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::Type(type_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Type"))?;
+
+                type_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::NewType(new_type_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("NewType"))?;
+
+                new_type_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::Use(use_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Use"))?;
+
+                use_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::Input(input_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Input"))?;
+
+                input_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::Closure(closure_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Closure"))?;
+
+                closure_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::If(if_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("If"))?;
+
+                if_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::Field(field_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Field"))?;
+
+                field_expr.syntax_dump(fmt, depth + 1)
+            }
+            Self::Index(index_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Index"))?;
+
+                index_expr.syntax_dump(fmt, depth + 1)
+            }
         }
-
-        Ok(())
     }
 }
 
-impl SyntaxDump for Path<'_> {
+impl SyntaxDump for Expr<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self {
-            id,
-            span,
-            rooted,
-            segments,
-        } = self;
+        let Self { id, span, kind } = self;
 
-        write_header(
-            fmt,
-            depth,
-            "Path",
-            Some(*id),
-            Some(*span),
-            Some(&format!("rooted: {rooted}")),
-        )?;
+        write_header(fmt, depth, "Expr", Some(*id), Some(*span), None)?;
 
-        for segment in segments {
-            segment.syntax_dump(fmt, depth + 1)?;
-        }
-
-        Ok(())
-    }
-}
-
-impl SyntaxDump for PathSegment<'_> {
-    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self {
-            id,
-            span,
-            name,
-            arguments,
-        } = self;
-
-        write_header(
-            fmt,
-            depth,
-            "PathSegment",
-            Some(*id),
-            Some(*span),
-            Some(&format!("name: {name}")),
-        )?;
-
-        for argument in arguments {
-            argument.syntax_dump(fmt, depth + 1)?;
-        }
-
-        Ok(())
-    }
-}
-
-impl SyntaxDump for GenericArgument<'_> {
-    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span, r#type } = self;
-
-        write_header(fmt, depth, "GenericArgument", Some(*id), Some(*span), None)?;
-
-        r#type.syntax_dump(fmt, depth + 1)
-    }
-}
-
-impl SyntaxDump for GenericParam<'_> {
-    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self {
-            id,
-            span,
-            name,
-            bound,
-        } = self;
-
-        write_header(
-            fmt,
-            depth,
-            "GenericParam",
-            Some(*id),
-            Some(*span),
-            Some(&format!("name: {name}")),
-        )?;
-
-        if let Some(bound) = &bound {
-            bound.syntax_dump(fmt, depth + 1)?;
-        }
-
-        Ok(())
-    }
-}
-
-impl SyntaxDump for Generics<'_> {
-    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span, params } = self;
-
-        write_header(fmt, depth, "Generics", Some(*id), Some(*span), None)?;
-
-        for param in params {
-            param.syntax_dump(fmt, depth + 1)?;
-        }
-
-        Ok(())
+        kind.syntax_dump(fmt, depth + 1)
     }
 }

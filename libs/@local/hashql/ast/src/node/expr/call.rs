@@ -98,6 +98,6 @@ pub struct CallExpr<'heap> {
 
     pub function: heap::Box<'heap, Expr<'heap>>,
 
-    pub arguments: heap::Box<'heap, Vec<Argument<'heap>>>,
-    pub labeled_arguments: heap::Box<'heap, Vec<LabeledArgument<'heap>>>,
+    pub arguments: heap::Box<'heap, [Argument<'heap>]>,
+    pub labeled_arguments: heap::Box<'heap, [LabeledArgument<'heap>]>,
 }
