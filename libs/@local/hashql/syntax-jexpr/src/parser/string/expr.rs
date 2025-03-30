@@ -10,7 +10,7 @@ use winnow::{
     ModalResult, Parser as _,
     ascii::{digit1, multispace0},
     combinator::{alt, delimited, dispatch, fail, peek, preceded, repeat},
-    error::ParserError,
+    error::{AddContext, ParserError, StrContext},
     token::any,
 };
 
@@ -27,7 +27,8 @@ fn parse_field_access<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Access<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -83,7 +84,8 @@ pub(crate) fn parse_expr<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Expr<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 

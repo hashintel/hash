@@ -5,7 +5,7 @@ use hashql_ast::node::{
 use winnow::{
     ModalResult, Parser as _,
     combinator::{delimited, opt, preceded},
-    error::ParserError,
+    error::{AddContext, ParserError, StrContext},
 };
 
 use super::{
@@ -19,7 +19,8 @@ pub(crate) fn parse_generic_argument<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<GenericArgument<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -37,7 +38,8 @@ fn parse_generic_param<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<GenericParam<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -56,7 +58,8 @@ pub(crate) fn parse_generics<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Generics<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 

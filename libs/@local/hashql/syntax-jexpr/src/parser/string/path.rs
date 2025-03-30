@@ -5,7 +5,7 @@ use hashql_ast::node::{
 use winnow::{
     ModalResult, Parser as _,
     combinator::{delimited, opt},
-    error::ParserError,
+    error::{AddContext, ParserError, StrContext},
 };
 
 use super::{
@@ -19,7 +19,8 @@ fn parse_path_segment<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<PathSegment<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -44,7 +45,8 @@ pub(crate) fn parse_path<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Path<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 

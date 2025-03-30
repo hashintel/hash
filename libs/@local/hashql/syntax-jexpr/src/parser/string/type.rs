@@ -9,7 +9,7 @@ use winnow::{
     combinator::{
         alt, delimited, dispatch, opt, peek, repeat, separated, separated_pair, terminated,
     },
-    error::ParserError,
+    error::{AddContext, ParserError, StrContext},
     token::any,
 };
 
@@ -41,7 +41,8 @@ fn parse_type_tuple_field<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<TupleField<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -59,7 +60,8 @@ fn parse_type_tuple<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -107,7 +109,8 @@ fn parse_type_struct_field<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<StructField<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -126,7 +129,8 @@ fn parse_type_struct<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -164,7 +168,8 @@ fn parse_type_paren<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     delimited(ws("("), parse_type, ws(")")).parse_next(input)
 }
@@ -173,7 +178,8 @@ fn parse_type_atom<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let mut path = parse_path.map(|path| Type {
         id: NodeId::PLACEHOLDER,
@@ -193,7 +199,8 @@ fn parse_type_union<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -226,7 +233,8 @@ fn parse_type_intersection<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -269,7 +277,8 @@ pub(crate) fn parse_type<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Type<'heap>, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     ws(parse_type_intersection).parse_next(input)
 }

@@ -4,8 +4,9 @@ use unicode_normalization::{IsNormalized, UnicodeNormalization as _, is_nfc_quic
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory as _};
 use winnow::{
     ModalResult, Parser as _,
-    combinator::{alt, delimited, dispatch, peek},
-    error::ParserError,
+    ascii::Caseless,
+    combinator::{alt, cut_err, delimited, dispatch, fail, opt, peek},
+    error::{AddContext, ParserError, StrContext, StrContextValue},
     token::{any, one_of, take_while},
 };
 
@@ -22,18 +23,19 @@ fn parse_ident_lexical<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Ident, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
     let used = (
         one_of(unicode_ident::is_xid_start),
-        take_while(0.., unicode_ident::is_xid_continue),
+        cut_err(take_while(0.., unicode_ident::is_xid_continue)),
     );
 
     let unused = (
-        '_', //
-        take_while(1.., unicode_ident::is_xid_continue),
+        '_',
+        cut_err(take_while(1.., unicode_ident::is_xid_continue)),
     );
 
     alt((used, unused))
@@ -67,7 +69,8 @@ fn parse_ident_symbol<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Ident, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
@@ -117,26 +120,28 @@ fn parse_ident_url<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Ident, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
 
-    let url = take_while(1.., |char: char| {
+    let scheme = (Caseless("http"), opt("s"), "://");
+    let rest = take_while(1.., |char: char| {
         char.as_ascii()
             .is_some_and(|char| ALLOWED_URL_CHARS[char as usize])
     });
 
-    delimited('`', url, '`')
+    let url = (scheme, cut_err(rest));
+
+    delimited('`', url.take(), '`')
         .verify(|value| {
             // TODO: proper errors for this, maybe we should even parse
 
             // check if the value is an actual URL, we have only parsed what *looks* like a URL
             let is_valid_url = Url::can_parse(value, None);
-            // the URL must be either http or https
-            let is_http_or_https = value.starts_with("http://") || value.starts_with("https://");
             let ends_with_slash = value.ends_with('/');
 
-            is_valid_url && is_http_or_https && ends_with_slash
+            is_valid_url && ends_with_slash
         })
         .with_span()
         .map(|(url, span)| Ident {
@@ -151,12 +156,14 @@ pub(crate) fn parse_ident<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Ident, E>
 where
-    E: ParserError<Input<'heap, 'span, 'source>>,
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     dispatch! {peek(any);
-        '`' => alt((parse_ident_url, parse_ident_symbol)),
-        char if unicode_ident::is_xid_start(char) || char == '_' => parse_ident_lexical,
-        _ => parse_ident_symbol
+        '`' => cut_err(alt((parse_ident_symbol, parse_ident_url))),
+        char if unicode_ident::is_xid_start(char) || char == '_' => cut_err(parse_ident_lexical),
+        char if is_symbol(char) => cut_err(parse_ident_symbol),
+        _ => fail
     }
     .parse_next(input)
 }
