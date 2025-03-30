@@ -96,12 +96,20 @@ pub(crate) fn empty(span: SpanId) -> ArrayDiagnostic {
     diagnostic
 }
 
-pub(crate) fn trailing_comma(span: SpanId) -> ArrayDiagnostic {
+pub(crate) fn trailing_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::TrailingComma, Severity::ERROR);
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Remove this comma"));
+    for (index, &span) in spans.iter().rev().enumerate() {
+        let message = if index == 0 {
+            "Remove this comma"
+        } else {
+            "... and this comma"
+        };
+
+        diagnostic
+            .labels
+            .push(Label::new(span, message).with_order(index as i32));
+    }
 
     diagnostic.help = Some(Help::new(
         "Unlike JavaScript or some other languages, J-Expr does not support trailing commas in \
@@ -111,12 +119,20 @@ pub(crate) fn trailing_comma(span: SpanId) -> ArrayDiagnostic {
     diagnostic
 }
 
-pub(crate) fn leading_comma(span: SpanId) -> ArrayDiagnostic {
+pub(crate) fn leading_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::LeadingComma, Severity::ERROR);
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Remove this comma"));
+    for (index, &span) in spans.iter().rev().enumerate() {
+        let message = if index == 0 {
+            "Remove this comma"
+        } else {
+            "... and this comma"
+        };
+
+        diagnostic
+            .labels
+            .push(Label::new(span, message).with_order(index as i32));
+    }
 
     diagnostic.help = Some(Help::new(
         "Unlike JavaScript or some other languages, J-Expr does not support leading commas in \
@@ -126,13 +142,21 @@ pub(crate) fn leading_comma(span: SpanId) -> ArrayDiagnostic {
     diagnostic
 }
 
-pub(crate) fn consecutive_comma(span: SpanId) -> ArrayDiagnostic {
+pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     let mut diagnostic =
         Diagnostic::new(ArrayDiagnosticCategory::ConsecutiveComma, Severity::ERROR);
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Remove this comma"));
+    for (index, &span) in spans.iter().rev().enumerate() {
+        let message = if index == 0 {
+            "Remove this comma"
+        } else {
+            "... and this comma"
+        };
+
+        diagnostic
+            .labels
+            .push(Label::new(span, message).with_order(index as i32));
+    }
 
     diagnostic.help = Some(Help::new(
         "Unlike JavaScript or some other languages, J-Expr does not support consecutive commas in \

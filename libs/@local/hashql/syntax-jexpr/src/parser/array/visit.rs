@@ -3,13 +3,12 @@ use text_size::TextRange;
 use super::error::ArrayDiagnostic;
 use crate::{
     ParserState,
-    error::ResultExt,
-    lexer::{
-        syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet, token::Token,
-        token_kind::TokenKind,
-    },
+    error::ResultExt as _,
+    lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet, token::Token},
     parser::{
-        array::error::{ArrayDiagnosticCategory, consecutive_comma, leading_comma, trailing_comma},
+        array::error::{
+            ArrayDiagnosticCategory, consecutive_commas, leading_commas, trailing_commas,
+        },
         error::unexpected_token,
     },
     span::Span,
@@ -17,6 +16,119 @@ use crate::{
 
 const EXPECTED_ARRAY_SEP: SyntaxKindSet =
     SyntaxKindSet::from_slice(&[SyntaxKind::Comma, SyntaxKind::RBracket]);
+
+// this is issued when we just started, e.g. are at `[`, this means that *any* `,` is invalid
+fn error_on_typo_start(state: &mut ParserState<'_, '_>) -> Result<(), ArrayDiagnostic> {
+    let next = state
+        .peek()
+        .change_category(ArrayDiagnosticCategory::Lexer)?;
+
+    if !matches!(next.kind.syntax(), SyntaxKind::Comma) {
+        return Ok(());
+    }
+
+    let mut spans = vec![];
+
+    loop {
+        let token = state
+            .peek()
+            .change_category(ArrayDiagnosticCategory::Lexer)?;
+
+        let token_kind = token.kind.syntax();
+        let token_span = token.span;
+
+        if token_kind == SyntaxKind::Comma {
+            spans.push(token_span);
+
+            state
+                .advance()
+                .change_category(ArrayDiagnosticCategory::Lexer)?;
+        } else {
+            break;
+        }
+    }
+
+    let spans: Vec<_> = spans
+        .into_iter()
+        .map(|span| {
+            state.insert_span(Span {
+                range: span,
+                pointer: Some(state.current_pointer()),
+                parent_id: None,
+            })
+        })
+        .collect();
+
+    Err(leading_commas(&spans))
+}
+
+fn error_on_typo(
+    state: &mut ParserState<'_, '_>,
+    initial_span: TextRange,
+) -> Result<(), ArrayDiagnostic> {
+    let next = state
+        .peek()
+        .change_category(ArrayDiagnosticCategory::Lexer)?;
+
+    if !matches!(next.kind.syntax(), SyntaxKind::Comma | SyntaxKind::RBracket) {
+        return Ok(());
+    }
+
+    let mut spans = vec![];
+
+    // the next item is a `}`, this means that we're either:
+    // * consecutive commas
+    // * trailing commas (at the end of an array)
+    let mut is_trailing = false;
+
+    loop {
+        let token = state
+            .peek()
+            .change_category(ArrayDiagnosticCategory::Lexer)?;
+
+        let (token_kind, token_span) = (token.kind.syntax(), token.span);
+
+        if token_kind != SyntaxKind::Comma {
+            if token_kind == SyntaxKind::RBracket {
+                is_trailing = true;
+
+                // we still consume the token, as it is part of the error
+                state
+                    .advance()
+                    .change_category(ArrayDiagnosticCategory::Lexer)?;
+            }
+
+            break;
+        }
+
+        spans.push(token_span);
+        state
+            .advance()
+            .change_category(ArrayDiagnosticCategory::Lexer)?;
+    }
+
+    if is_trailing {
+        // in case it is trailing that means that the first comma is also an error
+        spans.insert(0, initial_span);
+    }
+
+    let spans: Vec<_> = spans
+        .into_iter()
+        .map(|span| {
+            state.insert_span(Span {
+                range: span,
+                pointer: Some(state.current_pointer()),
+                parent_id: None,
+            })
+        })
+        .collect();
+
+    if is_trailing {
+        Err(trailing_commas(&spans))
+    } else {
+        Err(consecutive_commas(&spans))
+    }
+}
 
 /// Parse an array from the lexer
 ///
@@ -57,18 +169,7 @@ pub(crate) fn visit_array<'arena, 'source>(
         }
 
         if index == 0 {
-            if next_kind == SyntaxKind::Comma {
-                // `[,`, which is an error
-                state
-                    .advance()
-                    .change_category(ArrayDiagnosticCategory::Lexer)?;
-
-                return Err(leading_comma(state.insert_span(Span {
-                    range: next_span, // take the span of the comma
-                    pointer: Some(state.current_pointer()),
-                    parent_id: None,
-                })));
-            }
+            error_on_typo_start(state)?;
         } else if index != 0 {
             // we need to check if the next token is a comma
             // in case it isn't we error out
@@ -78,33 +179,7 @@ pub(crate) fn visit_array<'arena, 'source>(
                     .advance()
                     .change_category(ArrayDiagnosticCategory::Lexer)?;
 
-                // guard against trailing commas
-                let next = state
-                    .peek()
-                    .change_category(ArrayDiagnosticCategory::Lexer)?;
-
-                if next.kind.syntax() == SyntaxKind::RBracket {
-                    state
-                        .advance()
-                        .change_category(ArrayDiagnosticCategory::Lexer)?;
-
-                    return Err(trailing_comma(state.insert_span(Span {
-                        range: next_span, // take the span of the comma
-                        pointer: Some(state.current_pointer()),
-                        parent_id: None,
-                    })));
-                } else if next.kind.syntax() == SyntaxKind::Comma {
-                    let span = state
-                        .advance()
-                        .change_category(ArrayDiagnosticCategory::Lexer)?
-                        .span;
-
-                    return Err(consecutive_comma(state.insert_span(Span {
-                        range: span, // take the span of the second comma
-                        pointer: Some(state.current_pointer()),
-                        parent_id: None,
-                    })));
-                }
+                error_on_typo(state, next_span)?;
             } else {
                 // get the token where we expected a comma, but do *not* commit.
                 let span = state.insert_span(Span {
@@ -589,6 +664,30 @@ mod tests {
     }
 
     #[test]
+    fn multiple_consecutive_commas() {
+        bind_context!(let context = "[1,,,2]");
+        bind_state!(let mut state from context);
+
+        let token = state.advance().expect("should have at least one token");
+        assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
+
+        let result = visit_array(&mut state, token, |state| {
+            state.advance().expect("should have at least one token");
+            Ok(())
+        });
+
+        let diagnostic =
+            result.expect_err("should not be able to parse array with multiple consecutive commas");
+        let report = render_diagnostic(context.input, diagnostic, &context.spans);
+
+        with_settings!({
+            description => "Array with multiple consecutive commas should fail"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, report, &context.input);
+        });
+    }
+
+    #[test]
     fn consecutive_trailing_commas() {
         bind_context!(let context = "[1,,]");
         bind_state!(let mut state from context);
@@ -607,6 +706,29 @@ mod tests {
 
         with_settings!({
             description => "Array with consecutive commas should fail"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, report, &context.input);
+        });
+    }
+
+    #[test]
+    fn multiple_leading_commas() {
+        bind_context!(let context = "[,,1]");
+        bind_state!(let mut state from context);
+
+        let token = state.advance().expect("should have at least one token");
+        assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
+
+        let result = visit_array(&mut state, token, |state| {
+            state.advance().expect("should have at least one token");
+            Ok(())
+        });
+
+        let diagnostic = result.expect_err("should fail with leading comma");
+        let report = render_diagnostic(context.input, diagnostic, &context.spans);
+
+        with_settings!({
+            description => "Array with multiple leading commas should fail"
         }, {
             assert_snapshot!(insta::_macro_support::AutoName, report, &context.input);
         });
