@@ -14,4 +14,5 @@ pub(crate) fn parse_array<'heap, 'source>(
     state: &mut ParserState<'heap, 'source>,
     token: Token<'source>,
 ) -> Result<Expr<'heap>, ArrayDiagnostic> {
+    todo!()
 }

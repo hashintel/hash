@@ -8,5 +8,7 @@ expression: 1e
    │
  1 │ 1e
    │ │ 
-   │ ╰─ Expected a digit
+   │ ╰─ Expected a digit in number literal
+   │ 
+   │ Help: JSON numbers must contain digits and follow the format: `[-]digits[.digits][(e|E)[+|-]digits]`
 ───╯

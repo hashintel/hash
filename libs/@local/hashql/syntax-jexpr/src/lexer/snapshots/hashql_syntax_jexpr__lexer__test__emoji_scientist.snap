@@ -8,5 +8,7 @@ expression: 👩🏾‍🔬
    │
  1 │ 👩🏾‍🔬
    │ ┬─  
-   │ ╰─── Unrecognized character
+   │ ╰─── Unrecognized character in JSON expression
+   │ 
+   │ Help: J-Expr only supports standard JSON syntax. Make sure you're using valid JSON tokens like {}, [], strings, numbers, true/false, or null.
 ───╯
