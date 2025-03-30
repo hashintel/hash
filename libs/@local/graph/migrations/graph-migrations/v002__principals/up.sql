@@ -48,8 +48,9 @@ $$ LANGUAGE plpgsql;
 -- It has concrete subtypes: user, machine, team, role
 CREATE TYPE principal_type AS ENUM ('user', 'machine', 'team', 'web', 'subteam', 'role');
 CREATE TABLE principal (
-    id UUID PRIMARY KEY,
-    principal_type PRINCIPAL_TYPE NOT NULL
+    id UUID NOT NULL,
+    principal_type PRINCIPAL_TYPE NOT NULL,
+    PRIMARY KEY (id, principal_type)
 );
 
 -- Prevent direct operations on principal (abstract) table
@@ -65,10 +66,11 @@ EXECUTE FUNCTION prevent_direct_modification();
 
 -- Actor is a subtype of principal that represents entities that can perform actions
 -- It's the parent table for user and machine concrete types
-CREATE TYPE actor_type AS ENUM ('user', 'machine');
 CREATE TABLE actor (
-    id UUID PRIMARY KEY REFERENCES principal (id) ON DELETE CASCADE,
-    actor_type ACTOR_TYPE NOT NULL
+    id UUID PRIMARY KEY,
+    principal_type PRINCIPAL_TYPE NOT NULL,
+    FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
+    CHECK (principal_type IN ('user', 'machine'))
 );
 
 -- Prevent direct operations on actor (abstract) table
@@ -81,9 +83,9 @@ EXECUTE FUNCTION prevent_direct_modification();
 CREATE FUNCTION register_actor()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Create principal record for the actor with appropriate principal_type
+    -- Create principal record for the actor
     INSERT INTO principal (id, principal_type)
-    VALUES (NEW.id, CAST(NEW.actor_type::text AS principal_type));
+    VALUES (NEW.id, NEW.principal_type);
 
     RETURN NEW;
 END;
@@ -103,15 +105,13 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 -- TEAM TABLE - ALSO A PRINCIPAL
 -- ==========================================
 
--- Define team types
-CREATE TYPE team_type AS ENUM ('team', 'web', 'subteam');
-
 -- Team is a concrete principal that represents a group of users/machines
 -- It can be instantiated directly (standalone teams) or extended (web, subteam)
 CREATE TABLE team (
     id UUID PRIMARY KEY,
-    team_type TEAM_TYPE NOT NULL DEFAULT 'team',
-    FOREIGN KEY (id) REFERENCES principal (id) ON DELETE CASCADE
+    principal_type PRINCIPAL_TYPE NOT NULL,
+    FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
+    CHECK (principal_type IN ('team', 'web', 'subteam'))
 );
 
 -- Function to ensure direct team creation only sets standalone type
@@ -119,8 +119,8 @@ CREATE FUNCTION enforce_direct_team_creation()
 RETURNS TRIGGER AS $$
 BEGIN
     -- When creating a team directly, only allow standalone type
-    IF NEW.team_type != 'team' THEN
-        RAISE EXCEPTION 'Direct team creation can only use team_type = ''team''. Use web or subteam tables for specialized types.';
+    IF NEW.principal_type != 'team' THEN
+        RAISE EXCEPTION 'Direct team creation can only use principal_type = ''team''. Use web or subteam tables for specialized types.';
     END IF;
     RETURN NEW;
 END;
@@ -135,33 +135,10 @@ EXECUTE FUNCTION enforce_direct_team_creation();
 -- Create a trigger to automatically create a principal record when a team is created
 CREATE FUNCTION register_team()
 RETURNS TRIGGER AS $$
-DECLARE
-    existing_type principal_type;
 BEGIN
-    -- Users are special - they have both a web entry and a team entry with the same ID.
-    -- This creates a 1:1 relationship between the user's web presence and team.
-    -- Other entities (machines, roles) don't need web entries as they're for internal use only.
-    -- If this is a web, check if a user with the same ID exists
-    IF NEW.team_type = 'web' THEN
-        -- Check if there's already a principal with this ID and if it's a user
-        SELECT principal_type INTO existing_type
-        FROM principal
-        WHERE id = NEW.id;
-
-        IF found AND existing_type = 'user' THEN
-            -- This is the special case: web sharing ID with user
-            -- Don't create a duplicate principal record
-            NULL; -- Do nothing
-        ELSE
-            -- Create a principal record normally
-            INSERT INTO principal (id, principal_type)
-            VALUES (NEW.id, CAST(NEW.team_type::text AS principal_type));
-        END IF;
-    ELSE
-        -- Normal case (not a web) - create the principal record
-        INSERT INTO principal (id, principal_type)
-        VALUES (NEW.id, CAST(NEW.team_type::text AS principal_type));
-    END IF;
+    -- Create the principal record with the team's ID and principal_type
+    INSERT INTO principal (id, principal_type)
+    VALUES (NEW.id, NEW.principal_type);
 
     RETURN NEW;
 END;
@@ -191,7 +168,7 @@ CREATE FUNCTION register_web()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Create team record with the same ID and web type
-    INSERT INTO team (id, team_type) VALUES (NEW.id, 'web');
+    INSERT INTO team (id, principal_type) VALUES (NEW.id, 'web');
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -220,7 +197,7 @@ CREATE FUNCTION register_subteam()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Create team record with the same ID and subteam type
-    INSERT INTO team (id, team_type) VALUES (NEW.id, 'subteam');
+    INSERT INTO team (id, principal_type) VALUES (NEW.id, 'subteam');
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -244,39 +221,13 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 CREATE TABLE team_hierarchy (
     parent_id UUID NOT NULL REFERENCES team (id) ON DELETE RESTRICT,
     child_id UUID NOT NULL REFERENCES subteam (id) ON DELETE CASCADE,
+    depth INTEGER NOT NULL DEFAULT 1,
     CONSTRAINT no_self_parent CHECK (parent_id != child_id),
-    PRIMARY KEY (parent_id, child_id)
+    CONSTRAINT non_negative_depth CHECK (depth > 0)
 );
 
--- Function to prevent cycles in team hierarchy
-CREATE FUNCTION prevent_team_hierarchy_cycles()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Check if adding this relationship would create a cycle
-    -- A cycle exists if the child is already an ancestor of the parent
-    IF EXISTS (
-        WITH RECURSIVE ancestors AS (
-            -- Start with the immediate relationship we're trying to add
-            SELECT NEW.parent_id AS team_id, NEW.child_id AS ancestor_id
-            UNION
-            -- Recursively find all ancestors
-            SELECT a.team_id, th.parent_id AS ancestor_id
-            FROM ancestors a
-            JOIN team_hierarchy th ON th.child_id = a.ancestor_id
-        )
-        SELECT 1 FROM ancestors WHERE team_id = ancestor_id
-    ) THEN
-        RAISE EXCEPTION 'Adding this relationship would create a cycle in the team hierarchy';
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger to prevent cycles in team hierarchy
-CREATE TRIGGER prevent_team_hierarchy_cycles_trigger
-BEFORE INSERT ON team_hierarchy
-FOR EACH ROW EXECUTE FUNCTION prevent_team_hierarchy_cycles();
+-- Create an index to efficiently find the primary parent (depth=1) for each subteam
+CREATE UNIQUE INDEX idx_team_hierarchy_single_parent ON team_hierarchy (child_id) WHERE (depth = 1);
 
 -- ==========================================
 -- CONCRETE PRINCIPAL TABLES - LEAF LEVEL
@@ -298,10 +249,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     -- Create intermediate actor record with the same ID
     -- This will automatically create a principal record via the actor_register_trigger
-    INSERT INTO actor (id, actor_type) VALUES (NEW.id, 'user');
-
-    -- Each user also requires a web
-    INSERT INTO web (id) VALUES (NEW.id);
+    INSERT INTO actor (id, principal_type) VALUES (NEW.id, 'user');
 
     RETURN NEW;
 END;
@@ -333,7 +281,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     -- Create intermediate actor record with the same ID
     -- This will automatically create a principal record via the actor_register_trigger
-    INSERT INTO actor (id, actor_type) VALUES (NEW.id, 'machine');
+    INSERT INTO actor (id, principal_type) VALUES (NEW.id, 'machine');
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -356,7 +304,8 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 CREATE TABLE role (
     id UUID PRIMARY KEY,
     team_id UUID REFERENCES team (id) ON DELETE RESTRICT,
-    FOREIGN KEY (id) REFERENCES principal (id) ON DELETE CASCADE
+    principal_type PRINCIPAL_TYPE NOT NULL DEFAULT 'role',
+    FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE
 );
 
 -- Role registration trigger - creates principal record when role is created
@@ -364,7 +313,7 @@ CREATE FUNCTION register_role()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Create parent principal record with the same ID
-    INSERT INTO principal (id, principal_type) VALUES (NEW.id, 'role');
+    INSERT INTO principal (id, principal_type) VALUES (NEW.id, NEW.principal_type);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

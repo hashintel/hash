@@ -1,9 +1,8 @@
 use core::{assert_matches::assert_matches, error::Error};
 
-use hash_graph_authorization::policies::principal::user::UserId;
+use hash_graph_authorization::policies::principal::{ActorId, PrincipalId, user::UserId};
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
-use type_system::web::OwnedById;
 use uuid::Uuid;
 
 use crate::DatabaseTestWrapper;
@@ -13,9 +12,8 @@ async fn create_user() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut client = db.client().await?;
 
-    let (user_id, web_id) = client.create_user(None).await?;
+    let user_id = client.create_user(None).await?;
     assert!(client.is_user(user_id).await?);
-    assert!(client.is_web(web_id).await?);
 
     Ok(())
 }
@@ -26,12 +24,10 @@ async fn create_user_with_id() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     let id = Uuid::new_v4();
-    let (user_id, web_id) = client.create_user(Some(id)).await?;
+    let user_id = client.create_user(Some(id)).await?;
     assert_eq!(user_id, UserId::new(id));
-    assert_eq!(web_id, OwnedById::new(id));
 
     assert!(client.is_user(user_id).await?);
-    assert!(client.is_web(web_id).await?);
 
     Ok(())
 }
@@ -41,13 +37,11 @@ async fn delete_user() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut client = db.client().await?;
 
-    let (user_id, web_id) = client.create_user(None).await?;
+    let user_id = client.create_user(None).await?;
     assert!(client.is_user(user_id).await?);
-    assert!(client.is_web(web_id).await?);
 
     client.delete_user(user_id).await?;
     assert!(!client.is_user(user_id).await?);
-    assert!(!client.is_web(web_id).await?);
 
     Ok(())
 }
@@ -57,13 +51,13 @@ async fn create_user_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut client = db.client().await?;
 
-    let (user_id, _) = client.create_user(Some(Uuid::new_v4())).await?;
+    let user_id = client.create_user(Some(Uuid::new_v4())).await?;
     let result = client.create_user(Some(*user_id.as_uuid())).await;
     drop(client);
 
     assert_matches!(
         result.expect_err("Creating a user with duplicate ID should fail").current_context(),
-        PrincipalError::PrincipalAlreadyExists { id } if id == user_id.as_uuid()
+        PrincipalError::PrincipalAlreadyExists { id } if *id == PrincipalId::Actor(ActorId::User(user_id))
     );
 
     Ok(())
@@ -75,12 +69,11 @@ async fn get_non_existent_user() -> Result<(), Box<dyn Error>> {
     let client = db.client().await?;
 
     let non_existent_id = UserId::new(Uuid::new_v4());
-    let result = client.get_user(non_existent_id).await;
-    drop(client);
+    let result = client.get_user(non_existent_id).await?;
 
-    assert_matches!(
-        result.expect_err("Getting a non-existent user should fail").current_context(),
-        PrincipalError::UserNotFound { id } if *id == non_existent_id
+    assert!(
+        result.is_none(),
+        "Getting a non-existent user should return None"
     );
 
     Ok(())
@@ -96,7 +89,7 @@ async fn delete_non_existent_user() -> Result<(), Box<dyn Error>> {
 
     assert_matches!(
         result.expect_err("Deleting a non-existent user should fail").current_context(),
-        PrincipalError::UserNotFound { id } if *id == non_existent_id
+        PrincipalError::PrincipalNotFound { id } if *id == PrincipalId::Actor(ActorId::User(non_existent_id))
     );
 
     Ok(())

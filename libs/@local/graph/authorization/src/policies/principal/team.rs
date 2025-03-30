@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::policies::cedar::CedarEntityId;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 pub enum TeamId {
     Standalone(StandaloneTeamId),
     Web(OwnedById),
@@ -84,6 +84,13 @@ impl CedarEntityId for SubteamId {
     }
 }
 
+#[derive(Debug)]
+pub struct Subteam {
+    pub id: SubteamId,
+    pub parents: Vec<TeamId>,
+    pub roles: HashSet<TeamRoleId>,
+}
+
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
@@ -133,7 +140,7 @@ impl CedarEntityId for StandaloneTeamId {
 }
 
 #[derive(Debug)]
-pub struct Team {
+pub struct StandaloneTeam {
     pub id: StandaloneTeamId,
     pub roles: HashSet<TeamRoleId>,
 }

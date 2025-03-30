@@ -63,6 +63,4 @@ DROP FUNCTION IF EXISTS prevent_direct_delete_from_concrete();
 DROP FUNCTION IF EXISTS prevent_direct_modification();
 
 -- Drop enum types
-DROP TYPE IF EXISTS TEAM_TYPE;
-DROP TYPE IF EXISTS ACTOR_TYPE;
 DROP TYPE IF EXISTS PRINCIPAL_TYPE;

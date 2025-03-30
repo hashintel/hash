@@ -6,11 +6,13 @@
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
 use type_system::web::OwnedById;
+use uuid::Uuid;
 
 pub use self::actor::{Actor, ActorId};
 use self::{
     machine::{MachineId, MachinePrincipalConstraint},
-    team::{StandaloneTeamId, TeamPrincipalConstraint, TeamRoleId},
+    role::RoleId,
+    team::{StandaloneTeamId, TeamId, TeamPrincipalConstraint, TeamRoleId},
     user::{UserId, UserPrincipalConstraint},
     web::{WebPrincipalConstraint, WebRoleId, WebTeamId, WebTeamRoleId},
 };
@@ -22,6 +24,24 @@ pub mod role;
 pub mod team;
 pub mod user;
 pub mod web;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
+pub enum PrincipalId {
+    Actor(ActorId),
+    Team(TeamId),
+    Role(RoleId),
+}
+
+impl PrincipalId {
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        match self {
+            Self::Actor(actor_id) => actor_id.as_uuid(),
+            Self::Team(team_id) => team_id.as_uuid(),
+            Self::Role(role_id) => role_id.as_uuid(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(

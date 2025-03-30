@@ -1,9 +1,6 @@
 use alloc::sync::Arc;
 use core::{fmt, iter, str::FromStr as _};
-use std::{
-    collections::{HashMap, HashSet},
-    sync::LazyLock,
-};
+use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
@@ -16,7 +13,6 @@ use crate::policies::cedar::CedarEntityId;
 pub struct Web {
     pub id: OwnedById,
     pub roles: HashSet<WebRoleId>,
-    pub teams: HashMap<WebTeamId, WebTeam>,
 }
 
 #[derive(Debug)]

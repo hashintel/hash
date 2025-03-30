@@ -79,7 +79,7 @@ impl User {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
-            self.roles.iter().map(RoleId::to_euid).collect(),
+            self.roles.iter().copied().map(RoleId::to_euid).collect(),
             iter::empty(),
             Extensions::none(),
         )
