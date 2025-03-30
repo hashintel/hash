@@ -9,7 +9,10 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-use super::{array::error::ArrayDiagnosticCategory, string::error::StringDiagnosticCategory};
+use super::{
+    array::error::ArrayDiagnosticCategory, object::error::ObjectDiagnosticCategory,
+    string::error::StringDiagnosticCategory,
+};
 use crate::lexer::{error::LexerDiagnosticCategory, syntax_kind_set::SyntaxKindSet};
 
 pub(crate) type ParserDiagnostic = Diagnostic<ParserDiagnosticCategory, SpanId>;
@@ -29,6 +32,7 @@ pub enum ParserDiagnosticCategory {
     Lexer(LexerDiagnosticCategory),
     String(StringDiagnosticCategory),
     Array(ArrayDiagnosticCategory),
+    Object(ObjectDiagnosticCategory),
     ExpectedLanguageItem,
     ExpectedEof,
 }
@@ -53,6 +57,7 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
             Self::Lexer(category) => Some(category),
             Self::String(category) => Some(category),
             Self::Array(category) => Some(category),
+            Self::Object(category) => Some(category),
             Self::ExpectedLanguageItem => Some(&EXPECTED_LANGUAGE_ITEM),
             Self::ExpectedEof => Some(&EXPECTED_EOF),
         }
@@ -62,6 +67,12 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
 impl From<ArrayDiagnosticCategory> for ParserDiagnosticCategory {
     fn from(value: ArrayDiagnosticCategory) -> Self {
         Self::Array(value)
+    }
+}
+
+impl From<ObjectDiagnosticCategory> for ParserDiagnosticCategory {
+    fn from(value: ObjectDiagnosticCategory) -> Self {
+        Self::Object(value)
     }
 }
 

@@ -3,6 +3,7 @@ use hashql_ast::node::expr::Expr;
 use super::{
     array::parse_array,
     error::{ParserDiagnostic, ParserDiagnosticCategory, unexpected_token},
+    object::parse_object,
     state::ParserState,
     string::parse_string,
 };
@@ -18,8 +19,8 @@ const PARSE_EXPR_KINDS: SyntaxKindSet = SyntaxKindSet::from_slice(&[
     SyntaxKind::LBrace,
 ]);
 
-pub(crate) fn parse_expr<'heap, 'source>(
-    state: &mut ParserState<'heap, 'source>,
+pub(crate) fn parse_expr<'heap>(
+    state: &mut ParserState<'heap, '_>,
 ) -> Result<Expr<'heap>, ParserDiagnostic> {
     let token = state
         .advance()
@@ -30,7 +31,7 @@ pub(crate) fn parse_expr<'heap, 'source>(
             parse_string(state, token).change_category(ParserDiagnosticCategory::String)
         }
         SyntaxKind::LBracket => parse_array(state, token),
-        SyntaxKind::LBrace => todo!("parse objects"),
+        SyntaxKind::LBrace => parse_object(state, token),
         _ => {
             let span = state.insert_span(Span {
                 range: token.span,
