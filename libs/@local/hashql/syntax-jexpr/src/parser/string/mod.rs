@@ -12,7 +12,11 @@ mod r#type;
 use hashql_ast::node::expr::Expr;
 use winnow::{LocatingSlice, Parser as _, Stateful, error::ContextError};
 
-use self::{context::Context, error::StringDiagnostic, expr::parse_expr};
+use self::{
+    context::Context,
+    error::{StringDiagnostic, invalid_expr},
+    expr::parse_expr,
+};
 use super::state::ParserState;
 use crate::{
     lexer::{token::Token, token_kind::TokenKind},
@@ -38,16 +42,21 @@ pub(crate) fn parse_string<'heap, 'source>(
         parent_id: None,
     });
 
-    let context = Context {
-        heap: state.heap(),
-        spans: state.spans(),
-        parent: id,
+    let expr = {
+        let context = Context {
+            heap: state.heap(),
+            spans: state.spans(),
+            parent: id,
+        };
+
+        parse_expr::<ContextError>.parse(Stateful {
+            input: LocatingSlice::new(&value),
+            state: context,
+        })
     };
 
-    let expr = parse_expr::<ContextError>.parse(Stateful {
-        input: LocatingSlice::new(&value),
-        state: context,
-    });
-
-    todo!()
+    match expr {
+        Ok(expr) => Ok(expr),
+        Err(error) => Err(invalid_expr(state.spans(), id, error)),
+    }
 }
