@@ -138,12 +138,12 @@ mod test {
     use alloc::sync::Arc;
 
     use hashql_core::span::{SpanId, storage::SpanStorage};
-    use hashql_diagnostics::{Diagnostic, config::ReportConfig, span::DiagnosticSpan};
+    use hashql_diagnostics::Diagnostic;
     use insta::{assert_snapshot, with_settings};
     use text_size::TextRange;
 
     use super::{Lexer, error::LexerDiagnosticCategory, token::Token};
-    use crate::span::Span;
+    use crate::{span::Span, test::render_diagnostic};
 
     fn parse(
         source: &str,
@@ -152,31 +152,6 @@ mod test {
         let lexer = Lexer::new(source.as_bytes(), storage.into());
 
         lexer.collect()
-    }
-
-    fn render_diagnostic(
-        source: &str,
-        diagnostic: Diagnostic<LexerDiagnosticCategory, SpanId>,
-        spans: &SpanStorage<Span>,
-    ) -> String {
-        let resolved = diagnostic
-            .resolve(spans)
-            .expect("span storage should have a reference to every span");
-
-        let report = resolved.report(
-            ReportConfig {
-                color: false,
-                ..ReportConfig::default()
-            }
-            .with_transform_span(|span: &Span| DiagnosticSpan::from(span)),
-        );
-
-        let mut output = Vec::new();
-        report
-            .write_for_stdout(ariadne::Source::from(source), &mut output)
-            .expect("infallible");
-
-        String::from_utf8(output).expect("output should be valid UTF-8")
     }
 
     macro assert_parse($source:expr, $description:literal) {{
@@ -345,7 +320,7 @@ mod test {
     }
 
     #[test]
-    fn lexer_span_range() {
+    fn span_range() {
         let source = r#"{"key": 42}"#;
         let storage = SpanStorage::new();
         let mut lexer = Lexer::new(source.as_bytes(), storage);

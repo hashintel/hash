@@ -29,6 +29,8 @@ pub mod error;
 pub(crate) mod lexer;
 pub(crate) mod parser;
 pub mod span;
+#[cfg(test)]
+pub(crate) mod test;
 
 pub struct Parser<'heap> {
     heap: &'heap Heap,

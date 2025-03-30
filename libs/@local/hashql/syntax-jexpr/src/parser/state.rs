@@ -24,7 +24,7 @@ pub(crate) struct ParserState<'heap, 'source> {
 }
 
 impl<'heap, 'source> ParserState<'heap, 'source> {
-    pub(crate) fn new(
+    pub(crate) const fn new(
         heap: &'heap Heap,
         lexer: Lexer<'source>,
         spans: Arc<SpanStorage<Span>>,
@@ -81,7 +81,7 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
         }
     }
 
-    pub(crate) fn descend<T>(
+    pub(crate) fn enter<T>(
         &mut self,
         token: jsonptr::Token<'static>,
         closure: impl FnOnce(&mut Self) -> T,
@@ -124,7 +124,7 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
         jsonptr::PointerBuf::from_tokens(&self.stack)
     }
 
-    pub(crate) fn insert_span(&mut self, span: Span) -> SpanId {
+    pub(crate) fn insert_span(&self, span: Span) -> SpanId {
         self.spans.insert(span)
     }
 
@@ -132,7 +132,7 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
         &self.spans
     }
 
-    pub(crate) fn heap(&self) -> &'heap Heap {
+    pub(crate) const fn heap(&self) -> &'heap Heap {
         self.heap
     }
 }

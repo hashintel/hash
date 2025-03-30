@@ -37,7 +37,11 @@ pub(crate) fn parse_expr<'heap, 'source>(
                 parent_id: None,
             });
 
-            Err(unexpected_token(span, PARSE_EXPR_KINDS))
+            Err(unexpected_token(
+                span,
+                ParserDiagnosticCategory::ExpectedLanguageItem,
+                PARSE_EXPR_KINDS,
+            ))
         }
     }
 }

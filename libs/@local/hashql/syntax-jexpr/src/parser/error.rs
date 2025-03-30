@@ -14,7 +14,7 @@ use crate::lexer::{error::LexerDiagnosticCategory, syntax_kind_set::SyntaxKindSe
 
 pub(crate) type ParserDiagnostic = Diagnostic<ParserDiagnosticCategory, SpanId>;
 
-const UNEXPECTED_TOKEN: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+const EXPECTED_LANGUAGE_ITEM: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "unexpected-token",
     name: "Unexpected token",
 };
@@ -28,7 +28,7 @@ const EXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
 pub enum ParserDiagnosticCategory {
     Lexer(LexerDiagnosticCategory),
     String(StringDiagnosticCategory),
-    UnexpectedToken,
+    ExpectedLanguageItem,
     ExpectedEof,
 }
 
@@ -51,15 +51,18 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
         match self {
             Self::Lexer(category) => Some(category),
             Self::String(category) => Some(category),
-            Self::UnexpectedToken => Some(&UNEXPECTED_TOKEN),
+            Self::ExpectedLanguageItem => Some(&EXPECTED_LANGUAGE_ITEM),
             Self::ExpectedEof => Some(&EXPECTED_EOF),
         }
     }
 }
 
-pub(crate) fn unexpected_token(span: SpanId, expected: SyntaxKindSet) -> ParserDiagnostic {
-    let mut diagnostic =
-        Diagnostic::new(ParserDiagnosticCategory::UnexpectedToken, Severity::ERROR);
+pub(crate) fn unexpected_token<C>(
+    span: SpanId,
+    category: C,
+    expected: SyntaxKindSet,
+) -> Diagnostic<C, SpanId> {
+    let mut diagnostic = Diagnostic::new(category, Severity::ERROR);
 
     // More descriptive label that indicates the token wasn't expected in this context
     diagnostic

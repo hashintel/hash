@@ -1,7 +1,6 @@
 use alloc::borrow::Cow;
-use core::fmt::Write as _;
 
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::span::SpanId;
 use hashql_diagnostics::{
     Diagnostic,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -10,12 +9,30 @@ use hashql_diagnostics::{
     note::Note,
     severity::Severity,
 };
-use text_size::{TextRange, TextSize};
-use winnow::error::{ContextError, ParseError, StrContext};
 
-use crate::span::Span;
+use crate::lexer::error::LexerDiagnosticCategory;
 
 pub(crate) type ArrayDiagnostic = Diagnostic<ArrayDiagnosticCategory, SpanId>;
+
+const EXPECTED_SEPARATOR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "expected-separator",
+    name: "Expected array separator or closing bracket",
+};
+
+const LEADING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "leading-comma",
+    name: "Unexpected leading comma",
+};
+
+const TRAILING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "trailing-comma",
+    name: "Unexpected trailing comma",
+};
+
+const CONSECUTIVE_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "consecutive-comma",
+    name: "Consecutive commas",
+};
 
 const EMPTY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "empty",
@@ -24,20 +41,36 @@ const EMPTY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ArrayDiagnosticCategory {
+    Lexer(LexerDiagnosticCategory),
+    ExpectedSeparator,
+    LeadingComma,
+    TrailingComma,
+    ConsecutiveComma,
     Empty,
 }
 
 impl DiagnosticCategory for ArrayDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
-        Cow::Borrowed("string")
+        match self {
+            Self::Lexer(category) => category.id(),
+            _ => Cow::Borrowed("array"),
+        }
     }
 
     fn name(&self) -> Cow<'_, str> {
-        Cow::Borrowed("String")
+        match self {
+            Self::Lexer(category) => category.name(),
+            _ => Cow::Borrowed("Array"),
+        }
     }
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
-        match *self {
+        match self {
+            Self::Lexer(category) => Some(category),
+            Self::ExpectedSeparator => Some(&EXPECTED_SEPARATOR),
+            Self::LeadingComma => Some(&LEADING_COMMA),
+            Self::TrailingComma => Some(&TRAILING_COMMA),
+            Self::ConsecutiveComma => Some(&CONSECUTIVE_COMMA),
             Self::Empty => Some(&EMPTY),
         }
     }
@@ -55,10 +88,56 @@ pub(crate) fn empty(span: SpanId) -> ArrayDiagnostic {
 
     diagnostic
         .labels
-        .push(Label::new(span, "Empty array is not a valid expression"));
+        .push(Label::new(span, "This array is empty"));
 
     diagnostic.help = Some(Help::new(EMPTY_HELP));
     diagnostic.note = Some(Note::new(EMPTY_NOTE));
+
+    diagnostic
+}
+
+pub(crate) fn trailing_comma(span: SpanId) -> ArrayDiagnostic {
+    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::TrailingComma, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Remove this comma"));
+
+    diagnostic.help = Some(Help::new(
+        "Unlike JavaScript or some other languages, J-Expr does not support trailing commas in \
+         arrays",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn leading_comma(span: SpanId) -> ArrayDiagnostic {
+    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::LeadingComma, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Remove this comma"));
+
+    diagnostic.help = Some(Help::new(
+        "Unlike JavaScript or some other languages, J-Expr does not support leading commas in \
+         arrays",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn consecutive_comma(span: SpanId) -> ArrayDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(ArrayDiagnosticCategory::ConsecutiveComma, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Remove this comma"));
+
+    diagnostic.help = Some(Help::new(
+        "Unlike JavaScript or some other languages, J-Expr does not support consecutive commas in \
+         arrays",
+    ));
 
     diagnostic
 }
