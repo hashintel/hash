@@ -163,6 +163,10 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
         jsonptr::PointerBuf::from_tokens(&self.stack)
     }
 
+    pub(crate) fn current_span(&self) -> TextRange {
+        self.lexer.span()
+    }
+
     pub(crate) fn insert_span(&self, span: Span) -> SpanId {
         self.spans.insert(span)
     }

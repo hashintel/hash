@@ -1,5 +1,5 @@
 pub(crate) mod error;
-mod visit;
+pub(crate) mod visit;
 
 use hashql_ast::node::{
     expr::{

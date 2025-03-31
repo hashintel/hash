@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 
-use hashql_core::span::SpanId;
+use hashql_core::span::{SpanId, storage::SpanStorage};
 use hashql_diagnostics::{
     Diagnostic,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -9,8 +9,12 @@ use hashql_diagnostics::{
     note::Note,
     severity::Severity,
 };
+use winnow::error::{ContextError, ParseError};
 
-use crate::lexer::error::LexerDiagnosticCategory;
+use crate::{
+    lexer::{error::LexerDiagnosticCategory, syntax_kind::SyntaxKind},
+    span::Span,
+};
 
 pub(crate) type ObjectDiagnostic = Diagnostic<ObjectDiagnosticCategory, SpanId>;
 
@@ -85,6 +89,46 @@ const DUPLICATE_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Duplicate key in object",
 };
 
+const STRUCT_EXPECTED_OBJECT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "struct-expected-object",
+    name: "Expected object for #struct definition",
+};
+
+const STRUCT_KEY_EXPECTED_IDENTIFIER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "struct-key-expected-identifier",
+    name: "Expected identifier for struct field key",
+};
+
+const DICT_EXPECTED_FORMAT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "dict-expected-format",
+    name: "Expected valid dictionary format",
+};
+
+const DICT_ENTRY_TOO_FEW_ITEMS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "dict-entry-too-few-items",
+    name: "Not enough items in dictionary entry",
+};
+
+const DICT_ENTRY_TOO_MANY_ITEMS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "dict-entry-too-many-items",
+    name: "Too many items in dictionary entry",
+};
+
+const DICT_ENTRY_EXPECTED_ARRAY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "dict-entry-expected-array",
+    name: "Expected array for dictionary entry",
+};
+
+const TUPLE_EXPECTED_ARRAY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "tuple-expected-array",
+    name: "Expected array for #tuple definition",
+};
+
+const LIST_EXPECTED_ARRAY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "list-expected-array",
+    name: "Expected array for #list definition",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ObjectDiagnosticCategory {
     Lexer(LexerDiagnosticCategory),
@@ -102,6 +146,14 @@ pub enum ObjectDiagnosticCategory {
     Empty,
     OrphanedType,
     DuplicateKey,
+    StructExpectedObject,
+    StructKeyExpectedIdentifier,
+    DictExpectedFormat,
+    DictEntryTooFewItems,
+    DictEntryTooManyItems,
+    DictEntryExpectedArray,
+    TupleExpectedArray,
+    ListExpectedArray,
 }
 
 impl DiagnosticCategory for ObjectDiagnosticCategory {
@@ -136,6 +188,14 @@ impl DiagnosticCategory for ObjectDiagnosticCategory {
             Self::Empty => Some(&EMPTY),
             Self::OrphanedType => Some(&ORPHANED_TYPE),
             Self::DuplicateKey => Some(&DUPLICATE_KEY),
+            Self::StructExpectedObject => Some(&STRUCT_EXPECTED_OBJECT),
+            Self::StructKeyExpectedIdentifier => Some(&STRUCT_KEY_EXPECTED_IDENTIFIER),
+            Self::DictExpectedFormat => Some(&DICT_EXPECTED_FORMAT),
+            Self::DictEntryExpectedArray => Some(&DICT_ENTRY_EXPECTED_ARRAY),
+            Self::DictEntryTooFewItems => Some(&DICT_ENTRY_TOO_FEW_ITEMS),
+            Self::DictEntryTooManyItems => Some(&DICT_ENTRY_TOO_MANY_ITEMS),
+            Self::TupleExpectedArray => Some(&TUPLE_EXPECTED_ARRAY),
+            Self::ListExpectedArray => Some(&LIST_EXPECTED_ARRAY),
         }
     }
 }
@@ -309,7 +369,6 @@ pub(crate) fn unknown_key(
 
     diagnostic.help = Some(Help::new(help_message));
 
-    // Add a note with additional context for the empty expected keys case
     if expected.is_empty() {
         diagnostic.note = Some(Note::new(UNKNOWN_KEY_HELP));
     }
@@ -356,12 +415,10 @@ pub(crate) fn duplicate_key(
 ) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::DuplicateKey, Severity::ERROR);
 
-    // Label for the duplicate occurrence
     diagnostic
         .labels
         .push(Label::new(duplicate_span, "Duplicate key").with_order(0));
 
-    // Label for the first occurrence
     diagnostic.labels.push(
         Label::new(
             first_span,
@@ -371,6 +428,125 @@ pub(crate) fn duplicate_key(
     );
 
     diagnostic.help = Some(Help::new(DUPLICATE_KEY_HELP));
+
+    diagnostic
+}
+
+const STRUCT_KEY_IDENTIFIER_NOTE: &str = "Struct field keys must be valid identifiers starting \
+                                          with a letter or underscore, followed by letters, \
+                                          numbers, or underscores.";
+
+pub(crate) fn struct_key_expected_identifier<I>(
+    spans: &SpanStorage<Span>,
+    key_span: SpanId,
+    parse_error: ParseError<I, ContextError>,
+) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ObjectDiagnosticCategory::StructKeyExpectedIdentifier,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(key_span, "Invalid struct field key"));
+
+    let (error_label, expected) =
+        crate::parser::string::error::convert_parse_error(spans, key_span, parse_error);
+
+    diagnostic.labels.push(error_label);
+
+    if let Some(expected) = expected {
+        diagnostic.help = Some(Help::new(expected));
+    }
+
+    diagnostic.note = Some(Note::new(STRUCT_KEY_IDENTIFIER_NOTE));
+
+    diagnostic
+}
+
+const DICT_FORMAT_NOTE: &str = r#"Dictionaries in J-Expr support two formats:
+1. Object-like syntax: {"key1": value1, "key2": value2, ...}
+2. Array of pairs: [[key1, value1], [key2, value2], ...]"#;
+
+pub(crate) fn dict_expected_format(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ObjectDiagnosticCategory::DictExpectedFormat,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Expected object or array of pairs"));
+
+    let help_message = format!(
+        "Expected either an object {{key: value, ...}} or an array of pairs [[key, value], ...], \
+         found {found}",
+    );
+    diagnostic.help = Some(Help::new(help_message));
+
+    diagnostic.note = Some(Note::new(DICT_FORMAT_NOTE));
+
+    diagnostic
+}
+
+const DICT_ENTRY_FORMAT_NOTE: &str =
+    "Dictionary entries must have exactly two elements: a key and a value.";
+
+pub(crate) fn dict_entry_too_few_items(span: SpanId, found: usize) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ObjectDiagnosticCategory::DictEntryTooFewItems,
+        Severity::ERROR,
+    );
+
+    let label_text = if found == 0 {
+        "Empty dictionary entry"
+    } else {
+        "Incomplete dictionary entry"
+    };
+
+    diagnostic.labels.push(Label::new(span, label_text));
+
+    let help_message = format!("Expected 2 items (key and value), but found only {found}");
+    diagnostic.help = Some(Help::new(help_message));
+
+    diagnostic.note = Some(Note::new(DICT_ENTRY_FORMAT_NOTE));
+
+    diagnostic
+}
+
+#[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+pub(crate) fn dict_entry_too_many_items(
+    entry_span: SpanId,
+    excess_element_spans: &[SpanId],
+) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ObjectDiagnosticCategory::DictEntryTooManyItems,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(entry_span, "Dictionary entry with too many items").with_order(0));
+
+    for (idx, &span) in excess_element_spans.iter().enumerate() {
+        let message = if idx == 0 {
+            "Remove this element"
+        } else {
+            "... and this element"
+        };
+
+        diagnostic
+            .labels
+            .push(Label::new(span, message).with_order((idx + 1) as i32));
+    }
+
+    let help_message = format!(
+        "Dictionary entries must contain exactly 2 items (key and value), but found {}",
+        2 + excess_element_spans.len()
+    );
+    diagnostic.help = Some(Help::new(help_message));
+
+    diagnostic.note = Some(Note::new(DICT_ENTRY_FORMAT_NOTE));
 
     diagnostic
 }

@@ -1,4 +1,3 @@
-use alloc::borrow::Cow;
 use core::mem;
 
 use hashql_ast::node::expr::Expr;

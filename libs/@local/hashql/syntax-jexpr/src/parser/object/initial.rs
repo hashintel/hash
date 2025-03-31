@@ -3,7 +3,11 @@ use text_size::TextRange;
 
 use super::{
     ObjectState, State,
+    dict::DictNode,
     error::{empty, unknown_key},
+    list::ListNode,
+    r#struct::StructNode,
+    tuple::TupleNode,
     r#type::TypeNode,
     visit::Key,
 };
@@ -22,13 +26,15 @@ impl<'heap> State<'heap> for Initial {
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         match &*key.value {
             "#literal" => LiteralNode::parse(state, &key).map(ObjectState::Literal),
+            "#struct" => StructNode::parse(state, &key).map(ObjectState::Struct),
+            "#dict" => DictNode::parse(state, &key).map(ObjectState::Dict),
+            "#tuple" => TupleNode::parse(state, &key).map(ObjectState::Tuple),
+            "#list" => ListNode::parse(state, &key).map(ObjectState::List),
             "#type" => TypeNode::parse(state, &key).map(ObjectState::Type),
             _ => Err(unknown_key(
                 state.insert_range(key.span),
                 &key.value,
-                &[
-                    "#literal", "#dict", "#struct", "#list", "#tuple", "#type", "#path",
-                ],
+                &["#literal", "#struct", "#dict", "#tuple", "#list", "#type"],
             )
             .map_category(From::from)),
         }

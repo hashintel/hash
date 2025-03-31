@@ -43,21 +43,15 @@ impl DiagnosticCategory for StringDiagnosticCategory {
     }
 }
 
-const SYNTAX_ERROR_NOTE: &str =
-    "Check for missing delimiters, incorrect operators, or typos in identifiers.";
-
 #[expect(
     clippy::cast_possible_truncation,
     reason = "lexer ensures we never parse more than 4GiB"
 )]
-pub(crate) fn invalid_expr<I>(
+pub(crate) fn convert_parse_error<I>(
     spans: &SpanStorage<Span>,
     parent: SpanId,
     error: ParseError<I, ContextError>,
-) -> StringDiagnostic {
-    let mut diagnostic =
-        Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Severity::ERROR);
-
+) -> (Label<SpanId>, Option<String>) {
     let offset = error.offset();
     let error = error.into_inner();
 
@@ -74,23 +68,24 @@ pub(crate) fn invalid_expr<I>(
         _ => None,
     });
 
-    // Make the label message shorter and clearer
-    let label_text = expression.map_or_else(
-        || "Syntax error".to_owned(),
-        |expr| format!("Invalid {expr}"),
+    let message = expression.map_or_else(
+        || Cow::Borrowed("Syntax error"),
+        |expr| Cow::Owned(format!("Invalid {expr}")),
     );
 
-    diagnostic.labels.push(Label::new(span, label_text));
+    let label = Label::new(span, message);
 
-    let expected = error
+    let expected: Vec<_> = error
         .context()
         .filter_map(|context| match context {
             StrContext::Expected(expected) => Some(expected),
             _ => None,
         })
-        .collect::<Vec<_>>();
+        .collect();
 
-    if !expected.is_empty() {
+    let expected = if expected.is_empty() {
+        None
+    } else {
         let mut buffer = String::new();
 
         if expected.len() == 1 {
@@ -109,7 +104,29 @@ pub(crate) fn invalid_expr<I>(
             }
         }
 
-        diagnostic.help = Some(Help::new(buffer));
+        Some(buffer)
+    };
+
+    (label, expected)
+}
+
+const SYNTAX_ERROR_NOTE: &str =
+    "Check for missing delimiters, incorrect operators, or typos in identifiers.";
+
+pub(crate) fn invalid_expr<I>(
+    spans: &SpanStorage<Span>,
+    parent: SpanId,
+    error: ParseError<I, ContextError>,
+) -> StringDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Severity::ERROR);
+
+    let (label, expected) = convert_parse_error(spans, parent, error);
+
+    diagnostic.labels.push(label);
+
+    if let Some(expected) = expected {
+        diagnostic.help = Some(Help::new(expected));
         diagnostic.note = Some(Note::new(SYNTAX_ERROR_NOTE));
     }
 

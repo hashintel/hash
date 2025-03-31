@@ -1,10 +1,17 @@
-use hashql_ast::node::{expr::Expr, r#type::Type};
+use hashql_ast::{
+    heap,
+    node::{expr::Expr, r#type::Type},
+};
 use text_size::TextRange;
 
 use super::{
     ObjectState, State,
+    dict::DictNode,
     error::{ObjectDiagnosticCategory, duplicate_key, unknown_key},
+    list::ListNode,
     literal::LiteralNode,
+    r#struct::StructNode,
+    tuple::TupleNode,
     visit::Key,
 };
 use crate::{
@@ -14,7 +21,7 @@ use crate::{
     parser::{
         error::{ParserDiagnostic, unexpected_token},
         object::error::orphaned_type,
-        string::parse_string_type,
+        string::parse_type_from_token,
     },
 };
 
@@ -44,6 +51,14 @@ impl<'heap> TypeNode<'heap> {
     pub(crate) fn into_inner(self) -> Type<'heap> {
         self.value
     }
+
+    pub(crate) fn finish(
+        node: Option<Self>,
+        state: &ParserState<'heap, '_>,
+    ) -> Option<heap::Box<'heap, Type<'heap>>> {
+        node.map(Self::into_inner)
+            .map(|r#type| state.heap().boxed(r#type))
+    }
 }
 
 impl<'heap> State<'heap> for TypeNode<'heap> {
@@ -53,14 +68,21 @@ impl<'heap> State<'heap> for TypeNode<'heap> {
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         match &*key.value {
-            "#struct" => todo!(),
-            "#dict" => todo!(),
-            "#list" => todo!(),
-            "#tuple" => todo!(),
             "#literal" => LiteralNode::parse(state, &key)
                 .map(|node| node.with_type(self))
-                .map(ObjectState::Literal)
-                .change_category(From::from),
+                .map(ObjectState::Literal),
+            "#struct" => StructNode::parse(state, &key)
+                .map(|node| node.with_type(self))
+                .map(ObjectState::Struct),
+            "#dict" => DictNode::parse(state, &key)
+                .map(|node| node.with_type(self))
+                .map(ObjectState::Dict),
+            "#tuple" => TupleNode::parse(state, &key)
+                .map(|node| node.with_type(self))
+                .map(ObjectState::Tuple),
+            "#list" => ListNode::parse(state, &key)
+                .map(|node| node.with_type(self))
+                .map(ObjectState::List),
             "#type" => Err(duplicate_key(
                 state.insert_range(self.key_span),
                 state.insert_range(key.span),
@@ -70,7 +92,7 @@ impl<'heap> State<'heap> for TypeNode<'heap> {
             _ => Err(unknown_key(
                 state.insert_range(key.span),
                 &key.value,
-                &["#dict", "#struct", "#list", "#tuple", "#literal"],
+                &["#literal", "#struct", "#dict", "#tuple", "#list"],
             )
             .map_category(From::from)),
         }
@@ -89,6 +111,41 @@ impl<'heap> State<'heap> for TypeNode<'heap> {
     }
 }
 
+pub(crate) fn handle_typed<'heap>(
+    id: &'static str,
+    id_span: TextRange,
+    r#type: &mut Option<TypeNode<'heap>>,
+    state: &mut ParserState<'heap, '_>,
+    key: &Key<'_>,
+) -> Result<(), ParserDiagnostic> {
+    match &*key.value {
+        key_value if key_value == id => Err(duplicate_key(
+            state.insert_range(id_span),
+            state.insert_range(key.span),
+            id,
+        )
+        .map_category(From::from)),
+        "#type" if r#type.is_some() => Err(duplicate_key(
+            state.insert_range(id_span),
+            state.insert_range(key.span),
+            "#type",
+        )
+        .map_category(From::from)),
+        "#type" => {
+            let type_node = TypeNode::parse(state, key)?;
+
+            *r#type = Some(type_node);
+            Ok(())
+        }
+        _ => Err(unknown_key(
+            state.insert_range(key.span),
+            &key.value,
+            if r#type.is_some() { &[] } else { &["#type"] },
+        )
+        .map_category(From::from)),
+    }
+}
+
 fn parse_type<'heap>(
     state: &mut ParserState<'heap, '_>,
 ) -> Result<(TextRange, Type<'heap>), ParserDiagnostic> {
@@ -97,7 +154,7 @@ fn parse_type<'heap>(
     let span = token.span;
 
     let r#type = if token.kind.syntax() == SyntaxKind::String {
-        parse_string_type(state, token).change_category(From::from)?
+        parse_type_from_token(state, token).change_category(From::from)?
     } else {
         let span = state.insert_range(token.span);
 
