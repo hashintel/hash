@@ -903,4 +903,109 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
 
         Ok(actors)
     }
+
+    /// Gets all principal IDs associated with an actor, including:
+    /// - The actor itself
+    /// - All roles directly assigned to the actor
+    /// - All teams that the actor's roles belong to
+    /// - All parent teams of those teams (for subteams)
+    ///
+    /// This provides a complete set of principals that the actor can act as.
+    ///
+    /// # Errors
+    ///
+    /// - [`PrincipalNotFound`] if the actor with the given ID doesn't exist
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn get_actor_principals(
+        &self,
+        actor_id: ActorId,
+    ) -> Result<HashSet<PrincipalId>, Report<PrincipalError>> {
+        // Use a single optimized query that gets all principals in one go:
+        // 1. The actor itself
+        // 2. All roles assigned to the actor
+        // 3. All teams associated with those roles
+        // 4. All parent teams of those teams (for subteams)
+        // We utilize the team_hierarchy table which already stores parent-child relationships
+        let principals = self
+            .as_client()
+            .query_raw(
+                "
+                -- The actor itself
+                SELECT $1 AS id, principal_type
+                FROM actor
+                WHERE id = $1
+
+                UNION ALL
+
+                -- All roles directly assigned to the actor
+                SELECT role.id, role.principal_type
+                FROM actor_role
+                JOIN role ON actor_role.role_id = role.id
+                WHERE actor_role.actor_id = $1
+
+                UNION ALL
+
+                -- Direct team of each role - always included
+                SELECT team.id, team.principal_type
+                FROM actor_role
+                JOIN role ON actor_role.role_id = role.id
+                JOIN team ON team.id = role.team_id
+                WHERE actor_role.actor_id = $1
+
+                UNION ALL
+
+                -- All parent teams of subteams (recursively through hierarchy)
+                SELECT parent.id, parent.principal_type
+                FROM actor_role
+                JOIN role ON actor_role.role_id = role.id
+                JOIN team child ON child.id = role.team_id AND child.principal_type = 'subteam'
+                JOIN team_hierarchy ON team_hierarchy.child_id = child.id
+                JOIN team parent ON parent.id = team_hierarchy.parent_id
+                WHERE actor_role.actor_id = $1
+                ",
+                &[actor_id.as_uuid()],
+            )
+            .await
+            .change_context(PrincipalError::StoreError)?
+            .map_ok(|row| {
+                let id: Uuid = row.get(0);
+                match row.get(1) {
+                    // Actors
+                    PrincipalType::User => PrincipalId::Actor(ActorId::User(UserId::new(id))),
+                    PrincipalType::Machine => {
+                        PrincipalId::Actor(ActorId::Machine(MachineId::new(id)))
+                    }
+
+                    // Teams
+                    PrincipalType::Team => {
+                        PrincipalId::Team(TeamId::Standalone(StandaloneTeamId::new(id)))
+                    }
+                    PrincipalType::Web => PrincipalId::Team(TeamId::Web(OwnedById::new(id))),
+                    PrincipalType::Subteam => PrincipalId::Team(TeamId::Sub(SubteamId::new(id))),
+
+                    // Roles
+                    PrincipalType::Role => {
+                        PrincipalId::Role(RoleId::Standalone(StandaloneTeamRoleId::new(id)))
+                    }
+                    PrincipalType::WebRole => PrincipalId::Role(RoleId::Web(WebRoleId::new(id))),
+                    PrincipalType::SubteamRole => {
+                        PrincipalId::Role(RoleId::Subteam(SubteamRoleId::new(id)))
+                    }
+                }
+            })
+            .try_collect::<HashSet<_>>()
+            .await
+            .change_context(PrincipalError::StoreError)?;
+
+        if principals.is_empty() {
+            Err(Report::new(PrincipalError::PrincipalNotFound {
+                id: PrincipalId::Actor(actor_id),
+            }))
+        } else {
+            Ok(principals)
+        }
+    }
 }
