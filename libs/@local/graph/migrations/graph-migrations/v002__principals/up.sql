@@ -191,7 +191,8 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- SubTeam is a team that must have at least one parent
 CREATE TABLE subteam (
-    id UUID PRIMARY KEY REFERENCES team (id) ON DELETE CASCADE
+    id UUID PRIMARY KEY REFERENCES team (id) ON DELETE CASCADE,
+    parent_id UUID NOT NULL REFERENCES team (id) ON DELETE CASCADE
 );
 
 -- SubTeam registration trigger - creates team record when subteam is created
@@ -221,7 +222,7 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 -- Team hierarchy represents parent-child relationships between teams
 -- This allows teams to have multiple parents, forming a directed acyclic graph
 CREATE TABLE team_hierarchy (
-    parent_id UUID NOT NULL REFERENCES team (id) ON DELETE RESTRICT,
+    parent_id UUID NOT NULL REFERENCES team (id) ON DELETE CASCADE,
     child_id UUID NOT NULL REFERENCES subteam (id) ON DELETE CASCADE,
     depth INTEGER NOT NULL DEFAULT 1,
     CONSTRAINT no_self_parent CHECK (parent_id != child_id),
@@ -306,7 +307,7 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 CREATE TABLE role (
     id UUID NOT NULL,
     principal_type PRINCIPAL_TYPE NOT NULL,
-    team_id UUID NOT NULL REFERENCES team (id) ON DELETE RESTRICT,
+    team_id UUID NOT NULL REFERENCES team (id) ON DELETE CASCADE,
     PRIMARY KEY (id, principal_type),
     FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
     CHECK (principal_type IN ('role', 'web_role', 'subteam_role'))

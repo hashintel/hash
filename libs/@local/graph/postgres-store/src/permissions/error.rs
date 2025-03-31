@@ -12,9 +12,6 @@ pub enum PrincipalError {
     #[display("Principal with ID {id} doesn't exist")]
     PrincipalNotFound { id: PrincipalId },
 
-    #[display("Team with ID {id} has children and cannot be deleted")]
-    TeamHasChildren { id: TeamId },
-
     #[display("Role with ID {role_id} is already assigned to actor with ID {actor_id}")]
     RoleAlreadyAssigned { actor_id: ActorId, role_id: RoleId },
     #[display("Role with ID {role_id} is not assigned to actor with ID {actor_id}")]

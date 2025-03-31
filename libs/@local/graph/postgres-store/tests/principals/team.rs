@@ -254,7 +254,7 @@ async fn test_delete_non_existent_subteam() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
-async fn test_cannot_delete_subteam_with_children() -> Result<(), Box<dyn Error>> {
+async fn test_can_delete_subteam_with_children() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut client = db.client().await?;
 
@@ -263,22 +263,16 @@ async fn test_cannot_delete_subteam_with_children() -> Result<(), Box<dyn Error>
     let parent_subteam_id = client
         .create_subteam(None, TeamId::Standalone(parent_team_id))
         .await?;
-    let _child_subteam_id = client
+    let child_subteam_id = client
         .create_subteam(None, TeamId::Sub(parent_subteam_id))
         .await?;
 
-    // Try to delete parent subteam - should fail because it has children
-    let delete_result = client.delete_subteam(parent_subteam_id).await;
+    // Delete the parent team
+    client.delete_subteam(parent_subteam_id).await?;
 
-    // Verify error is what we expect
-    assert_matches!(
-        delete_result.expect_err("Deleting a subteam with children should fail").current_context(),
-        PrincipalError::TeamHasChildren { id } if *id == TeamId::Sub(parent_subteam_id),
-        "Error should indicate that subteam has children"
-    );
-
-    // Don't try to check anything else after the error, as the transaction is aborted
-    // The test would rollback automatically when it ends
+    // Verify both subteams no longer exist
+    assert!(!client.is_subteam(parent_subteam_id).await?);
+    assert!(!client.is_subteam(child_subteam_id).await?);
 
     Ok(())
 }

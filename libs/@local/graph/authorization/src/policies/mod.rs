@@ -43,7 +43,17 @@ pub enum Effect {
 }
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::Display,
 )]
 #[cfg_attr(
     feature = "postgres",
@@ -68,12 +78,6 @@ impl PolicyId {
     #[must_use]
     pub const fn as_uuid(&self) -> &Uuid {
         &self.0
-    }
-}
-
-impl fmt::Display for PolicyId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
     }
 }
 

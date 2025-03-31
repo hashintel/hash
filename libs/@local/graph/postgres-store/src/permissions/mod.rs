@@ -88,54 +88,38 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
         Ok(row.get(0))
     }
 
-    /// Deletes a web from the system.
+    /// Deletes a principal from the system.
     ///
     /// # Errors
     ///
-    /// - [`PrincipalNotFound`] if the web with the given ID doesn't exist
-    /// - [`TeamHasChildren`] if the principal is a team and has children
+    /// - [`PrincipalNotFound`] if the principal with the given ID doesn't exist
     /// - [`StoreError`] if a database error occurs
     ///
     /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
-    /// [`TeamHasChildren`]: PrincipalError::TeamHasChildren
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn delete_principal(
         &mut self,
         id: PrincipalId,
     ) -> Result<(), Report<PrincipalError>> {
+        let (uuid, principal_type) = match id {
+            PrincipalId::Team(TeamId::Web(id)) => (id.into_uuid(), PrincipalType::Web),
+            PrincipalId::Team(TeamId::Standalone(id)) => (id.into_uuid(), PrincipalType::Team),
+            PrincipalId::Team(TeamId::Sub(id)) => (id.into_uuid(), PrincipalType::Subteam),
+            PrincipalId::Actor(ActorId::User(id)) => (id.into_uuid(), PrincipalType::User),
+            PrincipalId::Actor(ActorId::Machine(id)) => (id.into_uuid(), PrincipalType::Machine),
+            PrincipalId::Role(RoleId::Standalone(id)) => (id.into_uuid(), PrincipalType::Role),
+            PrincipalId::Role(RoleId::Web(id)) => (id.into_uuid(), PrincipalType::WebRole),
+            PrincipalId::Role(RoleId::Subteam(id)) => (id.into_uuid(), PrincipalType::SubteamRole),
+        };
+
         let num_deleted = self
             .as_mut_client()
             .execute(
-                match id {
-                    PrincipalId::Team(TeamId::Web(_)) => {
-                        "DELETE FROM principal WHERE id = $1 AND principal_type = 'web'"
-                    }
-                    PrincipalId::Team(TeamId::Standalone(_)) => {
-                        "DELETE FROM principal WHERE id = $1 AND principal_type = 'team'"
-                    }
-                    PrincipalId::Team(TeamId::Sub(_)) => {
-                        "DELETE FROM principal WHERE id = $1 AND principal_type = 'subteam'"
-                    }
-                    PrincipalId::Actor(ActorId::User(_)) => {
-                        "DELETE FROM principal WHERE id = $1 AND principal_type = 'user'"
-                    }
-                    PrincipalId::Actor(ActorId::Machine(_)) => {
-                        "DELETE FROM principal WHERE id = $1 AND principal_type = 'machine'"
-                    }
-                    PrincipalId::Role(_) => {
-                        "DELETE FROM principal WHERE id = $1 AND principal_type = 'role'"
-                    }
-                },
-                &[id.as_uuid()],
+                "DELETE FROM principal WHERE id = $1 AND principal_type = $2",
+                &[&uuid, &principal_type],
             )
             .await
-            .map_err(Report::new)
-            .map_err(|error| match (error.current_context().code(), id) {
-                (Some(&SqlState::FOREIGN_KEY_VIOLATION), PrincipalId::Team(id)) => {
-                    error.change_context(PrincipalError::TeamHasChildren { id })
-                }
-                _ => error.change_context(PrincipalError::StoreError),
-            })?;
+            .change_context(PrincipalError::StoreError)?;
 
         ensure!(num_deleted > 0, PrincipalError::PrincipalNotFound { id });
 
@@ -332,24 +316,31 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .change_context(PrincipalError::StoreError)?;
 
         // First create the subteam
-        if let Err(error) = transaction
-            .execute("INSERT INTO subteam (id) VALUES ($1)", &[&id])
+        transaction
+            .execute(
+                "INSERT INTO subteam (id, parent_id) VALUES ($1, $2)",
+                &[&id, parent_id.as_uuid()],
+            )
             .await
-        {
-            // Transaction will be rolled back when dropped
-            return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
-                Err(error).change_context(PrincipalError::PrincipalAlreadyExists {
-                    id: PrincipalId::Team(TeamId::Sub(SubteamId::new(id))),
-                })
-            } else {
-                Err(error).change_context(PrincipalError::StoreError)
-            };
-        }
+            .map_err(Report::new)
+            .map_err(|error| match error.current_context().code() {
+                Some(&SqlState::UNIQUE_VIOLATION) => {
+                    error.change_context(PrincipalError::PrincipalAlreadyExists {
+                        id: PrincipalId::Team(TeamId::Sub(SubteamId::new(id))),
+                    })
+                }
+                Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
+                    error.change_context(PrincipalError::PrincipalNotFound {
+                        id: PrincipalId::Team(parent_id),
+                    })
+                }
+                _ => error.change_context(PrincipalError::StoreError),
+            })?;
 
         // Set up all parent-child relationships in a single query
         // First row creates the direct relationship with depth 1
         // Remaining rows create transitive relationships with proper depths
-        if let Err(error) = transaction
+        transaction
             .execute(
                 "INSERT INTO team_hierarchy (parent_id, child_id, depth)
                 SELECT $1::uuid, $2::uuid, 1
@@ -360,16 +351,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                 &[parent_id.as_uuid(), &id],
             )
             .await
-        {
-            // Transaction will be rolled back when dropped
-            return if error.code() == Some(&SqlState::FOREIGN_KEY_VIOLATION) {
-                Err(error).change_context(PrincipalError::PrincipalNotFound {
-                    id: PrincipalId::Team(parent_id),
-                })
-            } else {
-                Err(error).change_context(PrincipalError::StoreError)
-            };
-        }
+            .change_context(PrincipalError::StoreError)?;
 
         transaction
             .commit()

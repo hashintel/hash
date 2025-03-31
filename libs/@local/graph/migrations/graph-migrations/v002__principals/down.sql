@@ -1,66 +1,69 @@
--- Drop indexes
-DROP INDEX IF EXISTS idx_actor_role_role_id;
-DROP INDEX IF EXISTS idx_actor_role_actor_id;
-DROP INDEX IF EXISTS idx_role_team_id;
-DROP INDEX IF EXISTS idx_team_hierarchy_child;
-DROP INDEX IF EXISTS idx_team_hierarchy_parent;
+-- Drop indexes (except those referenced by foreign keys)
+DROP INDEX idx_actor_role_role_id;
+DROP INDEX idx_actor_role_actor_id;
+DROP INDEX idx_role_team_id;
+DROP INDEX idx_team_hierarchy_child;
+DROP INDEX idx_team_hierarchy_parent;
+DROP INDEX idx_team_hierarchy_single_parent;
 
 -- Drop relationship tables first
-DROP TABLE IF EXISTS actor_role;
-DROP TABLE IF EXISTS team_hierarchy;
+DROP TABLE actor_role;
+DROP TABLE team_hierarchy;
+
+-- Now it's safe to drop the remaining indexes
+DROP INDEX idx_role_id;
 
 -- Drop concrete principal leaf tables
-DROP TRIGGER IF EXISTS role_delete_trigger ON role;
-DROP TRIGGER IF EXISTS role_register_trigger ON role;
-DROP FUNCTION IF EXISTS register_role();
-DROP TABLE IF EXISTS role;
+DROP TRIGGER role_delete_trigger ON role;
+DROP TRIGGER role_register_trigger ON role;
+DROP FUNCTION register_role();
+DROP TABLE role;
 
-DROP TRIGGER IF EXISTS machine_delete_trigger ON machine;
-DROP TRIGGER IF EXISTS machine_register_trigger ON machine;
-DROP FUNCTION IF EXISTS register_machine();
-DROP TABLE IF EXISTS machine;
+DROP TRIGGER machine_delete_trigger ON machine;
+DROP TRIGGER machine_register_trigger ON machine;
+DROP FUNCTION register_machine();
+DROP TABLE machine;
 
-DROP TRIGGER IF EXISTS user_delete_trigger ON "user";
-DROP TRIGGER IF EXISTS user_register_trigger ON "user";
-DROP FUNCTION IF EXISTS register_user();
-DROP TABLE IF EXISTS "user";
+DROP TRIGGER user_delete_trigger ON "user";
+DROP TRIGGER user_register_trigger ON "user";
+DROP FUNCTION register_user();
+DROP TABLE "user";
 
 -- Drop specialized team tables
-DROP TRIGGER IF EXISTS subteam_prevent_delete_trigger ON subteam;
-DROP TRIGGER IF EXISTS subteam_register_trigger ON subteam;
-DROP FUNCTION IF EXISTS register_subteam();
-DROP TABLE IF EXISTS subteam;
+DROP TRIGGER subteam_prevent_delete_trigger ON subteam;
+DROP TRIGGER subteam_register_trigger ON subteam;
+DROP FUNCTION register_subteam();
+DROP TABLE subteam;
 
-DROP TRIGGER IF EXISTS web_prevent_delete_trigger ON web;
-DROP TRIGGER IF EXISTS web_register_trigger ON web;
-DROP FUNCTION IF EXISTS register_web();
-DROP TABLE IF EXISTS web;
+DROP TRIGGER web_prevent_delete_trigger ON web;
+DROP TRIGGER web_register_trigger ON web;
+DROP FUNCTION register_web();
+DROP TABLE web;
 
 -- Drop team triggers
-DROP TRIGGER IF EXISTS team_delete_trigger ON team;
-DROP TRIGGER IF EXISTS team_register_trigger ON team;
-DROP FUNCTION IF EXISTS register_team();
-DROP TRIGGER IF EXISTS enforce_direct_team_creation_trigger ON team;
-DROP FUNCTION IF EXISTS enforce_direct_team_creation();
-DROP FUNCTION IF EXISTS prevent_team_hierarchy_cycles();
+DROP TRIGGER team_delete_trigger ON team;
+DROP TRIGGER team_register_trigger ON team;
+DROP FUNCTION register_team();
+DROP TRIGGER enforce_direct_team_creation_trigger ON team;
+DROP FUNCTION enforce_direct_team_creation();
 
 -- Drop actor table and related items
-DROP TRIGGER IF EXISTS actor_delete_trigger ON actor;
-DROP TRIGGER IF EXISTS actor_register_trigger ON actor;
-DROP FUNCTION IF EXISTS register_actor();
-DROP TRIGGER IF EXISTS prevent_actor_modification ON actor;
-DROP TABLE IF EXISTS actor;
+DROP TRIGGER actor_delete_trigger ON actor;
+DROP TRIGGER actor_register_trigger ON actor;
+DROP FUNCTION register_actor();
+DROP TRIGGER prevent_actor_modification ON actor;
+DROP TABLE actor;
 
 -- Drop team table
-DROP TABLE IF EXISTS team;
+DROP TABLE team;
 
 -- Drop principal table and related items
-DROP TRIGGER IF EXISTS prevent_principal_modification ON principal;
-DROP TABLE IF EXISTS principal;
+DROP TRIGGER prevent_principal_modification ON principal;
+DROP TABLE principal;
 
 -- Drop utility functions
-DROP FUNCTION IF EXISTS prevent_direct_delete_from_concrete();
-DROP FUNCTION IF EXISTS prevent_direct_modification();
+DROP FUNCTION prevent_direct_delete_from_concrete();
+DROP FUNCTION prevent_direct_modification();
 
 -- Drop enum types
-DROP TYPE IF EXISTS PRINCIPAL_TYPE;
+DROP TYPE PRINCIPAL_TYPE;
