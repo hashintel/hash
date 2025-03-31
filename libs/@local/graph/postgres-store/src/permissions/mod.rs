@@ -7,9 +7,13 @@ use hash_graph_authorization::{
     policies::principal::{
         ActorId, PrincipalId,
         machine::{Machine, MachineId},
-        team::{StandaloneTeam, StandaloneTeamId, Subteam, SubteamId, TeamId},
+        role::{Role, RoleId},
+        team::{
+            StandaloneTeam, StandaloneTeamId, StandaloneTeamRole, StandaloneTeamRoleId, Subteam,
+            SubteamId, SubteamRole, TeamId,
+        },
         user::{User, UserId},
-        web::Web,
+        web::{SubteamRoleId, Web, WebRole, WebRoleId},
     },
 };
 use tokio_postgres::{GenericClient as _, error::SqlState};
@@ -20,6 +24,20 @@ use crate::store::{AsClient, PostgresStore};
 
 mod error;
 pub use error::PrincipalError;
+
+#[derive(Debug, postgres_types::ToSql, postgres_types::FromSql)]
+#[postgres(name = "principal_type", rename_all = "snake_case")]
+pub enum PrincipalType {
+    User,
+    Machine,
+    Team,
+    Web,
+
+    Subteam,
+    Role,
+    WebRole,
+    SubteamRole,
+}
 
 impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     /// Checks if a principal with the given ID exists.
@@ -50,7 +68,18 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                     PrincipalId::Actor(ActorId::Machine(_)) => {
                         "SELECT EXISTS(SELECT 1 FROM machine WHERE id = $1)"
                     }
-                    PrincipalId::Role(_) => "SELECT EXISTS(SELECT 1 FROM role WHERE id = $1)",
+                    PrincipalId::Role(RoleId::Standalone(_)) => {
+                        "SELECT EXISTS(SELECT 1 FROM role WHERE id = $1
+                        AND principal_type = 'role')"
+                    }
+                    PrincipalId::Role(RoleId::Web(_)) => {
+                        "SELECT EXISTS(SELECT 1 FROM role WHERE id = $1
+                        AND principal_type = 'web_role')"
+                    }
+                    PrincipalId::Role(RoleId::Subteam(_)) => {
+                        "SELECT EXISTS(SELECT 1 FROM role WHERE id = $1
+                        AND principal_type = 'subteam_role')"
+                    }
                 },
                 &[id.as_uuid()],
             )
@@ -377,7 +406,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .as_client()
             .query_raw(
                 "
-                    SELECT parent_id, principal_type::TEXT
+                    SELECT parent_id, principal_type
                       FROM team_hierarchy
                       JOIN principal ON principal.id = team_hierarchy.parent_id
                      WHERE child_id = $1
@@ -386,11 +415,11 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             )
             .await
             .change_context(PrincipalError::StoreError)?
-            .map_ok(|row| match row.get::<_, String>(1).as_str() {
-                "web" => TeamId::Web(OwnedById::new(row.get(0))),
-                "team" => TeamId::Standalone(StandaloneTeamId::new(row.get(0))),
-                "subteam" => TeamId::Sub(SubteamId::new(row.get(0))),
-                other => unreachable!("Unexpected team_type: {other}"),
+            .map_ok(|row| match row.get(1) {
+                PrincipalType::Web => TeamId::Web(OwnedById::new(row.get(0))),
+                PrincipalType::Team => TeamId::Standalone(StandaloneTeamId::new(row.get(0))),
+                PrincipalType::Subteam => TeamId::Sub(SubteamId::new(row.get(0))),
+                other => unreachable!("Unexpected team type: {other:?}"),
             })
             .try_collect::<Vec<_>>()
             .await
@@ -577,5 +606,301 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     pub async fn delete_machine(&mut self, id: MachineId) -> Result<(), Report<PrincipalError>> {
         self.delete_principal(PrincipalId::Actor(ActorId::Machine(id)))
             .await
+    }
+
+    /// Creates a new role with the given ID associated with a team, or generates a new UUID if none
+    /// is provided.
+    ///
+    /// # Errors
+    ///
+    /// - [`PrincipalAlreadyExists`] if a role with the given ID already exists
+    /// - [`PrincipalNotFound`] if the team with the given ID doesn't exist
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`PrincipalAlreadyExists`]: PrincipalError::PrincipalAlreadyExists
+    /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn create_role(
+        &mut self,
+        id: Option<Uuid>,
+        team_id: TeamId,
+    ) -> Result<RoleId, Report<PrincipalError>> {
+        let role_id = id.unwrap_or_else(Uuid::new_v4);
+        let (role_id, principal_type) = match team_id {
+            TeamId::Standalone(_) => (
+                RoleId::Standalone(StandaloneTeamRoleId::new(role_id)),
+                PrincipalType::Role,
+            ),
+            TeamId::Web(_) => (RoleId::Web(WebRoleId::new(role_id)), PrincipalType::WebRole),
+            TeamId::Sub(_) => (
+                RoleId::Subteam(SubteamRoleId::new(role_id)),
+                PrincipalType::SubteamRole,
+            ),
+        };
+
+        if let Err(error) = self
+            .as_mut_client()
+            .execute(
+                "INSERT INTO role (id, principal_type, team_id)
+                VALUES ($1, $2, $3)",
+                &[role_id.as_uuid(), &principal_type, team_id.as_uuid()],
+            )
+            .await
+        {
+            return match error.code() {
+                Some(&SqlState::UNIQUE_VIOLATION) => {
+                    Err(error).change_context(PrincipalError::PrincipalAlreadyExists {
+                        id: PrincipalId::Role(role_id),
+                    })
+                }
+                Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
+                    Err(error).change_context(PrincipalError::PrincipalNotFound {
+                        id: PrincipalId::Team(team_id),
+                    })
+                }
+                _ => Err(error).change_context(PrincipalError::StoreError),
+            };
+        }
+
+        Ok(role_id)
+    }
+
+    /// Checks if a role with the given ID exists.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn is_role(&self, id: RoleId) -> Result<bool, Report<PrincipalError>> {
+        self.is_principal(PrincipalId::Role(id)).await
+    }
+
+    /// Gets a role by its ID.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn get_role(&self, id: RoleId) -> Result<Option<Role>, Report<PrincipalError>> {
+        Ok(self
+            .as_client()
+            .query_opt(
+                "SELECT id, principal_type, team_id FROM role WHERE id = $1",
+                &[id.as_uuid()],
+            )
+            .await
+            .change_context(PrincipalError::StoreError)?
+            .map(|row| {
+                let role_id: Uuid = row.get(0);
+                let team_id: Uuid = row.get(2);
+                match row.get(1) {
+                    PrincipalType::Role => Role::Standalone(StandaloneTeamRole {
+                        id: StandaloneTeamRoleId::new(role_id),
+                        team_id: StandaloneTeamId::new(team_id),
+                    }),
+                    PrincipalType::WebRole => Role::Web(WebRole {
+                        id: WebRoleId::new(role_id),
+                        web_id: OwnedById::new(team_id),
+                    }),
+                    PrincipalType::SubteamRole => Role::Subteam(SubteamRole {
+                        id: SubteamRoleId::new(role_id),
+                        team_id: SubteamId::new(team_id),
+                    }),
+                    other => unreachable!("Unexpected role type: {other:?}"),
+                }
+            }))
+    }
+
+    /// Deletes a role from the system.
+    ///
+    /// # Errors
+    ///
+    /// - [`PrincipalNotFound`] if the role with the given ID doesn't exist
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn delete_role(&mut self, id: RoleId) -> Result<(), Report<PrincipalError>> {
+        self.delete_principal(PrincipalId::Role(id)).await
+    }
+
+    /// Assigns a role to an actor.
+    ///
+    /// # Errors
+    ///
+    /// - [`PrincipalNotFound`] if the actor or role with the given ID doesn't exist
+    /// - [`RoleAlreadyAssigned`] if the role is already assigned to the actor
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
+    /// [`RoleAlreadyAssigned`]: PrincipalError::RoleAlreadyAssigned
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn assign_role_to_actor(
+        &mut self,
+        actor_id: ActorId,
+        role_id: RoleId,
+    ) -> Result<(), Report<PrincipalError>> {
+        // Check if the actor exists
+        if !self.is_principal(PrincipalId::Actor(actor_id)).await? {
+            return Err(Report::new(PrincipalError::PrincipalNotFound {
+                id: PrincipalId::Actor(actor_id),
+            }));
+        }
+
+        // Check if the role exists
+        if !self.is_principal(PrincipalId::Role(role_id)).await? {
+            return Err(Report::new(PrincipalError::PrincipalNotFound {
+                id: PrincipalId::Role(role_id),
+            }));
+        }
+
+        if let Err(error) = self
+            .as_mut_client()
+            .execute(
+                "INSERT INTO actor_role (actor_id, role_id) VALUES ($1, $2)",
+                &[actor_id.as_uuid(), role_id.as_uuid()],
+            )
+            .await
+        {
+            return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
+                Err(error).change_context(PrincipalError::RoleAlreadyAssigned { actor_id, role_id })
+            } else {
+                Err(error).change_context(PrincipalError::StoreError)
+            };
+        }
+
+        Ok(())
+    }
+
+    /// Unassigns a role from an actor.
+    ///
+    /// # Errors
+    ///
+    /// - [`RoleNotAssigned`] if the role is not assigned to the actor
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`RoleNotAssigned`]: PrincipalError::RoleNotAssigned
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn unassign_role_from_actor(
+        &mut self,
+        actor_id: ActorId,
+        role_id: RoleId,
+    ) -> Result<(), Report<PrincipalError>> {
+        let num_deleted = self
+            .as_mut_client()
+            .execute(
+                "DELETE FROM actor_role WHERE actor_id = $1 AND role_id = $2",
+                &[actor_id.as_uuid(), role_id.as_uuid()],
+            )
+            .await
+            .change_context(PrincipalError::StoreError)?;
+
+        ensure!(
+            num_deleted > 0,
+            PrincipalError::RoleNotAssigned { actor_id, role_id }
+        );
+
+        Ok(())
+    }
+
+    /// Gets all roles assigned to a specific actor.
+    ///
+    /// # Errors
+    ///
+    /// - [`PrincipalNotFound`] if the actor with the given ID doesn't exist
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn get_actor_roles(
+        &self,
+        actor_id: ActorId,
+    ) -> Result<HashSet<RoleId>, Report<PrincipalError>> {
+        // Check if the actor exists
+        if !self.is_principal(PrincipalId::Actor(actor_id)).await? {
+            return Err(Report::new(PrincipalError::PrincipalNotFound {
+                id: PrincipalId::Actor(actor_id),
+            }));
+        }
+
+        let rows = self
+            .as_client()
+            .query(
+                "SELECT r.id, r.principal_type
+                 FROM actor_role ar
+                 JOIN role r ON ar.role_id = r.id
+                 WHERE ar.actor_id = $1",
+                &[actor_id.as_uuid()],
+            )
+            .await
+            .change_context(PrincipalError::StoreError)?;
+
+        let mut roles = HashSet::new();
+        for row in rows {
+            let id: Uuid = row.get(0);
+            let principal_type: PrincipalType = row.get(1);
+
+            let role_id = match principal_type {
+                PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                PrincipalType::Role => RoleId::Standalone(StandaloneTeamRoleId::new(id)),
+                PrincipalType::SubteamRole => RoleId::Subteam(SubteamRoleId::new(id)),
+                _ => continue, // Skip non-role principal types
+            };
+
+            roles.insert(role_id);
+        }
+
+        Ok(roles)
+    }
+
+    /// Gets all actors assigned to a specific role.
+    ///
+    /// # Errors
+    ///
+    /// - [`PrincipalNotFound`] if the role with the given ID doesn't exist
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn get_role_actors(
+        &self,
+        role_id: RoleId,
+    ) -> Result<HashSet<ActorId>, Report<PrincipalError>> {
+        // Check if the role exists
+        if !self.is_principal(PrincipalId::Role(role_id)).await? {
+            return Err(Report::new(PrincipalError::PrincipalNotFound {
+                id: PrincipalId::Role(role_id),
+            }));
+        }
+
+        let rows = self
+            .as_client()
+            .query(
+                "SELECT a.id, a.principal_type
+                 FROM actor_role ar
+                 JOIN actor a ON ar.actor_id = a.id
+                 WHERE ar.role_id = $1",
+                &[role_id.as_uuid()],
+            )
+            .await
+            .change_context(PrincipalError::StoreError)?;
+
+        let mut actors = HashSet::new();
+        for row in rows {
+            let id: Uuid = row.get(0);
+            let principal_type: PrincipalType = row.get(1);
+
+            let actor_id = match principal_type {
+                PrincipalType::User => ActorId::User(UserId::new(id)),
+                PrincipalType::Machine => ActorId::Machine(MachineId::new(id)),
+                _ => continue, // Skip non-actor principal types
+            };
+
+            actors.insert(actor_id);
+        }
+
+        Ok(actors)
     }
 }

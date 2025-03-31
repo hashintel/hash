@@ -12,9 +12,9 @@ pub use self::actor::{Actor, ActorId};
 use self::{
     machine::{MachineId, MachinePrincipalConstraint},
     role::RoleId,
-    team::{StandaloneTeamId, TeamId, TeamPrincipalConstraint, TeamRoleId},
+    team::{StandaloneTeamId, StandaloneTeamRoleId, TeamId, TeamPrincipalConstraint},
     user::{UserId, UserPrincipalConstraint},
-    web::{WebPrincipalConstraint, WebRoleId, WebTeamId, WebTeamRoleId},
+    web::{SubteamRoleId, WebPrincipalConstraint, WebRoleId, WebTeamId},
 };
 use super::cedar::CedarEntityId as _;
 
@@ -92,10 +92,10 @@ impl InPrincipalConstraint {
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             }))
-        } else if *principal.entity_type() == **WebTeamRoleId::entity_type() {
+        } else if *principal.entity_type() == **SubteamRoleId::entity_type() {
             Ok(Self::Web(WebPrincipalConstraint::InTeamRole {
                 team_role_id: Some(
-                    WebTeamRoleId::from_eid(principal.eid())
+                    SubteamRoleId::from_eid(principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             }))
@@ -106,10 +106,10 @@ impl InPrincipalConstraint {
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             }))
-        } else if *principal.entity_type() == **TeamRoleId::entity_type() {
+        } else if *principal.entity_type() == **StandaloneTeamRoleId::entity_type() {
             Ok(Self::Team(TeamPrincipalConstraint::InRole {
                 role_id: Some(
-                    TeamRoleId::from_eid(principal.eid())
+                    StandaloneTeamRoleId::from_eid(principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             }))

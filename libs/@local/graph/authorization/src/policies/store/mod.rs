@@ -22,7 +22,10 @@ use super::{
         ActorId, PrincipalConstraint,
         machine::{Machine, MachineId, MachinePrincipalConstraint},
         role::RoleId,
-        team::{StandaloneTeam, StandaloneTeamId, TeamPrincipalConstraint, TeamRole, TeamRoleId},
+        team::{
+            StandaloneTeam, StandaloneTeamId, StandaloneTeamRole, StandaloneTeamRoleId,
+            TeamPrincipalConstraint,
+        },
         user::{User, UserId, UserPrincipalConstraint},
         web::{Web, WebPrincipalConstraint, WebRole, WebRoleId, WebTeamId, WebTeamRole},
     },
@@ -108,7 +111,7 @@ pub trait PolicyStore {
     fn create_team_role(
         &mut self,
         team_id: StandaloneTeamId,
-    ) -> Result<TeamRoleId, Report<TeamRoleCreationError>>;
+    ) -> Result<StandaloneTeamRoleId, Report<TeamRoleCreationError>>;
 
     /// Creates a new web and returns its ID.
     ///
@@ -235,7 +238,7 @@ impl Actor {
 #[derive(Debug)]
 pub enum Role {
     Web(WebRole),
-    Team(TeamRole),
+    Team(StandaloneTeamRole),
     WebTeam(WebTeamRole),
 }
 
@@ -261,7 +264,7 @@ impl From<&WebPrincipalConstraint> for PrincipalIndex {
             } => Self::WebTeam(*team_id),
             WebPrincipalConstraint::InTeamRole {
                 team_role_id: Some(team_role_id),
-            } => Self::Role(RoleId::WebTeam(*team_role_id)),
+            } => Self::Role(RoleId::Subteam(*team_role_id)),
             WebPrincipalConstraint::InWeb { id: None }
             | WebPrincipalConstraint::InRole { role_id: None }
             | WebPrincipalConstraint::InTeam { team_id: None }
@@ -276,7 +279,7 @@ impl From<&TeamPrincipalConstraint> for PrincipalIndex {
             TeamPrincipalConstraint::InTeam { id: Some(id) } => Self::Team(*id),
             TeamPrincipalConstraint::InRole {
                 role_id: Some(role_id),
-            } => Self::Role(RoleId::Team(*role_id)),
+            } => Self::Role(RoleId::Standalone(*role_id)),
             TeamPrincipalConstraint::InTeam { id: None }
             | TeamPrincipalConstraint::InRole { role_id: None } => Self::Unspecified,
         }
@@ -391,17 +394,17 @@ impl PolicyStore for MemoryPolicyStore {
     fn create_team_role(
         &mut self,
         team_id: StandaloneTeamId,
-    ) -> Result<TeamRoleId, Report<TeamRoleCreationError>> {
+    ) -> Result<StandaloneTeamRoleId, Report<TeamRoleCreationError>> {
         let Some(team) = self.teams.get_mut(&team_id) else {
             bail!(TeamRoleCreationError::TeamNotFound { team_id })
         };
 
         loop {
-            let role_id = TeamRoleId::new(Uuid::new_v4());
+            let role_id = StandaloneTeamRoleId::new(Uuid::new_v4());
             if team.roles.insert(role_id) {
                 self.roles.insert(
-                    RoleId::Team(role_id),
-                    Role::Team(TeamRole {
+                    RoleId::Standalone(role_id),
+                    Role::Team(StandaloneTeamRole {
                         id: role_id,
                         team_id,
                     }),
@@ -543,9 +546,9 @@ impl PolicyStore for MemoryPolicyStore {
                 .into_iter()
                 .chain(actor.roles().flat_map(|role_id| {
                     match &self.roles[role_id] {
-                        Role::Team(TeamRole { id, team_id }) => Either::Left(
+                        Role::Team(StandaloneTeamRole { id, team_id }) => Either::Left(
                             [
-                                PrincipalIndex::Role(RoleId::Team(*id)),
+                                PrincipalIndex::Role(RoleId::Standalone(*id)),
                                 PrincipalIndex::Team(*team_id),
                             ]
                             .into_iter(),
@@ -563,7 +566,7 @@ impl PolicyStore for MemoryPolicyStore {
                             team_id,
                         }) => Either::Right(
                             [
-                                PrincipalIndex::Role(RoleId::WebTeam(*id)),
+                                PrincipalIndex::Role(RoleId::Subteam(*id)),
                                 PrincipalIndex::WebTeam(*team_id),
                                 PrincipalIndex::Web(*web_id),
                             ]

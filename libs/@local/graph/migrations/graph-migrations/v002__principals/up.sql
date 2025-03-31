@@ -46,7 +46,9 @@ $$ LANGUAGE plpgsql;
 
 -- Principal is the abstract base type for all security principals
 -- It has concrete subtypes: user, machine, team, role
-CREATE TYPE principal_type AS ENUM ('user', 'machine', 'team', 'web', 'subteam', 'role');
+CREATE TYPE principal_type AS ENUM (
+    'user', 'machine', 'team', 'web', 'subteam', 'role', 'web_role', 'subteam_role'
+);
 CREATE TABLE principal (
     id UUID NOT NULL,
     principal_type PRINCIPAL_TYPE NOT NULL,
@@ -302,11 +304,15 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 -- Role is a concrete principal
 -- The relationship chain: role → principal
 CREATE TABLE role (
-    id UUID PRIMARY KEY,
-    team_id UUID REFERENCES team (id) ON DELETE RESTRICT,
-    principal_type PRINCIPAL_TYPE NOT NULL DEFAULT 'role',
-    FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE
+    id UUID NOT NULL,
+    principal_type PRINCIPAL_TYPE NOT NULL,
+    team_id UUID NOT NULL REFERENCES team (id) ON DELETE RESTRICT,
+    PRIMARY KEY (id, principal_type),
+    FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
+    CHECK (principal_type IN ('role', 'web_role', 'subteam_role'))
 );
+
+CREATE UNIQUE INDEX idx_role_id ON role (id);
 
 -- Role registration trigger - creates principal record when role is created
 CREATE FUNCTION register_role()

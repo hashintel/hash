@@ -18,7 +18,7 @@ use hash_graph_authorization::policies::{
         ActorId,
         machine::MachineId,
         role::RoleId,
-        team::{StandaloneTeamId, TeamRoleId},
+        team::{StandaloneTeamId, StandaloneTeamRoleId},
         user::UserId,
         web::WebRoleId,
     },
@@ -149,8 +149,8 @@ struct TestSystem {
     machine: TestMachine,
     hash_ai_machine: TestMachine,
     hash_instance_admins: StandaloneTeamId,
-    hash_instance_admins_admin_role: TeamRoleId,
-    hash_instance_admins_member_role: TeamRoleId,
+    hash_instance_admins_admin_role: StandaloneTeamRoleId,
+    hash_instance_admins_member_role: StandaloneTeamRoleId,
     hash_instance_entity: EntityResource<'static>,
 }
 
@@ -185,7 +185,7 @@ impl TestSystem {
         policy_store
             .assign_role(
                 ActorId::Machine(hash_ai_machine.id),
-                RoleId::Team(hash_instance_admins_admin_role),
+                RoleId::Standalone(hash_instance_admins_admin_role),
             )
             .expect("should be able to assign role");
         let hash_instance_entity = EntityResource {
@@ -720,7 +720,7 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
     let user = TestUser::generate(&mut policy_store, &mut context)?;
     policy_store.assign_role(
         ActorId::User(user.id),
-        RoleId::Team(system.hash_instance_admins_admin_role),
+        RoleId::Standalone(system.hash_instance_admins_admin_role),
     )?;
 
     policy_store.extend_context(&mut context, ActorId::User(user.id))?;
@@ -772,7 +772,7 @@ fn partial_resource_evaluation() -> Result<(), Box<dyn Error>> {
     let user = TestUser::generate(&mut policy_store, &mut context)?;
     policy_store.assign_role(
         ActorId::User(user.id),
-        RoleId::Team(system.hash_instance_admins_admin_role),
+        RoleId::Standalone(system.hash_instance_admins_admin_role),
     )?;
 
     policy_store.extend_context(&mut context, ActorId::User(user.id))?;
