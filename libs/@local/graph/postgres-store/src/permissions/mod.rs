@@ -38,6 +38,18 @@ pub enum PrincipalType {
     SubteamRole,
 }
 
+#[derive(Debug)]
+pub enum RoleAssignmentStatus {
+    NewlyAssigned,
+    AlreadyAssigned,
+}
+
+#[derive(Debug)]
+pub enum RoleUnassignmentStatus {
+    Unassigned,
+    NotAssigned,
+}
+
 impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     /// Checks if a principal with the given ID exists.
     ///
@@ -712,17 +724,15 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     /// # Errors
     ///
     /// - [`PrincipalNotFound`] if the actor or role with the given ID doesn't exist
-    /// - [`RoleAlreadyAssigned`] if the role is already assigned to the actor
     /// - [`StoreError`] if a database error occurs
     ///
     /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
-    /// [`RoleAlreadyAssigned`]: PrincipalError::RoleAlreadyAssigned
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn assign_role_to_actor(
         &mut self,
         actor_id: ActorId,
         role_id: RoleId,
-    ) -> Result<(), Report<PrincipalError>> {
+    ) -> Result<RoleAssignmentStatus, Report<PrincipalError>> {
         // Check if the actor exists
         if !self.is_principal(PrincipalId::Actor(actor_id)).await? {
             return Err(Report::new(PrincipalError::PrincipalNotFound {
@@ -737,38 +747,36 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             }));
         }
 
-        if let Err(error) = self
+        let affected_rows = self
             .as_mut_client()
             .execute(
-                "INSERT INTO actor_role (actor_id, role_id) VALUES ($1, $2)",
+                "INSERT INTO actor_role (actor_id, role_id)
+                VALUES ($1, $2)
+                ON CONFLICT DO NOTHING",
                 &[actor_id.as_uuid(), role_id.as_uuid()],
             )
             .await
-        {
-            return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
-                Err(error).change_context(PrincipalError::RoleAlreadyAssigned { actor_id, role_id })
-            } else {
-                Err(error).change_context(PrincipalError::StoreError)
-            };
-        }
+            .change_context(PrincipalError::StoreError)?;
 
-        Ok(())
+        Ok(if affected_rows > 0 {
+            RoleAssignmentStatus::NewlyAssigned
+        } else {
+            RoleAssignmentStatus::AlreadyAssigned
+        })
     }
 
     /// Unassigns a role from an actor.
     ///
     /// # Errors
     ///
-    /// - [`RoleNotAssigned`] if the role is not assigned to the actor
     /// - [`StoreError`] if a database error occurs
     ///
-    /// [`RoleNotAssigned`]: PrincipalError::RoleNotAssigned
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn unassign_role_from_actor(
         &mut self,
         actor_id: ActorId,
         role_id: RoleId,
-    ) -> Result<(), Report<PrincipalError>> {
+    ) -> Result<RoleUnassignmentStatus, Report<PrincipalError>> {
         let num_deleted = self
             .as_mut_client()
             .execute(
@@ -778,12 +786,11 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .await
             .change_context(PrincipalError::StoreError)?;
 
-        ensure!(
-            num_deleted > 0,
-            PrincipalError::RoleNotAssigned { actor_id, role_id }
-        );
-
-        Ok(())
+        Ok(if num_deleted > 0 {
+            RoleUnassignmentStatus::Unassigned
+        } else {
+            RoleUnassignmentStatus::NotAssigned
+        })
     }
 
     /// Gets all roles assigned to a specific actor.

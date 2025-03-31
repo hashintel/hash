@@ -6,7 +6,9 @@ use hash_graph_authorization::policies::principal::{
     team::{StandaloneTeamId, StandaloneTeamRoleId, TeamId},
     user::UserId,
 };
-use hash_graph_postgres_store::permissions::PrincipalError;
+use hash_graph_postgres_store::permissions::{
+    PrincipalError, RoleAssignmentStatus, RoleUnassignmentStatus,
+};
 use pretty_assertions::assert_eq;
 use uuid::Uuid;
 
@@ -147,9 +149,12 @@ async fn assign_role_to_actor() -> Result<(), Box<dyn Error>> {
     let user_id = client.create_user(None).await?;
 
     // Assign the role to the user
-    client
-        .assign_role_to_actor(ActorId::User(user_id), role_id)
-        .await?;
+    assert_matches!(
+        client
+            .assign_role_to_actor(ActorId::User(user_id), role_id)
+            .await?,
+        RoleAssignmentStatus::NewlyAssigned
+    );
 
     // Get the user's roles
     let roles = client.get_actor_roles(ActorId::User(user_id)).await?;
@@ -158,6 +163,14 @@ async fn assign_role_to_actor() -> Result<(), Box<dyn Error>> {
     // Get the role's actors
     let actors = client.get_role_actors(role_id).await?;
     assert!(actors.contains(&ActorId::User(user_id)));
+
+    // Try to assign the same role again
+    assert_matches!(
+        client
+            .assign_role_to_actor(ActorId::User(user_id), role_id)
+            .await?,
+        RoleAssignmentStatus::AlreadyAssigned
+    );
 
     Ok(())
 }
@@ -210,37 +223,6 @@ async fn assign_nonexistent_role_to_actor() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
-async fn assign_role_twice() -> Result<(), Box<dyn Error>> {
-    let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
-
-    // Create a team, role, and user
-    let team_id = client.create_standalone_team(None).await?;
-    let role_id = client
-        .create_role(None, TeamId::Standalone(team_id))
-        .await?;
-    let user_id = client.create_user(None).await?;
-
-    // Assign the role to the user
-    client
-        .assign_role_to_actor(ActorId::User(user_id), role_id)
-        .await?;
-
-    // Try to assign the same role again
-    let result = client
-        .assign_role_to_actor(ActorId::User(user_id), role_id)
-        .await;
-
-    assert_matches!(
-        result.expect_err("Assigning the same role twice should fail").current_context(),
-        PrincipalError::RoleAlreadyAssigned { actor_id, role_id: rid }
-            if *actor_id == ActorId::User(user_id) && *rid == role_id
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
 async fn unassign_role_from_actor() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut client = db.client().await?;
@@ -262,9 +244,12 @@ async fn unassign_role_from_actor() -> Result<(), Box<dyn Error>> {
     assert!(roles.contains(&role_id));
 
     // Unassign the role from the user
-    client
-        .unassign_role_from_actor(ActorId::User(user_id), role_id)
-        .await?;
+    assert_matches!(
+        client
+            .unassign_role_from_actor(ActorId::User(user_id), role_id)
+            .await?,
+        RoleUnassignmentStatus::Unassigned
+    );
 
     // Verify the role was unassigned
     let roles = client.get_actor_roles(ActorId::User(user_id)).await?;
@@ -274,30 +259,12 @@ async fn unassign_role_from_actor() -> Result<(), Box<dyn Error>> {
     let actors = client.get_role_actors(role_id).await?;
     assert!(!actors.contains(&ActorId::User(user_id)));
 
-    Ok(())
-}
-
-#[tokio::test]
-async fn unassign_role_not_assigned() -> Result<(), Box<dyn Error>> {
-    let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
-
-    // Create a team, role, and user
-    let team_id = client.create_standalone_team(None).await?;
-    let role_id = client
-        .create_role(None, TeamId::Standalone(team_id))
-        .await?;
-    let user_id = client.create_user(None).await?;
-
-    // Try to unassign a role that wasn't assigned
-    let result = client
-        .unassign_role_from_actor(ActorId::User(user_id), role_id)
-        .await;
-
+    // Try to unassign the role again
     assert_matches!(
-        result.expect_err("Unassigning a role that wasn't assigned should fail").current_context(),
-        PrincipalError::RoleNotAssigned { actor_id, role_id: rid }
-            if *actor_id == ActorId::User(user_id) && *rid == role_id
+        client
+            .unassign_role_from_actor(ActorId::User(user_id), role_id)
+            .await?,
+        RoleUnassignmentStatus::NotAssigned
     );
 
     Ok(())
