@@ -1,8 +1,6 @@
-use alloc::borrow::Cow;
-
 use hashql_ast::node::{
     expr::{
-        Expr, ExprKind, LiteralExpr, StructExpr,
+        Expr, ExprKind, LiteralExpr,
         literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral},
     },
     id::NodeId,
@@ -10,7 +8,12 @@ use hashql_ast::node::{
 use hashql_core::symbol::Symbol;
 use text_size::TextRange;
 
-use super::{ObjectState, State, visit::Key};
+use super::{
+    ObjectState, State,
+    error::{duplicate_key, unknown_key},
+    r#type::TypeNode,
+    visit::Key,
+};
 use crate::{
     ParserState,
     error::ResultExt as _,
@@ -24,34 +27,81 @@ use crate::{
 // The `#literal` field is present
 // The `#type` **may** be present
 pub(crate) struct LiteralNode<'heap> {
+    key_span: TextRange,
+
     expr: LiteralExpr<'heap>,
+    r#type: Option<TypeNode<'heap>>,
 }
 
 impl<'heap> LiteralNode<'heap> {
-    pub(crate) const fn new(expr: LiteralExpr<'heap>) -> Self {
-        Self { expr }
+    pub(crate) fn parse(
+        state: &mut ParserState<'heap, '_>,
+        key: &Key<'_>,
+    ) -> Result<Self, ParserDiagnostic> {
+        let expr = parse_literal(state)?;
+
+        Ok(Self {
+            key_span: key.span,
+
+            expr,
+            r#type: None,
+        })
     }
 }
 
 impl<'heap> State<'heap> for LiteralNode<'heap> {
     fn handle(
-        self,
+        mut self,
         state: &mut ParserState<'heap, '_>,
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
-        todo!()
+        match &*key.value {
+            "#literal" => Err(duplicate_key(
+                state.insert_range(self.key_span),
+                state.insert_range(key.span),
+                "#literal",
+            )
+            .map_category(From::from)),
+            "#type" if self.r#type.is_some() => Err(duplicate_key(
+                state.insert_range(self.key_span),
+                state.insert_range(key.span),
+                "#type",
+            )
+            .map_category(From::from)),
+            "#type" => {
+                let r#type = TypeNode::parse(state, &key).change_category(From::from)?;
+
+                self.r#type = Some(r#type);
+                Ok(ObjectState::Literal(self))
+            }
+            _ => {
+                Err(unknown_key(state.insert_range(key.span), &key.value, &[])
+                    .map_category(From::from))
+            }
+        }
     }
 
     fn build(
-        self,
+        mut self,
         state: &mut ParserState<'heap, '_>,
         span: TextRange,
     ) -> Result<Expr<'heap>, ParserDiagnostic> {
-        todo!()
+        let r#type = self
+            .r#type
+            .map(TypeNode::into_inner)
+            .map(|r#type| state.heap().boxed(r#type));
+
+        self.expr.r#type = r#type;
+
+        Ok(Expr {
+            id: NodeId::PLACEHOLDER,
+            span: state.insert_range(span),
+            kind: ExprKind::Literal(self.expr),
+        })
     }
 }
 
-pub(crate) fn parse_literal<'heap>(
+fn parse_literal<'heap>(
     state: &mut ParserState<'heap, '_>,
 ) -> Result<LiteralExpr<'heap>, ParserDiagnostic> {
     let token = state

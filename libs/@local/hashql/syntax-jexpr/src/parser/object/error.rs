@@ -80,6 +80,11 @@ const ORPHANED_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Orphaned #type field without parent construct",
 };
 
+const DUPLICATE_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-key",
+    name: "Duplicate key in object",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ObjectDiagnosticCategory {
     Lexer(LexerDiagnosticCategory),
@@ -96,6 +101,7 @@ pub enum ObjectDiagnosticCategory {
     UnknownKey,
     Empty,
     OrphanedType,
+    DuplicateKey,
 }
 
 impl DiagnosticCategory for ObjectDiagnosticCategory {
@@ -129,6 +135,7 @@ impl DiagnosticCategory for ObjectDiagnosticCategory {
             Self::UnknownKey => Some(&UNKNOWN_KEY),
             Self::Empty => Some(&EMPTY),
             Self::OrphanedType => Some(&ORPHANED_TYPE),
+            Self::DuplicateKey => Some(&DUPLICATE_KEY),
         }
     }
 }
@@ -259,6 +266,10 @@ pub(crate) fn consecutive_colons(spans: &[SpanId]) -> ObjectDiagnostic {
     diagnostic
 }
 
+const UNKNOWN_KEY_HELP: &str = "J-Expr objects must use specific predefined keys like `#struct`, \
+                                `#list`, `#literal`, etc. depending on the context. Check the \
+                                documentation for valid constructs in this position.";
+
 pub(crate) fn unknown_key(
     span: SpanId,
     key: impl AsRef<str>,
@@ -271,28 +282,37 @@ pub(crate) fn unknown_key(
         format!("Unrecognized key `{}`", key.as_ref()),
     ));
 
-    let expected = expected
-        .iter()
-        .enumerate()
-        .fold(String::new(), |mut acc, (index, key)| {
-            if index != 0 {
-                acc.push_str(", ");
-            }
+    let help_message = if expected.is_empty() {
+        Cow::Borrowed("This object doesn't support any custom keys in this context")
+    } else {
+        let expected = expected
+            .iter()
+            .enumerate()
+            .fold(String::new(), |mut acc, (index, key)| {
+                if index != 0 {
+                    acc.push_str(", ");
+                }
 
-            if index == expected.len() - 1 && expected.len() > 1 {
-                acc.push_str("or ");
-            }
+                if index == expected.len() - 1 && expected.len() > 1 {
+                    acc.push_str("or ");
+                }
 
-            acc.push('`');
-            acc.push_str(key);
-            acc.push('`');
+                acc.push('`');
+                acc.push_str(key);
+                acc.push('`');
 
-            acc
-        });
+                acc
+            });
 
-    diagnostic.help = Some(Help::new(format!(
-        "Replace with one of these valid keys: {expected}"
-    )));
+        Cow::Owned(format!("Replace with one of these valid keys: {expected}"))
+    };
+
+    diagnostic.help = Some(Help::new(help_message));
+
+    // Add a note with additional context for the empty expected keys case
+    if expected.is_empty() {
+        diagnostic.note = Some(Note::new(UNKNOWN_KEY_HELP));
+    }
 
     diagnostic
 }
@@ -315,6 +335,42 @@ pub(crate) fn orphaned_type(span: SpanId) -> ObjectDiagnostic {
 
     diagnostic.help = Some(Help::new(ORPHANED_TYPE_HELP));
     diagnostic.note = Some(Note::new(ORPHANED_TYPE_NOTE));
+
+    diagnostic
+}
+
+const DUPLICATE_KEY_HELP: &str =
+    "J-Expr does not allow duplicate keys in the same object. Each key must be unique.";
+
+/// Creates a diagnostic for when a key appears multiple times in the same object.
+///
+/// # Arguments
+///
+/// * `first_span` - The span of the first occurrence of the key
+/// * `duplicate_span` - The span of the duplicate occurrence of the key
+/// * `key` - The key that was duplicated
+pub(crate) fn duplicate_key(
+    first_span: SpanId,
+    duplicate_span: SpanId,
+    key: impl AsRef<str>,
+) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::DuplicateKey, Severity::ERROR);
+
+    // Label for the duplicate occurrence
+    diagnostic
+        .labels
+        .push(Label::new(duplicate_span, "Duplicate key").with_order(0));
+
+    // Label for the first occurrence
+    diagnostic.labels.push(
+        Label::new(
+            first_span,
+            format!("First occurrence of `{}`", key.as_ref()),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(DUPLICATE_KEY_HELP));
 
     diagnostic
 }

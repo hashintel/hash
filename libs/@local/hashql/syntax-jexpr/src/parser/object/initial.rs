@@ -4,14 +4,12 @@ use text_size::TextRange;
 use super::{
     ObjectState, State,
     error::{empty, unknown_key},
+    r#type::TypeNode,
     visit::Key,
 };
 use crate::{
     ParserState,
-    parser::{
-        error::ParserDiagnostic,
-        object::literal::{LiteralNode, parse_literal},
-    },
+    parser::{error::ParserDiagnostic, object::literal::LiteralNode},
 };
 
 pub(crate) struct Initial;
@@ -23,9 +21,8 @@ impl<'heap> State<'heap> for Initial {
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         match &*key.value {
-            "#literal" => parse_literal(state)
-                .map(LiteralNode::new)
-                .map(ObjectState::Literal),
+            "#literal" => LiteralNode::parse(state, &key).map(ObjectState::Literal),
+            "#type" => TypeNode::parse(state, &key).map(ObjectState::Type),
             _ => Err(unknown_key(
                 state.insert_range(key.span),
                 &key.value,
