@@ -1,8 +1,9 @@
 use alloc::borrow::Cow;
 
 use hashql_ast::node::expr::{DictExpr, Expr};
+use text_size::TextRange;
 
-use super::{ObjectState, State};
+use super::{ObjectState, State, visit::Key};
 use crate::{ParserState, parser::error::ParserDiagnostic};
 
 // The `#dict` field is present
@@ -15,12 +16,16 @@ impl<'heap> State<'heap> for DictNode<'heap> {
     fn handle(
         self,
         state: &mut ParserState<'heap, '_>,
-        key: Cow<'_, str>,
+        key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         todo!()
     }
 
-    fn build(self, state: &mut ParserState<'heap, '_>) -> Result<Expr<'heap>, ParserDiagnostic> {
+    fn build(
+        self,
+        state: &mut ParserState<'heap, '_>,
+        span: TextRange,
+    ) -> Result<Expr<'heap>, ParserDiagnostic> {
         todo!()
     }
 }

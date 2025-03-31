@@ -1,9 +1,18 @@
-use alloc::borrow::Cow;
-
 use hashql_ast::node::expr::Expr;
+use text_size::TextRange;
 
-use super::{ObjectState, State};
-use crate::{ParserState, parser::error::ParserDiagnostic};
+use super::{
+    ObjectState, State,
+    error::{empty, unknown_key},
+    visit::Key,
+};
+use crate::{
+    ParserState,
+    parser::{
+        error::ParserDiagnostic,
+        object::literal::{LiteralNode, parse_literal},
+    },
+};
 
 pub(crate) struct Initial;
 
@@ -11,12 +20,28 @@ impl<'heap> State<'heap> for Initial {
     fn handle(
         self,
         state: &mut ParserState<'heap, '_>,
-        key: Cow<'_, str>,
+        key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
-        todo!()
+        match &*key.value {
+            "#literal" => parse_literal(state)
+                .map(LiteralNode::new)
+                .map(ObjectState::Literal),
+            _ => Err(unknown_key(
+                state.insert_range(key.span),
+                &key.value,
+                &[
+                    "#literal", "#dict", "#struct", "#list", "#tuple", "#type", "#path",
+                ],
+            )
+            .map_category(From::from)),
+        }
     }
 
-    fn build(self, state: &mut ParserState<'heap, '_>) -> Result<Expr<'heap>, ParserDiagnostic> {
-        todo!()
+    fn build(
+        self,
+        state: &mut ParserState<'heap, '_>,
+        span: TextRange,
+    ) -> Result<Expr<'heap>, ParserDiagnostic> {
+        Err(empty(state.insert_range(span)).map_category(From::from))
     }
 }

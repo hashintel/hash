@@ -29,11 +29,16 @@ const EXPECTED_OBJECT_KEY: SyntaxKindSet = SyntaxKindSet::from_slice(&[SyntaxKin
 
 const EXPECTED_OBJECT_COLON: SyntaxKindSet = SyntaxKindSet::from_slice(&[SyntaxKind::Colon]);
 
+pub(crate) struct Key<'source> {
+    pub value: Cow<'source, str>,
+    pub span: TextRange,
+}
+
 pub(crate) fn visit_object_entry<'arena, 'source, C>(
     state: &mut ParserState<'arena, 'source>,
     on_item: &mut impl FnMut(
         &mut ParserState<'arena, 'source>,
-        Cow<'source, str>,
+        Key<'source>,
     ) -> Result<(), Diagnostic<C, SpanId>>,
 ) -> Result<(), Diagnostic<C, SpanId>>
 where
@@ -44,6 +49,9 @@ where
         .advance()
         .change_category(ObjectDiagnosticCategory::Lexer)
         .change_category(C::from)?;
+
+    let key_span = key.span;
+
     let TokenKind::String(key) = key.kind else {
         let span = state.insert_span(Span {
             range: key.span,
@@ -89,9 +97,15 @@ where
         .map_category(C::from));
     }
 
-    state.enter(jsonptr::Token::from(key.clone().into_owned()), |state| {
-        on_item(state, key)
-    })?;
+    let key = Key {
+        value: key,
+        span: key_span,
+    };
+
+    state.enter(
+        jsonptr::Token::from(key.value.clone().into_owned()),
+        |state| on_item(state, key),
+    )?;
 
     Ok(())
 }
@@ -106,7 +120,7 @@ pub(crate) fn visit_object<'arena, 'source, C>(
     token: Token<'source>,
     mut on_item: impl FnMut(
         &mut ParserState<'arena, 'source>,
-        Cow<'source, str>,
+        Key<'source>,
     ) -> Result<(), Diagnostic<C, SpanId>>,
 ) -> Result<TextRange, Diagnostic<C, SpanId>>
 where
@@ -203,7 +217,7 @@ mod tests {
         parser::{
             object::{
                 error::{ObjectDiagnostic, ObjectDiagnosticCategory},
-                visit::visit_object,
+                visit::{Key, visit_object},
             },
             test::{bind_context, bind_state},
         },
@@ -252,13 +266,14 @@ mod tests {
         let token = advance!(state == SyntaxKind::LBrace);
 
         let mut entries = Vec::new();
-        let result: Result<_, ObjectDiagnostic> = visit_object(&mut state, token, |state, key| {
-            entries.push(key.to_string());
+        let result: Result<_, ObjectDiagnostic> =
+            visit_object(&mut state, token, |state, Key { value: key, .. }| {
+                entries.push(key.to_string());
 
-            advance!(state == SyntaxKind::Number);
+                advance!(state == SyntaxKind::Number);
 
-            Ok(())
-        });
+                Ok(())
+            });
 
         let range = result.expect("should be able to parse single entry object");
         assert_eq!(range.start(), TextSize::new(0));
@@ -276,14 +291,15 @@ mod tests {
         let mut entries = Vec::new();
         let mut values = Vec::new();
 
-        let result: Result<_, ObjectDiagnostic> = visit_object(&mut state, token, |state, key| {
-            entries.push(key.to_string());
+        let result: Result<_, ObjectDiagnostic> =
+            visit_object(&mut state, token, |state, Key { value: key, .. }| {
+                entries.push(key.to_string());
 
-            let token = advance!(state);
-            values.push(token.kind.syntax());
+                let token = advance!(state);
+                values.push(token.kind.syntax());
 
-            Ok(())
-        });
+                Ok(())
+            });
 
         let range = result.expect("should be able to parse multiple entry object");
         assert_eq!(range.start(), TextSize::new(0));
@@ -305,14 +321,15 @@ mod tests {
         let mut entries = Vec::new();
         let mut values = Vec::new();
 
-        let result: Result<_, ObjectDiagnostic> = visit_object(&mut state, token, |state, key| {
-            entries.push(key.into_owned());
+        let result: Result<_, ObjectDiagnostic> =
+            visit_object(&mut state, token, |state, Key { value: key, .. }| {
+                entries.push(key.into_owned());
 
-            let token = advance!(state);
-            values.push(token.kind.syntax());
+                let token = advance!(state);
+                values.push(token.kind.syntax());
 
-            Ok(())
-        });
+                Ok(())
+            });
 
         let range = result.expect("should be able to parse object with different value types");
         assert_eq!(range.start(), TextSize::new(0));
@@ -435,7 +452,7 @@ mod tests {
         let token = advance!(state == SyntaxKind::LBrace);
 
         let mut callback_count = 0;
-        let result = visit_object(&mut state, token, |state, key| {
+        let result = visit_object(&mut state, token, |state, Key { value: key, .. }| {
             let token = advance!(state);
             callback_count += 1;
 
@@ -507,11 +524,12 @@ mod tests {
         let token = advance!(state == SyntaxKind::LBrace);
 
         let mut entries = Vec::new();
-        let result: Result<_, ObjectDiagnostic> = visit_object(&mut state, token, |state, key| {
-            entries.push(key.into_owned());
-            advance!(state);
-            Ok(())
-        });
+        let result: Result<_, ObjectDiagnostic> =
+            visit_object(&mut state, token, |state, Key { value: key, .. }| {
+                entries.push(key.into_owned());
+                advance!(state);
+                Ok(())
+            });
 
         let range = result.expect("should be able to parse object with whitespace");
         assert_eq!(range.start(), TextSize::new(0));
@@ -529,22 +547,30 @@ mod tests {
         let mut outer_entries = Vec::new();
         let mut inner_entries = Vec::new();
 
-        let result: Result<_, ObjectDiagnostic> = visit_object(&mut state, token, |state, key| {
-            outer_entries.push(key.into_owned());
+        let result: Result<_, ObjectDiagnostic> =
+            visit_object(&mut state, token, |state, Key { value: key, .. }| {
+                outer_entries.push(key.into_owned());
 
-            let token = advance!(state);
+                let token = advance!(state);
 
-            if token.kind.syntax() == SyntaxKind::LBrace {
-                visit_object(state, token, |state, inner_key| {
-                    inner_entries.push(inner_key.into_owned());
-                    advance!(state);
-                    Ok::<(), ObjectDiagnostic>(())
-                })
-                .expect("should be able to parse nested object");
-            }
+                if token.kind.syntax() == SyntaxKind::LBrace {
+                    visit_object(
+                        state,
+                        token,
+                        |state,
+                         Key {
+                             value: inner_key, ..
+                         }| {
+                            inner_entries.push(inner_key.into_owned());
+                            advance!(state);
+                            Ok::<(), ObjectDiagnostic>(())
+                        },
+                    )
+                    .expect("should be able to parse nested object");
+                }
 
-            Ok(())
-        });
+                Ok(())
+            });
 
         let range = result.expect("should be able to parse nested objects");
         assert_eq!(range.start(), TextSize::new(0));
@@ -563,19 +589,27 @@ mod tests {
         let mut outer_entries = Vec::new();
         let mut inner_entries = Vec::new();
 
-        let result: Result<_, ObjectDiagnostic> = visit_object(&mut state, token, |state, key| {
-            outer_entries.push(key.into_owned());
+        let result: Result<_, ObjectDiagnostic> =
+            visit_object(&mut state, token, |state, Key { value: key, .. }| {
+                outer_entries.push(key.into_owned());
 
-            let token = advance!(state == SyntaxKind::LBrace);
+                let token = advance!(state == SyntaxKind::LBrace);
 
-            visit_object(state, token, |_, inner_key| {
-                inner_entries.push(inner_key.into_owned());
-                Ok::<(), ObjectDiagnostic>(())
-            })
-            .expect("should be able to parse nested empty object");
+                visit_object(
+                    state,
+                    token,
+                    |_,
+                     Key {
+                         value: inner_key, ..
+                     }| {
+                        inner_entries.push(inner_key.into_owned());
+                        Ok::<(), ObjectDiagnostic>(())
+                    },
+                )
+                .expect("should be able to parse nested empty object");
 
-            Ok(())
-        });
+                Ok(())
+            });
 
         let range = result.expect("should be able to parse empty nested objects");
         assert_eq!(range.start(), TextSize::new(0));
@@ -594,22 +628,23 @@ mod tests {
         let mut entries = Vec::new();
         let mut array_tokens = Vec::new();
 
-        let result: Result<_, ObjectDiagnostic> = visit_object(&mut state, token, |state, key| {
-            entries.push(key.into_owned());
+        let result: Result<_, ObjectDiagnostic> =
+            visit_object(&mut state, token, |state, Key { value: key, .. }| {
+                entries.push(key.into_owned());
 
-            advance!(state == SyntaxKind::LBracket);
+                advance!(state == SyntaxKind::LBracket);
 
-            loop {
-                let token = advance!(state);
-                if token.kind.syntax() == SyntaxKind::RBracket {
-                    break;
+                loop {
+                    let token = advance!(state);
+                    if token.kind.syntax() == SyntaxKind::RBracket {
+                        break;
+                    }
+
+                    array_tokens.push(token.kind.syntax());
                 }
 
-                array_tokens.push(token.kind.syntax());
-            }
-
-            Ok(())
-        });
+                Ok(())
+            });
 
         let range = result.expect("should be able to parse object with arrays");
         assert_eq!(range.start(), TextSize::new(0));
@@ -629,11 +664,12 @@ mod tests {
         let token = advance!(state == SyntaxKind::LBrace);
 
         let mut entries = Vec::new();
-        let result: Result<_, ObjectDiagnostic> = visit_object(&mut state, token, |state, key| {
-            entries.push(key.into_owned());
-            advance!(state);
-            Ok(())
-        });
+        let result: Result<_, ObjectDiagnostic> =
+            visit_object(&mut state, token, |state, Key { value: key, .. }| {
+                entries.push(key.into_owned());
+                advance!(state);
+                Ok(())
+            });
 
         let range = result.expect("should be able to parse multiline object");
         assert_eq!(range.start(), TextSize::new(0));
@@ -736,11 +772,12 @@ mod tests {
         let token = advance!(state == SyntaxKind::LBrace);
 
         let mut seen_keys = Vec::new();
-        let result: Result<_, ObjectDiagnostic> = visit_object(&mut state, token, |state, key| {
-            seen_keys.push(key.into_owned());
-            advance!(state);
-            Ok(())
-        });
+        let result: Result<_, ObjectDiagnostic> =
+            visit_object(&mut state, token, |state, Key { value: key, .. }| {
+                seen_keys.push(key.into_owned());
+                advance!(state);
+                Ok(())
+            });
 
         // Note: JSON technically allows duplicate keys, though it's discouraged
         let range = result
@@ -758,11 +795,12 @@ mod tests {
         let token = advance!(state == SyntaxKind::LBrace);
 
         let mut seen_keys = Vec::new();
-        let result: Result<_, ObjectDiagnostic> = visit_object(&mut state, token, |state, key| {
-            seen_keys.push(key.into_owned());
-            advance!(state);
-            Ok(())
-        });
+        let result: Result<_, ObjectDiagnostic> =
+            visit_object(&mut state, token, |state, Key { value: key, .. }| {
+                seen_keys.push(key.into_owned());
+                advance!(state);
+                Ok(())
+            });
 
         let range = result.expect("should be able to parse object with empty key");
         assert_eq!(range.start(), TextSize::new(0));

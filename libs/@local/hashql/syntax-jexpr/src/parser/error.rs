@@ -64,6 +64,18 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
     }
 }
 
+impl From<LexerDiagnosticCategory> for ParserDiagnosticCategory {
+    fn from(value: LexerDiagnosticCategory) -> Self {
+        Self::Lexer(value)
+    }
+}
+
+impl From<StringDiagnosticCategory> for ParserDiagnosticCategory {
+    fn from(value: StringDiagnosticCategory) -> Self {
+        Self::String(value)
+    }
+}
+
 impl From<ArrayDiagnosticCategory> for ParserDiagnosticCategory {
     fn from(value: ArrayDiagnosticCategory) -> Self {
         Self::Array(value)

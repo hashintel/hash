@@ -54,6 +54,21 @@ const CONSECUTIVE_COLON: TerminalDiagnosticCategory = TerminalDiagnosticCategory
     name: "Consecutive colons",
 };
 
+const INVALID_LITERAL: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-literal",
+    name: "Invalid literal",
+};
+
+const INVALID_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-type",
+    name: "Invalid type",
+};
+
+const UNKNOWN_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unknown-key",
+    name: "Unknown key",
+};
+
 const EMPTY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "empty",
     name: "Expected non-empty object",
@@ -70,6 +85,9 @@ pub enum ObjectDiagnosticCategory {
     TrailingComma,
     ConsecutiveComma,
     ConsecutiveColon,
+    InvalidLiteral,
+    InvalidType,
+    UnknownKey,
     Empty,
 }
 
@@ -99,6 +117,9 @@ impl DiagnosticCategory for ObjectDiagnosticCategory {
             Self::TrailingComma => Some(&TRAILING_COMMA),
             Self::ConsecutiveComma => Some(&CONSECUTIVE_COMMA),
             Self::ConsecutiveColon => Some(&CONSECUTIVE_COLON),
+            Self::InvalidLiteral => Some(&INVALID_LITERAL),
+            Self::InvalidType => Some(&INVALID_TYPE),
+            Self::UnknownKey => Some(&UNKNOWN_KEY),
             Self::Empty => Some(&EMPTY),
         }
     }
@@ -228,6 +249,39 @@ pub(crate) fn consecutive_colons(spans: &[SpanId]) -> ObjectDiagnostic {
         "J-Expr does not support consecutive colons in objects. Each key should have exactly one \
          colon followed by a value.",
     ));
+
+    diagnostic
+}
+
+pub(crate) fn unknown_key(
+    span: SpanId,
+    key: impl AsRef<str>,
+    expected: &[&'static str],
+) -> Diagnostic<ObjectDiagnosticCategory, SpanId> {
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, format!("Unknown key `{}`", key.as_ref())));
+
+    let expected = expected
+        .iter()
+        .enumerate()
+        .fold(String::new(), |mut acc, (index, key)| {
+            if index != 0 {
+                acc.push_str(", ");
+            }
+
+            if index == expected.len() - 1 {
+                acc.push_str("or ");
+            }
+
+            acc.push_str(key);
+
+            acc
+        });
+
+    diagnostic.help = Some(Help::new(format!("Expected {expected}")));
 
     diagnostic
 }
