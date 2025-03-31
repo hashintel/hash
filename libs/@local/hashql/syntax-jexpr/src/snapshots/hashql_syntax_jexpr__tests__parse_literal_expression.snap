@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lib.rs
+description: End-to-end test of parsing a literal expression
+expression: "{\"#literal\": 42}"
+---
+Expr#4294967040@1
+  ExprKind (Literal)
+    LiteralExpr#4294967040@0
+      LiteralKind (Integer)
+        IntegerLiteral#4294967040@0 (42)
