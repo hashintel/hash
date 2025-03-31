@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 
-use hashql_core::span::SpanId;
+use hashql_core::span::{SpanId, storage::SpanStorage};
 use hashql_diagnostics::{
     Diagnostic,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -9,8 +9,9 @@ use hashql_diagnostics::{
     note::Note,
     severity::Severity,
 };
+use winnow::error::{ContextError, ParseError};
 
-use crate::lexer::error::LexerDiagnosticCategory;
+use crate::{lexer::error::LexerDiagnosticCategory, span::Span};
 
 pub(crate) type ArrayDiagnostic = Diagnostic<ArrayDiagnosticCategory, SpanId>;
 
@@ -39,6 +40,17 @@ const EMPTY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Empty array not allowed",
 };
 
+const LABELED_ARGUMENT_MISSING_PREFIX: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "labeled-argument-missing-prefix",
+    name: "Missing `:` prefix in labeled argument",
+};
+
+const LABELED_ARGUMENT_INVALID_IDENTIFIER: TerminalDiagnosticCategory =
+    TerminalDiagnosticCategory {
+        id: "labeled-argument-invalid-identifier",
+        name: "Invalid identifier in labeled argument",
+    };
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ArrayDiagnosticCategory {
     Lexer(LexerDiagnosticCategory),
@@ -47,6 +59,8 @@ pub enum ArrayDiagnosticCategory {
     TrailingComma,
     ConsecutiveComma,
     Empty,
+    LabeledArgumentMissingPrefix,
+    LabeledArgumentInvalidIdentifier,
 }
 
 impl DiagnosticCategory for ArrayDiagnosticCategory {
@@ -72,6 +86,8 @@ impl DiagnosticCategory for ArrayDiagnosticCategory {
             Self::TrailingComma => Some(&TRAILING_COMMA),
             Self::ConsecutiveComma => Some(&CONSECUTIVE_COMMA),
             Self::Empty => Some(&EMPTY),
+            Self::LabeledArgumentMissingPrefix => Some(&LABELED_ARGUMENT_MISSING_PREFIX),
+            Self::LabeledArgumentInvalidIdentifier => Some(&LABELED_ARGUMENT_INVALID_IDENTIFIER),
         }
     }
 }
@@ -171,6 +187,71 @@ pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     }
 
     diagnostic.help = Some(Help::new(CONSECUTIVE_COMMA_HELP));
+
+    diagnostic
+}
+
+const LABELED_ARGUMENT_PREFIX_NOTE: &str = r#"In J-Expr, labeled arguments use the format:
+- `["function", ":label", value]`
+- `["function", ":label1", value1, ":label2", value2]`
+
+The colon prefix (':') is required to distinguish labeled arguments from positional arguments."#;
+
+pub(crate) fn labeled_argument_missing_prefix(
+    span: SpanId,
+    actual: impl AsRef<str>,
+) -> ArrayDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ArrayDiagnosticCategory::LabeledArgumentMissingPrefix,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Missing ':' prefix"));
+
+    let help_message = format!(
+        "Add ':' prefix to '{}' to make it a valid labeled argument",
+        actual.as_ref()
+    );
+    diagnostic.help = Some(Help::new(help_message));
+
+    diagnostic.note = Some(Note::new(LABELED_ARGUMENT_PREFIX_NOTE));
+
+    diagnostic
+}
+
+const LABELED_ARGUMENT_IDENTIFIER_HELP: &str = "Labeled argument names must be valid identifiers";
+
+const LABELED_ARGUMENT_IDENTIFIER_NOTE: &str =
+    "Labeled argument identifiers must be valid HashQL identifiers";
+
+pub(crate) fn labeled_argument_invalid_identifier<I>(
+    spans: &SpanStorage<Span>,
+    label_span: SpanId,
+    parse_error: ParseError<I, ContextError>,
+) -> ArrayDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ArrayDiagnosticCategory::LabeledArgumentInvalidIdentifier,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(label_span, "Invalid labeled argument name"));
+
+    let (error_label, expected) =
+        crate::parser::string::error::convert_parse_error(spans, label_span, parse_error);
+
+    diagnostic.labels.push(error_label);
+
+    if let Some(expected) = expected {
+        diagnostic.help = Some(Help::new(expected));
+    } else {
+        diagnostic.help = Some(Help::new(LABELED_ARGUMENT_IDENTIFIER_HELP));
+    }
+
+    diagnostic.note = Some(Note::new(LABELED_ARGUMENT_IDENTIFIER_NOTE));
 
     diagnostic
 }

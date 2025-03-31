@@ -29,7 +29,7 @@ where
         // neither a separator nor an end token, this means there are no consecutive or trailing
         // tokens
         return Ok(());
-    };
+    }
 
     let mut spans = vec![];
 

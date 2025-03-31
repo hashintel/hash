@@ -24,7 +24,7 @@ mod literal;
 mod r#struct;
 mod tuple;
 mod r#type;
-mod visit;
+pub(crate) mod visit;
 
 trait State<'heap> {
     fn handle(
