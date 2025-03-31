@@ -8,7 +8,7 @@ expression: "[1, 2"
    │
  1 │ [1, 2
    │      │ 
-   │      ╰─ Unexpected end of file while parsing expression
+   │      ╰─ Unexpected end of file
    │ 
    │ Help: Make sure all expressions, brackets, and string literals are properly closed
 ───╯

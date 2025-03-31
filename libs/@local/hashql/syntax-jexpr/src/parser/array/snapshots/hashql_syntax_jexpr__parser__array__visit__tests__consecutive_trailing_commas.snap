@@ -8,9 +8,9 @@ expression: "[1,,]"
    │
  1 │ [1,,]
    │   ┬┬  
-   │   │╰── Remove this comma
+   │   │╰── Remove this trailing comma
    │   │   
-   │   ╰─── ... and this comma
+   │   ╰─── ... and this trailing comma
    │ 
-   │ Help: Unlike JavaScript or some other languages, J-Expr does not support trailing commas in arrays
+   │ Help: J-Expr does not support trailing commas in arrays. Use `[item1, item2]` instead of `[item1, item2,]`
 ───╯

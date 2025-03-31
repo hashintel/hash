@@ -1,6 +1,6 @@
 ---
 source: libs/@local/hashql/syntax-jexpr/src/parser/array/visit.rs
-description: "<enter description here>"
+description: Array with trailing comma should fail
 expression: "[1, 2,]"
 ---
 [31m[array::trailing-comma] Error:[0m Array
@@ -8,7 +8,7 @@ expression: "[1, 2,]"
    │
  1 │ [1, 2,]
    │      ┬  
-   │      ╰── Remove this comma
+   │      ╰── Remove this trailing comma
    │ 
-   │ Help: Unlike JavaScript or some other languages, J-Expr does not support trailing commas in arrays
+   │ Help: J-Expr does not support trailing commas in arrays. Use `[item1, item2]` instead of `[item1, item2,]`
 ───╯

@@ -24,7 +24,7 @@ const EXPECTED_LANGUAGE_ITEM: TerminalDiagnosticCategory = TerminalDiagnosticCat
 
 const EXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "expected-eof",
-    name: "Expected EOF",
+    name: "Unexpected token after expression",
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -95,10 +95,7 @@ pub(crate) fn unexpected_token<C>(
 ) -> Diagnostic<C, SpanId> {
     let mut diagnostic = Diagnostic::new(category, Severity::ERROR);
 
-    // More descriptive label that indicates the token wasn't expected in this context
-    diagnostic
-        .labels
-        .push(Label::new(span, "Unexpected token in this context"));
+    diagnostic.labels.push(Label::new(span, "Unexpected token"));
 
     let length = expected.len();
     let expected = expected
@@ -123,16 +120,17 @@ pub(crate) fn unexpected_token<C>(
     diagnostic
 }
 
+const EXPECTED_EOF_HELP: &str =
+    "Remove this token or check for missing delimiters in the preceding expression";
+
 pub(crate) fn expected_eof(span: SpanId) -> ParserDiagnostic {
     let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::ExpectedEof, Severity::ERROR);
 
     diagnostic
         .labels
-        .push(Label::new(span, "Unexpected token after end of expression"));
+        .push(Label::new(span, "Extra content after expression"));
 
-    diagnostic.help = Some(Help::new(
-        "Remove this token or check for missing delimiters in the preceding expression",
-    ));
+    diagnostic.help = Some(Help::new(EXPECTED_EOF_HELP));
 
     diagnostic
 }

@@ -16,27 +16,27 @@ pub(crate) type ArrayDiagnostic = Diagnostic<ArrayDiagnosticCategory, SpanId>;
 
 const EXPECTED_SEPARATOR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "expected-separator",
-    name: "Expected array separator or closing bracket",
+    name: "Expected array separator (comma) or closing bracket",
 };
 
 const LEADING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "leading-comma",
-    name: "Unexpected leading comma",
+    name: "Unexpected leading comma in array",
 };
 
 const TRAILING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "trailing-comma",
-    name: "Unexpected trailing comma",
+    name: "Unexpected trailing comma in array",
 };
 
 const CONSECUTIVE_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "consecutive-comma",
-    name: "Consecutive commas",
+    name: "Consecutive commas in array",
 };
 
 const EMPTY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "empty",
-    name: "Expected non-empty array",
+    name: "Empty array not allowed",
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -86,7 +86,7 @@ const EMPTY_HELP: &str = r##"In J-Expr syntax, arrays must contain at least one 
 
 const EMPTY_NOTE: &str = r##"Valid examples:
 - `["get", "user"]` - Calls 'get' with argument 'user'
-- `["map", ["identity"], [{"#literal": 1}, {"#literal": 2}, {"#literal": 3}]]` - Calls 'map' with a function and array
+- `["map", "identity", [{"#literal": 1}, {"#literal": 2}, {"#literal": 3}]]` - Calls 'map' with a function and array
 "##;
 
 pub(crate) fn empty(span: SpanId) -> ArrayDiagnostic {
@@ -94,7 +94,7 @@ pub(crate) fn empty(span: SpanId) -> ArrayDiagnostic {
 
     diagnostic
         .labels
-        .push(Label::new(span, "This array is empty"));
+        .push(Label::new(span, "Empty array not allowed"));
 
     diagnostic.help = Some(Help::new(EMPTY_HELP));
     diagnostic.note = Some(Note::new(EMPTY_NOTE));
@@ -102,15 +102,18 @@ pub(crate) fn empty(span: SpanId) -> ArrayDiagnostic {
     diagnostic
 }
 
+const TRAILING_COMMA_HELP: &str = "J-Expr does not support trailing commas in arrays. Use \
+                                   `[item1, item2]` instead of `[item1, item2,]`";
+
 #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn trailing_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::TrailingComma, Severity::ERROR);
 
     for (index, &span) in spans.iter().rev().enumerate() {
         let message = if index == 0 {
-            "Remove this comma"
+            "Remove this trailing comma"
         } else {
-            "... and this comma"
+            "... and this trailing comma"
         };
 
         diagnostic
@@ -118,13 +121,13 @@ pub(crate) fn trailing_commas(spans: &[SpanId]) -> ArrayDiagnostic {
             .push(Label::new(span, message).with_order(index as i32));
     }
 
-    diagnostic.help = Some(Help::new(
-        "Unlike JavaScript or some other languages, J-Expr does not support trailing commas in \
-         arrays",
-    ));
+    diagnostic.help = Some(Help::new(TRAILING_COMMA_HELP));
 
     diagnostic
 }
+
+const LEADING_COMMA_HELP: &str =
+    "J-Expr does not support leading commas in arrays. Use `[item1, item2]` format.";
 
 #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn leading_commas(spans: &[SpanId]) -> ArrayDiagnostic {
@@ -132,9 +135,9 @@ pub(crate) fn leading_commas(spans: &[SpanId]) -> ArrayDiagnostic {
 
     for (index, &span) in spans.iter().rev().enumerate() {
         let message = if index == 0 {
-            "Remove this comma"
+            "Remove this leading comma"
         } else {
-            "... and this comma"
+            "... and this leading comma"
         };
 
         diagnostic
@@ -142,13 +145,13 @@ pub(crate) fn leading_commas(spans: &[SpanId]) -> ArrayDiagnostic {
             .push(Label::new(span, message).with_order(index as i32));
     }
 
-    diagnostic.help = Some(Help::new(
-        "Unlike JavaScript or some other languages, J-Expr does not support leading commas in \
-         arrays",
-    ));
+    diagnostic.help = Some(Help::new(LEADING_COMMA_HELP));
 
     diagnostic
 }
+
+const CONSECUTIVE_COMMA_HELP: &str =
+    "J-Expr requires exactly one comma between array elements. Use `[item1, item2, item3]` format.";
 
 #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
@@ -157,9 +160,9 @@ pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
 
     for (index, &span) in spans.iter().rev().enumerate() {
         let message = if index == 0 {
-            "Remove this comma"
+            "Remove this extra comma"
         } else {
-            "... and this comma"
+            "... and this extra comma"
         };
 
         diagnostic
@@ -167,10 +170,7 @@ pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
             .push(Label::new(span, message).with_order(index as i32));
     }
 
-    diagnostic.help = Some(Help::new(
-        "Unlike JavaScript or some other languages, J-Expr does not support consecutive commas in \
-         arrays",
-    ));
+    diagnostic.help = Some(Help::new(CONSECUTIVE_COMMA_HELP));
 
     diagnostic
 }

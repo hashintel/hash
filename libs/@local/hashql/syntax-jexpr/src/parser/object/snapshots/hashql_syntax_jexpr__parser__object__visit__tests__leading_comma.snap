@@ -3,12 +3,12 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/visit.rs
 description: Object with leading comma should fail
 expression: "{,\"a\": 1}"
 ---
-[31m[array::leading-comma] Error:[0m Array
+[31m[object::leading-comma] Error:[0m Object
    ╭─[ <unknown>:1:2 ]
    │
  1 │ {,"a": 1}
    │  ┬  
-   │  ╰── Remove this comma
+   │  ╰── Remove this leading comma
    │ 
-   │ Help: Unlike JavaScript or some other languages, J-Expr does not support leading commas in objects
+   │ Help: J-Expr does not support leading commas in objects. Use `{"key1": value1, "key2": value2}` format.
 ───╯

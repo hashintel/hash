@@ -8,9 +8,9 @@ expression: "[1,,,2]"
    │
  1 │ [1,,,2]
    │    ┬┬  
-   │    │╰── Remove this comma
+   │    │╰── Remove this extra comma
    │    │   
-   │    ╰─── ... and this comma
+   │    ╰─── ... and this extra comma
    │ 
-   │ Help: Unlike JavaScript or some other languages, J-Expr does not support consecutive commas in arrays
+   │ Help: J-Expr requires exactly one comma between array elements. Use `[item1, item2, item3]` format.
 ───╯

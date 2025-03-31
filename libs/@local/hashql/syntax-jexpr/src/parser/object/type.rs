@@ -40,18 +40,6 @@ impl<'heap> State<'heap> for TypeNode<'heap> {
     }
 }
 
-// TODO: there's a fundamental problem here: how do we propagate that type up to the AST? With just
-// `Type` it's going to not be representable as an expression. There needs to be a `TypeDef` and a
-// type? No that's not the case, that just means we can only use function application to create
-// types that way. Which isn't great per-sé, but manageable, but then again. It'd be good to have
-// the ability to operate on types. But you can do that. The problem is simply the specific parsing
-// here and parsing rules for e.g. struct type creation. In that sense a dedicated AST node for
-// types would make things easier, but it would also kind of destroy composability. Then again it's
-// the most straightforward way to do this. The problem is primarily with placement. We could
-// introduce a type node that is then immediately removed upon resolving, although it's always
-// easier to add something than remove, especially when trying to adhere to contract.
-// The only problem I see is that we're unable to represent `["type", "name", "..."]` right now
-// without such a node.
 pub(crate) fn parse_type<'heap>(
     state: &mut ParserState<'heap, '_>,
 ) -> Result<Type<'heap>, ParserDiagnostic> {

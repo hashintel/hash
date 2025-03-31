@@ -8,7 +8,7 @@ expression: "[1 2]"
    │
  1 │ [1 2]
    │    ┬  
-   │    ╰── Unexpected token in this context
+   │    ╰── Unexpected token
    │ 
    │ Help: Expected `,`, or `]` at this position
 ───╯

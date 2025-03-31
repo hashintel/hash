@@ -8,7 +8,7 @@ expression: "{\"ferris\": 🦀}"
    │
  1 │ {"ferris": 🦀}
    │            ┬─  
-   │            ╰─── Unrecognized character in JSON expression
+   │            ╰─── Unrecognized character
    │ 
    │ Help: J-Expr only supports standard JSON syntax. Make sure you're using valid JSON tokens like {}, [], strings, numbers, true/false, or null.
 ───╯

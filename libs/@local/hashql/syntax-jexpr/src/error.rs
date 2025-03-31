@@ -18,7 +18,7 @@ impl DiagnosticCategory for JExprDiagnosticCategory {
     }
 
     fn name(&self) -> Cow<'_, str> {
-        Cow::Borrowed("J-Expr Syntax")
+        Cow::Borrowed("J-Expr syntax")
     }
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
@@ -28,11 +28,13 @@ impl DiagnosticCategory for JExprDiagnosticCategory {
     }
 }
 
+/// Extension trait for changing diagnostic categories in results
 pub(crate) trait ResultExt {
     type Ok;
     type DiagnosticCategory;
     type Span;
 
+    /// Transforms the diagnostic category of an error while preserving the rest of the diagnostic
     fn change_category<C>(
         self,
         category: impl FnOnce(Self::DiagnosticCategory) -> C,

@@ -8,5 +8,5 @@ expression: "\"hello"
    │
  1 │ "hello
    │       │ 
-   │       ╰─ Unterminated string literal
+   │       ╰─ Unterminated string
 ───╯

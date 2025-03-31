@@ -2,7 +2,6 @@ use hashql_core::span::SpanId;
 use hashql_diagnostics::Diagnostic;
 use text_size::TextRange;
 
-use super::error::ArrayDiagnostic;
 use crate::{
     ParserState,
     error::ResultExt as _,
@@ -124,10 +123,18 @@ mod tests {
     use insta::{assert_snapshot, with_settings};
     use text_size::TextSize;
 
-    use super::*;
     use crate::{
-        lexer::error::unexpected_eof,
-        parser::test::{bind_context, bind_state},
+        ParserState,
+        error::ResultExt as _,
+        lexer::{error::unexpected_eof, syntax_kind::SyntaxKind},
+        parser::{
+            array::{
+                error::{ArrayDiagnostic, ArrayDiagnosticCategory},
+                visit::visit_array,
+            },
+            test::{bind_context, bind_state},
+        },
+        span::Span,
         test::render_diagnostic,
     };
 

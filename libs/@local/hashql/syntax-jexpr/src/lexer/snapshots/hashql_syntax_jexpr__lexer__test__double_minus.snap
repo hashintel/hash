@@ -8,7 +8,7 @@ expression: "--42"
    │
  1 │ --42
    │ │ 
-   │ ╰─ Expected a digit in number literal
+   │ ╰─ Missing digit in number
    │ 
    │ Help: JSON numbers must contain digits and follow the format: `[-]digits[.digits][(e|E)[+|-]digits]`
 ───╯

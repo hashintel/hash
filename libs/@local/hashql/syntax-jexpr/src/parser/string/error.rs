@@ -19,7 +19,7 @@ pub(crate) type StringDiagnostic = Diagnostic<StringDiagnosticCategory, SpanId>;
 
 const INVALID_EXPR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "invalid-expression",
-    name: "Invalid Expression",
+    name: "Invalid string expression",
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -42,6 +42,9 @@ impl DiagnosticCategory for StringDiagnosticCategory {
         }
     }
 }
+
+const SYNTAX_ERROR_NOTE: &str =
+    "Check for missing delimiters, incorrect operators, or typos in identifiers.";
 
 #[expect(
     clippy::cast_possible_truncation,
@@ -71,9 +74,10 @@ pub(crate) fn invalid_expr<I>(
         _ => None,
     });
 
+    // Make the label message shorter and clearer
     let label_text = expression.map_or_else(
-        || format!("Invalid syntax at this position"),
-        |expr| format!("Invalid {expr} syntax"),
+        || "Syntax error".to_owned(),
+        |expr| format!("Invalid {expr}"),
     );
 
     diagnostic.labels.push(Label::new(span, label_text));
@@ -106,10 +110,7 @@ pub(crate) fn invalid_expr<I>(
         }
 
         diagnostic.help = Some(Help::new(buffer));
-
-        diagnostic.note = Some(Note::new(
-            "Check for missing delimiters, incorrect operators, or typos in identifiers.",
-        ));
+        diagnostic.note = Some(Note::new(SYNTAX_ERROR_NOTE));
     }
 
     diagnostic

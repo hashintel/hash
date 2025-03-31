@@ -8,7 +8,7 @@ expression: "\"\thello\""
    │
  1 │ "   hello"
    │     │ 
-   │     ╰─ Invalid ASCII control character
+   │     ╰─ Control character not allowed
    │ 
-   │ Help: 0x00 to 0x1F cannot be used in JSON strings unless escaped
+   │ Help: ASCII control characters (0x00 to 0x1F) cannot be used in JSON strings unless escaped
 ───╯
