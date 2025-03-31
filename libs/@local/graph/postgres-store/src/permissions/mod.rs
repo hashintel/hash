@@ -32,7 +32,6 @@ pub enum PrincipalType {
     Machine,
     Team,
     Web,
-
     Subteam,
     Role,
     WebRole,
@@ -961,8 +960,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                 SELECT parent.id, parent.principal_type
                 FROM actor_role
                 JOIN role ON actor_role.role_id = role.id
-                JOIN team child ON child.id = role.team_id AND child.principal_type = 'subteam'
-                JOIN team_hierarchy ON team_hierarchy.child_id = child.id
+                JOIN team_hierarchy ON team_hierarchy.child_id = role.team_id
                 JOIN team parent ON parent.id = team_hierarchy.parent_id
                 WHERE actor_role.actor_id = $1
                 ",
