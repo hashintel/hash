@@ -47,6 +47,11 @@ impl<'heap> LiteralNode<'heap> {
             r#type: None,
         })
     }
+
+    pub(crate) fn with_type(mut self, r#type: TypeNode<'heap>) -> Self {
+        self.r#type = Some(r#type);
+        self
+    }
 }
 
 impl<'heap> State<'heap> for LiteralNode<'heap> {

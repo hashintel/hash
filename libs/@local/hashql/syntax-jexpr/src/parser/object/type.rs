@@ -1,13 +1,10 @@
-use hashql_ast::node::{
-    expr::{Expr, TypeExpr},
-    id::NodeId,
-    r#type::Type,
-};
+use hashql_ast::node::{expr::Expr, r#type::Type};
 use text_size::TextRange;
 
 use super::{
     ObjectState, State,
     error::{ObjectDiagnosticCategory, duplicate_key, unknown_key},
+    literal::LiteralNode,
     visit::Key,
 };
 use crate::{
@@ -60,6 +57,10 @@ impl<'heap> State<'heap> for TypeNode<'heap> {
             "#dict" => todo!(),
             "#list" => todo!(),
             "#tuple" => todo!(),
+            "#literal" => LiteralNode::parse(state, &key)
+                .map(|node| node.with_type(self))
+                .map(ObjectState::Literal)
+                .change_category(From::from),
             "#type" => Err(duplicate_key(
                 state.insert_range(self.key_span),
                 state.insert_range(key.span),
@@ -69,7 +70,7 @@ impl<'heap> State<'heap> for TypeNode<'heap> {
             _ => Err(unknown_key(
                 state.insert_range(key.span),
                 &key.value,
-                &["#dict", "#struct", "#list", "#tuple"],
+                &["#dict", "#struct", "#list", "#tuple", "#literal"],
             )
             .map_category(From::from)),
         }
