@@ -11,12 +11,13 @@ publish.workspace = true
 harpc-tower = { workspace = true, public = true }
 
 # Public third-party dependencies
+frunk      = { workspace = true, public = true }
+frunk_core = { workspace = true, public = true }
 
 # Private workspace dependencies
 harpc-types = { workspace = true }
 
 # Private third-party dependencies
-frunk          = "0.4.3"
 simple-mermaid = { workspace = true }
 
 [lints]

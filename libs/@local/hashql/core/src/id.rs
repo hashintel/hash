@@ -125,7 +125,8 @@ macro_rules! newtype {
         concat!("ID value must be between ", stringify!($min), " and ", stringify!($max))
     };
 
-    ($vis:vis struct $name:ident(u32 is $min:literal..=$max:literal)) => {
+    ($(#[$attr:meta])* $vis:vis struct $name:ident(u32 is $min:literal..=$max:literal)) => {
+        $(#[$attr])*
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         $vis struct $name(u32);
 
