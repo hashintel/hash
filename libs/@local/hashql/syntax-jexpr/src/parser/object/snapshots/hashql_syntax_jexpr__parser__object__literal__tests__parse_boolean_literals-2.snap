@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/literal.rs
+description: Parses a boolean false literal
+expression: "{\"#literal\": false}"
+---
+Expr#4294967040@1
+  ExprKind (Literal)
+    LiteralExpr#4294967040@0
+      LiteralKind (False)

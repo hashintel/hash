@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/literal.rs
+description: Parses a simple string literal
+expression: "{\"#literal\": \"hello\"}"
+---
+Expr#4294967040@1
+  ExprKind (Literal)
+    LiteralExpr#4294967040@0
+      LiteralKind (String)
+        StringLiteral#4294967040@0 (hello)

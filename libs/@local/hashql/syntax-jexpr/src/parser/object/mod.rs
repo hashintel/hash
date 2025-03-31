@@ -104,3 +104,67 @@ pub(crate) fn parse_object<'heap, 'source>(
 
     Ok(expr)
 }
+
+#[cfg(test)]
+mod tests {
+    use insta::{assert_snapshot, with_settings};
+
+    use crate::{
+        lexer::syntax_kind::SyntaxKind,
+        parser::{object::parse_object, test::bind_parser},
+    };
+
+    // Create a parser binding that will handle objects starting with '{'
+    bind_parser!(fn parse_object_expr(parse_object, SyntaxKind::LBrace));
+
+    #[test]
+    fn parse_empty_object() {
+        // Empty object
+        let error = parse_object_expr("{}").expect_err("should fail with empty object");
+
+        with_settings!({
+            description => "Rejects empty objects"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+
+    #[test]
+    fn parse_unknown_top_level_key() {
+        // Object with unknown top-level key
+        let error = parse_object_expr(r#"{"invalid": 42}"#)
+            .expect_err("should fail with unknown top-level key");
+
+        with_settings!({
+            description => "Rejects unknown top-level keys in objects"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+
+    #[test]
+    fn parse_standalone_type() {
+        // Object with only a #type key (should fail as type needs an associated expression)
+        let error = parse_object_expr(r##"{"#type": "Int"}"##)
+            .expect_err("should fail with standalone type");
+
+        with_settings!({
+            description => "Rejects standalone #type without an associated expression"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+
+    #[test]
+    fn parse_multiple_expression_keys() {
+        // Object with multiple expression keys (should fail as only one is allowed)
+        let error = parse_object_expr(r##"{"#literal": 42, "#list": []}"##)
+            .expect_err("should fail with multiple expression keys");
+
+        with_settings!({
+            description => "Rejects objects with multiple expression keys"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+}

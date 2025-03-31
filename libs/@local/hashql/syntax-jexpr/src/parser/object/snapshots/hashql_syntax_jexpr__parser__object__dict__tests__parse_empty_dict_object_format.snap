@@ -1,0 +1,8 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
+description: Parses an empty dict using object format
+expression: "{\"#dict\": {}}"
+---
+Expr#4294967040@1
+  ExprKind (Dict)
+    DictExpr#4294967040@0

@@ -10,7 +10,7 @@ Ident {
         1,
     ),
     name: Symbol(
-        "`§¶†‡`",
+        "§¶†‡",
     ),
     kind: Symbol,
 }

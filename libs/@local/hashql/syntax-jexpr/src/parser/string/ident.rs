@@ -4,7 +4,7 @@ use unicode_normalization::{IsNormalized, UnicodeNormalization as _, is_nfc_quic
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory as _};
 use winnow::{
     ModalResult, Parser as _,
-    combinator::{alt, cut_err, delimited, dispatch, fail, peek},
+    combinator::{alt, cut_err, delimited, dispatch, fail, peek, preceded},
     error::{AddContext, ParserError, StrContext, StrContextValue},
     token::{any, one_of, take_while},
 };
@@ -81,7 +81,6 @@ where
     );
 
     alt((escaped, bare()))
-        .take()
         .with_span()
         .map(|(value, span): (&str, _)| Ident {
             span: context.span(span),
@@ -178,6 +177,20 @@ where
         _ => fail
     }
     .context(StrContext::Label("identifier"))
+    .parse_next(input)
+}
+
+pub(crate) fn parse_ident_labelled_argument<'heap, 'span, 'source, E>(
+    input: &mut Input<'heap, 'span, 'source>,
+) -> ModalResult<Ident, E>
+where
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+{
+    preceded(
+        cut_err(':').context(StrContext::Expected(StrContextValue::CharLiteral(':'))),
+        parse_ident,
+    )
     .parse_next(input)
 }
 

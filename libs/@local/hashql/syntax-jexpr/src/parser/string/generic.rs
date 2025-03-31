@@ -56,6 +56,11 @@ where
         .parse_next(input)
 }
 
+#[expect(clippy::allow_attributes, reason = "except doesn't work here")]
+#[allow(
+    dead_code,
+    reason = "This function will be used in the future for parsing closure signatures"
+)]
 pub(crate) fn parse_generics<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Generics<'heap>, E>

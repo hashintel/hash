@@ -326,10 +326,6 @@ pub(crate) fn consecutive_colons(spans: &[SpanId]) -> ObjectDiagnostic {
     diagnostic
 }
 
-const UNKNOWN_KEY_HELP: &str = "J-Expr objects must use specific predefined keys like `#struct`, \
-                                `#list`, `#literal`, etc. depending on the context. Check the \
-                                documentation for valid constructs in this position.";
-
 pub(crate) fn unknown_key(
     span: SpanId,
     key: impl AsRef<str>,
@@ -343,7 +339,10 @@ pub(crate) fn unknown_key(
     ));
 
     let help_message = if expected.is_empty() {
-        Cow::Borrowed("This object doesn't support any custom keys in this context")
+        Cow::Borrowed(
+            "No additional keys are allowed in this context. Each J-Expr construct accepts only \
+             specific keys (e.g., #literal can only have #type as an additional key).",
+        )
     } else {
         let expected = expected
             .iter()
@@ -364,14 +363,12 @@ pub(crate) fn unknown_key(
                 acc
             });
 
-        Cow::Owned(format!("Replace with one of these valid keys: {expected}"))
+        Cow::Owned(format!(
+            "This J-Expr object only accepts these specific keys: {expected}"
+        ))
     };
 
     diagnostic.help = Some(Help::new(help_message));
-
-    if expected.is_empty() {
-        diagnostic.note = Some(Note::new(UNKNOWN_KEY_HELP));
-    }
 
     diagnostic
 }
@@ -382,8 +379,8 @@ const ORPHANED_TYPE_HELP: &str = "The `#type` field must be used alongside a pri
 
 const ORPHANED_TYPE_NOTE: &str = r##"The `#type` field is used to annotate the type of a construct. Valid examples include:
 - `{"#struct": {...}, "#type": "Person"}`
-- `{"#list": [...], "#type": "number[]"}`
-- `{"#literal": 42, "#type": "integer"}`"##;
+- `{"#list": [...], "#type": "List<Number>"}`
+- `{"#literal": 42, "#type": "Int"}`"##;
 
 pub(crate) fn orphaned_type(span: SpanId) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::OrphanedType, Severity::ERROR);
@@ -432,9 +429,7 @@ pub(crate) fn duplicate_key(
     diagnostic
 }
 
-const STRUCT_KEY_IDENTIFIER_NOTE: &str = "Struct field keys must be valid identifiers starting \
-                                          with a letter or underscore, followed by letters, \
-                                          numbers, or underscores.";
+const STRUCT_KEY_IDENTIFIER_NOTE: &str = "Struct field keys must be valid HashQL identifiers";
 
 pub(crate) fn struct_key_expected_identifier<I>(
     spans: &SpanStorage<Span>,
@@ -450,10 +445,8 @@ pub(crate) fn struct_key_expected_identifier<I>(
         .labels
         .push(Label::new(key_span, "Invalid struct field key"));
 
-    let (error_label, expected) =
+    let (_, expected) =
         crate::parser::string::error::convert_parse_error(spans, key_span, parse_error);
-
-    diagnostic.labels.push(error_label);
 
     if let Some(expected) = expected {
         diagnostic.help = Some(Help::new(expected));
@@ -515,18 +508,11 @@ pub(crate) fn dict_entry_too_few_items(span: SpanId, found: usize) -> ObjectDiag
 }
 
 #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-pub(crate) fn dict_entry_too_many_items(
-    entry_span: SpanId,
-    excess_element_spans: &[SpanId],
-) -> ObjectDiagnostic {
+pub(crate) fn dict_entry_too_many_items(excess_element_spans: &[SpanId]) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::DictEntryTooManyItems,
         Severity::ERROR,
     );
-
-    diagnostic
-        .labels
-        .push(Label::new(entry_span, "Dictionary entry with too many items").with_order(0));
 
     for (idx, &span) in excess_element_spans.iter().enumerate() {
         let message = if idx == 0 {

@@ -1,0 +1,8 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/struct.rs
+description: Parses an empty struct
+expression: "{\"#struct\": {}}"
+---
+Expr#4294967040@1
+  ExprKind (Struct)
+    StructExpr#4294967040@0

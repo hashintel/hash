@@ -125,8 +125,8 @@ pub(crate) fn handle_typed<'heap>(
             id,
         )
         .map_category(From::from)),
-        "#type" if r#type.is_some() => Err(duplicate_key(
-            state.insert_range(id_span),
+        "#type" if let Some(r#type) = r#type => Err(duplicate_key(
+            state.insert_range(r#type.key_span),
             state.insert_range(key.span),
             "#type",
         )

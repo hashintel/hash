@@ -23,7 +23,7 @@ use self::{
     context::Context,
     error::{StringDiagnostic, invalid_expr},
     expr::parse_expr,
-    ident::parse_ident,
+    ident::{parse_ident, parse_ident_labelled_argument},
     r#type::parse_type,
 };
 use super::state::ParserState;
@@ -131,4 +131,12 @@ pub(crate) fn parse_ident_from_string(
     value: &str,
 ) -> Result<Ident, ParseError<impl Debug, ContextError>> {
     parse_from_string(parse_ident, state, parent, value)
+}
+
+pub(crate) fn parse_ident_labelled_argument_from_string(
+    state: &ParserState<'_, '_>,
+    parent: SpanId,
+    value: &str,
+) -> Result<Ident, ParseError<impl Debug, ContextError>> {
+    parse_from_string(parse_ident_labelled_argument, state, parent, value)
 }

@@ -1,0 +1,44 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
+description: Parses a dict with complex values using array format
+expression: "{\"#dict\": [\n            [{\"#literal\": \"key1\"}, {\"#struct\": {\"name\": {\"#literal\": \"Bob\"}}}],\n            [{\"#literal\": \"key2\"}, {\"#list\": [{\"#literal\": 1}, {\"#literal\": 2}]}]\n        ]}"
+---
+Expr#4294967040@20
+  ExprKind (Dict)
+    DictExpr#4294967040@19
+      DictEntry#4294967040@9
+        Expr#4294967040@1
+          ExprKind (Literal)
+            LiteralExpr#4294967040@0
+              LiteralKind (String)
+                StringLiteral#4294967040@0 (key1)
+        Expr#4294967040@8
+          ExprKind (Struct)
+            StructExpr#4294967040@7
+              StructEntry#4294967040@6 (key: name)
+                Expr#4294967040@5
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@4
+                      LiteralKind (String)
+                        StringLiteral#4294967040@4 (Bob)
+      DictEntry#4294967040@18
+        Expr#4294967040@11
+          ExprKind (Literal)
+            LiteralExpr#4294967040@10
+              LiteralKind (String)
+                StringLiteral#4294967040@10 (key2)
+        Expr#4294967040@17
+          ExprKind (List)
+            ListExpr#4294967040@16
+              ListElement#4294967040@13
+                Expr#4294967040@13
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@12
+                      LiteralKind (Integer)
+                        IntegerLiteral#4294967040@12 (1)
+              ListElement#4294967040@15
+                Expr#4294967040@15
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@14
+                      LiteralKind (Integer)
+                        IntegerLiteral#4294967040@14 (2)

@@ -221,9 +221,7 @@ pub(crate) fn labeled_argument_missing_prefix(
     diagnostic
 }
 
-const LABELED_ARGUMENT_IDENTIFIER_HELP: &str = "Labeled argument names must be valid identifiers";
-
-const LABELED_ARGUMENT_IDENTIFIER_NOTE: &str =
+const LABELED_ARGUMENT_IDENTIFIER_HELP: &str =
     "Labeled argument identifiers must be valid HashQL identifiers";
 
 pub(crate) fn labeled_argument_invalid_identifier<I>(
@@ -240,18 +238,14 @@ pub(crate) fn labeled_argument_invalid_identifier<I>(
         .labels
         .push(Label::new(label_span, "Invalid labeled argument name"));
 
-    let (error_label, expected) =
+    let (_, expected) =
         crate::parser::string::error::convert_parse_error(spans, label_span, parse_error);
-
-    diagnostic.labels.push(error_label);
 
     if let Some(expected) = expected {
         diagnostic.help = Some(Help::new(expected));
-    } else {
-        diagnostic.help = Some(Help::new(LABELED_ARGUMENT_IDENTIFIER_HELP));
     }
 
-    diagnostic.note = Some(Note::new(LABELED_ARGUMENT_IDENTIFIER_NOTE));
+    diagnostic.note = Some(Note::new(LABELED_ARGUMENT_IDENTIFIER_HELP));
 
     diagnostic
 }

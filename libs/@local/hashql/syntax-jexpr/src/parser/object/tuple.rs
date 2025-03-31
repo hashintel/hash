@@ -21,8 +21,6 @@ use crate::{
     },
 };
 
-// The `#tuple` field is present
-// but without `#type` present
 pub(crate) struct TupleNode<'heap> {
     key_span: TextRange,
 
@@ -111,4 +109,202 @@ fn parse_tuple<'heap>(
         elements: state.heap().boxed_slice(elements),
         r#type: None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::{assert_snapshot, with_settings};
+
+    use crate::{
+        lexer::syntax_kind::SyntaxKind,
+        parser::{object::parse_object, test::bind_parser},
+    };
+
+    // Create a parser binding that will handle objects starting with '{'
+    bind_parser!(fn parse_object_expr(parse_object, SyntaxKind::LBrace));
+
+    #[test]
+    fn parse_empty_tuple() {
+        // Empty tuple
+        let result = parse_object_expr(r##"{"#tuple": []}"##).expect("should parse empty tuple");
+
+        with_settings!({
+            description => "Parses an empty tuple"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_tuple_with_literals() {
+        // Tuple with literal values
+        let result = parse_object_expr(
+            r##"{"#tuple": [{"#literal": 1}, {"#literal": "text"}, {"#literal": true}]}"##,
+        )
+        .expect("should parse tuple with literals");
+
+        with_settings!({
+            description => "Parses a tuple with heterogeneous literal values"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_tuple_with_complex_elements() {
+        // Tuple with complex elements
+        let result = parse_object_expr(
+            r##"{"#tuple": [
+            ["add", {"#literal": 1}, {"#literal": 2}],
+            {"#list": [{"#literal": "a"}, {"#literal": "b"}]},
+            {"#dict": {"key": {"#literal": 42}}}
+        ]}"##,
+        )
+        .expect("should parse tuple with complex elements");
+
+        with_settings!({
+            description => "Parses a tuple with complex nested elements"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_tuple_with_type() {
+        // Tuple with type annotation
+        let result = parse_object_expr(r##"{"#tuple": [{"#literal": 1}, {"#literal": "text"}], "#type": "Tuple<Int, String>"}"##)
+            .expect("should parse tuple with type");
+
+        with_settings!({
+            description => "Parses a tuple with type annotation"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_tuple_with_complex_type() {
+        // Tuple with complex type
+        let result = parse_object_expr(
+            r##"{"#tuple": [{"#literal": "key"}, {"#literal": 42}], "#type": "(first: String, second: Int)"}"##,
+        )
+        .expect("should parse tuple with complex type");
+
+        with_settings!({
+            description => "Parses a tuple with a complex type annotation"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_invalid_tuple_value() {
+        // Invalid value for tuple (not an array)
+        let error = parse_object_expr(r##"{"#tuple": {"not": "an-array"}}"##)
+            .expect_err("should fail with invalid tuple value");
+
+        with_settings!({
+            description => "Rejects non-array values for tuples"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+
+    #[test]
+    fn parse_duplicate_tuple_key() {
+        // Duplicate #tuple keys
+        let error = parse_object_expr(r##"{"#tuple": [], "#tuple": []}"##)
+            .expect_err("should fail with duplicate #tuple key");
+
+        with_settings!({
+            description => "Rejects duplicate #tuple keys"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+
+    #[test]
+    fn parse_duplicate_type_key() {
+        // Duplicate #type keys
+        let error = parse_object_expr(
+            r##"{"#tuple": [], "#type": "Tuple<Int, String>", "#type": "Tuple<Float, Boolean>"}"##,
+        )
+        .expect_err("should fail with duplicate #type key");
+
+        with_settings!({
+            description => "Rejects duplicate #type keys in tuple"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+
+    #[test]
+    fn parse_unknown_key_in_tuple() {
+        // Unknown key in tuple object
+        let error = parse_object_expr(r##"{"#tuple": [], "unknown": {"#literal": "value"}}"##)
+            .expect_err("should fail with unknown key");
+
+        with_settings!({
+            description => "Rejects unknown keys in tuple objects"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+
+    #[test]
+    fn parse_nested_tuples() {
+        // Nested tuples
+        let result = parse_object_expr(
+            r##"{"#tuple": [
+            {"#tuple": [{"#literal": 1}, {"#literal": "a"}]},
+            {"#tuple": [{"#literal": true}, {"#literal": 3.14}]}
+        ]}"##,
+        )
+        .expect("should parse nested tuples");
+
+        with_settings!({
+            description => "Parses nested tuples"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_tuple_with_single_element() {
+        // Tuple with a single element
+        let result = parse_object_expr(r##"{"#tuple": [{"#literal": "solo"}]}"##)
+            .expect("should parse tuple with single element");
+
+        with_settings!({
+            description => "Parses a tuple with a single element"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_tuple_with_many_elements() {
+        // Tuple with many elements to test scaling
+        let result = parse_object_expr(
+            r##"{"#tuple": [
+            {"#literal": 1},
+            {"#literal": 2},
+            {"#literal": 3},
+            {"#literal": 4},
+            {"#literal": 5},
+            {"#literal": 6},
+            {"#literal": 7},
+            {"#literal": 8},
+            {"#literal": 9},
+            {"#literal": 10}
+        ]}"##,
+        )
+        .expect("should parse tuple with many elements");
+
+        with_settings!({
+            description => "Parses a tuple with many elements"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
 }

@@ -9,7 +9,8 @@
     decl_macro,
     portable_simd,
     result_flattening,
-    ascii_char
+    ascii_char,
+    if_let_guard
 )]
 
 extern crate alloc;
@@ -45,7 +46,14 @@ impl<'heap> Parser<'heap> {
         }
     }
 
-    pub fn parse_expr<'source>(&self, source: &[u8]) -> Result<Expr<'heap>, JExprDiagnostic> {
+    /// Parse an expression from a byte slice.
+    ///
+    /// # Errors
+    ///
+    /// - Lexer errors if the input contains invalid tokens
+    /// - Parser errors if the tokens don't form a valid expression
+    /// - Unexpected EOF if the input is incomplete
+    pub fn parse_expr(&self, source: &[u8]) -> Result<Expr<'heap>, JExprDiagnostic> {
         let lexer = lexer::Lexer::new(source, Arc::clone(&self.spans));
 
         let mut state = ParserState::new(self.heap, lexer, Arc::clone(&self.spans));
