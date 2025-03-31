@@ -903,13 +903,13 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
         Ok(actors)
     }
 
-    /// Gets all principal IDs associated with an actor, including:
+    /// Gets all principal IDs associated with an actor.
+    ///
+    /// This provides a complete set of principals that the actor can act as, including:
     /// - The actor itself
     /// - All roles directly assigned to the actor
     /// - All teams that the actor's roles belong to
     /// - All parent teams of those teams (for subteams)
-    ///
-    /// This provides a complete set of principals that the actor can act as.
     ///
     /// # Errors
     ///
