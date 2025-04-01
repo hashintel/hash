@@ -10,8 +10,31 @@ pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new(
 
 /// A literal representation of a floating-point number.
 ///
-/// The value is guaranteed to be formatted according to the JSON specification (RFC 8259).
-/// According to [RFC 8259 Section 6](https://datatracker.ietf.org/doc/html/rfc8259#section-6).
+/// Represents a floating-point number exactly as it appears in the source code,
+/// preserving the original string representation to avoid precision loss.
+/// The value is guaranteed to be formatted according to the [JSON specification (RFC 8259 Section
+/// 6)].
+///
+/// Floating-point literals in HashQL can be written in standard decimal notation
+/// (like `3.14`) or scientific notation (like `1.23e4`). The original string
+/// representation is stored to maintain the exact value as written by the user.
+///
+/// # Examples
+///
+/// Standard decimal notation:
+/// ```text
+/// 3.14159
+/// -0.5
+/// 0.0
+/// ```
+///
+/// Scientific notation:
+/// ```text
+/// 1.23e4     // 12300.0
+/// -1.23e-2   // -0.0123
+/// ```
+///
+/// [JSON specification (RFC 8259)]: https://datatracker.ietf.org/doc/html/rfc8259#section-6
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FloatLiteral {
     pub id: NodeId,
@@ -29,20 +52,36 @@ impl FloatLiteral {
     // Note that this is also how Rust literals work, if the literal is too large it'll be lossily
     // converted.
 
-    #[expect(
-        clippy::missing_panics_doc,
-        reason = "only panics if the value hasn't been parsed correctly"
-    )]
+    /// Converts the float literal to a 32-bit floating-point number.
+    ///
+    /// This method parses the string representation of the literal according to
+    /// the JSON specification and returns the resulting [`f32`] value.
+    ///
+    /// Conversion is lossy, meaning that the resulting [`f32`] value may not be exactly equal to
+    /// the original value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the stored value is not a valid JSON-formatted floating-point number.
+    /// This should never happen for properly constructed AST nodes.
     #[must_use]
     pub fn as_f32(&self) -> f32 {
         f32::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE)
             .expect("float literal should be formatted according to JSON specification")
     }
 
-    #[expect(
-        clippy::missing_panics_doc,
-        reason = "only panics if the value hasn't been parsed correctly"
-    )]
+    /// Converts the float literal to a 64-bit floating-point number.
+    ///
+    /// This method parses the string representation of the literal according to
+    /// the JSON specification and returns the resulting [`f64`] value.
+    ///
+    /// Conversion is lossy, meaning that the resulting [`f64`] value may not be exactly equal to
+    /// the original value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the stored value is not a valid JSON-formatted floating-point number.
+    /// This should never happen for properly constructed AST nodes.
     #[must_use]
     pub fn as_f64(&self) -> f64 {
         f64::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE)
