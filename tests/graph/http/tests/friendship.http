@@ -12,7 +12,7 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.global.set("account_id", response.body.toString());
+        client.global.set("account_id", response.body.id);
     });
 %}
 
