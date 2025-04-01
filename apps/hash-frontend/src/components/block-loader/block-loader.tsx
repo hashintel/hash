@@ -1,8 +1,8 @@
 import type {
   BlockGraphProperties,
-  Subgraph as BpSubgraph,
   EntityRevisionId,
   GraphEmbedderMessageCallbacks,
+  Subgraph as BpSubgraph,
 } from "@blockprotocol/graph";
 import type {
   EntityId,
