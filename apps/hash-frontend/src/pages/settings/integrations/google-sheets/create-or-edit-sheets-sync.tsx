@@ -89,7 +89,7 @@ const StepContainer = ({
 };
 
 type IntegrationData = {
-  audience: "human" | "machine";
+  audience: "user" | "machine";
   googleAccountId?: string;
   query?: MultiFilter;
   spreadsheetId?: string;
@@ -112,7 +112,7 @@ export const CreateOrEditSheetsSync = ({
   const { authenticatedUser } = useAuthenticatedUser();
 
   const [integrationData, setIntegrationData] = useState<IntegrationData>({
-    audience: "human",
+    audience: "user",
   });
 
   const [createEntity] = useMutation<
@@ -269,11 +269,11 @@ export const CreateOrEditSheetsSync = ({
               onChange={(event) =>
                 setIntegrationData({
                   ...integrationData,
-                  audience: event.target.value as "human" | "machine",
+                  audience: event.target.value as "user" | "machine",
                 })
               }
             >
-              <option value="human">Human</option>
+              <option value="user">User</option>
               <option value="machine">Machine</option>
             </select>
           </Box>

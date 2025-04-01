@@ -130,7 +130,7 @@ fn edition_provenance() -> ProvidedEntityEditionProvenance {
             "type": "web-app",
             "id": "HASH",
         },
-        "actorType": "human",
+        "actorType": "user",
         "sources": [
             {
                 "type": "webpage",

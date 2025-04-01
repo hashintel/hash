@@ -33,7 +33,7 @@ export const googleSheetStep = {
       kind: "hardcoded",
       payload: {
         kind: "ActorType",
-        value: "human",
+        value: "user",
       },
     },
     {
