@@ -26,7 +26,7 @@ pub struct AccountInsertionError;
 pub struct InsertAccountIdParams {
     #[serde(default = "random_account_id")]
     pub account_id: ActorEntityUuid,
-    pub actor_type: ActorType,
+    pub account_type: ActorType,
 }
 
 #[derive(Debug, Error)]

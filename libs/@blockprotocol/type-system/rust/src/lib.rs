@@ -74,6 +74,7 @@
 //!
 //! use time::OffsetDateTime;
 //! use type_system::{
+//!     knowledge::entity::id::EntityUuid,
 //!     ontology::provenance::{
 //!         OntologyEditionProvenance, OntologyOwnership, OntologyProvenance,
 //!         ProvidedOntologyEditionProvenance,
@@ -94,7 +95,9 @@
 //! };
 //!
 //! // Create provenance information
-//! let actor_id = ActorEntityUuid::new(Uuid::from_u128(0x12345678_90AB_CDEF_1234_567890ABCDEF));
+//! let actor_id = ActorEntityUuid::new(EntityUuid::new(Uuid::from_u128(
+//!     0x12345678_90AB_CDEF_1234_567890ABCDEF,
+//! )));
 //! let edition_provenance = OntologyEditionProvenance {
 //!     created_by_id: actor_id,
 //!     archived_by_id: None,

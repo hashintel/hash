@@ -3323,8 +3323,7 @@
         }
       },
       "ActorEntityUuid": {
-        "type": "string",
-        "format": "uuid"
+        "$ref": "#/components/schemas/EntityUuid"
       },
       "ActorGroupId": {
         "type": "string",
@@ -6866,13 +6865,13 @@
       "InsertAccountIdParams": {
         "type": "object",
         "required": [
-          "actorType"
+          "accountType"
         ],
         "properties": {
           "accountId": {
             "$ref": "#/components/schemas/ActorEntityUuid"
           },
-          "actorType": {
+          "accountType": {
             "$ref": "#/components/schemas/ActorType"
           }
         },

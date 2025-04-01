@@ -227,7 +227,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                 account_id,
                 InsertAccountIdParams {
                     account_id,
-                    actor_type: ActorType::Human,
+                    account_type: ActorType::Human,
                 },
             )
             .await

@@ -241,7 +241,7 @@ export const createWebMachineActor = async (
 
   const machineAccountId = await graphApi
     .createAccount(authentication.actorId, {
-      actorType: "machine",
+      accountType: "machine",
     })
     .then((resp) => resp.data.id as ActorEntityUuid);
 

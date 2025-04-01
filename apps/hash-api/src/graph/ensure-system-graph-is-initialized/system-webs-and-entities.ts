@@ -113,7 +113,7 @@ export const getOrCreateOwningAccountGroupId = async (
           context,
           { actorId: systemAccountId },
           {
-            actorType: "machine",
+            accountType: "machine",
           },
         );
 
@@ -320,7 +320,7 @@ export const ensureSystemEntitiesExist = async (params: {
         context,
         authentication,
         {
-          actorType: "ai",
+          accountType: "ai",
         },
       );
 

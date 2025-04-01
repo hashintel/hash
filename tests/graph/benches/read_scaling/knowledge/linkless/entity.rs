@@ -55,7 +55,7 @@ async fn seed_db<A: AuthorizationApi>(
             account_id,
             InsertAccountIdParams {
                 account_id,
-                actor_type: ActorType::Machine,
+                account_type: ActorType::Machine,
             },
         )
         .await

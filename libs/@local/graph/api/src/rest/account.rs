@@ -142,7 +142,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let actor = ActorId::new(params.actor_type, params.account_id);
+    let actor = ActorId::new(params.account_type, params.account_id);
     store
         .insert_account_id(actor_id, params)
         .await

@@ -44,7 +44,7 @@ export const ensureHashSystemAccountExists = async (params: {
     // We don't have any system types yet, so we need to create the system account, which will create them
 
     systemAccountId = await createAccount(context, authentication, {
-      actorType: "machine",
+      accountType: "machine",
     });
     logger.info(`Created system user account id: ${systemAccountId}`);
   }
