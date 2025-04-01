@@ -70,7 +70,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
   ],
   "provenance": {
-    "actorType": "user",
+    "actorType": "machine",
     "origin": {
       "type": "api"
     }
@@ -116,7 +116,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   },
   "provenance": {
-    "actorType": "user",
+    "actorType": "machine",
     "origin": {
       "type": "api"
     }
@@ -161,7 +161,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   },
   "provenance": {
-    "actorType": "user",
+    "actorType": "machine",
     "origin": {
       "type": "api"
     }
@@ -202,7 +202,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     ]
   },
   "provenance": {
-    "actorType": "user",
+    "actorType": "machine",
     "origin": {
       "type": "api"
     }
@@ -245,7 +245,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   },
   "provenance": {
-    "actorType": "user",
+    "actorType": "machine",
     "origin": {
       "type": "api"
     }
@@ -295,7 +295,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   },
   "draft": false,
   "provenance": {
-    "actorType": "user",
+    "actorType": "machine",
     "origin": {
       "type": "api"
     }
@@ -337,7 +337,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   },
   "draft": false,
   "provenance": {
-    "actorType": "user",
+    "actorType": "machine",
     "origin": {
       "type": "api"
     }
@@ -379,7 +379,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   },
   "draft": false,
   "provenance": {
-    "actorType": "user",
+    "actorType": "machine",
     "origin": {
       "type": "api"
     }
