@@ -453,10 +453,7 @@ where
         Ok(())
     }
 
-    /// Inserts a [`DataType`] identified by [`OntologyTypeUuid`], and associated with an
-    /// [`OwnedById`], and [`EditionCreatedById`] into the database.
-    ///
-    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
+    /// Inserts a [`DataType`] identified by [`OntologyTypeUuid`].
     ///
     /// # Errors
     ///
@@ -553,10 +550,7 @@ where
         Ok(())
     }
 
-    /// Inserts a [`PropertyType`] identified by [`OntologyTypeUuid`], and associated with an
-    /// [`OwnedById`], and [`EditionCreatedById`] into the database.
-    ///
-    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
+    /// Inserts a [`PropertyType`] identified by [`OntologyTypeUuid`].
     ///
     /// # Errors
     ///
@@ -585,10 +579,7 @@ where
             .map(|row| row.get(0)))
     }
 
-    /// Inserts a [`EntityType`] identified by [`OntologyTypeUuid`], and associated with an
-    /// [`OwnedById`], [`EditionCreatedById`], and the optional label property, into the database.
-    ///
-    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
+    /// Inserts a [`EntityType`] identified by [`OntologyTypeUuid`].
     ///
     /// # Errors
     ///
