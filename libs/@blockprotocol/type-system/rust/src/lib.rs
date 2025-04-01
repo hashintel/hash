@@ -103,7 +103,7 @@
 //!     archived_by_id: None,
 //!     user_defined: {
 //!         // User-defined provenance information
-//!         let actor_type = ActorType::Human;
+//!         let actor_type = ActorType::User;
 //!         let origin = OriginProvenance {
 //!             ty: OriginType::WebApp,
 //!             id: None,
