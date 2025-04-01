@@ -1,4 +1,4 @@
-import type { UntaggedActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { Filter, GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -13,7 +13,7 @@ export const getSubgraphFromFilter = async ({
   graphApiClient,
   traversalDepth,
 }: {
-  authentication: { actorId: UntaggedActorId };
+  authentication: { actorId: ActorEntityUuid };
   filter: Filter;
   graphApiClient: GraphApi;
   traversalDepth: number;

@@ -22,7 +22,7 @@ use serde::{Deserialize as _, Serialize as _};
 use serde_json::Value as JsonValue;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
-use type_system::provenance::UntaggedActorId;
+use type_system::provenance::ActorEntityUuid;
 use walkdir::WalkDir;
 
 use crate::util::setup_subscriber;
@@ -116,7 +116,7 @@ struct Settings<P> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetEntitiesQueryParameters {
     #[serde(default)]
-    actor_id: Vec<UntaggedActorId>,
+    actor_id: Vec<ActorEntityUuid>,
     #[serde(default)]
     limit: Vec<usize>,
     #[serde(default)]
@@ -126,7 +126,7 @@ struct GetEntitiesQueryParameters {
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetEntitiesQuery<'q, 's, 'p> {
-    actor_id: UntaggedActorId,
+    actor_id: ActorEntityUuid,
     #[serde(borrow)]
     request: GetEntitiesRequest<'q, 's, 'p>,
     #[serde(default)]
@@ -189,7 +189,7 @@ impl GetEntitiesQuery<'_, '_, '_> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetEntitySubgraphQueryParameters {
     #[serde(default)]
-    actor_id: Vec<UntaggedActorId>,
+    actor_id: Vec<ActorEntityUuid>,
     #[serde(default)]
     limit: Vec<usize>,
     #[serde(default)]
@@ -201,7 +201,7 @@ struct GetEntitySubgraphQueryParameters {
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetEntitySubgraphQuery<'q, 's, 'p> {
-    actor_id: UntaggedActorId,
+    actor_id: ActorEntityUuid,
     #[serde(borrow)]
     request: GetEntitySubgraphRequest<'q, 's, 'p>,
     #[serde(default)]

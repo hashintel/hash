@@ -84,8 +84,8 @@ use type_system::{
             OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
         },
     },
-    provenance::UntaggedActorId,
-    web::{OwnedById, UntaggedTeamId},
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, OwnedById},
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,
@@ -111,7 +111,7 @@ use self::{
     },
 };
 
-pub struct AuthenticatedUserHeader(pub UntaggedActorId);
+pub struct AuthenticatedUserHeader(pub ActorEntityUuid);
 
 #[async_trait]
 impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
@@ -124,7 +124,7 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
             let uuid = Uuid::from_str(header_string)
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
-            Ok(Self(UntaggedActorId::new(uuid)))
+            Ok(Self(ActorEntityUuid::new(uuid)))
         } else {
             Err((
                 StatusCode::BAD_REQUEST,
@@ -144,7 +144,7 @@ pub trait RestApiStore:
 {
     fn load_external_type(
         &mut self,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> impl Future<Output = Result<OntologyTypeMetadata, Response>> + Send;
@@ -162,7 +162,7 @@ where
 {
     async fn load_external_type(
         &mut self,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, Response> {
@@ -241,7 +241,7 @@ impl QueryLogger {
     }
 
     #[expect(clippy::missing_panics_doc)]
-    pub fn capture(&mut self, actor: UntaggedActorId, query: OpenApiQuery<'_>) {
+    pub fn capture(&mut self, actor: ActorEntityUuid, query: OpenApiQuery<'_>) {
         let mut record = serde_json::to_value(query)
             .change_context(QueryLoggingError)
             .expect("query should be serializable");
@@ -287,11 +287,11 @@ impl QueryLogger {
 #[serde(tag = "endpoint", content = "query", rename_all = "camelCase")]
 pub enum OpenApiQuery<'a> {
     CheckAccountGroupPermission {
-        account_group_id: UntaggedTeamId,
+        account_group_id: ActorGroupId,
         permission: AccountGroupPermission,
     },
     GetAccountGroupRelations {
-        account_group_id: UntaggedTeamId,
+        account_group_id: ActorGroupId,
     },
     GetDataTypes(&'a JsonValue),
     GetDataTypeSubgraph(&'a JsonValue),

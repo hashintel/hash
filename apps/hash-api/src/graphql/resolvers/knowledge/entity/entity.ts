@@ -1,8 +1,8 @@
 import type {
+  ActorEntityUuid,
+  ActorGroupId,
   EntityId,
   OwnedById,
-  UntaggedActorId,
-  UntaggedTeamId,
 } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
@@ -576,14 +576,14 @@ const parseGqlAuthorizationViewerInput = ({
     if (!viewer) {
       throw new UserInputError("Viewer Account ID must be specified");
     }
-    return { kind: "account", subjectId: viewer as UntaggedActorId } as const;
+    return { kind: "account", subjectId: viewer as ActorEntityUuid } as const;
   } else {
     if (!viewer) {
       throw new UserInputError("Viewer Account Group ID must be specified");
     }
     return {
       kind: "accountGroup",
-      subjectId: viewer as UntaggedTeamId,
+      subjectId: viewer as ActorGroupId,
       subjectSet: "member",
     } as const;
   }

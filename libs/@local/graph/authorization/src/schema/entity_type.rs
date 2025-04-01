@@ -3,8 +3,8 @@ use core::error::Error;
 use serde::{Deserialize, Serialize};
 use type_system::{
     ontology::entity_type::EntityTypeUuid,
-    provenance::UntaggedActorId,
-    web::{OwnedById, UntaggedTeamId},
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, OwnedById},
 };
 use uuid::Uuid;
 
@@ -81,8 +81,8 @@ pub enum EntityTypeSubject {
     Web(OwnedById),
     Setting(EntityTypeSetting),
     Public,
-    Account(UntaggedActorId),
-    AccountGroup(UntaggedTeamId),
+    Account(ActorEntityUuid),
+    AccountGroup(ActorGroupId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -131,10 +131,10 @@ impl Resource for EntityTypeSubject {
                 EntityTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (EntityTypeSubjectNamespace::Account, EntityTypeSubjectId::Uuid(id)) => {
-                Self::Account(UntaggedActorId::new(id))
+                Self::Account(ActorEntityUuid::new(id))
             }
             (EntityTypeSubjectNamespace::AccountGroup, EntityTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(UntaggedTeamId::new(id))
+                Self::AccountGroup(ActorGroupId::new(id))
             }
             (
                 EntityTypeSubjectNamespace::Web
@@ -204,11 +204,11 @@ pub enum EntityTypeSettingSubject {
 pub enum EntityTypeEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: UntaggedActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: UntaggedTeamId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: EntityTypeSubjectSet,
     },
@@ -228,11 +228,11 @@ pub enum EntityTypeInstantiatorSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: UntaggedActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: UntaggedTeamId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: EntityTypeSubjectSet,
     },

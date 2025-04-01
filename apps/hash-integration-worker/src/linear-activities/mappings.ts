@@ -1,8 +1,8 @@
 import type {
+  ActorEntityUuid,
   EntityId,
   Property,
   PropertyObject,
-  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
@@ -65,7 +65,7 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
   T extends SupportedLinearTypeNames,
 >(params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: UntaggedActorId };
+  authentication: { actorId: ActorEntityUuid };
   linearType: T;
   linearData: SupportedLinearTypes[T];
 }): Promise<{
@@ -128,7 +128,7 @@ export const mapHashEntityToLinearUpdateInput = async <
   T extends SupportedLinearTypeNames,
 >(params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: UntaggedActorId };
+  authentication: { actorId: ActorEntityUuid };
   linearType: T;
   entity: Entity;
 }): Promise<SupportedLinearUpdateInput[T]> => {

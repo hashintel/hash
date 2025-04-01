@@ -1,8 +1,8 @@
 import type {
+  ActorEntityUuid,
+  ActorGroupId,
   EntityId,
   OwnedById,
-  UntaggedActorId,
-  UntaggedTeamId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type {
@@ -15,10 +15,10 @@ import type {
 } from "@local/hash-graph-client";
 
 type ReplaceAccount<T extends { kind: "account" }> = {
-  [P in keyof T]: P extends "subjectId" ? UntaggedActorId : T[P];
+  [P in keyof T]: P extends "subjectId" ? ActorEntityUuid : T[P];
 };
 type ReplaceAccountGroup<T extends { kind: "accountGroup" }> = {
-  [P in keyof T]: P extends "subjectId" ? UntaggedTeamId : T[P];
+  [P in keyof T]: P extends "subjectId" ? ActorGroupId : T[P];
 };
 
 type BrandSubject<T extends object> = T extends { kind: "account" }

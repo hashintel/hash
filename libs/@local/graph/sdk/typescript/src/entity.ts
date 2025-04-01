@@ -1,4 +1,5 @@
 import type {
+  ActorEntityUuid,
   BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
@@ -20,7 +21,6 @@ import type {
   PropertyValueWithMetadata,
   PropertyWithMetadata,
   ProvidedEntityEditionProvenance,
-  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -31,9 +31,9 @@ import {
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
+  GraphApi,
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
-  GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
@@ -50,7 +50,7 @@ import type { AuthenticationContext } from "./authentication-context.js";
  * Types used in getEntitySubgraph response to indicate the count of these in the whole result set,
  * useful for filtering only a limited number of entities are returned in a single response.
  */
-export type CreatedByIdsMap = Record<UntaggedActorId, number>;
+export type CreatedByIdsMap = Record<ActorEntityUuid, number>;
 export type TypeIdsMap = Record<VersionedUrl, number>;
 export type TypeTitlesMap = Record<VersionedUrl, string>;
 export type WebIdsMap = Record<OwnedById, number>;

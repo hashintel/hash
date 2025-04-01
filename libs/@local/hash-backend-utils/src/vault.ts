@@ -1,4 +1,4 @@
-import type { UntaggedActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { AxiosError, AxiosInstance } from "axios";
 import axios from "axios";
 
@@ -13,7 +13,7 @@ type VaultSecret<D = unknown> = {
   };
 };
 
-type UserSecretPath = `users/${UntaggedActorId}/${string}`;
+type UserSecretPath = `users/${ActorEntityUuid}/${string}`;
 
 export class VaultClient {
   client: AxiosInstance;
@@ -62,7 +62,7 @@ export class VaultClient {
   async read<D = unknown>(params: {
     secretMountPath: "secret";
     path: string;
-    userAccountId: UntaggedActorId;
+    userAccountId: ActorEntityUuid;
   }): Promise<VaultSecret<D>> {
     const { secretMountPath, path } = params;
 
@@ -100,7 +100,7 @@ export const createUserSecretPath = ({
   service,
 }: {
   /** The user's accountId */
-  accountId: UntaggedActorId;
+  accountId: ActorEntityUuid;
   /** The rest of the path to the secret, determined by the service. May contain multiple segments. */
   restOfPath: string;
   /** The service the secret is for */

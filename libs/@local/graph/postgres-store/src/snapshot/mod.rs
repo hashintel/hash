@@ -60,8 +60,8 @@ use type_system::{
         entity_type::{EntityTypeUuid, EntityTypeWithMetadata},
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
-    provenance::UntaggedActorId,
-    web::{OwnedById, UntaggedTeamId},
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, OwnedById},
 };
 
 use crate::{
@@ -71,12 +71,12 @@ use crate::{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
-    pub id: UntaggedActorId,
+    pub id: ActorEntityUuid,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountGroup {
-    pub id: UntaggedTeamId,
+    pub id: ActorGroupId,
     pub relations: Vec<AccountGroupRelationAndSubject>,
 }
 
@@ -319,11 +319,11 @@ impl PostgresStorePool {
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
             .and_then(move |row| async move {
-                let id: UntaggedTeamId = row.get(0);
+                let id: ActorGroupId = row.get(0);
                 Ok(AccountGroup {
                     id,
                     relations: authorization_api
-                        .read_relations::<(UntaggedTeamId, AccountGroupRelationAndSubject)>(
+                        .read_relations::<(ActorGroupId, AccountGroupRelationAndSubject)>(
                             RelationshipFilter::from_resource(id),
                             Consistency::FullyConsistent,
                         )

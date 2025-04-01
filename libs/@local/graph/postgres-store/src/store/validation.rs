@@ -35,7 +35,7 @@ use type_system::{
         entity_type::{ClosedEntityType, EntityTypeUuid},
         property_type::{PropertyType, PropertyTypeUuid},
     },
-    provenance::UntaggedActorId,
+    provenance::ActorEntityUuid,
 };
 
 use crate::store::postgres::{AsClient, PostgresStore};
@@ -133,7 +133,7 @@ pub struct StoreCache {
 pub struct StoreProvider<'a, S> {
     pub store: &'a S,
     pub cache: StoreCache,
-    pub authorization: Option<(UntaggedActorId, Consistency<'static>)>,
+    pub authorization: Option<(ActorEntityUuid, Consistency<'static>)>,
 }
 
 impl<C, A> StoreProvider<'_, PostgresStore<C, A>>

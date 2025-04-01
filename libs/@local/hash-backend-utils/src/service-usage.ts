@@ -1,11 +1,11 @@
 import type {
+  ActorEntityUuid,
+  ActorGroupId,
   ClosedTemporalBound,
   EntityUuid,
   OwnedById,
   ProvidedEntityEditionProvenance,
   TemporalInterval,
-  UntaggedActorId,
-  UntaggedTeamId,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -50,7 +50,7 @@ export const getWebServiceUsage = async (
     userAccountId,
     webId,
   }: {
-    userAccountId: UntaggedActorId;
+    userAccountId: ActorEntityUuid;
     decisionTimeInterval?: TemporalInterval<
       ClosedTemporalBound,
       ClosedTemporalBound
@@ -137,7 +137,7 @@ export const createUsageRecord = async (
     /**
      * Grant view access on the usage record to these additional accounts
      */
-    additionalViewers?: UntaggedActorId[];
+    additionalViewers?: ActorEntityUuid[];
     /**
      * The web the usage will be assigned to (user or org)
      */
@@ -154,7 +154,7 @@ export const createUsageRecord = async (
      * The user that is incurring the usage (e.g. the user that triggered the flow)
      * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
      */
-    userAccountId: UntaggedActorId;
+    userAccountId: ActorEntityUuid;
   },
 ) => {
   const properties: UsageRecord["propertiesWithMetadata"] = {
@@ -280,7 +280,7 @@ export const createUsageRecord = async (
       relation: "viewer",
       subject: {
         kind: "accountGroup",
-        subjectId: assignUsageToWebId as UntaggedTeamId,
+        subjectId: assignUsageToWebId as ActorGroupId,
         subjectSet: "administrator",
       },
     });

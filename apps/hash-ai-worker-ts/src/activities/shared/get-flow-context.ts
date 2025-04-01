@@ -1,8 +1,8 @@
 import type {
+  ActorEntityUuid,
   EntityId,
   EntityUuid,
   OwnedById,
-  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import {
   entityIdFromComponents,
@@ -137,7 +137,7 @@ type FlowContext = {
   dataSources: FlowDataSources;
   flowEntityId: EntityId;
   stepId: string;
-  userAuthentication: { actorId: UntaggedActorId };
+  userAuthentication: { actorId: ActorEntityUuid };
   webId: OwnedById;
 };
 

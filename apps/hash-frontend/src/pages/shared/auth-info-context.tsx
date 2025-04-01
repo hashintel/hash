@@ -1,6 +1,6 @@
 import { useApolloClient } from "@apollo/client";
 import { intervalForTimestamp } from "@blockprotocol/graph/stdlib";
-import type { UntaggedTeamId } from "@blockprotocol/type-system";
+import type { ActorGroupId } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
   extractEntityUuidFromEntityId,
@@ -89,7 +89,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
         (link) =>
           extractEntityUuidFromEntityId(
             link.linkData.rightEntityId,
-          ) as string as UntaggedTeamId,
+          ) as string as ActorGroupId,
       ) ?? [],
   });
 

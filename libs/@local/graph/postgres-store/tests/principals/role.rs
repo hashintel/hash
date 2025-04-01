@@ -1,15 +1,15 @@
 use core::{assert_matches::assert_matches, error::Error};
 
 use hash_graph_authorization::policies::principal::{
-    ActorId, PrincipalId,
+    PrincipalId,
     role::{Role, RoleId},
     team::{StandaloneTeamId, StandaloneTeamRoleId, TeamId},
-    user::UserId,
 };
 use hash_graph_postgres_store::permissions::{
     PrincipalError, RoleAssignmentStatus, RoleUnassignmentStatus,
 };
 use pretty_assertions::assert_eq;
+use type_system::provenance::{ActorEntityUuid, ActorId, UserId};
 use uuid::Uuid;
 
 use crate::DatabaseTestWrapper;
@@ -187,7 +187,7 @@ async fn assign_role_to_nonexistent_actor() -> Result<(), Box<dyn Error>> {
         .await?;
 
     // Try to assign the role to a non-existent user
-    let non_existent_user_id = UserId::new(Uuid::new_v4());
+    let non_existent_user_id = UserId::new(ActorEntityUuid::new(Uuid::new_v4()));
     let result = client
         .assign_role_to_actor(ActorId::User(non_existent_user_id), role_id)
         .await;

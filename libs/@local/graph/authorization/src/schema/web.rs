@@ -2,8 +2,8 @@ use core::error::Error;
 
 use serde::{Deserialize, Serialize};
 use type_system::{
-    provenance::UntaggedActorId,
-    web::{OwnedById, UntaggedTeamId},
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, OwnedById},
 };
 use uuid::Uuid;
 
@@ -80,8 +80,8 @@ impl Permission<OwnedById> for WebPermission {}
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum WebSubject {
     Public,
-    Account(UntaggedActorId),
-    AccountGroup(UntaggedTeamId),
+    Account(ActorEntityUuid),
+    AccountGroup(ActorGroupId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -118,10 +118,10 @@ impl Resource for WebSubject {
                 Self::Public
             }
             (WebSubjectNamespace::Account, WebSubjectId::Uuid(id)) => {
-                Self::Account(UntaggedActorId::new(id))
+                Self::Account(ActorEntityUuid::new(id))
             }
             (WebSubjectNamespace::AccountGroup, WebSubjectId::Uuid(id)) => {
-                Self::AccountGroup(UntaggedTeamId::new(id))
+                Self::AccountGroup(ActorGroupId::new(id))
             }
             (WebSubjectNamespace::AccountGroup, WebSubjectId::Asteriks(PublicAccess::Public)) => {
                 return Err(InvalidResource::<Self>::invalid_id(kind, id));
@@ -157,11 +157,11 @@ impl Resource for WebSubject {
 pub enum WebOwnerSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: UntaggedActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: UntaggedTeamId,
+        id: ActorGroupId,
     },
 }
 
@@ -171,11 +171,11 @@ pub enum WebOwnerSubject {
 pub enum WebEntityCreatorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: UntaggedActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: UntaggedTeamId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: WebSubjectSet,
     },
@@ -187,11 +187,11 @@ pub enum WebEntityCreatorSubject {
 pub enum WebEntityEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: UntaggedActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: UntaggedTeamId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: WebSubjectSet,
     },
@@ -204,11 +204,11 @@ pub enum WebEntityViewerSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: UntaggedActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: UntaggedTeamId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: WebSubjectSet,
     },

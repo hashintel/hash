@@ -36,7 +36,7 @@ use type_system::{
         property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorType, OriginProvenance, OriginType, UntaggedActorId},
+    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
     web::OwnedById,
 };
 
@@ -52,7 +52,7 @@ pub struct StoreWrapper<A: AuthorizationApi> {
     pub store: ManuallyDrop<Store<A>>,
     #[expect(clippy::allow_attributes, reason = "False positive")]
     #[allow(dead_code, reason = "False positive")]
-    pub account_id: UntaggedActorId,
+    pub account_id: ActorEntityUuid,
 }
 
 pub fn setup_subscriber(
@@ -88,7 +88,7 @@ where
         bench_db_name: &str,
         fail_on_exists: bool,
         delete_on_drop: bool,
-        account_id: UntaggedActorId,
+        account_id: ActorEntityUuid,
         mut authorization_api: A,
     ) -> Self {
         load_env(Environment::Test);
@@ -288,7 +288,7 @@ where
 #[expect(clippy::too_many_lines)]
 pub async fn seed<D, P, E, C, A>(
     store: &mut PostgresStore<C, A>,
-    account_id: UntaggedActorId,
+    account_id: ActorEntityUuid,
     data_types: D,
     property_types: P,
     entity_types: E,
@@ -474,7 +474,7 @@ pub fn setup<A: AuthorizationApi>(
     db_name: &str,
     fail_on_exists: bool,
     delete_on_drop: bool,
-    account_id: UntaggedActorId,
+    account_id: ActorEntityUuid,
     authorization_api: A,
 ) -> (Runtime, StoreWrapper<A>) {
     let runtime = Runtime::new().expect("could not create runtime");

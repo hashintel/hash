@@ -1,6 +1,6 @@
 import type {
+  ActorEntityUuid,
   EntityId,
-  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -47,11 +47,11 @@ export const createDraftLinkEntity = ({
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
       entityTypeIds: [linkEntityTypeId],
       provenance: {
-        createdById: "" as UntaggedActorId,
+        createdById: "" as ActorEntityUuid,
         createdAtTransactionTime: currentTimestamp(),
         createdAtDecisionTime: currentTimestamp(),
         edition: {
-          createdById: "" as UntaggedActorId,
+          createdById: "" as ActorEntityUuid,
           actorType: "human",
           origin: { type: "api" },
         },

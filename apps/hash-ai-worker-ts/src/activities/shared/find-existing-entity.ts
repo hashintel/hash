@@ -1,8 +1,8 @@
 import type {
+  ActorEntityUuid,
   BaseUrl,
   LinkData,
   OwnedById,
-  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
@@ -47,7 +47,7 @@ export const findExistingEntity = async ({
   proposedEntity,
   includeDrafts,
 }: {
-  actorId: UntaggedActorId;
+  actorId: ActorEntityUuid;
   dereferencedEntityTypes?: DereferencedEntityType[];
   graphApiClient: GraphApi;
   ownedById: OwnedById;
@@ -290,7 +290,7 @@ export const findExistingLinkEntity = async ({
   ownedById,
   proposedEntity,
 }: {
-  actorId: UntaggedActorId;
+  actorId: ActorEntityUuid;
   graphApiClient: GraphApi;
   includeDrafts: boolean;
   linkData: LinkData;

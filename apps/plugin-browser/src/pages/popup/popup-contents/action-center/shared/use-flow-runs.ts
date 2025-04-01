@@ -1,4 +1,4 @@
-import type { UntaggedActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import {
   automaticBrowserInferenceFlowDefinition,
@@ -62,7 +62,7 @@ const mapFlowRunToMinimalFlowRun = (
 const getFlowRuns = async ({
   userAccountId,
 }: {
-  userAccountId: UntaggedActorId;
+  userAccountId: ActorEntityUuid;
 }): Promise<FlowFromBrowserOrWithPageRequest[]> =>
   queryGraphQlApi<GetMinimalFlowRunsQuery, GetMinimalFlowRunsQueryVariables>(
     getMinimalFlowRunsQuery,
@@ -127,7 +127,7 @@ export const useFlowRuns = (): {
     }
     return extractOwnedByIdFromEntityId(
       user.metadata.recordId.entityId,
-    ) as UntaggedActorId;
+    ) as ActorEntityUuid;
   }, [user]);
 
   useEffect(() => {

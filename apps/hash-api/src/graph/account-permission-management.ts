@@ -1,7 +1,7 @@
 import type {
+  ActorEntityUuid,
+  ActorGroupId,
   OwnedById,
-  UntaggedActorId,
-  UntaggedTeamId,
 } from "@blockprotocol/type-system";
 import type {
   InsertAccountGroupIdParams,
@@ -12,7 +12,7 @@ import type {
 import type { ImpureGraphFunction } from "./context-types";
 
 export const addAccountGroupMember: ImpureGraphFunction<
-  { accountId: UntaggedActorId; accountGroupId: UntaggedTeamId },
+  { accountId: ActorEntityUuid; accountGroupId: ActorGroupId },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.addAccountGroupMember(
@@ -25,7 +25,7 @@ export const addAccountGroupMember: ImpureGraphFunction<
 };
 
 export const removeAccountGroupMember: ImpureGraphFunction<
-  { accountId: UntaggedActorId; accountGroupId: UntaggedTeamId },
+  { accountId: ActorEntityUuid; accountGroupId: ActorGroupId },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeAccountGroupMember(
@@ -39,19 +39,19 @@ export const removeAccountGroupMember: ImpureGraphFunction<
 
 export const createAccount: ImpureGraphFunction<
   InsertAccountIdParams,
-  Promise<UntaggedActorId>
+  Promise<ActorEntityUuid>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
     .createAccount(actorId, params)
-    .then(({ data }) => data as UntaggedActorId);
+    .then(({ data }) => data.id as ActorEntityUuid);
 
 export const createAccountGroup: ImpureGraphFunction<
   InsertAccountGroupIdParams,
-  Promise<UntaggedTeamId>
+  Promise<ActorGroupId>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
     .createAccountGroup(actorId, params)
-    .then(({ data }) => data as UntaggedTeamId);
+    .then(({ data }) => data as ActorGroupId);
 
 export const createWeb: ImpureGraphFunction<
   { ownedById: OwnedById; owner: WebOwnerSubject },

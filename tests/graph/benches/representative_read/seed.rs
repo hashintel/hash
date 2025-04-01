@@ -14,7 +14,7 @@ use type_system::{
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::{VersionedUrl, entity_type::EntityType},
-    provenance::{ActorType, OriginProvenance, OriginType, UntaggedActorId},
+    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -125,7 +125,7 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
     reason = "transaction is committed which consumes the object"
 )]
 async fn seed_db<A: AuthorizationApi>(
-    account_id: UntaggedActorId,
+    account_id: ActorEntityUuid,
     store_wrapper: &mut StoreWrapper<A>,
 ) {
     let mut transaction = store_wrapper
@@ -264,12 +264,12 @@ async fn seed_db<A: AuthorizationApi>(
 
 /// DOC - TODO
 pub struct Samples {
-    pub entities: HashMap<UntaggedActorId, HashMap<VersionedUrl, Vec<EntityUuid>>>,
-    pub entity_types: HashMap<UntaggedActorId, Vec<VersionedUrl>>,
+    pub entities: HashMap<ActorEntityUuid, HashMap<VersionedUrl, Vec<EntityUuid>>>,
+    pub entity_types: HashMap<ActorEntityUuid, Vec<VersionedUrl>>,
 }
 
 async fn get_samples<A: AuthorizationApi>(
-    account_id: UntaggedActorId,
+    account_id: ActorEntityUuid,
     store_wrapper: &StoreWrapper<A>,
 ) -> Samples {
     let mut entity_types = HashMap::new();
@@ -344,7 +344,7 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
     //
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = UntaggedActorId::new(
+    let account_id = ActorEntityUuid::new(
         Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"),
     );
 

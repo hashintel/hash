@@ -1,4 +1,4 @@
-import type { OwnedById, UntaggedActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, OwnedById } from "@blockprotocol/type-system";
 import { generateTimestamp } from "@blockprotocol/type-system";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
@@ -19,7 +19,7 @@ const usageCostLimit = {
 
 export const checkWebServiceUsageNotExceeded = async (params: {
   graphApiClient: GraphApi;
-  userAccountId: UntaggedActorId;
+  userAccountId: ActorEntityUuid;
   webId: OwnedById;
 }): Promise<Status<never>> => {
   const { graphApiClient, userAccountId, webId } = params;

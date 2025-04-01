@@ -1,4 +1,5 @@
 import type {
+  ActorEntityUuid,
   BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
@@ -8,7 +9,6 @@ import type {
   OwnedById,
   PropertyObject,
   PropertyTypeWithMetadata,
-  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -24,9 +24,9 @@ import type {
   Entity as GraphApiEntity,
   EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
   EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
-  KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   PropertyTypeWithMetadata as GraphApiPropertyTypeWithMetadata,
   Subgraph as GraphApiSubgraph,
+  KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -54,7 +54,7 @@ const restrictedPropertyBaseUrls: string[] = [
 
 export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
   entity: GraphApiEntity,
-  userAccountId: UntaggedActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ) =>
   new Entity<T>({
@@ -92,7 +92,7 @@ export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
 
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,
-  userAccountId: UntaggedActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ) => {
   return {
@@ -123,7 +123,7 @@ const deserializeKnowledgeGraphVertex = (
 
 export const mapGraphApiVerticesToVertices = (
   vertices: VerticesGraphApi,
-  userAccountId: UntaggedActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ) =>
   Object.fromEntries(
@@ -186,7 +186,7 @@ export const mapGraphApiSubgraphToSubgraph = <
   RootType extends SubgraphRootType,
 >(
   subgraph: GraphApiSubgraph,
-  userAccountId: UntaggedActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ) => {
   return {

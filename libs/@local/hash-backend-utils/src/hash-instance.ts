@@ -1,7 +1,4 @@
-import type {
-  UntaggedActorId,
-  UntaggedTeamId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, ActorGroupId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -54,7 +51,7 @@ export const getHashInstanceFromEntity = ({
  */
 export const getHashInstance = async (
   { graphApi }: { graphApi: GraphApi },
-  { actorId }: { actorId: UntaggedActorId },
+  { actorId }: { actorId: ActorEntityUuid },
 ): Promise<HashInstance> => {
   const entities = await backOff(
     () =>
@@ -99,8 +96,8 @@ export const getHashInstance = async (
  */
 export const isUserHashInstanceAdmin = async (
   ctx: { graphApi: GraphApi },
-  authentication: { actorId: UntaggedActorId },
-  { userAccountId }: { userAccountId: UntaggedActorId },
+  authentication: { actorId: ActorEntityUuid },
+  { userAccountId }: { userAccountId: ActorEntityUuid },
 ) => {
   // console.info(`[${userAccountId}] Fetching HASH Instance entity`);
   const hashInstance = await getHashInstance(ctx, authentication).catch(
@@ -139,8 +136,8 @@ export const isUserHashInstanceAdmin = async (
  */
 export const getHashInstanceAdminAccountGroupId = async (
   ctx: { graphApi: GraphApi },
-  authentication: { actorId: UntaggedActorId },
-): Promise<UntaggedTeamId> => {
+  authentication: { actorId: ActorEntityUuid },
+): Promise<ActorGroupId> => {
   const hashInstance = await getHashInstance(ctx, authentication);
 
   const systemAccountId = await getMachineActorId(
@@ -170,5 +167,5 @@ export const getHashInstanceAdminAccountGroupId = async (
     );
   }
 
-  return entityAdmin.subjectId as UntaggedTeamId;
+  return entityAdmin.subjectId as ActorGroupId;
 };

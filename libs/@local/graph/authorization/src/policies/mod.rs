@@ -16,13 +16,13 @@ use core::{fmt, str::FromStr as _};
 use cedar::CedarEntityId as _;
 use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
 use error_stack::{Report, ResultExt as _};
-use type_system::knowledge::entity::id::EntityUuid;
+use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorId};
 use uuid::Uuid;
 
 pub(crate) use self::cedar::cedar_resource_type;
 use self::{
     action::{ActionConstraint, ActionId},
-    principal::{ActorId, PrincipalConstraint},
+    principal::PrincipalConstraint,
     resource::{EntityTypeId, ResourceConstraint},
 };
 pub use self::{
@@ -158,7 +158,10 @@ impl Request<'_> {
     pub(crate) fn to_cedar(&self) -> ast::Request {
         ast::Request::new_with_unknowns(
             ast::EntityUIDEntry::Known {
-                euid: Arc::new(self.actor.to_euid()),
+                euid: Arc::new(match self.actor {
+                    ActorId::User(user_id) => user_id.to_euid(),
+                    ActorId::Machine(machine_id) => machine_id.to_euid(),
+                }),
                 loc: None,
             },
             ast::EntityUIDEntry::Known {
@@ -327,24 +330,24 @@ mod tests {
         use std::collections::HashSet;
 
         use type_system::{
-            knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById,
+            knowledge::entity::id::EntityUuid,
+            ontology::VersionedUrl,
+            provenance::{ActorEntityUuid, ActorId, UserId},
+            web::OwnedById,
         };
 
         use super::*;
         use crate::policies::{
             ActionConstraint, ActionId, Authorized, ContextBuilder, Effect, PartialResourceId,
             PolicyId, PrincipalConstraint, Request, RequestContext, ResourceConstraint,
-            principal::{
-                ActorId,
-                user::{User, UserId, UserPrincipalConstraint},
-            },
+            principal::user::{User, UserPrincipalConstraint},
             resource::{EntityResource, EntityResourceConstraint},
         };
 
         #[test]
         fn user_can_view_entity_uuid() -> Result<(), Box<dyn Error>> {
             let policy_id = PolicyId::new(Uuid::new_v4());
-            let user_id = UserId::new(Uuid::new_v4());
+            let user_id = UserId::new(ActorEntityUuid::new(Uuid::new_v4()));
             let entity_uuid = EntityUuid::new(Uuid::new_v4());
 
             let policy = Policy {

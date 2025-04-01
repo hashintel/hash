@@ -1,8 +1,8 @@
 import type {
+  ActorEntityUuid,
   EntityTypeWithMetadata,
   OntologyTypeVersion,
   OwnedById,
-  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
@@ -87,7 +87,7 @@ const Page: NextPageWithLayout = () => {
           },
           provenance: {
             edition: {
-              createdById: "irrelevant-here" as UntaggedActorId,
+              createdById: "irrelevant-here" as ActorEntityUuid,
               actorType: "human",
               origin: {
                 type: "web-app",

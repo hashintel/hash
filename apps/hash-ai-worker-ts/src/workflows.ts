@@ -1,14 +1,14 @@
 import type {
+  ActorEntityUuid,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
-  Entity as GraphApiEntity,
   EntityQueryCursor,
   Filter,
+  Entity as GraphApiEntity,
 } from "@local/hash-graph-client";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -55,7 +55,7 @@ export const createEmbeddings = async (
 
 type UpdateDataTypeEmbeddingsParams = {
   authentication: {
-    actorId: UntaggedActorId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {
@@ -140,7 +140,7 @@ export const updateDataTypeEmbeddings = async (
 
 type UpdatePropertyTypeEmbeddingsParams = {
   authentication: {
-    actorId: UntaggedActorId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {
@@ -225,7 +225,7 @@ export const updatePropertyTypeEmbeddings = async (
 
 type UpdateEntityTypeEmbeddingsParams = {
   authentication: {
-    actorId: UntaggedActorId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {
@@ -310,7 +310,7 @@ export const updateEntityTypeEmbeddings = async (
 
 type UpdateEntityEmbeddingsParams = {
   authentication: {
-    actorId: UntaggedActorId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {

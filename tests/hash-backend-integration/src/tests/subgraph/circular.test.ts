@@ -4,7 +4,7 @@ import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types"
 import { getEntitySubgraphResponse } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   ENTITY_ID_DELIMITER,
-  type UntaggedActorId,
+  type ActorEntityUuid,
 } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -85,7 +85,7 @@ let link_dc: Entity;
 let link_ad: Entity;
 
 const authentication = {
-  actorId: "00000000-0001-0000-0000-000000000000" as UntaggedActorId,
+  actorId: "00000000-0001-0000-0000-000000000000" as ActorEntityUuid,
 };
 
 beforeAll(async () => {

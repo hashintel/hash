@@ -1,8 +1,8 @@
 use core::error::Error;
 
-use type_system::web::OwnedById;
+use type_system::{provenance::ActorId, web::OwnedById};
 
-use crate::policies::principal::{ActorId, role::RoleId, team::StandaloneTeamId, web::WebTeamId};
+use crate::policies::principal::{role::RoleId, team::StandaloneTeamId, web::WebTeamId};
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create actor: {_variant}")]

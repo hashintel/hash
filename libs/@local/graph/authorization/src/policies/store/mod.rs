@@ -8,7 +8,10 @@ use std::collections::{
 
 use either::Either;
 use error_stack::{Report, bail, ensure};
-use type_system::web::OwnedById;
+use type_system::{
+    provenance::{ActorEntityUuid, ActorId, MachineId, UserId},
+    web::OwnedById,
+};
 use uuid::Uuid;
 
 use self::error::{
@@ -19,14 +22,14 @@ use self::error::{
 use super::{
     ContextBuilder, Policy, PolicyId,
     principal::{
-        ActorId, PrincipalConstraint,
-        machine::{Machine, MachineId, MachinePrincipalConstraint},
+        PrincipalConstraint,
+        machine::{Machine, MachinePrincipalConstraint},
         role::RoleId,
         team::{
             StandaloneTeam, StandaloneTeamId, StandaloneTeamRole, StandaloneTeamRoleId,
             TeamPrincipalConstraint,
         },
-        user::{User, UserId, UserPrincipalConstraint},
+        user::{User, UserPrincipalConstraint},
         web::{Web, WebPrincipalConstraint, WebRole, WebRoleId, WebTeamId, WebTeamRole},
     },
 };
@@ -343,7 +346,7 @@ impl PolicyStore for MemoryPolicyStore {
             ActorCreationError::WebNotFound { web_id }
         );
 
-        let user_id = UserId::new(web_id.into_uuid());
+        let user_id = UserId::new(ActorEntityUuid::new(web_id.into_uuid()));
         let Entry::Vacant(entry) = self.actors.entry(ActorId::User(user_id)) else {
             bail!(ActorCreationError::WebOccupied { web_id })
         };
@@ -365,7 +368,7 @@ impl PolicyStore for MemoryPolicyStore {
             ActorCreationError::WebNotFound { web_id }
         );
 
-        let machine_id = MachineId::new(Uuid::new_v4());
+        let machine_id = MachineId::new(ActorEntityUuid::new(Uuid::new_v4()));
         let Entry::Vacant(entry) = self.actors.entry(ActorId::Machine(machine_id)) else {
             bail!(ActorCreationError::WebOccupied { web_id })
         };
@@ -511,7 +514,7 @@ impl PolicyStore for MemoryPolicyStore {
                 context.add_user(user);
             }
             Actor::Machine(machine) => {
-                context.add_machine(machine);
+                context.add_machine(&machine);
             }
         }
 

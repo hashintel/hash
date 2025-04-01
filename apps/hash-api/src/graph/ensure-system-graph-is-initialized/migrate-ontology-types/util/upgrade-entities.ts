@@ -1,8 +1,8 @@
 import type {
+  ActorEntityUuid,
   BaseUrl,
   OwnedById,
   PropertyObjectWithMetadata,
-  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
@@ -43,7 +43,7 @@ export const upgradeWebEntities = async ({
   migrateProperties,
   webOwnedById,
 }: {
-  authentication: { actorId: UntaggedActorId };
+  authentication: { actorId: ActorEntityUuid };
   context: ImpureGraphContext<false, true>;
   entityTypeBaseUrls: BaseUrl[];
   migrationState: MigrationState;
@@ -158,7 +158,7 @@ export const upgradeWebEntities = async ({
 
         const temporaryEntityTypePermissionsGranted: Record<
           VersionedUrl,
-          UntaggedActorId
+          ActorEntityUuid
         > = {};
 
         /**

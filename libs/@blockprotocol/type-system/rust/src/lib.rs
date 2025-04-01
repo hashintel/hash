@@ -78,7 +78,7 @@
 //!         OntologyEditionProvenance, OntologyOwnership, OntologyProvenance,
 //!         ProvidedOntologyEditionProvenance,
 //!     },
-//!     provenance::{ActorType, OriginProvenance, OriginType, UntaggedActorId},
+//!     provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
 //!     web::OwnedById,
 //! };
 //! use uuid::Uuid;
@@ -94,7 +94,7 @@
 //! };
 //!
 //! // Create provenance information
-//! let actor_id = UntaggedActorId::new(Uuid::from_u128(0x12345678_90AB_CDEF_1234_567890ABCDEF));
+//! let actor_id = ActorEntityUuid::new(Uuid::from_u128(0x12345678_90AB_CDEF_1234_567890ABCDEF));
 //! let edition_provenance = OntologyEditionProvenance {
 //!     created_by_id: actor_id,
 //!     archived_by_id: None,

@@ -1,9 +1,9 @@
 import type {
+  ActorEntityUuid,
   EntityId,
   OriginProvenance,
   OwnedById,
   ProvidedEntityEditionProvenance,
-  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
@@ -43,7 +43,7 @@ export type UsageTrackingParams = {
    * @todo: consider abstracting this in a wrapper method, or via
    * generic params (via a `logUsage` method).
    */
-  userAccountId: UntaggedActorId;
+  userAccountId: ActorEntityUuid;
   customMetadata: FlowUsageRecordCustomMetadata | null;
   webId: OwnedById;
   graphApiClient: GraphApi;

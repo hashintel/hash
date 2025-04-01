@@ -25,7 +25,7 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeUuid},
         provenance::OntologyEditionProvenance,
     },
-    web::{OwnedById, UntaggedTeamId},
+    web::{ActorGroupId, OwnedById},
 };
 
 use crate::store::postgres::query::Table;
@@ -37,7 +37,7 @@ pub trait PostgresRow: ToSql + Sized {
 #[derive(Debug, ToSql)]
 #[postgres(name = "account_groups")]
 pub struct AccountGroupRow {
-    pub account_group_id: UntaggedTeamId,
+    pub account_group_id: ActorGroupId,
 }
 
 #[derive(Debug, ToSql)]

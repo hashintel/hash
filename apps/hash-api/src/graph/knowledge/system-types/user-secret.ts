@@ -1,8 +1,8 @@
 import type {
+  ActorEntityUuid,
   EntityId,
   OwnedById,
   ProvidedEntityEditionProvenance,
-  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type {
@@ -35,7 +35,7 @@ type CreateUserSecretParams<T extends object> = {
    * The bot that will manage the secret, e.g. update, archive, upgrade it.
    * This is the only account that will have edit permissions for the secret.
    */
-  managingBotAccountId: UntaggedActorId;
+  managingBotAccountId: ActorEntityUuid;
   secretData: T;
   /**
    * The rest of the path to the secret in the vault, after the standardized system prefixes.
@@ -53,7 +53,7 @@ type CreateUserSecretParams<T extends object> = {
   /**
    * The user that owns the secret. The user will have read access to the secret.
    */
-  userAccountId: UntaggedActorId;
+  userAccountId: ActorEntityUuid;
   vaultClient: VaultClient;
 };
 

@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type { UntaggedActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -21,7 +21,7 @@ import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.quer
 import type { MinimalUser } from "../lib/user-and-org";
 
 type MachineActor = {
-  accountId: UntaggedActorId;
+  accountId: ActorEntityUuid;
   kind: "machine";
   displayName: string;
 };
@@ -32,7 +32,7 @@ export const isAiMachineActor = (actor: MachineActor): actor is MachineActor =>
 export type MinimalActor = MinimalUser | MachineActor;
 
 export const useActors = (params: {
-  accountIds?: UntaggedActorId[];
+  accountIds?: ActorEntityUuid[];
 }): { actors?: MinimalActor[]; loading: boolean } => {
   const { accountIds } = params;
 

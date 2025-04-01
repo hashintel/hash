@@ -1,4 +1,4 @@
-import type { UntaggedActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { Filter, GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -10,7 +10,7 @@ export const getEntityByFilter = async ({
   filter,
   includeDrafts,
 }: {
-  actorId: UntaggedActorId;
+  actorId: ActorEntityUuid;
   graphApiClient: GraphApi;
   filter: Filter;
   includeDrafts: boolean;

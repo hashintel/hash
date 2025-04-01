@@ -1,8 +1,8 @@
 import type {
+  ActorEntityUuid,
   EntityId,
   EntityUuid,
   OwnedById,
-  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
@@ -56,7 +56,7 @@ import {
 } from "./org-membership";
 
 export type User = {
-  accountId: UntaggedActorId;
+  accountId: ActorEntityUuid;
   kratosIdentityId: string;
   emails: string[];
   shortname?: string;
@@ -245,7 +245,7 @@ export const createUser: ImpureGraphFunction<
     shortname?: string;
     displayName?: string;
     isInstanceAdmin?: boolean;
-    userAccountId?: UntaggedActorId;
+    userAccountId?: ActorEntityUuid;
   },
   Promise<User>
 > = async (ctx, authentication, params) => {
@@ -289,11 +289,13 @@ export const createUser: ImpureGraphFunction<
 
   const userShouldHavePermissionsOnWeb = shortname && displayName;
 
-  let userAccountId: UntaggedActorId;
+  let userAccountId: ActorEntityUuid;
   if (params.userAccountId) {
     userAccountId = params.userAccountId;
   } else {
-    userAccountId = await createAccount(ctx, authentication, {});
+    userAccountId = await createAccount(ctx, authentication, {
+      actorType: "human",
+    });
 
     await createWeb(
       ctx,

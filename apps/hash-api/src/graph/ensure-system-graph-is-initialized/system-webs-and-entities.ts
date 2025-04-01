@@ -1,7 +1,7 @@
 import type {
+  ActorEntityUuid,
+  ActorGroupId,
   OwnedById,
-  UntaggedActorId,
-  UntaggedTeamId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -31,8 +31,8 @@ import { systemAccountId } from "../system-account";
 export const owningWebs: Record<
   SystemTypeWebShortname,
   {
-    machineActorAccountId?: UntaggedActorId;
-    accountGroupId?: UntaggedTeamId;
+    machineActorAccountId?: ActorEntityUuid;
+    accountGroupId?: ActorGroupId;
     enabled: boolean;
     name: string;
     websiteUrl: string;
@@ -59,8 +59,8 @@ export const getOrCreateOwningAccountGroupId = async (
   context: ImpureGraphContext,
   webShortname: SystemTypeWebShortname,
 ): Promise<{
-  accountGroupId: UntaggedTeamId;
-  machineActorId: UntaggedActorId;
+  accountGroupId: ActorGroupId;
+  machineActorId: ActorEntityUuid;
 }> => {
   // We only need to resolve this once for each shortname during the seeding process
   const resolvedAccountGroupId = owningWebs[webShortname].accountGroupId;
@@ -109,7 +109,13 @@ export const getOrCreateOwningAccountGroupId = async (
   const machineActorIdForWeb =
     webShortname === "h"
       ? systemAccountId
-      : await createAccount(context, { actorId: systemAccountId }, {});
+      : await createAccount(
+          context,
+          { actorId: systemAccountId },
+          {
+            actorType: "machine",
+          },
+        );
 
   const authentication = { actorId: machineActorIdForWeb };
 
@@ -313,7 +319,9 @@ export const ensureSystemEntitiesExist = async (params: {
       const aiAssistantAccountId = await createAccount(
         context,
         authentication,
-        {},
+        {
+          actorType: "ai",
+        },
       );
 
       await context.graphApi.modifyWebAuthorizationRelationships(

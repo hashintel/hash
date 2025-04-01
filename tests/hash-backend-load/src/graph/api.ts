@@ -1,4 +1,4 @@
-import type { UntaggedActorId } from "@blockprotocol/type-system-rs";
+import type { ActorEntityUuid } from "@blockprotocol/type-system-rs";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -33,8 +33,8 @@ export const getGraphApiClient = (): GraphApi => {
   return __graphApi;
 };
 
-let __systemAccountId: UntaggedActorId | undefined;
-export const getSystemAccountId = async (): Promise<UntaggedActorId> => {
+let __systemAccountId: ActorEntityUuid | undefined;
+export const getSystemAccountId = async (): Promise<ActorEntityUuid> => {
   if (!__systemAccountId) {
     __systemAccountId = await getGraphApiClient()
       .getEntityTypes(publicUserAccountId, {
@@ -55,7 +55,7 @@ export const getSystemAccountId = async (): Promise<UntaggedActorId> => {
           );
         }
         return entityType.metadata.provenance.edition
-          .createdById as UntaggedActorId;
+          .createdById as ActorEntityUuid;
       });
   }
 

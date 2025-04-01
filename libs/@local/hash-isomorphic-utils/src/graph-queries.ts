@@ -1,8 +1,8 @@
 import type { GraphResolveDepths } from "@blockprotocol/graph";
 import type {
+  ActorEntityUuid,
   EntityId,
   Timestamp,
-  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { splitEntityId } from "@blockprotocol/type-system";
@@ -285,7 +285,7 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
 ) => deserializeSubgraph<RootType>(subgraph);
 
 export const createDefaultAuthorizationRelationships = (params: {
-  actorId: UntaggedActorId;
+  actorId: ActorEntityUuid;
 }): EntityRelationAndSubject[] => [
   {
     relation: "administrator",
@@ -320,7 +320,7 @@ export const createDefaultAuthorizationRelationships = (params: {
 export const createOrgMembershipAuthorizationRelationships = ({
   memberAccountId,
 }: {
-  memberAccountId: UntaggedActorId;
+  memberAccountId: ActorEntityUuid;
 }): EntityRelationAndSubject[] => [
   {
     relation: "setting",

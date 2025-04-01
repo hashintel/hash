@@ -3,10 +3,10 @@ import {
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
 import type {
+  ActorEntityUuid,
+  ActorGroupId,
   BaseUrl,
   OwnedById,
-  UntaggedActorId,
-  UntaggedTeamId,
 } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
@@ -71,7 +71,7 @@ export const constructMinimalOrg = (params: {
 export type MinimalUser = {
   kind: "user";
   entity: Entity<UserEntity>;
-  accountId: UntaggedActorId;
+  accountId: ActorEntityUuid;
   accountSignupComplete: boolean;
   enabledFeatureFlags: FeatureFlag[];
   pinnedEntityTypeBaseUrls?: BaseUrl[];
@@ -506,7 +506,7 @@ export const constructUser = (params: {
 export type MinimalOrg = {
   kind: "org";
   entity: Entity;
-  accountGroupId: UntaggedTeamId;
+  accountGroupId: ActorGroupId;
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   description?: string;
   location?: string;

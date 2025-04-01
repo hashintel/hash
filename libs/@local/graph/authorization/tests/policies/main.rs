@@ -15,17 +15,19 @@ use hash_graph_authorization::policies::{
     Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
     action::ActionId,
     principal::{
-        ActorId,
-        machine::MachineId,
         role::RoleId,
         team::{StandaloneTeamId, StandaloneTeamRoleId},
-        user::UserId,
         web::WebRoleId,
     },
     resource::{EntityResource, EntityTypeId, EntityTypeResource},
     store::{MemoryPolicyStore, PolicyStore},
 };
-use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    ontology::VersionedUrl,
+    provenance::{ActorId, MachineId, UserId},
+    web::OwnedById,
+};
 use uuid::Uuid;
 
 use self::definitions::{

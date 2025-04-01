@@ -1,4 +1,5 @@
 import type {
+  ActorEntityUuid,
   BaseUrl,
   DataType,
   DataTypeMetadata,
@@ -20,7 +21,6 @@ import type {
   PropertyValues,
   SourceProvenance,
   Timestamp,
-  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -115,8 +115,8 @@ const mapOntologyProvenance = (
 ): OntologyProvenance => {
   return {
     edition: {
-      createdById: metadata.edition.createdById as UntaggedActorId,
-      archivedById: metadata.edition.archivedById as UntaggedActorId,
+      createdById: metadata.edition.createdById as ActorEntityUuid,
+      archivedById: metadata.edition.archivedById as ActorEntityUuid,
       actorType: metadata.edition.actorType,
       origin: metadata.edition.origin as OriginProvenance,
       sources: metadata.edition.sources as SourceProvenance[],
@@ -128,12 +128,12 @@ const mapEntityProvenance = (
   metadata: EntityProvenanceGraphApi,
 ): EntityProvenance => {
   return {
-    createdById: metadata.createdById as UntaggedActorId,
+    createdById: metadata.createdById as ActorEntityUuid,
     createdAtTransactionTime: metadata.createdAtTransactionTime as Timestamp,
     createdAtDecisionTime: metadata.createdAtDecisionTime as Timestamp,
     edition: {
-      createdById: metadata.edition.createdById as UntaggedActorId,
-      archivedById: metadata.edition.archivedById as UntaggedActorId,
+      createdById: metadata.edition.createdById as ActorEntityUuid,
+      archivedById: metadata.edition.archivedById as ActorEntityUuid,
       actorType: metadata.edition.actorType,
       origin: metadata.edition.origin as OriginProvenance,
       sources: metadata.edition.sources as SourceProvenance[],

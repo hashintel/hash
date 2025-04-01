@@ -1,10 +1,10 @@
 import type {
+  ActorEntityUuid,
   BaseUrl,
   EntityId,
   OwnedById,
   PropertyMetadata,
   PropertyValue,
-  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
@@ -96,7 +96,7 @@ export type SourceOrTargetFilterData = {
 };
 
 export type GenerateEntitiesTableDataParams = {
-  actorsByAccountId: Record<UntaggedActorId, MinimalActor | null>;
+  actorsByAccountId: Record<ActorEntityUuid, MinimalActor | null>;
   closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
   definitions: ClosedMultiEntityTypesDefinitions;
   entities: SerializedEntity[];
@@ -110,7 +110,7 @@ export type GenerateEntitiesTableDataParams = {
 };
 
 export type ActorTableFilterData = {
-  actorId: UntaggedActorId;
+  actorId: ActorEntityUuid;
   displayName?: string;
   count: number;
 };

@@ -1,11 +1,11 @@
 import type {
+  ActorEntityUuid,
   EntityId,
   EntityUuid,
   OwnedById,
   PropertyObject,
   PropertyObjectMetadata,
   ProvidedEntityEditionProvenance,
-  UntaggedActorId,
   Url,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -640,7 +640,7 @@ export type ExternalInputResponseSignal<
   RequestType extends ExternalInputRequestType = ExternalInputRequestType,
 > = {
   [Type in RequestType]: {
-    resolvedBy: UntaggedActorId;
+    resolvedBy: ActorEntityUuid;
     requestId: string;
     type: Type;
     data: ExternalInputResponseByType[Type];
@@ -660,7 +660,7 @@ export type ExternalInputRequest<
   /** The time at which the request was resolved */
   resolvedAt?: string;
   /** The user that responded to the request (or the user whose device responded to the request) */
-  resolvedBy?: UntaggedActorId;
+  resolvedBy?: ActorEntityUuid;
   /** The time at which the request was made */
   raisedAt: string;
 };

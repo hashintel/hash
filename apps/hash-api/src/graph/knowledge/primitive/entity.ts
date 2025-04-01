@@ -1,11 +1,11 @@
 import type {
+  ActorEntityUuid,
+  ActorGroupId,
   BaseUrl,
   EntityId,
   LinkData,
   PropertyObject,
   PropertyPatchOperation,
-  UntaggedActorId,
-  UntaggedTeamId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -827,7 +827,7 @@ export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
 };
 
 export const addEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: UntaggedActorId | UntaggedTeamId },
+  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.addEntityAdministrator(
@@ -838,7 +838,7 @@ export const addEntityAdministrator: ImpureGraphFunction<
 };
 
 export const removeEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: UntaggedActorId | UntaggedTeamId },
+  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeEntityAdministrator(
@@ -849,14 +849,14 @@ export const removeEntityAdministrator: ImpureGraphFunction<
 };
 
 export const addEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: UntaggedActorId | UntaggedTeamId },
+  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.addEntityEditor(actorId, params.entityId, params.editor);
 };
 
 export const removeEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: UntaggedActorId | UntaggedTeamId },
+  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeEntityEditor(actorId, params.entityId, params.editor);

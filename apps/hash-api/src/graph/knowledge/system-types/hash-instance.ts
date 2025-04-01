@@ -1,4 +1,4 @@
-import type { OwnedById, UntaggedActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, OwnedById } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
@@ -184,7 +184,7 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
  */
 export const getHashInstanceGroupMembers: ImpureGraphFunction<
   Record<string, never>,
-  Promise<UntaggedActorId[]>
+  Promise<ActorEntityUuid[]>
 > = async (ctx, authentication) => {
   const hashInstance = await getHashInstance(ctx, authentication);
 
@@ -209,7 +209,7 @@ export const getHashInstanceGroupMembers: ImpureGraphFunction<
   );
 
   return relations.map(
-    (relation) => relation.subject.subjectId as UntaggedActorId,
+    (relation) => relation.subject.subjectId as ActorEntityUuid,
   );
 };
 

@@ -1,10 +1,10 @@
 import type {
+  ActorEntityUuid,
   EntityId,
   OriginProvenance,
   OwnedById,
   PropertyObject,
   ProvidedEntityEditionProvenance,
-  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import type { Connection, LinearDocument, Team } from "@linear/sdk";
 import { LinearClient } from "@linear/sdk";
@@ -45,7 +45,7 @@ const provenance: ProvidedEntityEditionProvenance = {
 };
 
 const createHashEntity = async (params: {
-  authentication: { actorId: UntaggedActorId };
+  authentication: { actorId: ActorEntityUuid };
   graphApiClient: GraphApi;
   partialEntity: PartialEntity;
   outgoingLinks: {
@@ -128,7 +128,7 @@ const createHashEntity = async (params: {
 };
 
 const createOrUpdateHashEntity = async (params: {
-  authentication: { actorId: UntaggedActorId };
+  authentication: { actorId: ActorEntityUuid };
   graphApiClient: GraphApi;
   partialEntity: PartialEntity;
   outgoingLinks: {
@@ -348,7 +348,7 @@ export const createLinearIntegrationActivities = ({
   graphApiClient: GraphApi;
 }) => ({
   async createPartialEntities(params: {
-    authentication: { actorId: UntaggedActorId };
+    authentication: { actorId: ActorEntityUuid };
     entities: PartialEntity[];
     workspaceOwnedById: OwnedById;
   }): Promise<void> {

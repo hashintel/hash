@@ -5,19 +5,22 @@ use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     policies::principal::{
-        ActorId, PrincipalId,
-        machine::{Machine, MachineId},
+        PrincipalId,
+        machine::Machine,
         role::{Role, RoleId},
         team::{
             StandaloneTeam, StandaloneTeamId, StandaloneTeamRole, StandaloneTeamRoleId, Subteam,
             SubteamId, SubteamRole, TeamId,
         },
-        user::{User, UserId},
+        user::User,
         web::{SubteamRoleId, Web, WebRole, WebRoleId},
     },
 };
 use tokio_postgres::{GenericClient as _, error::SqlState};
-use type_system::web::OwnedById;
+use type_system::{
+    provenance::{ActorEntityUuid, ActorId, MachineId, UserId},
+    web::OwnedById,
+};
 use uuid::Uuid;
 
 use crate::store::{AsClient, PostgresStore};
@@ -456,7 +459,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
         &mut self,
         id: Option<Uuid>,
     ) -> Result<UserId, Report<PrincipalError>> {
-        let user_id = UserId::new(id.unwrap_or_else(Uuid::new_v4));
+        let user_id = UserId::new(ActorEntityUuid::new(id.unwrap_or_else(Uuid::new_v4)));
         if let Err(error) = self
             .as_mut_client()
             .execute(
@@ -503,7 +506,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .await
             .change_context(PrincipalError::StoreError)?
             .map(|row| User {
-                id: UserId::new(row.get(0)),
+                id: UserId::new(ActorEntityUuid::new(row.get(0))),
                 roles: HashSet::new(),
             }))
     }
@@ -535,22 +538,22 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
         &mut self,
         id: Option<Uuid>,
     ) -> Result<MachineId, Report<PrincipalError>> {
-        let id = id.unwrap_or_else(Uuid::new_v4);
+        let id = MachineId::new(ActorEntityUuid::new(id.unwrap_or_else(Uuid::new_v4)));
         if let Err(error) = self
             .as_mut_client()
-            .execute("INSERT INTO machine (id) VALUES ($1)", &[&id])
+            .execute("INSERT INTO machine (id) VALUES ($1)", &[id.as_uuid()])
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
                 Err(error).change_context(PrincipalError::PrincipalAlreadyExists {
-                    id: PrincipalId::Actor(ActorId::Machine(MachineId::new(id))),
+                    id: PrincipalId::Actor(ActorId::Machine(id)),
                 })
             } else {
                 Err(error).change_context(PrincipalError::StoreError)
             };
         }
 
-        Ok(MachineId::new(id))
+        Ok(id)
     }
 
     /// Checks if a machine with the given ID exists.
@@ -582,7 +585,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .await
             .change_context(PrincipalError::StoreError)?
             .map(|row| Machine {
-                id: MachineId::new(row.get(0)),
+                id: MachineId::new(ActorEntityUuid::new(row.get(0))),
                 roles: HashSet::new(),
             }))
     }
@@ -877,7 +880,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
 
         let mut actors = HashSet::new();
         for row in rows {
-            let id: Uuid = row.get(0);
+            let id = ActorEntityUuid::new(row.get(0));
             let principal_type: PrincipalType = row.get(1);
 
             let actor_id = match principal_type {
@@ -961,10 +964,12 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                 let id: Uuid = row.get(0);
                 match row.get(1) {
                     // Actors
-                    PrincipalType::User => PrincipalId::Actor(ActorId::User(UserId::new(id))),
-                    PrincipalType::Machine => {
-                        PrincipalId::Actor(ActorId::Machine(MachineId::new(id)))
+                    PrincipalType::User => {
+                        PrincipalId::Actor(ActorId::User(UserId::new(ActorEntityUuid::new(id))))
                     }
+                    PrincipalType::Machine => PrincipalId::Actor(ActorId::Machine(MachineId::new(
+                        ActorEntityUuid::new(id),
+                    ))),
 
                     // Teams
                     PrincipalType::Team => {

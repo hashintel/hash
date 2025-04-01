@@ -5,15 +5,18 @@
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
-use type_system::web::OwnedById;
+use type_system::{
+    provenance::{ActorId, MachineId, UserId},
+    web::OwnedById,
+};
 use uuid::Uuid;
 
-pub use self::actor::{Actor, ActorId};
+pub use self::actor::Actor;
 use self::{
-    machine::{MachineId, MachinePrincipalConstraint},
+    machine::MachinePrincipalConstraint,
     role::RoleId,
     team::{StandaloneTeamId, StandaloneTeamRoleId, TeamId, TeamPrincipalConstraint},
-    user::{UserId, UserPrincipalConstraint},
+    user::UserPrincipalConstraint,
     web::{SubteamRoleId, WebPrincipalConstraint, WebRoleId, WebTeamId},
 };
 use super::cedar::CedarEntityId as _;

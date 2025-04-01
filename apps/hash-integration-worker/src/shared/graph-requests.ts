@@ -1,7 +1,7 @@
 import type {
+  ActorEntityUuid,
   EntityId,
   OwnedById,
-  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -21,7 +21,7 @@ import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph
 
 export const getEntitiesByLinearId = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: UntaggedActorId };
+  authentication: { actorId: ActorEntityUuid };
   linearId: string;
   entityTypeId?: VersionedUrl;
   webOwnedById?: OwnedById;
@@ -70,7 +70,7 @@ export const getEntitiesByLinearId = async (params: {
 
 export const getEntityOutgoingLinks = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: UntaggedActorId };
+  authentication: { actorId: ActorEntityUuid };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {
@@ -124,7 +124,7 @@ export const getEntityOutgoingLinks = async (params: {
 
 export const getLatestEntityById = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: UntaggedActorId };
+  authentication: { actorId: ActorEntityUuid };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {

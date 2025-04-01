@@ -1,7 +1,7 @@
 import type {
+  ActorEntityUuid,
   BaseUrl,
   EntityId,
-  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
@@ -123,7 +123,7 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
  */
 export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
   {
-    userAccountId: UntaggedActorId;
+    userAccountId: ActorEntityUuid;
     linearOrgId: string;
     includeDrafts?: boolean;
   },

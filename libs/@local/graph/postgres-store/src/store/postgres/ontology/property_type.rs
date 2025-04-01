@@ -45,7 +45,7 @@ use type_system::{
         },
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::UntaggedActorId,
+    provenance::ActorEntityUuid,
 };
 
 use crate::store::{
@@ -67,7 +67,7 @@ where
     #[tracing::instrument(level = "debug", skip(property_types, authorization_api, zookie))]
     pub(crate) async fn filter_property_types_by_permission<I, T>(
         property_types: impl IntoIterator<Item = (I, T)> + Send,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         authorization_api: &A,
         zookie: &Zookie<'static>,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
@@ -105,7 +105,7 @@ where
 
     async fn get_property_types_impl(
         &self,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         params: GetPropertyTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<(GetPropertyTypesResponse, Zookie<'static>), Report<QueryError>> {
@@ -209,7 +209,7 @@ where
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
@@ -363,7 +363,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn create_property_types<P, R>(
         &mut self,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>
     where
@@ -525,7 +525,7 @@ where
     //       types anyway.
     async fn count_property_types(
         &self,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         mut params: CountPropertyTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         params
@@ -551,7 +551,7 @@ where
 
     async fn get_property_types(
         &self,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         mut params: GetPropertyTypesParams<'_>,
     ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
         params
@@ -573,7 +573,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_property_type_subgraph(
         &self,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         mut params: GetPropertyTypeSubgraphParams<'_>,
     ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
         params
@@ -668,7 +668,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_property_types<P, R>(
         &mut self,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
@@ -834,7 +834,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn archive_property_type(
         &mut self,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         params: ArchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.archive_ontology_type(&params.property_type_id, actor_id)
@@ -844,7 +844,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn unarchive_property_type(
         &mut self,
-        actor_id: UntaggedActorId,
+        actor_id: ActorEntityUuid,
         params: UnarchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.unarchive_ontology_type(
@@ -861,7 +861,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_property_type_embeddings(
         &mut self,
-        _: UntaggedActorId,
+        _: ActorEntityUuid,
         params: UpdatePropertyTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         #[derive(Debug, ToSql)]

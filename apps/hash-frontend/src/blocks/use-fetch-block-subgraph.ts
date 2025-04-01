@@ -1,10 +1,10 @@
 import { useLazyQuery } from "@apollo/client";
 import type {
+  ActorEntityUuid,
   Entity as EntityBp,
   EntityEditionId,
   EntityId,
   PropertyObject,
-  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
@@ -103,13 +103,13 @@ export const useFetchBlockSubgraph = (): ((
             archived: false,
             provenance: {
               edition: {
-                createdById: "placeholder-account" as UntaggedActorId,
+                createdById: "placeholder-account" as ActorEntityUuid,
                 actorType: "human",
                 origin: {
                   type: "web-app",
                 },
               },
-              createdById: "placeholder-account" as UntaggedActorId,
+              createdById: "placeholder-account" as ActorEntityUuid,
               createdAtTransactionTime: now,
               createdAtDecisionTime: now,
             },
