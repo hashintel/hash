@@ -13,11 +13,11 @@
 
 ## Overview
 
-The [hash.ai] website code currently resides in our private [`internal` monorepo]. However, certain site content is made publicly editable, and/or is distributed under Creative Commons/open-source licenses. Please check the individual `LICENSE` information within each file or sub-directory as appropriate, per the [license determination instructions](https://github.com/hashintel/hash/blob/main/LICENSE.md#1-license-determination).
+The [hash.ai] website code currently resides in our private [`internal` monorepo]. However, certain site content is made publicly editable, and/or is distributed under Creative Commons/open-source licenses. Please check the individual `LICENSE` information within each file or sub-directory as appropriate, per the [license determination instructions].
 
 - **User Guide** ([hash.ai/docs]): in the [`docs`] sub-directory
 - **Glossary Definitions** ([hash.ai/glossary]): in the [`glossary`] sub-directory
-- **Integrations** ([hash.ai/integrations]): in the [`integratinos`] sub-directory
+- **Integrations** ([hash.ai/integrations]): in the [`integrations`] sub-directory
 
 ## MDX file format
 
