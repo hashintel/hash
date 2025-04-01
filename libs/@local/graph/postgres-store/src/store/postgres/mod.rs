@@ -36,6 +36,7 @@ use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     Valid,
+    knowledge::entity::id::EntityUuid,
     ontology::{
         OntologyTemporalMetadata,
         data_type::{
@@ -50,7 +51,7 @@ use type_system::{
         property_type::{PropertyType, schema::PropertyTypeReference},
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::{ActorId, EditionArchivedById},
+    provenance::ActorEntityUuid,
     web::{ActorGroupId, OwnedById},
 };
 
@@ -316,7 +317,7 @@ where
     async fn archive_ontology_type(
         &self,
         id: &VersionedUrl,
-        archived_by_id: EditionArchivedById,
+        archived_by_id: ActorEntityUuid,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let query = "
           UPDATE ontology_temporal_metadata
@@ -453,10 +454,7 @@ where
         Ok(())
     }
 
-    /// Inserts a [`DataType`] identified by [`OntologyTypeUuid`], and associated with an
-    /// [`OwnedById`], and [`EditionCreatedById`] into the database.
-    ///
-    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
+    /// Inserts a [`DataType`] identified by [`OntologyTypeUuid`].
     ///
     /// # Errors
     ///
@@ -553,10 +551,7 @@ where
         Ok(())
     }
 
-    /// Inserts a [`PropertyType`] identified by [`OntologyTypeUuid`], and associated with an
-    /// [`OwnedById`], and [`EditionCreatedById`] into the database.
-    ///
-    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
+    /// Inserts a [`PropertyType`] identified by [`OntologyTypeUuid`].
     ///
     /// # Errors
     ///
@@ -585,10 +580,7 @@ where
             .map(|row| row.get(0)))
     }
 
-    /// Inserts a [`EntityType`] identified by [`OntologyTypeUuid`], and associated with an
-    /// [`OwnedById`], [`EditionCreatedById`], and the optional label property, into the database.
-    ///
-    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
+    /// Inserts a [`EntityType`] identified by [`OntologyTypeUuid`].
     ///
     /// # Errors
     ///
@@ -1033,7 +1025,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: InsertAccountIdParams,
     ) -> Result<(), Report<AccountInsertionError>> {
         self.as_client()
@@ -1050,7 +1042,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_group_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: InsertAccountGroupIdParams,
     ) -> Result<(), Report<AccountGroupInsertionError>> {
         let transaction = self
@@ -1113,7 +1105,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_web_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: InsertWebIdParams,
     ) -> Result<(), Report<WebInsertionError>> {
         let transaction = self.transaction().await.change_context(WebInsertionError)?;
@@ -1236,7 +1228,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 .attach_printable("Record does not exist")
                 .attach_printable(owned_by_id)),
             (true, false) => Ok(WebOwnerSubject::Account {
-                id: ActorId::new(owned_by_id.into_uuid()),
+                id: ActorEntityUuid::new(EntityUuid::new(owned_by_id.into_uuid())),
             }),
             (false, true) => Ok(WebOwnerSubject::AccountGroup {
                 id: ActorGroupId::new(owned_by_id.into_uuid()),
@@ -1256,7 +1248,7 @@ where
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_accounts(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
     ) -> Result<(), Report<DeletionError>> {
         self.as_client()
             .client()

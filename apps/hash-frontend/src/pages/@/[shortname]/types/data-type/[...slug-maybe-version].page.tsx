@@ -1,6 +1,6 @@
 import type {
+  ActorEntityUuid,
   DataTypeWithMetadata,
-  EditionCreatedById,
   OwnedById,
 } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
@@ -88,7 +88,7 @@ const Page: NextPageWithLayout = () => {
           },
           provenance: {
             edition: {
-              createdById: "irrelevant-here" as EditionCreatedById,
+              createdById: "irrelevant-here" as ActorEntityUuid,
               actorType: "human",
               origin: {
                 type: "web-app",

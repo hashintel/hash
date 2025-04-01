@@ -15,7 +15,7 @@ use type_system::{
         },
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::ActorId,
+    provenance::ActorEntityUuid,
 };
 
 use crate::{
@@ -174,7 +174,7 @@ pub trait DataTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_data_type<R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: CreateDataTypeParams<R>,
     ) -> impl Future<Output = Result<DataTypeMetadata, Report<InsertionError>>> + Send
     where
@@ -200,7 +200,7 @@ pub trait DataTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_data_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<DataTypeMetadata>, Report<InsertionError>>> + Send
     where
@@ -214,7 +214,7 @@ pub trait DataTypeStore {
     /// - if the underlying store fails to count the data types.
     fn count_data_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: CountDataTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
@@ -225,7 +225,7 @@ pub trait DataTypeStore {
     /// - if the requested [`DataType`] doesn't exist.
     fn get_data_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetDataTypesParams<'_>,
     ) -> impl Future<Output = Result<GetDataTypesResponse, Report<QueryError>>> + Send;
 
@@ -236,7 +236,7 @@ pub trait DataTypeStore {
     /// - if the requested [`DataType`] doesn't exist.
     fn get_data_type_subgraph(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetDataTypeSubgraphParams<'_>,
     ) -> impl Future<Output = Result<GetDataTypeSubgraphResponse, Report<QueryError>>> + Send;
 
@@ -247,7 +247,7 @@ pub trait DataTypeStore {
     /// - if the [`DataType`] doesn't exist.
     fn update_data_type<R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: UpdateDataTypesParams<R>,
     ) -> impl Future<Output = Result<DataTypeMetadata, Report<UpdateError>>> + Send
     where
@@ -270,7 +270,7 @@ pub trait DataTypeStore {
     /// - if the [`DataType`]s do not exist.
     fn update_data_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<DataTypeMetadata>, Report<UpdateError>>> + Send
     where
@@ -284,7 +284,7 @@ pub trait DataTypeStore {
     /// - if the [`DataType`] doesn't exist.
     fn archive_data_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: ArchiveDataTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
@@ -295,19 +295,19 @@ pub trait DataTypeStore {
     /// - if the [`DataType`] doesn't exist.
     fn unarchive_data_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: UnarchiveDataTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     fn update_data_type_embeddings(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 
     fn get_data_type_conversion_targets(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetDataTypeConversionTargetsParams,
     ) -> impl Future<Output = Result<GetDataTypeConversionTargetsResponse, Report<QueryError>>> + Send;
 

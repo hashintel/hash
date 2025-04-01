@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   EntityUuid,
   OwnedById,
@@ -199,7 +199,7 @@ export const oAuthLinearCallback: RequestHandler<
 
   const userAccountId = extractEntityUuidFromEntityId(
     actorEntityId,
-  ) as string as ActorId;
+  ) as ActorEntityUuid;
 
   const authentication = { actorId: userAccountId };
 

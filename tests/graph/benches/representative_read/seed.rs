@@ -14,7 +14,7 @@ use type_system::{
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::{VersionedUrl, entity_type::EntityType},
-    provenance::{ActorId, ActorType, OriginProvenance, OriginType},
+    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -124,7 +124,10 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
     clippy::significant_drop_tightening,
     reason = "transaction is committed which consumes the object"
 )]
-async fn seed_db<A: AuthorizationApi>(account_id: ActorId, store_wrapper: &mut StoreWrapper<A>) {
+async fn seed_db<A: AuthorizationApi>(
+    account_id: ActorEntityUuid,
+    store_wrapper: &mut StoreWrapper<A>,
+) {
     let mut transaction = store_wrapper
         .store
         .transaction()
@@ -135,7 +138,13 @@ async fn seed_db<A: AuthorizationApi>(account_id: ActorId, store_wrapper: &mut S
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id, InsertAccountIdParams { account_id })
+        .insert_account_id(
+            account_id,
+            InsertAccountIdParams {
+                account_id,
+                account_type: ActorType::Machine,
+            },
+        )
         .await
         .expect("could not insert account id");
     transaction
@@ -261,12 +270,12 @@ async fn seed_db<A: AuthorizationApi>(account_id: ActorId, store_wrapper: &mut S
 
 /// DOC - TODO
 pub struct Samples {
-    pub entities: HashMap<ActorId, HashMap<VersionedUrl, Vec<EntityUuid>>>,
-    pub entity_types: HashMap<ActorId, Vec<VersionedUrl>>,
+    pub entities: HashMap<ActorEntityUuid, HashMap<VersionedUrl, Vec<EntityUuid>>>,
+    pub entity_types: HashMap<ActorEntityUuid, Vec<VersionedUrl>>,
 }
 
 async fn get_samples<A: AuthorizationApi>(
-    account_id: ActorId,
+    account_id: ActorEntityUuid,
     store_wrapper: &StoreWrapper<A>,
 ) -> Samples {
     let mut entity_types = HashMap::new();
@@ -341,8 +350,9 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
     //
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id =
-        ActorId::new(Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"));
+    let account_id = ActorEntityUuid::new(EntityUuid::new(
+        Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"),
+    ));
 
     // We use the existence of the account ID as a marker for if the DB has been seeded already
     let already_seeded: bool = store_wrapper

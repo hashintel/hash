@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -55,7 +55,7 @@ export const createEmbeddings = async (
 
 type UpdateDataTypeEmbeddingsParams = {
   authentication: {
-    actorId: ActorId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {
@@ -140,7 +140,7 @@ export const updateDataTypeEmbeddings = async (
 
 type UpdatePropertyTypeEmbeddingsParams = {
   authentication: {
-    actorId: ActorId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {
@@ -225,7 +225,7 @@ export const updatePropertyTypeEmbeddings = async (
 
 type UpdateEntityTypeEmbeddingsParams = {
   authentication: {
-    actorId: ActorId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {
@@ -310,7 +310,7 @@ export const updateEntityTypeEmbeddings = async (
 
 type UpdateEntityEmbeddingsParams = {
   authentication: {
-    actorId: ActorId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {

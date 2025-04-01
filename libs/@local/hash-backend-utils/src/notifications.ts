@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   OwnedById,
   ProvidedEntityEditionProvenance,
@@ -22,7 +22,7 @@ import { getWebMachineActorId } from "./machine-actors.js";
 export const createNotificationEntityPermissions = ({
   machineActorId,
 }: {
-  machineActorId: ActorId;
+  machineActorId: ActorEntityUuid;
 }): {
   linkEntityRelationships: EntityRelationAndSubject[];
   notificationEntityRelationships: EntityRelationAndSubject[];
@@ -74,7 +74,7 @@ export const createGraphChangeNotification = async (
     changedEntityId: EntityId;
     changedEntityEditionId: Timestamp;
     operation: "create" | "update";
-    notifiedUserAccountId: ActorId;
+    notifiedUserAccountId: ActorEntityUuid;
   },
 ) => {
   const { graphApi } = context;

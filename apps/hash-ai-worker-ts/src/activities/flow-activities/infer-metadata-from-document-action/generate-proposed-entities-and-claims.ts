@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   EntityUuid,
   OwnedById,
@@ -47,14 +47,14 @@ const createClaim = async ({
   userActorId,
 }: {
   claimText: string;
-  creatorActorId: ActorId;
+  creatorActorId: ActorEntityUuid;
   draft: boolean;
   objectText: string;
   ownedById: OwnedById;
   propertyProvenance: PropertyProvenance;
   provenance: ProvidedEntityEditionProvenance;
   subjectText: string;
-  userActorId: ActorId;
+  userActorId: ActorEntityUuid;
 }) => {
   return await Entity.create<ClaimEntity>(
     graphApiClient,
@@ -110,7 +110,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   provenance,
   propertyProvenance,
 }: {
-  aiAssistantAccountId: ActorId;
+  aiAssistantAccountId: ActorEntityUuid;
   documentMetadata: Pick<DocumentData, "authors">;
   documentEntityId: EntityId;
   documentTitle: string;

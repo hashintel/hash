@@ -7,7 +7,7 @@ use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::provenance::ActorId;
+use crate::provenance::ActorEntityUuid;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
@@ -17,7 +17,7 @@ use crate::provenance::ActorId;
 pub struct OwnedById(
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "Brand<ActorId | ActorGroupId, \"WebId\">")
+        tsify(type = "Brand<ActorEntityUuid | ActorGroupId, \"WebId\">")
     )]
     Uuid,
 );
@@ -45,8 +45,8 @@ impl fmt::Display for OwnedById {
     }
 }
 
-impl From<ActorId> for OwnedById {
-    fn from(actor_id: ActorId) -> Self {
+impl From<ActorEntityUuid> for OwnedById {
+    fn from(actor_id: ActorEntityUuid) -> Self {
         Self::new(actor_id.into_uuid())
     }
 }

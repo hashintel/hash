@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   OriginProvenance,
   OwnedById,
@@ -45,7 +45,7 @@ const provenance: ProvidedEntityEditionProvenance = {
 };
 
 const createHashEntity = async (params: {
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   graphApiClient: GraphApi;
   partialEntity: PartialEntity;
   outgoingLinks: {
@@ -128,7 +128,7 @@ const createHashEntity = async (params: {
 };
 
 const createOrUpdateHashEntity = async (params: {
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   graphApiClient: GraphApi;
   partialEntity: PartialEntity;
   outgoingLinks: {
@@ -348,7 +348,7 @@ export const createLinearIntegrationActivities = ({
   graphApiClient: GraphApi;
 }) => ({
   async createPartialEntities(params: {
-    authentication: { actorId: ActorId };
+    authentication: { actorId: ActorEntityUuid };
     entities: PartialEntity[];
     workspaceOwnedById: OwnedById;
   }): Promise<void> {

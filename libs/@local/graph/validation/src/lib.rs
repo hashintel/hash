@@ -65,6 +65,7 @@ mod tests {
     use thiserror::Error;
     use type_system::{
         knowledge::{
+            entity::id::EntityUuid,
             property::{
                 Property, PropertyObject, PropertyObjectWithMetadata, PropertyValueWithMetadata,
                 PropertyWithMetadata, metadata::PropertyMetadata,
@@ -86,7 +87,7 @@ mod tests {
                 ProvidedOntologyEditionProvenance,
             },
         },
-        provenance::{ActorId, ActorType, EditionCreatedById, OriginProvenance, OriginType},
+        provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
         web::OwnedById,
     };
     use uuid::Uuid;
@@ -94,7 +95,7 @@ mod tests {
     use super::*;
 
     fn generate_data_type_metadata(schema: DataType) -> DataTypeWithMetadata {
-        let actor = ActorId::new(Uuid::nil());
+        let actor = ActorEntityUuid::new(EntityUuid::new(Uuid::nil()));
         DataTypeWithMetadata {
             metadata: DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(schema.id.clone()),
@@ -109,7 +110,7 @@ mod tests {
                 },
                 provenance: OntologyProvenance {
                     edition: OntologyEditionProvenance {
-                        created_by_id: EditionCreatedById::new(actor),
+                        created_by_id: actor,
                         archived_by_id: None,
                         user_defined: ProvidedOntologyEditionProvenance {
                             actor_type: ActorType::Human,

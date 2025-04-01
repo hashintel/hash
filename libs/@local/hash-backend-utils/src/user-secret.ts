@@ -1,4 +1,4 @@
-import type { ActorId, EntityId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -23,7 +23,7 @@ export const getSecretEntitiesForIntegration = async ({
   integrationEntityId,
 }: {
   authentication: {
-    actorId: ActorId;
+    actorId: ActorEntityUuid;
   };
   graphApiClient: GraphApi;
   integrationEntityId: EntityId;

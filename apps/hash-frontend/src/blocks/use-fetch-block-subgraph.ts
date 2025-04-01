@@ -1,7 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
 import type {
-  CreatedById,
-  EditionCreatedById,
+  ActorEntityUuid,
   Entity as EntityBp,
   EntityEditionId,
   EntityId,
@@ -104,13 +103,13 @@ export const useFetchBlockSubgraph = (): ((
             archived: false,
             provenance: {
               edition: {
-                createdById: "placeholder-account" as EditionCreatedById,
+                createdById: "placeholder-account" as ActorEntityUuid,
                 actorType: "human",
                 origin: {
                   type: "web-app",
                 },
               },
-              createdById: "placeholder-account" as CreatedById,
+              createdById: "placeholder-account" as ActorEntityUuid,
               createdAtTransactionTime: now,
               createdAtDecisionTime: now,
             },

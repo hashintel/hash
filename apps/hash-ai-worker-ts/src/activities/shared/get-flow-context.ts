@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   EntityUuid,
   OwnedById,
@@ -137,7 +137,7 @@ type FlowContext = {
   dataSources: FlowDataSources;
   flowEntityId: EntityId;
   stepId: string;
-  userAuthentication: { actorId: ActorId };
+  userAuthentication: { actorId: ActorEntityUuid };
   webId: OwnedById;
 };
 

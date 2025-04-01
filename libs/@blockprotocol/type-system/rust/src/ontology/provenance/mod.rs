@@ -20,9 +20,7 @@ use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use time::OffsetDateTime;
 
 use crate::{
-    provenance::{
-        ActorType, EditionArchivedById, EditionCreatedById, OriginProvenance, SourceProvenance,
-    },
+    provenance::{ActorEntityUuid, ActorType, OriginProvenance, SourceProvenance},
     web::OwnedById,
 };
 
@@ -76,10 +74,10 @@ pub struct ProvidedOntologyEditionProvenance {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OntologyEditionProvenance {
-    pub created_by_id: EditionCreatedById,
+    pub created_by_id: ActorEntityUuid,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub archived_by_id: Option<EditionArchivedById>,
+    pub archived_by_id: Option<ActorEntityUuid>,
     #[serde(flatten)]
     pub user_defined: ProvidedOntologyEditionProvenance,
 }

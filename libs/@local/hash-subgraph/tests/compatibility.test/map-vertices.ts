@@ -1,10 +1,8 @@
 import type {
+  ActorEntityUuid,
   BaseUrl,
-  CreatedById,
   DataType,
   DataTypeMetadata,
-  EditionArchivedById,
-  EditionCreatedById,
   EntityEditionId,
   EntityId,
   EntityMetadata,
@@ -117,8 +115,8 @@ const mapOntologyProvenance = (
 ): OntologyProvenance => {
   return {
     edition: {
-      createdById: metadata.edition.createdById as EditionCreatedById,
-      archivedById: metadata.edition.archivedById as EditionArchivedById,
+      createdById: metadata.edition.createdById as ActorEntityUuid,
+      archivedById: metadata.edition.archivedById as ActorEntityUuid,
       actorType: metadata.edition.actorType,
       origin: metadata.edition.origin as OriginProvenance,
       sources: metadata.edition.sources as SourceProvenance[],
@@ -130,12 +128,12 @@ const mapEntityProvenance = (
   metadata: EntityProvenanceGraphApi,
 ): EntityProvenance => {
   return {
-    createdById: metadata.createdById as CreatedById,
+    createdById: metadata.createdById as ActorEntityUuid,
     createdAtTransactionTime: metadata.createdAtTransactionTime as Timestamp,
     createdAtDecisionTime: metadata.createdAtDecisionTime as Timestamp,
     edition: {
-      createdById: metadata.edition.createdById as EditionCreatedById,
-      archivedById: metadata.edition.archivedById as EditionArchivedById,
+      createdById: metadata.edition.createdById as ActorEntityUuid,
+      archivedById: metadata.edition.archivedById as ActorEntityUuid,
       actorType: metadata.edition.actorType,
       origin: metadata.edition.origin as OriginProvenance,
       sources: metadata.edition.sources as SourceProvenance[],

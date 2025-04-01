@@ -1,7 +1,10 @@
 use core::error::Error;
 
 use serde::{Deserialize, Serialize};
-use type_system::{ontology::property_type::PropertyTypeUuid, provenance::ActorId, web::OwnedById};
+use type_system::{
+    knowledge::entity::id::EntityUuid, ontology::property_type::PropertyTypeUuid,
+    provenance::ActorEntityUuid, web::OwnedById,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -75,7 +78,7 @@ pub enum PropertyTypeSubject {
     Web(OwnedById),
     Setting(PropertyTypeSetting),
     Public,
-    Account(ActorId),
+    Account(ActorEntityUuid),
     AccountGroup(ActorGroupId),
 }
 
@@ -125,7 +128,7 @@ impl Resource for PropertyTypeSubject {
                 PropertyTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (PropertyTypeSubjectNamespace::Account, PropertyTypeSubjectId::Uuid(id)) => {
-                Self::Account(ActorId::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (PropertyTypeSubjectNamespace::AccountGroup, PropertyTypeSubjectId::Uuid(id)) => {
                 Self::AccountGroup(ActorGroupId::new(id))
@@ -198,7 +201,7 @@ pub enum PropertyTypeSettingSubject {
 pub enum PropertyTypeEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]

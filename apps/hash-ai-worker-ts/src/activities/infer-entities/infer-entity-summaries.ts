@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   OwnedById,
   VersionedUrl,
@@ -47,7 +47,7 @@ export const inferEntitySummaries = async (params: {
    *
    * @see https://linear.app/hash/issue/H-2621/remove-superfluous-parameters-in-flow-activity-methods-and-use
    */
-  userAccountId: ActorId;
+  userAccountId: ActorEntityUuid;
   graphApiClient: GraphApi;
   flowEntityId?: EntityId;
   webId: OwnedById;

@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   BaseUrl,
   OwnedById,
   PropertyObjectWithMetadata,
@@ -43,7 +43,7 @@ export const upgradeWebEntities = async ({
   migrateProperties,
   webOwnedById,
 }: {
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   context: ImpureGraphContext<false, true>;
   entityTypeBaseUrls: BaseUrl[];
   migrationState: MigrationState;
@@ -158,7 +158,7 @@ export const upgradeWebEntities = async ({
 
         const temporaryEntityTypePermissionsGranted: Record<
           VersionedUrl,
-          ActorId
+          ActorEntityUuid
         > = {};
 
         /**

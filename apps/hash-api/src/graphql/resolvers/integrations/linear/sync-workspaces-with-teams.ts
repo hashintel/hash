@@ -1,4 +1,4 @@
-import type { ActorId, OwnedById } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, OwnedById } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -58,7 +58,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 
   const userAccountId = extractOwnedByIdFromEntityId(
     linearIntegration.entity.metadata.recordId.entityId,
-  ) as ActorId;
+  ) as ActorEntityUuid;
 
   const linearUserSecret = await getLinearUserSecretByLinearOrgId(
     impureGraphContext,
@@ -152,7 +152,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 
       const webAccountId = extractEntityUuidFromEntityId(
         userOrOrganizationEntity.metadata.recordId.entityId,
-      ) as string as ActorId;
+      ) as string as ActorEntityUuid;
 
       /**
        * Add the Linear machine user to the web,

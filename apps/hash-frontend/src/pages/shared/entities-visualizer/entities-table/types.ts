@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   BaseUrl,
   EntityId,
   OwnedById,
@@ -96,7 +96,7 @@ export type SourceOrTargetFilterData = {
 };
 
 export type GenerateEntitiesTableDataParams = {
-  actorsByAccountId: Record<ActorId, MinimalActor | null>;
+  actorsByAccountId: Record<ActorEntityUuid, MinimalActor | null>;
   closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
   definitions: ClosedMultiEntityTypesDefinitions;
   entities: SerializedEntity[];
@@ -110,7 +110,7 @@ export type GenerateEntitiesTableDataParams = {
 };
 
 export type ActorTableFilterData = {
-  actorId: ActorId;
+  actorId: ActorEntityUuid;
   displayName?: string;
   count: number;
 };

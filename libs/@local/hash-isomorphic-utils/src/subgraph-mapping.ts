@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
@@ -54,7 +54,7 @@ const restrictedPropertyBaseUrls: string[] = [
 
 export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
   entity: GraphApiEntity,
-  userAccountId: ActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ) =>
   new Entity<T>({
@@ -92,7 +92,7 @@ export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
 
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,
-  userAccountId: ActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ) => {
   return {
@@ -123,7 +123,7 @@ const deserializeKnowledgeGraphVertex = (
 
 export const mapGraphApiVerticesToVertices = (
   vertices: VerticesGraphApi,
-  userAccountId: ActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ) =>
   Object.fromEntries(
@@ -186,7 +186,7 @@ export const mapGraphApiSubgraphToSubgraph = <
   RootType extends SubgraphRootType,
 >(
   subgraph: GraphApiSubgraph,
-  userAccountId: ActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ) => {
   return {

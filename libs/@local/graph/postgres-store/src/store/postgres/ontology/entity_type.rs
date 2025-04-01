@@ -61,7 +61,7 @@ use type_system::{
         property_type::PropertyTypeUuid,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::{ActorId, EditionArchivedById, EditionCreatedById},
+    provenance::ActorEntityUuid,
     web::OwnedById,
 };
 
@@ -84,7 +84,7 @@ where
     #[tracing::instrument(level = "trace", skip(entity_types, authorization_api, zookie))]
     pub(crate) async fn filter_entity_types_by_permission<I, T>(
         entity_types: impl IntoIterator<Item = (I, T)> + Send,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         authorization_api: &A,
         zookie: &Zookie<'static>,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
@@ -124,7 +124,7 @@ where
     #[expect(clippy::too_many_lines)]
     pub(crate) async fn get_entity_type_resolve_definitions(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         entity_types: &[EntityTypeUuid],
         include_data_type_children: bool,
     ) -> Result<EntityTypeResolveDefinitions, Report<QueryError>> {
@@ -377,7 +377,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn get_entity_types_impl(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetEntityTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<(GetEntityTypesResponse, Zookie<'static>), Report<QueryError>> {
@@ -579,7 +579,7 @@ where
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
@@ -764,7 +764,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn create_entity_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<InsertionError>>
     where
@@ -782,7 +782,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id),
+                    created_by_id: actor_id,
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -1004,7 +1004,7 @@ where
     //       types anyway.
     async fn count_entity_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         mut params: CountEntityTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         params
@@ -1030,7 +1030,7 @@ where
 
     async fn get_entity_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         mut params: GetEntityTypesParams<'_>,
     ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
         let include_entity_types = params.include_entity_types;
@@ -1084,7 +1084,7 @@ where
 
     async fn get_closed_multi_entity_types<I, J>(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         entity_type_ids: I,
         temporal_axes: QueryTemporalAxesUnresolved,
         include_resolved: Option<IncludeResolvedEntityTypeOption>,
@@ -1210,7 +1210,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_entity_type_subgraph(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         mut params: GetEntityTypeSubgraphParams<'_>,
     ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
         params
@@ -1314,7 +1314,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_entity_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<UpdateError>>
     where
@@ -1332,7 +1332,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id),
+                    created_by_id: actor_id,
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -1557,23 +1557,23 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn archive_entity_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: ArchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        self.archive_ontology_type(&params.entity_type_id, EditionArchivedById::new(actor_id))
+        self.archive_ontology_type(&params.entity_type_id, actor_id)
             .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
     async fn unarchive_entity_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: UnarchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.unarchive_ontology_type(
             &params.entity_type_id,
             &OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
+                created_by_id: actor_id,
                 archived_by_id: None,
                 user_defined: params.provenance,
             },
@@ -1584,7 +1584,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_entity_type_embeddings(
         &mut self,
-        _: ActorId,
+        _: ActorEntityUuid,
         params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         #[derive(Debug, ToSql)]

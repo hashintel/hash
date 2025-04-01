@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityUuid,
   OwnedById,
   ProvidedEntityEditionProvenance,
@@ -33,9 +33,9 @@ export type MachineActorIdentifier =
  */
 export const getMachineActorId = async (
   context: { graphApi: GraphApi },
-  authentication: { actorId: ActorId },
+  authentication: { actorId: ActorEntityUuid },
   { identifier }: { identifier: MachineActorIdentifier },
-): Promise<ActorId> => {
+): Promise<ActorEntityUuid> => {
   const [machineEntity, ...unexpectedEntities] = await backOff(
     () =>
       context.graphApi
@@ -114,13 +114,13 @@ export const createMachineActorEntity = async (
     // A logger instance
     logger: Logger;
     // An existing accountId for the machine actor, which will also be used to authenticate the request
-    machineAccountId: ActorId;
+    machineAccountId: ActorEntityUuid;
     // The OwnedById of the web the actor's entity will belong to
     ownedById: OwnedById;
     // A display name for the machine actor, to display to users
     displayName: string;
     // The accountId of the system account, used to grant the machine actor permissions to instantiate system types
-    systemAccountId: ActorId;
+    systemAccountId: ActorEntityUuid;
     machineEntityTypeId?: VersionedUrl;
   },
 ): Promise<void> => {
@@ -226,7 +226,7 @@ export const createMachineActorEntity = async (
  */
 export const createWebMachineActor = async (
   context: { graphApi: GraphApi },
-  authentication: { actorId: ActorId },
+  authentication: { actorId: ActorEntityUuid },
   {
     ownedById,
     logger,
@@ -236,12 +236,14 @@ export const createWebMachineActor = async (
     logger: Logger;
     machineEntityTypeId?: VersionedUrl;
   },
-): Promise<ActorId> => {
+): Promise<ActorEntityUuid> => {
   const { graphApi } = context;
 
   const machineAccountId = await graphApi
-    .createAccount(authentication.actorId, {})
-    .then((resp) => resp.data);
+    .createAccount(authentication.actorId, {
+      accountType: "machine",
+    })
+    .then((resp) => resp.data.id as ActorEntityUuid);
 
   await graphApi.modifyWebAuthorizationRelationships(authentication.actorId, [
     {
@@ -264,25 +266,25 @@ export const createWebMachineActor = async (
   await createMachineActorEntity(context, {
     identifier: `system-${ownedById}`,
     logger,
-    machineAccountId: machineAccountId as ActorId,
+    machineAccountId,
     ownedById,
     displayName: "HASH",
     systemAccountId,
     machineEntityTypeId,
   });
 
-  return machineAccountId as ActorId;
+  return machineAccountId;
 };
 
 export const getWebMachineActorId = async (
   context: { graphApi: GraphApi },
-  authentication: { actorId: ActorId },
+  authentication: { actorId: ActorEntityUuid },
   {
     ownedById,
   }: {
     ownedById: OwnedById;
   },
-): Promise<ActorId> => {
+): Promise<ActorEntityUuid> => {
   return getMachineActorId(context, authentication, {
     identifier: `system-${ownedById}`,
   });

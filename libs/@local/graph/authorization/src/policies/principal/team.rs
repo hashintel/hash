@@ -4,23 +4,47 @@ use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
+use type_system::web::OwnedById;
 use uuid::Uuid;
 
+use super::web::SubteamRoleId;
 use crate::policies::cedar::CedarEntityId;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
+pub enum TeamId {
+    Standalone(StandaloneTeamId),
+    Web(OwnedById),
+    Sub(SubteamId),
+}
+
+impl TeamId {
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        match self {
+            Self::Standalone(id) => id.into_uuid(),
+            Self::Web(id) => id.into_uuid(),
+            Self::Sub(id) => id.into_uuid(),
+        }
+    }
+
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        match self {
+            Self::Standalone(id) => id.as_uuid(),
+            Self::Web(id) => id.as_uuid(),
+            Self::Sub(id) => id.as_uuid(),
+        }
+    }
+}
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
-#[cfg_attr(
-    feature = "postgres",
-    derive(postgres_types::FromSql, postgres_types::ToSql),
-    postgres(transparent)
-)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
-pub struct TeamId(Uuid);
+pub struct SubteamId(Uuid);
 
-impl TeamId {
+impl SubteamId {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
@@ -37,13 +61,74 @@ impl TeamId {
     }
 }
 
-impl fmt::Display for TeamId {
+impl fmt::Display for SubteamId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl CedarEntityId for TeamId {
+impl CedarEntityId for SubteamId {
+    type Error = Report<uuid::Error>;
+
+    fn entity_type() -> &'static Arc<ast::EntityType> {
+        static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
+            LazyLock::new(|| crate::policies::cedar_resource_type(["Subteam"]));
+        &ENTITY_TYPE
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        ast::Eid::new(self.0.to_string())
+    }
+
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
+        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+    }
+}
+
+#[derive(Debug)]
+pub struct Subteam {
+    pub id: SubteamId,
+    pub parents: Vec<TeamId>,
+    pub roles: HashSet<StandaloneTeamRoleId>,
+}
+
+#[derive(Debug)]
+pub struct SubteamRole {
+    pub id: SubteamRoleId,
+    pub team_id: SubteamId,
+}
+
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[repr(transparent)]
+pub struct StandaloneTeamId(Uuid);
+
+impl StandaloneTeamId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        self.0
+    }
+
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        &self.0
+    }
+}
+
+impl fmt::Display for StandaloneTeamId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl CedarEntityId for StandaloneTeamId {
     type Error = Report<uuid::Error>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
@@ -62,9 +147,9 @@ impl CedarEntityId for TeamId {
 }
 
 #[derive(Debug)]
-pub struct Team {
-    pub id: TeamId,
-    pub roles: HashSet<TeamRoleId>,
+pub struct StandaloneTeam {
+    pub id: StandaloneTeamId,
+    pub roles: HashSet<StandaloneTeamRoleId>,
 }
 
 #[derive(
@@ -77,9 +162,9 @@ pub struct Team {
 )]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
-pub struct TeamRoleId(Uuid);
+pub struct StandaloneTeamRoleId(Uuid);
 
-impl TeamRoleId {
+impl StandaloneTeamRoleId {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
@@ -96,13 +181,13 @@ impl TeamRoleId {
     }
 }
 
-impl fmt::Display for TeamRoleId {
+impl fmt::Display for StandaloneTeamRoleId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl CedarEntityId for TeamRoleId {
+impl CedarEntityId for StandaloneTeamRoleId {
     type Error = Report<uuid::Error>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
@@ -121,12 +206,12 @@ impl CedarEntityId for TeamRoleId {
 }
 
 #[derive(Debug)]
-pub struct TeamRole {
-    pub id: TeamRoleId,
-    pub team_id: TeamId,
+pub struct StandaloneTeamRole {
+    pub id: StandaloneTeamRoleId,
+    pub team_id: StandaloneTeamId,
 }
 
-impl TeamRole {
+impl StandaloneTeamRole {
     pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
         ast::Entity::new(
             self.id.to_euid(),
@@ -143,11 +228,11 @@ impl TeamRole {
 pub enum TeamPrincipalConstraint {
     InTeam {
         #[serde(deserialize_with = "Option::deserialize")]
-        id: Option<TeamId>,
+        id: Option<StandaloneTeamId>,
     },
     InRole {
         #[serde(deserialize_with = "Option::deserialize")]
-        role_id: Option<TeamRoleId>,
+        role_id: Option<StandaloneTeamRoleId>,
     },
 }
 
@@ -205,7 +290,7 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    use super::{TeamId, TeamPrincipalConstraint, TeamRoleId};
+    use super::{StandaloneTeamId, StandaloneTeamRoleId, TeamPrincipalConstraint};
     use crate::{
         policies::{PrincipalConstraint, principal::tests::check_principal},
         test_utils::check_deserialization_error,
@@ -213,7 +298,7 @@ mod tests {
 
     #[test]
     fn in_team() -> Result<(), Box<dyn Error>> {
-        let team_id = TeamId::new(Uuid::new_v4());
+        let team_id = StandaloneTeamId::new(Uuid::new_v4());
         check_principal(
             PrincipalConstraint::Team(TeamPrincipalConstraint::InTeam { id: Some(team_id) }),
             json!({
@@ -253,7 +338,7 @@ mod tests {
 
     #[test]
     fn in_role() -> Result<(), Box<dyn Error>> {
-        let role_id = TeamRoleId::new(Uuid::new_v4());
+        let role_id = StandaloneTeamRoleId::new(Uuid::new_v4());
         check_principal(
             PrincipalConstraint::Team(TeamPrincipalConstraint::InRole {
                 role_id: Some(role_id),

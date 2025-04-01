@@ -8,7 +8,7 @@ use type_system::{
     ontology::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
-    provenance::ActorId,
+    provenance::ActorEntityUuid,
     web::{ActorGroupId, OwnedById},
 };
 
@@ -95,7 +95,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_account_group_permission(
         &self,
-        actor: ActorId,
+        actor: ActorEntityUuid,
         permission: AccountGroupPermission,
         account_group: ActorGroupId,
         consistency: Consistency<'_>,
@@ -151,7 +151,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_web_permission(
         &self,
-        actor: ActorId,
+        actor: ActorEntityUuid,
         permission: WebPermission,
         web: OwnedById,
         consistency: Consistency<'_>,
@@ -228,7 +228,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_entity_permission(
         &self,
-        actor: ActorId,
+        actor: ActorEntityUuid,
         permission: EntityPermission,
         entity: EntityId,
         consistency: Consistency<'_>,
@@ -241,7 +241,7 @@ where
     #[tracing::instrument(level = "info", skip(self, entities))]
     async fn check_entities_permission(
         &self,
-        actor: ActorId,
+        actor: ActorEntityUuid,
         permission: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -282,7 +282,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_entities(
         &self,
-        actor: ActorId,
+        actor: ActorEntityUuid,
         permission: EntityPermission,
         consistency: Consistency<'_>,
     ) -> Result<Vec<EntityUuid>, Report<ReadError>> {
@@ -356,7 +356,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_entity_type_permission(
         &self,
-        actor: ActorId,
+        actor: ActorEntityUuid,
         permission: EntityTypePermission,
         entity_type: EntityTypeUuid,
         consistency: Consistency<'_>,
@@ -369,7 +369,7 @@ where
     #[tracing::instrument(level = "info", skip(self, entity_types))]
     async fn check_entity_types_permission(
         &self,
-        actor: ActorId,
+        actor: ActorEntityUuid,
         permission: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -454,7 +454,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_property_type_permission(
         &self,
-        actor: ActorId,
+        actor: ActorEntityUuid,
         permission: PropertyTypePermission,
         property_type: PropertyTypeUuid,
         consistency: Consistency<'_>,
@@ -467,7 +467,7 @@ where
     #[tracing::instrument(level = "info", skip(self, property_types))]
     async fn check_property_types_permission(
         &self,
-        actor: ActorId,
+        actor: ActorEntityUuid,
         permission: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -550,7 +550,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_data_type_permission(
         &self,
-        actor: ActorId,
+        actor: ActorEntityUuid,
         permission: DataTypePermission,
         data_type: DataTypeUuid,
         consistency: Consistency<'_>,
@@ -563,7 +563,7 @@ where
     #[tracing::instrument(level = "info", skip(self, data_types))]
     async fn check_data_types_permission(
         &self,
-        actor: ActorId,
+        actor: ActorEntityUuid,
         permission: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,

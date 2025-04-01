@@ -1,6 +1,6 @@
 import type {
+  ActorEntityUuid,
   ActorGroupId,
-  ActorId,
   EntityId,
   OwnedById,
 } from "@blockprotocol/type-system";
@@ -576,7 +576,7 @@ const parseGqlAuthorizationViewerInput = ({
     if (!viewer) {
       throw new UserInputError("Viewer Account ID must be specified");
     }
-    return { kind: "account", subjectId: viewer as ActorId } as const;
+    return { kind: "account", subjectId: viewer as ActorEntityUuid } as const;
   } else {
     if (!viewer) {
       throw new UserInputError("Viewer Account Group ID must be specified");

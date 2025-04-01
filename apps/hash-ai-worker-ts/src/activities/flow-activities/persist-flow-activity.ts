@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   OriginProvenance,
   OwnedById,
   ProvidedEntityEditionProvenance,
@@ -17,7 +17,7 @@ import { graphApiClient } from "../shared/graph-api-client.js";
 
 type PersistFlowActivityParams = {
   flow: LocalFlowRun;
-  userAuthentication: { actorId: ActorId };
+  userAuthentication: { actorId: ActorEntityUuid };
   webId: OwnedById;
 };
 

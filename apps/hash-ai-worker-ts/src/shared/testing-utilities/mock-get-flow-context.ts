@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityUuid,
   OwnedById,
 } from "@blockprotocol/type-system";
@@ -28,7 +28,7 @@ type DeepPartial<T> = {
         : T[P];
 };
 
-const createDummyFlow = async (params: { actorId: ActorId }) => {
+const createDummyFlow = async (params: { actorId: ActorEntityUuid }) => {
   const { actorId } = params;
 
   const dummyFlowRunProperties = mapFlowRunToEntityProperties({

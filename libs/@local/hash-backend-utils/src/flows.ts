@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   EntityUuid,
   OwnedById,
@@ -37,7 +37,7 @@ import type { TemporalClient } from "./temporal.js";
 export const getFlowRunEntityById = async (params: {
   flowRunId: EntityUuid;
   graphApiClient: GraphApi;
-  userAuthentication: { actorId: ActorId };
+  userAuthentication: { actorId: ActorEntityUuid };
 }): Promise<Entity<FlowRunEntity> | null> => {
   const { flowRunId, graphApiClient, userAuthentication } = params;
 
@@ -74,7 +74,7 @@ type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
   temporalClient: TemporalClient;
-  userAuthentication: { actorId: ActorId };
+  userAuthentication: { actorId: ActorEntityUuid };
 };
 
 export async function getFlowRunById(
@@ -149,7 +149,7 @@ type GetFlowRunsFilters = {
 };
 
 type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   filters: GetFlowRunsFilters;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;

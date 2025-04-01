@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use type_system::provenance::ActorId;
+use type_system::provenance::ActorEntityUuid;
 
 use crate::zanzibar::types::{Resource, Subject};
 
@@ -9,7 +9,7 @@ pub enum AccountNamespace {
     Account,
 }
 
-impl Resource for ActorId {
+impl Resource for ActorEntityUuid {
     type Id = Self;
     type Kind = AccountNamespace;
 
@@ -29,7 +29,7 @@ impl Resource for ActorId {
     }
 }
 
-impl Subject for ActorId {
+impl Subject for ActorEntityUuid {
     type Relation = !;
     type Resource = Self;
 
@@ -94,7 +94,7 @@ impl Subject for PublicAccess {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ActorIdOrPublic {
-    ActorId(ActorId),
+    ActorId(ActorEntityUuid),
     PublicAccess(PublicAccess),
 }
 

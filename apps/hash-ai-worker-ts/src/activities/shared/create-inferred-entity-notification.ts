@@ -1,7 +1,5 @@
-import {
-  type ActorId,
-  extractDraftIdFromEntityId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -15,7 +13,7 @@ export const createInferredEntityNotification = async ({
   entity: Entity;
   graphApiClient: GraphApi;
   operation: "create" | "update";
-  notifiedUserAccountId: ActorId;
+  notifiedUserAccountId: ActorEntityUuid;
 }) => {
   const entityIsDraft = !!extractDraftIdFromEntityId(
     entity.metadata.recordId.entityId,

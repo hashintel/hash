@@ -3,8 +3,8 @@ import {
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
 import type {
+  ActorEntityUuid,
   ActorGroupId,
-  ActorId,
   BaseUrl,
   OwnedById,
 } from "@blockprotocol/type-system";
@@ -71,7 +71,7 @@ export const constructMinimalOrg = (params: {
 export type MinimalUser = {
   kind: "user";
   entity: Entity<UserEntity>;
-  accountId: ActorId;
+  accountId: ActorEntityUuid;
   accountSignupComplete: boolean;
   enabledFeatureFlags: FeatureFlag[];
   pinnedEntityTypeBaseUrls?: BaseUrl[];

@@ -1,9 +1,6 @@
 use alloc::sync::Arc;
 use core::{fmt, iter, str::FromStr as _};
-use std::{
-    collections::{HashMap, HashSet},
-    sync::LazyLock,
-};
+use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
@@ -16,14 +13,13 @@ use crate::policies::cedar::CedarEntityId;
 pub struct Web {
     pub id: OwnedById,
     pub roles: HashSet<WebRoleId>,
-    pub teams: HashMap<WebTeamId, WebTeam>,
 }
 
 #[derive(Debug)]
 pub struct WebTeam {
     pub id: WebTeamId,
     pub web_id: OwnedById,
-    pub roles: HashSet<WebTeamRoleId>,
+    pub roles: HashSet<SubteamRoleId>,
 }
 
 impl WebTeam {
@@ -184,7 +180,7 @@ impl CedarEntityId for WebTeamId {
 
 #[derive(Debug)]
 pub struct WebTeamRole {
-    pub id: WebTeamRoleId,
+    pub id: SubteamRoleId,
     pub web_id: OwnedById,
     pub team_id: WebTeamId,
 }
@@ -222,9 +218,9 @@ impl WebTeamRole {
 )]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
-pub struct WebTeamRoleId(Uuid);
+pub struct SubteamRoleId(Uuid);
 
-impl WebTeamRoleId {
+impl SubteamRoleId {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
@@ -241,13 +237,13 @@ impl WebTeamRoleId {
     }
 }
 
-impl fmt::Display for WebTeamRoleId {
+impl fmt::Display for SubteamRoleId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl CedarEntityId for WebTeamRoleId {
+impl CedarEntityId for SubteamRoleId {
     type Error = Report<uuid::Error>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
@@ -282,7 +278,7 @@ pub enum WebPrincipalConstraint {
     },
     InTeamRole {
         #[serde(deserialize_with = "Option::deserialize")]
-        team_role_id: Option<WebTeamRoleId>,
+        team_role_id: Option<SubteamRoleId>,
     },
 }
 
@@ -375,7 +371,7 @@ mod tests {
     use type_system::web::OwnedById;
     use uuid::Uuid;
 
-    use super::{WebPrincipalConstraint, WebRoleId, WebTeamId, WebTeamRoleId};
+    use super::{SubteamRoleId, WebPrincipalConstraint, WebRoleId, WebTeamId};
     use crate::{
         policies::{PrincipalConstraint, principal::tests::check_principal},
         test_utils::check_deserialization_error,
@@ -500,7 +496,7 @@ mod tests {
 
     #[test]
     fn in_team_role() -> Result<(), Box<dyn Error>> {
-        let role_id = WebTeamRoleId::new(Uuid::new_v4());
+        let role_id = SubteamRoleId::new(Uuid::new_v4());
         check_principal(
             PrincipalConstraint::Web(WebPrincipalConstraint::InTeamRole {
                 team_role_id: Some(role_id),

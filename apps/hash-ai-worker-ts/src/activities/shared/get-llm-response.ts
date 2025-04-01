@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   OriginProvenance,
   OwnedById,
@@ -43,7 +43,7 @@ export type UsageTrackingParams = {
    * @todo: consider abstracting this in a wrapper method, or via
    * generic params (via a `logUsage` method).
    */
-  userAccountId: ActorId;
+  userAccountId: ActorEntityUuid;
   customMetadata: FlowUsageRecordCustomMetadata | null;
   webId: OwnedById;
   graphApiClient: GraphApi;

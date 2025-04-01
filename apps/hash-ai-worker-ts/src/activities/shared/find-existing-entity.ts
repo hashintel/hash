@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   BaseUrl,
   LinkData,
   OwnedById,
@@ -47,7 +47,7 @@ export const findExistingEntity = async ({
   proposedEntity,
   includeDrafts,
 }: {
-  actorId: ActorId;
+  actorId: ActorEntityUuid;
   dereferencedEntityTypes?: DereferencedEntityType[];
   graphApiClient: GraphApi;
   ownedById: OwnedById;
@@ -290,7 +290,7 @@ export const findExistingLinkEntity = async ({
   ownedById,
   proposedEntity,
 }: {
-  actorId: ActorId;
+  actorId: ActorEntityUuid;
   graphApiClient: GraphApi;
   includeDrafts: boolean;
   linkData: LinkData;

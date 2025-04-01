@@ -60,7 +60,7 @@ use type_system::{
         entity_type::{EntityTypeUuid, EntityTypeWithMetadata},
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
-    provenance::ActorId,
+    provenance::ActorEntityUuid,
     web::{ActorGroupId, OwnedById},
 };
 
@@ -71,7 +71,7 @@ use crate::{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
-    pub id: ActorId,
+    pub id: ActorEntityUuid,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

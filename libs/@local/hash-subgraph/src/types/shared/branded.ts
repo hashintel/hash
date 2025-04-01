@@ -1,6 +1,6 @@
 import type {
+  ActorEntityUuid,
   ActorGroupId,
-  ActorId,
   EntityId,
   OwnedById,
   VersionedUrl,
@@ -15,7 +15,7 @@ import type {
 } from "@local/hash-graph-client";
 
 type ReplaceAccount<T extends { kind: "account" }> = {
-  [P in keyof T]: P extends "subjectId" ? ActorId : T[P];
+  [P in keyof T]: P extends "subjectId" ? ActorEntityUuid : T[P];
 };
 type ReplaceAccountGroup<T extends { kind: "accountGroup" }> = {
   [P in keyof T]: P extends "subjectId" ? ActorGroupId : T[P];

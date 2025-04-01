@@ -1,19 +1,28 @@
-use core::fmt;
-
 use uuid::Uuid;
+
+use crate::knowledge::entity::id::EntityUuid;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum ActorType {
     Human,
-    #[serde(rename = "ai")]
     AI,
     Machine,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::Display,
+)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(
@@ -22,110 +31,189 @@ pub enum ActorType {
     postgres(transparent)
 )]
 #[repr(transparent)]
-pub struct ActorId(
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<string, \"ActorId\">"))] Uuid,
+pub struct ActorEntityUuid(
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "Brand<EntityUuid, \"ActorEntityUuid\">")
+    )]
+    EntityUuid,
 );
 
-impl ActorId {
+impl ActorEntityUuid {
     #[must_use]
-    pub const fn new(actor_id: Uuid) -> Self {
-        Self(actor_id)
+    pub const fn new(uuid: EntityUuid) -> Self {
+        Self(uuid)
     }
 
     #[must_use]
     pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
+        self.0.as_uuid()
     }
 
     #[must_use]
     pub const fn into_uuid(self) -> Uuid {
-        self.0
+        self.0.into_uuid()
     }
 }
 
-impl fmt::Display for ActorId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{}", &self.0)
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::Display,
+)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[repr(transparent)]
+pub struct UserId(
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "Brand<ActorEntityUuid, \"UserId\">")
+    )]
+    ActorEntityUuid,
+);
+
+impl UserId {
+    #[must_use]
+    pub const fn new(uuid: ActorEntityUuid) -> Self {
+        Self(uuid)
+    }
+
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        self.0.as_uuid()
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        self.0.into_uuid()
     }
 }
 
-macro_rules! define_provenance_id {
-    ($name:tt) => {
-        impl $name {
-            #[must_use]
-            pub const fn new(actor_id: ActorId) -> Self {
-                Self(actor_id)
-            }
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::Display,
+)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[repr(transparent)]
+pub struct MachineId(
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "Brand<ActorEntityUuid, \"MachineId\">")
+    )]
+    ActorEntityUuid,
+);
 
-            #[must_use]
-            pub const fn as_actor_id(&self) -> &ActorId {
-                &self.0
-            }
+impl MachineId {
+    #[must_use]
+    pub const fn new(uuid: ActorEntityUuid) -> Self {
+        Self(uuid)
+    }
 
-            #[must_use]
-            pub const fn into_actor_id(self) -> ActorId {
-                self.0
-            }
-        }
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        self.0.as_uuid()
+    }
 
-        impl fmt::Display for $name {
-            fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(fmt, "{}", &self.0)
-            }
-        }
-    };
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        self.0.into_uuid()
+    }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::Display,
+)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(
-    feature = "postgres",
-    derive(postgres_types::ToSql, postgres_types::FromSql),
-    postgres(transparent)
-)]
 #[repr(transparent)]
-pub struct CreatedById(
+pub struct AiId(
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "Brand<ActorId, \"CreatedById\">")
+        tsify(type = "Brand<ActorEntityUuid, \"AiId\">")
     )]
-    ActorId,
+    ActorEntityUuid,
 );
-define_provenance_id!(CreatedById);
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(
-    feature = "postgres",
-    derive(postgres_types::ToSql, postgres_types::FromSql),
-    postgres(transparent)
-)]
-#[repr(transparent)]
-pub struct EditionArchivedById(
-    #[cfg_attr(
-        target_arch = "wasm32",
-        tsify(type = "Brand<ActorId, \"EditionArchivedById\">")
-    )]
-    ActorId,
-);
-define_provenance_id!(EditionArchivedById);
+impl AiId {
+    #[must_use]
+    pub const fn new(uuid: ActorEntityUuid) -> Self {
+        Self(uuid)
+    }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        self.0.as_uuid()
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        self.0.into_uuid()
+    }
+}
+
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::Display,
+)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(
-    feature = "postgres",
-    derive(postgres_types::ToSql, postgres_types::FromSql),
-    postgres(transparent)
-)]
-#[repr(transparent)]
-pub struct EditionCreatedById(
-    #[cfg_attr(
-        target_arch = "wasm32",
-        tsify(type = "Brand<ActorId, \"EditionCreatedById\">")
-    )]
-    ActorId,
-);
-define_provenance_id!(EditionCreatedById);
+#[serde(tag = "type", content = "id", rename_all = "lowercase")]
+pub enum ActorId {
+    User(UserId),
+    Machine(MachineId),
+}
+
+impl ActorId {
+    #[must_use]
+    pub const fn new(actor_type: ActorType, uuid: ActorEntityUuid) -> Self {
+        match actor_type {
+            ActorType::Human => Self::User(UserId::new(uuid)),
+            ActorType::AI | ActorType::Machine => Self::Machine(MachineId::new(uuid)),
+        }
+    }
+
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        match self {
+            Self::User(id) => id.as_uuid(),
+            Self::Machine(id) => id.as_uuid(),
+        }
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        match self {
+            Self::User(id) => id.into_uuid(),
+            Self::Machine(id) => id.into_uuid(),
+        }
+    }
+}

@@ -1,4 +1,5 @@
 import type {
+  ActorEntityUuid,
   ActorGroupId,
   EntityUuid,
   OwnedById,
@@ -38,8 +39,8 @@ export const getWebShortname: ImpureGraphFunction<
   const namespace = (
     (await getUserById(ctx, authentication, {
       entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId as ActorGroupId as OwnedById,
-        params.accountOrAccountGroupId as string as EntityUuid,
+        params.accountOrAccountGroupId as ActorEntityUuid as OwnedById,
+        params.accountOrAccountGroupId as ActorEntityUuid,
       ),
     }).catch(() => undefined)) ??
     (await getOrgById(ctx, authentication, {

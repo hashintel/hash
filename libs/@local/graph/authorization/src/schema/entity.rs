@@ -3,7 +3,7 @@ use core::error::Error;
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::ActorId,
+    provenance::ActorEntityUuid,
     web::{ActorGroupId, OwnedById},
 };
 use uuid::Uuid;
@@ -83,7 +83,7 @@ pub enum EntitySubject {
     Setting(EntitySetting),
     Web(OwnedById),
     Public,
-    Account(ActorId),
+    Account(ActorEntityUuid),
     AccountGroup(ActorGroupId),
 }
 
@@ -133,7 +133,7 @@ impl Resource for EntitySubject {
                 Self::Public
             }
             (EntitySubjectNamespace::Account, EntitySubjectId::Uuid(id)) => {
-                Self::Account(ActorId::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (EntitySubjectNamespace::AccountGroup, EntitySubjectId::Uuid(id)) => {
                 Self::AccountGroup(ActorGroupId::new(id))
@@ -208,7 +208,7 @@ pub enum EntityOwnerSubject {
 pub enum EntityAdministratorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -224,7 +224,7 @@ pub enum EntityAdministratorSubject {
 pub enum EntityEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -241,7 +241,7 @@ pub enum EntityViewerSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]

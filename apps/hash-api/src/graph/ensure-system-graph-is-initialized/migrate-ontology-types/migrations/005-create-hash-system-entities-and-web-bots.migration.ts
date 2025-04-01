@@ -1,4 +1,4 @@
-import type { ActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
@@ -101,7 +101,7 @@ const migrate: MigrationFunction = async ({
         await createWebMachineActor(
           context,
           // We have to use the user's authority to add the machine to their web
-          { actorId: userAccountId as ActorId },
+          { actorId: userAccountId as ActorEntityUuid },
           {
             ownedById: userAccountId,
             logger,

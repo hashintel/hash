@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   BaseUrl,
   OwnedById,
   VersionedUrl,
@@ -165,7 +165,7 @@ export const useEntitiesTable = (
   }, [definitions, entities]);
 
   const editorActorIds = useMemo(() => {
-    const editorIds = new Set<ActorId>([
+    const editorIds = new Set<ActorEntityUuid>([
       ...typedKeys(editionCreatedByIds ?? {}),
       ...typedKeys(createdByIds ?? {}),
     ]);
@@ -177,13 +177,13 @@ export const useEntitiesTable = (
     accountIds: editorActorIds,
   });
 
-  const actorsByAccountId: Record<ActorId, MinimalActor | null> =
+  const actorsByAccountId: Record<ActorEntityUuid, MinimalActor | null> =
     useMemo(() => {
       if (!actors) {
         return {};
       }
 
-      const actorsByAccount: Record<ActorId, MinimalActor | null> = {};
+      const actorsByAccount: Record<ActorEntityUuid, MinimalActor | null> = {};
 
       for (const actor of actors) {
         actorsByAccount[actor.accountId] = actor;

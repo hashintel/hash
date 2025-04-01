@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   OwnedById,
   ProvidedEntityEditionProvenance,
@@ -35,7 +35,7 @@ type CreateUserSecretParams<T extends object> = {
    * The bot that will manage the secret, e.g. update, archive, upgrade it.
    * This is the only account that will have edit permissions for the secret.
    */
-  managingBotAccountId: ActorId;
+  managingBotAccountId: ActorEntityUuid;
   secretData: T;
   /**
    * The rest of the path to the secret in the vault, after the standardized system prefixes.
@@ -53,7 +53,7 @@ type CreateUserSecretParams<T extends object> = {
   /**
    * The user that owns the secret. The user will have read access to the secret.
    */
-  userAccountId: ActorId;
+  userAccountId: ActorEntityUuid;
   vaultClient: VaultClient;
 };
 

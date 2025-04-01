@@ -1,5 +1,5 @@
 import type { MultiFilter } from "@blockprotocol/graph";
-import type { ActorId, EntityId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -13,7 +13,7 @@ export const getFilterFromBlockProtocolQueryEntity = async ({
   graphApiClient,
   queryEntityId,
 }: {
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   graphApiClient: GraphApi;
   queryEntityId: EntityId;
 }) => {

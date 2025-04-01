@@ -23,11 +23,11 @@ use tokio::runtime::Runtime;
 use type_system::{
     knowledge::{
         Entity,
-        entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
+        entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::entity_type::EntityType,
-    provenance::{ActorId, ActorType, OriginProvenance, OriginType},
+    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -50,7 +50,7 @@ struct DatastoreEntitiesMetadata {
     reason = "transaction is committed which consumes the object"
 )]
 async fn seed_db<A: AuthorizationApi>(
-    account_id: ActorId,
+    account_id: ActorEntityUuid,
     store_wrapper: &mut StoreWrapper<A>,
     total: usize,
 ) -> DatastoreEntitiesMetadata {
@@ -64,7 +64,13 @@ async fn seed_db<A: AuthorizationApi>(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id, InsertAccountIdParams { account_id })
+        .insert_account_id(
+            account_id,
+            InsertAccountIdParams {
+                account_id,
+                account_type: ActorType::Machine,
+            },
+        )
         .await
         .expect("could not insert account id");
     transaction
@@ -207,7 +213,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
-    actor_id: ActorId,
+    actor_id: ActorEntityUuid,
     entity_metadata_list: &[Entity],
     graph_resolve_depths: GraphResolveDepths,
 ) {
@@ -268,8 +274,9 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id =
-        ActorId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"));
+    let account_id = ActorEntityUuid::new(EntityUuid::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    ));
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
@@ -320,8 +327,9 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id =
-        ActorId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"));
+    let account_id = ActorEntityUuid::new(EntityUuid::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    ));
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read

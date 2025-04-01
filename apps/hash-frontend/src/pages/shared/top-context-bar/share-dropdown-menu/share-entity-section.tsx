@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { ActorGroupId, ActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, ActorGroupId } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { Box, Skeleton, Typography } from "@mui/material";
@@ -65,7 +65,7 @@ export const ShareEntitySection: FunctionComponent<{
 
   const sharedWithUserAccountIds = useMemo(
     () =>
-      accountAuthorizationRelationships?.reduce<ActorId[]>(
+      accountAuthorizationRelationships?.reduce<ActorEntityUuid[]>(
         (acc, { subject }) =>
           subject.__typename === "AccountAuthorizationSubject" &&
           !acc.includes(subject.accountId)

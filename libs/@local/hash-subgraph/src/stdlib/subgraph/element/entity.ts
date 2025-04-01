@@ -6,8 +6,8 @@ import {
   intervalOverlapsInterval,
 } from "@blockprotocol/graph/stdlib";
 import type {
+  ActorEntityUuid,
   ActorGroupId,
-  ActorId,
   EntityId,
   TemporalBound,
   TemporalInterval,
@@ -29,7 +29,7 @@ import { mustBeDefined } from "../../../shared/invariant.js";
 export const extractActorId = extractEntityUuidFromEntityId as (
   entityId: ActorEntityId,
   // The type cannot be cast directly to `AccountId`, so we do it over two casts, but without `unknown`
-) => string as (entityId: ActorEntityId) => ActorId;
+) => string as (entityId: ActorEntityId) => ActorEntityUuid;
 
 /** If the underlying `EntityUuid` is an `AccountGroupId`, use this cast to convert the type */
 export const extractActorGroupId = extractEntityUuidFromEntityId as (

@@ -72,7 +72,7 @@ use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
-    knowledge::entity::EntityId,
+    knowledge::entity::{EntityId, id::EntityUuid},
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
         data_type::DataTypeMetadata,
@@ -84,7 +84,7 @@ use type_system::{
             OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
         },
     },
-    provenance::{ActorId, CreatedById, EditionArchivedById, EditionCreatedById},
+    provenance::ActorEntityUuid,
     web::{ActorGroupId, OwnedById},
 };
 use utoipa::{
@@ -111,7 +111,7 @@ use self::{
     },
 };
 
-pub struct AuthenticatedUserHeader(pub ActorId);
+pub struct AuthenticatedUserHeader(pub ActorEntityUuid);
 
 #[async_trait]
 impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
@@ -124,7 +124,7 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
             let uuid = Uuid::from_str(header_string)
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
-            Ok(Self(ActorId::new(uuid)))
+            Ok(Self(ActorEntityUuid::new(EntityUuid::new(uuid))))
         } else {
             Err((
                 StatusCode::BAD_REQUEST,
@@ -144,7 +144,7 @@ pub trait RestApiStore:
 {
     fn load_external_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> impl Future<Output = Result<OntologyTypeMetadata, Response>> + Send;
@@ -162,7 +162,7 @@ where
 {
     async fn load_external_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, Response> {
@@ -241,7 +241,7 @@ impl QueryLogger {
     }
 
     #[expect(clippy::missing_panics_doc)]
-    pub fn capture(&mut self, actor: ActorId, query: OpenApiQuery<'_>) {
+    pub fn capture(&mut self, actor: ActorEntityUuid, query: OpenApiQuery<'_>) {
         let mut record = serde_json::to_value(query)
             .change_context(QueryLoggingError)
             .expect("query should be serializable");
@@ -433,9 +433,6 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             BaseUrl,
             VersionedUrl,
             OwnedById,
-            CreatedById,
-            EditionCreatedById,
-            EditionArchivedById,
             OntologyProvenance,
             OntologyEditionProvenance,
             ProvidedOntologyEditionProvenance,

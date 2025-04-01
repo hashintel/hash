@@ -1,5 +1,5 @@
 import type {
-  EditionCreatedById,
+  ActorEntityUuid,
   EntityTypeWithMetadata,
   OntologyTypeVersion,
   OwnedById,
@@ -87,7 +87,7 @@ const Page: NextPageWithLayout = () => {
           },
           provenance: {
             edition: {
-              createdById: "irrelevant-here" as EditionCreatedById,
+              createdById: "irrelevant-here" as ActorEntityUuid,
               actorType: "human",
               origin: {
                 type: "web-app",

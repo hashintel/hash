@@ -25,7 +25,6 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeUuid},
         provenance::OntologyEditionProvenance,
     },
-    provenance::ActorId,
     web::{ActorGroupId, OwnedById},
 };
 
@@ -44,7 +43,7 @@ pub struct AccountGroupRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "accounts")]
 pub struct AccountRow {
-    pub account_id: ActorId,
+    pub account_id: EntityUuid,
 }
 
 #[derive(Debug, ToSql)]

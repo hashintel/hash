@@ -1,4 +1,4 @@
-import type { ActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -9,7 +9,7 @@ import type { ImpureGraphContext } from "./context-types";
 import { getEntityTypeById } from "./ontology/primitive/entity-type";
 
 // eslint-disable-next-line import/no-mutable-exports
-export let systemAccountId: ActorId;
+export let systemAccountId: ActorEntityUuid;
 
 const authentication = { actorId: publicUserAccountId };
 
@@ -43,7 +43,9 @@ export const ensureHashSystemAccountExists = async (params: {
   } catch {
     // We don't have any system types yet, so we need to create the system account, which will create them
 
-    systemAccountId = await createAccount(context, authentication, {});
+    systemAccountId = await createAccount(context, authentication, {
+      accountType: "machine",
+    });
     logger.info(`Created system user account id: ${systemAccountId}`);
   }
 };

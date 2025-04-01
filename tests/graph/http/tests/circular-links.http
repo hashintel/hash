@@ -5,13 +5,15 @@ POST http://127.0.0.1:4000/accounts
 Content-Type: application/json
 X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
-{}
+{
+  "accountType": "machine"
+}
 
 > {%
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
   });
-  client.global.set("account_id", response.body.toString());
+  client.global.set("account_id", response.body.id);
 %}
 
 ### Create account web

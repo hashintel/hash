@@ -5,14 +5,19 @@
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
-use type_system::web::OwnedById;
+use type_system::{
+    provenance::{ActorId, MachineId, UserId},
+    web::OwnedById,
+};
+use uuid::Uuid;
 
-pub use self::actor::{Actor, ActorId};
+pub use self::actor::Actor;
 use self::{
-    machine::{MachineId, MachinePrincipalConstraint},
-    team::{TeamId, TeamPrincipalConstraint, TeamRoleId},
-    user::{UserId, UserPrincipalConstraint},
-    web::{WebPrincipalConstraint, WebRoleId, WebTeamId, WebTeamRoleId},
+    machine::MachinePrincipalConstraint,
+    role::RoleId,
+    team::{StandaloneTeamId, StandaloneTeamRoleId, TeamId, TeamPrincipalConstraint},
+    user::UserPrincipalConstraint,
+    web::{SubteamRoleId, WebPrincipalConstraint, WebRoleId, WebTeamId},
 };
 use super::cedar::CedarEntityId as _;
 
@@ -22,6 +27,24 @@ pub mod role;
 pub mod team;
 pub mod user;
 pub mod web;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
+pub enum PrincipalId {
+    Actor(ActorId),
+    Team(TeamId),
+    Role(RoleId),
+}
+
+impl PrincipalId {
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        match self {
+            Self::Actor(actor_id) => actor_id.as_uuid(),
+            Self::Team(team_id) => team_id.as_uuid(),
+            Self::Role(role_id) => role_id.as_uuid(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(
@@ -72,24 +95,24 @@ impl InPrincipalConstraint {
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             }))
-        } else if *principal.entity_type() == **WebTeamRoleId::entity_type() {
+        } else if *principal.entity_type() == **SubteamRoleId::entity_type() {
             Ok(Self::Web(WebPrincipalConstraint::InTeamRole {
                 team_role_id: Some(
-                    WebTeamRoleId::from_eid(principal.eid())
+                    SubteamRoleId::from_eid(principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             }))
-        } else if *principal.entity_type() == **TeamId::entity_type() {
+        } else if *principal.entity_type() == **StandaloneTeamId::entity_type() {
             Ok(Self::Team(TeamPrincipalConstraint::InTeam {
                 id: Some(
-                    TeamId::from_eid(principal.eid())
+                    StandaloneTeamId::from_eid(principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             }))
-        } else if *principal.entity_type() == **TeamRoleId::entity_type() {
+        } else if *principal.entity_type() == **StandaloneTeamRoleId::entity_type() {
             Ok(Self::Team(TeamPrincipalConstraint::InRole {
                 role_id: Some(
-                    TeamRoleId::from_eid(principal.eid())
+                    StandaloneTeamRoleId::from_eid(principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             }))

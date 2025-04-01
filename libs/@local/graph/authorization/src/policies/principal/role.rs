@@ -1,14 +1,23 @@
-use core::fmt;
-
 use cedar_policy_core::ast;
+use uuid::Uuid;
 
 use super::{
-    team::TeamRoleId,
-    web::{WebRoleId, WebTeamRoleId},
+    team::{StandaloneTeamRole, StandaloneTeamRoleId, SubteamRole},
+    web::{SubteamRoleId, WebRole, WebRoleId},
 };
 use crate::policies::cedar::CedarEntityId as _;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::Display,
+)]
 #[serde(
     tag = "type",
     content = "id",
@@ -17,26 +26,32 @@ use crate::policies::cedar::CedarEntityId as _;
 )]
 pub enum RoleId {
     Web(WebRoleId),
-    WebTeam(WebTeamRoleId),
-    Team(TeamRoleId),
+    Standalone(StandaloneTeamRoleId),
+    Subteam(SubteamRoleId),
 }
 
 impl RoleId {
-    pub(crate) fn to_euid(&self) -> ast::EntityUID {
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
         match self {
+            Self::Standalone(role_id) => role_id.as_uuid(),
+            Self::Web(role_id) => role_id.as_uuid(),
+            Self::Subteam(role_id) => role_id.as_uuid(),
+        }
+    }
+
+    pub(crate) fn to_euid(self) -> ast::EntityUID {
+        match self {
+            Self::Standalone(role_id) => role_id.to_euid(),
             Self::Web(web_role_id) => web_role_id.to_euid(),
-            Self::WebTeam(web_team_role_id) => web_team_role_id.to_euid(),
-            Self::Team(team_role_id) => team_role_id.to_euid(),
+            Self::Subteam(role_id) => role_id.to_euid(),
         }
     }
 }
 
-impl fmt::Display for RoleId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Web(web_role_id) => fmt::Display::fmt(web_role_id, fmt),
-            Self::WebTeam(web_team_role_id) => fmt::Display::fmt(web_team_role_id, fmt),
-            Self::Team(team_role_id) => fmt::Display::fmt(team_role_id, fmt),
-        }
-    }
+#[derive(Debug)]
+pub enum Role {
+    Web(WebRole),
+    Standalone(StandaloneTeamRole),
+    Subteam(SubteamRole),
 }

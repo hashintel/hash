@@ -4,50 +4,19 @@
 )]
 
 use alloc::sync::Arc;
-use core::{fmt, iter, str::FromStr as _};
+use core::{iter, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    provenance::{ActorEntityUuid, MachineId},
+};
 use uuid::Uuid;
 
 use super::{InPrincipalConstraint, TeamPrincipalConstraint, role::RoleId};
 use crate::policies::{cedar::CedarEntityId, principal::web::WebPrincipalConstraint};
-
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
-)]
-#[cfg_attr(
-    feature = "postgres",
-    derive(postgres_types::FromSql, postgres_types::ToSql),
-    postgres(transparent)
-)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[repr(transparent)]
-pub struct MachineId(Uuid);
-
-impl MachineId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-
-    #[must_use]
-    pub const fn into_uuid(self) -> Uuid {
-        self.0
-    }
-
-    #[must_use]
-    pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
-    }
-}
-
-impl fmt::Display for MachineId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
-    }
-}
 
 impl CedarEntityId for MachineId {
     type Error = Report<uuid::Error>;
@@ -59,11 +28,13 @@ impl CedarEntityId for MachineId {
     }
 
     fn to_eid(&self) -> ast::Eid {
-        ast::Eid::new(self.0.to_string())
+        ast::Eid::new(self.as_uuid().to_string())
     }
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
-        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+        Ok(Self::new(ActorEntityUuid::new(EntityUuid::new(
+            Uuid::from_str(eid.as_ref())?,
+        ))))
     }
 }
 
@@ -79,7 +50,7 @@ impl Machine {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
-            self.roles.iter().map(RoleId::to_euid).collect(),
+            self.roles.iter().copied().map(RoleId::to_euid).collect(),
             iter::empty(),
             Extensions::none(),
         )
@@ -147,7 +118,9 @@ mod tests {
     use core::error::Error;
 
     use serde_json::json;
-    use type_system::web::OwnedById;
+    use type_system::{
+        knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid, web::OwnedById,
+    };
     use uuid::Uuid;
 
     use super::{MachineId, WebPrincipalConstraint};
@@ -182,7 +155,7 @@ mod tests {
 
     #[test]
     fn exact() -> Result<(), Box<dyn Error>> {
-        let machine_id = MachineId::new(Uuid::new_v4());
+        let machine_id = MachineId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
         check_principal(
             PrincipalConstraint::Machine(MachinePrincipalConstraint::Exact {
                 machine_id: Some(machine_id),

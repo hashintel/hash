@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
@@ -31,7 +31,7 @@ import type { ExistingEntityForMatching } from "../../shared/match-existing-enti
 
 export const getLatestEntityById = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {
