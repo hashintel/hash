@@ -849,7 +849,7 @@ __metadata:
     "@local/hash-subgraph": "npm:0.0.0-private"
     "@local/status": "npm:0.0.0-private"
     "@mui/material": "npm:5.17.1"
-    "@pmmmwh/react-refresh-webpack-plugin": "npm:0.5.15"
+    "@pmmmwh/react-refresh-webpack-plugin": "npm:0.5.16"
     "@sentry/browser": "npm:7.120.3"
     "@sentry/webpack-plugin": "npm:2.23.0"
     "@types/lodash.debounce": "npm:4.0.9"
@@ -10615,9 +10615,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@pmmmwh/react-refresh-webpack-plugin@npm:0.5.15, @pmmmwh/react-refresh-webpack-plugin@npm:^0.5.11":
-  version: 0.5.15
-  resolution: "@pmmmwh/react-refresh-webpack-plugin@npm:0.5.15"
+"@pmmmwh/react-refresh-webpack-plugin@npm:0.5.16, @pmmmwh/react-refresh-webpack-plugin@npm:^0.5.11":
+  version: 0.5.16
+  resolution: "@pmmmwh/react-refresh-webpack-plugin@npm:0.5.16"
   dependencies:
     ansi-html: "npm:^0.0.9"
     core-js-pure: "npm:^3.23.3"
@@ -10648,7 +10648,7 @@ __metadata:
       optional: true
     webpack-plugin-serve:
       optional: true
-  checksum: 10c0/ba310aa4d53070f59c8a374d1d256c5965c044c0c3fb1ff6b55353fb5e86de08a490a7bd59a31f0d4951f8f29f81864c7df224fe1342543a95d048b7413ff171
+  checksum: 10c0/800f9cea9a0cbceba14cd09eb684ca45d1e488f8e6d8c24f221f4ac920add09de12980ead71e0bebd84e06bc17569b9142101a29e0a366021c8de5b5862ef7b8
   languageName: node
   linkType: hard
 
