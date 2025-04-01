@@ -14,11 +14,11 @@ use crate::heap;
 /// In a type reference like `HashMap<K, V>`, `K` and `V` are generic arguments.
 /// In an instantiated type like `List<Int>`, `Int` is a generic argument.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct GenericArgument {
+pub struct GenericArgument<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub name: Ident,
+    pub r#type: heap::Box<'heap, Type<'heap>>,
 }
 
 /// A generic type parameter declaration.

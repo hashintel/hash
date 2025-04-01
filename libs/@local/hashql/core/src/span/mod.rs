@@ -2,6 +2,8 @@ pub mod entry;
 pub mod node;
 pub mod storage;
 
+use core::fmt::{self, Display};
+
 pub use text_size::{TextRange, TextSize};
 
 /// Represents a unique identifier for a span in some source.
@@ -59,6 +61,12 @@ impl SpanId {
 
     pub(crate) const fn value(self) -> u32 {
         self.0
+    }
+}
+
+impl Display for SpanId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, fmt)
     }
 }
 

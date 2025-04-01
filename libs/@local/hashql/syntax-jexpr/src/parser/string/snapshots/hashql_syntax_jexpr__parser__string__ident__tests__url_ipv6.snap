@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: URL with IPv6 address
+expression: "`https://[2001:db8::1]/`"
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    name: Symbol(
+        "https://[2001:db8::1]/",
+    ),
+    kind: BaseUrl,
+}

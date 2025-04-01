@@ -1,0 +1,29 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/list.rs
+description: Parses a list with type annotation
+expression: "{\"#list\": [{\"#literal\": 1}, {\"#literal\": 2}], \"#type\": \"List<Int>\"}"
+---
+Expr#4294967040@13
+  ExprKind (List)
+    ListExpr#4294967040@4
+      ListElement#4294967040@1
+        Expr#4294967040@1
+          ExprKind (Literal)
+            LiteralExpr#4294967040@0
+              LiteralKind (Integer)
+                IntegerLiteral#4294967040@0 (1)
+      ListElement#4294967040@3
+        Expr#4294967040@3
+          ExprKind (Literal)
+            LiteralExpr#4294967040@2
+              LiteralKind (Integer)
+                IntegerLiteral#4294967040@2 (2)
+      Type#4294967040@12
+        TypeKind (Path)
+          Path#4294967040@12 (rooted: false)
+            PathSegment#4294967040@11 (name: List)
+              GenericArgument#4294967040@10
+                Type#4294967040@9
+                  TypeKind (Path)
+                    Path#4294967040@9 (rooted: false)
+                      PathSegment#4294967040@8 (name: Int)

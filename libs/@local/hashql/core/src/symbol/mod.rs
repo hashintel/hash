@@ -16,7 +16,7 @@
 //! The [`Symbol`] type is designed as an opaque wrapper around its internal string storage.
 //! This encapsulation enables future optimizations such as string interning (either through
 //! the `string_interner` crate or a custom implementation) without requiring API changes.
-use core::{fmt, fmt::Display};
+use core::fmt::{self, Display, Formatter};
 
 use ecow::EcoString;
 
@@ -64,6 +64,28 @@ impl Symbol {
         Self(EcoString::from(name.as_ref()))
     }
 
+    /// Creates a new symbol from an iterator of characters.
+    ///
+    /// This method builds a symbol by collecting characters from the provided iterator,
+    /// which is useful when constructing symbols dynamically or character-by-character.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::symbol::Symbol;
+    /// let chars = ['s', 'y', 'm', 'b', 'o', 'l'];
+    /// let symbol = Symbol::from_chars(chars);
+    /// assert_eq!(symbol.as_str(), "symbol");
+    ///
+    /// // Can also be used with iterators that produce characters
+    /// let filtered = "A-B-C".chars().filter(|&c| c != '-');
+    /// let symbol = Symbol::from_chars(filtered);
+    /// assert_eq!(symbol.as_str(), "ABC");
+    /// ```
+    pub fn from_chars(iter: impl IntoIterator<Item = char>) -> Self {
+        Self(EcoString::from_iter(iter))
+    }
+
     /// Returns the symbol's content as a string slice.
     ///
     /// # Examples
@@ -90,6 +112,12 @@ impl Symbol {
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
+    }
+}
+
+impl Display for Symbol {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, fmt)
     }
 }
 
@@ -147,14 +175,14 @@ pub enum IdentKind {
     /// RESERVED_SYMBOL:
     ///     ':'
     ///
+    /// ; Excludes any symbols that are in the ASCII range
     /// UNICODE_SYMBOL:
     ///     Symbol
     ///     | Punctuation
     ///
     /// SYMBOL:
-    ///     (ASCII_SYMBOL
-    ///     | UNICODE_SYMBOL)
-    ///     & NOT(RESERVED_SYMBOL)
+    ///     ASCII_SYMBOL
+    ///     | UNICODE_SYMBOL
     ///
     /// IDENTIFIER_SYMBOL:
     ///     SYMBOL+
@@ -162,6 +190,8 @@ pub enum IdentKind {
     /// ```
     ///
     /// > Note: `:` is reserved, and cannot be used as a symbol identifier.
+    ///
+    /// > Note: All identifiers are normalized using Unicode Normalization Form C (NFC).
     ///
     /// # Examples
     ///
@@ -186,6 +216,8 @@ pub enum IdentKind {
     /// IDENTIFIER_BASE_URL:
     ///     '`' HTTP_URL_STRING_ENDING_WITH_SLASH '`'
     /// ```
+    ///
+    /// > Note: All identifiers are normalized using Unicode Normalization Form C (NFC).
     ///
     /// # Examples
     ///

@@ -16,7 +16,7 @@ pub struct UseBinding {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub ident: Ident,
+    pub name: Ident,
     pub alias: Option<Ident>,
 }
 

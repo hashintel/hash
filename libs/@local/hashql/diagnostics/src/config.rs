@@ -87,7 +87,7 @@ impl Default for ReportConfig<()> {
             color: true,
             tab_width: 4,
             char_set: CharSet::Unicode,
-            index_type: IndexType::Char,
+            index_type: IndexType::Byte,
             transform_span: (),
         }
     }

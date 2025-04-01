@@ -1,0 +1,23 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/literal.rs
+description: Parses a literal with a complex type annotation
+expression: "{\"#literal\": \"example\", \"#type\": \"(name: String, age: Int)\"}"
+---
+Expr#4294967040@13
+  ExprKind (Literal)
+    LiteralExpr#4294967040@0
+      LiteralKind (String)
+        StringLiteral#4294967040@0 (example)
+      Type#4294967040@12
+        TypeKind (Struct)
+          StructType#4294967040@12
+            StructField#4294967040@6 (name: name)
+              Type#4294967040@5
+                TypeKind (Path)
+                  Path#4294967040@5 (rooted: false)
+                    PathSegment#4294967040@4 (name: String)
+            StructField#4294967040@11 (name: age)
+              Type#4294967040@10
+                TypeKind (Path)
+                  Path#4294967040@10 (rooted: false)
+                    PathSegment#4294967040@9 (name: Int)

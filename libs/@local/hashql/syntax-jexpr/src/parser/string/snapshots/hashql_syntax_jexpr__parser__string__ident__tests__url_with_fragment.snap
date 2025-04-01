@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: URL with fragment
+expression: "`https://example.com/#fragment/`"
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    name: Symbol(
+        "https://example.com/#fragment/",
+    ),
+    kind: BaseUrl,
+}

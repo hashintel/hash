@@ -3,6 +3,18 @@
 version = 4
 
 [[package]]
+name = "ada-url"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c796c8e5f815bd755e7e2818d683ffc7430f20f7f69b8e7f33257b4e4a75490"
+dependencies = [
+ "cc",
+ "derive_more 1.0.0",
+ "link_args",
+ "regex",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1431,6 +1443,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "circular-buffer"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23bdce1da528cadbac4654b5632bfcd8c6c63e25b1d42cea919a95958790b51d"
+
+[[package]]
 name = "clang-sys"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2088,6 +2106,7 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
 dependencies = [
+ "convert_case 0.6.0",
  "proc-macro2",
  "quote",
  "syn 2.0.100",
@@ -3603,7 +3622,9 @@ dependencies = [
 name = "hashql-syntax-jexpr"
 version = "0.0.0"
 dependencies = [
+ "ada-url",
  "ariadne",
+ "circular-buffer",
  "ecow",
  "hashql-ast",
  "hashql-core",
@@ -3612,6 +3633,7 @@ dependencies = [
  "insta",
  "json-number",
  "jsonptr",
+ "justjson",
  "logos",
  "serde",
  "serde_json",
@@ -3619,6 +3641,8 @@ dependencies = [
  "test-fuzz",
  "text-size",
  "unicode-ident",
+ "unicode-normalization",
+ "unicode-properties",
  "winnow",
 ]
 
@@ -4859,6 +4883,12 @@ dependencies = [
  "yamux 0.12.1",
  "yamux 0.13.4",
 ]
+
+[[package]]
+name = "link_args"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c7721e472624c9aaad27a5eb6b7c9c6045c7a396f2efb6dabaec1b640d5e89b"
 
 [[package]]
 name = "linked-hash-map"

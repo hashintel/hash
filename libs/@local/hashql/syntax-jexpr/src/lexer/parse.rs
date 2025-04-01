@@ -1,6 +1,6 @@
 use alloc::{borrow::Cow, sync::Arc};
 
-use hashql_span::{TextRange, TextSize};
+use hashql_core::span::{TextRange, TextSize};
 use hifijson::{SliceLexer, num::LexWrite as _, str::LexAlloc as _};
 use json_number::Number;
 use logos::Lexer;
@@ -14,7 +14,7 @@ fn ptr_offset(start: *const u8, current: *const u8) -> usize {
 
 #[expect(
     clippy::cast_possible_truncation,
-    reason = "4GiB limit enforced by lexer "
+    reason = "4GiB limit enforced by lexer"
 )]
 pub(crate) fn parse_string<'source>(
     lexer: &mut Lexer<'source, TokenKind<'source>>,

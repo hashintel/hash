@@ -1,0 +1,19 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Intersection type as generic argument
+expression: Serializable & Equatable
+info:
+  kind: Ok
+---
+GenericArgument#4294967040@8
+  Type#4294967040@7
+    TypeKind (Intersection)
+      IntersectionType#4294967040@7
+        Type#4294967040@3
+          TypeKind (Path)
+            Path#4294967040@3 (rooted: false)
+              PathSegment#4294967040@2 (name: Serializable)
+        Type#4294967040@6
+          TypeKind (Path)
+            Path#4294967040@6 (rooted: false)
+              PathSegment#4294967040@5 (name: Equatable)

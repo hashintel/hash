@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: URL with internationalized domain name
+expression: "`https://例子.测试/`"
+info:
+  kind: Err
+---
+`https://例子.测试/`
+ ^
+invalid identifier
+expected http(s) url with trailing `/`

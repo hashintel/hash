@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Identifier with decomposed character
+expression: café
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    name: Symbol(
+        "café",
+    ),
+    kind: Lexical,
+}

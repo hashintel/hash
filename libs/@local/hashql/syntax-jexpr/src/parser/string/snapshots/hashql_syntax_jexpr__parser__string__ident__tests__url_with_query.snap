@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: URL with query parameters
+expression: "`https://example.com/?query=value&param=123/`"
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    name: Symbol(
+        "https://example.com/?query=value&param=123/",
+    ),
+    kind: BaseUrl,
+}

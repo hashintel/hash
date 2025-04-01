@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: "Identifier with Cyrillic 'р' instead of Latin 'p'"
+expression: рaypal
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    name: Symbol(
+        "рaypal",
+    ),
+    kind: Lexical,
+}

@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: String with escaped unicode
+expression: "\"\\u3053\\u3093\\u306B\\u3061\\u306F\""
+---
+"こんにちは"

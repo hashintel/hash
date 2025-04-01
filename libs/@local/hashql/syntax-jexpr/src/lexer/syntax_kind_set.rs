@@ -35,9 +35,28 @@ impl Iterator for SyntaxKindSetIter {
 pub(crate) struct SyntaxKindSet(u128);
 
 impl SyntaxKindSet {
+    pub(crate) const EMPTY: Self = Self(0);
+
+    pub(crate) const fn from_slice(slice: &[SyntaxKind]) -> Self {
+        let mut set = 0;
+
+        // cannot use for loop here, because it's not const
+        let mut index = 0;
+        while index < slice.len() {
+            set |= slice[index].into_u128();
+            index += 1;
+        }
+
+        Self(set)
+    }
+
     #[must_use]
     pub(crate) const fn len(&self) -> usize {
         self.0.count_ones() as usize
+    }
+
+    pub(crate) const fn contains(&self, kind: SyntaxKind) -> bool {
+        self.0 & kind.into_u128() != 0
     }
 }
 

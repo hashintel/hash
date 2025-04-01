@@ -1,0 +1,24 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Struct with tuple field
+expression: "(data: (Int, String))"
+info:
+  kind: Ok
+---
+Type#4294967040@16
+  TypeKind (Struct)
+    StructType#4294967040@16
+      StructField#4294967040@15 (name: data)
+        Type#4294967040@14
+          TypeKind (Tuple)
+            TupleType#4294967040@14
+              TupleField#4294967040@5
+                Type#4294967040@5
+                  TypeKind (Path)
+                    Path#4294967040@5 (rooted: false)
+                      PathSegment#4294967040@4 (name: Int)
+              TupleField#4294967040@13
+                Type#4294967040@12
+                  TypeKind (Path)
+                    Path#4294967040@12 (rooted: false)
+                      PathSegment#4294967040@11 (name: String)

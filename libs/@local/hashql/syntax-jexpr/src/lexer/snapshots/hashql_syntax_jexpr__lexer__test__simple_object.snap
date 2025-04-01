@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Simple key-value object
+expression: "{\"key\": \"value\"}"
+---
+{ "key" : "value" }

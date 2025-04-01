@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/literal.rs
+description: Parses a literal with type annotation
+expression: "{\"#literal\": 42, \"#type\": \"Int\"}"
+---
+Expr#4294967040@5
+  ExprKind (Literal)
+    LiteralExpr#4294967040@0
+      LiteralKind (Integer)
+        IntegerLiteral#4294967040@0 (42)
+      Type#4294967040@4
+        TypeKind (Path)
+          Path#4294967040@4 (rooted: false)
+            PathSegment#4294967040@3 (name: Int)

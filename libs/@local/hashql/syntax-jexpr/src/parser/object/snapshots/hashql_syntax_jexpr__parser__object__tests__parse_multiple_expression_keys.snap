@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/mod.rs
+description: Rejects objects with multiple expression keys
+expression: "{\"#literal\": 42, \"#list\": []}"
+---
+[31m[parser::object::unknown-key] Error:[0m Parser
+   ╭─[ <unknown>:1:18 ]
+   │
+ 1 │ {"#literal": 42, "#list": []}
+   │                  ───┬───  
+   │                     ╰───── Unrecognized key `#list`
+   │ 
+   │ Help: This J-Expr object only accepts these specific keys: `#type`
+───╯

@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Complex object with multiple value types
+expression: "{\"string\": \"text\", \"number\": 42, \"boolean\": true, \"null\": null, \"array\": [1, 2, 3]}"
+---
+{ "string" : "text" , "number" : 42 , "boolean" : true , "null" : null , "array" : [ 1 , 2 , 3 ] }

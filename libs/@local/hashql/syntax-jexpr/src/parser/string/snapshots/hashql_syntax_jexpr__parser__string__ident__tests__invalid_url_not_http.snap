@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Non-HTTP/HTTPS URL (invalid)
+expression: "`ftp://example.com/`"
+info:
+  kind: Err
+---
+`ftp://example.com/`
+ ^
+invalid identifier
+expected http(s) url with trailing `/`

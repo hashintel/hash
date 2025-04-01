@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Generic type
+expression: Container<T>
+info:
+  kind: Ok
+---
+Type#4294967040@7
+  TypeKind (Path)
+    Path#4294967040@7 (rooted: false)
+      PathSegment#4294967040@6 (name: Container)
+        GenericArgument#4294967040@5
+          Type#4294967040@4
+            TypeKind (Path)
+              Path#4294967040@4 (rooted: false)
+                PathSegment#4294967040@3 (name: T)

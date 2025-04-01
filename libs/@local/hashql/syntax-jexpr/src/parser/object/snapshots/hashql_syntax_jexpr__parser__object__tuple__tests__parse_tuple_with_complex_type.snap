@@ -1,0 +1,33 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/tuple.rs
+description: Parses a tuple with a complex type annotation
+expression: "{\"#tuple\": [{\"#literal\": \"key\"}, {\"#literal\": 42}], \"#type\": \"(first: String, second: Int)\"}"
+---
+Expr#4294967040@17
+  ExprKind (Tuple)
+    TupleExpr#4294967040@4
+      TupleElement#4294967040@1
+        Expr#4294967040@1
+          ExprKind (Literal)
+            LiteralExpr#4294967040@0
+              LiteralKind (String)
+                StringLiteral#4294967040@0 (key)
+      TupleElement#4294967040@3
+        Expr#4294967040@3
+          ExprKind (Literal)
+            LiteralExpr#4294967040@2
+              LiteralKind (Integer)
+                IntegerLiteral#4294967040@2 (42)
+      Type#4294967040@16
+        TypeKind (Struct)
+          StructType#4294967040@16
+            StructField#4294967040@10 (name: first)
+              Type#4294967040@9
+                TypeKind (Path)
+                  Path#4294967040@9 (rooted: false)
+                    PathSegment#4294967040@8 (name: String)
+            StructField#4294967040@15 (name: second)
+              Type#4294967040@14
+                TypeKind (Path)
+                  Path#4294967040@14 (rooted: false)
+                    PathSegment#4294967040@13 (name: Int)

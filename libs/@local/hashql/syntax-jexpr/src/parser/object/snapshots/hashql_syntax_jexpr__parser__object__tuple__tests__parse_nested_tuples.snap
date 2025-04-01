@@ -1,0 +1,39 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/tuple.rs
+description: Parses nested tuples
+expression: "{\"#tuple\": [\n            {\"#tuple\": [{\"#literal\": 1}, {\"#literal\": \"a\"}]},\n            {\"#tuple\": [{\"#literal\": true}, {\"#literal\": 3.14}]}\n        ]}"
+---
+Expr#4294967040@13
+  ExprKind (Tuple)
+    TupleExpr#4294967040@12
+      TupleElement#4294967040@5
+        Expr#4294967040@5
+          ExprKind (Tuple)
+            TupleExpr#4294967040@4
+              TupleElement#4294967040@1
+                Expr#4294967040@1
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@0
+                      LiteralKind (Integer)
+                        IntegerLiteral#4294967040@0 (1)
+              TupleElement#4294967040@3
+                Expr#4294967040@3
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@2
+                      LiteralKind (String)
+                        StringLiteral#4294967040@2 (a)
+      TupleElement#4294967040@11
+        Expr#4294967040@11
+          ExprKind (Tuple)
+            TupleExpr#4294967040@10
+              TupleElement#4294967040@7
+                Expr#4294967040@7
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@6
+                      LiteralKind (True)
+              TupleElement#4294967040@9
+                Expr#4294967040@9
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@8
+                      LiteralKind (Float)
+                        FloatLiteral#4294967040@8 (3.14)

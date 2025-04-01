@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Complex nested structure
+expression: "{\"data\": {\"users\": [{\"name\": \"Alice\", \"roles\": [\"admin\", \"user\"], \"active\": true}, {\"name\": \"Bob\", \"roles\": [\"user\"], \"active\": false}]}}"
+---
+{ "data" : { "users" : [ { "name" : "Alice" , "roles" : [ "admin" , "user" ] , "active" : true } , { "name" : "Bob" , "roles" : [ "user" ] , "active" : false } ] } }

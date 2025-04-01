@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Compound colon symbol (should be rejected)
+expression: "::"
+info:
+  kind: Err
+---
+::
+^
+invalid identifier

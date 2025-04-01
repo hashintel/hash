@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Simple type as generic argument
+expression: Int
+info:
+  kind: Ok
+---
+GenericArgument#4294967040@4
+  Type#4294967040@3
+    TypeKind (Path)
+      Path#4294967040@3 (rooted: false)
+        PathSegment#4294967040@2 (name: Int)
