@@ -17,7 +17,7 @@ use type_system::{
         property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorId, EditionCreatedById},
+    provenance::UntaggedActorId,
     web::OwnedById,
 };
 
@@ -70,7 +70,7 @@ pub struct GetEntityTypeSubgraphResponse {
     pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
     pub web_ids: Option<HashMap<OwnedById, usize>>,
-    pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
+    pub edition_created_by_ids: Option<HashMap<UntaggedActorId, usize>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -179,7 +179,7 @@ pub struct GetEntityTypesResponse {
     pub web_ids: Option<HashMap<OwnedById, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
+    pub edition_created_by_ids: Option<HashMap<UntaggedActorId, usize>>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
@@ -259,7 +259,7 @@ pub trait EntityTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_entity_type<R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: CreateEntityTypeParams<R>,
     ) -> impl Future<Output = Result<EntityTypeMetadata, Report<InsertionError>>> + Send
     where
@@ -285,7 +285,7 @@ pub trait EntityTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_entity_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<InsertionError>>> + Send
     where
@@ -299,7 +299,7 @@ pub trait EntityTypeStore {
     /// - if the underlying store fails to count the entity types.
     fn count_entity_types(
         &self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: CountEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
@@ -310,7 +310,7 @@ pub trait EntityTypeStore {
     /// - if the requested [`EntityType`] doesn't exist.
     fn get_entity_type_subgraph(
         &self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: GetEntityTypeSubgraphParams<'_>,
     ) -> impl Future<Output = Result<GetEntityTypeSubgraphResponse, Report<QueryError>>> + Send;
 
@@ -321,7 +321,7 @@ pub trait EntityTypeStore {
     /// - if the requested [`EntityType`] doesn't exist.
     fn get_entity_types(
         &self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: GetEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<GetEntityTypesResponse, Report<QueryError>>> + Send;
 
@@ -347,7 +347,7 @@ pub trait EntityTypeStore {
     /// - Type resolution fails due to invalid entity type references
     fn get_closed_multi_entity_types<I, J>(
         &self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         entity_type_ids: I,
         temporal_axes: QueryTemporalAxesUnresolved,
         include_resolved: Option<IncludeResolvedEntityTypeOption>,
@@ -363,7 +363,7 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`] doesn't exist.
     fn update_entity_type<R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: UpdateEntityTypesParams<R>,
     ) -> impl Future<Output = Result<EntityTypeMetadata, Report<UpdateError>>> + Send
     where
@@ -386,7 +386,7 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`]s do not exist.
     fn update_entity_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<UpdateError>>> + Send
     where
@@ -400,7 +400,7 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`] doesn't exist.
     fn archive_entity_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
 
         params: ArchiveEntityTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
@@ -412,14 +412,14 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`] doesn't exist.
     fn unarchive_entity_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
 
         params: UnarchiveEntityTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     fn update_entity_type_embeddings(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
 
         params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;

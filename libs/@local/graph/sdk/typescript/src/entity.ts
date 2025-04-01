@@ -1,5 +1,4 @@
 import type {
-  ActorId,
   BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
@@ -21,6 +20,7 @@ import type {
   PropertyValueWithMetadata,
   PropertyWithMetadata,
   ProvidedEntityEditionProvenance,
+  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -50,7 +50,7 @@ import type { AuthenticationContext } from "./authentication-context.js";
  * Types used in getEntitySubgraph response to indicate the count of these in the whole result set,
  * useful for filtering only a limited number of entities are returned in a single response.
  */
-export type CreatedByIdsMap = Record<ActorId, number>;
+export type CreatedByIdsMap = Record<UntaggedActorId, number>;
 export type TypeIdsMap = Record<VersionedUrl, number>;
 export type TypeTitlesMap = Record<VersionedUrl, string>;
 export type WebIdsMap = Record<OwnedById, number>;

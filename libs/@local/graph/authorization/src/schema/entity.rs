@@ -3,8 +3,8 @@ use core::error::Error;
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::ActorId,
-    web::{ActorGroupId, OwnedById},
+    provenance::UntaggedActorId,
+    web::{OwnedById, UntaggedTeamId},
 };
 use uuid::Uuid;
 
@@ -83,8 +83,8 @@ pub enum EntitySubject {
     Setting(EntitySetting),
     Web(OwnedById),
     Public,
-    Account(ActorId),
-    AccountGroup(ActorGroupId),
+    Account(UntaggedActorId),
+    AccountGroup(UntaggedTeamId),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -133,10 +133,10 @@ impl Resource for EntitySubject {
                 Self::Public
             }
             (EntitySubjectNamespace::Account, EntitySubjectId::Uuid(id)) => {
-                Self::Account(ActorId::new(id))
+                Self::Account(UntaggedActorId::new(id))
             }
             (EntitySubjectNamespace::AccountGroup, EntitySubjectId::Uuid(id)) => {
-                Self::AccountGroup(ActorGroupId::new(id))
+                Self::AccountGroup(UntaggedTeamId::new(id))
             }
             (
                 EntitySubjectNamespace::Web | EntitySubjectNamespace::AccountGroup,
@@ -208,11 +208,11 @@ pub enum EntityOwnerSubject {
 pub enum EntityAdministratorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: UntaggedActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: UntaggedTeamId,
         #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },
@@ -224,11 +224,11 @@ pub enum EntityAdministratorSubject {
 pub enum EntityEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: UntaggedActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: UntaggedTeamId,
         #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },
@@ -241,11 +241,11 @@ pub enum EntityViewerSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: UntaggedActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: UntaggedTeamId,
         #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },

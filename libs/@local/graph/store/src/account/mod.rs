@@ -3,16 +3,16 @@ use hash_graph_authorization::schema::WebOwnerSubject;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use type_system::{
-    provenance::ActorId,
-    web::{ActorGroupId, OwnedById},
+    provenance::UntaggedActorId,
+    web::{OwnedById, UntaggedTeamId},
 };
 
-fn random_account_id() -> ActorId {
-    ActorId::new(uuid::Uuid::new_v4())
+fn random_account_id() -> UntaggedActorId {
+    UntaggedActorId::new(uuid::Uuid::new_v4())
 }
 
-fn random_account_group_id() -> ActorGroupId {
-    ActorGroupId::new(uuid::Uuid::new_v4())
+fn random_account_group_id() -> UntaggedTeamId {
+    UntaggedTeamId::new(uuid::Uuid::new_v4())
 }
 
 #[derive(Debug, Error)]
@@ -24,7 +24,7 @@ pub struct AccountInsertionError;
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InsertAccountIdParams {
     #[serde(default = "random_account_id")]
-    pub account_id: ActorId,
+    pub account_id: UntaggedActorId,
 }
 
 #[derive(Debug, Error)]
@@ -36,7 +36,7 @@ pub struct AccountGroupInsertionError;
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InsertAccountGroupIdParams {
     #[serde(default = "random_account_group_id")]
-    pub account_group_id: ActorGroupId,
+    pub account_group_id: UntaggedTeamId,
 }
 
 #[derive(Debug, Error)]
@@ -57,25 +57,25 @@ pub struct QueryWebError;
 
 /// Describes the API of a store implementation for accounts.
 pub trait AccountStore {
-    /// Inserts the specified [`ActorId`] into the database.
+    /// Inserts the specified [`UntaggedActorId`] into the database.
     ///
     /// # Errors
     ///
-    /// - if insertion failed, e.g. because the [`ActorId`] already exists.
+    /// - if insertion failed, e.g. because the [`UntaggedActorId`] already exists.
     fn insert_account_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: InsertAccountIdParams,
     ) -> impl Future<Output = Result<(), Report<AccountInsertionError>>> + Send;
 
-    /// Inserts the specified [`ActorGroupId`] into the database.
+    /// Inserts the specified [`UntaggedTeamId`] into the database.
     ///
     /// # Errors
     ///
-    /// - if insertion failed, e.g. because the [`ActorGroupId`] already exists.
+    /// - if insertion failed, e.g. because the [`UntaggedTeamId`] already exists.
     fn insert_account_group_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: InsertAccountGroupIdParams,
     ) -> impl Future<Output = Result<(), Report<AccountGroupInsertionError>>> + Send;
 
@@ -86,16 +86,17 @@ pub trait AccountStore {
     /// - if insertion failed, e.g. because the [`OwnedById`] already exists.
     fn insert_web_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: InsertWebIdParams,
     ) -> impl Future<Output = Result<(), Report<WebInsertionError>>> + Send;
 
-    /// Returns either an [`ActorId`] or an [`ActorGroupId`] for the specified [`OwnedById`].
+    /// Returns either an [`UntaggedActorId`] or an [`UntaggedTeamId`] for the specified
+    /// [`OwnedById`].
     ///
     /// # Errors
     ///
     /// - if the [`OwnedById`] does not exist
-    /// - if the [`OwnedById`] exists but is both, an [`ActorId`] and an [`ActorGroupId`]
+    /// - if the [`OwnedById`] exists but is both, an [`UntaggedActorId`] and an [`UntaggedTeamId`]
     fn identify_owned_by_id(
         &self,
         owned_by_id: OwnedById,

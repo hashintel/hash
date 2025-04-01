@@ -1,4 +1,4 @@
-import type { ActorId } from "@blockprotocol/type-system";
+import type { UntaggedActorId } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractOwnedByIdFromEntityId,
@@ -55,5 +55,5 @@ export const getAliceUserAccountId = async () => {
     aliceUserEntity.metadata.recordId.entityId,
   );
 
-  return aliceUserAccountId as ActorId;
+  return aliceUserAccountId as UntaggedActorId;
 };

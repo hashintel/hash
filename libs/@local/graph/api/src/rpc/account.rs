@@ -30,8 +30,8 @@ use hash_graph_store::{
 };
 use hash_temporal_client::TemporalClient;
 use type_system::{
-    provenance::ActorId,
-    web::{ActorGroupId, OwnedById},
+    provenance::UntaggedActorId,
+    web::{OwnedById, UntaggedTeamId},
 };
 
 use super::session::Account;
@@ -44,7 +44,7 @@ pub struct PermissionResponse {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 #[display("account {id} does not exist in the graph")]
 pub struct AccountNotFoundError {
-    id: ActorId,
+    id: UntaggedActorId,
 }
 
 impl Error for AccountNotFoundError {
@@ -65,33 +65,33 @@ pub trait AccountSystem {
         &self,
         scope: Self::ExecutionScope,
         params: InsertAccountIdParams,
-    ) -> Result<ActorId, Report<AccountError>>;
+    ) -> Result<UntaggedActorId, Report<AccountError>>;
 
     async fn create_account_group(
         &self,
         scope: Self::ExecutionScope,
         params: InsertAccountGroupIdParams,
-    ) -> Result<ActorGroupId, Report<AccountError>>;
+    ) -> Result<UntaggedTeamId, Report<AccountError>>;
 
     async fn check_account_group_permission(
         &self,
         scope: Self::ExecutionScope,
-        account_group_id: ActorGroupId,
+        account_group_id: UntaggedTeamId,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>>;
 
     async fn add_account_group_member(
         &self,
         scope: Self::ExecutionScope,
-        account_group_id: ActorGroupId,
-        account_id: ActorId,
+        account_group_id: UntaggedTeamId,
+        account_id: UntaggedActorId,
     ) -> Result<(), Report<AccountError>>;
 
     async fn remove_account_group_member(
         &self,
         scope: Self::ExecutionScope,
-        account_group_id: ActorGroupId,
-        account_id: ActorId,
+        account_group_id: UntaggedTeamId,
+        account_id: UntaggedActorId,
     ) -> Result<(), Report<AccountError>>;
 }
 
@@ -242,7 +242,7 @@ where
             .change_context(AccountError)
     }
 
-    fn actor(session: &Session<Account>) -> Result<ActorId, Report<AccountError>> {
+    fn actor(session: &Session<Account>) -> Result<UntaggedActorId, Report<AccountError>> {
         let &Account {
             actor_id: Some(actor_id),
         } = session.get()
@@ -272,7 +272,7 @@ where
         &self,
         scope: Session<Account>,
         params: InsertAccountIdParams,
-    ) -> Result<ActorId, Report<AccountError>> {
+    ) -> Result<UntaggedActorId, Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
 
         let mut store = self.store().await?;
@@ -290,7 +290,7 @@ where
         &self,
         scope: Session<Account>,
         params: InsertAccountGroupIdParams,
-    ) -> Result<ActorGroupId, Report<AccountError>> {
+    ) -> Result<UntaggedTeamId, Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
 
         let mut store = self.store().await?;
@@ -325,7 +325,7 @@ where
     async fn check_account_group_permission(
         &self,
         scope: Session<Account>,
-        account_group_id: ActorGroupId,
+        account_group_id: UntaggedTeamId,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
@@ -357,8 +357,8 @@ where
     async fn add_account_group_member(
         &self,
         scope: Session<Account>,
-        account_group_id: ActorGroupId,
-        account_id: ActorId,
+        account_group_id: UntaggedTeamId,
+        account_id: UntaggedActorId,
     ) -> Result<(), Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
 
@@ -409,8 +409,8 @@ where
     async fn remove_account_group_member(
         &self,
         scope: Session<Account>,
-        account_group_id: ActorGroupId,
-        account_id: ActorId,
+        account_group_id: UntaggedTeamId,
+        account_id: UntaggedActorId,
     ) -> Result<(), Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
 
@@ -616,7 +616,7 @@ where
         &self,
         scope: Connection<S, C>,
         params: InsertAccountIdParams,
-    ) -> Result<ActorId, Report<AccountError>> {
+    ) -> Result<UntaggedActorId, Report<AccountError>> {
         invoke_call_discrete(scope, meta::AccountProcedureId::CreateAccount, [params])
             .await
             .change_context(AccountError)
@@ -626,7 +626,7 @@ where
         &self,
         scope: Connection<S, C>,
         params: InsertAccountGroupIdParams,
-    ) -> Result<ActorGroupId, Report<AccountError>> {
+    ) -> Result<UntaggedTeamId, Report<AccountError>> {
         invoke_call_discrete(
             scope,
             meta::AccountProcedureId::CreateAccountGroup,
@@ -639,7 +639,7 @@ where
     async fn check_account_group_permission(
         &self,
         scope: Connection<S, C>,
-        account_group_id: ActorGroupId,
+        account_group_id: UntaggedTeamId,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>> {
         invoke_call_discrete(
@@ -654,8 +654,8 @@ where
     async fn add_account_group_member(
         &self,
         scope: Connection<S, C>,
-        account_group_id: ActorGroupId,
-        account_id: ActorId,
+        account_group_id: UntaggedTeamId,
+        account_id: UntaggedActorId,
     ) -> Result<(), Report<AccountError>> {
         invoke_call_discrete(
             scope,
@@ -669,8 +669,8 @@ where
     async fn remove_account_group_member(
         &self,
         scope: Connection<S, C>,
-        account_group_id: ActorGroupId,
-        account_id: ActorId,
+        account_group_id: UntaggedTeamId,
+        account_id: UntaggedActorId,
     ) -> Result<(), Report<AccountError>> {
         invoke_call_discrete(
             scope,

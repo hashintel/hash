@@ -1,7 +1,8 @@
 import type {
-  ActorGroupId,
   EntityUuid,
   OwnedById,
+  UntaggedActorId,
+  UntaggedTeamId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
@@ -38,13 +39,13 @@ export const getWebShortname: ImpureGraphFunction<
   const namespace = (
     (await getUserById(ctx, authentication, {
       entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId as ActorGroupId as OwnedById,
+        params.accountOrAccountGroupId as UntaggedActorId as OwnedById,
         params.accountOrAccountGroupId as string as EntityUuid,
       ),
     }).catch(() => undefined)) ??
     (await getOrgById(ctx, authentication, {
       entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId as ActorGroupId as OwnedById,
+        params.accountOrAccountGroupId as UntaggedTeamId as OwnedById,
         params.accountOrAccountGroupId as string as EntityUuid,
       ),
     }).catch(() => undefined))

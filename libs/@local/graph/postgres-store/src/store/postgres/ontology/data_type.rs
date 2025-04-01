@@ -51,7 +51,7 @@ use type_system::{
         json_schema::OntologyTypeResolver,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::{ActorId, EditionArchivedById, EditionCreatedById},
+    provenance::UntaggedActorId,
 };
 
 use crate::store::{
@@ -76,7 +76,7 @@ where
     #[tracing::instrument(level = "trace", skip(data_types, authorization_api, zookie))]
     pub(crate) async fn filter_data_types_by_permission<I, T>(
         data_types: impl IntoIterator<Item = (I, T)> + Send,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         authorization_api: &A,
         zookie: &Zookie<'static>,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
@@ -161,7 +161,7 @@ where
 
     async fn get_data_types_impl(
         &self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: GetDataTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<(GetDataTypesResponse, Zookie<'static>), Report<QueryError>> {
@@ -263,7 +263,7 @@ where
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
@@ -379,7 +379,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn create_data_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<InsertionError>>
     where
@@ -398,7 +398,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id),
+                    created_by_id: actor_id,
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -641,7 +641,7 @@ where
 
     async fn get_data_types(
         &self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         mut params: GetDataTypesParams<'_>,
     ) -> Result<GetDataTypesResponse, Report<QueryError>> {
         params
@@ -664,7 +664,7 @@ where
     //       anyway.
     async fn count_data_types(
         &self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         mut params: CountDataTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         params
@@ -691,7 +691,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_data_type_subgraph(
         &self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         mut params: GetDataTypeSubgraphParams<'_>,
     ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
         params
@@ -786,7 +786,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_data_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
@@ -805,7 +805,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id),
+                    created_by_id: actor_id,
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -1054,23 +1054,23 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn archive_data_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: ArchiveDataTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        self.archive_ontology_type(&params.data_type_id, EditionArchivedById::new(actor_id))
+        self.archive_ontology_type(&params.data_type_id, actor_id)
             .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
     async fn unarchive_data_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.unarchive_ontology_type(
             &params.data_type_id,
             &OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
+                created_by_id: actor_id,
                 archived_by_id: None,
                 user_defined: params.provenance,
             },
@@ -1081,7 +1081,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_data_type_embeddings(
         &mut self,
-        _: ActorId,
+        _: UntaggedActorId,
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         #[derive(Debug, ToSql)]
@@ -1153,7 +1153,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_data_type_conversion_targets(
         &self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: GetDataTypeConversionTargetsParams,
     ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
         let mut response = GetDataTypeConversionTargetsResponse {

@@ -86,7 +86,7 @@ mod tests {
                 ProvidedOntologyEditionProvenance,
             },
         },
-        provenance::{ActorId, ActorType, EditionCreatedById, OriginProvenance, OriginType},
+        provenance::{ActorType, OriginProvenance, OriginType, UntaggedActorId},
         web::OwnedById,
     };
     use uuid::Uuid;
@@ -94,7 +94,7 @@ mod tests {
     use super::*;
 
     fn generate_data_type_metadata(schema: DataType) -> DataTypeWithMetadata {
-        let actor = ActorId::new(Uuid::nil());
+        let actor = UntaggedActorId::new(Uuid::nil());
         DataTypeWithMetadata {
             metadata: DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(schema.id.clone()),
@@ -109,7 +109,7 @@ mod tests {
                 },
                 provenance: OntologyProvenance {
                     edition: OntologyEditionProvenance {
-                        created_by_id: EditionCreatedById::new(actor),
+                        created_by_id: actor,
                         archived_by_id: None,
                         user_defined: ProvidedOntologyEditionProvenance {
                             actor_type: ActorType::Human,

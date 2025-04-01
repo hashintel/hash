@@ -27,7 +27,7 @@ use type_system::{
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::entity_type::EntityType,
-    provenance::{ActorId, ActorType, OriginProvenance, OriginType},
+    provenance::{ActorType, OriginProvenance, OriginType, UntaggedActorId},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -50,7 +50,7 @@ struct DatastoreEntitiesMetadata {
     reason = "transaction is committed which consumes the object"
 )]
 async fn seed_db<A: AuthorizationApi>(
-    account_id: ActorId,
+    account_id: UntaggedActorId,
     store_wrapper: &mut StoreWrapper<A>,
     total: usize,
 ) -> DatastoreEntitiesMetadata {
@@ -207,7 +207,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
-    actor_id: ActorId,
+    actor_id: UntaggedActorId,
     entity_metadata_list: &[Entity],
     graph_resolve_depths: GraphResolveDepths,
 ) {
@@ -268,8 +268,9 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id =
-        ActorId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"));
+    let account_id = UntaggedActorId::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    );
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
@@ -320,8 +321,9 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id =
-        ActorId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"));
+    let account_id = UntaggedActorId::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    );
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read

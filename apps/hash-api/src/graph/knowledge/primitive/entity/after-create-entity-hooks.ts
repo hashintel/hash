@@ -1,8 +1,4 @@
-import type {
-  ActorId,
-  EntityUuid,
-  OwnedById,
-} from "@blockprotocol/type-system";
+import type { EntityUuid, OwnedById } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
@@ -85,7 +81,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
       const pageAuthor = await getUserById(context, authentication, {
         entityId: entityIdFromComponents(
-          pageAuthorAccountId as ActorId as OwnedById,
+          pageAuthorAccountId as OwnedById,
           pageAuthorAccountId as string as EntityUuid,
         ),
       });

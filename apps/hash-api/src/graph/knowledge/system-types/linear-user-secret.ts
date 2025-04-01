@@ -1,4 +1,8 @@
-import type { ActorId, EntityId, OwnedById } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  OwnedById,
+  UntaggedActorId,
+} from "@blockprotocol/type-system";
 import {
   extractOwnedByIdFromEntityId,
   splitEntityId,
@@ -87,7 +91,11 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
  * Get a Linear user secret by the linear org ID
  */
 export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
-  { userAccountId: ActorId; linearOrgId: string; includeDrafts?: boolean },
+  {
+    userAccountId: UntaggedActorId;
+    linearOrgId: string;
+    includeDrafts?: boolean;
+  },
   Promise<LinearUserSecret>
 > = async ({ graphApi }, { actorId }, params) => {
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
@@ -235,7 +243,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
 
   const userAccountId = extractOwnedByIdFromEntityId(
     integrationEntity.metadata.recordId.entityId,
-  ) as ActorId;
+  ) as UntaggedActorId;
 
   const secretEntity = await getLinearUserSecretByLinearOrgId(
     context,

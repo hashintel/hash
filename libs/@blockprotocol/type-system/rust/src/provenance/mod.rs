@@ -15,7 +15,7 @@ mod origin;
 mod source;
 
 pub use self::{
-    actor::{ActorId, ActorType, CreatedById, EditionArchivedById, EditionCreatedById},
+    actor::{ActorType, UntaggedActorId},
     origin::{OriginProvenance, OriginType},
     source::{Location, SourceProvenance, SourceType},
 };

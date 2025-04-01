@@ -8,7 +8,7 @@ mod property_type;
 mod settings;
 mod web;
 
-use type_system::web::ActorGroupId;
+use type_system::web::UntaggedTeamId;
 
 pub use self::{
     account::{AccountNamespace, ActorIdOrPublic, PublicAccess},

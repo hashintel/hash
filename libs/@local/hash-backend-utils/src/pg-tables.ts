@@ -4,8 +4,8 @@
  */
 import type { JsonObject } from "@blockprotocol/core";
 import type {
-  EditionCreatedById,
   EntityEditionId,
+  UntaggedActorId,
 } from "@blockprotocol/type-system";
 
 import type { Wal2JsonMsg } from "./wal2json.js";
@@ -14,7 +14,7 @@ type EntityEditionRecord = {
   archived: boolean;
   entityEditionId: EntityEditionId;
   properties: JsonObject;
-  editionCreatedById?: EditionCreatedById; // the UUID of the user who created this edition
+  editionCreatedById?: UntaggedActorId; // the UUID of the user who created this edition
 };
 
 export const entityEditionTableName = "entity_editions";
@@ -36,7 +36,7 @@ export const entityEditionRecordFromRealtimeMessage = (
     entityEditionId: obj.entity_edition_id as EntityEditionId,
     properties: JSON.parse(obj.properties as string) as JsonObject,
     editionCreatedById: obj.edition_created_by_id as
-      | EditionCreatedById
+      | UntaggedActorId
       | undefined,
   };
 };

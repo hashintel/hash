@@ -1,11 +1,11 @@
 import type {
-  ActorId,
   EntityId,
   EntityUuid,
   OwnedById,
   PropertyObjectMetadata,
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
+  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
@@ -47,14 +47,14 @@ const createClaim = async ({
   userActorId,
 }: {
   claimText: string;
-  creatorActorId: ActorId;
+  creatorActorId: UntaggedActorId;
   draft: boolean;
   objectText: string;
   ownedById: OwnedById;
   propertyProvenance: PropertyProvenance;
   provenance: ProvidedEntityEditionProvenance;
   subjectText: string;
-  userActorId: ActorId;
+  userActorId: UntaggedActorId;
 }) => {
   return await Entity.create<ClaimEntity>(
     graphApiClient,
@@ -110,7 +110,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   provenance,
   propertyProvenance,
 }: {
-  aiAssistantAccountId: ActorId;
+  aiAssistantAccountId: UntaggedActorId;
   documentMetadata: Pick<DocumentData, "authors">;
   documentEntityId: EntityId;
   documentTitle: string;

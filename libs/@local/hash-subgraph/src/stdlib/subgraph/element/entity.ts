@@ -6,11 +6,11 @@ import {
   intervalOverlapsInterval,
 } from "@blockprotocol/graph/stdlib";
 import type {
-  ActorGroupId,
-  ActorId,
   EntityId,
   TemporalBound,
   TemporalInterval,
+  UntaggedActorId,
+  UntaggedTeamId,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
@@ -29,13 +29,13 @@ import { mustBeDefined } from "../../../shared/invariant.js";
 export const extractActorId = extractEntityUuidFromEntityId as (
   entityId: ActorEntityId,
   // The type cannot be cast directly to `AccountId`, so we do it over two casts, but without `unknown`
-) => string as (entityId: ActorEntityId) => ActorId;
+) => string as (entityId: ActorEntityId) => UntaggedActorId;
 
 /** If the underlying `EntityUuid` is an `AccountGroupId`, use this cast to convert the type */
 export const extractActorGroupId = extractEntityUuidFromEntityId as (
   entityId: ActorGroupEntityId,
   // The type cannot be cast directly to `AccountGroupId`, so we do it over two casts, but without `unknown`
-) => string as (entityId: ActorGroupEntityId) => ActorGroupId;
+) => string as (entityId: ActorGroupEntityId) => UntaggedTeamId;
 
 /**
  * Returns all {@link Entity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their

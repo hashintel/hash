@@ -1,7 +1,7 @@
 import type {
-  ActorGroupId,
-  ActorId,
   OwnedById,
+  UntaggedActorId,
+  UntaggedTeamId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -31,8 +31,8 @@ import { systemAccountId } from "../system-account";
 export const owningWebs: Record<
   SystemTypeWebShortname,
   {
-    machineActorAccountId?: ActorId;
-    accountGroupId?: ActorGroupId;
+    machineActorAccountId?: UntaggedActorId;
+    accountGroupId?: UntaggedTeamId;
     enabled: boolean;
     name: string;
     websiteUrl: string;
@@ -58,7 +58,10 @@ export const owningWebs: Record<
 export const getOrCreateOwningAccountGroupId = async (
   context: ImpureGraphContext,
   webShortname: SystemTypeWebShortname,
-): Promise<{ accountGroupId: ActorGroupId; machineActorId: ActorId }> => {
+): Promise<{
+  accountGroupId: UntaggedTeamId;
+  machineActorId: UntaggedActorId;
+}> => {
   // We only need to resolve this once for each shortname during the seeding process
   const resolvedAccountGroupId = owningWebs[webShortname].accountGroupId;
   const resolvedMachineActorAccountId =

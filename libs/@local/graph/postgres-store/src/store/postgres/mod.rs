@@ -50,8 +50,8 @@ use type_system::{
         property_type::{PropertyType, schema::PropertyTypeReference},
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::{ActorId, EditionArchivedById},
-    web::{ActorGroupId, OwnedById},
+    provenance::UntaggedActorId,
+    web::{OwnedById, UntaggedTeamId},
 };
 
 pub use self::{
@@ -316,7 +316,7 @@ where
     async fn archive_ontology_type(
         &self,
         id: &VersionedUrl,
-        archived_by_id: EditionArchivedById,
+        archived_by_id: UntaggedActorId,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let query = "
           UPDATE ontology_temporal_metadata
@@ -1033,7 +1033,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: InsertAccountIdParams,
     ) -> Result<(), Report<AccountInsertionError>> {
         self.as_client()
@@ -1050,7 +1050,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_group_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: InsertAccountGroupIdParams,
     ) -> Result<(), Report<AccountGroupInsertionError>> {
         let transaction = self
@@ -1113,7 +1113,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_web_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
         params: InsertWebIdParams,
     ) -> Result<(), Report<WebInsertionError>> {
         let transaction = self.transaction().await.change_context(WebInsertionError)?;
@@ -1236,10 +1236,10 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 .attach_printable("Record does not exist")
                 .attach_printable(owned_by_id)),
             (true, false) => Ok(WebOwnerSubject::Account {
-                id: ActorId::new(owned_by_id.into_uuid()),
+                id: UntaggedActorId::new(owned_by_id.into_uuid()),
             }),
             (false, true) => Ok(WebOwnerSubject::AccountGroup {
-                id: ActorGroupId::new(owned_by_id.into_uuid()),
+                id: UntaggedTeamId::new(owned_by_id.into_uuid()),
             }),
             (true, true) => Err(Report::new(QueryWebError)
                 .attach_printable("Record exists in both accounts and account_groups")
@@ -1256,7 +1256,7 @@ where
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_accounts(
         &mut self,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
     ) -> Result<(), Report<DeletionError>> {
         self.as_client()
             .client()

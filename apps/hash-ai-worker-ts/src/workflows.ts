@@ -1,8 +1,8 @@
 import type {
-  ActorId,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
+  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
@@ -55,7 +55,7 @@ export const createEmbeddings = async (
 
 type UpdateDataTypeEmbeddingsParams = {
   authentication: {
-    actorId: ActorId;
+    actorId: UntaggedActorId;
   };
 } & (
   | {
@@ -140,7 +140,7 @@ export const updateDataTypeEmbeddings = async (
 
 type UpdatePropertyTypeEmbeddingsParams = {
   authentication: {
-    actorId: ActorId;
+    actorId: UntaggedActorId;
   };
 } & (
   | {
@@ -225,7 +225,7 @@ export const updatePropertyTypeEmbeddings = async (
 
 type UpdateEntityTypeEmbeddingsParams = {
   authentication: {
-    actorId: ActorId;
+    actorId: UntaggedActorId;
   };
 } & (
   | {
@@ -310,7 +310,7 @@ export const updateEntityTypeEmbeddings = async (
 
 type UpdateEntityEmbeddingsParams = {
   authentication: {
-    actorId: ActorId;
+    actorId: UntaggedActorId;
   };
 } & (
   | {

@@ -1,7 +1,7 @@
 import type {
-  ActorId,
   BaseUrl,
   OwnedById,
+  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -165,7 +165,7 @@ export const useEntitiesTable = (
   }, [definitions, entities]);
 
   const editorActorIds = useMemo(() => {
-    const editorIds = new Set<ActorId>([
+    const editorIds = new Set<UntaggedActorId>([
       ...typedKeys(editionCreatedByIds ?? {}),
       ...typedKeys(createdByIds ?? {}),
     ]);
@@ -177,13 +177,13 @@ export const useEntitiesTable = (
     accountIds: editorActorIds,
   });
 
-  const actorsByAccountId: Record<ActorId, MinimalActor | null> =
+  const actorsByAccountId: Record<UntaggedActorId, MinimalActor | null> =
     useMemo(() => {
       if (!actors) {
         return {};
       }
 
-      const actorsByAccount: Record<ActorId, MinimalActor | null> = {};
+      const actorsByAccount: Record<UntaggedActorId, MinimalActor | null> = {};
 
       for (const actor of actors) {
         actorsByAccount[actor.accountId] = actor;

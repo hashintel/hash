@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { ActorGroupId } from "@blockprotocol/type-system";
+import type { UntaggedTeamId } from "@blockprotocol/type-system";
 import type { ActorEntityId } from "@local/hash-subgraph";
 import { extractActorId } from "@local/hash-subgraph/stdlib";
 import { TableCell, TableRow, Typography } from "@mui/material";
@@ -22,7 +22,7 @@ export const MemberRow = ({
   readonly,
   self,
 }: {
-  accountGroupId: ActorGroupId;
+  accountGroupId: UntaggedTeamId;
   membership: Org["memberships"][0];
   readonly: boolean;
   self: boolean;

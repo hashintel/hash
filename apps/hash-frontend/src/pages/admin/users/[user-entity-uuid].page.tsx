@@ -1,4 +1,4 @@
-import type { ActorId } from "@blockprotocol/type-system";
+import type { UntaggedActorId } from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -21,7 +21,7 @@ const AdminUserPage: NextPageWithLayout = () => {
   const router = useRouter();
 
   const userEntityUuid = router.query["user-entity-uuid"] as
-    | ActorId
+    | UntaggedActorId
     | undefined;
 
   const { userOrOrg, refetch, loading } = useUserOrOrg({

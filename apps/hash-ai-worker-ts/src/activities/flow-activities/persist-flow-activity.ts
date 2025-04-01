@@ -1,8 +1,8 @@
 import type {
-  ActorId,
   OriginProvenance,
   OwnedById,
   ProvidedEntityEditionProvenance,
+  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -17,7 +17,7 @@ import { graphApiClient } from "../shared/graph-api-client.js";
 
 type PersistFlowActivityParams = {
   flow: LocalFlowRun;
-  userAuthentication: { actorId: ActorId };
+  userAuthentication: { actorId: UntaggedActorId };
   webId: OwnedById;
 };
 

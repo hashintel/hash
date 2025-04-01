@@ -1,8 +1,8 @@
 import type {
-  ActorGroupId,
   EntityId,
   EntityUuid,
   OwnedById,
+  UntaggedTeamId,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
@@ -47,7 +47,7 @@ import {
 } from "./account.fields";
 
 export type Org = {
-  accountGroupId: ActorGroupId;
+  accountGroupId: UntaggedTeamId;
   orgName: string;
   shortname: string;
   entity: Entity<Organization>;
@@ -107,7 +107,7 @@ export const createOrg: ImpureGraphFunction<
   {
     shortname: string;
     name: string;
-    orgAccountGroupId?: ActorGroupId;
+    orgAccountGroupId?: UntaggedTeamId;
     websiteUrl?: string | null;
     entityTypeVersion?: number;
     bypassShortnameValidation?: boolean;
@@ -135,7 +135,7 @@ export const createOrg: ImpureGraphFunction<
     );
   }
 
-  let orgAccountGroupId: ActorGroupId;
+  let orgAccountGroupId: UntaggedTeamId;
   if (params.orgAccountGroupId) {
     orgAccountGroupId = params.orgAccountGroupId;
   } else {

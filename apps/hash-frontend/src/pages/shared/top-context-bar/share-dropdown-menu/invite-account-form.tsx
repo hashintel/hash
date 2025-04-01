@@ -1,4 +1,7 @@
-import type { ActorGroupId, ActorId } from "@blockprotocol/type-system";
+import type {
+  UntaggedActorId,
+  UntaggedTeamId,
+} from "@blockprotocol/type-system";
 import { Autocomplete, Avatar } from "@hashintel/design-system";
 import {
   autocompleteClasses,
@@ -23,7 +26,7 @@ import { Button } from "../../../../shared/ui";
 import { getImageUrlFromEntityProperties } from "../../get-file-properties";
 
 export const InviteAccountForm: FunctionComponent<{
-  excludeAccountIds?: (ActorId | ActorGroupId)[];
+  excludeAccountIds?: (UntaggedActorId | UntaggedTeamId)[];
   onInviteAccount: (account: MinimalOrg | MinimalUser) => void;
 }> = ({ onInviteAccount, excludeAccountIds }) => {
   const [selectedAccount, setSelectedAccount] = useState<

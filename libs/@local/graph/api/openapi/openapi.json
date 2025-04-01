@@ -26,7 +26,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -46,7 +46,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ActorGroupId"
+                  "$ref": "#/components/schemas/UntaggedTeamId"
                 }
               }
             }
@@ -71,7 +71,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -80,7 +80,7 @@
             "description": "The ID of the account group to add the member to",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/UntaggedTeamId"
             }
           },
           {
@@ -89,7 +89,7 @@
             "description": "The ID of the account to add to the group",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -118,7 +118,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -127,7 +127,7 @@
             "description": "The ID of the account group to remove the member from",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/UntaggedTeamId"
             }
           },
           {
@@ -136,7 +136,7 @@
             "description": "The ID of the account to remove from the group",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -167,7 +167,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -176,7 +176,7 @@
             "description": "The ID of the account group to check if the actor has the permission",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/UntaggedTeamId"
             }
           },
           {
@@ -220,7 +220,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -229,7 +229,7 @@
             "description": "The ID of the account group to get relations from",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/UntaggedTeamId"
             }
           }
         ],
@@ -270,7 +270,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -290,7 +290,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ActorId"
+                  "$ref": "#/components/schemas/UntaggedActorId"
                 }
               }
             }
@@ -315,7 +315,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -364,7 +364,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -415,7 +415,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -469,7 +469,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -526,7 +526,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -567,7 +567,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -618,7 +618,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -666,7 +666,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -711,7 +711,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -759,7 +759,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -800,7 +800,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -854,7 +854,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -907,7 +907,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -954,7 +954,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -1003,7 +1003,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -1057,7 +1057,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -1114,7 +1114,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -1165,7 +1165,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -1206,7 +1206,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -1275,7 +1275,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -1324,7 +1324,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -1393,7 +1393,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -1434,7 +1434,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -1488,7 +1488,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -1532,7 +1532,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -1578,7 +1578,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -1622,7 +1622,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -1668,7 +1668,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -1721,7 +1721,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -1768,7 +1768,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -1838,7 +1838,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -1889,7 +1889,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -1943,7 +1943,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2000,7 +2000,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2041,7 +2041,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2113,7 +2113,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2161,7 +2161,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2209,7 +2209,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2257,7 +2257,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2298,7 +2298,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2352,7 +2352,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -2405,7 +2405,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -2452,7 +2452,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2501,7 +2501,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2552,7 +2552,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2606,7 +2606,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2663,7 +2663,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2704,7 +2704,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2755,7 +2755,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2803,7 +2803,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2859,7 +2859,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2900,7 +2900,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -2954,7 +2954,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -3007,7 +3007,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -3054,7 +3054,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -3092,7 +3092,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           }
         ],
@@ -3133,7 +3133,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -3186,7 +3186,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorId"
+              "$ref": "#/components/schemas/UntaggedActorId"
             }
           },
           {
@@ -3238,7 +3238,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           }
@@ -3263,7 +3263,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           }
@@ -3321,14 +3321,6 @@
         "discriminator": {
           "propertyName": "relation"
         }
-      },
-      "ActorGroupId": {
-        "type": "string",
-        "format": "uuid"
-      },
-      "ActorId": {
-        "type": "string",
-        "format": "uuid"
       },
       "ActorType": {
         "type": "string",
@@ -3837,9 +3829,6 @@
         },
         "additionalProperties": false
       },
-      "CreatedById": {
-        "$ref": "#/components/schemas/ActorId"
-      },
       "DataType": {
         "$ref": "./models/data_type.json"
       },
@@ -3963,7 +3952,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           },
@@ -3981,7 +3970,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/UntaggedTeamId"
               }
             }
           }
@@ -4444,12 +4433,6 @@
           }
         }
       },
-      "EditionArchivedById": {
-        "$ref": "#/components/schemas/ActorId"
-      },
-      "EditionCreatedById": {
-        "$ref": "#/components/schemas/ActorId"
-      },
       "Embedding": {
         "type": "array",
         "items": {
@@ -4496,7 +4479,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           },
@@ -4515,7 +4498,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/UntaggedTeamId"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -4545,12 +4528,12 @@
               "archivedById": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/EditionArchivedById"
+                    "$ref": "#/components/schemas/UntaggedActorId"
                   }
                 ]
               },
               "createdById": {
-                "$ref": "#/components/schemas/EditionCreatedById"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           }
@@ -4572,7 +4555,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           },
@@ -4591,7 +4574,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/UntaggedTeamId"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -4999,7 +4982,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           },
@@ -5017,7 +5000,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/UntaggedTeamId"
               }
             }
           }
@@ -5114,7 +5097,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           },
@@ -5132,7 +5115,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/UntaggedTeamId"
               }
             }
           }
@@ -5585,7 +5568,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           },
@@ -5604,7 +5587,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/UntaggedTeamId"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -6798,7 +6781,7 @@
             "$ref": "#/components/schemas/Timestamp"
           },
           "createdById": {
-            "$ref": "#/components/schemas/CreatedById"
+            "$ref": "#/components/schemas/UntaggedActorId"
           },
           "firstNonDraftCreatedAtDecisionTime": {
             "allOf": [
@@ -6821,7 +6804,7 @@
         "type": "object",
         "properties": {
           "accountGroupId": {
-            "$ref": "#/components/schemas/ActorGroupId"
+            "$ref": "#/components/schemas/UntaggedTeamId"
           }
         },
         "additionalProperties": false
@@ -6830,7 +6813,7 @@
         "type": "object",
         "properties": {
           "accountId": {
-            "$ref": "#/components/schemas/ActorId"
+            "$ref": "#/components/schemas/UntaggedActorId"
           }
         },
         "additionalProperties": false
@@ -7845,12 +7828,12 @@
               "archivedById": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/EditionArchivedById"
+                    "$ref": "#/components/schemas/UntaggedActorId"
                   }
                 ]
               },
               "createdById": {
-                "$ref": "#/components/schemas/EditionCreatedById"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           }
@@ -8821,7 +8804,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           },
@@ -8839,7 +8822,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/UntaggedTeamId"
               }
             }
           }
@@ -9851,6 +9834,14 @@
           }
         }
       },
+      "UntaggedActorId": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "UntaggedTeamId": {
+        "type": "string",
+        "format": "uuid"
+      },
       "UpdateDataType": {
         "$ref": "./models/update_data_type.json"
       },
@@ -10301,7 +10292,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           },
@@ -10319,7 +10310,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/UntaggedTeamId"
               }
             }
           }
@@ -10344,7 +10335,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           },
@@ -10362,7 +10353,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/UntaggedTeamId"
               }
             }
           }
@@ -10419,7 +10410,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           },
@@ -10437,7 +10428,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/UntaggedTeamId"
               }
             }
           }
@@ -10462,7 +10453,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/UntaggedActorId"
               }
             }
           },
@@ -10480,7 +10471,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/UntaggedTeamId"
               }
             }
           }

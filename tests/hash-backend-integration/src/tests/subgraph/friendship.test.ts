@@ -22,10 +22,10 @@ import {
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import type {
-  ActorId,
   BaseUrl,
   EntityTypeWithMetadata,
   Timestamp,
+  UntaggedActorId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type {
@@ -145,7 +145,7 @@ let bobEntities: Entity[];
 let linkEntities: Entity[];
 
 const authentication = {
-  actorId: "00000000-0001-0000-0000-000000000000" as ActorId,
+  actorId: "00000000-0001-0000-0000-000000000000" as UntaggedActorId,
 };
 
 beforeAll(async () => {

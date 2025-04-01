@@ -11,7 +11,7 @@ use harpc_server::{
 use harpc_system::delegate::SubsystemDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_types::response_kind::ResponseKind;
-use type_system::provenance::ActorId;
+use type_system::provenance::UntaggedActorId;
 
 use super::session::Account;
 
@@ -26,7 +26,7 @@ pub trait AuthenticationSystem {
     async fn authenticate(
         &self,
         scope: Self::ExecutionScope,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
     ) -> Result<(), Report<AuthenticationError>>;
 }
 
@@ -98,7 +98,7 @@ impl AuthenticationSystem for AuthenticationServer {
     async fn authenticate(
         &self,
         scope: Session<Account>,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
     ) -> Result<(), Report<AuthenticationError>> {
         scope
             .update(Account {
@@ -192,7 +192,7 @@ where
     async fn authenticate(
         &self,
         scope: Connection<S, C>,
-        actor_id: ActorId,
+        actor_id: UntaggedActorId,
     ) -> Result<(), Report<AuthenticationError>> {
         invoke_call_discrete(
             scope,

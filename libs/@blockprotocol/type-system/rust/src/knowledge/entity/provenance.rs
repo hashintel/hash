@@ -7,20 +7,17 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 
-use crate::provenance::{
-    ActorType, CreatedById, EditionArchivedById, EditionCreatedById, OriginProvenance,
-    SourceProvenance,
-};
+use crate::provenance::{ActorType, OriginProvenance, SourceProvenance, UntaggedActorId};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityEditionProvenance {
-    pub created_by_id: EditionCreatedById,
+    pub created_by_id: UntaggedActorId,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub archived_by_id: Option<EditionArchivedById>,
+    pub archived_by_id: Option<UntaggedActorId>,
     #[serde(flatten)]
     pub provided: ProvidedEntityEditionProvenance,
 }
@@ -68,7 +65,7 @@ pub struct ProvidedEntityEditionProvenance {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct InferredEntityProvenance {
-    pub created_by_id: CreatedById,
+    pub created_by_id: UntaggedActorId,
     #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
     pub created_at_transaction_time: Timestamp<TransactionTime>,
     #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]

@@ -1,6 +1,6 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { ActorId } from "@blockprotocol/type-system";
+import type { UntaggedActorId } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -25,7 +25,7 @@ import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
 export const useUsersWithLinks = ({
   userAccountIds,
 }: {
-  userAccountIds?: ActorId[];
+  userAccountIds?: UntaggedActorId[];
 }): {
   loading: boolean;
   users?: User[];

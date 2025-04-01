@@ -25,8 +25,8 @@ use hash_graph_store::{
 };
 use hash_temporal_client::TemporalClient;
 use type_system::{
-    provenance::ActorId,
-    web::{ActorGroupId, OwnedById},
+    provenance::UntaggedActorId,
+    web::{OwnedById, UntaggedTeamId},
 };
 use utoipa::OpenApi;
 
@@ -49,8 +49,8 @@ use crate::rest::{
     ),
     components(
         schemas(
-            ActorId,
-            ActorGroupId,
+            UntaggedActorId,
+            UntaggedTeamId,
             AccountGroupPermission,
             AccountGroupRelationAndSubject,
             AccountGroupMemberSubject,
@@ -104,10 +104,10 @@ impl RoutedResource for AccountResource {
     tag = "Account",
     request_body = InsertAccountIdParams,
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = UntaggedActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the created account", body = ActorId),
+        (status = 200, content_type = "application/json", description = "The schema of the created account", body = UntaggedActorId),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -122,7 +122,7 @@ async fn create_account<S, A>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<InsertAccountIdParams>,
-) -> Result<Json<ActorId>, Response>
+) -> Result<Json<UntaggedActorId>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -152,10 +152,10 @@ where
     tag = "Account Group",
     request_body = InsertAccountGroupIdParams,
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = UntaggedActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the created account", body = ActorGroupId),
+        (status = 200, content_type = "application/json", description = "The schema of the created account", body = UntaggedTeamId),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -170,7 +170,7 @@ async fn create_account_group<S, A>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<InsertAccountGroupIdParams>,
-) -> Result<Json<ActorGroupId>, StatusCode>
+) -> Result<Json<UntaggedTeamId>, StatusCode>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -219,8 +219,8 @@ where
     path = "/account_groups/{account_group_id}/permissions/{permission}",
     tag = "Account Group",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("account_group_id" = ActorGroupId, Path, description = "The ID of the account group to check if the actor has the permission"),
+        ("X-Authenticated-User-Actor-Id" = UntaggedActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("account_group_id" = UntaggedTeamId, Path, description = "The ID of the account group to check if the actor has the permission"),
         ("permission" = AccountGroupPermission, Path, description = "The permission to check for"),
     ),
     responses(
@@ -232,7 +232,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn check_account_group_permission<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((account_group_id, permission)): Path<(ActorGroupId, AccountGroupPermission)>,
+    Path((account_group_id, permission)): Path<(UntaggedTeamId, AccountGroupPermission)>,
     authorization_api_pool: Extension<Arc<A>>,
     mut query_logger: Option<Extension<QueryLogger>>,
 ) -> Result<Json<PermissionResponse>, Response>
@@ -279,9 +279,9 @@ where
     path = "/account_groups/{account_group_id}/members/{account_id}",
     tag = "Account Group",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("account_group_id" = ActorGroupId, Path, description = "The ID of the account group to add the member to"),
-        ("account_id" = ActorId, Path, description = "The ID of the account to add to the group"),
+        ("X-Authenticated-User-Actor-Id" = UntaggedActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("account_group_id" = UntaggedTeamId, Path, description = "The ID of the account group to add the member to"),
+        ("account_id" = UntaggedActorId, Path, description = "The ID of the account to add to the group"),
     ),
     responses(
         (status = 201, description = "The account group member was added"),
@@ -293,7 +293,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn add_account_group_member<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((account_group_id, account_id)): Path<(ActorGroupId, ActorId)>,
+    Path((account_group_id, account_id)): Path<(UntaggedTeamId, UntaggedActorId)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<StatusCode, StatusCode>
 where
@@ -348,9 +348,9 @@ where
     path = "/account_groups/{account_group_id}/members/{account_id}",
     tag = "Account Group",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("account_group_id" = ActorGroupId, Path, description = "The ID of the account group to remove the member from"),
-        ("account_id" = ActorId, Path, description = "The ID of the account to remove from the group")
+        ("X-Authenticated-User-Actor-Id" = UntaggedActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("account_group_id" = UntaggedTeamId, Path, description = "The ID of the account group to remove the member from"),
+        ("account_id" = UntaggedActorId, Path, description = "The ID of the account to remove from the group")
     ),
     responses(
         (status = 204, description = "The account group member was removed"),
@@ -362,7 +362,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn remove_account_group_member<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((account_group_id, account_id)): Path<(ActorGroupId, ActorId)>,
+    Path((account_group_id, account_id)): Path<(UntaggedTeamId, UntaggedActorId)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<StatusCode, StatusCode>
 where
@@ -417,8 +417,8 @@ where
     path = "/account_groups/{account_group_id}/relations",
     tag = "Account Group",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("account_group_id" = ActorGroupId, Path, description = "The ID of the account group to get relations from"),
+        ("X-Authenticated-User-Actor-Id" = UntaggedActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("account_group_id" = UntaggedTeamId, Path, description = "The ID of the account group to get relations from"),
     ),
     responses(
         (status = 200, body = Vec<AccountGroupRelationAndSubject>, description = "List of members and administrators of the account group"),
@@ -429,7 +429,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn get_account_group_relations<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path(account_group_id): Path<ActorGroupId>,
+    Path(account_group_id): Path<UntaggedTeamId>,
     authorization_api_pool: Extension<Arc<A>>,
     mut query_logger: Option<Extension<QueryLogger>>,
 ) -> Result<Json<Vec<AccountGroupRelationAndSubject>>, Response>

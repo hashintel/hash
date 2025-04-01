@@ -11,26 +11,26 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use hash_graph_authorization::schema::AccountGroupRelationAndSubject;
-use type_system::web::ActorGroupId;
+use type_system::web::UntaggedTeamId;
 
 use crate::snapshot::{
     SnapshotRestoreError,
     owner::{AccountGroupRow, AccountRow, AccountRowBatch, Owner},
 };
 
-/// A sink to insert [`ActorId`]s and [`ActorGroupId`]s.
+/// A sink to insert [`UntaggedActorId`]s and [`UntaggedTeamId`]s.
 ///
 /// An `AccountSender` with the corresponding [`OwnerReceiver`] are created using the [`channel`]
 /// function.
 ///
-/// [`ActorId`]: type_system::provenance::ActorId
-/// [`ActorGroupId`]: type_system::web::ActorGroupId
+/// [`UntaggedActorId`]: type_system::provenance::UntaggedActorId
+/// [`UntaggedTeamId`]: type_system::web::UntaggedTeamId
 #[derive(Debug, Clone)]
 #[expect(clippy::struct_field_names)]
 pub struct OwnerSender {
     account_id: Sender<AccountRow>,
     account_group_id: Sender<AccountGroupRow>,
-    account_group_relations: Sender<(ActorGroupId, AccountGroupRelationAndSubject)>,
+    account_group_relations: Sender<(UntaggedTeamId, AccountGroupRelationAndSubject)>,
 }
 
 // This is a direct wrapper around `Sink<mpsc::Sender<AccountRow>>` with error-handling added

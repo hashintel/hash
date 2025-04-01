@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use type_system::{provenance::ActorId, web::ActorGroupId};
+use type_system::{provenance::UntaggedActorId, web::UntaggedTeamId};
 use uuid::Uuid;
 
 use crate::zanzibar::{
@@ -13,7 +13,7 @@ pub enum AccountGroupNamespace {
     AccountGroup,
 }
 
-impl Resource for ActorGroupId {
+impl Resource for UntaggedTeamId {
     type Id = Self;
     type Kind = AccountGroupNamespace;
 
@@ -40,7 +40,7 @@ pub enum AccountGroupResourceRelation {
     Member,
 }
 
-impl Relation<ActorGroupId> for AccountGroupResourceRelation {}
+impl Relation<UntaggedTeamId> for AccountGroupResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -50,12 +50,12 @@ pub enum AccountGroupPermission {
     RemoveMember,
 }
 
-impl Permission<ActorGroupId> for AccountGroupPermission {}
+impl Permission<UntaggedTeamId> for AccountGroupPermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum AccountGroupSubject {
-    Account(ActorId),
+    Account(UntaggedActorId),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,7 +78,7 @@ impl Resource for AccountGroupSubject {
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, !> {
         Ok(match (kind, id) {
             (AccountGroupSubjectNamespace::Account, AccountGroupSubjectId::Uuid(id)) => {
-                Self::Account(ActorId::new(id))
+                Self::Account(UntaggedActorId::new(id))
             }
         })
     }
@@ -103,7 +103,7 @@ impl Resource for AccountGroupSubject {
 pub enum AccountGroupAdministratorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: UntaggedActorId,
     },
 }
 
@@ -113,7 +113,7 @@ pub enum AccountGroupAdministratorSubject {
 pub enum AccountGroupMemberSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: UntaggedActorId,
     },
 }
 
@@ -133,9 +133,9 @@ pub enum AccountGroupRelationAndSubject {
     },
 }
 
-impl Relationship for (ActorGroupId, AccountGroupRelationAndSubject) {
+impl Relationship for (UntaggedTeamId, AccountGroupRelationAndSubject) {
     type Relation = AccountGroupResourceRelation;
-    type Resource = ActorGroupId;
+    type Resource = UntaggedTeamId;
     type Subject = AccountGroupSubject;
     type SubjectSet = !;
 

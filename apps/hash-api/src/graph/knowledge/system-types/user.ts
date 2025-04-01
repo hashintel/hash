@@ -1,10 +1,10 @@
-import {
-  type ActorId,
-  type EntityId,
-  type EntityUuid,
-  extractEntityUuidFromEntityId,
-  type OwnedById,
+import type {
+  EntityId,
+  EntityUuid,
+  OwnedById,
+  UntaggedActorId,
 } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
@@ -56,7 +56,7 @@ import {
 } from "./org-membership";
 
 export type User = {
-  accountId: ActorId;
+  accountId: UntaggedActorId;
   kratosIdentityId: string;
   emails: string[];
   shortname?: string;
@@ -245,7 +245,7 @@ export const createUser: ImpureGraphFunction<
     shortname?: string;
     displayName?: string;
     isInstanceAdmin?: boolean;
-    userAccountId?: ActorId;
+    userAccountId?: UntaggedActorId;
   },
   Promise<User>
 > = async (ctx, authentication, params) => {
@@ -289,7 +289,7 @@ export const createUser: ImpureGraphFunction<
 
   const userShouldHavePermissionsOnWeb = shortname && displayName;
 
-  let userAccountId: ActorId;
+  let userAccountId: UntaggedActorId;
   if (params.userAccountId) {
     userAccountId = params.userAccountId;
   } else {

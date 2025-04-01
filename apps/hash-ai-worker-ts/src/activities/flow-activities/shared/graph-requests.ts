@@ -1,8 +1,8 @@
 import type {
-  ActorId,
   EntityId,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
+  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import {
   extractDraftIdFromEntityId,
@@ -31,7 +31,7 @@ import type { ExistingEntityForMatching } from "../../shared/match-existing-enti
 
 export const getLatestEntityById = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: ActorId };
+  authentication: { actorId: UntaggedActorId };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {

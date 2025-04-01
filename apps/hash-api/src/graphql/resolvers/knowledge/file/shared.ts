@@ -1,4 +1,4 @@
-import type { ActorId, OwnedById } from "@blockprotocol/type-system";
+import type { OwnedById, UntaggedActorId } from "@blockprotocol/type-system";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { inferMetadataFromDocumentFlowDefinition } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
@@ -17,7 +17,7 @@ export const triggerPdfAnalysisWorkflow = async ({
 }: {
   entity: Entity<File>;
   temporalClient: TemporalClient;
-  userAccountId: ActorId;
+  userAccountId: UntaggedActorId;
   webId: OwnedById;
 }) => {
   const { entityId, properties } = entity;

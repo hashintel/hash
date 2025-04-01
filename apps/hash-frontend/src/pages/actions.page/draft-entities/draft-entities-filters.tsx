@@ -1,4 +1,8 @@
-import type { ActorId, BaseUrl, OwnedById } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  OwnedById,
+  UntaggedActorId,
+} from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractOwnedByIdFromEntityId,
@@ -66,7 +70,7 @@ const lastEditedTimeRangesToIcon: Record<LastEditedTimeRanges, ReactNode> = {
 
 export type DraftEntityFilterState = {
   entityTypeBaseUrls: BaseUrl[];
-  sourceAccountIds: ActorId[];
+  sourceAccountIds: UntaggedActorId[];
   webOwnedByIds: OwnedById[];
   lastEditedTimeRange: LastEditedTimeRanges;
 };
@@ -429,7 +433,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 ({ creator }) => creator.accountId === source.accountId,
               ).length,
             })) ?? [],
-        onChange: (updatedAccountIds: ActorId[]) =>
+        onChange: (updatedAccountIds: UntaggedActorId[]) =>
           setFilterState((prev) =>
             prev
               ? {

@@ -1,7 +1,7 @@
 import type {
   DataTypeWithMetadata,
-  EditionCreatedById,
   OwnedById,
+  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
@@ -88,7 +88,7 @@ const Page: NextPageWithLayout = () => {
           },
           provenance: {
             edition: {
-              createdById: "irrelevant-here" as EditionCreatedById,
+              createdById: "irrelevant-here" as UntaggedActorId,
               actorType: "human",
               origin: {
                 type: "web-app",

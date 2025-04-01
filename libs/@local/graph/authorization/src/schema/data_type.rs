@@ -3,8 +3,8 @@ use core::error::Error;
 use serde::{Deserialize, Serialize};
 use type_system::{
     ontology::data_type::DataTypeUuid,
-    provenance::ActorId,
-    web::{ActorGroupId, OwnedById},
+    provenance::UntaggedActorId,
+    web::{OwnedById, UntaggedTeamId},
 };
 use uuid::Uuid;
 
@@ -79,8 +79,8 @@ pub enum DataTypeSubject {
     Web(OwnedById),
     Setting(DataTypeSetting),
     Public,
-    Account(ActorId),
-    AccountGroup(ActorGroupId),
+    Account(UntaggedActorId),
+    AccountGroup(UntaggedTeamId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -129,10 +129,10 @@ impl Resource for DataTypeSubject {
                 DataTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (DataTypeSubjectNamespace::Account, DataTypeSubjectId::Uuid(id)) => {
-                Self::Account(ActorId::new(id))
+                Self::Account(UntaggedActorId::new(id))
             }
             (DataTypeSubjectNamespace::AccountGroup, DataTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(ActorGroupId::new(id))
+                Self::AccountGroup(UntaggedTeamId::new(id))
             }
             (
                 DataTypeSubjectNamespace::Web
@@ -202,11 +202,11 @@ pub enum DataTypeSettingSubject {
 pub enum DataTypeEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: UntaggedActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: UntaggedTeamId,
         #[serde(skip)]
         set: DataTypeSubjectSet,
     },

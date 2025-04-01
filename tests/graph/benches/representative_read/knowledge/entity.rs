@@ -19,7 +19,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TemporalBound;
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
-use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorId};
+use type_system::{knowledge::entity::id::EntityUuid, provenance::UntaggedActorId};
 
 use crate::util::Store;
 
@@ -27,7 +27,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
-    actor_id: ActorId,
+    actor_id: UntaggedActorId,
     entity_uuids: &[EntityUuid],
 ) {
     bencher.to_async(runtime).iter_batched(
@@ -84,7 +84,7 @@ pub fn bench_get_entities_by_property<A: AuthorizationApi>(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
-    actor_id: ActorId,
+    actor_id: UntaggedActorId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
     bencher.to_async(runtime).iter(|| async move {
@@ -140,7 +140,7 @@ pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
-    actor_id: ActorId,
+    actor_id: UntaggedActorId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
     bencher.to_async(runtime).iter(|| async move {

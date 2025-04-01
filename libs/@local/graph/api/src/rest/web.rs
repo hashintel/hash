@@ -96,7 +96,7 @@ impl RoutedResource for WebResource {
     request_body = InsertWebIdParams,
     tag = "Web",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = UntaggedActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, content_type = "application/json", description = "The web was created successfully"),
@@ -149,7 +149,7 @@ where
     path = "/webs/{web_id}/permissions/{permission}",
     tag = "Web",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = UntaggedActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("web_id" = EntityId, Path, description = "The web ID to check if the actor has the permission"),
         ("permission" = WebPermission, Path, description = "The permission to check for"),
     ),
@@ -194,7 +194,7 @@ where
     path = "/webs/{web_id}/relationships",
     tag = "Web",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = UntaggedActorId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("web_id" = OwnedById, Path, description = "The web to read the relations for"),
     ),
     responses(
@@ -239,7 +239,7 @@ struct ModifyWebAuthorizationRelationship {
     tag = "Web",
     request_body = [ModifyWebAuthorizationRelationship],
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = UntaggedActorId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, description = "The relationship was modified for the web"),

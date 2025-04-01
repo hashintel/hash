@@ -1,4 +1,4 @@
-import type { ActorId, OwnedById } from "@blockprotocol/type-system";
+import type { OwnedById, UntaggedActorId } from "@blockprotocol/type-system";
 import type { Status } from "@local/status";
 
 import type {
@@ -12,7 +12,7 @@ export type RunFlowWorkflowParams = {
   dataSources: FlowDataSources;
   flowTrigger: FlowTrigger;
   flowDefinition: FlowDefinition;
-  userAuthentication: { actorId: ActorId };
+  userAuthentication: { actorId: UntaggedActorId };
   webId: OwnedById;
 };
 

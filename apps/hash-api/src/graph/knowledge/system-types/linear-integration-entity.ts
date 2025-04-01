@@ -1,4 +1,8 @@
-import type { ActorId, BaseUrl, EntityId } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  UntaggedActorId,
+} from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -118,7 +122,11 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
  * Get a linear integration by the linear org ID
  */
 export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
-  { userAccountId: ActorId; linearOrgId: string; includeDrafts?: boolean },
+  {
+    userAccountId: UntaggedActorId;
+    linearOrgId: string;
+    includeDrafts?: boolean;
+  },
   Promise<LinearIntegration | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const { userAccountId, linearOrgId, includeDrafts = false } = params;

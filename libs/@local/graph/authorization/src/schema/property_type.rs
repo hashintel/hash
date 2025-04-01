@@ -1,12 +1,14 @@
 use core::error::Error;
 
 use serde::{Deserialize, Serialize};
-use type_system::{ontology::property_type::PropertyTypeUuid, provenance::ActorId, web::OwnedById};
+use type_system::{
+    ontology::property_type::PropertyTypeUuid, provenance::UntaggedActorId, web::OwnedById,
+};
 use uuid::Uuid;
 
 use crate::{
     schema::{
-        ActorGroupId, PublicAccess,
+        PublicAccess, UntaggedTeamId,
         error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
@@ -75,8 +77,8 @@ pub enum PropertyTypeSubject {
     Web(OwnedById),
     Setting(PropertyTypeSetting),
     Public,
-    Account(ActorId),
-    AccountGroup(ActorGroupId),
+    Account(UntaggedActorId),
+    AccountGroup(UntaggedTeamId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -125,10 +127,10 @@ impl Resource for PropertyTypeSubject {
                 PropertyTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (PropertyTypeSubjectNamespace::Account, PropertyTypeSubjectId::Uuid(id)) => {
-                Self::Account(ActorId::new(id))
+                Self::Account(UntaggedActorId::new(id))
             }
             (PropertyTypeSubjectNamespace::AccountGroup, PropertyTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(ActorGroupId::new(id))
+                Self::AccountGroup(UntaggedTeamId::new(id))
             }
             (
                 PropertyTypeSubjectNamespace::Web
@@ -198,11 +200,11 @@ pub enum PropertyTypeSettingSubject {
 pub enum PropertyTypeEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: UntaggedActorId,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: UntaggedTeamId,
         #[serde(skip)]
         set: PropertyTypeSubjectSet,
     },

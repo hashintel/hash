@@ -1,4 +1,4 @@
-import type { ActorId } from "@blockprotocol/type-system";
+import type { UntaggedActorId } from "@blockprotocol/type-system";
 
 import type {
   AnthropicLlmParams,
@@ -13,5 +13,5 @@ export type CompareLlmResponseConfig = {
     | Omit<AnthropicLlmParams, "model">
     | Omit<OpenAiLlmParams, "model">
     | Omit<GoogleAiParams, "model">;
-  accountId?: ActorId;
+  accountId?: UntaggedActorId;
 };

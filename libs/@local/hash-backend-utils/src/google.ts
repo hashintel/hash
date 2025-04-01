@@ -1,4 +1,4 @@
-import type { ActorId, EntityId } from "@blockprotocol/type-system";
+import type { EntityId, UntaggedActorId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -47,7 +47,7 @@ export const getGoogleAccountById = async ({
   googleAccountId,
   userAccountId,
 }: {
-  userAccountId: ActorId;
+  userAccountId: UntaggedActorId;
   googleAccountId: string;
   graphApiClient: GraphApi;
 }): Promise<Entity<GoogleAccount> | undefined> => {
@@ -108,7 +108,7 @@ export const getTokensForGoogleAccount = async ({
 }: {
   googleAccountEntityId: EntityId;
   graphApiClient: GraphApi;
-  userAccountId: ActorId;
+  userAccountId: UntaggedActorId;
   vaultClient: VaultClient;
 }): Promise<Auth.Credentials | null> => {
   const secretAndLinkPairs = await getSecretEntitiesForIntegration({

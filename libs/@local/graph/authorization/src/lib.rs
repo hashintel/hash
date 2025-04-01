@@ -30,8 +30,8 @@ use type_system::{
     ontology::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
-    provenance::ActorId,
-    web::{ActorGroupId, OwnedById},
+    provenance::UntaggedActorId,
+    web::{OwnedById, UntaggedTeamId},
 };
 
 use crate::{
@@ -52,9 +52,9 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_account_group_permission(
         &self,
-        _: ActorId,
+        _: UntaggedActorId,
         _: AccountGroupPermission,
-        _: ActorGroupId,
+        _: UntaggedTeamId,
         _: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         Ok(CheckResponse {
@@ -68,7 +68,7 @@ impl AuthorizationApi for NoAuthorization {
         _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                ActorGroupId,
+                UntaggedTeamId,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,
@@ -79,7 +79,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_web_permission(
         &self,
-        _: ActorId,
+        _: UntaggedActorId,
         _: WebPermission,
         _: OwnedById,
         _: Consistency<'_>,
@@ -106,7 +106,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_account_group_relations(
         &self,
-        _: ActorGroupId,
+        _: UntaggedTeamId,
         _: Consistency<'_>,
     ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
         Ok(Vec::new())
@@ -122,7 +122,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_entity_permission(
         &self,
-        _: ActorId,
+        _: UntaggedActorId,
         _: EntityPermission,
         _: EntityId,
         _: Consistency<'_>,
@@ -135,7 +135,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_entities_permission(
         &self,
-        _: ActorId,
+        _: UntaggedActorId,
         _: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
         _: Consistency<'_>,
@@ -187,7 +187,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_entity_type_permission(
         &self,
-        _: ActorId,
+        _: UntaggedActorId,
         _: EntityTypePermission,
         _: EntityTypeUuid,
         _: Consistency<'_>,
@@ -200,7 +200,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_entity_types_permission(
         &self,
-        _: ActorId,
+        _: UntaggedActorId,
         _: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
@@ -238,7 +238,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_property_type_permission(
         &self,
-        _: ActorId,
+        _: UntaggedActorId,
         _: PropertyTypePermission,
         _: PropertyTypeUuid,
         _: Consistency<'_>,
@@ -251,7 +251,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_property_types_permission(
         &self,
-        _: ActorId,
+        _: UntaggedActorId,
         _: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
@@ -289,7 +289,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_data_type_permission(
         &self,
-        _: ActorId,
+        _: UntaggedActorId,
         _: DataTypePermission,
         _: DataTypeUuid,
         _: Consistency<'_>,
@@ -302,7 +302,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_data_types_permission(
         &self,
-        _: ActorId,
+        _: UntaggedActorId,
         _: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
@@ -326,7 +326,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_entities(
         &self,
-        _: ActorId,
+        _: UntaggedActorId,
         _: EntityPermission,
         _: Consistency<'_>,
     ) -> Result<Vec<EntityUuid>, Report<ReadError>> {

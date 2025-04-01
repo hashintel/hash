@@ -1,7 +1,7 @@
 import type {
-  ActorId,
   EntityUuid,
   OwnedById,
+  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -28,7 +28,7 @@ type DeepPartial<T> = {
         : T[P];
 };
 
-const createDummyFlow = async (params: { actorId: ActorId }) => {
+const createDummyFlow = async (params: { actorId: UntaggedActorId }) => {
   const { actorId } = params;
 
   const dummyFlowRunProperties = mapFlowRunToEntityProperties({

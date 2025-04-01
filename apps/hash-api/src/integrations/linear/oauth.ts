@@ -1,10 +1,10 @@
 import crypto from "node:crypto";
 
 import type {
-  ActorId,
   EntityId,
   EntityUuid,
   OwnedById,
+  UntaggedActorId,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { LinearClient } from "@linear/sdk";
@@ -199,7 +199,7 @@ export const oAuthLinearCallback: RequestHandler<
 
   const userAccountId = extractEntityUuidFromEntityId(
     actorEntityId,
-  ) as string as ActorId;
+  ) as string as UntaggedActorId;
 
   const authentication = { actorId: userAccountId };
 

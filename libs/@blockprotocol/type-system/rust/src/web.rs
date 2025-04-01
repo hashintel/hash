@@ -7,7 +7,7 @@ use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::provenance::ActorId;
+use crate::provenance::UntaggedActorId;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
@@ -17,7 +17,7 @@ use crate::provenance::ActorId;
 pub struct OwnedById(
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "Brand<ActorId | ActorGroupId, \"WebId\">")
+        tsify(type = "Brand<UntaggedActorId | UntaggedTeamId, \"WebId\">")
     )]
     Uuid,
 );
@@ -45,8 +45,8 @@ impl fmt::Display for OwnedById {
     }
 }
 
-impl From<ActorId> for OwnedById {
-    fn from(actor_id: ActorId) -> Self {
+impl From<UntaggedActorId> for OwnedById {
+    fn from(actor_id: UntaggedActorId) -> Self {
         Self::new(actor_id.into_uuid())
     }
 }
@@ -60,15 +60,15 @@ impl From<ActorId> for OwnedById {
     postgres(transparent)
 )]
 #[repr(transparent)]
-pub struct ActorGroupId(
+pub struct UntaggedTeamId(
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "Brand<string, \"ActorGroupId\">")
+        tsify(type = "Brand<string, \"UntaggedTeamId\">")
     )]
     Uuid,
 );
 
-impl ActorGroupId {
+impl UntaggedTeamId {
     #[must_use]
     pub const fn new(actor_id: Uuid) -> Self {
         Self(actor_id)
@@ -85,14 +85,14 @@ impl ActorGroupId {
     }
 }
 
-impl fmt::Display for ActorGroupId {
+impl fmt::Display for UntaggedTeamId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "{}", &self.0)
     }
 }
 
-impl From<ActorGroupId> for OwnedById {
-    fn from(account_group_id: ActorGroupId) -> Self {
+impl From<UntaggedTeamId> for OwnedById {
+    fn from(account_group_id: UntaggedTeamId) -> Self {
         Self::new(account_group_id.into_uuid())
     }
 }
