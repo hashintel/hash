@@ -1,8 +1,8 @@
 import type {
   BlockGraphProperties,
+  Subgraph as BpSubgraph,
   EntityRevisionId,
   GraphEmbedderMessageCallbacks,
-  Subgraph as BpSubgraph,
 } from "@blockprotocol/graph";
 import type {
   EntityId,
@@ -312,7 +312,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
                     createdById: extractOwnedByIdFromEntityId(
                       entityInStore.metadata.recordId.entityId as EntityId,
                     ),
-                    actorType: "human",
+                    actorType: "user",
                     origin: {
                       type: "api",
                     },

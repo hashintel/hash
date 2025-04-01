@@ -3375,7 +3375,7 @@
       "ActorType": {
         "type": "string",
         "enum": [
-          "human",
+          "user",
           "ai",
           "machine"
         ]

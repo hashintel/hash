@@ -227,7 +227,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                 account_id,
                 InsertAccountIdParams {
                     account_id,
-                    account_type: ActorType::Human,
+                    account_type: ActorType::User,
                 },
             )
             .await
@@ -257,7 +257,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         relationships: data_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
                         provenance: ProvidedOntologyEditionProvenance {
-                            actor_type: ActorType::Human,
+                            actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
@@ -281,7 +281,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         relationships: property_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
                         provenance: ProvidedOntologyEditionProvenance {
-                            actor_type: ActorType::Human,
+                            actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
@@ -304,7 +304,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
                         provenance: ProvidedOntologyEditionProvenance {
-                            actor_type: ActorType::Human,
+                            actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },

@@ -7,7 +7,7 @@ use crate::knowledge::entity::id::EntityUuid;
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum ActorType {
-    Human,
+    User,
     AI,
     Machine,
 }
@@ -196,7 +196,7 @@ impl ActorId {
     #[must_use]
     pub const fn new(actor_type: ActorType, uuid: ActorEntityUuid) -> Self {
         match actor_type {
-            ActorType::Human => Self::User(UserId::new(uuid)),
+            ActorType::User => Self::User(UserId::new(uuid)),
             ActorType::AI | ActorType::Machine => Self::Machine(MachineId::new(uuid)),
         }
     }

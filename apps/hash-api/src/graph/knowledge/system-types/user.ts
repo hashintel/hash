@@ -294,7 +294,7 @@ export const createUser: ImpureGraphFunction<
     userAccountId = params.userAccountId;
   } else {
     userAccountId = await createAccount(ctx, authentication, {
-      accountType: "human",
+      accountType: "user",
     });
 
     await createWeb(

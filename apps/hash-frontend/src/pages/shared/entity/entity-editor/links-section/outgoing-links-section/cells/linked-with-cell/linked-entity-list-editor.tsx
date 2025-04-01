@@ -52,7 +52,7 @@ export const createDraftLinkEntity = ({
         createdAtDecisionTime: currentTimestamp(),
         edition: {
           createdById: "" as ActorEntityUuid,
-          actorType: "human",
+          actorType: "user",
           origin: { type: "api" },
         },
       },
