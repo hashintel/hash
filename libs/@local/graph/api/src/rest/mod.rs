@@ -72,7 +72,7 @@ use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
-    knowledge::entity::EntityId,
+    knowledge::entity::{EntityId, id::EntityUuid},
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
         data_type::DataTypeMetadata,
@@ -124,7 +124,7 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
             let uuid = Uuid::from_str(header_string)
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
-            Ok(Self(ActorEntityUuid::new(uuid)))
+            Ok(Self(ActorEntityUuid::new(EntityUuid::new(uuid))))
         } else {
             Err((
                 StatusCode::BAD_REQUEST,

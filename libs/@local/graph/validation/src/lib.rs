@@ -65,6 +65,7 @@ mod tests {
     use thiserror::Error;
     use type_system::{
         knowledge::{
+            entity::id::EntityUuid,
             property::{
                 Property, PropertyObject, PropertyObjectWithMetadata, PropertyValueWithMetadata,
                 PropertyWithMetadata, metadata::PropertyMetadata,
@@ -94,7 +95,7 @@ mod tests {
     use super::*;
 
     fn generate_data_type_metadata(schema: DataType) -> DataTypeWithMetadata {
-        let actor = ActorEntityUuid::new(Uuid::nil());
+        let actor = ActorEntityUuid::new(EntityUuid::new(Uuid::nil()));
         DataTypeWithMetadata {
             metadata: DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(schema.id.clone()),

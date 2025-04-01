@@ -31,9 +31,9 @@ import {
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
-  GraphApi,
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
+  GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
   ValidateEntityParams,
 } from "@local/hash-graph-client";

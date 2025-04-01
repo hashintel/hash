@@ -2,7 +2,8 @@ use core::error::Error;
 
 use serde::{Deserialize, Serialize};
 use type_system::{
-    ontology::property_type::PropertyTypeUuid, provenance::ActorEntityUuid, web::OwnedById,
+    knowledge::entity::id::EntityUuid, ontology::property_type::PropertyTypeUuid,
+    provenance::ActorEntityUuid, web::OwnedById,
 };
 use uuid::Uuid;
 
@@ -127,7 +128,7 @@ impl Resource for PropertyTypeSubject {
                 PropertyTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (PropertyTypeSubjectNamespace::Account, PropertyTypeSubjectId::Uuid(id)) => {
-                Self::Account(ActorEntityUuid::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (PropertyTypeSubjectNamespace::AccountGroup, PropertyTypeSubjectId::Uuid(id)) => {
                 Self::AccountGroup(ActorGroupId::new(id))

@@ -1,5 +1,7 @@
 use uuid::Uuid;
 
+use crate::knowledge::entity::id::EntityUuid;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -32,25 +34,25 @@ pub enum ActorType {
 pub struct ActorEntityUuid(
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "Brand<string, \"ActorEntityUuid\">")
+        tsify(type = "Brand<EntityUuid, \"ActorEntityUuid\">")
     )]
-    Uuid,
+    EntityUuid,
 );
 
 impl ActorEntityUuid {
     #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
+    pub const fn new(uuid: EntityUuid) -> Self {
         Self(uuid)
     }
 
     #[must_use]
     pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
+        self.0.as_uuid()
     }
 
     #[must_use]
     pub const fn into_uuid(self) -> Uuid {
-        self.0
+        self.0.into_uuid()
     }
 }
 

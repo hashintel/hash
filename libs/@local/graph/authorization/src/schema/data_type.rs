@@ -2,6 +2,7 @@ use core::error::Error;
 
 use serde::{Deserialize, Serialize};
 use type_system::{
+    knowledge::entity::id::EntityUuid,
     ontology::data_type::DataTypeUuid,
     provenance::ActorEntityUuid,
     web::{ActorGroupId, OwnedById},
@@ -129,7 +130,7 @@ impl Resource for DataTypeSubject {
                 DataTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (DataTypeSubjectNamespace::Account, DataTypeSubjectId::Uuid(id)) => {
-                Self::Account(ActorEntityUuid::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (DataTypeSubjectNamespace::AccountGroup, DataTypeSubjectId::Uuid(id)) => {
                 Self::AccountGroup(ActorGroupId::new(id))

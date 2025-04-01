@@ -3,12 +3,13 @@ use hash_graph_authorization::schema::WebOwnerSubject;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use type_system::{
+    knowledge::entity::id::EntityUuid,
     provenance::{ActorEntityUuid, ActorType},
     web::{ActorGroupId, OwnedById},
 };
 
 fn random_account_id() -> ActorEntityUuid {
-    ActorEntityUuid::new(uuid::Uuid::new_v4())
+    ActorEntityUuid::new(EntityUuid::new(uuid::Uuid::new_v4()))
 }
 
 fn random_account_group_id() -> ActorGroupId {

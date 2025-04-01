@@ -199,7 +199,7 @@ export const oAuthLinearCallback: RequestHandler<
 
   const userAccountId = extractEntityUuidFromEntityId(
     actorEntityId,
-  ) as string as ActorEntityUuid;
+  ) as ActorEntityUuid;
 
   const authentication = { actorId: userAccountId };
 

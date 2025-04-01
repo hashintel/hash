@@ -40,7 +40,7 @@ export const getWebShortname: ImpureGraphFunction<
     (await getUserById(ctx, authentication, {
       entityId: entityIdFromComponents(
         params.accountOrAccountGroupId as ActorEntityUuid as OwnedById,
-        params.accountOrAccountGroupId as string as EntityUuid,
+        params.accountOrAccountGroupId as ActorEntityUuid,
       ),
     }).catch(() => undefined)) ??
     (await getOrgById(ctx, authentication, {

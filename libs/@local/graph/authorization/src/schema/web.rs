@@ -2,6 +2,7 @@ use core::error::Error;
 
 use serde::{Deserialize, Serialize};
 use type_system::{
+    knowledge::entity::id::EntityUuid,
     provenance::ActorEntityUuid,
     web::{ActorGroupId, OwnedById},
 };
@@ -118,7 +119,7 @@ impl Resource for WebSubject {
                 Self::Public
             }
             (WebSubjectNamespace::Account, WebSubjectId::Uuid(id)) => {
-                Self::Account(ActorEntityUuid::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (WebSubjectNamespace::AccountGroup, WebSubjectId::Uuid(id)) => {
                 Self::AccountGroup(ActorGroupId::new(id))

@@ -3,8 +3,8 @@ import path from "node:path";
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntitySubgraphResponse } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
-  ENTITY_ID_DELIMITER,
   type ActorEntityUuid,
+  ENTITY_ID_DELIMITER,
 } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {

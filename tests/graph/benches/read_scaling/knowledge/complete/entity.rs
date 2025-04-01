@@ -23,7 +23,7 @@ use tokio::runtime::Runtime;
 use type_system::{
     knowledge::{
         Entity,
-        entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
+        entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::entity_type::EntityType,
@@ -64,7 +64,13 @@ async fn seed_db<A: AuthorizationApi>(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id, InsertAccountIdParams { account_id })
+        .insert_account_id(
+            account_id,
+            InsertAccountIdParams {
+                account_id,
+                actor_type: ActorType::Machine,
+            },
+        )
         .await
         .expect("could not insert account id");
     transaction
@@ -268,9 +274,9 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(
+    let account_id = ActorEntityUuid::new(EntityUuid::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    );
+    ));
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
@@ -321,9 +327,9 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(
+    let account_id = ActorEntityUuid::new(EntityUuid::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    );
+    ));
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-use type_system::{provenance::ActorEntityUuid, web::ActorGroupId};
+use type_system::{
+    knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid, web::ActorGroupId,
+};
 use uuid::Uuid;
 
 use crate::zanzibar::{
@@ -78,7 +80,7 @@ impl Resource for AccountGroupSubject {
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, !> {
         Ok(match (kind, id) {
             (AccountGroupSubjectNamespace::Account, AccountGroupSubjectId::Uuid(id)) => {
-                Self::Account(ActorEntityUuid::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
         })
     }

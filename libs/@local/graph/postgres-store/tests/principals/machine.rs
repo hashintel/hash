@@ -3,7 +3,10 @@ use core::{assert_matches::assert_matches, error::Error};
 use hash_graph_authorization::policies::principal::PrincipalId;
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
-use type_system::provenance::{ActorEntityUuid, ActorId, MachineId};
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    provenance::{ActorEntityUuid, ActorId, MachineId},
+};
 use uuid::Uuid;
 
 use crate::DatabaseTestWrapper;
@@ -68,7 +71,7 @@ async fn delete_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut client = db.client().await?;
 
-    let non_existent_id = MachineId::new(ActorEntityUuid::new(Uuid::new_v4()));
+    let non_existent_id = MachineId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
     let result = client.delete_machine(non_existent_id).await;
     drop(client);
 
@@ -99,7 +102,7 @@ async fn get_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let client = db.client().await?;
 
-    let non_existent_id = MachineId::new(ActorEntityUuid::new(Uuid::new_v4()));
+    let non_existent_id = MachineId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
     let result = client.get_machine(non_existent_id).await?;
 
     assert!(

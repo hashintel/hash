@@ -9,7 +9,10 @@ use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
-use type_system::provenance::{ActorEntityUuid, UserId};
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    provenance::{ActorEntityUuid, UserId},
+};
 use uuid::Uuid;
 
 use super::{InPrincipalConstraint, TeamPrincipalConstraint, role::RoleId};
@@ -29,9 +32,9 @@ impl CedarEntityId for UserId {
     }
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
-        Ok(Self::new(ActorEntityUuid::new(Uuid::from_str(
-            eid.as_ref(),
-        )?)))
+        Ok(Self::new(ActorEntityUuid::new(EntityUuid::new(
+            Uuid::from_str(eid.as_ref())?,
+        ))))
     }
 }
 
@@ -112,7 +115,9 @@ mod tests {
     use core::error::Error;
 
     use serde_json::json;
-    use type_system::{provenance::ActorEntityUuid, web::OwnedById};
+    use type_system::{
+        knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid, web::OwnedById,
+    };
     use uuid::Uuid;
 
     use super::{UserId, WebPrincipalConstraint};
@@ -147,7 +152,7 @@ mod tests {
 
     #[test]
     fn exact() -> Result<(), Box<dyn Error>> {
-        let user_id = UserId::new(ActorEntityUuid::new(Uuid::new_v4()));
+        let user_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
         check_principal(
             PrincipalConstraint::User(UserPrincipalConstraint::Exact {
                 user_id: Some(user_id),

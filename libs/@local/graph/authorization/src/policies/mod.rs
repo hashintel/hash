@@ -347,7 +347,7 @@ mod tests {
         #[test]
         fn user_can_view_entity_uuid() -> Result<(), Box<dyn Error>> {
             let policy_id = PolicyId::new(Uuid::new_v4());
-            let user_id = UserId::new(ActorEntityUuid::new(Uuid::new_v4()));
+            let user_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
             let entity_uuid = EntityUuid::new(Uuid::new_v4());
 
             let policy = Policy {

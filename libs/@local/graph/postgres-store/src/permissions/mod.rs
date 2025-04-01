@@ -18,6 +18,7 @@ use hash_graph_authorization::{
 };
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
+    knowledge::entity::id::EntityUuid,
     provenance::{ActorEntityUuid, ActorId, MachineId, UserId},
     web::OwnedById,
 };
@@ -459,7 +460,9 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
         &mut self,
         id: Option<Uuid>,
     ) -> Result<UserId, Report<PrincipalError>> {
-        let user_id = UserId::new(ActorEntityUuid::new(id.unwrap_or_else(Uuid::new_v4)));
+        let user_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(
+            id.unwrap_or_else(Uuid::new_v4),
+        )));
         if let Err(error) = self
             .as_mut_client()
             .execute(
@@ -538,7 +541,9 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
         &mut self,
         id: Option<Uuid>,
     ) -> Result<MachineId, Report<PrincipalError>> {
-        let id = MachineId::new(ActorEntityUuid::new(id.unwrap_or_else(Uuid::new_v4)));
+        let id = MachineId::new(ActorEntityUuid::new(EntityUuid::new(
+            id.unwrap_or_else(Uuid::new_v4),
+        )));
         if let Err(error) = self
             .as_mut_client()
             .execute("INSERT INTO machine (id) VALUES ($1)", &[id.as_uuid()])
@@ -964,11 +969,11 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                 let id: Uuid = row.get(0);
                 match row.get(1) {
                     // Actors
-                    PrincipalType::User => {
-                        PrincipalId::Actor(ActorId::User(UserId::new(ActorEntityUuid::new(id))))
-                    }
+                    PrincipalType::User => PrincipalId::Actor(ActorId::User(UserId::new(
+                        ActorEntityUuid::new(EntityUuid::new(id)),
+                    ))),
                     PrincipalType::Machine => PrincipalId::Actor(ActorId::Machine(MachineId::new(
-                        ActorEntityUuid::new(id),
+                        ActorEntityUuid::new(EntityUuid::new(id)),
                     ))),
 
                     // Teams

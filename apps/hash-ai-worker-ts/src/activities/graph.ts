@@ -79,7 +79,7 @@ export const createGraphActivities = ({
           const entity_uuid = extractEntityUuidFromEntityId(
             mappedEntity.metadata.recordId.entityId,
           );
-          return entity_uuid as string as ActorEntityUuid;
+          return entity_uuid as ActorEntityUuid;
         }),
       );
   },

@@ -133,7 +133,7 @@ impl Resource for EntitySubject {
                 Self::Public
             }
             (EntitySubjectNamespace::Account, EntitySubjectId::Uuid(id)) => {
-                Self::Account(ActorEntityUuid::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (EntitySubjectNamespace::AccountGroup, EntitySubjectId::Uuid(id)) => {
                 Self::AccountGroup(ActorGroupId::new(id))

@@ -36,6 +36,7 @@ use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     Valid,
+    knowledge::entity::id::EntityUuid,
     ontology::{
         OntologyTemporalMetadata,
         data_type::{
@@ -1227,7 +1228,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 .attach_printable("Record does not exist")
                 .attach_printable(owned_by_id)),
             (true, false) => Ok(WebOwnerSubject::Account {
-                id: ActorEntityUuid::new(owned_by_id.into_uuid()),
+                id: ActorEntityUuid::new(EntityUuid::new(owned_by_id.into_uuid())),
             }),
             (false, true) => Ok(WebOwnerSubject::AccountGroup {
                 id: ActorGroupId::new(owned_by_id.into_uuid()),

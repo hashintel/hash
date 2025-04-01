@@ -24,9 +24,9 @@ import type {
   Entity as GraphApiEntity,
   EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
   EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
+  KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   PropertyTypeWithMetadata as GraphApiPropertyTypeWithMetadata,
   Subgraph as GraphApiSubgraph,
-  KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";

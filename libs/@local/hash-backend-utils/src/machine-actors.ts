@@ -266,14 +266,14 @@ export const createWebMachineActor = async (
   await createMachineActorEntity(context, {
     identifier: `system-${ownedById}`,
     logger,
-    machineAccountId: machineAccountId as ActorEntityUuid,
+    machineAccountId,
     ownedById,
     displayName: "HASH",
     systemAccountId,
     machineEntityTypeId,
   });
 
-  return machineAccountId as ActorEntityUuid;
+  return machineAccountId;
 };
 
 export const getWebMachineActorId = async (
