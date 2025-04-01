@@ -14,7 +14,7 @@ import type {
 import { getLinearMappingByLinearType } from "@local/hash-backend-utils/linear-type-mappings";
 import type { PartialEntity } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import {
   getEntitiesByLinearId,
@@ -130,7 +130,7 @@ export const mapHashEntityToLinearUpdateInput = async <
   graphApiClient: GraphApi;
   authentication: { actorId: ActorId };
   linearType: T;
-  entity: Entity;
+  entity: HashEntity;
 }): Promise<SupportedLinearUpdateInput[T]> => {
   const { entity, linearType } = params;
 

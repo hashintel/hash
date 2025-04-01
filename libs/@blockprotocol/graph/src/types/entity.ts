@@ -3,6 +3,7 @@ import type {
   EntityId,
   EntityRecordId,
   LinkData,
+  LinkEntity,
   PropertyObject,
   PropertyValue,
   Timestamp,
@@ -32,8 +33,13 @@ export const isEntityRecordId = (
 };
 
 export type LinkEntityAndRightEntity = {
-  linkEntity: Entity[];
+  linkEntity: LinkEntity[];
   rightEntity: Entity[];
+};
+
+export type LinkEntityAndLeftEntity = {
+  linkEntity: LinkEntity[];
+  leftEntity: Entity[];
 };
 
 export type CreateEntityData = {

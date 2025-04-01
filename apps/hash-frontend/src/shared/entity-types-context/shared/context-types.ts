@@ -1,8 +1,8 @@
+import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 
 export type SpecialEntityTypeRecord = {
   isFile: boolean;

@@ -1,5 +1,5 @@
 import type { EntityId } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Grid } from "@mui/material";
 import type { FunctionComponent } from "react";
 
@@ -7,7 +7,7 @@ import { GridViewItem } from "./grid-view/grid-view-item";
 import { GridViewItemSkeleton } from "./grid-view/grid-view-item-skeleton";
 
 export const GridView: FunctionComponent<{
-  entities?: Entity[];
+  entities?: HashEntity[];
   onEntityClick: (entityId: EntityId) => void;
 }> = ({ entities, onEntityClick }) => {
   return (

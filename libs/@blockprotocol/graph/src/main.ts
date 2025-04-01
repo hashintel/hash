@@ -60,6 +60,7 @@ export type {
   KnowledgeGraphVertex,
   KnowledgeGraphVertices,
   LinkDestinationsConstrainedByEdge,
+  LinkEntityAndLeftEntity,
   LinkEntityAndRightEntity,
   LinksConstrainedByEdge,
   MultiFilter,

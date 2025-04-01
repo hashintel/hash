@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -20,7 +20,7 @@ const __dirname = path.dirname(__filename);
 const baseFilePath = path.join(__dirname, "/var/tmp_files");
 
 export const useFileSystemPathFromEntity = async <CallbackResponse = unknown>(
-  fileEntity: Pick<Entity<File>, "entityId" | "properties">,
+  fileEntity: Pick<HashEntity<File>, "entityId" | "properties">,
   callback: ({
     fileSystemPath,
   }: {

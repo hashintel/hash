@@ -1,5 +1,9 @@
 import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   EntityId,
@@ -9,7 +13,7 @@ import type {
 import type { ModalProps } from "@hashintel/design-system";
 import { IconButton, Modal } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolEntityTypes,
   blockProtocolLinkEntityTypes,
@@ -20,10 +24,6 @@ import type {
   QueryProperties,
   QueryPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
@@ -85,7 +85,7 @@ export const BlockSelectDataModal: FunctionComponent<
           blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
         ),
       )
-      .map(({ rightEntity }) => rightEntity[0] as Entity<Query>);
+      .map(({ rightEntity }) => rightEntity[0] as HashEntity<Query>);
 
     return existingQueries[0];
   }, [blockSubgraph, blockDataEntity]);

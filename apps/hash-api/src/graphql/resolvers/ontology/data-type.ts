@@ -1,7 +1,9 @@
+import type { DataTypeRootType } from "@blockprotocol/graph";
 import type {
   DataTypeWithMetadata,
   OntologyTemporalMetadata,
 } from "@blockprotocol/type-system";
+import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import type { DataTypeFullConversionTargetsMap } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
@@ -14,10 +16,6 @@ import {
   serializeSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserPermissionsOnDataType } from "@local/hash-isomorphic-utils/types";
-import type {
-  DataTypeRootType,
-  SerializedSubgraph,
-} from "@local/hash-subgraph";
 
 import {
   archiveDataType,

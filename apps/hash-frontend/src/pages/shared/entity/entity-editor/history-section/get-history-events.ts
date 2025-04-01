@@ -1,4 +1,9 @@
-import type { EntityRevisionId } from "@blockprotocol/graph";
+import type { EntityRevisionId, Subgraph } from "@blockprotocol/graph";
+import {
+  getEntityRevision,
+  getEntityTypeById,
+  getPropertyTypeForEntity,
+} from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   EntityId,
@@ -14,12 +19,6 @@ import {
   isValueMetadata,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Subgraph } from "@local/hash-subgraph";
-import {
-  getEntityRevision,
-  getEntityTypeById,
-  getPropertyTypeForEntity,
-} from "@local/hash-subgraph/stdlib";
 
 import type { EntityDiff } from "../../../../../graphql/api-types.gen";
 import type { HistoryEvent } from "./shared/types";

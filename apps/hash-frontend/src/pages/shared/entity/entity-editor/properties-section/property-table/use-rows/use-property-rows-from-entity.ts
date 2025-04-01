@@ -6,8 +6,8 @@ import type {
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import {
-  Entity,
   generateChangedPropertyMetadataObject,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { useMemo } from "react";
 
@@ -55,7 +55,7 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
         basePropertiesMetadata,
       );
 
-      const temporaryEntity = new Entity({
+      const temporaryEntity = new HashEntity({
         ...entity.toJSON(),
         metadata: {
           ...entity.metadata,

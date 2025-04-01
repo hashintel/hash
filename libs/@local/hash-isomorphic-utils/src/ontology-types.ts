@@ -3,12 +3,13 @@ import type {
   EntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
+  atLeastOne,
   componentsFromVersionedUrl,
+  extractBaseUrl,
   versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 
 import { frontendUrl } from "./environment.js";
 import { slugifyTypeTitle } from "./slugify-type-title.js";

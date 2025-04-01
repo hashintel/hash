@@ -1,6 +1,12 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type { EntityUuid } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -20,11 +26,6 @@ import {
   getAggregateUsageRecordsByTask,
 } from "@local/hash-isomorphic-utils/service-usage";
 import type { UsageRecord } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
@@ -106,7 +107,7 @@ export const useFlowRunsUsage = ({
 
     for (const flowRunId of flowRunIds) {
       const serviceUsageRecordSubgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<UsageRecord>
+        EntityRootType<HashEntity<UsageRecord>>
       >(data.getEntitySubgraph.subgraph);
 
       const usageRecordsForFlowRun = getRoots(

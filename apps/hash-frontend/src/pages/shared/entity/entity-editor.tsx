@@ -1,16 +1,16 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
   EntityId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import type { RefObject } from "react";
 import { useMemo } from "react";
@@ -60,7 +60,7 @@ export interface EntityEditorProps extends DraftLinkState {
   /**
    * The subgraph of the entity being edited – used to retrieve linked entities from (NOT types, which are taken from XType fields)
    */
-  entitySubgraph: Subgraph<EntityRootType>;
+  entitySubgraph: Subgraph<EntityRootType<HashEntity>>;
   /**
    * A function to call when the types of the entity are changed
    */
@@ -88,7 +88,7 @@ export interface EntityEditorProps extends DraftLinkState {
   /**
    * A function to call when the entity is updated
    */
-  setEntity: (entity: Entity) => void;
+  setEntity: (entity: HashEntity) => void;
   /**
    * Whether the editor is readonly
    */
@@ -96,7 +96,7 @@ export interface EntityEditorProps extends DraftLinkState {
   /**
    * A function to call when the entity is updated
    */
-  onEntityUpdated: ((entity: Entity) => void) | null;
+  onEntityUpdated: ((entity: HashEntity) => void) | null;
   /**
    * If the editor is loaded inside a slide which is contained in a container other than the body,
    * the ref to the container. Used to correctly position popups within the editor.

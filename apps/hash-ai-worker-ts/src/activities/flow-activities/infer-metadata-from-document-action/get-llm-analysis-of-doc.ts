@@ -1,3 +1,5 @@
+import type { EntityTypeRootType } from "@blockprotocol/graph";
+import { getEntityTypes } from "@blockprotocol/graph/stdlib";
 import type {
   EntityId,
   PropertyObjectWithMetadata,
@@ -9,7 +11,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { SchemaType } from "@google-cloud/vertexai";
 import { sleep } from "@local/hash-backend-utils/utils";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -18,8 +20,6 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityTypeRootType } from "@local/hash-subgraph";
-import { getEntityTypes } from "@local/hash-subgraph/stdlib";
 import dedent from "dedent";
 import get from "lodash/get.js";
 import set from "lodash/set.js";
@@ -394,7 +394,7 @@ const unsimplifyDocumentMetadata = (
 export const getLlmAnalysisOfDoc = async ({
   fileEntity,
 }: {
-  fileEntity: Entity<File>;
+  fileEntity: HashEntity<File>;
 }): Promise<DocumentData> => {
   const { userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();

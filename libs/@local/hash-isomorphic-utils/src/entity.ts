@@ -1,7 +1,6 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { Subgraph } from "@local/hash-subgraph";
-import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
+import type { Subgraph } from "@blockprotocol/graph";
+import { getEntityRevisionsByEntityId } from "@blockprotocol/graph/stdlib";
+import type { Entity, EntityId, LinkEntity } from "@blockprotocol/type-system";
 
 import type {
   DraftEntity,
@@ -99,7 +98,7 @@ export const getFirstEntityRevision = (
 ) => {
   const entityRevisions = getEntityRevisionsByEntityId(subgraph, entityId);
 
-  if (entityRevisions.length === 0) {
+  if (!entityRevisions[0]) {
     throw new Error("Could not find entity revisions in subgraph");
   }
 
@@ -118,6 +117,6 @@ export const getFirstEntityRevision = (
         ? previousEarliestRevision
         : currentRevision;
     },
-    entityRevisions[0]!,
+    entityRevisions[0],
   );
 };

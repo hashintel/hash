@@ -10,8 +10,7 @@ import {
   splitEntityId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -26,7 +25,7 @@ export const getEntitiesByLinearId = async (params: {
   entityTypeId?: VersionedUrl;
   webOwnedById?: OwnedById;
   includeDrafts?: boolean;
-}): Promise<Entity[]> =>
+}): Promise<HashEntity[]> =>
   params.graphApiClient
     .getEntities(params.authentication.actorId, {
       filter: {
@@ -109,7 +108,9 @@ export const getEntityOutgoingLinks = async (params: {
 
   const outgoingLinkEntities = response.entities.map(
     (entity) =>
-      new LinkEntity(mapGraphApiEntityToEntity(entity, authentication.actorId)),
+      new HashLinkEntity(
+        mapGraphApiEntityToEntity(entity, authentication.actorId),
+      ),
   );
 
   return outgoingLinkEntities;

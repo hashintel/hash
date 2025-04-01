@@ -1,3 +1,8 @@
+import type { Subgraph } from "@blockprotocol/graph";
+import {
+  getBreadthFirstEntityTypesAndParents,
+  getEntityRevision,
+} from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
@@ -7,7 +12,7 @@ import type {
   Property,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
@@ -16,17 +21,12 @@ import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
-import type { Subgraph } from "@local/hash-subgraph";
-import {
-  getBreadthFirstEntityTypesAndParents,
-  getEntityRevision,
-} from "@local/hash-subgraph/stdlib";
 
 import { simplifyProperties } from "./simplify-properties.js";
 
 const getLabelPropertyValue = (
   entity: {
-    properties: Entity["properties"];
+    properties: HashEntity["properties"];
   },
   labelProperty: BaseUrl | undefined,
 ) => {
@@ -48,7 +48,7 @@ const getFallbackLabel = ({
 }: {
   entityTypeTitle?: string;
   entity: {
-    properties: Entity["properties"];
+    properties: HashEntity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   };
   includeHexChars: boolean;
@@ -78,7 +78,7 @@ const getFallbackLabel = ({
 export const generateEntityLabel = (
   typeData: Subgraph | ClosedMultiEntityType | PartialEntityType | null,
   entity: {
-    properties: Entity["properties"];
+    properties: HashEntity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
   includeHexChars: boolean = true,
@@ -208,8 +208,8 @@ export const generateEntityLabel = (
 export const generateLinkEntityLabel = (
   entitySubgraph: Subgraph,
   entity: {
-    linkData: Entity["linkData"];
-    properties: Entity["properties"];
+    linkData: HashEntity["linkData"];
+    properties: HashEntity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
   closedTypeData: {

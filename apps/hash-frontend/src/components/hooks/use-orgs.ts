@@ -1,9 +1,10 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import type {
   QueryEntitiesQuery,
@@ -59,9 +60,9 @@ export const useOrgs = (): {
         return undefined;
       }
 
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        subgraphAndPermissions.subgraph,
-      );
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+        EntityRootType<HashEntity>
+      >(subgraphAndPermissions.subgraph);
 
       return getRoots(subgraph).map((orgEntity) => {
         if (!isEntityOrgEntity(orgEntity)) {

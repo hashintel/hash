@@ -1,6 +1,12 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import {
+  getEntityTypeAndDescendantsById,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -9,11 +15,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  getEntityTypeAndDescendantsById,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
@@ -171,7 +172,7 @@ const ProfilePage: NextPageWithLayout = () => {
   });
 
   const entitiesSubgraph = pinnedEntityTypesData
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
         pinnedEntityTypesData.getEntitySubgraph.subgraph,
       )
     : undefined;

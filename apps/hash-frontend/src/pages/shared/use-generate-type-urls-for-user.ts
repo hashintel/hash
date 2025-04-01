@@ -1,6 +1,6 @@
+import { versionedUrlFromComponents } from "@blockprotocol/type-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateTypeBaseUrl } from "@local/hash-isomorphic-utils/ontology-types";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 import { useCallback, useContext } from "react";
 
 import { WorkspaceContext } from "./workspace-context";

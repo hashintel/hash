@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import type { BaseUrl, OwnedById } from "@blockprotocol/type-system";
 import { Autocomplete, TextField } from "@hashintel/design-system";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -36,7 +36,7 @@ import { Button, Modal } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 
 export type PageWithParentLink = SimplePage & {
-  parentLinkEntity?: Entity;
+  parentLinkEntity?: HashEntity;
 };
 
 type ConvertToPageFormData = {
@@ -48,7 +48,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {
     onClose: () => void;
     onConvertedToPage: (page: PageWithParentLink) => void;
-    quickNoteEntity: Entity;
+    quickNoteEntity: HashEntity;
   }
 > = ({ quickNoteEntity, onClose, onConvertedToPage, ...modalProps }) => {
   const { authenticatedUser } = useAuthenticatedUser();
@@ -138,7 +138,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
       throw new Error("Failed to update quick note entity to page entity");
     }
 
-    const pageEntity = new Entity(pageEntityData.updateEntity);
+    const pageEntity = new HashEntity(pageEntityData.updateEntity);
 
     if (parentPage) {
       await createEntity({

@@ -1,3 +1,4 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   isValueMetadata,
   type PropertyMetadata,
@@ -5,7 +6,6 @@ import {
 } from "@blockprotocol/type-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 
 import { ValueChip } from "../../../../../value-chip";

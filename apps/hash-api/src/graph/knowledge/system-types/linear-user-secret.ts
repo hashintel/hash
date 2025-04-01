@@ -1,4 +1,9 @@
-import type { ActorId, EntityId, OwnedById } from "@blockprotocol/type-system";
+import type {
+  ActorId,
+  Entity,
+  EntityId,
+  OwnedById,
+} from "@blockprotocol/type-system";
 import {
   extractOwnedByIdFromEntityId,
   splitEntityId,
@@ -8,7 +13,6 @@ import {
   NotFoundError,
 } from "@local/hash-backend-utils/error";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,

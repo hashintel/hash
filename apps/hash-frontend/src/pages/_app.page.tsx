@@ -10,15 +10,16 @@ import "./globals.scss";
 import "./prism.css";
 
 import { ApolloProvider } from "@apollo/client/react";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EmotionCache } from "@emotion/react";
 import { CacheProvider } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope, ErrorBoundary } from "@sentry/nextjs";
 import type { AppProps as NextAppProps } from "next/app";
@@ -60,7 +61,7 @@ import { WorkspaceContextProvider } from "./shared/workspace-context";
 const clientSideEmotionCache = createEmotionCache();
 
 type AppInitialProps = {
-  initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType>;
+  initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType<HashEntity>>;
   user?: MinimalUser;
 };
 
@@ -231,7 +232,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       context: { headers: { cookie } },
     })
     .then(({ data }) =>
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<User>>(
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity<User>>>(
         data.me.subgraph,
       ),
     )

@@ -1,8 +1,9 @@
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-  VersionedUrl,
+import {
+  type DataTypeWithMetadata,
+  type EntityTypeWithMetadata,
+  isExternalOntologyElementMetadata,
+  type PropertyTypeWithMetadata,
+  type VersionedUrl,
 } from "@blockprotocol/type-system";
 import type {
   Item,
@@ -11,7 +12,6 @@ import type {
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
-import { isExternalOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";

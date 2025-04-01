@@ -6,7 +6,7 @@ import {
 } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import {
-  Entity as EntityClass,
+  HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import { GlobalStyles, Typography } from "@mui/material";
@@ -80,7 +80,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     localDraft,
     draftLinksToCreate,
   }: {
-    localDraft: EntityClass;
+    localDraft: HashEntity;
     draftLinksToCreate: DraftLinksToCreate;
   }) => {
     if (!activeWorkspace) {
@@ -100,7 +100,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       });
 
       const createdEntity = data?.createEntity
-        ? new EntityClass(data.createEntity)
+        ? new HashEntity(data.createEntity)
         : null;
 
       if (!createdEntity) {

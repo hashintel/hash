@@ -27,7 +27,7 @@ export const entityTypedef = gql`
 
   type SubgraphAndPermissions {
     userPermissionsOnEntities: UserPermissionsOnEntities!
-    subgraph: Subgraph!
+    subgraph: GqlSubgraph!
   }
 
   type GetEntitySubgraphResponse {
@@ -38,7 +38,7 @@ export const entityTypedef = gql`
     closedMultiEntityTypes: ClosedMultiEntityTypesRootMap
     definitions: ClosedMultiEntityTypesDefinitions
     userPermissionsOnEntities: UserPermissionsOnEntities!
-    subgraph: Subgraph!
+    subgraph: GqlSubgraph!
     typeIds: TypeIdsMap
     typeTitles: TypeTitlesMap
     webIds: WebIdsMap

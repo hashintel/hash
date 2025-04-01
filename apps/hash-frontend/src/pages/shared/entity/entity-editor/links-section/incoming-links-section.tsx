@@ -1,5 +1,5 @@
+import type { LinkEntityAndLeftEntity } from "@blockprotocol/graph";
 import { Chip } from "@hashintel/design-system";
-import type { LinkEntityAndLeftEntity } from "@local/hash-subgraph";
 import { Stack } from "@mui/material";
 
 import { SectionWrapper } from "../../../section-wrapper";

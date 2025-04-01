@@ -39,7 +39,8 @@ export const scalars = {
   SerializedEntity: "@local/hash-graph-sdk/entity#SerializedEntity",
   EntityRecordId: "@blockprotocol/type-system#EntityRecordId",
   EntityMetadata: "@blockprotocol/type-system#EntityMetadata",
-  EntityRelationAndSubject: "@local/hash-subgraph#EntityRelationAndSubject",
+  EntityRelationAndSubject:
+    "@local/hash-graph-sdk/branded-authorization#EntityRelationAndSubjectBranded",
   EntityValidationReport:
     "@local/hash-graph-types/validation#EntityValidationReport",
   CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",
@@ -52,7 +53,7 @@ export const scalars = {
   PropertyObjectWithMetadata:
     "@blockprotocol/type-system#PropertyObjectWithMetadata",
   PropertyPatchOperation: "@blockprotocol/type-system#PropertyPatchOperation",
-  DiffEntityInput: "@local/hash-subgraph#DiffEntityInput",
+  DiffEntityInput: "@local/hash-graph-sdk/entity#DiffEntityInput",
   DiffEntityResult: "@local/hash-graph-client#DiffEntityResult",
   ValidateEntityParamsComponents:
     "@local/hash-graph-client#ValidateEntityParamsComponents",
@@ -77,14 +78,14 @@ export const scalars = {
   ProspectiveUserProperties:
     "@local/hash-isomorphic-utils/system-types/prospectiveuser#ProspectiveUserProperties",
 
-  GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
-  Edges: "@local/hash-subgraph#Edges",
-  SerializedVertices: "@local/hash-subgraph#SerializedVertices",
+  GraphElementVertexId: "@blockprotocol/graph#GraphElementVertexId",
+  Edges: "@blockprotocol/graph#Edges",
+  SerializedVertices: "@local/hash-graph-sdk/entity#SerializedVertices",
   LinkData: "@blockprotocol/type-system#LinkData",
-  SubgraphTemporalAxes: "@local/hash-subgraph#SubgraphTemporalAxes",
+  SubgraphTemporalAxes: "@blockprotocol/graph#SubgraphTemporalAxes",
 
   OwnedById: "@blockprotocol/type-system#OwnedById",
-  EditionCreatedById: "@local/hash-subgraph#EditionCreatedById",
+  EditionCreatedById: "@blockprotocol/type-system#EditionCreatedById",
   ActorId: "@blockprotocol/type-system#ActorId",
   ActorGroupId: "@blockprotocol/type-system#ActorGroupId",
   AuthorizationSubjectId:
