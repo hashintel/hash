@@ -161,6 +161,7 @@ impl Request<'_> {
                 euid: Arc::new(match self.actor {
                     ActorId::User(user_id) => user_id.to_euid(),
                     ActorId::Machine(machine_id) => machine_id.to_euid(),
+                    ActorId::Ai(ai_id) => ai_id.to_euid(),
                 }),
                 loc: None,
             },

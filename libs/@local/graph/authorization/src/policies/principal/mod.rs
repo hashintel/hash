@@ -6,13 +6,14 @@
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
 use type_system::{
-    provenance::{ActorId, MachineId, UserId},
+    provenance::{ActorId, AiId, MachineId, UserId},
     web::OwnedById,
 };
 use uuid::Uuid;
 
 pub use self::actor::Actor;
 use self::{
+    ai::AiPrincipalConstraint,
     machine::MachinePrincipalConstraint,
     role::RoleId,
     team::{StandaloneTeamId, StandaloneTeamRoleId, TeamId, TeamPrincipalConstraint},
@@ -22,6 +23,7 @@ use self::{
 use super::cedar::CedarEntityId as _;
 
 mod actor;
+pub mod ai;
 pub mod machine;
 pub mod role;
 pub mod team;
@@ -61,6 +63,7 @@ pub enum PrincipalConstraint {
     Public {},
     User(UserPrincipalConstraint),
     Machine(MachinePrincipalConstraint),
+    Ai(AiPrincipalConstraint),
     Web(WebPrincipalConstraint),
     Team(TeamPrincipalConstraint),
 }
@@ -151,6 +154,7 @@ impl PrincipalConstraint {
             Self::Public {} => false,
             Self::User(user) => user.has_slot(),
             Self::Machine(machine) => machine.has_slot(),
+            Self::Ai(ai) => ai.has_slot(),
             Self::Web(web) => web.has_slot(),
             Self::Team(team) => team.has_slot(),
         }
@@ -199,6 +203,13 @@ impl PrincipalConstraint {
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             }))
+        } else if *principal.entity_type() == **AiId::entity_type() {
+            Ok(Self::Ai(AiPrincipalConstraint::Exact {
+                ai_id: Some(
+                    AiId::from_eid(principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            }))
         } else {
             bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
                 ast::EntityType::clone(principal.entity_type())
@@ -224,6 +235,13 @@ impl PrincipalConstraint {
             Ok(Self::Machine(MachinePrincipalConstraint::from(
                 InPrincipalConstraint::try_from_cedar_in(in_principal)?,
             )))
+        } else if *principal_type == **AiId::entity_type() {
+            let Some(in_principal) = in_principal else {
+                return Ok(Self::Ai(AiPrincipalConstraint::Any {}));
+            };
+            Ok(Self::Ai(AiPrincipalConstraint::from(
+                InPrincipalConstraint::try_from_cedar_in(in_principal)?,
+            )))
         } else {
             bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
                 ast::EntityType::clone(principal_type)
@@ -237,6 +255,7 @@ impl PrincipalConstraint {
             Self::Public {} => ast::PrincipalConstraint::any(),
             Self::User(user) => user.to_cedar(),
             Self::Machine(machine) => machine.to_cedar(),
+            Self::Ai(ai) => ai.to_cedar(),
             Self::Web(organization) => organization.to_cedar(),
             Self::Team(team) => team.to_cedar(),
         }

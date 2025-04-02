@@ -190,6 +190,7 @@ impl AiId {
 pub enum ActorId {
     User(UserId),
     Machine(MachineId),
+    Ai(AiId),
 }
 
 impl ActorId {
@@ -197,7 +198,8 @@ impl ActorId {
     pub const fn new(actor_type: ActorType, uuid: ActorEntityUuid) -> Self {
         match actor_type {
             ActorType::User => Self::User(UserId::new(uuid)),
-            ActorType::AI | ActorType::Machine => Self::Machine(MachineId::new(uuid)),
+            ActorType::AI => Self::Ai(AiId::new(uuid)),
+            ActorType::Machine => Self::Machine(MachineId::new(uuid)),
         }
     }
 
@@ -206,6 +208,7 @@ impl ActorId {
         match self {
             Self::User(id) => id.as_uuid(),
             Self::Machine(id) => id.as_uuid(),
+            Self::Ai(id) => id.as_uuid(),
         }
     }
 
@@ -214,6 +217,7 @@ impl ActorId {
         match self {
             Self::User(id) => id.into_uuid(),
             Self::Machine(id) => id.into_uuid(),
+            Self::Ai(id) => id.into_uuid(),
         }
     }
 }

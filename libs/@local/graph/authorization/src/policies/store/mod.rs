@@ -10,7 +10,7 @@ use either::Either;
 use error_stack::{Report, bail, ensure};
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorId, MachineId, UserId},
+    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId, UserId},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -24,6 +24,7 @@ use super::{
     ContextBuilder, Policy, PolicyId,
     principal::{
         PrincipalConstraint,
+        ai::{Ai, AiPrincipalConstraint},
         machine::{Machine, MachinePrincipalConstraint},
         role::RoleId,
         team::{
@@ -228,6 +229,11 @@ pub trait PolicyStore {
 enum Actor {
     User(User),
     Machine(Machine),
+    #[expect(
+        dead_code,
+        reason = "Will be used when AI authorization is fully implemented"
+    )]
+    Ai(Ai),
 }
 
 impl Actor {
@@ -235,6 +241,7 @@ impl Actor {
         match self {
             Self::User(user) => user.roles.iter(),
             Self::Machine(machine) => machine.roles.iter(),
+            Self::Ai(ai) => ai.roles.iter(),
         }
     }
 }
@@ -319,12 +326,29 @@ impl From<&MachinePrincipalConstraint> for PrincipalIndex {
     }
 }
 
+impl From<&AiPrincipalConstraint> for PrincipalIndex {
+    fn from(constraint: &AiPrincipalConstraint) -> Self {
+        match constraint {
+            AiPrincipalConstraint::Exact { ai_id: Some(ai_id) } => Self::Actor(ActorId::new(
+                ActorType::AI,
+                ActorEntityUuid::new(EntityUuid::new(*ai_id.as_uuid())),
+            )),
+            AiPrincipalConstraint::Web(web) => Self::from(web),
+            AiPrincipalConstraint::Team(team) => Self::from(team),
+            AiPrincipalConstraint::Any {} | AiPrincipalConstraint::Exact { ai_id: None } => {
+                Self::Unspecified
+            }
+        }
+    }
+}
+
 impl From<&PrincipalConstraint> for PrincipalIndex {
     fn from(constraint: &PrincipalConstraint) -> Self {
         match constraint {
             PrincipalConstraint::Public {} => Self::Unspecified,
             PrincipalConstraint::User(user) => Self::from(user),
             PrincipalConstraint::Machine(machine) => Self::from(machine),
+            PrincipalConstraint::Ai(ai) => Self::from(ai),
             PrincipalConstraint::Web(web) => Self::from(web),
             PrincipalConstraint::Team(team) => Self::from(team),
         }
@@ -473,6 +497,9 @@ impl PolicyStore for MemoryPolicyStore {
             Actor::Machine(machine) => {
                 machine.roles.insert(role_id);
             }
+            Actor::Ai(ai) => {
+                ai.roles.insert(role_id);
+            }
         }
         Ok(())
     }
@@ -497,6 +524,9 @@ impl PolicyStore for MemoryPolicyStore {
             Actor::Machine(machine) => {
                 machine.roles.remove(&role_id);
             }
+            Actor::Ai(ai) => {
+                ai.roles.remove(&role_id);
+            }
         }
         Ok(())
     }
@@ -516,6 +546,13 @@ impl PolicyStore for MemoryPolicyStore {
             }
             Actor::Machine(machine) => {
                 context.add_machine(machine);
+            }
+            Actor::Ai(ai) => {
+                // TODO: add proper ai context handling once implemented
+                context.add_machine(&Machine {
+                    id: MachineId::new(ActorEntityUuid::new(EntityUuid::new(*ai.id.as_uuid()))),
+                    roles: ai.roles.clone(),
+                });
             }
         }
 

@@ -17,16 +17,16 @@ namespace HASH {
     version: Long,
   };
 
-  entity User, Machine in [HASH::Web::Role, HASH::Team::Role, HASH::Web::Team::Role] {
+  entity User, Machine, Ai in [HASH::Web::Role, HASH::Team::Role, HASH::Web::Team::Role] {
   };
 
   action create, view, update appliesTo {
-    principal: [User, Machine],
+    principal: [User, Machine, Ai],
     resource: [Entity, EntityType],
   };
 
   action instantiate appliesTo {
-    principal: [User, Machine],
+    principal: [User, Machine, Ai],
     resource: [EntityType],
   };
 }
