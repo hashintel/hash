@@ -10,7 +10,7 @@ use either::Either;
 use error_stack::{Report, bail, ensure};
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId, UserId},
+    provenance::{ActorEntityUuid, ActorId, MachineId, UserId},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -329,10 +329,7 @@ impl From<&MachinePrincipalConstraint> for PrincipalIndex {
 impl From<&AiPrincipalConstraint> for PrincipalIndex {
     fn from(constraint: &AiPrincipalConstraint) -> Self {
         match constraint {
-            AiPrincipalConstraint::Exact { ai_id: Some(ai_id) } => Self::Actor(ActorId::new(
-                ActorType::AI,
-                ActorEntityUuid::new(EntityUuid::new(*ai_id.as_uuid())),
-            )),
+            AiPrincipalConstraint::Exact { ai_id: Some(ai_id) } => Self::Actor(ActorId::Ai(*ai_id)),
             AiPrincipalConstraint::Web(web) => Self::from(web),
             AiPrincipalConstraint::Team(team) => Self::from(team),
             AiPrincipalConstraint::Any {} | AiPrincipalConstraint::Exact { ai_id: None } => {

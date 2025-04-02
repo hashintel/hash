@@ -5,7 +5,7 @@ use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorId, ActorType, AiId},
+    provenance::{ActorEntityUuid, ActorId, AiId},
 };
 use uuid::Uuid;
 
@@ -59,10 +59,9 @@ async fn create_ai_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let result = client.create_ai(Some(*ai_id.as_uuid())).await;
     drop(client);
 
-    let expected_actor_id = ActorId::new(
-        ActorType::AI,
-        ActorEntityUuid::new(EntityUuid::new(*ai_id.as_uuid())),
-    );
+    let expected_actor_id = ActorId::Ai(AiId::new(ActorEntityUuid::new(EntityUuid::new(
+        *ai_id.as_uuid(),
+    ))));
 
     assert_matches!(
         result.expect_err("Creating an AI with duplicate ID should fail").current_context(),
@@ -96,10 +95,9 @@ async fn delete_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let non_existent_id = AiId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
     let result = client.delete_ai(non_existent_id).await;
 
-    let expected_actor_id = ActorId::new(
-        ActorType::AI,
-        ActorEntityUuid::new(EntityUuid::new(*non_existent_id.as_uuid())),
-    );
+    let expected_actor_id = ActorId::Ai(AiId::new(ActorEntityUuid::new(EntityUuid::new(
+        *non_existent_id.as_uuid(),
+    ))));
 
     assert_matches!(
         result.expect_err("Deleting a non-existent AI should fail").current_context(),
@@ -134,10 +132,9 @@ async fn ai_role_assignment() -> Result<(), Box<dyn Error>> {
         .create_role(None, TeamId::Standalone(team_id))
         .await?;
 
-    let actor_id = ActorId::new(
-        ActorType::AI,
-        ActorEntityUuid::new(EntityUuid::new(*ai_id.as_uuid())),
-    );
+    let actor_id = ActorId::Ai(AiId::new(ActorEntityUuid::new(EntityUuid::new(
+        *ai_id.as_uuid(),
+    ))));
 
     // Assign the role to the AI
     client.assign_role_to_actor(actor_id, role_id).await?;

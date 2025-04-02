@@ -20,7 +20,7 @@ use hash_graph_authorization::{
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
+    provenance::{ActorEntityUuid, ActorId, AiId, MachineId, UserId},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -971,7 +971,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             let actor_id = match principal_type {
                 PrincipalType::User => ActorId::User(UserId::new(id)),
                 PrincipalType::Machine => ActorId::Machine(MachineId::new(id)),
-                PrincipalType::Ai => ActorId::new(ActorType::AI, id),
+                PrincipalType::Ai => ActorId::Ai(AiId::new(id)),
                 _ => continue, // Skip non-actor principal types
             };
 
@@ -1056,10 +1056,9 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                     PrincipalType::Machine => PrincipalId::Actor(ActorId::Machine(MachineId::new(
                         ActorEntityUuid::new(EntityUuid::new(id)),
                     ))),
-                    PrincipalType::Ai => PrincipalId::Actor(ActorId::new(
-                        ActorType::AI,
+                    PrincipalType::Ai => PrincipalId::Actor(ActorId::Ai(AiId::new(
                         ActorEntityUuid::new(EntityUuid::new(id)),
-                    )),
+                    ))),
 
                     // Teams
                     PrincipalType::Team => {
