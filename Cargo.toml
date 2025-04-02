@@ -112,8 +112,8 @@ bytes-utils              = { version = "=0.1.4", default-features = false }
 cargo_metadata           = { version = "=0.19.2", default-features = false }
 cedar-policy-core        = { version = "=4.3.3", default-features = false }
 cedar-policy-validator   = { version = "=4.3.3", default-features = false }
-clap                     = { version = "=4.5.34", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
-clap_builder             = { version = "=4.5.34", default-features = false, features = ["std"] }
+clap                     = { version = "=4.5.35", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
+clap_builder             = { version = "=4.5.35", default-features = false, features = ["std"] }
 clap_complete            = { version = "=4.5.47", default-features = false }
 convert_case             = { version = "=0.8.0", default-features = false }
 criterion                = { version = "=0.5.1" }
@@ -200,8 +200,8 @@ reqwest                  = { version = "=0.12.15", default-features = false, fea
 rustc_version            = { version = "=0.4.1", default-features = false }
 scc                      = { version = "=2.3.3", default-features = false }
 semver                   = { version = "=1.0.26", default-features = false }
-sentry                   = { version = "=0.36.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
-sentry-types             = { version = "=0.36.0", default-features = false }
+sentry                   = { version = "=0.37.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
+sentry-types             = { version = "=0.37.0", default-features = false }
 seq-macro                = { version = "=0.3.6", default-features = false }
 serde                    = { version = "=1.0.219", default-features = false }
 serde_json               = { version = "=1.0.140" }
