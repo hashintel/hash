@@ -2,7 +2,7 @@ use core::error::Error;
 
 use type_system::{provenance::ActorId, web::OwnedById};
 
-use crate::policies::principal::{role::RoleId, team::StandaloneTeamId, web::WebTeamId};
+use crate::policies::principal::{role::RoleId, team::SubteamId};
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create actor: {_variant}")]
@@ -39,47 +39,23 @@ impl Error for WebRoleCreationError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create team: {_variant}")]
-pub enum TeamCreationError {
+pub enum SubteamCreationError {
     #[display("Store operation failed")]
     StoreError,
 }
 
-impl Error for TeamCreationError {}
+impl Error for SubteamCreationError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create team role: {_variant}")]
-pub enum TeamRoleCreationError {
-    #[display("Team with ID `{team_id}` does not exist")]
-    TeamNotFound { team_id: StandaloneTeamId },
+pub enum SubteamRoleCreationError {
+    #[display("Subteam with ID `{subteam_id}` does not exist")]
+    SubteamNotFound { subteam_id: SubteamId },
     #[display("Store operation failed")]
     StoreError,
 }
 
-impl Error for TeamRoleCreationError {}
-
-#[derive(Debug, derive_more::Display)]
-#[display("Could not create web-team: {_variant}")]
-pub enum WebTeamCreationError {
-    #[display("Web with ID `{web_id}` does not exist")]
-    WebNotFound { web_id: OwnedById },
-    #[display("Store operation failed")]
-    StoreError,
-}
-
-impl Error for WebTeamCreationError {}
-
-#[derive(Debug, derive_more::Display)]
-#[display("Could not create web-team role: {_variant}")]
-pub enum WebTeamRoleCreationError {
-    #[display("Web with ID `{web_id}` does not exist")]
-    WebNotFound { web_id: OwnedById },
-    #[display("Team with ID `{team_id}` does not exist")]
-    TeamNotFound { team_id: WebTeamId },
-    #[display("Store operation failed")]
-    StoreError,
-}
-
-impl Error for WebTeamRoleCreationError {}
+impl Error for SubteamRoleCreationError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could change role assignment: {_variant}")]

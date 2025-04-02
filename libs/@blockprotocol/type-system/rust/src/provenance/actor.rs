@@ -2,14 +2,14 @@ use uuid::Uuid;
 
 use crate::knowledge::entity::id::EntityUuid;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum ActorType {
     User,
-    AI,
     Machine,
+    Ai,
 }
 
 #[derive(
@@ -186,7 +186,7 @@ impl AiId {
 )]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(tag = "type", content = "id", rename_all = "lowercase")]
+#[serde(tag = "actorType", content = "id", rename_all = "camelCase")]
 pub enum ActorId {
     User(UserId),
     Machine(MachineId),
@@ -198,7 +198,7 @@ impl ActorId {
     pub const fn new(actor_type: ActorType, uuid: ActorEntityUuid) -> Self {
         match actor_type {
             ActorType::User => Self::User(UserId::new(uuid)),
-            ActorType::AI => Self::Ai(AiId::new(uuid)),
+            ActorType::Ai => Self::Ai(AiId::new(uuid)),
             ActorType::Machine => Self::Machine(MachineId::new(uuid)),
         }
     }

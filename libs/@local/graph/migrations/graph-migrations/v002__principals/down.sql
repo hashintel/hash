@@ -49,8 +49,6 @@ DROP TABLE web;
 DROP TRIGGER team_delete_trigger ON team;
 DROP TRIGGER team_register_trigger ON team;
 DROP FUNCTION register_team();
-DROP TRIGGER enforce_direct_team_creation_trigger ON team;
-DROP FUNCTION enforce_direct_team_creation();
 
 -- Drop actor table and related items
 DROP TRIGGER actor_delete_trigger ON actor;

@@ -15,9 +15,8 @@ use hash_graph_authorization::policies::{
     Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
     action::ActionId,
     principal::{
-        role::RoleId,
-        team::{StandaloneTeamId, StandaloneTeamRoleId},
-        web::WebRoleId,
+        role::{RoleId, WebRoleId},
+        team::TeamId,
     },
     resource::{EntityResource, EntityTypeId, EntityTypeResource},
     store::{MemoryPolicyStore, PolicyStore},
@@ -132,7 +131,7 @@ impl TestMachine {
             ]
         });
 
-        let id = policy_store.create_machine(web_id)?;
+        let id = policy_store.create_machine()?;
         let entity = EntityResource {
             id: EntityUuid::new(id.into_uuid()),
             web_id,
@@ -150,9 +149,9 @@ struct TestSystem {
     web: TestWeb,
     machine: TestMachine,
     hash_ai_machine: TestMachine,
-    hash_instance_admins: StandaloneTeamId,
-    hash_instance_admins_admin_role: StandaloneTeamRoleId,
-    hash_instance_admins_member_role: StandaloneTeamRoleId,
+    hash_instance_admins: TeamId,
+    hash_instance_admins_admin_role: RoleId,
+    hash_instance_admins_member_role: RoleId,
     hash_instance_entity: EntityResource<'static>,
 }
 
@@ -178,16 +177,16 @@ impl TestSystem {
 
         let hash_ai_machine = TestMachine::generate(web.id, policy_store, context)?;
 
-        let hash_instance_admins = policy_store.create_team()?;
+        let hash_instance_admins = policy_store.create_subteam(TeamId::Web(web.id))?;
         let hash_instance_admins_admin_role =
-            policy_store.create_team_role(hash_instance_admins)?;
+            policy_store.create_subteam_role(hash_instance_admins)?;
         let hash_instance_admins_member_role =
-            policy_store.create_team_role(hash_instance_admins)?;
+            policy_store.create_subteam_role(hash_instance_admins)?;
 
         policy_store
             .assign_role(
                 ActorId::Machine(hash_ai_machine.id),
-                RoleId::Standalone(hash_instance_admins_admin_role),
+                RoleId::Subteam(hash_instance_admins_admin_role),
             )
             .expect("should be able to assign role");
         let hash_instance_entity = EntityResource {
@@ -207,9 +206,9 @@ impl TestSystem {
             web,
             machine,
             hash_ai_machine,
-            hash_instance_admins,
-            hash_instance_admins_admin_role,
-            hash_instance_admins_member_role,
+            hash_instance_admins: TeamId::Subteam(hash_instance_admins),
+            hash_instance_admins_admin_role: RoleId::Subteam(hash_instance_admins_admin_role),
+            hash_instance_admins_member_role: RoleId::Subteam(hash_instance_admins_member_role),
             hash_instance_entity,
         })
     }
@@ -502,7 +501,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     let system = TestSystem::generate(&mut policy_store, &mut context)?;
 
     let org_web = TestWeb::generate(&mut policy_store, &mut context)?;
-    let org_machine_id = policy_store.create_machine(org_web.id)?;
+    let org_machine_id = policy_store.create_machine()?;
     policy_store.assign_role(
         ActorId::Machine(org_machine_id),
         RoleId::Web(org_web.admin_role),
@@ -722,7 +721,7 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
     let user = TestUser::generate(&mut policy_store, &mut context)?;
     policy_store.assign_role(
         ActorId::User(user.id),
-        RoleId::Standalone(system.hash_instance_admins_admin_role),
+        system.hash_instance_admins_admin_role,
     )?;
 
     policy_store.extend_context(&mut context, ActorId::User(user.id))?;
@@ -774,7 +773,7 @@ fn partial_resource_evaluation() -> Result<(), Box<dyn Error>> {
     let user = TestUser::generate(&mut policy_store, &mut context)?;
     policy_store.assign_role(
         ActorId::User(user.id),
-        RoleId::Standalone(system.hash_instance_admins_admin_role),
+        system.hash_instance_admins_admin_role,
     )?;
 
     policy_store.extend_context(&mut context, ActorId::User(user.id))?;

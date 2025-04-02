@@ -86,7 +86,7 @@ impl PolicyId {
 pub struct Policy {
     pub id: PolicyId,
     pub effect: Effect,
-    pub principal: PrincipalConstraint,
+    pub principal: Option<PrincipalConstraint>,
     pub action: ActionConstraint,
     pub resource: ResourceConstraint,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -233,7 +233,9 @@ impl Policy {
                 Effect::Permit => ast::Effect::Permit,
                 Effect::Forbid => ast::Effect::Forbid,
             },
-            self.principal.to_cedar(),
+            self.principal
+                .as_ref()
+                .map_or_else(ast::PrincipalConstraint::any, PrincipalConstraint::to_cedar),
             self.action.to_cedar(),
             resource_constraint,
             resource_expr,
@@ -313,7 +315,7 @@ mod tests {
         assert_eq!(format!("{policy:?}"), cedar_string.as_ref());
 
         let mut policy_set = PolicySet::default();
-        if policy.principal.has_slot() || policy.resource.has_slot() {
+        if policy.resource.has_slot() {
             policy_set.add_template(policy)?;
         } else {
             let static_policy = policy.to_cedar_static_policy()?;
@@ -341,7 +343,7 @@ mod tests {
         use crate::policies::{
             ActionConstraint, ActionId, Authorized, ContextBuilder, Effect, PartialResourceId,
             PolicyId, PrincipalConstraint, Request, RequestContext, ResourceConstraint,
-            principal::user::{User, UserPrincipalConstraint},
+            principal::actor::User,
             resource::{EntityResource, EntityResourceConstraint},
         };
 
@@ -354,8 +356,8 @@ mod tests {
             let policy = Policy {
                 id: policy_id,
                 effect: Effect::Permit,
-                principal: PrincipalConstraint::User(UserPrincipalConstraint::Exact {
-                    user_id: Some(user_id),
+                principal: Some(PrincipalConstraint::Actor {
+                    actor: ActorId::User(user_id),
                 }),
                 action: ActionConstraint::Many {
                     actions: vec![ActionId::View],
@@ -372,8 +374,9 @@ mod tests {
                     "id": policy_id,
                     "effect": "permit",
                     "principal": {
-                        "type": "user",
-                        "userId": user_id,
+                        "type": "actor",
+                        "actorType": "user",
+                        "id": user_id,
                     },
                     "action": {
                         "type": "many",

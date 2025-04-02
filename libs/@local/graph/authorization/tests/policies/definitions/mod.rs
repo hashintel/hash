@@ -4,7 +4,7 @@ use cedar_policy_core::parser::parse_policy_or_template;
 use error_stack::ResultExt as _;
 use hash_graph_authorization::policies::{
     Policy, PolicySet, PolicyValidator,
-    principal::{team::StandaloneTeamId, web::WebRoleId},
+    principal::{role::WebRoleId, team::SubteamId},
 };
 use pretty_assertions::assert_eq;
 use type_system::{knowledge::entity::id::EntityUuid, provenance::MachineId, web::OwnedById};
@@ -12,11 +12,7 @@ use type_system::{knowledge::entity::id::EntityUuid, provenance::MachineId, web:
 #[track_caller]
 fn check_policy(policy: &Policy) -> Result<(), Box<dyn Error>> {
     let mut policy_set = PolicySet::default();
-    if policy.principal.has_slot() || policy.resource.has_slot() {
-        policy_set.add_template(policy)?;
-    } else {
-        policy_set.add_policy(policy)?;
-    }
+    policy_set.add_policy(policy)?;
 
     PolicyValidator
         .validate_policy_set(&policy_set)
@@ -60,7 +56,7 @@ pub(crate) fn permit_admin_web(web_id: OwnedById, admin_role: WebRoleId) -> Vec<
 }
 
 pub(crate) fn permit_hash_instance_admins(
-    team_id: StandaloneTeamId,
+    team_id: SubteamId,
     hash_instance_entity_id: EntityUuid,
 ) -> Vec<Policy> {
     #[expect(clippy::literal_string_with_formatting_args)]

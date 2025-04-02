@@ -1,34 +1,23 @@
-#![expect(
-    clippy::empty_enum,
-    reason = "serde::Deserialize does not use the never-type"
-)]
+use alloc::sync::Arc;
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
 use type_system::{
-    provenance::{ActorId, AiId, MachineId, UserId},
+    provenance::{ActorId, ActorType, AiId, MachineId, UserId},
     web::OwnedById,
 };
 use uuid::Uuid;
 
 pub use self::actor::Actor;
 use self::{
-    ai::AiPrincipalConstraint,
-    machine::MachinePrincipalConstraint,
-    role::RoleId,
-    team::{StandaloneTeamId, StandaloneTeamRoleId, TeamId, TeamPrincipalConstraint},
-    user::UserPrincipalConstraint,
-    web::{SubteamRoleId, WebPrincipalConstraint, WebRoleId, WebTeamId},
+    role::{RoleId, SubteamRoleId, WebRoleId},
+    team::{SubteamId, TeamId},
 };
 use super::cedar::CedarEntityId as _;
 
-mod actor;
-pub mod ai;
-pub mod machine;
+pub mod actor;
 pub mod role;
 pub mod team;
-pub mod user;
-pub mod web;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 pub enum PrincipalId {
@@ -46,6 +35,15 @@ impl PrincipalId {
             Self::Role(role_id) => role_id.as_uuid(),
         }
     }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        match self {
+            Self::Actor(actor_id) => actor_id.into_uuid(),
+            Self::Team(team_id) => team_id.into_uuid(),
+            Self::Role(role_id) => role_id.into_uuid(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -56,84 +54,25 @@ impl PrincipalId {
     deny_unknown_fields
 )]
 pub enum PrincipalConstraint {
-    #[expect(
-        clippy::empty_enum_variants_with_brackets,
-        reason = "Serialization is different"
-    )]
-    Public {},
-    User(UserPrincipalConstraint),
-    Machine(MachinePrincipalConstraint),
-    Ai(AiPrincipalConstraint),
-    Web(WebPrincipalConstraint),
-    Team(TeamPrincipalConstraint),
-}
-
-enum InPrincipalConstraint {
-    Web(WebPrincipalConstraint),
-    Team(TeamPrincipalConstraint),
-}
-
-impl InPrincipalConstraint {
-    pub(crate) fn try_from_cedar_in(
-        principal: &ast::EntityUID,
-    ) -> Result<Self, Report<InvalidPrincipalConstraint>> {
-        if *principal.entity_type() == **OwnedById::entity_type() {
-            Ok(Self::Web(WebPrincipalConstraint::InWeb {
-                id: Some(
-                    OwnedById::from_eid(principal.eid())
-                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
-                ),
-            }))
-        } else if *principal.entity_type() == **WebRoleId::entity_type() {
-            Ok(Self::Web(WebPrincipalConstraint::InRole {
-                role_id: Some(
-                    WebRoleId::from_eid(principal.eid())
-                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
-                ),
-            }))
-        } else if *principal.entity_type() == **WebTeamId::entity_type() {
-            Ok(Self::Web(WebPrincipalConstraint::InTeam {
-                team_id: Some(
-                    WebTeamId::from_eid(principal.eid())
-                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
-                ),
-            }))
-        } else if *principal.entity_type() == **SubteamRoleId::entity_type() {
-            Ok(Self::Web(WebPrincipalConstraint::InTeamRole {
-                team_role_id: Some(
-                    SubteamRoleId::from_eid(principal.eid())
-                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
-                ),
-            }))
-        } else if *principal.entity_type() == **StandaloneTeamId::entity_type() {
-            Ok(Self::Team(TeamPrincipalConstraint::InTeam {
-                id: Some(
-                    StandaloneTeamId::from_eid(principal.eid())
-                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
-                ),
-            }))
-        } else if *principal.entity_type() == **StandaloneTeamRoleId::entity_type() {
-            Ok(Self::Team(TeamPrincipalConstraint::InRole {
-                role_id: Some(
-                    StandaloneTeamRoleId::from_eid(principal.eid())
-                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
-                ),
-            }))
-        } else {
-            bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
-                ast::EntityType::clone(principal.entity_type())
-            ))
-        }
-    }
-}
-
-impl From<InPrincipalConstraint> for PrincipalConstraint {
-    fn from(value: InPrincipalConstraint) -> Self {
-        match value {
-            InPrincipalConstraint::Web(web) => Self::Web(web),
-            InPrincipalConstraint::Team(team) => Self::Team(team),
-        }
-    }
+    Actor {
+        #[serde(flatten)]
+        actor: ActorId,
+    },
+    ActorType {
+        actor_type: ActorType,
+    },
+    Team {
+        #[serde(flatten)]
+        team: TeamId,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        actor_type: Option<ActorType>,
+    },
+    Role {
+        #[serde(flatten)]
+        role: RoleId,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        actor_type: Option<ActorType>,
+    },
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -147,36 +86,51 @@ pub(crate) enum InvalidPrincipalConstraint {
     InvalidPrincipalId,
 }
 
-impl PrincipalConstraint {
-    #[must_use]
-    pub const fn has_slot(&self) -> bool {
-        match self {
-            Self::Public {} => false,
-            Self::User(user) => user.has_slot(),
-            Self::Machine(machine) => machine.has_slot(),
-            Self::Ai(ai) => ai.has_slot(),
-            Self::Web(web) => web.has_slot(),
-            Self::Team(team) => team.has_slot(),
-        }
+fn actor_type_to_cedar(actor_type: ActorType) -> &'static Arc<ast::EntityType> {
+    match actor_type {
+        ActorType::User => UserId::entity_type(),
+        ActorType::Machine => MachineId::entity_type(),
+        ActorType::Ai => AiId::entity_type(),
     }
+}
 
+fn actor_type_from_cedar(
+    actor_type: &ast::EntityType,
+) -> Result<ActorType, Report<InvalidPrincipalConstraint>> {
+    if *actor_type == **UserId::entity_type() {
+        Ok(ActorType::User)
+    } else if *actor_type == **MachineId::entity_type() {
+        Ok(ActorType::Machine)
+    } else if *actor_type == **AiId::entity_type() {
+        Ok(ActorType::Ai)
+    } else {
+        Err(Report::new(
+            InvalidPrincipalConstraint::UnexpectedEntityType(ast::EntityType::clone(actor_type)),
+        ))
+    }
+}
+
+impl PrincipalConstraint {
     pub(crate) fn try_from_cedar(
         constraint: &ast::PrincipalConstraint,
-    ) -> Result<Self, Report<InvalidPrincipalConstraint>> {
+    ) -> Result<Option<Self>, Report<InvalidPrincipalConstraint>> {
         Ok(match constraint.as_inner() {
-            ast::PrincipalOrResourceConstraint::Any => Self::Public {},
-            ast::PrincipalOrResourceConstraint::Is(principal_type) => {
-                Self::try_from_cedar_is_in(principal_type, None)?
-            }
+            ast::PrincipalOrResourceConstraint::Any => None,
+            ast::PrincipalOrResourceConstraint::Is(principal_type) => Some(Self::ActorType {
+                actor_type: actor_type_from_cedar(principal_type)?,
+            }),
             ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(entity_ref)) => {
-                Self::try_from_cedar_eq(entity_ref)?
+                Some(Self::try_from_cedar_eq(entity_ref)?)
             }
             ast::PrincipalOrResourceConstraint::IsIn(
                 principal_type,
                 ast::EntityReference::EUID(entity_ref),
-            ) => Self::try_from_cedar_is_in(principal_type, Some(entity_ref))?,
+            ) => Some(Self::try_from_cedar_is_in(
+                Some(principal_type),
+                entity_ref,
+            )?),
             ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(principal)) => {
-                Self::from(InPrincipalConstraint::try_from_cedar_in(principal)?)
+                Some(Self::try_from_cedar_is_in(None, principal)?)
             }
             ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::Slot(_))
             | ast::PrincipalOrResourceConstraint::IsIn(_, ast::EntityReference::Slot(_))
@@ -186,65 +140,82 @@ impl PrincipalConstraint {
         })
     }
 
-    pub(crate) fn try_from_cedar_eq(
+    fn try_from_cedar_eq(
         principal: &ast::EntityUID,
     ) -> Result<Self, Report<InvalidPrincipalConstraint>> {
         if *principal.entity_type() == **UserId::entity_type() {
-            Ok(Self::User(UserPrincipalConstraint::Exact {
-                user_id: Some(
+            Ok(Self::Actor {
+                actor: ActorId::User(
                     UserId::from_eid(principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
-            }))
+            })
         } else if *principal.entity_type() == **MachineId::entity_type() {
-            Ok(Self::Machine(MachinePrincipalConstraint::Exact {
-                machine_id: Some(
+            Ok(Self::Actor {
+                actor: ActorId::Machine(
                     MachineId::from_eid(principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
-            }))
+            })
         } else if *principal.entity_type() == **AiId::entity_type() {
-            Ok(Self::Ai(AiPrincipalConstraint::Exact {
-                ai_id: Some(
+            Ok(Self::Actor {
+                actor: ActorId::Ai(
                     AiId::from_eid(principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
-            }))
+            })
         } else {
-            bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
-                ast::EntityType::clone(principal.entity_type())
+            Err(Report::new(
+                InvalidPrincipalConstraint::UnexpectedEntityType(ast::EntityType::clone(
+                    principal.entity_type(),
+                )),
             ))
         }
     }
 
-    pub(crate) fn try_from_cedar_is_in(
-        principal_type: &ast::EntityType,
-        in_principal: Option<&ast::EntityUID>,
+    fn try_from_cedar_is_in(
+        principal_type: Option<&ast::EntityType>,
+        in_principal: &ast::EntityUID,
     ) -> Result<Self, Report<InvalidPrincipalConstraint>> {
-        if *principal_type == **UserId::entity_type() {
-            let Some(in_principal) = in_principal else {
-                return Ok(Self::User(UserPrincipalConstraint::Any {}));
-            };
-            Ok(Self::User(UserPrincipalConstraint::from(
-                InPrincipalConstraint::try_from_cedar_in(in_principal)?,
-            )))
-        } else if *principal_type == **MachineId::entity_type() {
-            let Some(in_principal) = in_principal else {
-                return Ok(Self::Machine(MachinePrincipalConstraint::Any {}));
-            };
-            Ok(Self::Machine(MachinePrincipalConstraint::from(
-                InPrincipalConstraint::try_from_cedar_in(in_principal)?,
-            )))
-        } else if *principal_type == **AiId::entity_type() {
-            let Some(in_principal) = in_principal else {
-                return Ok(Self::Ai(AiPrincipalConstraint::Any {}));
-            };
-            Ok(Self::Ai(AiPrincipalConstraint::from(
-                InPrincipalConstraint::try_from_cedar_in(in_principal)?,
-            )))
+        let actor_type = principal_type.map(actor_type_from_cedar).transpose()?;
+
+        if *in_principal.entity_type() == **OwnedById::entity_type() {
+            Ok(Self::Team {
+                actor_type,
+                team: TeamId::Web(
+                    OwnedById::from_eid(in_principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            })
+        } else if *in_principal.entity_type() == **WebRoleId::entity_type() {
+            Ok(Self::Role {
+                actor_type,
+                role: RoleId::Web(
+                    WebRoleId::from_eid(in_principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            })
+        } else if *in_principal.entity_type() == **SubteamId::entity_type() {
+            Ok(Self::Team {
+                actor_type,
+                team: TeamId::Subteam(
+                    SubteamId::from_eid(in_principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            })
+        } else if *in_principal.entity_type() == **SubteamRoleId::entity_type() {
+            Ok(Self::Role {
+                actor_type,
+                role: RoleId::Subteam(
+                    SubteamRoleId::from_eid(in_principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            })
         } else {
-            bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
-                ast::EntityType::clone(principal_type)
+            Err(Report::new(
+                InvalidPrincipalConstraint::UnexpectedEntityType(ast::EntityType::clone(
+                    in_principal.entity_type(),
+                )),
             ))
         }
     }
@@ -252,12 +223,36 @@ impl PrincipalConstraint {
     #[must_use]
     pub(crate) fn to_cedar(&self) -> ast::PrincipalConstraint {
         match self {
-            Self::Public {} => ast::PrincipalConstraint::any(),
-            Self::User(user) => user.to_cedar(),
-            Self::Machine(machine) => machine.to_cedar(),
-            Self::Ai(ai) => ai.to_cedar(),
-            Self::Web(organization) => organization.to_cedar(),
-            Self::Team(team) => team.to_cedar(),
+            Self::ActorType { actor_type } => ast::PrincipalConstraint::is_entity_type(Arc::clone(
+                actor_type_to_cedar(*actor_type),
+            )),
+            Self::Actor { actor } => ast::PrincipalConstraint::is_eq(Arc::new(match actor {
+                ActorId::User(user) => user.to_euid(),
+                ActorId::Machine(machine) => machine.to_euid(),
+                ActorId::Ai(ai) => ai.to_euid(),
+            })),
+            Self::Team { team, actor_type } => {
+                let euid = Arc::new(team.to_euid());
+                if let Some(actor_type) = actor_type {
+                    ast::PrincipalConstraint::is_entity_type_in(
+                        Arc::clone(actor_type_to_cedar(*actor_type)),
+                        euid,
+                    )
+                } else {
+                    ast::PrincipalConstraint::is_in(euid)
+                }
+            }
+            Self::Role { role, actor_type } => {
+                let euid = Arc::new(role.to_euid());
+                if let Some(actor_type) = actor_type {
+                    ast::PrincipalConstraint::is_entity_type_in(
+                        Arc::clone(actor_type_to_cedar(*actor_type)),
+                        euid,
+                    )
+                } else {
+                    ast::PrincipalConstraint::is_in(euid)
+                }
+            }
         }
     }
 }
@@ -278,7 +273,7 @@ mod tests {
             Effect, Policy, PolicyId, action::ActionConstraint, resource::ResourceConstraint,
             tests::check_policy,
         },
-        test_utils::{check_deserialization_error, check_serialization},
+        test_utils::check_serialization,
     };
 
     #[track_caller]
@@ -291,14 +286,12 @@ mod tests {
         let cedar_string = cedar_string.as_ref();
 
         assert_eq!(cedar_constraint.to_string(), cedar_string);
-        if !constraint.has_slot() {
-            PrincipalConstraint::try_from_cedar(&cedar_constraint)?;
-        }
+        PrincipalConstraint::try_from_cedar(&cedar_constraint)?;
 
         let policy = Policy {
             id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
-            principal: constraint,
+            principal: Some(constraint),
             action: ActionConstraint::All {},
             resource: ResourceConstraint::Global {},
             constraints: None,
@@ -329,27 +322,6 @@ mod tests {
         )?;
 
         check_serialization(&policy.principal, value);
-
-        Ok(())
-    }
-
-    #[test]
-    fn constraint_public() -> Result<(), Box<dyn Error>> {
-        check_principal(
-            PrincipalConstraint::Public {},
-            json!({
-                "type": "public",
-            }),
-            "principal",
-        )?;
-
-        check_deserialization_error::<PrincipalConstraint>(
-            json!({
-                "type": "public",
-                "additional": "unexpected"
-            }),
-            "unknown field `additional`, there are no fields",
-        )?;
 
         Ok(())
     }
