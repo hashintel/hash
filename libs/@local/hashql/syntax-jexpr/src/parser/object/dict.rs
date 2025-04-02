@@ -12,7 +12,7 @@ use text_size::TextRange;
 use super::{
     ObjectState, State,
     error::{
-        ObjectDiagnosticCategory, dict_entry_too_few_items, dict_entry_too_many_items,
+        dict_entry_expected_array, dict_entry_too_few_items, dict_entry_too_many_items,
         dict_expected_format,
     },
     r#type::{TypeNode, handle_typed},
@@ -22,11 +22,7 @@ use crate::{
     ParserState,
     error::ResultExt as _,
     lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet, token::Token},
-    parser::{
-        array::visit::visit_array,
-        error::{ParserDiagnostic, unexpected_token},
-        expr::parse_expr,
-    },
+    parser::{array::visit::visit_array, error::ParserDiagnostic, expr::parse_expr},
 };
 
 pub(crate) struct DictNode<'heap> {
@@ -140,21 +136,22 @@ fn parse_dict_array<'heap, 'source>(
         let mut value = None;
         let mut excess = Vec::new();
 
-        let token = state.advance().change_category(From::from)?;
-        if token.kind.syntax() != SyntaxKind::LBracket {
-            let span = state.insert_range(token.span);
+        // We're parsing everything here, so that we're able to improve the error message
+        let token = state
+            .advance(SyntaxKindSet::COMPLETE)
+            .change_category(From::from)?;
 
-            return Err(unexpected_token(
-                span,
-                ObjectDiagnosticCategory::DictEntryExpectedArray,
-                SyntaxKindSet::from_slice(&[SyntaxKind::LBracket]),
+        if token.kind.syntax() != SyntaxKind::LBracket {
+            return Err(dict_entry_expected_array(
+                state.insert_range(token.span),
+                token.kind.syntax(),
             )
             .map_category(From::from));
         }
 
         let span = visit_array(state, token, |state| {
             if key.is_some() && value.is_some() {
-                // we just parse, and then report the issue later
+                // We just parse, and then report the issue later
                 // This way we're able to tell the user how many entries were skipped
                 let expr = parse_expr(state)?;
                 excess.push(expr.span);
@@ -205,7 +202,10 @@ fn parse_dict_array<'heap, 'source>(
 fn parse_dict<'heap>(
     state: &mut ParserState<'heap, '_>,
 ) -> Result<DictExpr<'heap>, ParserDiagnostic> {
-    let token = state.advance().change_category(From::from)?;
+    // We're parsing everything here, so that we're able to improve the error message
+    let token = state
+        .advance(SyntaxKindSet::COMPLETE)
+        .change_category(From::from)?;
 
     let is_object = match token.kind.syntax() {
         SyntaxKind::LBrace => true,

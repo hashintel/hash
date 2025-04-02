@@ -8,11 +8,11 @@ expression: "{\"#dict\": \"invalid\"}"
    │
  1 │ {"#dict": "invalid"}
    │           ────┬────  
-   │               ╰────── Expected object or array of pairs
+   │               ╰────── Expected an object or array of pairs here
    │ 
-   │ Help: Expected either an object {key: value, ...} or an array of pairs [[key, value], ...], found string
+   │ Help: Found string, but the #dict construct requires either an object {key: value, ...} or an array of pairs [[key, value], ...]
    │ 
-   │ Note: Dictionaries in J-Expr support two formats:
-   │       1. Object-like syntax: {"key1": value1, "key2": value2, ...}
-   │       2. Array of pairs: [[key1, value1], [key2, value2], ...]
+   │ Note: Valid dictionary formats:
+   │           1. Object syntax: {"key1": value1, "key2": value2, ...}
+   │           2. Array of pairs: [[key1, value1], [key2, value2], ...]
 ───╯

@@ -8,12 +8,11 @@ use crate::{
     ParserState,
     error::ResultExt as _,
     lexer::{
-        syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet, token::Token,
-        token_kind::TokenKind,
+        error::unexpected_token, syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet,
+        token::Token, token_kind::TokenKind,
     },
     parser::{
         complex::{VerifyState, verify_no_repeat},
-        error::unexpected_token,
         object::error::{
             ObjectDiagnosticCategory, consecutive_colons, consecutive_commas, leading_commas,
             trailing_commas,
@@ -24,10 +23,6 @@ use crate::{
 
 const EXPECTED_OBJECT_SEP: SyntaxKindSet =
     SyntaxKindSet::from_slice(&[SyntaxKind::Comma, SyntaxKind::RBrace]);
-
-const EXPECTED_OBJECT_KEY: SyntaxKindSet = SyntaxKindSet::from_slice(&[SyntaxKind::String]);
-
-const EXPECTED_OBJECT_COLON: SyntaxKindSet = SyntaxKindSet::from_slice(&[SyntaxKind::Colon]);
 
 pub(crate) struct Key<'source> {
     pub value: Cow<'source, str>,
@@ -46,56 +41,28 @@ where
 {
     // First get the key, then the value (separated by a colon)
     let key = state
-        .advance()
+        .advance(SyntaxKind::String)
         .change_category(ObjectDiagnosticCategory::Lexer)
         .change_category(C::from)?;
 
     let key_span = key.span;
 
     let TokenKind::String(key) = key.kind else {
-        let span = state.insert_span(Span {
-            range: key.span,
-            pointer: Some(state.current_pointer()),
-            parent_id: None,
-        });
-
-        // do not consume the token, so that we can do recoverable parsing (in the future)
-        return Err(unexpected_token(
-            span,
-            ObjectDiagnosticCategory::ExpectedKey,
-            EXPECTED_OBJECT_KEY,
-        )
-        .map_category(C::from));
+        unreachable!()
     };
 
-    let colon = state
-        .advance()
+    state
+        .advance(SyntaxKind::Colon)
         .change_category(ObjectDiagnosticCategory::Lexer)
         .change_category(C::from)?;
 
-    if colon.kind.syntax() == SyntaxKind::Colon {
-        verify_no_repeat(
-            state,
-            SyntaxKindSet::from_slice(&[SyntaxKind::Colon]),
-            SyntaxKindSet::EMPTY,
-            |_, spans, _| consecutive_colons(&spans),
-        )
-        .change_category(C::from)?;
-    } else {
-        let span = state.insert_span(Span {
-            range: colon.span,
-            pointer: Some(state.current_pointer()),
-            parent_id: None,
-        });
-
-        // do not consume the token, so that we can do recoverable parsing (in the future)
-        return Err(unexpected_token(
-            span,
-            ObjectDiagnosticCategory::ExpectedColon,
-            EXPECTED_OBJECT_COLON,
-        )
-        .map_category(C::from));
-    }
+    verify_no_repeat(
+        state,
+        SyntaxKindSet::from_slice(&[SyntaxKind::Colon]),
+        SyntaxKindSet::EMPTY,
+        |_, spans, _| consecutive_colons(&spans),
+    )
+    .change_category(C::from)?;
 
     let key = Key {
         value: key,
@@ -133,7 +100,7 @@ where
 
     loop {
         let next = state
-            .peek_expect()
+            .peek_expect(SyntaxKindSet::COMPLETE)
             .change_category(ObjectDiagnosticCategory::Lexer)
             .change_category(C::from)?;
 
@@ -141,7 +108,7 @@ where
 
         if next_kind == SyntaxKind::RBrace {
             state
-                .advance()
+                .advance(SyntaxKindSet::COMPLETE)
                 .change_category(ObjectDiagnosticCategory::Lexer)
                 .change_category(C::from)?;
 
@@ -162,7 +129,7 @@ where
             // in case it isn't we error out
             if next_kind == SyntaxKind::Comma {
                 state
-                    .advance()
+                    .advance(SyntaxKindSet::COMPLETE)
                     .change_category(ObjectDiagnosticCategory::Lexer)
                     .change_category(C::from)?;
 
@@ -188,12 +155,9 @@ where
                 });
 
                 // do not consume the token, so that we can do recoverable parsing (in the future)
-                return Err(unexpected_token(
-                    span,
-                    ObjectDiagnosticCategory::ExpectedSeparator,
-                    EXPECTED_OBJECT_SEP,
-                )
-                .map_category(C::from));
+                return Err(unexpected_token(span, next_kind, EXPECTED_OBJECT_SEP)
+                    .map_category(ObjectDiagnosticCategory::Lexer)
+                    .map_category(C::from));
             }
         }
 
@@ -213,7 +177,7 @@ mod tests {
 
     use crate::{
         error::ResultExt as _,
-        lexer::{error::unexpected_eof, syntax_kind::SyntaxKind},
+        lexer::{error::unexpected_eof, syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
         parser::{
             object::{
                 error::{ObjectDiagnostic, ObjectDiagnosticCategory},
@@ -227,11 +191,10 @@ mod tests {
 
     macro advance {
         ($state:ident) => {
-            $state.advance().expect("should have at least one token")
+            $state.advance(SyntaxKindSet::COMPLETE).expect("should have at least one token")
         },
         ($state:ident == $token:expr) => {{
-            let token = $state.advance().expect("should have at least one token");
-            assert_eq!(token.kind.syntax(), $token);
+            let token = $state.advance($token).expect("should have at least one token");
 
             token
         }}
@@ -457,11 +420,14 @@ mod tests {
             callback_count += 1;
 
             if key == "b" {
-                return Err(unexpected_eof(state.insert_span(Span {
-                    range: token.span,
-                    pointer: None,
-                    parent_id: None,
-                })))
+                return Err(unexpected_eof(
+                    state.insert_span(Span {
+                        range: token.span,
+                        pointer: None,
+                        parent_id: None,
+                    }),
+                    SyntaxKindSet::COMPLETE,
+                ))
                 .change_category(ObjectDiagnosticCategory::Lexer);
             }
 

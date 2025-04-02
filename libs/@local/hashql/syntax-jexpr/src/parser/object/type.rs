@@ -7,7 +7,7 @@ use text_size::TextRange;
 use super::{
     ObjectState, State,
     dict::DictNode,
-    error::{ObjectDiagnosticCategory, duplicate_key, unknown_key},
+    error::{duplicate_key, type_expected_string, unknown_key},
     list::ListNode,
     literal::LiteralNode,
     r#struct::StructNode,
@@ -19,9 +19,7 @@ use crate::{
     error::ResultExt as _,
     lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
     parser::{
-        error::{ParserDiagnostic, unexpected_token},
-        object::error::orphaned_type,
-        string::parse_type_from_token,
+        error::ParserDiagnostic, object::error::orphaned_type, string::parse_type_from_token,
     },
 };
 
@@ -149,22 +147,58 @@ pub(crate) fn handle_typed<'heap>(
 fn parse_type<'heap>(
     state: &mut ParserState<'heap, '_>,
 ) -> Result<(TextRange, Type<'heap>), ParserDiagnostic> {
-    // right now we only support string for types that are parsed.
-    let token = state.advance().change_category(From::from)?;
+    // We do not use the `expected` of advance here, so that we're able to give the user a better
+    // error message.
+    let token = state
+        .advance(SyntaxKindSet::COMPLETE)
+        .change_category(From::from)?;
+
+    if token.kind.syntax() != SyntaxKind::String {
+        return Err(
+            type_expected_string(state.insert_range(token.span), token.kind.syntax())
+                .map_category(From::from),
+        );
+    }
+
     let span = token.span;
-
-    let r#type = if token.kind.syntax() == SyntaxKind::String {
-        parse_type_from_token(state, token).change_category(From::from)?
-    } else {
-        let span = state.insert_range(token.span);
-
-        return Err(unexpected_token(
-            span,
-            ObjectDiagnosticCategory::InvalidType,
-            SyntaxKindSet::from_slice(&[SyntaxKind::String]),
-        )
-        .map_category(From::from));
-    };
+    let r#type = parse_type_from_token(state, token).change_category(From::from)?;
 
     Ok((span, r#type))
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::{assert_snapshot, with_settings};
+
+    use crate::{
+        lexer::syntax_kind::SyntaxKind,
+        parser::{object::parse_object, test::bind_parser},
+    };
+
+    // Create a parser binding that will handle objects starting with '{'
+    bind_parser!(fn parse_object_expr(parse_object, SyntaxKind::LBrace));
+
+    #[test]
+    fn parse_invalid_type() {
+        let result = parse_object_expr(r##"{"#type": ""}"##)
+            .expect_err("should not be able to parse an empty type");
+
+        with_settings!({
+            description => "Parses an invalid type"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.diagnostic, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_invalid_syntax() {
+        let result = parse_object_expr(r##"{"#type": ["a"]}"##)
+            .expect_err("should not be able to parse an invalid syntax");
+
+        with_settings!({
+            description => "Parses invalid syntax"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.diagnostic, &result.input);
+        });
+    }
 }

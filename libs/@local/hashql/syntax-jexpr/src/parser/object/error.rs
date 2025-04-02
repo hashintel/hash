@@ -18,27 +18,6 @@ use crate::{
 
 pub(crate) type ObjectDiagnostic = Diagnostic<ObjectDiagnosticCategory, SpanId>;
 
-// Terminal category definitions
-const EXPECTED_SEPARATOR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "expected-separator",
-    name: "Expected object separator (comma) or closing brace",
-};
-
-const EXPECTED_COLON: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "expected-colon",
-    name: "Expected colon after object key",
-};
-
-const EXPECTED_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "expected-key",
-    name: "Expected object key",
-};
-
-const EXPECTED_VALUE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "expected-value",
-    name: "Expected value after colon",
-};
-
 const LEADING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "leading-comma",
     name: "Unexpected leading comma in object",
@@ -57,16 +36,6 @@ const CONSECUTIVE_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory
 const CONSECUTIVE_COLON: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "consecutive-colon",
     name: "Multiple colons between key and value",
-};
-
-const INVALID_LITERAL: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "invalid-literal",
-    name: "Invalid literal in object context",
-};
-
-const INVALID_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "invalid-type",
-    name: "Invalid type specification",
 };
 
 const UNKNOWN_KEY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -129,19 +98,23 @@ const LIST_EXPECTED_ARRAY: TerminalDiagnosticCategory = TerminalDiagnosticCatego
     name: "Expected array for #list definition",
 };
 
+const TYPE_EXPECTED_STRING: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "type-expected-string",
+    name: "Expected string for type definition",
+};
+
+const LITERAL_EXPECTED_PRIMITIVE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "literal-expected-primitive",
+    name: "Expected primitive for literal definition",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ObjectDiagnosticCategory {
     Lexer(LexerDiagnosticCategory),
-    ExpectedSeparator,
-    ExpectedColon,
-    ExpectedKey,
-    ExpectedValue,
     LeadingComma,
     TrailingComma,
     ConsecutiveComma,
     ConsecutiveColon,
-    InvalidLiteral,
-    InvalidType,
     UnknownKey,
     Empty,
     OrphanedType,
@@ -154,6 +127,8 @@ pub enum ObjectDiagnosticCategory {
     DictEntryExpectedArray,
     TupleExpectedArray,
     ListExpectedArray,
+    TypeExpectedString,
+    LiteralExpectedPrimitive,
 }
 
 impl DiagnosticCategory for ObjectDiagnosticCategory {
@@ -174,16 +149,10 @@ impl DiagnosticCategory for ObjectDiagnosticCategory {
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
             Self::Lexer(lexer) => Some(lexer),
-            Self::ExpectedColon => Some(&EXPECTED_COLON),
-            Self::ExpectedSeparator => Some(&EXPECTED_SEPARATOR),
-            Self::ExpectedKey => Some(&EXPECTED_KEY),
-            Self::ExpectedValue => Some(&EXPECTED_VALUE),
             Self::LeadingComma => Some(&LEADING_COMMA),
             Self::TrailingComma => Some(&TRAILING_COMMA),
             Self::ConsecutiveComma => Some(&CONSECUTIVE_COMMA),
             Self::ConsecutiveColon => Some(&CONSECUTIVE_COLON),
-            Self::InvalidLiteral => Some(&INVALID_LITERAL),
-            Self::InvalidType => Some(&INVALID_TYPE),
             Self::UnknownKey => Some(&UNKNOWN_KEY),
             Self::Empty => Some(&EMPTY),
             Self::OrphanedType => Some(&ORPHANED_TYPE),
@@ -196,6 +165,8 @@ impl DiagnosticCategory for ObjectDiagnosticCategory {
             Self::DictEntryTooManyItems => Some(&DICT_ENTRY_TOO_MANY_ITEMS),
             Self::TupleExpectedArray => Some(&TUPLE_EXPECTED_ARRAY),
             Self::ListExpectedArray => Some(&LIST_EXPECTED_ARRAY),
+            Self::LiteralExpectedPrimitive => Some(&LITERAL_EXPECTED_PRIMITIVE),
+            Self::TypeExpectedString => Some(&TYPE_EXPECTED_STRING),
         }
     }
 }
@@ -224,7 +195,7 @@ pub(crate) fn empty(span: SpanId) -> ObjectDiagnostic {
 
     diagnostic
         .labels
-        .push(Label::new(span, "Empty object not allowed"));
+        .push(Label::new(span, "Add required fields to this object"));
 
     diagnostic.help = Some(Help::new(EMPTY_HELP));
     diagnostic.note = Some(Note::new(EMPTY_NOTE));
@@ -335,7 +306,11 @@ pub(crate) fn unknown_key(
 
     diagnostic.labels.push(Label::new(
         span,
-        format!("Unrecognized key `{}`", key.as_ref()),
+        if expected.is_empty() {
+            format!("Remove the `{}` key", key.as_ref())
+        } else {
+            format!("Replace `{}` with a valid key", key.as_ref())
+        },
     ));
 
     let help_message = if expected.is_empty() {
@@ -373,30 +348,28 @@ pub(crate) fn unknown_key(
     diagnostic
 }
 
-const ORPHANED_TYPE_HELP: &str = "The `#type` field must be used alongside a primary construct \
-                                  like `#struct`, `#list`, etc. It cannot be used alone in an \
-                                  object.";
-
-const ORPHANED_TYPE_NOTE: &str = r##"The `#type` field is used to annotate the type of a construct. Valid examples include:
-- `{"#struct": {...}, "#type": "Person"}`
-- `{"#list": [...], "#type": "List<Number>"}`
-- `{"#literal": 42, "#type": "Int"}`"##;
-
 pub(crate) fn orphaned_type(span: SpanId) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::OrphanedType, Severity::ERROR);
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Cannot use this keyword alone"));
+    diagnostic.labels.push(Label::new(
+        span,
+        "Add a primary construct to use with #type",
+    ));
 
-    diagnostic.help = Some(Help::new(ORPHANED_TYPE_HELP));
-    diagnostic.note = Some(Note::new(ORPHANED_TYPE_NOTE));
+    diagnostic.help = Some(Help::new(
+        "The `#type` field must be used alongside a primary construct like `#struct`, `#list`, \
+         etc. It cannot be used alone in an object.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        r##"The `#type` field is used to annotate the type of a construct. Valid examples include:
+    - `{"#struct": {...}, "#type": "Person"}`
+    - `{"#list": [...], "#type": "List<Number>"}`
+    - `{"#literal": 42, "#type": "Int"}`"##,
+    ));
 
     diagnostic
 }
-
-const DUPLICATE_KEY_HELP: &str =
-    "J-Expr does not allow duplicate keys in the same object. Each key must be unique.";
 
 /// Creates a diagnostic for when a key appears multiple times in the same object.
 ///
@@ -424,7 +397,9 @@ pub(crate) fn duplicate_key(
         .with_order(1),
     );
 
-    diagnostic.help = Some(Help::new(DUPLICATE_KEY_HELP));
+    diagnostic.help = Some(Help::new(
+        "J-Expr does not allow duplicate keys in the same object. Each key must be unique.",
+    ));
 
     diagnostic
 }
@@ -457,27 +432,25 @@ pub(crate) fn struct_key_expected_identifier<I>(
     diagnostic
 }
 
-const DICT_FORMAT_NOTE: &str = r#"Dictionaries in J-Expr support two formats:
-1. Object-like syntax: {"key1": value1, "key2": value2, ...}
-2. Array of pairs: [[key1, value1], [key2, value2], ...]"#;
-
-pub(crate) fn dict_expected_format(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
+pub(crate) fn dict_entry_expected_array(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
-        ObjectDiagnosticCategory::DictExpectedFormat,
+        ObjectDiagnosticCategory::DictEntryExpectedArray,
         Severity::ERROR,
     );
 
     diagnostic
         .labels
-        .push(Label::new(span, "Expected object or array of pairs"));
+        .push(Label::new(span, "Expected an array for dictionary entry"));
 
     let help_message = format!(
-        "Expected either an object {{key: value, ...}} or an array of pairs [[key, value], ...], \
-         found {found}",
+        "Found {found}, but dictionary entries must be arrays with exactly two elements [key, \
+         value]"
     );
     diagnostic.help = Some(Help::new(help_message));
 
-    diagnostic.note = Some(Note::new(DICT_FORMAT_NOTE));
+    diagnostic.note = Some(Note::new(
+        "In the array-of-pairs format for dictionaries, each entry must be a two-element array.",
+    ));
 
     diagnostic
 }
@@ -533,6 +506,152 @@ pub(crate) fn dict_entry_too_many_items(excess_element_spans: &[SpanId]) -> Obje
     diagnostic.help = Some(Help::new(help_message));
 
     diagnostic.note = Some(Note::new(DICT_ENTRY_FORMAT_NOTE));
+
+    diagnostic
+}
+
+pub(crate) fn tuple_expected_array(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ObjectDiagnosticCategory::TupleExpectedArray,
+        Severity::ERROR,
+    );
+
+    // More accurate label for the position
+    diagnostic
+        .labels
+        .push(Label::new(span, "Expected an array here"));
+
+    // More specific help with clear guidance
+    let help_message = format!(
+        "The #tuple construct requires an array of elements, but found {found}. Use square \
+         brackets to define the tuple elements: [element1, element2, ...]"
+    );
+    diagnostic.help = Some(Help::new(help_message));
+
+    diagnostic.note = Some(Note::new(
+        "Tuples in J-Expr represent fixed-size ordered collections where each position can have a \
+         different type.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn list_expected_array(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(ObjectDiagnosticCategory::ListExpectedArray, Severity::ERROR);
+
+    // More accurate label for the position
+    diagnostic
+        .labels
+        .push(Label::new(span, "Expected an array here"));
+
+    // More specific help with clear guidance
+    let help_message = format!(
+        "The #list construct requires an array of elements, but found {found}. Use square \
+         brackets to define the list elements: [element1, element2, ...]"
+    );
+    diagnostic.help = Some(Help::new(help_message));
+
+    diagnostic.note = Some(Note::new(
+        "Lists in J-Expr represent variable-length collections where all elements must have the \
+         same type.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn struct_expected_object(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ObjectDiagnosticCategory::StructExpectedObject,
+        Severity::ERROR,
+    );
+
+    // More accurate label for the position
+    diagnostic
+        .labels
+        .push(Label::new(span, "Expected an object here"));
+
+    // More specific help with clear guidance
+    let help_message = format!(
+        "The #struct construct requires an object with field definitions, but found {found}. Use \
+         curly braces to define the struct fields: {{\"field1\": value1, \"field2\": value2}}"
+    );
+    diagnostic.help = Some(Help::new(help_message));
+
+    diagnostic.note = Some(Note::new(
+        "Structs in J-Expr represent collections of named fields, where each field can have a \
+         different type.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn dict_expected_format(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ObjectDiagnosticCategory::DictExpectedFormat,
+        Severity::ERROR,
+    );
+
+    // More accurate label for the position
+    diagnostic.labels.push(Label::new(
+        span,
+        "Expected an object or array of pairs here",
+    ));
+
+    // More specific help with clear guidance
+    let help_message = format!(
+        "Found {found}, but the #dict construct requires either an object {{key: value, ...}} or \
+         an array of pairs [[key, value], ...]"
+    );
+    diagnostic.help = Some(Help::new(help_message));
+
+    diagnostic.note = Some(Note::new(
+        r#"Valid dictionary formats:
+    1. Object syntax: {"key1": value1, "key2": value2, ...}
+    2. Array of pairs: [[key1, value1], [key2, value2], ...]"#,
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn type_expected_string(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ObjectDiagnosticCategory::TypeExpectedString,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Invalid type specification"));
+
+    diagnostic.help = Some(Help::new(format!(
+        "Found {found}, which is not a valid type specification. Types must be represented as a \
+         string.",
+    )));
+
+    diagnostic.note = Some(Note::new(
+        "Types in J-Expr must be specified through an embedded language represented in a string \
+         that mimics that of Rust and TypeScript. See the language documentation for more details.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn literal_expected_primitive(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ObjectDiagnosticCategory::LiteralExpectedPrimitive,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Invalid literal value in this context"));
+
+    let help_message = format!(
+        "Found {found}, which is not a valid primitive literal. Primitive literals are either \
+         strings, numbers, or booleans."
+    );
+    diagnostic.help = Some(Help::new(help_message));
 
     diagnostic
 }

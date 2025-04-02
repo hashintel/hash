@@ -22,7 +22,9 @@ pub(crate) fn verify_no_repeat<C>(
 where
     C: From<LexerDiagnosticCategory>,
 {
-    let next = state.peek_expect().change_category(C::from)?;
+    let next = state
+        .peek_expect(SyntaxKindSet::COMPLETE)
+        .change_category(C::from)?;
     let next_syntax = next.kind.syntax();
 
     if !deny.contains(next_syntax) && !end.contains(next_syntax) {
@@ -40,7 +42,9 @@ where
 
     loop {
         // in the first loop, we refetch here, but this just makes operating on the stream easier
-        let token = state.peek_expect().change_category(C::from)?;
+        let token = state
+            .peek_expect(SyntaxKindSet::COMPLETE)
+            .change_category(C::from)?;
 
         let token_span = token.span;
         let token_syntax = token.kind.syntax();
@@ -60,7 +64,9 @@ where
 
         // Token that is denied, therefore advance the stream and add it to the spans
         spans.push(token_span);
-        state.advance().change_category(C::from)?;
+        state
+            .advance(SyntaxKindSet::COMPLETE)
+            .change_category(C::from)?;
     }
 
     // materialize the spans

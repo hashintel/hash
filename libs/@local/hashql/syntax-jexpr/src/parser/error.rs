@@ -13,7 +13,7 @@ use super::{
     array::error::ArrayDiagnosticCategory, object::error::ObjectDiagnosticCategory,
     string::error::StringDiagnosticCategory,
 };
-use crate::lexer::{error::LexerDiagnosticCategory, syntax_kind_set::SyntaxKindSet};
+use crate::lexer::error::LexerDiagnosticCategory;
 
 pub(crate) type ParserDiagnostic = Diagnostic<ParserDiagnosticCategory, SpanId>;
 
@@ -86,38 +86,6 @@ impl From<ObjectDiagnosticCategory> for ParserDiagnosticCategory {
     fn from(value: ObjectDiagnosticCategory) -> Self {
         Self::Object(value)
     }
-}
-
-pub(crate) fn unexpected_token<C>(
-    span: SpanId,
-    category: C,
-    expected: SyntaxKindSet,
-) -> Diagnostic<C, SpanId> {
-    let mut diagnostic = Diagnostic::new(category, Severity::ERROR);
-
-    diagnostic.labels.push(Label::new(span, "Unexpected token"));
-
-    let length = expected.len();
-    let expected = expected
-        .into_iter()
-        .enumerate()
-        .fold(String::new(), |mut acc, (i, kind)| {
-            if i > 0 {
-                acc.push_str(", ");
-            }
-
-            if i == length - 1 && i > 0 {
-                acc.push_str("or ");
-            }
-
-            acc.push_str(&kind.to_string());
-
-            acc
-        });
-
-    diagnostic.help = Some(Help::new(format!("Expected {expected} at this position")));
-
-    diagnostic
 }
 
 const EXPECTED_EOF_HELP: &str =

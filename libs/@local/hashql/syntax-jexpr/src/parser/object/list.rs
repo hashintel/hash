@@ -6,7 +6,7 @@ use text_size::TextRange;
 
 use super::{
     ObjectState, State,
-    error::ObjectDiagnosticCategory,
+    error::list_expected_array,
     r#type::{TypeNode, handle_typed},
     visit::Key,
 };
@@ -14,11 +14,7 @@ use crate::{
     ParserState,
     error::ResultExt as _,
     lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
-    parser::{
-        array::visit::visit_array,
-        error::{ParserDiagnostic, unexpected_token},
-        expr::parse_expr,
-    },
+    parser::{array::visit::visit_array, error::ParserDiagnostic, expr::parse_expr},
 };
 
 pub(crate) struct ListNode<'heap> {
@@ -76,15 +72,17 @@ impl<'heap> State<'heap> for ListNode<'heap> {
 fn parse_list<'heap>(
     state: &mut ParserState<'heap, '_>,
 ) -> Result<ListExpr<'heap>, ParserDiagnostic> {
-    let token = state.advance().change_category(From::from)?;
+    // We do not use the `expected` of advance here, so that we're able to give the user a better
+    // error message.
+    let token = state
+        .advance(SyntaxKindSet::COMPLETE)
+        .change_category(From::from)?;
 
     if token.kind.syntax() != SyntaxKind::LBracket {
-        return Err(unexpected_token(
-            state.insert_range(token.span),
-            ObjectDiagnosticCategory::ListExpectedArray,
-            SyntaxKindSet::from_slice(&[SyntaxKind::LBracket]),
-        )
-        .map_category(From::from));
+        return Err(
+            list_expected_array(state.insert_range(token.span), token.kind.syntax())
+                .map_category(From::from),
+        );
     }
 
     let mut elements = Vec::new();

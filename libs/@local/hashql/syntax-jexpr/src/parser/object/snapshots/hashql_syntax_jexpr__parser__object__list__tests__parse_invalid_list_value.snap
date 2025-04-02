@@ -8,7 +8,9 @@ expression: "{\"#list\": {\"not\": \"an-array\"}}"
    │
  1 │ {"#list": {"not": "an-array"}}
    │           ┬  
-   │           ╰── Unexpected token
+   │           ╰── Expected an array here
    │ 
-   │ Help: Expected `[` at this position
+   │ Help: The #list construct requires an array of elements, but found `{`. Use square brackets to define the list elements: [element1, element2, ...]
+   │ 
+   │ Note: Lists in J-Expr represent variable-length collections where all elements must have the same type.
 ───╯

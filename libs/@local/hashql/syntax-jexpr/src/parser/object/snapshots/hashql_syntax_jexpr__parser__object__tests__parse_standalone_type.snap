@@ -8,12 +8,12 @@ expression: "{\"#type\": \"Int\"}"
    │
  1 │ {"#type": "Int"}
    │  ───────┬──────  
-   │         ╰──────── Cannot use this keyword alone
+   │         ╰──────── Add a primary construct to use with #type
    │ 
    │ Help: The `#type` field must be used alongside a primary construct like `#struct`, `#list`, etc. It cannot be used alone in an object.
    │ 
    │ Note: The `#type` field is used to annotate the type of a construct. Valid examples include:
-   │       - `{"#struct": {...}, "#type": "Person"}`
-   │       - `{"#list": [...], "#type": "List<Number>"}`
-   │       - `{"#literal": 42, "#type": "Int"}`
+   │           - `{"#struct": {...}, "#type": "Person"}`
+   │           - `{"#list": [...], "#type": "List<Number>"}`
+   │           - `{"#literal": 42, "#type": "Int"}`
 ───╯

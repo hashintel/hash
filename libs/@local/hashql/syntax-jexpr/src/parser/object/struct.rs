@@ -6,6 +6,7 @@ use text_size::TextRange;
 
 use super::{
     ObjectState, State,
+    error::struct_expected_object,
     r#type::{TypeNode, handle_typed},
     visit::Key,
 };
@@ -14,12 +15,9 @@ use crate::{
     error::ResultExt as _,
     lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
     parser::{
-        error::{ParserDiagnostic, unexpected_token},
+        error::ParserDiagnostic,
         expr::parse_expr,
-        object::{
-            error::{ObjectDiagnosticCategory, struct_key_expected_identifier},
-            visit::visit_object,
-        },
+        object::{error::struct_key_expected_identifier, visit::visit_object},
         string::parse_ident_from_string,
     },
 };
@@ -79,16 +77,16 @@ impl<'heap> State<'heap> for StructNode<'heap> {
 fn parse_struct<'heap>(
     state: &mut ParserState<'heap, '_>,
 ) -> Result<StructExpr<'heap>, ParserDiagnostic> {
-    let token = state.advance().change_category(From::from)?;
+    // We do not use expected here, to give the user a better error message
+    let token = state
+        .advance(SyntaxKindSet::COMPLETE)
+        .change_category(From::from)?;
+
     if token.kind.syntax() != SyntaxKind::LBrace {
         let span = state.insert_range(token.span);
 
-        return Err(unexpected_token(
-            span,
-            ObjectDiagnosticCategory::StructExpectedObject,
-            SyntaxKindSet::from_slice(&[SyntaxKind::LBrace]),
-        ))
-        .change_category(From::from)?;
+        return Err(struct_expected_object(span, token.kind.syntax()))
+            .change_category(From::from)?;
     }
 
     let mut entries = Vec::new();

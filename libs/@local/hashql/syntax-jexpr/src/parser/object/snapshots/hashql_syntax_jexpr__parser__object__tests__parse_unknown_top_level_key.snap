@@ -8,7 +8,7 @@ expression: "{\"invalid\": 42}"
    │
  1 │ {"invalid": 42}
    │  ────┬────  
-   │      ╰────── Unrecognized key `invalid`
+   │      ╰────── Replace `invalid` with a valid key
    │ 
    │ Help: This J-Expr object only accepts these specific keys: `#literal`, `#struct`, `#dict`, `#tuple`, `#list`, or `#type`
 ───╯

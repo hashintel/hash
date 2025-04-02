@@ -8,7 +8,9 @@ expression: "{\"#tuple\": {\"not\": \"an-array\"}}"
    │
  1 │ {"#tuple": {"not": "an-array"}}
    │            ┬  
-   │            ╰── Unexpected token
+   │            ╰── Expected an array here
    │ 
-   │ Help: Expected `[` at this position
+   │ Help: The #tuple construct requires an array of elements, but found `{`. Use square brackets to define the tuple elements: [element1, element2, ...]
+   │ 
+   │ Note: Tuples in J-Expr represent fixed-size ordered collections where each position can have a different type.
 ───╯

@@ -8,7 +8,9 @@ expression: "{\"#dict\": [\n            {\"not\": \"an-array\"}\n        ]}"
    │
  2 │             {"not": "an-array"}
    │             ┬  
-   │             ╰── Unexpected token
+   │             ╰── Expected an array for dictionary entry
    │ 
-   │ Help: Expected `[` at this position
+   │ Help: Found `{`, but dictionary entries must be arrays with exactly two elements [key, value]
+   │ 
+   │ Note: In the array-of-pairs format for dictionaries, each entry must be a two-element array.
 ───╯

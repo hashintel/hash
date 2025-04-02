@@ -8,7 +8,7 @@ expression: "[\"greet\", {\"name\": {\"#literal\": \"Alice\"}}]"
    │
  1 │ ["greet", {"name": {"#literal": "Alice"}}]
    │            ───┬──  
-   │               ╰──── Unrecognized key `name`
+   │               ╰──── Replace `name` with a valid key
    │ 
    │ Help: This J-Expr object only accepts these specific keys: `#literal`, `#struct`, `#dict`, `#tuple`, `#list`, or `#type`
 ───╯

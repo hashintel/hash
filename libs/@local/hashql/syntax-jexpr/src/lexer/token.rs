@@ -8,8 +8,8 @@ pub(crate) struct Token<'source> {
     pub span: TextRange,
 }
 
-impl<'source> AsRef<Token<'source>> for Token<'source> {
-    fn as_ref(&self) -> &Token<'source> {
+impl AsRef<Self> for Token<'_> {
+    fn as_ref(&self) -> &Self {
         self
     }
 }

@@ -54,7 +54,6 @@ impl SyntaxKindSet {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum Conjunction {
     Or,
-    And,
 }
 
 impl SyntaxKindSet {
@@ -156,8 +155,6 @@ impl SyntaxKindSet {
                             match verb {
                                 Some(Conjunction::Or) if len == 2 => fmt.write_str(" or ")?,
                                 Some(Conjunction::Or) => fmt.write_str("or ")?,
-                                Some(Conjunction::And) if len == 2 => fmt.write_str(" and ")?,
-                                Some(Conjunction::And) => fmt.write_str("and ")?,
                                 None if len == 2 => fmt.write_str(", ")?,
                                 None => {}
                             }
@@ -244,7 +241,6 @@ mod tests {
 
         insta::assert_snapshot!(set.display(None).to_string(), @r"none");
         insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @r"none");
-        insta::assert_snapshot!(set.display(Some(Conjunction::And)).to_string(), @r"none");
     }
 
     #[test]
@@ -253,7 +249,6 @@ mod tests {
 
         insta::assert_snapshot!(set.display(None).to_string(), @r"string");
         insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @r"string");
-        insta::assert_snapshot!(set.display(Some(Conjunction::And)).to_string(), @r"string");
     }
 
     #[test]
@@ -262,7 +257,6 @@ mod tests {
 
         insta::assert_snapshot!(set.display(None).to_string(), @r"string, number");
         insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @r"string or number");
-        insta::assert_snapshot!(set.display(Some(Conjunction::And)).to_string(), @r"string and number");
     }
 
     #[test]
@@ -272,7 +266,6 @@ mod tests {
 
         insta::assert_snapshot!(set.display(None).to_string(), @r"string, number, `true`");
         insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @"string, number, or `true`");
-        insta::assert_snapshot!(set.display(Some(Conjunction::And)).to_string(), @"string, number, and `true`");
     }
 
     #[test]
@@ -286,7 +279,6 @@ mod tests {
 
         insta::assert_snapshot!(set.display(None).to_string(), @r"string, number, `true`, `false`");
         insta::assert_snapshot!(set.display(Some(Conjunction::Or)).to_string(), @r"string, number, `true`, or `false`");
-        insta::assert_snapshot!(set.display(Some(Conjunction::And)).to_string(), @r"string, number, `true`, and `false`");
     }
 
     #[test]

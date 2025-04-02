@@ -114,10 +114,8 @@ pub(crate) fn unexpected_eof(span: SpanId, expected: SyntaxKindSet) -> LexerDiag
     let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Severity::ERROR);
 
     // Create a more specific label based on what was expected
-    let label = if expected.is_empty() {
+    let label = if expected.is_empty() || expected.is_complete() {
         "Unexpected end of file".to_owned()
-    } else if expected.is_complete() {
-        "Expected a valid JSON value".to_owned()
     } else {
         format!(
             "Unexpected end of file, expected {}",
@@ -157,9 +155,9 @@ pub(crate) fn unexpected_token(
 
     // Create a specific label based on what was found vs what was expected
     let label = if expected.is_empty() {
-        format!("Unexpected token {}", found)
+        format!("Unexpected token {found}")
     } else if expected.is_complete() {
-        format!("Invalid syntax found {}", found)
+        format!("Invalid syntax found {found}")
     } else {
         format!(
             "Unexpected {}, expected {}",

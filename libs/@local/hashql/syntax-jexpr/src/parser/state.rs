@@ -163,7 +163,7 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
 
         let token = token?;
 
-        return self.context.validate_token(token, expected);
+        self.context.validate_token(token, expected)
     }
 
     // Peek at the first token

@@ -8,7 +8,7 @@ expression: "{\"#literal\": 42, \"unknown\": \"value\"}"
    │
  1 │ {"#literal": 42, "unknown": "value"}
    │                  ────┬────  
-   │                      ╰────── Unrecognized key `unknown`
+   │                      ╰────── Replace `unknown` with a valid key
    │ 
    │ Help: This J-Expr object only accepts these specific keys: `#type`
 ───╯
