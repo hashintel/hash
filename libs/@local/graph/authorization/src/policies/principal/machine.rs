@@ -1,6 +1,6 @@
 #![expect(
     clippy::empty_enum,
-    reason = "serde::Deseiriealize does not use the never-type"
+    reason = "serde::Deserialize does not use the never-type"
 )]
 
 use alloc::sync::Arc;
