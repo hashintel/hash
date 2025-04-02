@@ -1,6 +1,7 @@
 #![expect(clippy::panic_in_result_fn, clippy::significant_drop_tightening)]
 #![feature(assert_matches)]
 
+mod ai;
 mod machine;
 mod role;
 mod team;

@@ -7,7 +7,7 @@ use crate::knowledge::entity::id::EntityUuid;
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum ActorType {
-    Human,
+    User,
     AI,
     Machine,
 }
@@ -190,14 +190,16 @@ impl AiId {
 pub enum ActorId {
     User(UserId),
     Machine(MachineId),
+    Ai(AiId),
 }
 
 impl ActorId {
     #[must_use]
     pub const fn new(actor_type: ActorType, uuid: ActorEntityUuid) -> Self {
         match actor_type {
-            ActorType::Human => Self::User(UserId::new(uuid)),
-            ActorType::AI | ActorType::Machine => Self::Machine(MachineId::new(uuid)),
+            ActorType::User => Self::User(UserId::new(uuid)),
+            ActorType::AI => Self::Ai(AiId::new(uuid)),
+            ActorType::Machine => Self::Machine(MachineId::new(uuid)),
         }
     }
 
@@ -206,6 +208,7 @@ impl ActorId {
         match self {
             Self::User(id) => id.as_uuid(),
             Self::Machine(id) => id.as_uuid(),
+            Self::Ai(id) => id.as_uuid(),
         }
     }
 
@@ -214,6 +217,7 @@ impl ActorId {
         match self {
             Self::User(id) => id.into_uuid(),
             Self::Machine(id) => id.into_uuid(),
+            Self::Ai(id) => id.into_uuid(),
         }
     }
 }

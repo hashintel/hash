@@ -104,7 +104,7 @@ export const useFetchBlockSubgraph = (): ((
             provenance: {
               edition: {
                 createdById: "placeholder-account" as ActorEntityUuid,
-                actorType: "human",
+                actorType: "user",
                 origin: {
                   type: "web-app",
                 },

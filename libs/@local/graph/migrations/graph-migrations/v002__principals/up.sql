@@ -45,9 +45,9 @@ $$ LANGUAGE plpgsql;
 -- ==========================================
 
 -- Principal is the abstract base type for all security principals
--- It has concrete subtypes: user, machine, team, role
+-- It has concrete subtypes: user, machine, ai, team, role
 CREATE TYPE principal_type AS ENUM (
-    'user', 'machine', 'team', 'web', 'subteam', 'role', 'web_role', 'subteam_role'
+    'user', 'machine', 'ai', 'team', 'web', 'subteam', 'role', 'web_role', 'subteam_role'
 );
 CREATE TABLE principal (
     id UUID NOT NULL,
@@ -67,12 +67,12 @@ EXECUTE FUNCTION prevent_direct_modification();
 -- ==========================================
 
 -- Actor is a subtype of principal that represents entities that can perform actions
--- It's the parent table for user and machine concrete types
+-- It's the parent table for user, machine, and ai concrete types
 CREATE TABLE actor (
     id UUID PRIMARY KEY,
     principal_type PRINCIPAL_TYPE NOT NULL,
     FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
-    CHECK (principal_type IN ('user', 'machine'))
+    CHECK (principal_type IN ('user', 'machine', 'ai'))
 );
 
 -- Prevent direct operations on actor (abstract) table
@@ -296,6 +296,37 @@ FOR EACH ROW EXECUTE FUNCTION register_machine();
 -- Machine deletion trigger - prevents direct deletion from machine table
 CREATE TRIGGER machine_delete_trigger
 BEFORE DELETE ON machine
+FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
+EXECUTE FUNCTION prevent_direct_delete_from_concrete();
+
+-- ---------------
+-- AI
+-- ---------------
+-- AI is a concrete principal and actor
+-- The relationship chain: ai → actor → principal
+CREATE TABLE ai (
+    id UUID PRIMARY KEY REFERENCES actor (id) ON DELETE CASCADE
+    -- AI-specific fields can be added here
+);
+
+-- AI registration trigger - creates actor record when ai is created
+CREATE FUNCTION register_ai()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Create intermediate actor record with the same ID
+    -- This will automatically create a principal record via the actor_register_trigger
+    INSERT INTO actor (id, principal_type) VALUES (NEW.id, 'ai');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER ai_register_trigger
+BEFORE INSERT ON ai
+FOR EACH ROW EXECUTE FUNCTION register_ai();
+
+-- AI deletion trigger - prevents direct deletion from ai table
+CREATE TRIGGER ai_delete_trigger
+BEFORE DELETE ON ai
 FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
 EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 

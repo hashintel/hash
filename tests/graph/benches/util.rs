@@ -317,7 +317,7 @@ pub async fn seed<D, P, E, C, A>(
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: ProvidedOntologyEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -339,7 +339,7 @@ pub async fn seed<D, P, E, C, A>(
                                     level: 0,
                                 }],
                                 provenance: ProvidedOntologyEditionProvenance {
-                                    actor_type: ActorType::Human,
+                                    actor_type: ActorType::User,
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                                     sources: Vec::new(),
                                 },
@@ -373,7 +373,7 @@ pub async fn seed<D, P, E, C, A>(
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: ProvidedOntologyEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -394,7 +394,7 @@ pub async fn seed<D, P, E, C, A>(
                                     level: 0,
                                 }],
                                 provenance: ProvidedOntologyEditionProvenance {
-                                    actor_type: ActorType::Human,
+                                    actor_type: ActorType::User,
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                                     sources: Vec::new(),
                                 },
@@ -427,7 +427,7 @@ pub async fn seed<D, P, E, C, A>(
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: ProvidedOntologyEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -454,7 +454,7 @@ pub async fn seed<D, P, E, C, A>(
                                     },
                                 ],
                                 provenance: ProvidedOntologyEditionProvenance {
-                                    actor_type: ActorType::Human,
+                                    actor_type: ActorType::User,
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                                     sources: Vec::new(),
                                 },

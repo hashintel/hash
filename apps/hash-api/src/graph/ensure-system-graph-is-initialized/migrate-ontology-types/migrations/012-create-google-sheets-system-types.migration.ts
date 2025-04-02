@@ -136,7 +136,7 @@ const migrate: MigrationFunction = async ({
         title: "Actor Type",
         description:
           "The type of thing that can, should or will act on something.",
-        enum: ["human", "machine"],
+        enum: ["user", "machine"],
         type: "string",
       },
       conversions: {},

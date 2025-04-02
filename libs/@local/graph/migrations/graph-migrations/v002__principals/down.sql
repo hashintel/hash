@@ -24,6 +24,11 @@ DROP TRIGGER machine_register_trigger ON machine;
 DROP FUNCTION register_machine();
 DROP TABLE machine;
 
+DROP TRIGGER ai_delete_trigger ON ai;
+DROP TRIGGER ai_register_trigger ON ai;
+DROP FUNCTION register_ai();
+DROP TABLE ai;
+
 DROP TRIGGER user_delete_trigger ON "user";
 DROP TRIGGER user_register_trigger ON "user";
 DROP FUNCTION register_user();

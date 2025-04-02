@@ -6,6 +6,7 @@ use hash_graph_authorization::{
     AuthorizationApi,
     policies::principal::{
         PrincipalId,
+        ai::Ai,
         machine::Machine,
         role::{Role, RoleId},
         team::{
@@ -19,7 +20,7 @@ use hash_graph_authorization::{
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorId, MachineId, UserId},
+    provenance::{ActorEntityUuid, ActorId, AiId, MachineId, UserId},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -34,6 +35,7 @@ pub use error::PrincipalError;
 pub enum PrincipalType {
     User,
     Machine,
+    Ai,
     Team,
     Web,
     Subteam,
@@ -83,6 +85,9 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                     PrincipalId::Actor(ActorId::Machine(_)) => {
                         "SELECT EXISTS(SELECT 1 FROM machine WHERE id = $1)"
                     }
+                    PrincipalId::Actor(ActorId::Ai(_)) => {
+                        "SELECT EXISTS(SELECT 1 FROM ai WHERE id = $1)"
+                    }
                     PrincipalId::Role(RoleId::Standalone(_)) => {
                         "SELECT EXISTS(SELECT 1 FROM role WHERE id = $1
                         AND principal_type = 'role')"
@@ -123,6 +128,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             PrincipalId::Team(TeamId::Sub(id)) => (id.into_uuid(), PrincipalType::Subteam),
             PrincipalId::Actor(ActorId::User(id)) => (id.into_uuid(), PrincipalType::User),
             PrincipalId::Actor(ActorId::Machine(id)) => (id.into_uuid(), PrincipalType::Machine),
+            PrincipalId::Actor(ActorId::Ai(id)) => (id.into_uuid(), PrincipalType::Ai),
             PrincipalId::Role(RoleId::Standalone(id)) => (id.into_uuid(), PrincipalType::Role),
             PrincipalId::Role(RoleId::Web(id)) => (id.into_uuid(), PrincipalType::WebRole),
             PrincipalId::Role(RoleId::Subteam(id)) => (id.into_uuid(), PrincipalType::SubteamRole),
@@ -609,6 +615,80 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .await
     }
 
+    /// Creates a new AI with the given ID, or generates a new UUID if none is provided.
+    ///
+    /// # Errors
+    ///
+    /// - [`PrincipalAlreadyExists`] if an AI with the given ID already exists
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`PrincipalAlreadyExists`]: PrincipalError::PrincipalAlreadyExists
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn create_ai(&mut self, id: Option<Uuid>) -> Result<AiId, Report<PrincipalError>> {
+        let id = AiId::new(ActorEntityUuid::new(EntityUuid::new(
+            id.unwrap_or_else(Uuid::new_v4),
+        )));
+        if let Err(error) = self
+            .as_mut_client()
+            .execute("INSERT INTO ai (id) VALUES ($1)", &[id.as_uuid()])
+            .await
+        {
+            return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
+                Err(error).change_context(PrincipalError::PrincipalAlreadyExists {
+                    id: PrincipalId::Actor(ActorId::Ai(id)),
+                })
+            } else {
+                Err(error).change_context(PrincipalError::StoreError)
+            };
+        }
+
+        Ok(id)
+    }
+
+    /// Checks if an AI with the given ID exists.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn is_ai(&self, id: AiId) -> Result<bool, Report<PrincipalError>> {
+        self.is_principal(PrincipalId::Actor(ActorId::Ai(id))).await
+    }
+
+    /// Gets an AI by its ID.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn get_ai(&self, id: AiId) -> Result<Option<Ai>, Report<PrincipalError>> {
+        Ok(self
+            .as_client()
+            .query_opt("SELECT id FROM ai WHERE id = $1", &[id.as_uuid()])
+            .await
+            .change_context(PrincipalError::StoreError)?
+            .map(|row| Ai {
+                id: AiId::new(ActorEntityUuid::new(row.get(0))),
+                roles: HashSet::new(),
+            }))
+    }
+
+    /// Deletes an AI from the system.
+    ///
+    /// # Errors
+    ///
+    /// - [`PrincipalNotFound`] if the AI with the given ID doesn't exist
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn delete_ai(&mut self, id: AiId) -> Result<(), Report<PrincipalError>> {
+        self.delete_principal(PrincipalId::Actor(ActorId::Ai(id)))
+            .await
+    }
+
     /// Creates a new role with the given ID associated with a team, or generates a new UUID if none
     /// is provided.
     ///
@@ -891,6 +971,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             let actor_id = match principal_type {
                 PrincipalType::User => ActorId::User(UserId::new(id)),
                 PrincipalType::Machine => ActorId::Machine(MachineId::new(id)),
+                PrincipalType::Ai => ActorId::Ai(AiId::new(id)),
                 _ => continue, // Skip non-actor principal types
             };
 
@@ -973,6 +1054,9 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                         ActorEntityUuid::new(EntityUuid::new(id)),
                     ))),
                     PrincipalType::Machine => PrincipalId::Actor(ActorId::Machine(MachineId::new(
+                        ActorEntityUuid::new(EntityUuid::new(id)),
+                    ))),
+                    PrincipalType::Ai => PrincipalId::Actor(ActorId::Ai(AiId::new(
                         ActorEntityUuid::new(EntityUuid::new(id)),
                     ))),
 

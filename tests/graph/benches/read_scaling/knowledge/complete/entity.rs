@@ -139,7 +139,7 @@ async fn seed_db<A: AuthorizationApi>(
                     draft: false,
                     relationships: [],
                     provenance: ProvidedEntityEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -179,7 +179,7 @@ async fn seed_db<A: AuthorizationApi>(
                         draft: false,
                         relationships: [],
                         provenance: ProvidedEntityEditionProvenance {
-                            actor_type: ActorType::Human,
+                            actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },

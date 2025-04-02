@@ -88,7 +88,7 @@ const Page: NextPageWithLayout = () => {
           provenance: {
             edition: {
               createdById: "irrelevant-here" as ActorEntityUuid,
-              actorType: "human",
+              actorType: "user",
               origin: {
                 type: "web-app",
               },

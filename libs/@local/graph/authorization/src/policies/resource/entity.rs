@@ -244,7 +244,11 @@ mod tests {
                 filter: EntityResourceFilter::All { filters: vec![] },
             }),
             json!({
-                "type": "entity"
+                "type": "entity",
+                "filter": {
+                    "type": "all",
+                    "filters": [],
+                },
             }),
             "resource is HASH::Entity",
         )?;
@@ -337,6 +341,10 @@ mod tests {
             json!({
                 "type": "entity",
                 "webId": web_id,
+                "filter": {
+                    "type": "all",
+                    "filters": [],
+                },
             }),
             format!(r#"resource is HASH::Entity in HASH::Web::"{web_id}""#),
         )?;
@@ -349,6 +357,10 @@ mod tests {
             json!({
                 "type": "entity",
                 "webId": null,
+                "filter": {
+                    "type": "all",
+                    "filters": [],
+                },
             }),
             "resource is HASH::Entity in ?resource",
         )?;

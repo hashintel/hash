@@ -113,7 +113,7 @@ mod tests {
                         created_by_id: actor,
                         archived_by_id: None,
                         user_defined: ProvidedOntologyEditionProvenance {
-                            actor_type: ActorType::Human,
+                            actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
