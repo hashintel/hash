@@ -124,13 +124,28 @@ impl ParserContext {
     }
 }
 
+/// Represents expectations for token validation in the parser.
+///
+/// This enum provides two modes of token validation:
+/// - `Validate`: The token must match one of the expected syntax kinds
+/// - `Hint`: The expected syntax kinds are only a hint, and any token is accepted
+///
+/// When a `SyntaxKind` or `SyntaxKindSet` is directly passed to methods like
+/// `advance` or `peek_expect`, it is automatically converted to `Expected::Validate`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum Expected {
+    /// Expected kinds are only a hint; any token is accepted.
     Hint(SyntaxKindSet),
+
+    /// Token must match one of the expected kinds.
     Validate(SyntaxKindSet),
 }
 
 impl Expected {
+    /// Creates a new `Expected::Hint` from a syntax kind or set.
+    ///
+    /// Unlike direct conversion from `SyntaxKind` or `SyntaxKindSet` which creates
+    /// a `Validate` variant, this method explicitly creates a `Hint` variant.
     pub(crate) fn hint(kind: impl Into<SyntaxKindSet>) -> Self {
         Self::Hint(kind.into())
     }
@@ -180,6 +195,16 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
         }
     }
 
+    /// Consumes and returns the next token, validating it against the expected syntax kinds.
+    ///
+    /// The argument `expected` is used to validate the next token. It can be a `SyntaxKind` or
+    /// `SyntaxKindSet` directly, or `Expected::hint(...)` to accept any token regardless of
+    /// kind.
+    ///
+    /// # Errors
+    ///
+    /// - `UnexpectedEof` if there are no more tokens
+    /// - `UnexpectedToken` if the token doesn't match the expected kinds (when validating)
     pub(crate) fn advance(
         &mut self,
         expected: impl Into<Expected>,
@@ -207,6 +232,17 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
         self.lexer.peek_n(1)
     }
 
+    /// Returns a reference to the next token without consuming it, validating it against the
+    /// expected syntax kinds.
+    ///
+    /// The argument `expected` is used to validate the next token. It can be a `SyntaxKind` or
+    /// `SyntaxKindSet` directly, or `Expected::hint(...)` to accept any token regardless of
+    /// kind
+    ///
+    /// # Errors
+    ///
+    /// - `UnexpectedEof` if there are no more tokens
+    /// - `UnexpectedToken` if the token doesn't match the expected kinds (when validating)
     pub(crate) fn peek_expect(
         &mut self,
         expected: impl Into<Expected>,
