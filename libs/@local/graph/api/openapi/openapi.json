@@ -3366,6 +3366,24 @@
                 ]
               }
             }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AiId"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "ai"
+                ]
+              }
+            }
           }
         ],
         "discriminator": {
