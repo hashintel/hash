@@ -22,7 +22,7 @@ pub(crate) fn verify_no_repeat<C>(
 where
     C: From<LexerDiagnosticCategory>,
 {
-    let next = state.peek_required().change_category(C::from)?;
+    let next = state.peek_expect().change_category(C::from)?;
     let next_syntax = next.kind.syntax();
 
     if !deny.contains(next_syntax) && !end.contains(next_syntax) {
@@ -40,7 +40,7 @@ where
 
     loop {
         // in the first loop, we refetch here, but this just makes operating on the stream easier
-        let token = state.peek_required().change_category(C::from)?;
+        let token = state.peek_expect().change_category(C::from)?;
 
         let token_span = token.span;
         let token_syntax = token.kind.syntax();

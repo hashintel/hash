@@ -133,7 +133,7 @@ where
 
     loop {
         let next = state
-            .peek_required()
+            .peek_expect()
             .change_category(ObjectDiagnosticCategory::Lexer)
             .change_category(C::from)?;
 

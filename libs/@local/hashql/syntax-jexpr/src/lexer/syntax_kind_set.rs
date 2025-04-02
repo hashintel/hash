@@ -34,13 +34,15 @@ pub(crate) struct SyntaxKindSet(Flag);
 
 impl SyntaxKindSet {
     /// Tokens that represent closing delimiters like `]` and `}`.
-    const CLOSING_DELIMITER: Self = Self::from_slice(&[SyntaxKind::RBracket, SyntaxKind::RBrace]);
+    pub(crate) const CLOSING_DELIMITER: Self =
+        Self::from_slice(&[SyntaxKind::RBracket, SyntaxKind::RBrace]);
     /// Tokens that represent opening delimiters like `[` and `{`.
-    const OPENING_DELIMITER: Self = Self::from_slice(&[SyntaxKind::LBracket, SyntaxKind::LBrace]);
+    pub(crate) const OPENING_DELIMITER: Self =
+        Self::from_slice(&[SyntaxKind::LBracket, SyntaxKind::LBrace]);
     /// Tokens that represent separators in JSON like `,` and `:`.
-    const SEPARATORS: Self = Self::from_slice(&[SyntaxKind::Comma, SyntaxKind::Colon]);
+    pub(crate) const SEPARATORS: Self = Self::from_slice(&[SyntaxKind::Comma, SyntaxKind::Colon]);
     /// Tokens that represent JSON values like strings, numbers, booleans, and null.
-    const VALUE: Self = Self::from_slice(&[
+    pub(crate) const VALUE: Self = Self::from_slice(&[
         SyntaxKind::String,
         SyntaxKind::Number,
         SyntaxKind::True,
@@ -60,6 +62,11 @@ impl SyntaxKindSet {
     pub(crate) const COMPLETE: Self = Self::from_slice(SyntaxKind::VARIANTS);
     /// An empty set with no syntax kinds.
     pub(crate) const EMPTY: Self = Self(0);
+
+    /// Creates a new set from a single syntax kind.
+    pub(crate) const fn from_kind(kind: SyntaxKind) -> Self {
+        Self(kind.into_flag())
+    }
 
     /// Creates a new set from a slice of syntax kinds.
     pub(crate) const fn from_slice(slice: &[SyntaxKind]) -> Self {
@@ -181,6 +188,12 @@ impl FromIterator<SyntaxKind> for SyntaxKindSet {
     }
 }
 
+impl From<SyntaxKind> for SyntaxKindSet {
+    fn from(kind: SyntaxKind) -> Self {
+        Self::from_kind(kind)
+    }
+}
+
 impl IntoIterator for SyntaxKindSet {
     type IntoIter = SyntaxKindSetIter;
     type Item = SyntaxKind;
@@ -222,6 +235,7 @@ impl Default for SyntaxKindSet {
 
 #[cfg(test)]
 mod tests {
+    #![expect(clippy::needless_raw_strings)]
     use super::*;
 
     #[test]

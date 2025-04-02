@@ -46,7 +46,7 @@ where
 
     loop {
         let next = state
-            .peek_required()
+            .peek_expect()
             .change_category(ArrayDiagnosticCategory::Lexer)
             .change_category(C::from)?;
 

@@ -10,7 +10,7 @@ use crate::{
     error::ResultExt as _,
     lexer::{
         Lexer,
-        error::{LexerDiagnostic, unexpected_eof},
+        error::{LexerDiagnostic, unexpected_eof, unexpected_token},
         syntax_kind_set::SyntaxKindSet,
         token::Token,
     },
@@ -23,58 +23,21 @@ enum LookaheadStatus {
     BufferFilled,
 }
 
-pub(crate) struct ParserState<'heap, 'source> {
-    heap: &'heap Heap,
+struct LookaheadLexer<'source> {
+    buffer: CircularBuffer<4, Token<'source>>,
     lexer: Lexer<'source>,
-    lookahead: CircularBuffer<4, Token<'source>>,
-
-    spans: Arc<SpanStorage<Span>>,
-    stack: Vec<jsonptr::Token<'static>>,
 }
 
-impl<'heap, 'source> ParserState<'heap, 'source> {
-    pub(crate) const fn new(
-        heap: &'heap Heap,
-        lexer: Lexer<'source>,
-        spans: Arc<SpanStorage<Span>>,
-    ) -> Self {
-        Self {
-            heap,
-            lexer,
-            lookahead: CircularBuffer::new(),
-            spans,
-            stack: Vec::new(),
-        }
-    }
-
-    pub(crate) fn advance(&mut self) -> Result<Token<'source>, LexerDiagnostic> {
-        if let Some(token) = self.lookahead.pop_front() {
-            return Ok(token);
-        }
-
-        self.lexer
-            .advance()
-            .ok_or_else(|| {
-                let span = self.spans.insert(Span {
-                    range: self.lexer.span(),
-                    pointer: None,
-                    parent_id: None,
-                });
-
-                unexpected_eof(span)
-            })
-            .flatten()
-    }
-
+impl<'source> LookaheadLexer<'source> {
     #[expect(clippy::panic_in_result_fn)]
     fn peek_fill(&mut self, n: usize) -> Result<LookaheadStatus, LexerDiagnostic> {
-        assert!(n < self.lookahead.capacity(), "lookahead buffer overflow");
+        assert!(n < self.buffer.capacity(), "lookahead buffer overflow");
 
-        // Fill the lookahead buffer until we have enough tokens or reach eof
-        while self.lookahead.len() <= n {
+        // Fill the buffer until we have enough tokens or reach eof
+        while self.buffer.len() <= n {
             match self.lexer.advance() {
                 Some(Ok(token)) => {
-                    self.lookahead.push_back(token);
+                    self.buffer.push_back(token);
                 }
                 Some(Err(error)) => return Err(error),
                 None => return Ok(LookaheadStatus::EndOfInput),
@@ -85,40 +48,147 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
     }
 
     // Peek at the nth token (0-based index)
-    pub(crate) fn peek_n(&mut self, n: usize) -> Result<Option<&Token<'source>>, LexerDiagnostic> {
+    fn peek_n(&mut self, n: usize) -> Result<Option<&Token<'source>>, LexerDiagnostic> {
         if self.peek_fill(n)? == LookaheadStatus::EndOfInput {
             return Ok(None);
         }
 
-        // Return the nth token
-        Ok(Some(&self.lookahead[n]))
+        Ok(Some(&self.buffer[n]))
+    }
+
+    fn peek_n_span(
+        &mut self,
+        n: usize,
+    ) -> Result<Result<&Token<'source>, TextRange>, LexerDiagnostic> {
+        if self.peek_fill(n)? == LookaheadStatus::EndOfInput {
+            return Ok(Err(self.span()));
+        }
+
+        Ok(Ok(&self.buffer[n]))
+    }
+
+    fn advance(&mut self) -> Option<Result<Token<'source>, LexerDiagnostic>> {
+        if let Some(token) = self.buffer.pop_front() {
+            return Some(Ok(token));
+        }
+
+        self.lexer.advance()
+    }
+
+    fn span(&self) -> TextRange {
+        self.lexer.span()
+    }
+}
+
+struct ParserContext {
+    spans: Arc<SpanStorage<Span>>,
+    stack: Vec<jsonptr::Token<'static>>,
+}
+
+impl ParserContext {
+    fn current_pointer(&self) -> jsonptr::PointerBuf {
+        jsonptr::PointerBuf::from_tokens(&self.stack)
+    }
+
+    fn insert_span(&self, span: Span) -> SpanId {
+        self.spans.insert(span)
+    }
+
+    fn insert_range(&self, range: TextRange) -> SpanId {
+        self.spans.insert(Span {
+            range,
+            pointer: Some(self.current_pointer()),
+            parent_id: None,
+        })
+    }
+
+    fn validate_token<'source, T>(
+        &self,
+        token: T,
+        expected: SyntaxKindSet,
+    ) -> Result<T, LexerDiagnostic>
+    where
+        T: AsRef<Token<'source>>,
+    {
+        let token_ref = token.as_ref();
+        let syntax_kind = token_ref.kind.syntax();
+
+        if expected.contains(syntax_kind) {
+            return Ok(token);
+        }
+
+        let span = self.insert_range(token_ref.span);
+
+        Err(unexpected_token(span, syntax_kind, expected))
+    }
+}
+
+pub(crate) struct ParserState<'heap, 'source> {
+    heap: &'heap Heap,
+    lexer: LookaheadLexer<'source>,
+
+    context: ParserContext,
+}
+
+impl<'heap, 'source> ParserState<'heap, 'source> {
+    pub(crate) const fn new(
+        heap: &'heap Heap,
+        lexer: Lexer<'source>,
+        spans: Arc<SpanStorage<Span>>,
+    ) -> Self {
+        Self {
+            heap,
+            lexer: LookaheadLexer {
+                buffer: CircularBuffer::new(),
+                lexer,
+            },
+            context: ParserContext {
+                spans,
+                stack: Vec::new(),
+            },
+        }
+    }
+
+    pub(crate) fn advance(
+        &mut self,
+        expected: impl Into<SyntaxKindSet>,
+    ) -> Result<Token<'source>, LexerDiagnostic> {
+        let expected = expected.into();
+
+        let Some(token) = self.lexer.advance() else {
+            let span = self.insert_range(self.lexer.span());
+
+            return Err(unexpected_eof(span, expected));
+        };
+
+        let token = token?;
+
+        return self.context.validate_token(token, expected);
     }
 
     // Peek at the first token
     pub(crate) fn peek(&mut self) -> Result<Option<&Token<'source>>, LexerDiagnostic> {
-        self.peek_n(0)
+        self.lexer.peek_n(0)
     }
 
     // Peek at the second token
     pub(crate) fn peek2(&mut self) -> Result<Option<&Token<'source>>, LexerDiagnostic> {
-        self.peek_n(1)
+        self.lexer.peek_n(1)
     }
 
-    pub(crate) fn peek_required(&mut self) -> Result<&Token<'source>, LexerDiagnostic> {
-        if self.peek_fill(0)? == LookaheadStatus::EndOfInput {
-            let span = self.spans.insert(Span {
-                range: self.lexer.span(),
-                pointer: None,
-                parent_id: None,
-            });
+    pub(crate) fn peek_expect(
+        &mut self,
+        expected: impl Into<SyntaxKindSet>,
+    ) -> Result<&Token<'source>, LexerDiagnostic> {
+        let expected = expected.into();
 
-            return Err(unexpected_eof(span));
+        match self.lexer.peek_n_span(0)? {
+            Ok(token) => self.context.validate_token(token, expected),
+            Err(span) => {
+                let span = self.context.insert_range(span);
+                Err(unexpected_eof(span, expected))
+            }
         }
-
-        let token = self
-            .peek()?
-            .expect("previous peek ensured that this is not EOF");
-        Ok(token)
     }
 
     pub(crate) fn enter<T>(
@@ -126,33 +196,19 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
         token: jsonptr::Token<'static>,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        self.stack.push(token);
+        self.context.stack.push(token);
 
         let result = closure(self);
 
-        self.stack.pop();
+        self.context.stack.pop();
         result
     }
 
     pub(crate) fn finish(mut self) -> Result<(), ParserDiagnostic> {
-        if let Some(peek) = self.lookahead.pop_front() {
-            let span = self.insert_span(Span {
-                range: peek.span,
-                pointer: Some(self.current_pointer()),
-                parent_id: None,
-            });
-
-            return Err(expected_eof(span));
-        }
-
         if let Some(token) = self.lexer.advance() {
             let token = token.change_category(ParserDiagnosticCategory::Lexer)?;
 
-            let span = self.insert_span(Span {
-                range: token.span,
-                pointer: Some(self.current_pointer()),
-                parent_id: None,
-            });
+            let span = self.insert_range(token.span);
 
             return Err(expected_eof(span));
         }
@@ -161,27 +217,23 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
     }
 
     pub(crate) fn current_pointer(&self) -> jsonptr::PointerBuf {
-        jsonptr::PointerBuf::from_tokens(&self.stack)
+        self.context.current_pointer()
+    }
+
+    pub(crate) fn insert_span(&self, span: Span) -> SpanId {
+        self.context.insert_span(span)
+    }
+
+    pub(crate) fn insert_range(&self, range: TextRange) -> SpanId {
+        self.context.insert_range(range)
     }
 
     pub(crate) fn current_span(&self) -> TextRange {
         self.lexer.span()
     }
 
-    pub(crate) fn insert_span(&self, span: Span) -> SpanId {
-        self.spans.insert(span)
-    }
-
-    pub(crate) fn insert_range(&self, range: TextRange) -> SpanId {
-        self.spans.insert(Span {
-            range,
-            pointer: Some(self.current_pointer()),
-            parent_id: None,
-        })
-    }
-
     pub(crate) fn spans(&self) -> &SpanStorage<Span> {
-        &self.spans
+        &self.context.spans
     }
 
     pub(crate) const fn heap(&self) -> &'heap Heap {
@@ -197,7 +249,7 @@ mod tests {
     use json_number::NumberBuf;
 
     use crate::{
-        lexer::{error::LexerDiagnosticCategory, token_kind::TokenKind},
+        lexer::{error::LexerDiagnosticCategory, syntax_kind::SyntaxKind, token_kind::TokenKind},
         parser::test::{bind_context, bind_state},
     };
 
@@ -227,17 +279,19 @@ mod tests {
         assert_eq!(token2.kind, number!("42"));
 
         // Advance and consume the token
-        let advanced = state.advance().expect("should not fail");
+        let advanced = state.advance(SyntaxKind::Number).expect("should not fail");
         assert_eq!(advanced.kind, number!("42"));
 
         // We should now be at EOF
         assert!(state.peek().expect("should not fail").is_none());
-        let diagnostic = state.advance().expect_err("should fail");
+        let diagnostic = state.advance(SyntaxKind::Number).expect_err("should fail");
         assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
 
         // Finish should succeed at EOF
         bind_state!(let mut finished_state from context);
-        finished_state.advance().expect("should not fail");
+        finished_state
+            .advance(SyntaxKind::Number)
+            .expect("should not fail");
         assert_matches!(finished_state.finish(), Ok(()));
     }
 
@@ -249,6 +303,7 @@ mod tests {
         // Fill the buffer with lookahead
         for i in 0..4 {
             let token = state
+                .lexer
                 .peek_n(i)
                 .expect("should not fail")
                 .expect("should have token");
@@ -270,12 +325,12 @@ mod tests {
                 .expect("should have token");
             assert_eq!(peek.kind, number!(i.to_string()));
 
-            let advanced = state.advance().expect("should not fail");
+            let advanced = state.advance(SyntaxKind::Number).expect("should not fail");
             assert_eq!(advanced.kind, number!(i.to_string()));
         }
 
         // Consume last token
-        let last = state.advance().expect("should not fail");
+        let last = state.advance(SyntaxKind::Number).expect("should not fail");
         assert_eq!(last.kind, number!("5"));
 
         // Should be at EOF
@@ -291,17 +346,19 @@ mod tests {
         // Fill the buffer by peeking
         for i in 0..4 {
             state
+                .lexer
                 .peek_n(i)
                 .expect("should not fail")
                 .expect("should have token");
         }
 
         // Consume first few tokens
-        state.advance().expect("should not fail"); // a
-        state.advance().expect("should not fail"); // b
+        state.advance(SyntaxKind::String).expect("should not fail"); // a
+        state.advance(SyntaxKind::String).expect("should not fail"); // b
 
         // Peek ahead to force buffer to wrap around
         let e_token = state
+            .lexer
             .peek_n(2)
             .expect("should not fail")
             .expect("should have token");
@@ -310,7 +367,7 @@ mod tests {
         // Continue consuming and verifying to test the wrap-around
         let tokens = ["c", "d", "e", "f", "g", "h"];
         for expected in tokens {
-            let token = state.advance().expect("should not fail");
+            let token = state.advance(SyntaxKind::String).expect("should not fail");
 
             assert_eq!(
                 token.kind,
@@ -319,31 +376,35 @@ mod tests {
         }
 
         // Should be at EOF
-        let diagnostic = state.advance().expect_err("should fail");
+        let diagnostic = state.advance(SyntaxKind::String).expect_err("should fail");
         assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
     }
 
     #[test]
-    fn peek_required_behavior() {
+    fn peek_expect_behavior() {
         bind_context!(let context = "42");
         bind_state!(let mut state from context);
 
-        // peek_required should work when a token is available
-        let required = state.peek_required().expect("should not fail");
+        // peek_expect should work when a token is available
+        let required = state
+            .peek_expect(SyntaxKind::Number)
+            .expect("should not fail");
         assert_eq!(required.kind, number!("42"));
 
-        // peek and peek_required should return the same token
+        // peek and peek_expect should return the same token
         let peeked = state
             .peek()
             .expect("should not fail")
             .expect("should have token");
         assert_eq!(peeked.kind, number!("42"));
 
-        // After consuming all tokens, peek_required should error
-        state.advance().expect("should not fail");
+        // After consuming all tokens, peek_expect should error
+        state.advance(SyntaxKind::Number).expect("should not fail");
         assert!(state.peek().expect("should not fail").is_none());
 
-        let diagnostic = state.peek_required().expect_err("should fail");
+        let diagnostic = state
+            .peek_expect(SyntaxKind::Number)
+            .expect_err("should fail");
         assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
     }
 
@@ -373,6 +434,7 @@ mod tests {
         // Peek ahead multiple tokens
         for (i, expected) in ["a", "b", "c", "d"].into_iter().enumerate() {
             let token = state
+                .lexer
                 .peek_n(i)
                 .expect("should not fail")
                 .expect("should have token");
@@ -384,11 +446,12 @@ mod tests {
         }
 
         // Consume first token
-        state.advance().expect("should not fail");
+        state.advance(SyntaxKind::String).expect("should not fail");
 
         // Now peek ahead again to verify buffer management
         for (i, expected) in ["b", "c", "d", "e"].into_iter().enumerate() {
             let token = state
+                .lexer
                 .peek_n(i)
                 .expect("should not fail")
                 .expect("should have token");
@@ -417,6 +480,7 @@ mod tests {
         );
         assert_eq!(
             state
+                .lexer
                 .peek_n(2)
                 .expect("should not fail")
                 .expect("should have token")
@@ -426,7 +490,7 @@ mod tests {
 
         // Consume remaining tokens
         for expected in ["b", "c", "d", "e"] {
-            let token = state.advance().expect("should not fail");
+            let token = state.advance(SyntaxKind::String).expect("should not fail");
             assert_eq!(
                 token.kind,
                 TokenKind::String(Cow::Owned(expected.to_owned()))
@@ -435,7 +499,81 @@ mod tests {
 
         // Verify EOF
         assert!(state.peek().expect("should not fail").is_none());
-        let diagnostic = state.advance().expect_err("should fail");
+        let diagnostic = state.advance(SyntaxKind::String).expect_err("should fail");
+        assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
+    }
+
+    #[test]
+    fn advance_expected() {
+        bind_context!(let context = "42");
+        bind_state!(let mut state from context);
+
+        state
+            .advance(SyntaxKind::Number)
+            .expect("token returned should be a number");
+    }
+
+    #[test]
+    fn advance_expected_invalid() {
+        bind_context!(let context = "42");
+        bind_state!(let mut state from context);
+
+        let diagnostic = state
+            .advance(SyntaxKind::String)
+            .expect_err("token returned should be invalid");
+
+        assert_eq!(
+            diagnostic.category,
+            LexerDiagnosticCategory::UnexpectedToken
+        );
+    }
+
+    #[test]
+    fn advance_expected_eof() {
+        bind_context!(let context = "");
+        bind_state!(let mut state from context);
+
+        let diagnostic = state
+            .advance(SyntaxKind::String)
+            .expect_err("token returned should be invalid");
+
+        assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
+    }
+
+    #[test]
+    fn peek_expected() {
+        bind_context!(let context = "42");
+        bind_state!(let mut state from context);
+
+        state
+            .peek_expect(SyntaxKind::Number)
+            .expect("should not fail");
+    }
+
+    #[test]
+    fn peek_expected_invalid() {
+        bind_context!(let context = "42");
+        bind_state!(let mut state from context);
+
+        let diagnostic = state
+            .peek_expect(SyntaxKind::String)
+            .expect_err("should fail");
+
+        assert_eq!(
+            diagnostic.category,
+            LexerDiagnosticCategory::UnexpectedToken
+        );
+    }
+
+    #[test]
+    fn peek_expected_eof() {
+        bind_context!(let context = "");
+        bind_state!(let mut state from context);
+
+        let diagnostic = state
+            .peek_expect(SyntaxKind::String)
+            .expect_err("should fail");
+
         assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
     }
 }

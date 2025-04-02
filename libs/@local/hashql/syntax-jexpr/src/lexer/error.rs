@@ -10,7 +10,8 @@ use hashql_diagnostics::{
 };
 use text_size::TextRange;
 
-use super::syntax_kind_set::SyntaxKindSet;
+use super::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet};
+use crate::lexer::syntax_kind_set::Conjunction;
 
 pub(crate) type LexerDiagnostic = Diagnostic<LexerDiagnosticCategory, SpanId>;
 
@@ -39,6 +40,11 @@ const UNEXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Unexpected end of file",
 };
 
+const UNEXPECTED_TOKEN: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unexpected-token",
+    name: "Unexpected token",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum LexerDiagnosticCategory {
     InvalidString,
@@ -46,6 +52,7 @@ pub enum LexerDiagnosticCategory {
     InvalidCharacter,
     InvalidUtf8,
     UnexpectedEof,
+    UnexpectedToken,
 }
 
 impl DiagnosticCategory for LexerDiagnosticCategory {
@@ -64,6 +71,7 @@ impl DiagnosticCategory for LexerDiagnosticCategory {
             Self::InvalidCharacter => Some(&INVALID_CHARACTER),
             Self::InvalidUtf8 => Some(&INVALID_UTF8),
             Self::UnexpectedEof => Some(&UNEXPECTED_EOF),
+            Self::UnexpectedToken => Some(&UNEXPECTED_TOKEN),
         }
     }
 }
@@ -102,16 +110,87 @@ pub(crate) fn from_hifijson_str_error(
     diagnostic
 }
 
-const UNEXPECTED_EOF_HELP: &str =
-    "Make sure all expressions, brackets, and string literals are properly closed";
-
-pub(crate) fn unexpected_eof(span: SpanId) -> LexerDiagnostic {
+pub(crate) fn unexpected_eof(span: SpanId, expected: SyntaxKindSet) -> LexerDiagnostic {
     let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Severity::ERROR);
 
+    // Create a more specific label based on what was expected
+    let label = if expected.is_empty() {
+        "Unexpected end of file".to_owned()
+    } else if expected.is_complete() {
+        "Expected a valid JSON value".to_owned()
+    } else {
+        format!(
+            "Unexpected end of file, expected {}",
+            expected.display(Some(Conjunction::Or))
+        )
+    };
+
+    diagnostic.labels.push(Label::new(span, label));
+
+    // Provide specific help based on what was expected
+    let help = if expected.contains_closing_delimiter() {
+        "Missing closing bracket. Make sure all opening brackets have matching closing brackets."
+    } else if expected.contains_separator() {
+        "The file ended while parsing an object or array. Make sure all structures are properly \
+         closed."
+    } else if expected.contains_value() {
+        "The file ended where a value was expected. Add a valid JSON value (string, number, \
+         object, array, true, false, or null)."
+    } else if expected.contains_opening_delimiter() {
+        "The file ended where an opening bracket was expected. Complete the expression structure."
+    } else {
+        "The file ended unexpectedly. Make sure all expressions, brackets, and string literals are \
+         properly closed."
+    };
+
+    diagnostic.help = Some(Help::new(Cow::Borrowed(help)));
+
     diagnostic
-        .labels
-        .push(Label::new(span, "Unexpected end of file"));
-    diagnostic.help = Some(Help::new(UNEXPECTED_EOF_HELP));
+}
+
+pub(crate) fn unexpected_token(
+    span: SpanId,
+    found: SyntaxKind,
+    expected: SyntaxKindSet,
+) -> LexerDiagnostic {
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedToken, Severity::ERROR);
+
+    // Create a specific label based on what was found vs what was expected
+    let label = if expected.is_empty() {
+        format!("Unexpected token {}", found)
+    } else if expected.is_complete() {
+        format!("Invalid syntax found {}", found)
+    } else {
+        format!(
+            "Unexpected {}, expected {}",
+            found,
+            expected.display(Some(Conjunction::Or))
+        )
+    };
+
+    diagnostic.labels.push(Label::new(span, label));
+
+    // Provide specific help based on common syntax errors
+    let help = if expected.contains_closing_delimiter()
+        && SyntaxKindSet::CLOSING_DELIMITER.contains(found)
+    {
+        "Mismatched closing brackets. Ensure opening and closing brackets match correctly."
+    } else if expected.contains_closing_delimiter() {
+        "Missing closing bracket. Make sure all opening brackets have matching closing brackets."
+    } else if expected.contains_separator() && SyntaxKindSet::CLOSING_DELIMITER.contains(found) {
+        "You might be missing a comma between items or have an extra trailing comma."
+    } else if expected.contains_value() && SyntaxKindSet::SEPARATORS.contains(found) {
+        "Expected a value (string, number, object, array, true, false, or null) here."
+    } else if found == SyntaxKind::Colon && !expected.contains(SyntaxKind::Colon) {
+        "Colons are only used in objects to separate keys from values."
+    } else if found == SyntaxKind::Comma && !expected.contains(SyntaxKind::Comma) {
+        "Commas are only used to separate items in arrays and objects."
+    } else {
+        "Check your JSON syntax. Make sure brackets are balanced and all required punctuation is \
+         present."
+    };
+
+    diagnostic.help = Some(Help::new(Cow::Borrowed(help)));
 
     diagnostic
 }
