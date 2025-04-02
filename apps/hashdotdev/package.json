@@ -39,7 +39,7 @@
     "fs-extra": "11.3.0",
     "gray-matter": "4.0.3",
     "html-to-text": "9.0.5",
-    "image-size": "1.2.0",
+    "image-size": "1.2.1",
     "katex": "0.16.21",
     "md5": "2.3.0",
     "mock-block-dock": "0.0.21",
