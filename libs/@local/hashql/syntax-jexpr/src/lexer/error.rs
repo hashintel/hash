@@ -10,6 +10,8 @@ use hashql_diagnostics::{
 };
 use text_size::TextRange;
 
+use super::syntax_kind_set::SyntaxKindSet;
+
 pub(crate) type LexerDiagnostic = Diagnostic<LexerDiagnosticCategory, SpanId>;
 
 const INVALID_STRING: TerminalDiagnosticCategory = TerminalDiagnosticCategory {

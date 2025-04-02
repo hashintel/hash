@@ -11,6 +11,7 @@ use crate::{
     lexer::{
         Lexer,
         error::{LexerDiagnostic, unexpected_eof},
+        syntax_kind_set::SyntaxKindSet,
         token::Token,
     },
     span::Span,

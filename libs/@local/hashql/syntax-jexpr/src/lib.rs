@@ -10,7 +10,8 @@
     portable_simd,
     result_flattening,
     ascii_char,
-    if_let_guard
+    if_let_guard,
+    variant_count
 )]
 
 extern crate alloc;
