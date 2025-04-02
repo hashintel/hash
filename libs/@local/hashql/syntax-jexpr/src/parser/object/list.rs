@@ -13,8 +13,10 @@ use super::{
 use crate::{
     ParserState,
     error::ResultExt as _,
-    lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
-    parser::{array::visit::visit_array, error::ParserDiagnostic, expr::parse_expr},
+    lexer::syntax_kind::SyntaxKind,
+    parser::{
+        array::visit::visit_array, error::ParserDiagnostic, expr::parse_expr, state::Expected,
+    },
 };
 
 pub(crate) struct ListNode<'heap> {
@@ -75,7 +77,7 @@ fn parse_list<'heap>(
     // We do not use the `expected` of advance here, so that we're able to give the user a better
     // error message.
     let token = state
-        .advance(SyntaxKindSet::COMPLETE)
+        .advance(Expected::hint(SyntaxKind::LBracket))
         .change_category(From::from)?;
 
     if token.kind.syntax() != SyntaxKind::LBracket {
@@ -130,6 +132,19 @@ mod tests {
             description => "Parses an empty list"
         }, {
             assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_tuple_incomplete() {
+        // Empty tuple with object format
+        let result =
+            parse_object_expr(r##"{"#tuple": "##).expect_err("should not parse incomplete tuple");
+
+        with_settings!({
+            description => "Parses with a sudden EOF"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.diagnostic, &result.input);
         });
     }
 

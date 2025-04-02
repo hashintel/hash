@@ -17,9 +17,10 @@ use super::{
 use crate::{
     ParserState,
     error::ResultExt as _,
-    lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
+    lexer::syntax_kind::SyntaxKind,
     parser::{
-        error::ParserDiagnostic, object::error::orphaned_type, string::parse_type_from_token,
+        error::ParserDiagnostic, object::error::orphaned_type, state::Expected,
+        string::parse_type_from_token,
     },
 };
 
@@ -150,7 +151,7 @@ fn parse_type<'heap>(
     // We do not use the `expected` of advance here, so that we're able to give the user a better
     // error message.
     let token = state
-        .advance(SyntaxKindSet::COMPLETE)
+        .advance(Expected::hint(SyntaxKind::String))
         .change_category(From::from)?;
 
     if token.kind.syntax() != SyntaxKind::String {
@@ -197,6 +198,19 @@ mod tests {
 
         with_settings!({
             description => "Parses invalid syntax"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.diagnostic, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_incomplete() {
+        // Empty dict with object format
+        let result =
+            parse_object_expr(r##"{"#type": "##).expect_err("should not parse incomplete type");
+
+        with_settings!({
+            description => "Parses with a sudden EOF"
         }, {
             assert_snapshot!(insta::_macro_support::AutoName, result.diagnostic, &result.input);
         });

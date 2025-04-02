@@ -13,11 +13,12 @@ use super::{
 use crate::{
     ParserState,
     error::ResultExt as _,
-    lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
+    lexer::syntax_kind::SyntaxKind,
     parser::{
         error::ParserDiagnostic,
         expr::parse_expr,
         object::{error::struct_key_expected_identifier, visit::visit_object},
+        state::Expected,
         string::parse_ident_from_string,
     },
 };
@@ -79,7 +80,7 @@ fn parse_struct<'heap>(
 ) -> Result<StructExpr<'heap>, ParserDiagnostic> {
     // We do not use expected here, to give the user a better error message
     let token = state
-        .advance(SyntaxKindSet::COMPLETE)
+        .advance(Expected::hint(SyntaxKind::LBrace))
         .change_category(From::from)?;
 
     if token.kind.syntax() != SyntaxKind::LBrace {
@@ -146,6 +147,19 @@ mod tests {
             description => "Parses an empty struct"
         }, {
             assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_struct_incomplete() {
+        // Empty struct with object format
+        let result =
+            parse_object_expr(r##"{"#struct": "##).expect_err("should not parse incomplete struct");
+
+        with_settings!({
+            description => "Parses with a sudden EOF"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.diagnostic, &result.input);
         });
     }
 

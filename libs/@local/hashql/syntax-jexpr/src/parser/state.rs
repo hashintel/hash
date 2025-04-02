@@ -11,6 +11,7 @@ use crate::{
     lexer::{
         Lexer,
         error::{LexerDiagnostic, unexpected_eof, unexpected_token},
+        syntax_kind::SyntaxKind,
         syntax_kind_set::SyntaxKindSet,
         token::Token,
     },
@@ -102,24 +103,54 @@ impl ParserContext {
         })
     }
 
-    fn validate_token<'source, T>(
-        &self,
-        token: T,
-        expected: SyntaxKindSet,
-    ) -> Result<T, LexerDiagnostic>
+    fn validate_token<'source, T>(&self, token: T, expected: Expected) -> Result<T, LexerDiagnostic>
     where
         T: AsRef<Token<'source>>,
     {
         let token_ref = token.as_ref();
         let syntax_kind = token_ref.kind.syntax();
 
-        if expected.contains(syntax_kind) {
-            return Ok(token);
+        match expected {
+            Expected::Hint(_) => return Ok(token),
+            Expected::Validate(set) if set.contains(syntax_kind) => {
+                return Ok(token);
+            }
+            Expected::Validate(_) => {}
         }
 
         let span = self.insert_range(token_ref.span);
 
-        Err(unexpected_token(span, syntax_kind, expected))
+        Err(unexpected_token(span, syntax_kind, expected.into_set()))
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum Expected {
+    Hint(SyntaxKindSet),
+    Validate(SyntaxKindSet),
+}
+
+impl Expected {
+    pub(crate) fn hint(kind: impl Into<SyntaxKindSet>) -> Self {
+        Self::Hint(kind.into())
+    }
+
+    const fn into_set(self) -> SyntaxKindSet {
+        match self {
+            Self::Validate(set) | Self::Hint(set) => set,
+        }
+    }
+}
+
+impl From<SyntaxKindSet> for Expected {
+    fn from(value: SyntaxKindSet) -> Self {
+        Self::Validate(value)
+    }
+}
+
+impl From<SyntaxKind> for Expected {
+    fn from(value: SyntaxKind) -> Self {
+        Self::Validate(SyntaxKindSet::from(value))
     }
 }
 
@@ -151,14 +182,14 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
 
     pub(crate) fn advance(
         &mut self,
-        expected: impl Into<SyntaxKindSet>,
+        expected: impl Into<Expected>,
     ) -> Result<Token<'source>, LexerDiagnostic> {
         let expected = expected.into();
 
         let Some(token) = self.lexer.advance() else {
             let span = self.insert_range(self.lexer.span());
 
-            return Err(unexpected_eof(span, expected));
+            return Err(unexpected_eof(span, expected.into_set()));
         };
 
         let token = token?;
@@ -178,7 +209,7 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
 
     pub(crate) fn peek_expect(
         &mut self,
-        expected: impl Into<SyntaxKindSet>,
+        expected: impl Into<Expected>,
     ) -> Result<&Token<'source>, LexerDiagnostic> {
         let expected = expected.into();
 
@@ -186,7 +217,7 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
             Ok(token) => self.context.validate_token(token, expected),
             Err(span) => {
                 let span = self.context.insert_range(span);
-                Err(unexpected_eof(span, expected))
+                Err(unexpected_eof(span, expected.into_set()))
             }
         }
     }
@@ -250,7 +281,10 @@ mod tests {
 
     use crate::{
         lexer::{error::LexerDiagnosticCategory, syntax_kind::SyntaxKind, token_kind::TokenKind},
-        parser::test::{bind_context, bind_state},
+        parser::{
+            state::Expected,
+            test::{bind_context, bind_state},
+        },
     };
 
     macro number($value:expr) {
@@ -259,252 +293,64 @@ mod tests {
         ))
     }
 
+    // Basic peek functionality
     #[test]
-    fn basic_peek_and_advance() {
+    fn peek_returns_token_without_consuming() {
         bind_context!(let context = "42");
         bind_state!(let mut state from context);
 
-        // Peek without consuming
         let token = state
             .peek()
             .expect("should not fail")
             .expect("should have token");
         assert_eq!(token.kind, number!("42"));
 
-        // Peek again (should be the same token)
+        // Token should not be consumed
         let token2 = state
             .peek()
             .expect("should not fail")
             .expect("should have token");
         assert_eq!(token2.kind, number!("42"));
-
-        // Advance and consume the token
-        let advanced = state.advance(SyntaxKind::Number).expect("should not fail");
-        assert_eq!(advanced.kind, number!("42"));
-
-        // We should now be at EOF
-        assert!(state.peek().expect("should not fail").is_none());
-        let diagnostic = state.advance(SyntaxKind::Number).expect_err("should fail");
-        assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
-
-        // Finish should succeed at EOF
-        bind_state!(let mut finished_state from context);
-        finished_state
-            .advance(SyntaxKind::Number)
-            .expect("should not fail");
-        assert_matches!(finished_state.finish(), Ok(()));
     }
 
     #[test]
-    fn multi_token_operations() {
-        bind_context!(let context = "1 2 3 4 5");
-        bind_state!(let mut state from context);
-
-        // Fill the buffer with lookahead
-        for i in 0..4 {
-            let token = state
-                .lexer
-                .peek_n(i)
-                .expect("should not fail")
-                .expect("should have token");
-            assert_eq!(token.kind, number!((i + 1).to_string()));
-        }
-
-        // Verify peek2 specifically
-        let second = state
-            .peek2()
-            .expect("should not fail")
-            .expect("should have token");
-        assert_eq!(second.kind, number!("2"));
-
-        // Consume tokens while peeking to test buffer management
-        for i in 1..=4 {
-            let peek = state
-                .peek()
-                .expect("should not fail")
-                .expect("should have token");
-            assert_eq!(peek.kind, number!(i.to_string()));
-
-            let advanced = state.advance(SyntaxKind::Number).expect("should not fail");
-            assert_eq!(advanced.kind, number!(i.to_string()));
-        }
-
-        // Consume last token
-        let last = state.advance(SyntaxKind::Number).expect("should not fail");
-        assert_eq!(last.kind, number!("5"));
-
-        // Should be at EOF
-        assert!(state.peek().expect("should not fail").is_none());
-    }
-
-    #[test]
-    fn circular_buffer_behavior() {
-        // This test specifically targets the circular buffer's wrap-around behavior
-        bind_context!(let context = r#""a" "b" "c" "d" "e" "f" "g" "h""#);
-        bind_state!(let mut state from context);
-
-        // Fill the buffer by peeking
-        for i in 0..4 {
-            state
-                .lexer
-                .peek_n(i)
-                .expect("should not fail")
-                .expect("should have token");
-        }
-
-        // Consume first few tokens
-        state.advance(SyntaxKind::String).expect("should not fail"); // a
-        state.advance(SyntaxKind::String).expect("should not fail"); // b
-
-        // Peek ahead to force buffer to wrap around
-        let e_token = state
-            .lexer
-            .peek_n(2)
-            .expect("should not fail")
-            .expect("should have token");
-        assert_eq!(e_token.kind, TokenKind::String(Cow::Owned("e".to_owned())));
-
-        // Continue consuming and verifying to test the wrap-around
-        let tokens = ["c", "d", "e", "f", "g", "h"];
-        for expected in tokens {
-            let token = state.advance(SyntaxKind::String).expect("should not fail");
-
-            assert_eq!(
-                token.kind,
-                TokenKind::String(Cow::Owned(expected.to_owned()))
-            );
-        }
-
-        // Should be at EOF
-        let diagnostic = state.advance(SyntaxKind::String).expect_err("should fail");
-        assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
-    }
-
-    #[test]
-    fn peek_expect_behavior() {
+    fn peek_at_eof_returns_none() {
         bind_context!(let context = "42");
         bind_state!(let mut state from context);
 
-        // peek_expect should work when a token is available
-        let required = state
-            .peek_expect(SyntaxKind::Number)
-            .expect("should not fail");
-        assert_eq!(required.kind, number!("42"));
-
-        // peek and peek_expect should return the same token
-        let peeked = state
-            .peek()
-            .expect("should not fail")
-            .expect("should have token");
-        assert_eq!(peeked.kind, number!("42"));
-
-        // After consuming all tokens, peek_expect should error
         state.advance(SyntaxKind::Number).expect("should not fail");
         assert!(state.peek().expect("should not fail").is_none());
-
-        let diagnostic = state
-            .peek_expect(SyntaxKind::Number)
-            .expect_err("should fail");
-        assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
     }
 
-    #[expect(unused_mut)]
+    // Basic advance functionality
     #[test]
-    fn finish_behavior() {
-        // Test finish with tokens remaining
+    fn advance_consumes_token() {
         bind_context!(let context = "42 true");
         bind_state!(let mut state from context);
 
-        state.peek().expect("should not fail"); // Fill buffer
-        assert!(state.finish().is_err()); // Should fail with tokens remaining
+        let token = state.advance(SyntaxKind::Number).expect("should not fail");
+        assert_eq!(token.kind, number!("42"));
 
-        // Test finish with no tokens
-        bind_context!(let context = "");
-        bind_state!(let mut empty_state from context);
-
-        assert_matches!(empty_state.finish(), Ok(())); // Should succeed with no tokens
+        // Next token should be available
+        let token2 = state
+            .peek()
+            .expect("should not fail")
+            .expect("should have token");
+        assert_eq!(token2.kind, TokenKind::Bool(true));
     }
 
     #[test]
-    fn mixed_peek_and_advance() {
-        // This test exercises more complex interaction patterns between peek and advance
-        bind_context!(let context = r#""a" "b" "c" "d" "e""#);
+    fn advance_at_eof_returns_error() {
+        bind_context!(let context = "");
         bind_state!(let mut state from context);
 
-        // Peek ahead multiple tokens
-        for (i, expected) in ["a", "b", "c", "d"].into_iter().enumerate() {
-            let token = state
-                .lexer
-                .peek_n(i)
-                .expect("should not fail")
-                .expect("should have token");
-
-            assert_eq!(
-                token.kind,
-                TokenKind::String(Cow::Owned(expected.to_owned()))
-            );
-        }
-
-        // Consume first token
-        state.advance(SyntaxKind::String).expect("should not fail");
-
-        // Now peek ahead again to verify buffer management
-        for (i, expected) in ["b", "c", "d", "e"].into_iter().enumerate() {
-            let token = state
-                .lexer
-                .peek_n(i)
-                .expect("should not fail")
-                .expect("should have token");
-            assert_eq!(
-                token.kind,
-                TokenKind::String(Cow::Owned(expected.to_owned()))
-            );
-        }
-
-        // Random access within the buffer
-        assert_eq!(
-            state
-                .peek()
-                .expect("should not fail")
-                .expect("should have token")
-                .kind,
-            TokenKind::String(Cow::Owned("b".to_owned()))
-        );
-        assert_eq!(
-            state
-                .peek2()
-                .expect("should not fail")
-                .expect("should have token")
-                .kind,
-            TokenKind::String(Cow::Owned("c".to_owned()))
-        );
-        assert_eq!(
-            state
-                .lexer
-                .peek_n(2)
-                .expect("should not fail")
-                .expect("should have token")
-                .kind,
-            TokenKind::String(Cow::Owned("d".to_owned()))
-        );
-
-        // Consume remaining tokens
-        for expected in ["b", "c", "d", "e"] {
-            let token = state.advance(SyntaxKind::String).expect("should not fail");
-            assert_eq!(
-                token.kind,
-                TokenKind::String(Cow::Owned(expected.to_owned()))
-            );
-        }
-
-        // Verify EOF
-        assert!(state.peek().expect("should not fail").is_none());
-        let diagnostic = state.advance(SyntaxKind::String).expect_err("should fail");
-        assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
+        let error = state.advance(SyntaxKind::Number).expect_err("should fail");
+        assert_eq!(error.category, LexerDiagnosticCategory::UnexpectedEof);
     }
 
+    // Token validation with expected kinds
     #[test]
-    fn advance_expected() {
+    fn advance_expected_validates_token() {
         bind_context!(let context = "42");
         bind_state!(let mut state from context);
 
@@ -514,7 +360,17 @@ mod tests {
     }
 
     #[test]
-    fn advance_expected_invalid() {
+    fn advance_expected_hint_does_not_validate_token() {
+        bind_context!(let context = "42");
+        bind_state!(let mut state from context);
+
+        state
+            .advance(Expected::hint(SyntaxKind::String))
+            .expect("token returned should be a number");
+    }
+
+    #[test]
+    fn advance_expected_rejects_invalid_token() {
         bind_context!(let context = "42");
         bind_state!(let mut state from context);
 
@@ -529,19 +385,7 @@ mod tests {
     }
 
     #[test]
-    fn advance_expected_eof() {
-        bind_context!(let context = "");
-        bind_state!(let mut state from context);
-
-        let diagnostic = state
-            .advance(SyntaxKind::String)
-            .expect_err("token returned should be invalid");
-
-        assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
-    }
-
-    #[test]
-    fn peek_expected() {
+    fn peek_expect_validates_token() {
         bind_context!(let context = "42");
         bind_state!(let mut state from context);
 
@@ -551,7 +395,17 @@ mod tests {
     }
 
     #[test]
-    fn peek_expected_invalid() {
+    fn peek_expect_hint_does_not_validate_token() {
+        bind_context!(let context = "42");
+        bind_state!(let mut state from context);
+
+        state
+            .peek_expect(Expected::hint(SyntaxKind::String))
+            .expect("should not fail");
+    }
+
+    #[test]
+    fn peek_expect_rejects_invalid_token() {
         bind_context!(let context = "42");
         bind_state!(let mut state from context);
 
@@ -566,7 +420,7 @@ mod tests {
     }
 
     #[test]
-    fn peek_expected_eof() {
+    fn peek_expect_at_eof_returns_error() {
         bind_context!(let context = "");
         bind_state!(let mut state from context);
 
@@ -575,5 +429,175 @@ mod tests {
             .expect_err("should fail");
 
         assert_eq!(diagnostic.category, LexerDiagnosticCategory::UnexpectedEof);
+    }
+
+    // Multi-token lookahead
+    #[test]
+    fn peek2_returns_second_token() {
+        bind_context!(let context = "42 true");
+        bind_state!(let mut state from context);
+
+        let token = state
+            .peek2()
+            .expect("should not fail")
+            .expect("should have token");
+        assert_eq!(token.kind, TokenKind::Bool(true));
+
+        // First token should still be available
+        let first = state
+            .peek()
+            .expect("should not fail")
+            .expect("should have token");
+        assert_eq!(first.kind, number!("42"));
+    }
+
+    #[test]
+    fn peek_n_returns_nth_token() {
+        bind_context!(let context = "1 2 3 4");
+        bind_state!(let mut state from context);
+
+        for i in 0..4 {
+            let token = state
+                .lexer
+                .peek_n(i)
+                .expect("should not fail")
+                .expect("should have token");
+            assert_eq!(token.kind, number!((i + 1).to_string()));
+        }
+    }
+
+    // Buffer management
+    #[test]
+    fn buffer_fills_when_peeking_ahead() {
+        bind_context!(let context = "1 2 3 4 5");
+        bind_state!(let mut state from context);
+
+        // Peek ahead should fill buffer
+        let fourth = state
+            .lexer
+            .peek_n(3)
+            .expect("should not fail")
+            .expect("should have token");
+        assert_eq!(fourth.kind, number!("4"));
+
+        // First token should still be accessible
+        let first = state
+            .peek()
+            .expect("should not fail")
+            .expect("should have token");
+        assert_eq!(first.kind, number!("1"));
+    }
+
+    #[test]
+    fn buffer_updates_when_advancing() {
+        bind_context!(let context = "1 2 3 4 5");
+        bind_state!(let mut state from context);
+
+        // Fill buffer with peeking
+        state.lexer.peek_n(3).expect("should not fail");
+
+        // Advance and verify buffer contents
+        state.advance(SyntaxKind::Number).expect("should not fail"); // consume 1
+
+        // Should now peek at 2, 3, 4, 5
+        for i in 0..4 {
+            let token = state
+                .lexer
+                .peek_n(i)
+                .expect("should not fail")
+                .expect("should have token");
+            assert_eq!(token.kind, number!((i + 2).to_string()));
+        }
+    }
+
+    #[test]
+    fn circular_buffer_handles_wraparound() {
+        bind_context!(let context = r#""a" "b" "c" "d" "e" "f""#);
+        bind_state!(let mut state from context);
+
+        // Fill buffer by peeking
+        for i in 0..4 {
+            state.lexer.peek_n(i).expect("should not fail");
+        }
+
+        // Consume tokens to force wrap-around
+        state.advance(SyntaxKind::String).expect("should not fail"); // a
+        state.advance(SyntaxKind::String).expect("should not fail"); // b
+
+        // Peek further to wrap around buffer
+        let e_token = state
+            .lexer
+            .peek_n(2)
+            .expect("should not fail")
+            .expect("should have token");
+        assert_eq!(e_token.kind, TokenKind::String(Cow::Owned("e".to_owned())));
+
+        // Verify token access after wrap-around
+        let c_token = state.advance(SyntaxKind::String).expect("should not fail");
+        assert_eq!(c_token.kind, TokenKind::String(Cow::Owned("c".to_owned())));
+    }
+
+    // Finish behavior
+    #[expect(unused_mut)]
+    #[test]
+    fn finish_succeeds_at_eof() {
+        bind_context!(let context = "");
+        bind_state!(let mut state from context);
+
+        assert_matches!(state.finish(), Ok(()));
+    }
+
+    #[test]
+    fn finish_after_consuming_all_tokens_succeeds() {
+        bind_context!(let context = "42");
+        bind_state!(let mut state from context);
+
+        state.advance(SyntaxKind::Number).expect("should not fail");
+        assert_matches!(state.finish(), Ok(()));
+    }
+
+    #[expect(unused_mut)]
+    #[test]
+    fn finish_with_remaining_tokens_fails() {
+        bind_context!(let context = "42");
+        bind_state!(let mut state from context);
+
+        assert!(state.finish().is_err());
+    }
+
+    // Context management
+    #[test]
+    fn enter_pushes_and_pops_context() {
+        bind_context!(let context = r#"{"key": 42}"#);
+        bind_state!(let mut state from context);
+
+        // Initial pointer should be empty
+        let initial_pointer = state.current_pointer();
+        assert_eq!(initial_pointer.as_str(), "");
+
+        // Enter should push context
+        state.advance(SyntaxKind::LBrace).expect("should not fail");
+        state.enter("key".into(), |state| {
+            let pointer_in_context = state.current_pointer();
+            assert_eq!(pointer_in_context.as_str(), "/key");
+        });
+
+        // After enter, pointer should be back to initial
+        let final_pointer = state.current_pointer();
+        assert_eq!(final_pointer.as_str(), "");
+    }
+
+    #[test]
+    fn spans_include_json_pointer() {
+        bind_context!(let context = r#"{"key": 42}"#);
+        bind_state!(let mut state from context);
+
+        state.advance(SyntaxKind::LBrace).expect("should not fail");
+
+        state.enter("key".into(), |state| {
+            state.advance(SyntaxKind::String).expect("should not fail");
+
+            assert_eq!(state.current_pointer().as_str(), "/key");
+        });
     }
 }

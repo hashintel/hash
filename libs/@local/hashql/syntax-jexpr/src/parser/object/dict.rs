@@ -22,7 +22,9 @@ use crate::{
     ParserState,
     error::ResultExt as _,
     lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet, token::Token},
-    parser::{array::visit::visit_array, error::ParserDiagnostic, expr::parse_expr},
+    parser::{
+        array::visit::visit_array, error::ParserDiagnostic, expr::parse_expr, state::Expected,
+    },
 };
 
 pub(crate) struct DictNode<'heap> {
@@ -138,7 +140,7 @@ fn parse_dict_array<'heap, 'source>(
 
         // We're parsing everything here, so that we're able to improve the error message
         let token = state
-            .advance(SyntaxKindSet::COMPLETE)
+            .advance(Expected::hint(SyntaxKind::LBracket))
             .change_category(From::from)?;
 
         if token.kind.syntax() != SyntaxKind::LBracket {
@@ -204,7 +206,10 @@ fn parse_dict<'heap>(
 ) -> Result<DictExpr<'heap>, ParserDiagnostic> {
     // We're parsing everything here, so that we're able to improve the error message
     let token = state
-        .advance(SyntaxKindSet::COMPLETE)
+        .advance(Expected::hint(SyntaxKindSet::from_slice(&[
+            SyntaxKind::LBrace,
+            SyntaxKind::LBracket,
+        ])))
         .change_category(From::from)?;
 
     let is_object = match token.kind.syntax() {
@@ -259,6 +264,19 @@ mod tests {
             description => "Parses an empty dict using array format"
         }, {
             assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_dict_incomplete() {
+        // Empty dict with object format
+        let result =
+            parse_object_expr(r##"{"#dict": "##).expect_err("should not parse incomplete dict");
+
+        with_settings!({
+            description => "Parses with a sudden EOF"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.diagnostic, &result.input);
         });
     }
 

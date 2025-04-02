@@ -18,7 +18,10 @@ use crate::{
     ParserState,
     error::ResultExt as _,
     lexer::{syntax_kind_set::SyntaxKindSet, token_kind::TokenKind},
-    parser::error::{ParserDiagnostic, ParserDiagnosticCategory},
+    parser::{
+        error::{ParserDiagnostic, ParserDiagnosticCategory},
+        state::Expected,
+    },
 };
 
 pub(crate) struct LiteralNode<'heap> {
@@ -80,7 +83,7 @@ fn parse_literal<'heap>(
     // We do not use the `expected` of advance here, so that we're able to give the user a better
     // error message.
     let token = state
-        .advance(SyntaxKindSet::COMPLETE)
+        .advance(Expected::hint(SyntaxKindSet::VALUE))
         .change_category(ParserDiagnosticCategory::Lexer)?;
 
     let span = state.insert_range(token.span);
@@ -143,6 +146,18 @@ mod tests {
             description => "Parses a simple string literal"
         }, {
             assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_incomplete() {
+        let result = parse_object_expr(r##"{"#literal": "##)
+            .expect_err("should not parse incomplete literal");
+
+        with_settings!({
+            description => "Parses with a sudden EOF"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.diagnostic, &result.input);
         });
     }
 

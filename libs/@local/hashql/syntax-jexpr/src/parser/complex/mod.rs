@@ -22,9 +22,10 @@ pub(crate) fn verify_no_repeat<C>(
 where
     C: From<LexerDiagnosticCategory>,
 {
-    let next = state
-        .peek_expect(SyntaxKindSet::COMPLETE)
-        .change_category(C::from)?;
+    // Do a "soft peek" instead of a required peek. This way we can propagate the EOF upstream.
+    let Some(next) = state.peek().change_category(C::from)? else {
+        return Ok(());
+    };
     let next_syntax = next.kind.syntax();
 
     if !deny.contains(next_syntax) && !end.contains(next_syntax) {
