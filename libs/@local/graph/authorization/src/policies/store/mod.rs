@@ -111,11 +111,11 @@ pub trait PolicyStore {
     ///
     /// # Errors
     ///
-    /// - [`TeamNotFound`] if the team does not exist
+    /// - [`SubteamNotFound`] if the subteam does not exist
     /// - [`StoreError`] if the underlying store returns an error
     ///
-    /// [`TeamNotFound`]: TeamRoleCreationError::TeamNotFound
-    /// [`StoreError`]: TeamRoleCreationError::StoreError
+    /// [`SubteamNotFound`]: SubteamRoleCreationError::SubteamNotFound
+    /// [`StoreError`]: SubteamRoleCreationError::StoreError
     fn create_subteam_role(
         &mut self,
         subteam_id: SubteamId,
