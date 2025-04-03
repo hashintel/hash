@@ -7,4 +7,4 @@ Expr#4294967040@1
   ExprKind (Literal)
     LiteralExpr#4294967040@0
       LiteralKind (Float)
-        FloatLiteral#4294967040@0 (3.14)
+        FloatLiteral (3.14)

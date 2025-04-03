@@ -11,16 +11,16 @@ Expr#4294967040@7
           ExprKind (Literal)
             LiteralExpr#4294967040@0
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@0 (1)
+                IntegerLiteral (1)
       ListElement#4294967040@3
         Expr#4294967040@3
           ExprKind (Literal)
             LiteralExpr#4294967040@2
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@2 (2)
+                IntegerLiteral (2)
       ListElement#4294967040@5
         Expr#4294967040@5
           ExprKind (Literal)
             LiteralExpr#4294967040@4
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@4 (3)
+                IntegerLiteral (3)

@@ -15,10 +15,10 @@ Expr#4294967040@8
           ExprKind (Literal)
             LiteralExpr#4294967040@4
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@4 (1)
+                IntegerLiteral (1)
       Argument#4294967040@7
         Expr#4294967040@7
           ExprKind (Literal)
             LiteralExpr#4294967040@6
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@6 (2)
+                IntegerLiteral (2)

@@ -247,14 +247,14 @@ impl_syntax_dump!(struct ListExpr(); []elements ?r#type);
 
 impl SyntaxDump for FloatLiteral {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span, value } = self;
+        let Self { value } = self;
 
         write_header(
             fmt,
             depth,
             "FloatLiteral",
-            Some(*id),
-            Some(*span),
+            None,
+            None,
             Some(&format!("{value}")),
         )
     }
@@ -262,14 +262,14 @@ impl SyntaxDump for FloatLiteral {
 
 impl SyntaxDump for IntegerLiteral {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span, value } = self;
+        let Self { value } = self;
 
         write_header(
             fmt,
             depth,
             "IntegerLiteral",
-            Some(*id),
-            Some(*span),
+            None,
+            None,
             Some(&format!("{value}")),
         )
     }
@@ -277,14 +277,14 @@ impl SyntaxDump for IntegerLiteral {
 
 impl SyntaxDump for StringLiteral {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { id, span, value } = self;
+        let Self { value } = self;
 
         write_header(
             fmt,
             depth,
             "StringLiteral",
-            Some(*id),
-            Some(*span),
+            None,
+            None,
             Some(&format!("{value}")),
         )
     }

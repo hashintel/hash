@@ -23,4 +23,4 @@ Expr#4294967040@21
                                   ExprKind (Literal)
                                     LiteralExpr#4294967040@8
                                       LiteralKind (String)
-                                        StringLiteral#4294967040@8 (nested)
+                                        StringLiteral (nested)

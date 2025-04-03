@@ -15,13 +15,13 @@ Expr#4294967040@36
           ExprKind (Literal)
             LiteralExpr#4294967040@4
               LiteralKind (String)
-                StringLiteral#4294967040@4 (x)
+                StringLiteral (x)
       Argument#4294967040@7
         Expr#4294967040@7
           ExprKind (Literal)
             LiteralExpr#4294967040@6
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@6 (10)
+                IntegerLiteral (10)
       Argument#4294967040@35
         Expr#4294967040@35
           ExprKind (Call)
@@ -43,13 +43,13 @@ Expr#4294967040@36
                           ExprKind (Literal)
                             LiteralExpr#4294967040@16
                               LiteralKind (String)
-                                StringLiteral#4294967040@16 (x)
+                                StringLiteral (x)
                       Argument#4294967040@19
                         Expr#4294967040@19
                           ExprKind (Literal)
                             LiteralExpr#4294967040@18
                               LiteralKind (Integer)
-                                IntegerLiteral#4294967040@18 (5)
+                                IntegerLiteral (5)
               Argument#4294967040@27
                 Expr#4294967040@27
                   ExprKind (Struct)
@@ -59,7 +59,7 @@ Expr#4294967040@36
                           ExprKind (Literal)
                             LiteralExpr#4294967040@23
                               LiteralKind (String)
-                                StringLiteral#4294967040@23 (large)
+                                StringLiteral (large)
               Argument#4294967040@34
                 Expr#4294967040@34
                   ExprKind (Struct)
@@ -69,4 +69,4 @@ Expr#4294967040@36
                           ExprKind (Literal)
                             LiteralExpr#4294967040@30
                               LiteralKind (String)
-                                StringLiteral#4294967040@30 (small)
+                                StringLiteral (small)

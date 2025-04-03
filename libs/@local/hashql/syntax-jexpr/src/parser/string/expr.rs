@@ -68,8 +68,6 @@ where
                 id: NodeId::PLACEHOLDER,
                 span,
                 kind: LiteralKind::Integer(IntegerLiteral {
-                    id: NodeId::PLACEHOLDER,
-                    span,
                     value: Symbol::new(digit),
                 }),
                 r#type: None,

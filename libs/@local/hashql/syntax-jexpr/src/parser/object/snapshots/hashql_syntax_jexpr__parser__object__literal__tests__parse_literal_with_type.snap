@@ -7,7 +7,7 @@ Expr#4294967040@5
   ExprKind (Literal)
     LiteralExpr#4294967040@0
       LiteralKind (Integer)
-        IntegerLiteral#4294967040@0 (42)
+        IntegerLiteral (42)
       Type#4294967040@4
         TypeKind (Path)
           Path#4294967040@4 (rooted: false)

@@ -11,13 +11,13 @@ Expr#4294967040@17
           ExprKind (Literal)
             LiteralExpr#4294967040@0
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@0 (1)
+                IntegerLiteral (1)
       TupleElement#4294967040@3
         Expr#4294967040@3
           ExprKind (Literal)
             LiteralExpr#4294967040@2
               LiteralKind (String)
-                StringLiteral#4294967040@2 (text)
+                StringLiteral (text)
       Type#4294967040@16
         TypeKind (Path)
           Path#4294967040@16 (rooted: false)

@@ -11,10 +11,10 @@ Expr#4294967040@11
           ExprKind (Literal)
             LiteralExpr#4294967040@2
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@2 (1)
+                IntegerLiteral (1)
       StructEntry#4294967040@9 (key: anotherField)
         Expr#4294967040@8
           ExprKind (Literal)
             LiteralExpr#4294967040@7
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@7 (2)
+                IntegerLiteral (2)

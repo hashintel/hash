@@ -16,11 +16,11 @@ Expr#4294967040@14
             ExprKind (Literal)
               LiteralExpr#4294967040@6
                 LiteralKind (String)
-                  StringLiteral#4294967040@6 (Alice)
+                  StringLiteral (Alice)
       LabeledArgument#4294967040@13 (label: age)
         Argument#4294967040@12
           Expr#4294967040@12
             ExprKind (Literal)
               LiteralExpr#4294967040@11
                 LiteralKind (Integer)
-                  IntegerLiteral#4294967040@11 (30)
+                  IntegerLiteral (30)

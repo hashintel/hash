@@ -11,4 +11,4 @@ Expr#4294967040@3
           ExprKind (Literal)
             LiteralExpr#4294967040@0
               LiteralKind (String)
-                StringLiteral#4294967040@0 (solo)
+                StringLiteral (solo)

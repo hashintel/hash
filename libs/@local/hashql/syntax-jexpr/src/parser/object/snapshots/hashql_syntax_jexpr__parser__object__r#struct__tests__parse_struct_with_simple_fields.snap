@@ -11,10 +11,10 @@ Expr#4294967040@11
           ExprKind (Literal)
             LiteralExpr#4294967040@2
               LiteralKind (String)
-                StringLiteral#4294967040@2 (Alice)
+                StringLiteral (Alice)
       StructEntry#4294967040@9 (key: age)
         Expr#4294967040@8
           ExprKind (Literal)
             LiteralExpr#4294967040@7
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@7 (30)
+                IntegerLiteral (30)

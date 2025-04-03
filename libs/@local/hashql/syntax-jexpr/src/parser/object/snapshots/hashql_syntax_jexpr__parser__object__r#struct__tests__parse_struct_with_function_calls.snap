@@ -19,13 +19,13 @@ Expr#4294967040@25
                   ExprKind (Literal)
                     LiteralExpr#4294967040@6
                       LiteralKind (Integer)
-                        IntegerLiteral#4294967040@6 (1)
+                        IntegerLiteral (1)
               Argument#4294967040@9
                 Expr#4294967040@9
                   ExprKind (Literal)
                     LiteralExpr#4294967040@8
                       LiteralKind (Integer)
-                        IntegerLiteral#4294967040@8 (2)
+                        IntegerLiteral (2)
       StructEntry#4294967040@23 (key: message)
         Expr#4294967040@22
           ExprKind (Call)
@@ -39,10 +39,10 @@ Expr#4294967040@25
                   ExprKind (Literal)
                     LiteralExpr#4294967040@18
                       LiteralKind (String)
-                        StringLiteral#4294967040@18 (Hello, {0}!)
+                        StringLiteral (Hello, {0}!)
               Argument#4294967040@21
                 Expr#4294967040@21
                   ExprKind (Literal)
                     LiteralExpr#4294967040@20
                       LiteralKind (String)
-                        StringLiteral#4294967040@20 (World)
+                        StringLiteral (World)
