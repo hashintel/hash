@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Comment after element without space
+expression: "42//This is a comment\n42"
+---
+42 42

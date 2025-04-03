@@ -7,10 +7,13 @@ use logos::Logos;
 use super::{error::LexerError, syntax_kind::SyntaxKind};
 use crate::lexer::parse::{parse_number, parse_string};
 
+// https://github.com/maciejhirsz/logos/issues/133#issuecomment-619444615
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Logos)]
 #[logos(error = LexerError)]
 #[logos(source = [u8])]
 #[logos(skip r"[ \t\r\n\f]+")]
+#[logos(skip r"//[^\n]*")]
+#[logos(skip r"/\*(?:[^*]|\*[^/])*\*/")]
 pub(crate) enum TokenKind<'source> {
     #[token("false", |_| false)]
     #[token("true", |_| true)]

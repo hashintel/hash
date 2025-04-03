@@ -278,6 +278,28 @@ mod test {
             "JSON with already-escaped characters",
         escaped_controls(r#""\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007""#) =>
             "String with escaped control characters",
+
+        // JSONC
+        // Single line comments
+        preceded_comment("// This is a comment\n42") => "Comment at the beginning should be skipped",
+        trailing_comment("42\n// This is a comment") => "Comment at the end should be skipped",
+        separated_comment("42\n// This is a comment\n42") => "Comment in the middle should be skipped",
+        adjacent_comment("42 // This is a comment\n42") => "Comment after element should be skipped",
+        adjacent_comment_no_space("42//This is a comment\n42") => "Comment after element without space",
+        empty_comment("42\n//\n42") => "Empty comment should be skipped",
+        comment_json_inside(r#"//"{"key": "value"}""#) => "JSON inside comment",
+        comment_no_space_between("//abc") => "JSON inside comment without space",
+
+        // Multi line comments
+        preceded_multiline_comment("/* This is a multi-line comment */42") => "Simple multi-line comment should be skipped",
+        trailing_multiline_comment("42/* This is a multi-line comment */") => "Simple multi-line comment should be skipped",
+        separated_multiline_comment("42/* This is a multi-line comment */42") => "Simple multi-line comment should be skipped",
+        empty_multiline_comment("42/**/42") => "Empty multi-line comment should be skipped",
+        multiline_comment_json_inside(r#"42/* This is a multi-line comment with JSON {"key": "value"} */42"#) => "JSON inside multi-line comment",
+        multiline_linebreak("42/* This is a multi-line comment with line break\n inside*/42") => "Line break inside multi-line comment",
+        // see: https://linear.app/hash/issue/H-4325/hashql-j-expr-more-comprehensive-multiline-comment-support
+        // multiline_almost_end("/* Almost closing comment **/42") => "Multi-line comment with extra asterisk that isn't the closing delimiter",
+        multiline_with_asterisks("/* * * *\n * comment *\n * * */42") => "Multi-line comment with decorative asterisks",
     }
 
     test_cases_fail! {
@@ -317,6 +339,10 @@ mod test {
         emoji_sequence("🚀🦀💻") => "Multiple emoji characters in sequence",
         japanese_text("こんにちは") => "Multiple Japanese characters",
         mixed_characters("あa三b") => "Mix of single and multi-byte characters",
+
+        // JSONC
+        unclosed_multiline_comment("/* This comment never ends") => "Unclosed multi-line comment",
+        multiline_comment_too_smol("/*/") => "Multi-line comment is missing closing *",
     }
 
     #[test]

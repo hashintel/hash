@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Simple multi-line comment should be skipped
+expression: 42/* This is a multi-line comment */
+---
+42

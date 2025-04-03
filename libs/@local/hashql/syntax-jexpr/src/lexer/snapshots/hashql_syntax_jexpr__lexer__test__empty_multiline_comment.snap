@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Empty multi-line comment should be skipped
+expression: 42/**/42
+---
+42 42

@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Line break inside multi-line comment
+expression: "42/* This is a multi-line comment with line break\n inside*/42"
+---
+42 42
