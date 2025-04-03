@@ -11,13 +11,13 @@ Expr#4294967040@7
           ExprKind (Literal)
             LiteralExpr#4294967040@0
               LiteralKind (String)
-                StringLiteral#4294967040@0 (string)
+                StringLiteral (string)
       ListElement#4294967040@3
         Expr#4294967040@3
           ExprKind (Literal)
             LiteralExpr#4294967040@2
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@2 (42)
+                IntegerLiteral (42)
       ListElement#4294967040@5
         Expr#4294967040@5
           ExprKind (Literal)

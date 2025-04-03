@@ -11,20 +11,20 @@ Expr#4294967040@9
           ExprKind (Literal)
             LiteralExpr#4294967040@0
               LiteralKind (String)
-                StringLiteral#4294967040@0 (key1)
+                StringLiteral (key1)
         Expr#4294967040@2
           ExprKind (Literal)
             LiteralExpr#4294967040@1
               LiteralKind (String)
-                StringLiteral#4294967040@1 (value1)
+                StringLiteral (value1)
       DictEntry#4294967040@7
         Expr#4294967040@4
           ExprKind (Literal)
             LiteralExpr#4294967040@4
               LiteralKind (String)
-                StringLiteral#4294967040@4 (key2)
+                StringLiteral (key2)
         Expr#4294967040@6
           ExprKind (Literal)
             LiteralExpr#4294967040@5
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@5 (42)
+                IntegerLiteral (42)

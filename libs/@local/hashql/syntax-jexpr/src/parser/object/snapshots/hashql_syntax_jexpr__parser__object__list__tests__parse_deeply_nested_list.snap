@@ -19,4 +19,4 @@ Expr#4294967040@7
                           ExprKind (Literal)
                             LiteralExpr#4294967040@0
                               LiteralKind (String)
-                                StringLiteral#4294967040@0 (deep)
+                                StringLiteral (deep)

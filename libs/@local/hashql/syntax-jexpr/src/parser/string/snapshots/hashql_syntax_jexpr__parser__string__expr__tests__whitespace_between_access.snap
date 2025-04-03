@@ -19,4 +19,4 @@ Expr#4294967040@7
         ExprKind (Literal)
           LiteralExpr#4294967040@5
             LiteralKind (Integer)
-              IntegerLiteral#4294967040@5 (0)
+              IntegerLiteral (0)

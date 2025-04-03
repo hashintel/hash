@@ -11,7 +11,7 @@ Expr#4294967040@20
           ExprKind (Literal)
             LiteralExpr#4294967040@0
               LiteralKind (String)
-                StringLiteral#4294967040@0 (key1)
+                StringLiteral (key1)
         Expr#4294967040@8
           ExprKind (Struct)
             StructExpr#4294967040@7
@@ -20,13 +20,13 @@ Expr#4294967040@20
                   ExprKind (Literal)
                     LiteralExpr#4294967040@4
                       LiteralKind (String)
-                        StringLiteral#4294967040@4 (Bob)
+                        StringLiteral (Bob)
       DictEntry#4294967040@18
         Expr#4294967040@11
           ExprKind (Literal)
             LiteralExpr#4294967040@10
               LiteralKind (String)
-                StringLiteral#4294967040@10 (key2)
+                StringLiteral (key2)
         Expr#4294967040@17
           ExprKind (List)
             ListExpr#4294967040@16
@@ -35,10 +35,10 @@ Expr#4294967040@20
                   ExprKind (Literal)
                     LiteralExpr#4294967040@12
                       LiteralKind (Integer)
-                        IntegerLiteral#4294967040@12 (1)
+                        IntegerLiteral (1)
               ListElement#4294967040@15
                 Expr#4294967040@15
                   ExprKind (Literal)
                     LiteralExpr#4294967040@14
                       LiteralKind (Integer)
-                        IntegerLiteral#4294967040@14 (2)
+                        IntegerLiteral (2)

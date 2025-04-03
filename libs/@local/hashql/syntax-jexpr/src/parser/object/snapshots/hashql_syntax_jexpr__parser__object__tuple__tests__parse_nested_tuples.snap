@@ -15,13 +15,13 @@ Expr#4294967040@13
                   ExprKind (Literal)
                     LiteralExpr#4294967040@0
                       LiteralKind (Integer)
-                        IntegerLiteral#4294967040@0 (1)
+                        IntegerLiteral (1)
               TupleElement#4294967040@3
                 Expr#4294967040@3
                   ExprKind (Literal)
                     LiteralExpr#4294967040@2
                       LiteralKind (String)
-                        StringLiteral#4294967040@2 (a)
+                        StringLiteral (a)
       TupleElement#4294967040@11
         Expr#4294967040@11
           ExprKind (Tuple)
@@ -36,4 +36,4 @@ Expr#4294967040@13
                   ExprKind (Literal)
                     LiteralExpr#4294967040@8
                       LiteralKind (Float)
-                        FloatLiteral#4294967040@8 (3.14)
+                        FloatLiteral (3.14)

@@ -11,58 +11,58 @@ Expr#4294967040@51
           ExprKind (Literal)
             LiteralExpr#4294967040@2
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@2 (1)
+                IntegerLiteral (1)
       StructEntry#4294967040@9 (key: field2)
         Expr#4294967040@8
           ExprKind (Literal)
             LiteralExpr#4294967040@7
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@7 (2)
+                IntegerLiteral (2)
       StructEntry#4294967040@14 (key: field3)
         Expr#4294967040@13
           ExprKind (Literal)
             LiteralExpr#4294967040@12
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@12 (3)
+                IntegerLiteral (3)
       StructEntry#4294967040@19 (key: field4)
         Expr#4294967040@18
           ExprKind (Literal)
             LiteralExpr#4294967040@17
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@17 (4)
+                IntegerLiteral (4)
       StructEntry#4294967040@24 (key: field5)
         Expr#4294967040@23
           ExprKind (Literal)
             LiteralExpr#4294967040@22
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@22 (5)
+                IntegerLiteral (5)
       StructEntry#4294967040@29 (key: field6)
         Expr#4294967040@28
           ExprKind (Literal)
             LiteralExpr#4294967040@27
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@27 (6)
+                IntegerLiteral (6)
       StructEntry#4294967040@34 (key: field7)
         Expr#4294967040@33
           ExprKind (Literal)
             LiteralExpr#4294967040@32
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@32 (7)
+                IntegerLiteral (7)
       StructEntry#4294967040@39 (key: field8)
         Expr#4294967040@38
           ExprKind (Literal)
             LiteralExpr#4294967040@37
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@37 (8)
+                IntegerLiteral (8)
       StructEntry#4294967040@44 (key: field9)
         Expr#4294967040@43
           ExprKind (Literal)
             LiteralExpr#4294967040@42
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@42 (9)
+                IntegerLiteral (9)
       StructEntry#4294967040@49 (key: field10)
         Expr#4294967040@48
           ExprKind (Literal)
             LiteralExpr#4294967040@47
               LiteralKind (Integer)
-                IntegerLiteral#4294967040@47 (10)
+                IntegerLiteral (10)

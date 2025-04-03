@@ -11,7 +11,7 @@ Expr#4294967040@21
           ExprKind (Literal)
             LiteralExpr#4294967040@0
               LiteralKind (String)
-                StringLiteral#4294967040@0 (outer1)
+                StringLiteral (outer1)
         Expr#4294967040@10
           ExprKind (Dict)
             DictExpr#4294967040@9
@@ -20,29 +20,29 @@ Expr#4294967040@21
                   ExprKind (Literal)
                     LiteralExpr#4294967040@1
                       LiteralKind (String)
-                        StringLiteral#4294967040@1 (inner1)
+                        StringLiteral (inner1)
                 Expr#4294967040@3
                   ExprKind (Literal)
                     LiteralExpr#4294967040@2
                       LiteralKind (String)
-                        StringLiteral#4294967040@2 (value1)
+                        StringLiteral (value1)
               DictEntry#4294967040@8
                 Expr#4294967040@5
                   ExprKind (Literal)
                     LiteralExpr#4294967040@5
                       LiteralKind (String)
-                        StringLiteral#4294967040@5 (inner2)
+                        StringLiteral (inner2)
                 Expr#4294967040@7
                   ExprKind (Literal)
                     LiteralExpr#4294967040@6
                       LiteralKind (String)
-                        StringLiteral#4294967040@6 (value2)
+                        StringLiteral (value2)
       DictEntry#4294967040@19
         Expr#4294967040@12
           ExprKind (Literal)
             LiteralExpr#4294967040@12
               LiteralKind (String)
-                StringLiteral#4294967040@12 (outer2)
+                StringLiteral (outer2)
         Expr#4294967040@18
           ExprKind (Dict)
             DictExpr#4294967040@17
@@ -51,9 +51,9 @@ Expr#4294967040@21
                   ExprKind (Literal)
                     LiteralExpr#4294967040@13
                       LiteralKind (String)
-                        StringLiteral#4294967040@13 (inner3)
+                        StringLiteral (inner3)
                 Expr#4294967040@15
                   ExprKind (Literal)
                     LiteralExpr#4294967040@14
                       LiteralKind (String)
-                        StringLiteral#4294967040@14 (value3)
+                        StringLiteral (value3)

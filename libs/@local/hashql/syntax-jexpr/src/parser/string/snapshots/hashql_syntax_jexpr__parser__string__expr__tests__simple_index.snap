@@ -15,12 +15,6 @@ Index(
         ),
         kind: Integer(
             IntegerLiteral {
-                id: NodeId(
-                    4294967040,
-                ),
-                span: SpanId(
-                    1,
-                ),
                 value: Symbol(
                     "0",
                 ),

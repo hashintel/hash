@@ -15,7 +15,7 @@ Expr#4294967040@25
                   ExprKind (Literal)
                     LiteralExpr#4294967040@4
                       LiteralKind (Integer)
-                        IntegerLiteral#4294967040@4 (42)
+                        IntegerLiteral (42)
               StructEntry#4294967040@11 (key: active)
                 Expr#4294967040@10
                   ExprKind (Literal)
@@ -30,10 +30,10 @@ Expr#4294967040@25
                   ExprKind (Literal)
                     LiteralExpr#4294967040@17
                       LiteralKind (Integer)
-                        IntegerLiteral#4294967040@17 (1)
+                        IntegerLiteral (1)
               ListElement#4294967040@20
                 Expr#4294967040@20
                   ExprKind (Literal)
                     LiteralExpr#4294967040@19
                       LiteralKind (Integer)
-                        IntegerLiteral#4294967040@19 (2)
+                        IntegerLiteral (2)

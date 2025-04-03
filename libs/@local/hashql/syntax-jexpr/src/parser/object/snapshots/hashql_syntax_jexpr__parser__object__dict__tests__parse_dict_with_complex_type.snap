@@ -11,12 +11,12 @@ Expr#4294967040@17
           ExprKind (Literal)
             LiteralExpr#4294967040@0
               LiteralKind (String)
-                StringLiteral#4294967040@0 (key)
+                StringLiteral (key)
         Expr#4294967040@2
           ExprKind (Literal)
             LiteralExpr#4294967040@1
               LiteralKind (String)
-                StringLiteral#4294967040@1 (value)
+                StringLiteral (value)
       Type#4294967040@16
         TypeKind (Path)
           Path#4294967040@16 (rooted: false)
