@@ -1,3 +1,42 @@
+//! A `Visitor` represents an AST modification; it accepts an AST piece and
+//! mutates it in place.
+//!
+//! The visitor works by traversing the entire AST structure recursively. For each
+//! node type, there's a corresponding `visit_*` method that can be overridden to
+//! perform custom modifications.
+//!
+//! # Method Formats
+//!
+//! Methods in the `Visitor` trait follow one of three patterns:
+//!
+//! * `fn visit_t(&mut self, t: &mut T)` - Most common format for in-place modification
+//! * `fn flat_map_t(&mut self, t: T) -> Vec<T>` - For transformations that might produce multiple
+//!   nodes
+//! * `fn filter_map_t(&mut self, t: T) -> Option<T>` - For transformations that might remove nodes
+//!
+//! Future extensions to this trait will likely add more methods following these patterns
+//! to support advanced AST transformations like inlining function calls or optimizing expressions.
+//!
+//! # Examples
+//!
+//! ```rust
+//! struct MyVisitor;
+//!
+//! impl Visitor for MyVisitor {
+//!     fn visit_expr(&mut self, expr: &mut Expr) {
+//!         // Custom logic before recursion
+//!
+//!         // Call the default implementation to recursively visit children
+//!         walk_expr(self, expr);
+//!
+//!         // Custom logic after recursion
+//!     }
+//! }
+//! ```
+//!
+//! The `Visitor` trait is designed to be extended with additional functionality
+//! through its default implementations. Each method typically calls a corresponding
+//! `walk_*` function that recursively visits the node's children.
 use hashql_core::{span::SpanId, symbol::Ident};
 
 use crate::node::{
@@ -20,6 +59,33 @@ use crate::node::{
     },
 };
 
+/// Visitor trait for traversing and modifying the AST.
+///
+/// To implement a custom AST transformation, create a type that implements this trait
+/// and override the methods for the specific node types you want to modify.
+///
+/// The default implementations call corresponding `walk_*` functions
+/// that recursively traverse the AST structure, allowing you to focus only on the
+/// specific nodes you want to transform.
+///
+/// # Method Formats
+///
+/// This trait currently uses the `visit_*(&mut self, &mut T)` pattern for in-place
+/// modifications. Future extensions may include:
+///
+/// - `flat_map_*(&mut self, T) -> Vec<T>` methods for one-to-many transformations
+/// - `filter_map_*(&mut self, T) -> Option<T>` methods for optional transformations
+///
+/// These additional method types are essential for operations like function inlining
+/// (which might produce multiple expressions) or dead code elimination (which might remove nodes).
+///
+/// # Implementation Strategy
+///
+/// When implementing a `Visitor`, follow these patterns:
+///
+/// - To replace a node with a new one, modify its fields directly
+/// - To recursively process child nodes, call the corresponding `walk_*` function
+/// - To skip processing child nodes, don't call the `walk_*` function
 pub trait Visitor {
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_id(&mut self, id: &mut NodeId) {
