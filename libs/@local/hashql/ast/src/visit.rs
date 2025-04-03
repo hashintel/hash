@@ -17,6 +17,42 @@
 //! Future extensions to this trait will likely add more methods following these patterns
 //! to support advanced AST transformations like inlining function calls or optimizing expressions.
 //!
+//! # Implementation Notes
+//!
+//! When writing visitor methods, it is better to use destructuring like this:
+//!
+//! ```rust
+//! fn visit_struct_field(
+//!     &mut self,
+//!     StructField {
+//!         id,
+//!         span,
+//!         name,
+//!         r#type,
+//!     }: &mut StructField,
+//! ) {
+//!     visit_id(id);
+//!     visit_span(span);
+//!     visit_ident(name);
+//!     visit_type(r#type);
+//! }
+//! ```
+//!
+//! than to use field access like this:
+//!
+//! ```rust
+//! fn visit_struct_field(&mut self, field: &mut StructField) {
+//!     visit_id(&mut field.id);
+//!     visit_span(&mut field.span);
+//!     visit_ident(&mut field.name);
+//!     visit_type(&mut field.r#type);
+//! }
+//! ```
+//!
+//! The destructuring version is more concise and makes it explicit which fields are being
+//! processed. Additionally, if a new field is added to `StructField` in the future, the
+//! destructuring pattern will cause a compile error.
+//!
 //! # Examples
 //!
 //! ```rust
