@@ -297,7 +297,7 @@ mod test {
         empty_multiline_comment("42/**/42") => "Empty multi-line comment should be skipped",
         multiline_comment_json_inside(r#"42/* This is a multi-line comment with JSON {"key": "value"} */42"#) => "JSON inside multi-line comment",
         multiline_linebreak("42/* This is a multi-line comment with line break\n inside*/42") => "Line break inside multi-line comment",
-        // see:
+        // see: https://linear.app/hash/issue/H-4325/hashql-j-expr-more-comprehensive-multiline-comment-support
         // multiline_almost_end("/* Almost closing comment **/42") => "Multi-line comment with extra asterisk that isn't the closing delimiter",
         multiline_with_asterisks("/* * * *\n * comment *\n * * */42") => "Multi-line comment with decorative asterisks",
     }
