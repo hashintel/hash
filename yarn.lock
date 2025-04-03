@@ -391,7 +391,7 @@ __metadata:
     "@types/md5": "npm:2.3.5"
     "@types/mime-types": "npm:2.1.4"
     "@types/nodemailer": "npm:6.4.17"
-    "@types/ws": "npm:8.18.0"
+    "@types/ws": "npm:8.18.1"
     "@vitest/coverage-istanbul": "npm:3.1.1"
     agentkeepalive: "npm:4.6.0"
     apollo-datasource: "npm:3.3.2"
@@ -856,7 +856,7 @@ __metadata:
     "@types/react": "npm:19.0.12"
     "@types/react-dom": "npm:19.0.4"
     "@types/webextension-polyfill": "npm:0.12.2"
-    "@types/ws": "npm:8.18.0"
+    "@types/ws": "npm:8.18.1"
     babel-loader: "npm:9.2.1"
     babel-preset-react-app: "npm:10.1.0"
     bowser: "npm:2.11.0"
@@ -18370,12 +18370,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/ws@npm:8.18.0, @types/ws@npm:^8.0.0, @types/ws@npm:^8.5.5, @types/ws@npm:^8.5.9":
-  version: 8.18.0
-  resolution: "@types/ws@npm:8.18.0"
+"@types/ws@npm:8.18.1, @types/ws@npm:^8.0.0, @types/ws@npm:^8.5.5, @types/ws@npm:^8.5.9":
+  version: 8.18.1
+  resolution: "@types/ws@npm:8.18.1"
   dependencies:
     "@types/node": "npm:*"
-  checksum: 10c0/a56d2e0d1da7411a1f3548ce02b51a50cbe9e23f025677d03df48f87e4a3c72e1342fbf1d12e487d7eafa8dc670c605152b61bbf9165891ec0e9694b0d3ea8d4
+  checksum: 10c0/61aff1129143fcc4312f083bc9e9e168aa3026b7dd6e70796276dcfb2c8211c4292603f9c4864fae702f2ed86e4abd4d38aa421831c2fd7f856c931a481afbab
   languageName: node
   linkType: hard
 
