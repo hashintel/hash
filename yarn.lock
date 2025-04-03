@@ -381,7 +381,7 @@ __metadata:
     "@snowplow/node-tracker": "npm:3.24.6"
     "@temporalio/client": "npm:1.11.7"
     "@temporalio/proto": "npm:1.11.7"
-    "@types/app-root-path": "npm:1.2.8"
+    "@types/app-root-path": "npm:3.1.0"
     "@types/dedent": "npm:0.7.2"
     "@types/express-http-proxy": "npm:1.6.6"
     "@types/html-to-text": "npm:8.1.1"
@@ -16915,10 +16915,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/app-root-path@npm:1.2.8":
-  version: 1.2.8
-  resolution: "@types/app-root-path@npm:1.2.8"
-  checksum: 10c0/67c71009eeab206b8c3fc9e807fe9bbdae94eb2bcdebaa1d92b22e7524ee0133f1f391caa07772da1e82d1f4447c798bf029acacc622fb0d4f8dffc612163967
+"@types/app-root-path@npm:3.1.0":
+  version: 3.1.0
+  resolution: "@types/app-root-path@npm:3.1.0"
+  dependencies:
+    app-root-path: "npm:*"
+  checksum: 10c0/98cb7e1eff861237e1b8c61bbd668eef75e98e806d74bc6220d806259114bbf8697a70ed7440b5f65ec3d2352c4197cd59a5e35be6ad58cbe9df84f0eb6d736e
   languageName: node
   linkType: hard
 
@@ -19856,7 +19858,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"app-root-path@npm:3.1.0":
+"app-root-path@npm:*, app-root-path@npm:3.1.0":
   version: 3.1.0
   resolution: "app-root-path@npm:3.1.0"
   checksum: 10c0/4a0fd976de1bffcdb18a5e1f8050091f15d0780e0582bca99aaa9d52de71f0e08e5185355fcffc781180bfb898499e787a2f5ed79b9c448b942b31dc947acaa9
