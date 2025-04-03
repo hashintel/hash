@@ -21,7 +21,7 @@
 //!
 //! When writing visitor methods, it is better to use destructuring like this:
 //!
-//! ```rust
+//! ```ignore
 //! fn visit_struct_field(
 //!     &mut self,
 //!     StructField {
@@ -40,7 +40,7 @@
 //!
 //! than to use field access like this:
 //!
-//! ```rust
+//! ```ignore
 //! fn visit_struct_field(&mut self, field: &mut StructField) {
 //!     visit_id(&mut field.id);
 //!     visit_span(&mut field.span);
