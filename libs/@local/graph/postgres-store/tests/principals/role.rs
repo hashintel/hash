@@ -2,8 +2,8 @@ use core::{assert_matches::assert_matches, error::Error};
 
 use hash_graph_authorization::policies::principal::{
     PrincipalId,
-    role::{Role, RoleId},
-    team::{StandaloneTeamId, StandaloneTeamRoleId, TeamId},
+    role::{Role, RoleId, WebRoleId},
+    team::TeamId,
 };
 use hash_graph_postgres_store::permissions::{
     PrincipalError, RoleAssignmentStatus, RoleUnassignmentStatus,
@@ -12,6 +12,7 @@ use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::entity::id::EntityUuid,
     provenance::{ActorEntityUuid, ActorId, UserId},
+    web::OwnedById,
 };
 use uuid::Uuid;
 
@@ -23,12 +24,10 @@ async fn create_role() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     // First create a team to associate the role with
-    let team_id = client.create_standalone_team(None).await?;
+    let web_id = client.create_web(None).await?;
 
     // Then create a role associated with the team
-    let role_id = client
-        .create_role(None, TeamId::Standalone(team_id))
-        .await?;
+    let role_id = client.create_role(None, TeamId::Web(web_id)).await?;
     assert!(client.is_role(role_id).await?);
 
     Ok(())
@@ -40,14 +39,12 @@ async fn create_role_with_id() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     // First create a team to associate the role with
-    let team_id = client.create_standalone_team(None).await?;
+    let web_id = client.create_web(None).await?;
 
     // Then create a role with a specific ID
     let id = Uuid::new_v4();
-    let role_id = client
-        .create_role(Some(id), TeamId::Standalone(team_id))
-        .await?;
-    assert_eq!(role_id, RoleId::Standalone(StandaloneTeamRoleId::new(id)));
+    let role_id = client.create_role(Some(id), TeamId::Web(web_id)).await?;
+    assert_eq!(role_id, RoleId::Web(WebRoleId::new(id)));
     assert!(client.is_role(role_id).await?);
 
     Ok(())
@@ -59,14 +56,12 @@ async fn create_role_with_nonexistent_team() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     // Try to create a role with a non-existent team
-    let non_existent_team_id = StandaloneTeamId::new(Uuid::new_v4());
-    let result = client
-        .create_role(None, TeamId::Standalone(non_existent_team_id))
-        .await;
+    let non_existent_team_id = TeamId::Web(OwnedById::new(Uuid::new_v4()));
+    let result = client.create_role(None, non_existent_team_id).await;
 
     assert_matches!(
         result.expect_err("Creating a role with a non-existent team should fail").current_context(),
-        PrincipalError::PrincipalNotFound { id } if *id == PrincipalId::Team(TeamId::Standalone(non_existent_team_id))
+        PrincipalError::PrincipalNotFound { id } if *id == PrincipalId::Team(non_existent_team_id)
     );
 
     Ok(())
@@ -78,24 +73,19 @@ async fn get_role() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     // First create a team to associate the role with
-    let team_id = client.create_standalone_team(None).await?;
+    let web_id = client.create_web(None).await?;
 
     // Then create a role associated with the team
-    let role_id = client
-        .create_role(None, TeamId::Standalone(team_id))
-        .await?;
+    let role_id = client.create_role(None, TeamId::Web(web_id)).await?;
 
     // Get the role and verify its details
     let role = client.get_role(role_id).await?.expect("Role should exist");
     match role {
-        Role::Standalone(role) => {
-            assert_eq!(RoleId::Standalone(role.id), role_id);
-            assert_eq!(
-                TeamId::Standalone(role.team_id),
-                TeamId::Standalone(team_id)
-            );
+        Role::Web(role) => {
+            assert_eq!(RoleId::Web(role.id), role_id);
+            assert_eq!(TeamId::Web(role.web_id), TeamId::Web(web_id));
         }
-        _ => panic!("Role should be a standalone role"),
+        Role::Subteam(_) => panic!("Role should be a web role"),
     }
 
     Ok(())
@@ -107,12 +97,10 @@ async fn delete_role() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     // First create a team to associate the role with
-    let team_id = client.create_standalone_team(None).await?;
+    let web_id = client.create_web(None).await?;
 
     // Then create a role associated with the team
-    let role_id = client
-        .create_role(None, TeamId::Standalone(team_id))
-        .await?;
+    let role_id = client.create_role(None, TeamId::Web(web_id)).await?;
     assert!(client.is_role(role_id).await?);
 
     // Delete the role
@@ -128,7 +116,7 @@ async fn delete_nonexistent_role() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     // Try to delete a non-existent role
-    let non_existent_id = RoleId::Standalone(StandaloneTeamRoleId::new(Uuid::new_v4()));
+    let non_existent_id = RoleId::Web(WebRoleId::new(Uuid::new_v4()));
     let result = client.delete_role(non_existent_id).await;
 
     assert_matches!(
@@ -145,10 +133,8 @@ async fn assign_role_to_actor() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     // Create a team, role, and user
-    let team_id = client.create_standalone_team(None).await?;
-    let role_id = client
-        .create_role(None, TeamId::Standalone(team_id))
-        .await?;
+    let web_id = client.create_web(None).await?;
+    let role_id = client.create_role(None, TeamId::Web(web_id)).await?;
     let user_id = client.create_user(None).await?;
 
     // Assign the role to the user
@@ -184,10 +170,8 @@ async fn assign_role_to_nonexistent_actor() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     // Create a team and role
-    let team_id = client.create_standalone_team(None).await?;
-    let role_id = client
-        .create_role(None, TeamId::Standalone(team_id))
-        .await?;
+    let web_id = client.create_web(None).await?;
+    let role_id = client.create_role(None, TeamId::Web(web_id)).await?;
 
     // Try to assign the role to a non-existent user
     let non_existent_user_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
@@ -212,7 +196,7 @@ async fn assign_nonexistent_role_to_actor() -> Result<(), Box<dyn Error>> {
     let user_id = client.create_user(None).await?;
 
     // Try to assign a non-existent role to the user
-    let non_existent_role_id = RoleId::Standalone(StandaloneTeamRoleId::new(Uuid::new_v4()));
+    let non_existent_role_id = RoleId::Web(WebRoleId::new(Uuid::new_v4()));
     let result = client
         .assign_role_to_actor(ActorId::User(user_id), non_existent_role_id)
         .await;
@@ -231,10 +215,8 @@ async fn unassign_role_from_actor() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     // Create a team, role, and user
-    let team_id = client.create_standalone_team(None).await?;
-    let role_id = client
-        .create_role(None, TeamId::Standalone(team_id))
-        .await?;
+    let web_id = client.create_web(None).await?;
+    let role_id = client.create_role(None, TeamId::Web(web_id)).await?;
     let user_id = client.create_user(None).await?;
 
     // Assign the role to the user
@@ -294,10 +276,8 @@ async fn get_role_actors_empty() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     // Create a team and role
-    let team_id = client.create_standalone_team(None).await?;
-    let role_id = client
-        .create_role(None, TeamId::Standalone(team_id))
-        .await?;
+    let web_id = client.create_web(None).await?;
+    let role_id = client.create_role(None, TeamId::Web(web_id)).await?;
 
     // Get the role's actors (should be empty)
     let actors = client.get_role_actors(role_id).await?;
@@ -324,7 +304,7 @@ async fn create_web_team_role() -> Result<(), Box<dyn Error>> {
             assert_eq!(RoleId::Web(web_role.id), role_id);
             assert_eq!(web_role.web_id, web_id);
         }
-        _ => panic!("Expected a web role"),
+        Role::Subteam(_) => panic!("Expected a web role"),
     }
 
     Ok(())
@@ -336,24 +316,24 @@ async fn create_subteam_role() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     // First create a parent team
-    let parent_team_id = client.create_standalone_team(None).await?;
+    let web_id = client.create_web(None).await?;
 
     // Create a subteam
-    let subteam_id = client
-        .create_subteam(None, TeamId::Standalone(parent_team_id))
-        .await?;
+    let subteam_id = client.create_subteam(None, TeamId::Web(web_id)).await?;
 
     // Create a role for the subteam
-    let role_id = client.create_role(None, TeamId::Sub(subteam_id)).await?;
+    let role_id = client
+        .create_role(None, TeamId::Subteam(subteam_id))
+        .await?;
 
     // Verify the role was created properly
     let role = client.get_role(role_id).await?.expect("Role should exist");
     match role {
         Role::Subteam(subteam_role) => {
             assert_eq!(RoleId::Subteam(subteam_role.id), role_id);
-            assert_eq!(subteam_role.team_id, subteam_id);
+            assert_eq!(subteam_role.subteam_id, subteam_id);
         }
-        _ => panic!("Expected a subteam role"),
+        Role::Web(_) => panic!("Expected a subteam role"),
     }
 
     Ok(())
@@ -364,11 +344,9 @@ async fn assign_role_to_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut client = db.client().await?;
 
-    // Create a team, role, and machine
-    let team_id = client.create_standalone_team(None).await?;
-    let role_id = client
-        .create_role(None, TeamId::Standalone(team_id))
-        .await?;
+    // Create a web team, role, and machine
+    let web_id = client.create_web(None).await?;
+    let role_id = client.create_role(None, TeamId::Web(web_id)).await?;
     let machine_id = client.create_machine(None).await?;
 
     // Assign the role to the machine
@@ -405,21 +383,19 @@ async fn comprehensive_team_role_hierarchy() -> Result<(), Box<dyn Error>> {
     let web_id = client.create_web(None).await?;
     let web_role_id = client.create_role(None, TeamId::Web(web_id)).await?;
 
-    // Create a standalone team
-    let standalone_id = client.create_standalone_team(None).await?;
-    let standalone_role_id = client
-        .create_role(None, TeamId::Standalone(standalone_id))
-        .await?;
-
     // Create level 1 subteam under web team
     let subteam_l1_id = client.create_subteam(None, TeamId::Web(web_id)).await?;
-    let _subteam_l1_role_id = client.create_role(None, TeamId::Sub(subteam_l1_id)).await?;
+    let _subteam_l1_role_id = client
+        .create_role(None, TeamId::Subteam(subteam_l1_id))
+        .await?;
 
     // Create level 2 subteam under level 1 subteam
     let subteam_l2_id = client
-        .create_subteam(None, TeamId::Sub(subteam_l1_id))
+        .create_subteam(None, TeamId::Subteam(subteam_l1_id))
         .await?;
-    let subteam_l2_role_id = client.create_role(None, TeamId::Sub(subteam_l2_id)).await?;
+    let subteam_l2_role_id = client
+        .create_role(None, TeamId::Subteam(subteam_l2_id))
+        .await?;
 
     // Create user and machine
     let user_id = client.create_user(None).await?;
@@ -430,7 +406,7 @@ async fn comprehensive_team_role_hierarchy() -> Result<(), Box<dyn Error>> {
         .assign_role_to_actor(ActorId::User(user_id), web_role_id)
         .await?;
     client
-        .assign_role_to_actor(ActorId::Machine(machine_id), standalone_role_id)
+        .assign_role_to_actor(ActorId::Machine(machine_id), web_role_id)
         .await?;
 
     // Assign level 2 subteam role to user (this should give access to the entire hierarchy)
@@ -460,8 +436,8 @@ async fn comprehensive_team_role_hierarchy() -> Result<(), Box<dyn Error>> {
     assert!(user_principals.contains(&PrincipalId::Role(web_role_id)));
     assert!(user_principals.contains(&PrincipalId::Team(TeamId::Web(web_id))));
     assert!(user_principals.contains(&PrincipalId::Role(subteam_l2_role_id)));
-    assert!(user_principals.contains(&PrincipalId::Team(TeamId::Sub(subteam_l2_id))));
-    assert!(user_principals.contains(&PrincipalId::Team(TeamId::Sub(subteam_l1_id))));
+    assert!(user_principals.contains(&PrincipalId::Team(TeamId::Subteam(subteam_l2_id))));
+    assert!(user_principals.contains(&PrincipalId::Team(TeamId::Subteam(subteam_l1_id))));
 
     assert_eq!(
         user_principals.len(),
@@ -481,8 +457,8 @@ async fn comprehensive_team_role_hierarchy() -> Result<(), Box<dyn Error>> {
     // Total: 3 principals
 
     assert!(machine_principals.contains(&PrincipalId::Actor(ActorId::Machine(machine_id))));
-    assert!(machine_principals.contains(&PrincipalId::Role(standalone_role_id)));
-    assert!(machine_principals.contains(&PrincipalId::Team(TeamId::Standalone(standalone_id))));
+    assert!(machine_principals.contains(&PrincipalId::Role(web_role_id)));
+    assert!(machine_principals.contains(&PrincipalId::Team(TeamId::Web(web_id))));
 
     assert_eq!(
         machine_principals.len(),

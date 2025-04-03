@@ -9,9 +9,8 @@ use error_stack::{Report, ResultExt as _};
 
 use super::{
     PolicyValidator,
-    principal::{machine::Machine, user::User, web::WebTeam},
+    principal::{Actor, actor::Machine, role::Role},
     resource::{EntityResource, EntityTypeResource},
-    store::Role,
 };
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -48,20 +47,12 @@ impl ContextBuilder {
         self.entities.push(machine.to_cedar_entity());
     }
 
-    pub fn add_user(&mut self, user: &User) {
-        self.entities.push(user.to_cedar_entity());
-    }
-
-    pub fn add_web_team(&mut self, web_team: &WebTeam) {
-        self.entities.push(web_team.to_cedar_entity());
+    pub fn add_actor(&mut self, actor: &Actor) {
+        self.entities.push(actor.to_cedar_entity());
     }
 
     pub fn add_role(&mut self, role: &Role) {
-        match role {
-            Role::Web(web_role) => self.entities.push(web_role.to_cedar_entity()),
-            Role::Team(team_role) => self.entities.push(team_role.to_cedar_entity()),
-            Role::WebTeam(web_team_role) => self.entities.extend(web_team_role.to_cedar_entities()),
-        }
+        self.entities.push(role.to_cedar_entity());
     }
 
     pub fn add_entity(&mut self, entity: &EntityResource) {

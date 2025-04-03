@@ -3334,68 +3334,68 @@
           {
             "type": "object",
             "required": [
-              "type",
+              "actorType",
               "id"
             ],
             "properties": {
-              "id": {
-                "$ref": "#/components/schemas/UserId"
-              },
-              "type": {
+              "actorType": {
                 "type": "string",
                 "enum": [
                   "user"
                 ]
+              },
+              "id": {
+                "$ref": "#/components/schemas/UserId"
               }
             }
           },
           {
             "type": "object",
             "required": [
-              "type",
+              "actorType",
               "id"
             ],
             "properties": {
-              "id": {
-                "$ref": "#/components/schemas/MachineId"
-              },
-              "type": {
+              "actorType": {
                 "type": "string",
                 "enum": [
                   "machine"
                 ]
+              },
+              "id": {
+                "$ref": "#/components/schemas/MachineId"
               }
             }
           },
           {
             "type": "object",
             "required": [
-              "type",
+              "actorType",
               "id"
             ],
             "properties": {
-              "id": {
-                "$ref": "#/components/schemas/AiId"
-              },
-              "type": {
+              "actorType": {
                 "type": "string",
                 "enum": [
                   "ai"
                 ]
+              },
+              "id": {
+                "$ref": "#/components/schemas/AiId"
               }
             }
           }
         ],
         "discriminator": {
-          "propertyName": "type"
+          "propertyName": "actorType"
         }
       },
       "ActorType": {
         "type": "string",
         "enum": [
           "user",
-          "ai",
-          "machine"
+          "machine",
+          "ai"
         ]
       },
       "AiId": {

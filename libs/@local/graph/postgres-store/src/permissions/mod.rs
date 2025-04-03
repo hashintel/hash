@@ -6,15 +6,9 @@ use hash_graph_authorization::{
     AuthorizationApi,
     policies::principal::{
         PrincipalId,
-        ai::Ai,
-        machine::Machine,
-        role::{Role, RoleId},
-        team::{
-            StandaloneTeam, StandaloneTeamId, StandaloneTeamRole, StandaloneTeamRoleId, Subteam,
-            SubteamId, SubteamRole, TeamId,
-        },
-        user::User,
-        web::{SubteamRoleId, Web, WebRole, WebRoleId},
+        actor::{Ai, Machine, User},
+        role::{Role, RoleId, SubteamRole, SubteamRoleId, WebRole, WebRoleId},
+        team::{Subteam, SubteamId, TeamId, Web},
     },
 };
 use tokio_postgres::{GenericClient as _, error::SqlState};
@@ -36,10 +30,8 @@ pub enum PrincipalType {
     User,
     Machine,
     Ai,
-    Team,
     Web,
     Subteam,
-    Role,
     WebRole,
     SubteamRole,
 }
@@ -72,11 +64,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                     PrincipalId::Team(TeamId::Web(_)) => {
                         "SELECT EXISTS(SELECT 1 FROM web WHERE id = $1)"
                     }
-                    PrincipalId::Team(TeamId::Standalone(_)) => {
-                        "SELECT EXISTS(SELECT 1 FROM team WHERE id = $1
-                        AND principal_type = 'team')"
-                    }
-                    PrincipalId::Team(TeamId::Sub(_)) => {
+                    PrincipalId::Team(TeamId::Subteam(_)) => {
                         "SELECT EXISTS(SELECT 1 FROM subteam WHERE id = $1)"
                     }
                     PrincipalId::Actor(ActorId::User(_)) => {
@@ -87,10 +75,6 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                     }
                     PrincipalId::Actor(ActorId::Ai(_)) => {
                         "SELECT EXISTS(SELECT 1 FROM ai WHERE id = $1)"
-                    }
-                    PrincipalId::Role(RoleId::Standalone(_)) => {
-                        "SELECT EXISTS(SELECT 1 FROM role WHERE id = $1
-                        AND principal_type = 'role')"
                     }
                     PrincipalId::Role(RoleId::Web(_)) => {
                         "SELECT EXISTS(SELECT 1 FROM role WHERE id = $1
@@ -124,12 +108,10 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     ) -> Result<(), Report<PrincipalError>> {
         let (uuid, principal_type) = match id {
             PrincipalId::Team(TeamId::Web(id)) => (id.into_uuid(), PrincipalType::Web),
-            PrincipalId::Team(TeamId::Standalone(id)) => (id.into_uuid(), PrincipalType::Team),
-            PrincipalId::Team(TeamId::Sub(id)) => (id.into_uuid(), PrincipalType::Subteam),
+            PrincipalId::Team(TeamId::Subteam(id)) => (id.into_uuid(), PrincipalType::Subteam),
             PrincipalId::Actor(ActorId::User(id)) => (id.into_uuid(), PrincipalType::User),
             PrincipalId::Actor(ActorId::Machine(id)) => (id.into_uuid(), PrincipalType::Machine),
             PrincipalId::Actor(ActorId::Ai(id)) => (id.into_uuid(), PrincipalType::Ai),
-            PrincipalId::Role(RoleId::Standalone(id)) => (id.into_uuid(), PrincipalType::Role),
             PrincipalId::Role(RoleId::Web(id)) => (id.into_uuid(), PrincipalType::WebRole),
             PrincipalId::Role(RoleId::Subteam(id)) => (id.into_uuid(), PrincipalType::SubteamRole),
         };
@@ -146,98 +128,6 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
         ensure!(num_deleted > 0, PrincipalError::PrincipalNotFound { id });
 
         Ok(())
-    }
-
-    /// Creates a new standalone team with the given ID, or generates a new UUID if none is
-    /// provided.
-    ///
-    /// # Errors
-    ///
-    /// - [`PrincipalAlreadyExists`] if a team with the given ID already exists
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`PrincipalAlreadyExists`]: PrincipalError::PrincipalAlreadyExists
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn create_standalone_team(
-        &mut self,
-        id: Option<Uuid>,
-    ) -> Result<StandaloneTeamId, Report<PrincipalError>> {
-        let team_id = StandaloneTeamId::new(id.unwrap_or_else(Uuid::new_v4));
-        if let Err(error) = self
-            .as_mut_client()
-            .execute(
-                "INSERT INTO team (id, principal_type) VALUES ($1, 'team')",
-                &[team_id.as_uuid()],
-            )
-            .await
-        {
-            return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
-                Err(error).change_context(PrincipalError::PrincipalAlreadyExists {
-                    id: PrincipalId::Team(TeamId::Standalone(team_id)),
-                })
-            } else {
-                Err(error).change_context(PrincipalError::StoreError)
-            };
-        }
-
-        Ok(team_id)
-    }
-
-    /// Checks if a standalone team with the given ID exists.
-    ///
-    /// # Errors
-    ///
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn is_standalone_team(
-        &self,
-        id: StandaloneTeamId,
-    ) -> Result<bool, Report<PrincipalError>> {
-        self.is_principal(PrincipalId::Team(TeamId::Standalone(id)))
-            .await
-    }
-
-    /// Gets a standalone team by its ID.
-    ///
-    /// # Errors
-    ///
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn get_standalone_team(
-        &self,
-        id: StandaloneTeamId,
-    ) -> Result<Option<StandaloneTeam>, Report<PrincipalError>> {
-        Ok(self
-            .as_client()
-            .query_opt(
-                "SELECT id FROM team WHERE id = $1 AND principal_type = 'team'",
-                &[id.as_uuid()],
-            )
-            .await
-            .change_context(PrincipalError::StoreError)?
-            .map(|row| StandaloneTeam {
-                id: StandaloneTeamId::new(row.get(0)),
-                roles: HashSet::new(),
-            }))
-    }
-
-    /// Deletes a standalone team from the system.
-    ///
-    /// # Errors
-    ///
-    /// - [`PrincipalNotFound`] if the team with the given ID doesn't exist
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn delete_standalone_team(
-        &mut self,
-        id: StandaloneTeamId,
-    ) -> Result<(), Report<PrincipalError>> {
-        self.delete_principal(PrincipalId::Team(TeamId::Standalone(id)))
-            .await
     }
 
     /// Creates a new web with the given ID, or generates a new UUID if none is provided.
@@ -348,7 +238,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .map_err(|error| match error.current_context().code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => {
                     error.change_context(PrincipalError::PrincipalAlreadyExists {
-                        id: PrincipalId::Team(TeamId::Sub(SubteamId::new(id))),
+                        id: PrincipalId::Team(TeamId::Subteam(SubteamId::new(id))),
                     })
                 }
                 Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
@@ -391,7 +281,8 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     ///
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn is_subteam(&self, id: SubteamId) -> Result<bool, Report<PrincipalError>> {
-        self.is_principal(PrincipalId::Team(TeamId::Sub(id))).await
+        self.is_principal(PrincipalId::Team(TeamId::Subteam(id)))
+            .await
     }
 
     /// Gets a subteam by its ID.
@@ -420,8 +311,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .change_context(PrincipalError::StoreError)?
             .map_ok(|row| match row.get(1) {
                 PrincipalType::Web => TeamId::Web(OwnedById::new(row.get(0))),
-                PrincipalType::Team => TeamId::Standalone(StandaloneTeamId::new(row.get(0))),
-                PrincipalType::Subteam => TeamId::Sub(SubteamId::new(row.get(0))),
+                PrincipalType::Subteam => TeamId::Subteam(SubteamId::new(row.get(0))),
                 other => unreachable!("Unexpected team type: {other:?}"),
             })
             .try_collect::<Vec<_>>()
@@ -449,7 +339,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn delete_subteam(&mut self, id: SubteamId) -> Result<(), Report<PrincipalError>> {
-        self.delete_principal(PrincipalId::Team(TeamId::Sub(id)))
+        self.delete_principal(PrincipalId::Team(TeamId::Subteam(id)))
             .await
     }
 
@@ -708,12 +598,8 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     ) -> Result<RoleId, Report<PrincipalError>> {
         let role_id = id.unwrap_or_else(Uuid::new_v4);
         let (role_id, principal_type) = match team_id {
-            TeamId::Standalone(_) => (
-                RoleId::Standalone(StandaloneTeamRoleId::new(role_id)),
-                PrincipalType::Role,
-            ),
             TeamId::Web(_) => (RoleId::Web(WebRoleId::new(role_id)), PrincipalType::WebRole),
-            TeamId::Sub(_) => (
+            TeamId::Subteam(_) => (
                 RoleId::Subteam(SubteamRoleId::new(role_id)),
                 PrincipalType::SubteamRole,
             ),
@@ -777,17 +663,13 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                 let role_id: Uuid = row.get(0);
                 let team_id: Uuid = row.get(2);
                 match row.get(1) {
-                    PrincipalType::Role => Role::Standalone(StandaloneTeamRole {
-                        id: StandaloneTeamRoleId::new(role_id),
-                        team_id: StandaloneTeamId::new(team_id),
-                    }),
                     PrincipalType::WebRole => Role::Web(WebRole {
                         id: WebRoleId::new(role_id),
                         web_id: OwnedById::new(team_id),
                     }),
                     PrincipalType::SubteamRole => Role::Subteam(SubteamRole {
                         id: SubteamRoleId::new(role_id),
-                        team_id: SubteamId::new(team_id),
+                        subteam_id: SubteamId::new(team_id),
                     }),
                     other => unreachable!("Unexpected role type: {other:?}"),
                 }
@@ -920,7 +802,6 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
 
             let role_id = match principal_type {
                 PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                PrincipalType::Role => RoleId::Standalone(StandaloneTeamRoleId::new(id)),
                 PrincipalType::SubteamRole => RoleId::Subteam(SubteamRoleId::new(id)),
                 _ => continue, // Skip non-role principal types
             };
@@ -1061,16 +942,12 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                     ))),
 
                     // Teams
-                    PrincipalType::Team => {
-                        PrincipalId::Team(TeamId::Standalone(StandaloneTeamId::new(id)))
-                    }
                     PrincipalType::Web => PrincipalId::Team(TeamId::Web(OwnedById::new(id))),
-                    PrincipalType::Subteam => PrincipalId::Team(TeamId::Sub(SubteamId::new(id))),
+                    PrincipalType::Subteam => {
+                        PrincipalId::Team(TeamId::Subteam(SubteamId::new(id)))
+                    }
 
                     // Roles
-                    PrincipalType::Role => {
-                        PrincipalId::Role(RoleId::Standalone(StandaloneTeamRoleId::new(id)))
-                    }
                     PrincipalType::WebRole => PrincipalId::Role(RoleId::Web(WebRoleId::new(id))),
                     PrincipalType::SubteamRole => {
                         PrincipalId::Role(RoleId::Subteam(SubteamRoleId::new(id)))

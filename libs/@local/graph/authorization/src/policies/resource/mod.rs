@@ -250,10 +250,7 @@ mod tests {
 
     use super::ResourceConstraint;
     use crate::{
-        policies::{
-            Effect, Policy, PolicyId, action::ActionConstraint, principal::PrincipalConstraint,
-            tests::check_policy,
-        },
+        policies::{Effect, Policy, PolicyId, action::ActionConstraint, tests::check_policy},
         test_utils::{check_deserialization_error, check_serialization},
     };
 
@@ -274,7 +271,7 @@ mod tests {
         let policy = Policy {
             id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
-            principal: PrincipalConstraint::Public {},
+            principal: None,
             action: ActionConstraint::All {},
             resource: constraint,
             constraints: None,
@@ -285,9 +282,7 @@ mod tests {
             json!({
                 "id": policy.id,
                 "effect": "permit",
-                "principal": {
-                    "type": "public",
-                },
+                "principal": null,
                 "action": {
                     "type": "all",
                 },

@@ -127,10 +127,8 @@ async fn ai_role_assignment() -> Result<(), Box<dyn Error>> {
     let mut client = db.client().await?;
 
     let ai_id = client.create_ai(None).await?;
-    let team_id = client.create_standalone_team(None).await?;
-    let role_id = client
-        .create_role(None, TeamId::Standalone(team_id))
-        .await?;
+    let web_id = client.create_web(None).await?;
+    let role_id = client.create_role(None, TeamId::Web(web_id)).await?;
 
     let actor_id = ActorId::Ai(AiId::new(ActorEntityUuid::new(EntityUuid::new(
         *ai_id.as_uuid(),

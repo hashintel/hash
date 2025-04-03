@@ -3173,7 +3173,6 @@ dependencies = [
  "cedar-policy-validator",
  "derive-where",
  "derive_more 2.0.1",
- "either",
  "error-stack",
  "futures",
  "futures-core",

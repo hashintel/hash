@@ -47,7 +47,7 @@ $$ LANGUAGE plpgsql;
 -- Principal is the abstract base type for all security principals
 -- It has concrete subtypes: user, machine, ai, team, role
 CREATE TYPE principal_type AS ENUM (
-    'user', 'machine', 'ai', 'team', 'web', 'subteam', 'role', 'web_role', 'subteam_role'
+    'user', 'machine', 'ai', 'web', 'subteam', 'web_role', 'subteam_role'
 );
 CREATE TABLE principal (
     id UUID NOT NULL,
@@ -104,35 +104,22 @@ FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, al
 EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- ==========================================
--- TEAM TABLE - ALSO A PRINCIPAL
+-- TEAM TABLE - INTERMEDIATE LEVEL
 -- ==========================================
 
 -- Team is a concrete principal that represents a group of users/machines
--- It can be instantiated directly (standalone teams) or extended (web, subteam)
 CREATE TABLE team (
     id UUID PRIMARY KEY,
     principal_type PRINCIPAL_TYPE NOT NULL,
     FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
-    CHECK (principal_type IN ('team', 'web', 'subteam'))
+    CHECK (principal_type IN ('web', 'subteam'))
 );
 
--- Function to ensure direct team creation only sets standalone type
-CREATE FUNCTION enforce_direct_team_creation()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- When creating a team directly, only allow standalone type
-    IF NEW.principal_type != 'team' THEN
-        RAISE EXCEPTION 'Direct team creation can only use principal_type = ''team''. Use web or subteam tables for specialized types.';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger to enforce direct team creation only uses standalone type
-CREATE TRIGGER enforce_direct_team_creation_trigger
-BEFORE INSERT OR UPDATE ON team
-FOR EACH ROW WHEN (pg_trigger_depth() = 0) -- Only enforce when manipulated directly
-EXECUTE FUNCTION enforce_direct_team_creation();
+-- Prevent direct operations on team (abstract) table
+CREATE TRIGGER prevent_team_modification
+BEFORE INSERT OR UPDATE OR DELETE ON team
+FOR EACH ROW WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION prevent_direct_modification();
 
 -- Create a trigger to automatically create a principal record when a team is created
 CREATE FUNCTION register_team()
@@ -341,7 +328,7 @@ CREATE TABLE role (
     team_id UUID NOT NULL REFERENCES team (id) ON DELETE CASCADE,
     PRIMARY KEY (id, principal_type),
     FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
-    CHECK (principal_type IN ('role', 'web_role', 'subteam_role'))
+    CHECK (principal_type IN ('web_role', 'subteam_role'))
 );
 
 CREATE UNIQUE INDEX idx_role_id ON role (id);
