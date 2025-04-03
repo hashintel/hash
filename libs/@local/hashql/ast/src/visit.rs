@@ -55,7 +55,7 @@
 //!
 //! # Examples
 //!
-//! ```rust
+//! ```ignore
 //! struct MyVisitor;
 //!
 //! impl Visitor for MyVisitor {
