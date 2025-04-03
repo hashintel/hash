@@ -93,22 +93,16 @@ fn parse_literal<'heap>(
         TokenKind::Number(number) => {
             if number.has_fraction() {
                 LiteralKind::Float(FloatLiteral {
-                    id: NodeId::PLACEHOLDER,
-                    span,
                     value: Symbol::new(number.as_str()),
                 })
             } else {
                 LiteralKind::Integer(IntegerLiteral {
-                    id: NodeId::PLACEHOLDER,
-                    span,
                     value: Symbol::new(number.as_str()),
                 })
             }
         }
         TokenKind::Bool(value) => LiteralKind::Boolean(value),
         TokenKind::String(value) => LiteralKind::String(StringLiteral {
-            id: NodeId::PLACEHOLDER,
-            span,
             value: Symbol::new(value),
         }),
         kind => {

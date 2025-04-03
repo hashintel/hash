@@ -96,8 +96,6 @@ fn parse_dict_object<'heap, 'source>(
                 id: NodeId::PLACEHOLDER,
                 span: key_span_id,
                 kind: LiteralKind::String(StringLiteral {
-                    id: NodeId::PLACEHOLDER,
-                    span: key_span_id,
                     value: Symbol::new(key.value),
                 }),
                 r#type: None,

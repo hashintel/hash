@@ -1,6 +1,4 @@
-use hashql_core::{span::SpanId, symbol::Symbol};
-
-use crate::node::id::NodeId;
+use hashql_core::symbol::Symbol;
 
 /// A literal representation of a string value.
 ///
@@ -25,9 +23,6 @@ use crate::node::id::NodeId;
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StringLiteral {
-    pub id: NodeId,
-    pub span: SpanId,
-
     pub value: Symbol,
 }
 
