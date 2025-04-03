@@ -60,7 +60,7 @@
     "@rollup/plugin-node-resolve": "16.0.1",
     "@rollup/plugin-typescript": "12.1.2",
     "@rollup/plugin-wasm": "6.2.2",
-    "@types/node": "22.13.14",
+    "@types/node": "22.14.0",
     "@types/react": "19.0.12",
     "@vitest/coverage-istanbul": "3.1.1",
     "eslint": "9.20.1",
