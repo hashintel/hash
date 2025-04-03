@@ -10,16 +10,17 @@ use text_size::TextRange;
 
 use super::{
     ObjectState, State,
+    error::literal_expected_primitive,
     r#type::{TypeNode, handle_typed},
     visit::Key,
 };
 use crate::{
     ParserState,
     error::ResultExt as _,
-    lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet, token_kind::TokenKind},
+    lexer::{syntax_kind_set::SyntaxKindSet, token_kind::TokenKind},
     parser::{
-        error::{ParserDiagnostic, ParserDiagnosticCategory, unexpected_token},
-        object::error::ObjectDiagnosticCategory,
+        error::{ParserDiagnostic, ParserDiagnosticCategory},
+        state::Expected,
     },
 };
 
@@ -79,8 +80,10 @@ impl<'heap> State<'heap> for LiteralNode<'heap> {
 fn parse_literal<'heap>(
     state: &mut ParserState<'heap, '_>,
 ) -> Result<LiteralExpr<'heap>, ParserDiagnostic> {
+    // We do not use the `expected` of advance here, so that we're able to give the user a better
+    // error message.
     let token = state
-        .advance()
+        .advance(Expected::hint(SyntaxKindSet::VALUE))
         .change_category(ParserDiagnosticCategory::Lexer)?;
 
     let span = state.insert_range(token.span);
@@ -108,19 +111,8 @@ fn parse_literal<'heap>(
             span,
             value: Symbol::new(value),
         }),
-        _ => {
-            return Err(unexpected_token(
-                span,
-                ObjectDiagnosticCategory::InvalidLiteral,
-                SyntaxKindSet::from_slice(&[
-                    SyntaxKind::Null,
-                    SyntaxKind::Number,
-                    SyntaxKind::True,
-                    SyntaxKind::False,
-                    SyntaxKind::String,
-                ]),
-            )
-            .map_category(From::from));
+        kind => {
+            return Err(literal_expected_primitive(span, kind.syntax()).map_category(From::from));
         }
     };
 
@@ -154,6 +146,18 @@ mod tests {
             description => "Parses a simple string literal"
         }, {
             assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_incomplete() {
+        let result = parse_object_expr(r##"{"#literal": "##)
+            .expect_err("should not parse incomplete literal");
+
+        with_settings!({
+            description => "Parses with a sudden EOF"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.diagnostic, &result.input);
         });
     }
 

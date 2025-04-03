@@ -6,18 +6,16 @@ use text_size::TextRange;
 
 use super::{
     ObjectState, State,
-    error::ObjectDiagnosticCategory,
+    error::tuple_expected_array,
     r#type::{TypeNode, handle_typed},
     visit::Key,
 };
 use crate::{
     ParserState,
     error::ResultExt as _,
-    lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
+    lexer::syntax_kind::SyntaxKind,
     parser::{
-        array::visit::visit_array,
-        error::{ParserDiagnostic, unexpected_token},
-        expr::parse_expr,
+        array::visit::visit_array, error::ParserDiagnostic, expr::parse_expr, state::Expected,
     },
 };
 
@@ -76,15 +74,17 @@ impl<'heap> State<'heap> for TupleNode<'heap> {
 fn parse_tuple<'heap>(
     state: &mut ParserState<'heap, '_>,
 ) -> Result<TupleExpr<'heap>, ParserDiagnostic> {
-    let token = state.advance().change_category(From::from)?;
+    // We do not use the `expected` of advance here, so that we're able to give the user a better
+    // error message.
+    let token = state
+        .advance(Expected::hint(SyntaxKind::LBracket))
+        .change_category(From::from)?;
 
     if token.kind.syntax() != SyntaxKind::LBracket {
-        return Err(unexpected_token(
-            state.insert_range(token.span),
-            ObjectDiagnosticCategory::TupleExpectedArray,
-            SyntaxKindSet::from_slice(&[SyntaxKind::LBracket]),
-        )
-        .map_category(From::from));
+        return Err(
+            tuple_expected_array(state.insert_range(token.span), token.kind.syntax())
+                .map_category(From::from),
+        );
     }
 
     let mut elements = Vec::new();
@@ -132,6 +132,19 @@ mod tests {
             description => "Parses an empty tuple"
         }, {
             assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_tuple_incomplete() {
+        // Empty tuple with object format
+        let result =
+            parse_object_expr(r##"{"#tuple": "##).expect_err("should not parse incomplete tuple");
+
+        with_settings!({
+            description => "Parses with a sudden EOF"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.diagnostic, &result.input);
         });
     }
 

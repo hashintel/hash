@@ -48,8 +48,7 @@ pub(crate) macro bind_parser(fn $name:ident($parser:ident, $expected:expr)) {
         bind_context!(let context = input);
         bind_state!(let mut state from context);
 
-        let token = state.advance().expect("should have at least one token");
-        assert_eq!(token.kind.syntax(), $expected);
+        let token = state.advance($expected).expect("should have at least one token");
 
         match $parser(&mut state, token) {
             Ok(expr) => Ok(ParseTestOk {

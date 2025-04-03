@@ -55,7 +55,9 @@ fn parse_labelled_argument<'heap>(
         return Ok(None);
     }
 
-    let token = state.advance().change_category(From::from)?;
+    let token = state
+        .advance(SyntaxKind::LBrace)
+        .change_category(From::from)?;
 
     let mut labeled_arguments = Vec::new();
 

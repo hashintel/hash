@@ -15,11 +15,6 @@ use crate::{lexer::error::LexerDiagnosticCategory, span::Span};
 
 pub(crate) type ArrayDiagnostic = Diagnostic<ArrayDiagnosticCategory, SpanId>;
 
-const EXPECTED_SEPARATOR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "expected-separator",
-    name: "Expected array separator (comma) or closing bracket",
-};
-
 const LEADING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "leading-comma",
     name: "Unexpected leading comma in array",
@@ -54,7 +49,6 @@ const LABELED_ARGUMENT_INVALID_IDENTIFIER: TerminalDiagnosticCategory =
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ArrayDiagnosticCategory {
     Lexer(LexerDiagnosticCategory),
-    ExpectedSeparator,
     LeadingComma,
     TrailingComma,
     ConsecutiveComma,
@@ -81,7 +75,6 @@ impl DiagnosticCategory for ArrayDiagnosticCategory {
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
             Self::Lexer(category) => Some(category),
-            Self::ExpectedSeparator => Some(&EXPECTED_SEPARATOR),
             Self::LeadingComma => Some(&LEADING_COMMA),
             Self::TrailingComma => Some(&TRAILING_COMMA),
             Self::ConsecutiveComma => Some(&CONSECUTIVE_COMMA),

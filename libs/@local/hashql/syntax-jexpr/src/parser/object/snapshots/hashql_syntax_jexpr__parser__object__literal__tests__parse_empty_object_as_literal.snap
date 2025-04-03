@@ -8,7 +8,7 @@ expression: "{}"
    │
  1 │ {}
    │ ─┬  
-   │  ╰── Empty object not allowed
+   │  ╰── Add required fields to this object
    │ 
    │ Help: J-Expr objects must contain at least one key-value pair with a specific structure. For example: `{"#literal": 42}` or `{"#struct": {"name": {"#literal": "value"}}}`
    │ 

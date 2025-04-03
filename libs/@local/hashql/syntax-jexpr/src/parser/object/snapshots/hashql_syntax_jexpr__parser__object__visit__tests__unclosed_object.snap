@@ -10,5 +10,5 @@ expression: "{\"a\": 1"
    │        │ 
    │        ╰─ Unexpected end of file
    │ 
-   │ Help: Make sure all expressions, brackets, and string literals are properly closed
+   │ Help: Missing closing bracket. Make sure all opening brackets have matching closing brackets.
 ───╯

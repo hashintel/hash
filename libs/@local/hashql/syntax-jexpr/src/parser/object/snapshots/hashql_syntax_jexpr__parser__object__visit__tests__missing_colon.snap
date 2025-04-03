@@ -3,12 +3,12 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/visit.rs
 description: Object with missing colon should fail
 expression: "{\"a\" 1}"
 ---
-[31m[object::expected-colon] Error:[0m Object
+[31m[lexer::lexer::unexpected-token] Error:[0m Lexer
    ╭─[ <unknown>:1:6 ]
    │
  1 │ {"a" 1}
    │      ┬  
-   │      ╰── Unexpected token
+   │      ╰── Unexpected number, expected `:`
    │ 
-   │ Help: Expected `:` at this position
+   │ Help: Check your JSON syntax. Make sure brackets are balanced and all required punctuation is present.
 ───╯

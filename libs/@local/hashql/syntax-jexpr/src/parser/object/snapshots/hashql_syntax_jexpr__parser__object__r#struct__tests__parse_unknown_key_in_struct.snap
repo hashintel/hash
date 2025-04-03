@@ -8,7 +8,7 @@ expression: "{\"#struct\": {}, \"unknown\": {\"#literal\": \"value\"}}"
    │
  1 │ {"#struct": {}, "unknown": {"#literal": "value"}}
    │                 ────┬────  
-   │                     ╰────── Unrecognized key `unknown`
+   │                     ╰────── Replace `unknown` with a valid key
    │ 
    │ Help: This J-Expr object only accepts these specific keys: `#type`
 ───╯
