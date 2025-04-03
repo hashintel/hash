@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Comment in the middle should be skipped
+expression: "42\n// This is a comment\n42"
+---
+42 42

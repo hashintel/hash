@@ -278,6 +278,16 @@ mod test {
             "JSON with already-escaped characters",
         escaped_controls(r#""\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007""#) =>
             "String with escaped control characters",
+
+        // JSONC
+        preceded_comment("// This is a comment\n42") => "Comment at the beginning should be skipped",
+        trailing_comment("42\n// This is a comment") => "Comment at the end should be skipped",
+        separated_comment("42\n// This is a comment\n42") => "Comment in the middle should be skipped",
+        adjacent_comment("42 // This is a comment\n42") => "Comment after element should be skipped",
+        adjacent_comment_no_space("42//This is a comment\n42") => "Comment after element without space",
+        empty_comment("42\n//\n42") => "Empty comment should be skipped",
+        comment_json_inside(r#"//"{"key": "value"}""#) => "JSON inside comment",
+        comment_no_space_between("//abc") => "JSON inside comment without space",
     }
 
     test_cases_fail! {

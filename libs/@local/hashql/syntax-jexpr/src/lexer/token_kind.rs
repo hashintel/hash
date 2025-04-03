@@ -11,6 +11,7 @@ use crate::lexer::parse::{parse_number, parse_string};
 #[logos(error = LexerError)]
 #[logos(source = [u8])]
 #[logos(skip r"[ \t\r\n\f]+")]
+#[logos(skip r"//[^\n]*")]
 pub(crate) enum TokenKind<'source> {
     #[token("false", |_| false)]
     #[token("true", |_| true)]
