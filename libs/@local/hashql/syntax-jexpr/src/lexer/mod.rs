@@ -342,6 +342,7 @@ mod test {
 
         // JSONC
         unclosed_multiline_comment("/* This comment never ends") => "Unclosed multi-line comment",
+        multiline_comment_too_smol("/*/") => "Multi-line comment is missing closing *",
     }
 
     #[test]
