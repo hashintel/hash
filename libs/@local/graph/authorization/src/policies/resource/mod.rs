@@ -229,7 +229,7 @@ mod tests {
 
     use super::ResourceConstraint;
     use crate::{
-        policies::{Effect, Policy, action::ActionName, tests::check_policy},
+        policies::{Effect, Policy, PolicyId, action::ActionName, tests::check_policy},
         test_utils::{check_deserialization_error, check_serialization},
     };
 
@@ -249,6 +249,7 @@ mod tests {
         ResourceConstraint::try_from_cedar(&cedar_constraint, &resource_expr)?;
 
         let policy = Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: None,
             actions: vec![ActionName::All],

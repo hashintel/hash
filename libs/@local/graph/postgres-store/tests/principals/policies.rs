@@ -179,6 +179,7 @@ async fn setup_policy_test_environment(
     // 1. Global policies (no principal constraint)
     let global_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: None,
             actions: vec![ActionName::All],
@@ -190,6 +191,7 @@ async fn setup_policy_test_environment(
     // 2. Actor type specific policies
     let user_type_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::ActorType {
                 actor_type: ActorType::User,
@@ -202,6 +204,7 @@ async fn setup_policy_test_environment(
 
     let machine_type_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::ActorType {
                 actor_type: ActorType::Machine,
@@ -215,6 +218,7 @@ async fn setup_policy_test_environment(
     // 3. Specific actor policies
     let user1_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::Actor {
                 actor: ActorId::User(user1_id),
@@ -228,6 +232,7 @@ async fn setup_policy_test_environment(
     // 4. Role-based policies
     let web1_role_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::Role {
                 role: web_1_role_id,
@@ -242,6 +247,7 @@ async fn setup_policy_test_environment(
     // 5. Team-based policies
     let subteam1_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::Team {
                 team: TeamId::Subteam(subteam_1_id),
@@ -256,6 +262,7 @@ async fn setup_policy_test_environment(
     // 6. Role with actor type constraint
     let web2_role_user_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::Role {
                 role: web_2_role_id,
@@ -270,6 +277,7 @@ async fn setup_policy_test_environment(
     // 7. Deny policies for testing priority
     let deny_user1_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Forbid,
             principal: Some(PrincipalConstraint::Actor {
                 actor: ActorId::User(user1_id),
@@ -678,6 +686,7 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
     // Create a policy with resource constraints
     let resource_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::Actor {
                 actor: ActorId::User(user_id),
@@ -745,6 +754,7 @@ async fn multiple_actor_roles() -> Result<(), Box<dyn Error>> {
     // Create policies for each role
     let policy1_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::Role {
                 role: role1_id,
@@ -758,6 +768,7 @@ async fn multiple_actor_roles() -> Result<(), Box<dyn Error>> {
 
     let policy2_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::Role {
                 role: role2_id,
@@ -771,6 +782,7 @@ async fn multiple_actor_roles() -> Result<(), Box<dyn Error>> {
 
     let policy3_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::Role {
                 role: role3_id,
@@ -844,6 +856,7 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
     // Create policies
     let web_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::Team {
                 team: TeamId::Web(web_id),
@@ -857,6 +870,7 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
 
     let subteam1_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::Team {
                 team: TeamId::Subteam(subteam1_id),
@@ -870,6 +884,7 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
 
     let subteam5_policy_id = client
         .create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(PrincipalConstraint::Team {
                 team: TeamId::Subteam(subteam5_id),

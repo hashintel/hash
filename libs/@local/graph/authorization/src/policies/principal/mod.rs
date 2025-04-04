@@ -265,10 +265,11 @@ mod tests {
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
+    use uuid::Uuid;
 
     use super::PrincipalConstraint;
     use crate::{
-        policies::{ActionName, Effect, Policy, tests::check_policy},
+        policies::{ActionName, Effect, Policy, PolicyId, tests::check_policy},
         test_utils::check_serialization,
     };
 
@@ -281,6 +282,7 @@ mod tests {
         let cedar_string = cedar_string.as_ref();
 
         let policy = Policy {
+            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(constraint),
             actions: vec![ActionName::All],

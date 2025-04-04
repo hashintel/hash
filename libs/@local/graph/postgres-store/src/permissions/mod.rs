@@ -1357,6 +1357,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                 Ok((
                     policy_id,
                     Policy {
+                        id: policy_id,
                         effect,
                         principal: principal_constraint,
                         actions,

@@ -414,7 +414,6 @@ impl PolicyStore for MemoryPolicyStore {
     }
 
     fn store_policy(&mut self, policy: Policy) -> Result<(), Report<PolicyStoreError>> {
-        let policy_id = PolicyId::new(Uuid::new_v4());
         let principal = policy
             .principal
             .as_ref()
@@ -422,7 +421,7 @@ impl PolicyStore for MemoryPolicyStore {
         self.policies
             .entry(principal)
             .or_default()
-            .insert(policy_id, policy);
+            .insert(policy.id, policy);
 
         Ok(())
     }

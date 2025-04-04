@@ -89,6 +89,7 @@ impl PolicyId {
 #[derive(PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Policy {
+    pub id: PolicyId,
     pub effect: Effect,
     pub principal: Option<PrincipalConstraint>,
     pub actions: Vec<ActionName>,
@@ -190,6 +191,8 @@ impl Request<'_> {
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum InvalidPolicy {
+    #[display("Invalid policy ID")]
+    InvalidPolicyId,
     #[display("Invalid principal constraint")]
     InvalidPrincipalConstraint,
     #[display("Invalid action constraint")]
@@ -205,6 +208,13 @@ impl Policy {
         policy: &ast::StaticPolicy,
     ) -> Result<Self, Report<InvalidPolicy>> {
         Ok(Self {
+            id: PolicyId::new(
+                policy
+                    .id()
+                    .as_ref()
+                    .parse()
+                    .change_context(InvalidPolicy::InvalidPolicyId)?,
+            ),
             effect: match policy.effect() {
                 ast::Effect::Permit => Effect::Permit,
                 ast::Effect::Forbid => Effect::Forbid,
@@ -238,7 +248,7 @@ impl Policy {
             ResourceConstraint::to_cedar,
         );
         ast::Template::new(
-            ast::PolicyID::from_string(Uuid::new_v4().to_string()),
+            ast::PolicyID::from_string(self.id.to_string()),
             None,
             ast::Annotations::new(),
             match self.effect {
@@ -358,8 +368,8 @@ mod tests {
 
         use super::*;
         use crate::policies::{
-            ActionName, Authorized, ContextBuilder, Effect, PartialResourceId, PrincipalConstraint,
-            Request, RequestContext, ResourceConstraint,
+            ActionName, Authorized, ContextBuilder, Effect, PartialResourceId, PolicyId,
+            PrincipalConstraint, Request, RequestContext, ResourceConstraint,
             principal::actor::User,
             resource::{EntityResource, EntityResourceConstraint},
         };
@@ -370,6 +380,7 @@ mod tests {
             let entity_uuid = EntityUuid::new(Uuid::new_v4());
 
             let policy = Policy {
+                id: PolicyId::new(Uuid::new_v4()),
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Actor {
                     actor: ActorId::User(user_id),
