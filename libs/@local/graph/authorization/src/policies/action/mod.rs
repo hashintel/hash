@@ -1,5 +1,7 @@
 use alloc::sync::Arc;
-use core::{error::Error, fmt, str::FromStr};
+#[cfg(feature = "postgres")]
+use core::error::Error;
+use core::{fmt, str::FromStr};
 use std::sync::LazyLock;
 
 #[cfg(feature = "postgres")]
