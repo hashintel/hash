@@ -1,10 +1,13 @@
+#![feature(pattern)]
 use std::{fs, path::PathBuf, thread};
 
 use radix_trie::Trie;
 use snapbox::{dir::Walk, utils::current_dir};
 use toml::Table;
 
+mod annotation;
 mod find;
+mod run;
 mod suite;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
