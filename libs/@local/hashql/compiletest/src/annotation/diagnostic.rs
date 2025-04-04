@@ -2,13 +2,26 @@ use core::str::pattern::{Pattern as _, Searcher as _};
 
 use hashql_diagnostics::severity::Severity;
 
-const SUPPORTED_SEVERITIES: &[&Severity] = &[
+type Severities = [&'static Severity; 5];
+const SUPPORTED_SEVERITIES: Severities = [
     &Severity::CRITICAL,
     &Severity::ERROR,
     &Severity::WARNING,
     &Severity::INFO,
     &Severity::DEBUG,
 ];
+
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+pub(crate) enum DiagnosticParseError {
+    /// No supported severity found in the annotation
+    #[display("missing severity at line {line}, expected one of: {SUPPORTED_SEVERITIES:?}")]
+    MissingSeverity { line: u32 },
+    /// Pipe reference used without a previous diagnostic annotation line
+    #[display("pipe reference at line {line} used without a previous diagnostic annotation line")]
+    MissingPreviousLine { line: u32 },
+}
+
+impl core::error::Error for DiagnosticParseError {}
 
 // expressed as: SEVERITY[category] message
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -22,12 +35,22 @@ pub(crate) struct DiagnosticAnnotation {
 impl DiagnosticAnnotation {
     pub(crate) const MARKER: &str = "//~";
 
+    /// Parses a diagnostic annotation from the given string.
+    ///
+    /// # Errors
+    ///
+    /// - [`MissingSeverity`] if no supported severity is found in the annotation
+    /// - [`MissingPreviousLine`] if a pipe reference is used without a previous diagnostic
+    ///   annotation line
+    ///
+    /// [`MissingSeverity`]: DiagnosticParseError::MissingSeverity
+    /// [`MissingPreviousLine`]: DiagnosticParseError::MissingPreviousLine
     #[expect(clippy::cast_possible_truncation)]
     pub(crate) fn parse(
         mut value: &str,
         current_line: u32,
         previous_diagnostic_annotation_line: Option<u32>,
-    ) -> Option<Self> {
+    ) -> Result<Self, DiagnosticParseError> {
         // Super simple parsing algorithm
         let mut annotation_severity = None;
         let mut annotation_category = None;
@@ -53,7 +76,10 @@ impl DiagnosticAnnotation {
             }
         } else if let Some(next) = value.strip_prefix('|') {
             value = next.trim();
-            Some(previous_diagnostic_annotation_line?)
+            let previous_line = previous_diagnostic_annotation_line
+                .ok_or(DiagnosticParseError::MissingPreviousLine { line: current_line })?;
+
+            Some(previous_line)
         } else if value.starts_with('v') {
             let mut matcher = 'v'.into_searcher(value);
 
@@ -105,9 +131,10 @@ impl DiagnosticAnnotation {
 
         let message = value.trim().to_owned();
 
-        let severity = annotation_severity?;
+        let severity = annotation_severity
+            .ok_or(DiagnosticParseError::MissingSeverity { line: current_line })?;
 
-        Some(Self {
+        Ok(Self {
             severity,
             message,
             category: annotation_category,
@@ -118,12 +145,14 @@ impl DiagnosticAnnotation {
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches::assert_matches;
+
     use super::*;
 
     #[test]
     fn simple_error_annotation() {
         let annotation = DiagnosticAnnotation::parse("ERROR message text", 10, Some(9))
-            .expect("Should successfully parse a simple ERROR annotation");
+            .expect("should successfully parse a simple ERROR annotation");
 
         assert_eq!(
             annotation,
@@ -138,10 +167,10 @@ mod tests {
 
     #[test]
     fn severity_levels() {
-        for &severity in SUPPORTED_SEVERITIES {
+        for &severity in &SUPPORTED_SEVERITIES {
             let input = format!("{} test message", severity.name().to_ascii_uppercase());
             let annotation =
-                DiagnosticAnnotation::parse(&input, 5, Some(4)).expect("Should successfully parse");
+                DiagnosticAnnotation::parse(&input, 5, Some(4)).expect("should successfully parse");
 
             assert_eq!(
                 annotation,
@@ -158,7 +187,7 @@ mod tests {
     #[test]
     fn annotation_with_category() {
         let annotation = DiagnosticAnnotation::parse("ERROR[E001] categorized error", 15, Some(14))
-            .expect("Should successfully parse annotation with category");
+            .expect("should successfully parse annotation with category");
 
         assert_eq!(
             annotation,
@@ -174,7 +203,7 @@ mod tests {
     #[test]
     fn caret_line_reference() {
         let annotation = DiagnosticAnnotation::parse("^^^ERROR missing semicolon", 20, Some(19))
-            .expect("Should successfully parse caret line reference");
+            .expect("should successfully parse caret line reference");
 
         assert_eq!(
             annotation,
@@ -190,7 +219,7 @@ mod tests {
     #[test]
     fn v_line_reference() {
         let annotation = DiagnosticAnnotation::parse("vvvERROR undefined variable", 20, Some(19))
-            .expect("Should successfully parse v line reference");
+            .expect("should successfully parse v line reference");
 
         assert_eq!(
             annotation,
@@ -206,7 +235,7 @@ mod tests {
     #[test]
     fn pipe_previous_line_reference() {
         let annotation = DiagnosticAnnotation::parse("| ERROR previous line error", 10, Some(9))
-            .expect("Should successfully parse pipe line reference");
+            .expect("should successfully parse pipe line reference");
 
         assert_eq!(
             annotation,
@@ -221,18 +250,19 @@ mod tests {
 
     #[test]
     fn pipe_with_no_previous_line() {
-        let annotation = DiagnosticAnnotation::parse("| ERROR no previous line", 10, None);
+        let error = DiagnosticAnnotation::parse("| ERROR no previous line", 10, None)
+            .expect_err("should fail when using pipe without a previous line reference");
 
-        assert!(
-            annotation.is_none(),
-            "Should fail when using pipe without a previous line reference"
+        assert_matches!(
+            error,
+            DiagnosticParseError::MissingPreviousLine { line: 10 }
         );
     }
 
     #[test]
     fn question_mark_unknown_line() {
         let annotation = DiagnosticAnnotation::parse("? WARNING might occur anywhere", 10, Some(9))
-            .expect("Should successfully parse question mark");
+            .expect("should successfully parse question mark");
 
         assert_eq!(
             annotation,
@@ -249,7 +279,7 @@ mod tests {
     fn complex_annotations() {
         let annotation =
             DiagnosticAnnotation::parse("^^ ERROR[E100] complex error description", 15, Some(14))
-                .expect("Should successfully parse complex annotation");
+                .expect("should successfully parse complex annotation");
 
         assert_eq!(
             annotation,
@@ -264,7 +294,7 @@ mod tests {
         // Test another complex case
         let annotation =
             DiagnosticAnnotation::parse("| WARNING[W200] previous line warning", 25, Some(24))
-                .expect("Should successfully parse complex pipe annotation");
+                .expect("should successfully parse complex pipe annotation");
 
         assert_eq!(
             annotation,
@@ -281,7 +311,7 @@ mod tests {
     fn whitespace_handling() {
         let annotation =
             DiagnosticAnnotation::parse("  ERROR   [E001]    spaced   message  ", 10, Some(9))
-                .expect("Should handle extra whitespace");
+                .expect("should handle extra whitespace");
 
         assert_eq!(
             annotation,
@@ -296,19 +326,19 @@ mod tests {
 
     #[test]
     fn unsupported_severity() {
-        let annotation =
-            DiagnosticAnnotation::parse("FAILURE not a supported severity", 10, Some(9));
+        let error = DiagnosticAnnotation::parse("FAILURE not a supported severity", 10, Some(9))
+            .expect_err("should fail to parse unsupported severity");
 
-        assert!(
-            annotation.is_none(),
-            "Should fail to parse unsupported severity"
-        );
+        assert!(matches!(
+            error,
+            DiagnosticParseError::MissingSeverity { line: 10 }
+        ));
     }
 
     #[test]
     fn incomplete_category() {
         let annotation = DiagnosticAnnotation::parse("ERROR[incomplete category", 10, Some(9))
-            .expect("Should parse even with incomplete category");
+            .expect("should parse even with incomplete category");
 
         assert_eq!(
             annotation,
@@ -324,7 +354,7 @@ mod tests {
     #[test]
     fn empty_message() {
         let annotation = DiagnosticAnnotation::parse("ERROR", 10, Some(9))
-            .expect("Should parse annotation with empty message");
+            .expect("should parse annotation with empty message");
 
         assert_eq!(
             annotation,
@@ -340,7 +370,7 @@ mod tests {
     #[test]
     fn empty_category() {
         let annotation = DiagnosticAnnotation::parse("ERROR[] empty category", 10, Some(9))
-            .expect("Should parse annotation with empty category");
+            .expect("should parse annotation with empty category");
 
         assert_eq!(
             annotation,

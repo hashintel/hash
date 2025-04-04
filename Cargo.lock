@@ -3760,6 +3760,7 @@ version = "0.0.0"
 dependencies = [
  "cargo_metadata",
  "clap",
+ "derive_more 2.0.1",
  "hashql-ast",
  "hashql-core",
  "hashql-diagnostics",

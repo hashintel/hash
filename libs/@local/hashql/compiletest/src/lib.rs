@@ -1,4 +1,4 @@
-#![feature(pattern)]
+#![feature(pattern, assert_matches)]
 use std::{fs, path::PathBuf, thread};
 
 use radix_trie::Trie;

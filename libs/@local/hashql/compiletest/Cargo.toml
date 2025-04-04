@@ -16,6 +16,7 @@ cargo_metadata.workspace = true
 
 # Private third-party dependencies
 clap                         = { workspace = true, features = ["derive", "env"] }
+derive_more                  = { workspace = true, features = ["display"] }
 hashql-ast.workspace         = true
 hashql-core.workspace        = true
 hashql-diagnostics.workspace = true
