@@ -9,7 +9,7 @@ impl Suite for ParseSyntaxDumpSuite {
         "parse/syntax-dump"
     }
 
-    fn run(&self, expr: &Expr, _: &mut Vec<SuiteDiagnostic>) -> Result<String, SuiteDiagnostic> {
+    fn run(&self, expr: Expr<'_>, _: &mut Vec<SuiteDiagnostic>) -> Result<String, SuiteDiagnostic> {
         Ok(expr.syntax_dump_to_string())
     }
 }

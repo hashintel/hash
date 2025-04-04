@@ -13,7 +13,7 @@ pub(crate) trait Suite: Send + Sync + 'static {
 
     fn run(
         &self,
-        expr: &Expr,
+        expr: Expr<'_>,
         diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic>;
 }
