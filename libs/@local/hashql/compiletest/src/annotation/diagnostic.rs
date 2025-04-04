@@ -14,11 +14,11 @@ const SUPPORTED_SEVERITIES: Severities = [
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
 pub(crate) enum DiagnosticParseError {
     /// No supported severity found in the annotation
-    #[display("missing severity at line {line}, expected one of: {SUPPORTED_SEVERITIES:?}")]
-    MissingSeverity { line: u32 },
+    #[display("missing severity, expected one of: {SUPPORTED_SEVERITIES:?}")]
+    MissingSeverity,
     /// Pipe reference used without a previous diagnostic annotation line
-    #[display("pipe reference at line {line} used without a previous diagnostic annotation line")]
-    MissingPreviousLine { line: u32 },
+    #[display("pipe reference used without a previous diagnostic annotation line")]
+    MissingPreviousLine,
 }
 
 impl core::error::Error for DiagnosticParseError {}
@@ -77,7 +77,7 @@ impl DiagnosticAnnotation {
         } else if let Some(next) = value.strip_prefix('|') {
             value = next.trim();
             let previous_line = previous_diagnostic_annotation_line
-                .ok_or(DiagnosticParseError::MissingPreviousLine { line: current_line })?;
+                .ok_or(DiagnosticParseError::MissingPreviousLine)?;
 
             Some(previous_line)
         } else if value.starts_with('v') {
@@ -131,8 +131,7 @@ impl DiagnosticAnnotation {
 
         let message = value.trim().to_owned();
 
-        let severity = annotation_severity
-            .ok_or(DiagnosticParseError::MissingSeverity { line: current_line })?;
+        let severity = annotation_severity.ok_or(DiagnosticParseError::MissingSeverity)?;
 
         Ok(Self {
             severity,
@@ -253,10 +252,7 @@ mod tests {
         let error = DiagnosticAnnotation::parse("| ERROR no previous line", 10, None)
             .expect_err("should fail when using pipe without a previous line reference");
 
-        assert_matches!(
-            error,
-            DiagnosticParseError::MissingPreviousLine { line: 10 }
-        );
+        assert_matches!(error, DiagnosticParseError::MissingPreviousLine);
     }
 
     #[test]
@@ -329,10 +325,7 @@ mod tests {
         let error = DiagnosticAnnotation::parse("FAILURE not a supported severity", 10, Some(9))
             .expect_err("should fail to parse unsupported severity");
 
-        assert!(matches!(
-            error,
-            DiagnosticParseError::MissingSeverity { line: 10 }
-        ));
+        assert_matches!(error, DiagnosticParseError::MissingSeverity);
     }
 
     #[test]
