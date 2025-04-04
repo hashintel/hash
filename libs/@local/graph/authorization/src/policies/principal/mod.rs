@@ -299,6 +299,7 @@ mod tests {
         check_policy(
             &policy,
             json!({
+                "id": policy.id,
                 "effect": "permit",
                 "principal": &value,
                 "actions": ["all"],
