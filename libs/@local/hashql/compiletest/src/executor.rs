@@ -182,19 +182,19 @@ impl Trial {
         // We're not at a place where we can no longer just `?` to fail
         let result = self.suite.run(expr, &mut diagnostics);
 
-        let stdout_file = self.path.with_extension("stdout");
-        let stderr_file = self.path.with_extension("stderr");
-
         let received_stdout = result.as_ref().ok().cloned();
 
-        let received_stderr = match result {
-            Ok(_) => render_stderr(&source, &spans, diagnostics)?,
-            Err(error) => render_stderr(
-                &source,
-                &spans,
-                diagnostics.into_iter().chain(iter::once(error)),
-            )?,
+        let diagnostics = match result {
+            Ok(_) => diagnostics,
+            Err(error) => diagnostics.into_iter().chain(iter::once(error)).collect(),
         };
+
+        // Check that all annotations are fulfilled
+
+        let received_stderr = render_stderr(&source, &spans, diagnostics)?;
+
+        let stdout_file = self.path.with_extension("stdout");
+        let stderr_file = self.path.with_extension("stderr");
 
         if context.bless {
             match received_stdout {

@@ -1,6 +1,11 @@
 use core::str::pattern::{Pattern as _, Searcher as _};
 
-use hashql_diagnostics::severity::Severity;
+use hashql_diagnostics::{
+    Diagnostic, category::DiagnosticCategory, help::Help, note::Note, severity::Severity,
+    span::DiagnosticSpan,
+};
+use line_index::{LineCol, LineIndex};
+use snapbox::Assert;
 
 type Severities = [&'static Severity; 5];
 const SUPPORTED_SEVERITIES: Severities = [
@@ -139,6 +144,85 @@ impl DiagnosticAnnotation {
             category: annotation_category,
             line: annotation_line_number,
         })
+    }
+
+    pub(crate) fn matches<'a, C>(
+        &self,
+        index: &LineIndex,
+        diagnostics: impl IntoIterator<Item = &'a Diagnostic<C, DiagnosticSpan>>,
+    ) -> Result<(), DiagnosticAssert>
+    where
+        C: DiagnosticCategory + 'a,
+    {
+        // TODO: error out if there is a diagnostic that does not have a match
+        // TODO: redesign this
+
+        let Some(line) = self.line else {
+            // TODO: time to find if there is any diagnostic that is applicable
+            todo!()
+        };
+
+        // first find if there's a diagnostic that is applicable, to do so we need to find if there
+        // is any label that is on said line
+        for diagnostic in diagnostics {
+            let labels: Vec<_> = diagnostic
+                .labels
+                .iter()
+                .filter(|label| {
+                    let span = label.span();
+                    let range = span.range;
+
+                    let LineCol {
+                        line: start_line,
+                        col: _,
+                    } = index.line_col(range.start());
+                    let LineCol {
+                        line: end_line,
+                        col: _,
+                    } = index.line_col(range.end());
+
+                    start_line == line && end_line == line
+                })
+                .collect();
+
+            if labels.is_empty() {
+                continue;
+            }
+
+            // We look at the following places to see if there's a match. We do by simply creating a
+            // big string that has everything in it:
+            // 1) the canonical name of the category
+            // 2) the help
+            // 3) the note
+            // 4) the labels that matched
+            let canonical_name =
+                hashql_diagnostics::category::canonical_name(&diagnostic.category).to_string();
+
+            if canonical_name.contains(&self.message) {
+                return Ok(());
+            }
+
+            if let Some(help) = diagnostic.help.as_ref().map(Help::message) {
+                if help.contains(&self.message) {
+                    return Ok(());
+                }
+            }
+
+            if let Some(note) = diagnostic.note.as_ref().map(Note::message) {
+                if note.contains(&self.message) {
+                    return Ok(());
+                }
+            }
+
+            let labels = labels.into_iter().map(|label| label.message());
+            for label in labels {
+                if label.contains(&self.message) {
+                    return Ok(());
+                }
+            }
+        }
+
+        todo!("error for no match")
     }
 }
 

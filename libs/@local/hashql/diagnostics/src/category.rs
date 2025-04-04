@@ -28,6 +28,13 @@ where
     }
 }
 
+pub fn canonical_id<C>(category: &C) -> impl Display
+where
+    C: DiagnosticCategory,
+{
+    CanonicalDiagnosticCategoryId(category)
+}
+
 pub(crate) struct CanonicalDiagnosticCategoryName<C>(C);
 
 impl<C> CanonicalDiagnosticCategoryName<C> {
@@ -53,6 +60,13 @@ where
 
         Ok(())
     }
+}
+
+pub fn canonical_name<C>(category: &C) -> impl Display
+where
+    C: DiagnosticCategory,
+{
+    CanonicalDiagnosticCategoryName(category)
 }
 
 pub trait DiagnosticCategory {

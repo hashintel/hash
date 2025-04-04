@@ -3680,6 +3680,7 @@ dependencies = [
  "hashql-core",
  "hashql-diagnostics",
  "hashql-syntax-jexpr",
+ "line-index",
  "nextest-filtering",
  "nextest-metadata",
  "prodash",
@@ -4996,6 +4997,16 @@ dependencies = [
  "bitflags 2.8.0",
  "libc",
  "redox_syscall",
+]
+
+[[package]]
+name = "line-index"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e27e0ed5a392a7f5ba0b3808a2afccff16c64933312c84b57618b49d1209bd2"
+dependencies = [
+ "nohash-hasher",
+ "text-size",
 ]
 
 [[package]]

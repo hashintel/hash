@@ -23,6 +23,7 @@ ariadne            = { workspace = true }
 clap               = { workspace = true, features = ["derive", "env"] }
 derive_more        = { workspace = true, features = ["display"] }
 guppy              = "0.17.17"
+line-index         = "0.1.2"
 nextest-filtering  = "0.15.0"
 nextest-metadata   = "0.12.2"
 prodash            = "29.0.1"
