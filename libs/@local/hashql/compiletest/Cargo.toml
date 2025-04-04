@@ -19,21 +19,22 @@ hashql-diagnostics  = { workspace = true }
 hashql-syntax-jexpr = { workspace = true }
 
 # Private third-party dependencies
-ariadne            = { workspace = true }
-clap               = { workspace = true, features = ["derive", "env"] }
-derive_more        = { workspace = true, features = ["display"] }
-guppy              = "0.17.17"
-line-index         = "0.1.2"
-nextest-filtering  = "0.15.0"
-nextest-metadata   = "0.12.2"
-prodash            = "29.0.1"
-radix_trie         = "0.2.1"
-rayon              = "1.10.0"
-serde.workspace    = true
-snapbox            = { version = "0.6.21", features = ["dir"] }
-toml               = "0.8.20"
-tracing            = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["env-filter"] }
+ariadne                   = { workspace = true }
+clap                      = { workspace = true, features = ["derive", "env"] }
+derive_more               = { workspace = true, features = ["display"] }
+guppy                     = "0.17.17"
+line-index                = "0.1.2"
+nextest-filtering         = "0.15.0"
+nextest-metadata          = "0.12.2"
+prodash                   = "29.0.1"
+radix_trie                = "0.2.1"
+rayon                     = "1.10.0"
+serde.workspace           = true
+similar-asserts.workspace = true
+snapbox                   = { version = "0.6.21", features = ["dir"] }
+toml                      = "0.8.20"
+tracing                   = { workspace = true }
+tracing-subscriber        = { workspace = true, features = ["env-filter"] }
 
 [lints]
 workspace = true

@@ -3687,6 +3687,7 @@ dependencies = [
  "radix_trie",
  "rayon",
  "serde",
+ "similar-asserts",
  "snapbox",
  "toml",
  "tracing",

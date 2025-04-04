@@ -8,23 +8,25 @@ use std::{
 };
 
 use ariadne::Source;
-use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _, TryReportTupleExt};
+use error_stack::{
+    Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, TryReportTupleExt,
+};
 use guppy::{
     PackageId,
     graph::{DependencyDirection, PackageGraph, cargo::BuildPlatform},
 };
-use hashql_ast::heap::Heap;
-use hashql_core::span::{Span, SpanId, storage::SpanStorage};
+use hashql_ast::{heap::Heap, node::expr::Expr};
+use hashql_core::span::{SpanId, storage::SpanStorage};
 use hashql_diagnostics::{
     Diagnostic, category::DiagnosticCategory, config::ReportConfig, span::DiagnosticSpan,
 };
-use hashql_syntax_jexpr::Parser;
+use hashql_syntax_jexpr::{Parser, span::Span};
 use nextest_filtering::{
     BinaryQuery, CompiledExpr, EvalContext, Filterset, FiltersetKind, ParseContext, TestQuery,
 };
 use nextest_metadata::{RustBinaryId, RustTestBinaryKind};
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
-use snapbox::{Assert, Data};
+use similar_asserts::SimpleDiff;
 
 use crate::{
     FileAnnotations, Suite, TestCase, TestGroup, annotation::directive::RunMode, suite::suite,
@@ -40,10 +42,10 @@ pub(crate) enum TrialError {
     Annotations,
     #[display("failed to parse jexpr")]
     JExpr,
-    #[display("stdout mismatch")]
-    StdoutMismatch,
-    #[display("stderr mismatch")]
-    StderrMismatch,
+    #[display("{_0}")]
+    StdoutMismatch(String),
+    #[display("{_0}")]
+    StderrMismatch(String),
     #[display("assertion failed")]
     Assert,
 }
@@ -57,7 +59,7 @@ fn render_diagnostic<C, S>(
 ) -> Result<String, Report<TrialError>>
 where
     C: DiagnosticCategory,
-    S: Span + Clone,
+    S: hashql_core::span::Span + Clone,
     DiagnosticSpan: for<'s> From<&'s S>,
 {
     let resolved = diagnostic
@@ -87,7 +89,7 @@ fn render_stderr<C, S>(
 ) -> Result<Option<String>, Report<TrialError>>
 where
     C: DiagnosticCategory,
-    S: Span + Clone,
+    S: hashql_core::span::Span + Clone,
     DiagnosticSpan: for<'s> From<&'s S>,
 {
     let mut output = Vec::new();
@@ -156,107 +158,162 @@ impl Trial {
             return Ok(());
         }
 
+        let heap = Heap::new();
+
+        let (source, annotations) = self.load_and_parse_source()?;
+
+        let (expr, spans) = self.parse_jexpr(&source, &heap)?;
+
+        let (received_stdout, diagnostics) = self.run_suite(expr)?;
+
+        let received_stderr = render_stderr(&source, &spans, diagnostics)?;
+
+        if context.bless {
+            self.bless_outputs(&received_stdout, &received_stderr)?;
+        } else {
+            self.assert_outputs(received_stdout, received_stderr)?;
+        }
+
+        Ok(())
+    }
+
+    fn load_and_parse_source(&self) -> Result<(String, FileAnnotations), Report<TrialError>> {
         let source = fs::read_to_string(&self.path).change_context(TrialError::Io)?;
         let cursor = Cursor::new(source.as_str());
 
-        // Actually load the diagnostics
         let mut annotations = self.annotations.clone();
         annotations
             .parse_file(cursor, true)
             .change_context(TrialError::Annotations)?;
 
-        // Parse the content with J-Expr
-        let heap = Heap::new();
-        let spans = Arc::new(SpanStorage::new());
-        let parser = Parser::new(&heap, Arc::clone(&spans));
+        Ok((source, annotations))
+    }
 
-        // Failing with `?` here is fine, as it suggests that the test itself is invalid J-Expr.
+    // Parse source with J-Expr
+    fn parse_jexpr<'heap>(
+        &self,
+        source: &str,
+        heap: &'heap Heap,
+    ) -> Result<(Expr<'heap>, Arc<SpanStorage<Span>>), Report<TrialError>> {
+        let spans = Arc::new(SpanStorage::new());
+        let parser = Parser::new(heap, Arc::clone(&spans));
+
         let expr = parser
             .parse_expr(source.as_bytes())
             .change_context(TrialError::JExpr)?;
 
+        Ok((expr, spans))
+    }
+
+    // Execute test and collect diagnostics
+    fn run_suite(
+        &self,
+        expr: Expr,
+    ) -> Result<
+        (
+            Option<String>,
+            Vec<Diagnostic<impl DiagnosticCategory, SpanId>>,
+        ),
+        Report<TrialError>,
+    > {
         let mut diagnostics = vec![];
 
         // TODO: check annotation diagnostics
 
-        // We're not at a place where we can no longer just `?` to fail
         let result = self.suite.run(expr, &mut diagnostics);
 
         let received_stdout = result.as_ref().ok().cloned();
 
+        // Collect all diagnostics, including any error result
         let diagnostics = match result {
             Ok(_) => diagnostics,
             Err(error) => diagnostics.into_iter().chain(iter::once(error)).collect(),
         };
 
-        // Check that all annotations are fulfilled
+        Ok((received_stdout, diagnostics))
+    }
 
-        let received_stderr = render_stderr(&source, &spans, diagnostics)?;
-
+    fn bless_outputs(
+        &self,
+        stdout: &Option<String>,
+        stderr: &Option<String>,
+    ) -> Result<(), Report<TrialError>> {
         let stdout_file = self.path.with_extension("stdout");
         let stderr_file = self.path.with_extension("stderr");
 
-        if context.bless {
-            match received_stdout {
-                Some(stdout) => fs::write(&stdout_file, stdout).change_context(TrialError::Io)?,
-                None => {
-                    if stdout_file.exists() {
-                        fs::remove_file(&stdout_file).change_context(TrialError::Io)?;
-                    }
+        match stdout {
+            Some(stdout) => fs::write(&stdout_file, stdout).change_context(TrialError::Io)?,
+            None => {
+                if stdout_file.exists() {
+                    fs::remove_file(&stdout_file).change_context(TrialError::Io)?;
                 }
             }
-
-            match received_stderr {
-                Some(stderr) => fs::write(&stderr_file, stderr).change_context(TrialError::Io)?,
-                None => {
-                    if stderr_file.exists() {
-                        fs::remove_file(&stderr_file).change_context(TrialError::Io)?;
-                    }
-                }
-            }
-
-            return Ok(());
         }
 
-        // Load both stdout and stderr (if they exist)
+        match stderr {
+            Some(stderr) => fs::write(&stderr_file, stderr).change_context(TrialError::Io)?,
+            None => {
+                if stderr_file.exists() {
+                    fs::remove_file(&stderr_file).change_context(TrialError::Io)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn assert_outputs(
+        &self,
+        received_stdout: Option<String>,
+        received_stderr: Option<String>,
+    ) -> Result<(), Report<TrialError>> {
+        let stdout_file = self.path.with_extension("stdout");
+        let stderr_file = self.path.with_extension("stderr");
+
+        let received_stdout = received_stdout.unwrap_or_default();
+        let received_stderr = received_stderr.unwrap_or_default();
+
+        // Load expected outputs
         #[expect(clippy::if_then_some_else_none, reason = "false positive")]
         let expected_stdout = if stdout_file.exists() {
-            Some(fs::read_to_string(&stdout_file).change_context(TrialError::Io)?)
+            fs::read_to_string(&stdout_file).change_context(TrialError::Io)?
         } else {
-            None
+            String::new()
         };
 
         #[expect(clippy::if_then_some_else_none, reason = "false positive")]
         let expected_stderr = if stderr_file.exists() {
-            Some(fs::read_to_string(&stderr_file).change_context(TrialError::Io)?)
+            fs::read_to_string(&stderr_file).change_context(TrialError::Io)?
         } else {
-            None
+            String::new()
         };
 
-        // Check if the received output matches the expected output
-        let assert = Assert::new();
+        let mut sink = ReportSink::new_armed();
 
-        let stdout = assert
-            .try_eq(
-                Some(&"stdout"),
-                Data::text(received_stdout.unwrap_or_default()),
-                Data::text(expected_stdout.unwrap_or_default()),
-            )
-            .change_context(TrialError::StdoutMismatch);
+        // Assert equality
+        if received_stdout != expected_stdout {
+            let diff = SimpleDiff::from_str(
+                expected_stdout.as_str(),
+                received_stdout.as_str(),
+                "Expected Std",
+                "Received",
+            );
 
-        let stderr = assert
-            .try_eq(
-                Some(&"stderr"),
-                Data::text(received_stderr.unwrap_or_default()),
-                Data::text(expected_stderr.unwrap_or_default()),
-            )
-            .change_context(TrialError::StderrMismatch);
+            sink.append(Report::new(TrialError::StdoutMismatch(diff.to_string())));
+        }
 
-        (stdout, stderr)
-            .try_collect()
-            .change_context(TrialError::Assert)?;
+        if received_stderr != expected_stderr {
+            let diff = SimpleDiff::from_str(
+                expected_stderr.as_str(),
+                received_stderr.as_str(),
+                "Expected Std",
+                "Received",
+            );
 
-        Ok(())
+            sink.append(Report::new(TrialError::StderrMismatch(diff.to_string())));
+        }
+
+        sink.finish().change_context(TrialError::Assert)
     }
 }
 
