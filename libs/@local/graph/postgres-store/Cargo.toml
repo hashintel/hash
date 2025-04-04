@@ -9,7 +9,7 @@ description       = "HASH Graph API"
 
 [dependencies]
 # Public workspace dependencies
-hash-graph-authorization = { workspace = true, public = true }
+hash-graph-authorization = { workspace = true, public = true, features = ["postgres"] }
 hash-graph-store         = { workspace = true, public = true, features = ["postgres"] }
 hash-graph-validation    = { workspace = true, public = true }
 hash-temporal-client     = { workspace = true, public = true }

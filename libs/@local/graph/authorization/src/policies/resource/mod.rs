@@ -1,8 +1,3 @@
-#![expect(
-    clippy::empty_enum,
-    reason = "serde::Deserialize does not use the never-type"
-)]
-
 mod entity;
 mod entity_type;
 
@@ -54,15 +49,7 @@ impl CedarExpressionVisitor for ResourceVariableVisitor {
     deny_unknown_fields
 )]
 pub enum ResourceConstraint {
-    #[expect(
-        clippy::empty_enum_variants_with_brackets,
-        reason = "Serialization is different"
-    )]
-    Global {},
-    Web {
-        #[serde(deserialize_with = "Option::deserialize")]
-        web_id: Option<OwnedById>,
-    },
+    Web { web_id: OwnedById },
     Entity(EntityResourceConstraint),
     EntityType(EntityTypeResourceConstraint),
 }
@@ -88,23 +75,10 @@ impl Error for ResourceFilterConversionError {}
 
 impl ResourceConstraint {
     #[must_use]
-    pub const fn has_slot(&self) -> bool {
+    pub(crate) fn to_cedar(&self) -> (ast::ResourceConstraint, ast::Expr) {
         match self {
-            Self::Global {} | Self::Web { web_id: Some(_) } => false,
-            Self::Web { web_id: None } => true,
-            Self::Entity(entity) => entity.has_slot(),
-            Self::EntityType(entity_type) => entity_type.has_slot(),
-        }
-    }
-
-    #[must_use]
-    pub(crate) fn to_cedar(&self) -> (ast::ResourceConstraint, ast::Expr<()>) {
-        match self {
-            Self::Global {} => (ast::ResourceConstraint::any(), ast::Expr::val(true)),
             Self::Web { web_id } => (
-                web_id.map_or_else(ast::ResourceConstraint::is_in_slot, |web_id| {
-                    ast::ResourceConstraint::is_in(Arc::new(web_id.to_euid()))
-                }),
+                ast::ResourceConstraint::is_in(Arc::new(web_id.to_euid())),
                 ast::Expr::val(true),
             ),
             Self::Entity(entity) => entity.to_cedar_resource_constraint(),
@@ -115,28 +89,32 @@ impl ResourceConstraint {
     pub(crate) fn try_from_cedar(
         constraint: &ast::ResourceConstraint,
         condition: &ast::Expr,
-    ) -> Result<Self, Report<InvalidResourceConstraint>> {
-        match constraint.as_inner() {
-            ast::PrincipalOrResourceConstraint::Any => Ok(Self::Global {}),
+    ) -> Result<Option<Self>, Report<InvalidResourceConstraint>> {
+        Ok(match constraint.as_inner() {
+            ast::PrincipalOrResourceConstraint::Any => None,
             ast::PrincipalOrResourceConstraint::Is(resource_type) => {
-                Self::try_from_cedar_is_in(resource_type, None, condition)
+                Some(Self::try_from_cedar_is_in(resource_type, None, condition)?)
             }
             ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(resource)) => {
-                Self::try_from_cedar_eq(resource)
+                Some(Self::try_from_cedar_eq(resource)?)
             }
             ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(resource)) => {
-                Self::try_from_cedar_in(resource)
+                Some(Self::try_from_cedar_in(resource)?)
             }
             ast::PrincipalOrResourceConstraint::IsIn(
                 resource_type,
                 ast::EntityReference::EUID(resource),
-            ) => Self::try_from_cedar_is_in(resource_type, Some(resource), condition),
+            ) => Some(Self::try_from_cedar_is_in(
+                resource_type,
+                Some(resource),
+                condition,
+            )?),
             ast::PrincipalOrResourceConstraint::IsIn(_, ast::EntityReference::Slot(_))
             | ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::Slot(_))
             | ast::PrincipalOrResourceConstraint::In(ast::EntityReference::Slot(_)) => {
                 bail!(InvalidResourceConstraint::AmbiguousSlot)
             }
-        }
+        })
     }
 
     fn try_from_cedar_eq(
@@ -144,17 +122,17 @@ impl ResourceConstraint {
     ) -> Result<Self, Report<InvalidResourceConstraint>> {
         if *resource.entity_type() == **EntityUuid::entity_type() {
             Ok(Self::Entity(EntityResourceConstraint::Exact {
-                id: Some(EntityUuid::new(
+                id: EntityUuid::new(
                     Uuid::from_str(resource.eid().as_ref())
                         .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
-                )),
+                ),
             }))
         } else if *resource.entity_type() == **EntityTypeId::entity_type() {
             Ok(Self::EntityType(EntityTypeResourceConstraint::Exact {
-                id: Some(EntityTypeId::new(
+                id: EntityTypeId::new(
                     VersionedUrl::from_str(resource.eid().as_ref())
                         .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
-                )),
+                ),
             }))
         } else {
             bail!(InvalidResourceConstraint::UnexpectedEntityType(
@@ -168,10 +146,10 @@ impl ResourceConstraint {
     ) -> Result<Self, Report<InvalidResourceConstraint>> {
         if *resource.entity_type() == **OwnedById::entity_type() {
             Ok(Self::Web {
-                web_id: Some(OwnedById::new(
+                web_id: OwnedById::new(
                     Uuid::from_str(resource.eid().as_ref())
                         .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
-                )),
+                ),
             })
         } else {
             bail!(InvalidResourceConstraint::UnexpectedEntityType(
@@ -195,10 +173,10 @@ impl ResourceConstraint {
 
             if *in_resource.entity_type() == **OwnedById::entity_type() {
                 Ok(Self::Entity(EntityResourceConstraint::Web {
-                    web_id: Some(OwnedById::new(
+                    web_id: OwnedById::new(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
-                    )),
+                    ),
                     filter,
                 }))
             } else {
@@ -218,10 +196,10 @@ impl ResourceConstraint {
 
             if *in_resource.entity_type() == **OwnedById::entity_type() {
                 Ok(Self::EntityType(EntityTypeResourceConstraint::Web {
-                    web_id: Some(OwnedById::new(
+                    web_id: OwnedById::new(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
-                    )),
+                    ),
                     filter,
                 }))
             } else {
@@ -242,6 +220,7 @@ impl ResourceConstraint {
 mod tests {
     use core::error::Error;
 
+    use cedar_policy_core::ast;
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
@@ -250,29 +229,29 @@ mod tests {
 
     use super::ResourceConstraint;
     use crate::{
-        policies::{Effect, Policy, PolicyId, action::ActionConstraint, tests::check_policy},
+        policies::{Effect, Policy, action::ActionName, tests::check_policy},
         test_utils::{check_deserialization_error, check_serialization},
     };
 
     #[track_caller]
     pub(crate) fn check_resource(
-        constraint: ResourceConstraint,
+        constraint: Option<ResourceConstraint>,
         value: JsonValue,
         cedar_string: impl AsRef<str>,
     ) -> Result<(), Box<dyn Error>> {
-        let (cedar_constraint, resource_expr) = constraint.to_cedar();
+        let (cedar_constraint, resource_expr) = constraint.as_ref().map_or_else(
+            || (ast::ResourceConstraint::any(), ast::Expr::val(true)),
+            ResourceConstraint::to_cedar,
+        );
         let cedar_string = cedar_string.as_ref();
 
         assert_eq!(cedar_constraint.to_string(), cedar_string);
-        if !constraint.has_slot() {
-            ResourceConstraint::try_from_cedar(&cedar_constraint, &resource_expr)?;
-        }
+        ResourceConstraint::try_from_cedar(&cedar_constraint, &resource_expr)?;
 
         let policy = Policy {
-            id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: None,
-            action: ActionConstraint::All {},
+            actions: vec![ActionName::All],
             resource: constraint,
             constraints: None,
         };
@@ -280,12 +259,9 @@ mod tests {
         check_policy(
             &policy,
             json!({
-                "id": policy.id,
                 "effect": "permit",
                 "principal": null,
-                "action": {
-                    "type": "all",
-                },
+                "actions": ["all"],
                 "resource": &value,
             }),
             formatdoc!(
@@ -306,21 +282,7 @@ mod tests {
 
     #[test]
     fn constraint_any() -> Result<(), Box<dyn Error>> {
-        check_resource(
-            ResourceConstraint::Global {},
-            json!({
-                "type": "global",
-            }),
-            "resource",
-        )?;
-
-        check_deserialization_error::<ResourceConstraint>(
-            json!({
-                "type": "global",
-                "additional": "unexpected"
-            }),
-            "unknown field `additional`, there are no fields",
-        )?;
+        check_resource(None, json!(null), "resource")?;
 
         Ok(())
     }
@@ -329,23 +291,12 @@ mod tests {
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
         let web_id = OwnedById::new(Uuid::new_v4());
         check_resource(
-            ResourceConstraint::Web {
-                web_id: Some(web_id),
-            },
+            Some(ResourceConstraint::Web { web_id }),
             json!({
                 "type": "web",
                 "webId": web_id,
             }),
             format!(r#"resource in HASH::Web::"{web_id}""#),
-        )?;
-
-        check_resource(
-            ResourceConstraint::Web { web_id: None },
-            json!({
-                "type": "web",
-                "webId": null,
-            }),
-            "resource in ?resource",
         )?;
 
         check_deserialization_error::<ResourceConstraint>(

@@ -19,6 +19,7 @@ reqwest      = { workspace = true, public = true, features = ["json", "stream"] 
 hash-codec = { workspace = true, features = ["bytes"] }
 
 # Private third-party dependencies
+bytes                  = { workspace = true, optional = true }
 cedar-policy-core      = { workspace = true }
 cedar-policy-validator = { workspace = true }
 derive-where           = { workspace = true }
@@ -43,7 +44,7 @@ tokio             = { workspace = true, features = ["macros", "rt-multi-thread"]
 
 [features]
 utoipa   = ["dep:utoipa"]
-postgres = ["dep:postgres-types"]
+postgres = ["dep:postgres-types", "dep:bytes"]
 
 [lints]
 workspace = true
