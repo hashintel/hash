@@ -8,6 +8,9 @@ pub(crate) enum DirectiveParseError {
     /// Unknown run mode specified
     #[display("unknown run mode: {_0}, must be one of `pass`, `fail`, or `skip`")]
     UnknownRunMode(String),
+    /// Name cannot be empty
+    #[display("name cannot be empty")]
+    EmptyName,
     /// Unknown property key
     #[display("unknown property key: {_0} with value: {_1}")]
     UnknownPropertyKey(String, String),
@@ -15,21 +18,31 @@ pub(crate) enum DirectiveParseError {
 
 impl error::Error for DirectiveParseError {}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub(crate) enum RunMode {
     Pass,
     #[default]
     Fail,
-    Skip,
+    Skip {
+        reason: Option<String>,
+    },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Directive {
+    pub name: String,
     pub run: RunMode,
 }
 
 impl Directive {
     pub(crate) const MARKER: &'static str = "//@";
+
+    pub(crate) fn new(name: impl Into<String>) -> Self {
+        Directive {
+            name: name.into(),
+            run: RunMode::default(),
+        }
+    }
 
     /// Parses a property annotation string and updates self accordingly.
     ///
@@ -53,10 +66,22 @@ impl Directive {
         match (key, value) {
             ("run", "pass") => self.run = RunMode::Pass,
             ("run", "fail") => self.run = RunMode::Fail,
-            ("run", "skip") => self.run = RunMode::Skip,
+            ("run", "skip") => self.run = RunMode::Skip { reason: None },
+            ("run", value) if let Some(reason) = value.strip_prefix("skip reason=") => {
+                self.run = RunMode::Skip {
+                    reason: Some(reason.to_owned()),
+                };
+            }
             ("run", value) => {
                 return Err(DirectiveParseError::UnknownRunMode(value.to_owned()));
             }
+            ("name", "") => {
+                return Err(DirectiveParseError::EmptyName);
+            }
+            ("name", name) => {
+                name.clone_into(&mut self.name);
+            }
+
             (key, value) => {
                 return Err(DirectiveParseError::UnknownPropertyKey(
                     key.to_owned(),
@@ -77,7 +102,7 @@ mod tests {
 
     #[test]
     fn parse_run_mode_pass() {
-        let mut directive = Directive::default();
+        let mut directive = Directive::new("test");
         directive
             .parse("run: pass")
             .expect("should successfully parse 'run: pass'");
@@ -87,7 +112,7 @@ mod tests {
 
     #[test]
     fn parse_run_mode_pass_without_space() {
-        let mut directive = Directive::default();
+        let mut directive = Directive::new("test");
         directive
             .parse("run:pass")
             .expect("should successfully parse 'run:pass'");
@@ -97,7 +122,7 @@ mod tests {
 
     #[test]
     fn parse_run_mode_fail() {
-        let mut directive = Directive::default();
+        let mut directive = Directive::new("test");
         directive
             .parse("run: fail")
             .expect("should successfully parse 'run: fail'");
@@ -107,17 +132,32 @@ mod tests {
 
     #[test]
     fn parse_run_mode_skip() {
-        let mut directive = Directive::default();
+        let mut directive = Directive::new("test");
         directive
             .parse("run: skip")
             .expect("should successfully parse 'run: skip'");
 
-        assert_eq!(directive.run, RunMode::Skip);
+        assert_eq!(directive.run, RunMode::Skip { reason: None });
+    }
+
+    #[test]
+    fn parse_run_mode_skip_with_reason() {
+        let mut directive = Directive::new("test");
+        directive
+            .parse("run: skip reason=reason")
+            .expect("should successfully parse 'run: skip reason=reason'");
+
+        assert_eq!(
+            directive.run,
+            RunMode::Skip {
+                reason: Some("reason".to_owned())
+            }
+        );
     }
 
     #[test]
     fn parse_invalid_format() {
-        let mut directive = Directive::default();
+        let mut directive = Directive::new("test");
         let error = directive
             .parse("run without colon")
             .expect_err("should fail when missing colon separator");
@@ -127,7 +167,7 @@ mod tests {
 
     #[test]
     fn parse_unknown_run_mode() {
-        let mut directive = Directive::default();
+        let mut directive = Directive::new("test");
         let error = directive
             .parse("run: invalid")
             .expect_err("should fail with unknown run mode");
@@ -140,7 +180,7 @@ mod tests {
 
     #[test]
     fn parse_unknown_property_key() {
-        let mut directive = Directive::default();
+        let mut directive = Directive::new("test");
         let error = directive
             .parse("unknown: value")
             .expect_err("should fail with unknown property key");
@@ -153,7 +193,7 @@ mod tests {
 
     #[test]
     fn parse_with_whitespace() {
-        let mut directive = Directive::default();
+        let mut directive = Directive::new("test");
         directive
             .parse("  run  :  pass  ")
             .expect("should handle extra whitespace");
@@ -163,7 +203,7 @@ mod tests {
 
     #[test]
     fn parse_multiple_directives() {
-        let mut directive = Directive::default();
+        let mut directive = Directive::new("test");
 
         // Set to pass
         directive
@@ -175,7 +215,7 @@ mod tests {
         directive
             .parse("run: skip")
             .expect("should successfully parse second directive");
-        assert_eq!(directive.run, RunMode::Skip);
+        assert_eq!(directive.run, RunMode::Skip { reason: None });
 
         // Change back to fail
         directive
@@ -187,7 +227,7 @@ mod tests {
     #[test]
     fn parse_case_sensitivity() {
         // Test that the parser is case-sensitive for directive values
-        let mut directive = Directive::default();
+        let mut directive = Directive::new("test");
 
         let error = directive
             .parse("run: PASS")
@@ -210,7 +250,7 @@ mod tests {
 
     #[test]
     fn parse_empty_values() {
-        let mut directive = Directive::default();
+        let mut directive = Directive::new("test");
 
         // Empty value
         let error = directive
@@ -232,9 +272,26 @@ mod tests {
     }
 
     #[test]
+    fn parse_name() {
+        let mut directive = Directive::new("test");
+
+        // Valid name
+        directive
+            .parse("name: example")
+            .expect("should parse name directive");
+        assert_eq!(directive.name, "example");
+
+        // Invalid name
+        let error = directive
+            .parse("name: ")
+            .expect_err("should fail with invalid name");
+        assert_matches!(error, DirectiveParseError::EmptyName);
+    }
+
+    #[test]
     fn default_directive() {
         // Verify the default is RunMode::Fail
-        let directive = Directive::default();
+        let directive = Directive::new("test");
         assert_eq!(
             directive.run,
             RunMode::Fail,

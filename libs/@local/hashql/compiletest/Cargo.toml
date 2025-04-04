@@ -17,13 +17,18 @@ cargo_metadata.workspace = true
 # Private third-party dependencies
 clap                         = { workspace = true, features = ["derive", "env"] }
 derive_more                  = { workspace = true, features = ["display"] }
+guppy                        = "0.17.17"
 hashql-ast.workspace         = true
 hashql-core.workspace        = true
 hashql-diagnostics.workspace = true
 hashql-syntax-jexpr          = { version = "0.0.0", path = "../syntax-jexpr" }
+libtest-mimic                = "0.8.1"
+nextest-filtering            = "0.15.0"
+nextest-metadata             = "0.12.2"
 nextest-runner               = "0.76.0"
 prodash                      = "29.0.1"
 radix_trie                   = "0.2.1"
+rayon                        = "1.10.0"
 serde.workspace              = true
 snapbox                      = { version = "0.6.21", features = ["dir"] }
 toml                         = "0.8.20"

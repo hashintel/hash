@@ -32,13 +32,20 @@ pub(crate) enum FileAnnotationError {
 
 impl error::Error for FileAnnotationError {}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct FileAnnotations {
     pub diagnostics: Vec<DiagnosticAnnotation>,
     pub directive: Directive,
 }
 
 impl FileAnnotations {
+    pub(crate) fn new(name: impl Into<String>) -> Self {
+        Self {
+            diagnostics: Vec::new(),
+            directive: Directive::new(name),
+        }
+    }
+
     /// Parses a file for annotations, extracting directives and diagnostic annotations.
     ///
     /// # Arguments
@@ -173,7 +180,7 @@ mod tests {
 
     #[test]
     fn parse_empty_file() {
-        let mut annotations = FileAnnotations::default();
+        let mut annotations = FileAnnotations::new("test");
         let result = annotations.parse_file(Cursor::new(""), true);
 
         assert!(result.is_ok(), "should successfully parse an empty file");
@@ -184,14 +191,14 @@ mod tests {
     fn parse_directives_only() {
         let content = "//@run: pass\n//@run: skip\n\n// Normal comment\ncode line";
 
-        let mut annotations = FileAnnotations::default();
+        let mut annotations = FileAnnotations::new("test");
         annotations
             .parse_file(Cursor::new(content), false)
             .expect("should successfully parse directives");
 
         // The last directive should take precedence
         assert_eq!(annotations.directive, {
-            let mut directive = Directive::default();
+            let mut directive = Directive::new("test");
             directive
                 .parse("run: skip")
                 .expect("should parse directive");
@@ -208,7 +215,7 @@ mod tests {
         let content = "//@run: skip\n\n// Normal code\nlet x = 5; //~ ERROR variable not \
                        used\nfunction(); //~ WARNING function deprecated";
 
-        let mut annotations = FileAnnotations::default();
+        let mut annotations = FileAnnotations::new("test");
         annotations
             .parse_file(Cursor::new(content), false)
             .expect("should successfully parse directives");
@@ -216,7 +223,7 @@ mod tests {
         assert_eq!(
             annotations.directive,
             {
-                let mut directive = Directive::default();
+                let mut directive = Directive::new("test");
                 directive
                     .parse("run: skip")
                     .expect("should parse directive");
@@ -236,7 +243,7 @@ mod tests {
             //@run: pass\n\n// Normal code\nlet x = 5; //~ ERROR variable not used\nfunction(); \
                        //~ WARNING function deprecated";
 
-        let mut annotations = FileAnnotations::default();
+        let mut annotations = FileAnnotations::new("test");
         annotations
             .parse_file(Cursor::new(content), true)
             .expect("should successfully parse directives and diagnostics");
@@ -252,7 +259,7 @@ mod tests {
     fn parse_invalid_directive() {
         let content = "//@invalid: directive\n";
 
-        let mut annotations = FileAnnotations::default();
+        let mut annotations = FileAnnotations::new("test");
         let error = annotations
             .parse_file(Cursor::new(content), true)
             .expect_err("should fail with invalid directive");
@@ -265,7 +272,7 @@ mod tests {
         let content = "\
             //@run: fail\n\ncode line //~ INVALID diagnostic";
 
-        let mut annotations = FileAnnotations::default();
+        let mut annotations = FileAnnotations::new("test");
         let error = annotations
             .parse_file(Cursor::new(content), true)
             .expect_err("should fail with invalid diagnostic");
@@ -280,7 +287,7 @@ mod tests {
                        comments\nfunction(); //~ WARNING function deprecated\n\n// Non-annotation \
                        comments\n";
 
-        let mut annotations = FileAnnotations::default();
+        let mut annotations = FileAnnotations::new("test");
         annotations
             .parse_file(Cursor::new(content), true)
             .expect("should successfully parse mixed content");
@@ -297,12 +304,12 @@ mod tests {
         let content = "\
             // Some comment\n//@run: fail\ncode line";
 
-        let mut annotations = FileAnnotations::default();
+        let mut annotations = FileAnnotations::new("test");
         annotations
             .parse_file(Cursor::new(content), true)
             .expect("should parse successfully");
 
         // The directive should be ignored since it's not at the beginning
-        assert_eq!(annotations.directive, Directive::default());
+        assert_eq!(annotations.directive, Directive::new("test"));
     }
 }

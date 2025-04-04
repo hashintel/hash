@@ -1,11 +1,10 @@
-#![feature(pattern, assert_matches)]
-use std::{fs, path::PathBuf, thread};
+#![feature(pattern, assert_matches, file_buffered, if_let_guard)]
+use std::path::PathBuf;
 
-use radix_trie::Trie;
-use snapbox::{dir::Walk, utils::current_dir};
-use toml::Table;
+use self::{annotation::file::FileAnnotations, suite::Suite};
 
 mod annotation;
+mod executor;
 mod find;
 mod run;
 mod suite;
@@ -15,17 +14,20 @@ struct Spec {
     suite: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct TestCase {
-    spec: Spec,
-    path: PathBuf,
+    pub spec: Spec,
+    pub path: PathBuf,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct TestGroup {
-    entry: EntryPoint,
-    cases: Vec<TestCase>,
+    pub entry: EntryPoint,
+    pub cases: Vec<TestCase>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct EntryPoint {
-    path: PathBuf,
-    krate: String,
+    pub path: PathBuf,
+    pub krate: String,
 }
