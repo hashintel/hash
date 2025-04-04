@@ -1,4 +1,4 @@
-use core::error;
+use core::{error, iter};
 use std::{
     fs::{self, File},
     io::Cursor,
@@ -7,22 +7,101 @@ use std::{
     thread,
 };
 
+use ariadne::Source;
+use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _, TryReportTupleExt};
 use guppy::{
     PackageId,
     graph::{DependencyDirection, PackageGraph, cargo::BuildPlatform},
 };
 use hashql_ast::heap::Heap;
-use hashql_core::span::storage::SpanStorage;
+use hashql_core::span::{Span, SpanId, storage::SpanStorage};
+use hashql_diagnostics::{
+    Diagnostic, category::DiagnosticCategory, config::ReportConfig, span::DiagnosticSpan,
+};
 use hashql_syntax_jexpr::Parser;
 use nextest_filtering::{
     BinaryQuery, CompiledExpr, EvalContext, Filterset, FiltersetKind, ParseContext, TestQuery,
 };
 use nextest_metadata::{RustBinaryId, RustTestBinaryKind};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
+use snapbox::{Assert, Data};
 
 use crate::{
     FileAnnotations, Suite, TestCase, TestGroup, annotation::directive::RunMode, suite::suite,
 };
+
+#[derive(Debug, derive_more::Display)]
+pub(crate) enum TrialError {
+    #[display("unable to resolve diagnostic")]
+    UnableToResolveDiagnostic,
+    #[display("io")]
+    Io,
+    #[display("failed to parse annotations")]
+    Annotations,
+    #[display("failed to parse jexpr")]
+    JExpr,
+    #[display("stdout mismatch")]
+    StdoutMismatch,
+    #[display("stderr mismatch")]
+    StderrMismatch,
+    #[display("assertion failed")]
+    Assert,
+}
+
+impl error::Error for TrialError {}
+
+fn render_diagnostic<C, S>(
+    source: &str,
+    diagnostic: Diagnostic<C, SpanId>,
+    spans: &SpanStorage<S>,
+) -> Result<String, Report<TrialError>>
+where
+    C: DiagnosticCategory,
+    S: Span + Clone,
+    DiagnosticSpan: for<'s> From<&'s S>,
+{
+    let resolved = diagnostic
+        .resolve(spans)
+        .change_context(TrialError::UnableToResolveDiagnostic)?;
+
+    let report = resolved.report(
+        ReportConfig {
+            color: false,
+            ..ReportConfig::default()
+        }
+        .with_transform_span(|span: &S| DiagnosticSpan::from(span)),
+    );
+
+    let mut output = Vec::new();
+    report
+        .write_for_stdout(Source::from(source), &mut output)
+        .expect("infallible");
+
+    Ok(String::from_utf8(output).expect("output should be valid UTF-8"))
+}
+
+fn render_stderr<C, S>(
+    source: &str,
+    spans: &SpanStorage<S>,
+    diagnostics: impl IntoIterator<Item = Diagnostic<C, SpanId>>,
+) -> Result<Option<String>, Report<TrialError>>
+where
+    C: DiagnosticCategory,
+    S: Span + Clone,
+    DiagnosticSpan: for<'s> From<&'s S>,
+{
+    let mut output = Vec::new();
+
+    for diagnostic in diagnostics {
+        output.push(render_diagnostic(source, diagnostic, spans)?);
+    }
+
+    if output.is_empty() {
+        return Ok(None);
+    }
+
+    Ok(Some(output.join("\n\n")))
+}
 
 pub(crate) struct TrialContext {
     bless: bool,
@@ -72,55 +151,112 @@ impl Trial {
         self.ignore = !matches;
     }
 
-    fn run(
-        &self,
-        context: &TrialContext,
-    ) -> Result<(), Box<dyn error::Error + Send + Sync + 'static>> {
+    fn run(&self, context: &TrialContext) -> Result<(), Report<TrialError>> {
         if self.ignore {
             return Ok(());
         }
 
-        let contents = fs::read_to_string(&self.path)?;
-        let cursor = Cursor::new(contents.as_str());
+        let source = fs::read_to_string(&self.path).change_context(TrialError::Io)?;
+        let cursor = Cursor::new(source.as_str());
 
         // Actually load the diagnostics
         let mut annotations = self.annotations.clone();
-        annotations.parse_file(cursor, true)?;
+        annotations
+            .parse_file(cursor, true)
+            .change_context(TrialError::Annotations)?;
 
-        // Parse the content w/ J-Expr
+        // Parse the content with J-Expr
         let heap = Heap::new();
         let spans = Arc::new(SpanStorage::new());
         let parser = Parser::new(&heap, Arc::clone(&spans));
 
-        // failing with `?` here is fine, as it suggests that the test itself is invalid J-Expr.
-        let expr = parser.parse_expr(contents.as_bytes())?;
+        // Failing with `?` here is fine, as it suggests that the test itself is invalid J-Expr.
+        let expr = parser
+            .parse_expr(source.as_bytes())
+            .change_context(TrialError::JExpr)?;
 
         let mut diagnostics = vec![];
 
-        // we're not at a place where we can no longer just `?` to fail
+        // TODO: check annotation diagnostics
+
+        // We're not at a place where we can no longer just `?` to fail
         let result = self.suite.run(expr, &mut diagnostics);
 
-        // TODO: bless = write the files instead
-
-        // load both stdout and stderr (if they exist)
         let stdout_file = self.path.with_extension("stdout");
         let stderr_file = self.path.with_extension("stderr");
 
+        let received_stdout = result.as_ref().ok().cloned();
+
+        let received_stderr = match result {
+            Ok(_) => render_stderr(&source, &spans, diagnostics)?,
+            Err(error) => render_stderr(
+                &source,
+                &spans,
+                diagnostics.into_iter().chain(iter::once(error)),
+            )?,
+        };
+
+        if context.bless {
+            match received_stdout {
+                Some(stdout) => fs::write(&stdout_file, stdout).change_context(TrialError::Io)?,
+                None => {
+                    if stdout_file.exists() {
+                        fs::remove_file(&stdout_file).change_context(TrialError::Io)?;
+                    }
+                }
+            }
+
+            match received_stderr {
+                Some(stderr) => fs::write(&stderr_file, stderr).change_context(TrialError::Io)?,
+                None => {
+                    if stderr_file.exists() {
+                        fs::remove_file(&stderr_file).change_context(TrialError::Io)?;
+                    }
+                }
+            }
+
+            return Ok(());
+        }
+
+        // Load both stdout and stderr (if they exist)
         #[expect(clippy::if_then_some_else_none, reason = "false positive")]
-        let stdout = if stdout_file.exists() {
-            Some(fs::read_to_string(&stdout_file)?)
+        let expected_stdout = if stdout_file.exists() {
+            Some(fs::read_to_string(&stdout_file).change_context(TrialError::Io)?)
         } else {
             None
         };
 
         #[expect(clippy::if_then_some_else_none, reason = "false positive")]
-        let stderr = if stderr_file.exists() {
-            Some(fs::read_to_string(&stderr_file)?)
+        let expected_stderr = if stderr_file.exists() {
+            Some(fs::read_to_string(&stderr_file).change_context(TrialError::Io)?)
         } else {
             None
         };
 
-        todo!()
+        // Check if the received output matches the expected output
+        let assert = Assert::new();
+
+        let stdout = assert
+            .try_eq(
+                Some(&"stdout"),
+                Data::text(received_stdout.unwrap_or_default()),
+                Data::text(expected_stdout.unwrap_or_default()),
+            )
+            .change_context(TrialError::StdoutMismatch);
+
+        let stderr = assert
+            .try_eq(
+                Some(&"stderr"),
+                Data::text(received_stderr.unwrap_or_default()),
+                Data::text(expected_stderr.unwrap_or_default()),
+            )
+            .change_context(TrialError::StderrMismatch);
+
+        (stdout, stderr)
+            .try_collect()
+            .change_context(TrialError::Assert)?;
+
+        Ok(())
     }
 }
 
@@ -174,15 +310,16 @@ impl<'graph> TrialGroup<'graph> {
         }
     }
 
-    fn run(
-        &self,
-        context: &TrialContext,
-    ) -> Result<(), Box<dyn error::Error + Send + Sync + 'static>> {
+    fn run(&self, context: &TrialContext) -> Result<(), Report<[TrialError]>> {
         if self.ignore {
             return Ok(());
         }
 
-        // First collect the values into a `Vec<_>`. That way we can make sure that we fail-slow
+        // We're making use of rayon here, instead of just `thread::scope` so that we don't spam
+        // 1000 threads.
+
+        // First collect the values into a `Vec<_>`. That way we can make sure
+        // that we fail-slow
         let results: Vec<_> = self
             .trials
             .par_iter()
@@ -190,11 +327,7 @@ impl<'graph> TrialGroup<'graph> {
             .collect();
 
         // ... then check if any of the trials failed
-        for result in results {
-            result?;
-        }
-
-        Ok(())
+        results.into_iter().try_collect_reports()
     }
 }
 
@@ -236,10 +369,7 @@ impl<'graph> TrialSet<'graph> {
         }
     }
 
-    pub(crate) fn run(
-        &self,
-        context: &TrialContext,
-    ) -> Result<(), Box<dyn error::Error + Send + Sync + 'static>> {
+    pub(crate) fn run(&self, context: &TrialContext) -> Result<(), Report<[TrialError]>> {
         thread::scope(|scope| {
             let mut handles = Vec::new();
 
@@ -255,11 +385,7 @@ impl<'graph> TrialSet<'graph> {
                 .collect();
 
             // ... then process the results to ensure a fail-slow behavior
-            for result in results {
-                result?;
-            }
-
-            Ok(())
+            results.into_iter().try_collect_reports()
         })
     }
 }

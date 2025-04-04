@@ -105,6 +105,20 @@ impl<C: DiagnosticCategory> DiagnosticCategory for &C {
     }
 }
 
+impl<C: DiagnosticCategory + ?Sized> DiagnosticCategory for Box<C> {
+    fn id(&self) -> Cow<'_, str> {
+        (**self).id()
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        (**self).name()
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        (**self).subcategory()
+    }
+}
+
 /// A simple category implementation representing a terminal node in the category hierarchy.
 ///
 /// Terminal categories represent the endpoints in a category hierarchy and have no subcategories.

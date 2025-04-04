@@ -6,7 +6,6 @@ use self::{annotation::file::FileAnnotations, suite::Suite};
 mod annotation;
 mod executor;
 mod find;
-mod run;
 mod suite;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
