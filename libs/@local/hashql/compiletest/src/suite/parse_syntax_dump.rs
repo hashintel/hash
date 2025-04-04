@@ -1,4 +1,4 @@
-use hashql_ast::{format::SyntaxDump, node::expr::Expr};
+use hashql_ast::{format::SyntaxDump as _, node::expr::Expr};
 
 use super::{Suite, SuiteDiagnostic};
 

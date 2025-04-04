@@ -21,11 +21,5 @@ pub(crate) trait Suite: Send + Sync + 'static {
 const SUITES: &[&dyn Suite] = &[&ParseSyntaxDumpSuite];
 
 pub(crate) fn suite(name: &str) -> Option<&'static dyn Suite> {
-    for suite in SUITES {
-        if suite.name() == name {
-            return Some(*suite);
-        }
-    }
-
-    None
+    SUITES.iter().find(|&suite| suite.name() == name).copied()
 }
