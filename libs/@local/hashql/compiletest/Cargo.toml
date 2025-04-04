@@ -1,0 +1,22 @@
+[package]
+name              = "hashql-compiletest"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+version.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+clap    = { workspace = true, features = ["derive", "env"] }
+prodash = "29.0.1"
+snapbox = "0.6.21"
+
+[lints]
+workspace = true
