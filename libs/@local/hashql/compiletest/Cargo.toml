@@ -7,6 +7,7 @@ publish.workspace = true
 version.workspace = true
 
 [dependencies]
+cargo_metadata.workspace = true
 # Public workspace dependencies
 
 # Public third-party dependencies
@@ -14,9 +15,19 @@ version.workspace = true
 # Private workspace dependencies
 
 # Private third-party dependencies
-clap    = { workspace = true, features = ["derive", "env"] }
-prodash = "29.0.1"
-snapbox = "0.6.21"
+clap                         = { workspace = true, features = ["derive", "env"] }
+hashql-ast.workspace         = true
+hashql-core.workspace        = true
+hashql-diagnostics.workspace = true
+hashql-syntax-jexpr          = { version = "0.0.0", path = "../syntax-jexpr" }
+nextest-runner               = "0.76.0"
+prodash                      = "29.0.1"
+radix_trie                   = "0.2.1"
+serde.workspace              = true
+snapbox                      = { version = "0.6.21", features = ["dir"] }
+toml                         = "0.8.20"
+tracing.workspace            = true
+tracing-subscriber           = { workspace = true, features = ["env-filter"] }
 
 [lints]
 workspace = true
