@@ -3190,6 +3190,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "trait-variant",
  "type-system",
  "utoipa",
  "uuid",

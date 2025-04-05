@@ -193,37 +193,6 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
         Ok(())
     }
 
-    /// Creates a new web with the given ID, or generates a new UUID if none is provided.
-    ///
-    /// # Errors
-    ///
-    /// - [`PrincipalAlreadyExists`] if a web with the given ID already exists
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`PrincipalAlreadyExists`]: PrincipalError::PrincipalAlreadyExists
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn create_web(
-        &mut self,
-        id: Option<Uuid>,
-    ) -> Result<OwnedById, Report<PrincipalError>> {
-        let web_id = OwnedById::new(id.unwrap_or_else(Uuid::new_v4));
-        if let Err(error) = self
-            .as_mut_client()
-            .execute("INSERT INTO web (id) VALUES ($1)", &[web_id.as_uuid()])
-            .await
-        {
-            return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
-                Err(error).change_context(PrincipalError::PrincipalAlreadyExists {
-                    id: PrincipalId::Team(TeamId::Web(web_id)),
-                })
-            } else {
-                Err(error).change_context(PrincipalError::StoreError)
-            };
-        }
-
-        Ok(web_id)
-    }
-
     /// Checks if a web with the given ID exists.
     ///
     /// # Errors

@@ -22,6 +22,11 @@ use hash_graph_postgres_store::{
 use hash_graph_store::pool::StorePool;
 use hash_tracing::logging::env_filter;
 use tokio_postgres::NoTls;
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    provenance::{ActorEntityUuid, ActorId, UserId},
+};
+use uuid::Uuid;
 
 pub fn init_logging() {
     // It's likely that the initialization failed due to a previous initialization attempt. In this
@@ -86,7 +91,12 @@ impl DatabaseTestWrapper<NoAuthorization> {
 
     pub(crate) async fn client(
         &mut self,
-    ) -> Result<PostgresStore<impl AsClient, impl AuthorizationApi>, Report<StoreError>> {
-        self.connection.transaction().await
+    ) -> Result<(PostgresStore<impl AsClient, impl AuthorizationApi>, ActorId), Report<StoreError>>
+    {
+        let actor_id = ActorId::User(UserId::new(ActorEntityUuid::new(EntityUuid::new(
+            Uuid::new_v4(),
+        ))));
+
+        Ok((self.connection.transaction().await?, actor_id))
     }
 }

@@ -20,6 +20,7 @@ use hash_graph_api::{
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool, NoAuthorization,
     backend::{SpiceDbOpenApi, ZanzibarBackend as _},
+    policies::store::PrincipalStore,
     zanzibar::ZanzibarClient,
 };
 use hash_graph_postgres_store::store::{
@@ -190,6 +191,7 @@ fn server_rpc<S, A>(
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
     let server = Server::new(harpc_server::ServerConfig::default()).change_context(GraphError)?;
 

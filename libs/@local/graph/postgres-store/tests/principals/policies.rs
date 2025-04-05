@@ -11,6 +11,7 @@ use hash_graph_authorization::{
             team::{SubteamId, TeamId},
         },
         resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
+        store::{CreateWebParameter, PrincipalStore as _},
     },
 };
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
@@ -108,6 +109,7 @@ struct TestPolicyIds {
 #[expect(clippy::too_many_lines)]
 async fn setup_policy_test_environment(
     client: &mut PostgresStore<impl AsClient, impl AuthorizationApi>,
+    actor_id: ActorId,
 ) -> Result<TestPolicyEnvironment, Box<dyn Error>> {
     // Register actions
     client.register_action(ActionName::All, None).await?;
@@ -128,8 +130,12 @@ async fn setup_policy_test_environment(
         .await?;
 
     // Create web teams (top level)
-    let web1_id = client.create_web(None).await?;
-    let web2_id = client.create_web(None).await?;
+    let web1_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
+    let web2_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
 
     // Create subteams with different hierarchies
     let subteam_1_id = client.create_subteam(None, TeamId::Web(web1_id)).await?;
@@ -326,9 +332,9 @@ async fn setup_policy_test_environment(
 #[tokio::test]
 async fn global_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // Every actor should get global policies
     let user1_policies = client
@@ -377,9 +383,9 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // Test user type policies
     let user1_policies = client
@@ -439,9 +445,9 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // user1 has a specific policy assigned
     let user1_policies = client
@@ -476,9 +482,9 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn role_based_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // Test role-based policies
     let user1_policies = client
@@ -530,9 +536,9 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // Test team hierarchies
     // User2 has subteam1_role, AI has nested_subteam_role which is under subteam1
@@ -561,9 +567,9 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     let nonexistent_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
 
@@ -616,9 +622,9 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // Initial policy count
     let user2_policies = client
@@ -678,7 +684,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.client().await?;
 
     let user_id = client.create_user(None).await?;
     client.register_action(ActionName::All, None).await?;
@@ -729,10 +735,12 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn multiple_actor_roles() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
     // Create teams and roles
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
     let role1_id = client.create_role(None, TeamId::Web(web_id)).await?;
     let role2_id = client.create_role(None, TeamId::Web(web_id)).await?;
     let role3_id = client.create_role(None, TeamId::Web(web_id)).await?;
@@ -822,10 +830,12 @@ async fn multiple_actor_roles() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
     // Create a deep team hierarchy
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
     let subteam1_id = client.create_subteam(None, TeamId::Web(web_id)).await?;
     let subteam2_id = client
         .create_subteam(None, TeamId::Subteam(subteam1_id))

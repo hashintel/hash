@@ -1,6 +1,9 @@
 use core::{assert_matches::assert_matches, error::Error};
 
-use hash_graph_authorization::policies::principal::{PrincipalId, team::TeamId};
+use hash_graph_authorization::policies::{
+    principal::{PrincipalId, team::TeamId},
+    store::{CreateWebParameter, PrincipalStore as _, error::WebCreationError},
+};
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
 use type_system::web::OwnedById;
@@ -11,9 +14,11 @@ use crate::DatabaseTestWrapper;
 #[tokio::test]
 async fn create_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
     assert!(client.is_web(web_id).await?);
 
     let retrieved = client.get_web(web_id).await?.expect("Web should exist");
@@ -25,10 +30,12 @@ async fn create_web() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_web_with_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
     let id = Uuid::new_v4();
-    let web_id = client.create_web(Some(id)).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: Some(id) })
+        .await?;
     assert_eq!(web_id, OwnedById::new(id));
     assert!(client.is_web(web_id).await?);
 
@@ -38,9 +45,11 @@ async fn create_web_with_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
     assert!(client.is_web(web_id).await?);
 
     client.delete_web(web_id).await?;
@@ -52,15 +61,29 @@ async fn delete_web() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_web_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let web_id = client.create_web(Some(Uuid::new_v4())).await?;
-    let result = client.create_web(Some(*web_id.as_uuid())).await;
+    let web_id = client
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: Some(Uuid::new_v4()),
+            },
+        )
+        .await?;
+    let result = client
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: Some(web_id.into_uuid()),
+            },
+        )
+        .await;
     drop(client);
 
     assert_matches!(
         result.expect_err("Creating a web with duplicate ID should fail").current_context(),
-        PrincipalError::PrincipalAlreadyExists { id } if *id == PrincipalId::Team(TeamId::Web(web_id))
+        WebCreationError::AlreadyExists { web_id: id } if *id == web_id
     );
 
     Ok(())
@@ -69,7 +92,7 @@ async fn create_web_with_duplicate_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_non_existent_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let client = db.client().await?;
+    let (client, _actor_id) = db.client().await?;
 
     let non_existent_id = OwnedById::new(Uuid::new_v4());
     let result = client.get_web(non_existent_id).await?;
@@ -85,7 +108,7 @@ async fn get_non_existent_web() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_non_existent_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.client().await?;
 
     let non_existent_id = OwnedById::new(Uuid::new_v4());
     let result = client.delete_web(non_existent_id).await;

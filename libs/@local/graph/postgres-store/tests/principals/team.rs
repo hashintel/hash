@@ -1,8 +1,11 @@
 use core::{assert_matches::assert_matches, error::Error};
 
-use hash_graph_authorization::policies::principal::{
-    PrincipalId,
-    team::{SubteamId, TeamId},
+use hash_graph_authorization::policies::{
+    principal::{
+        PrincipalId,
+        team::{SubteamId, TeamId},
+    },
+    store::{CreateWebParameter, PrincipalStore as _},
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
@@ -13,14 +16,16 @@ use crate::DatabaseTestWrapper;
 #[tokio::test]
 async fn create_subteam() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
     let subteam_id = client.create_subteam(None, TeamId::Web(web_id)).await?;
     assert!(client.is_subteam(subteam_id).await?);
 
     let subteam = client
-        .get_subteam(SubteamId::new(*subteam_id.as_uuid()))
+        .get_subteam(SubteamId::new(subteam_id.into_uuid()))
         .await?
         .expect("Subteam should exist");
 
@@ -32,13 +37,15 @@ async fn create_subteam() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_subteam_with_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
     let id = Uuid::new_v4();
-    let subteam_id = client.create_subteam(Some(id), TeamId::Web(web_id)).await?;
+    let subteam_id = client.create_subteam(None, TeamId::Web(web_id)).await?;
 
-    assert_eq!(*subteam_id.as_uuid(), id);
+    assert_eq!(subteam_id.into_uuid(), id);
     assert!(client.is_subteam(subteam_id).await?);
 
     Ok(())
@@ -47,10 +54,12 @@ async fn create_subteam_with_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_subteam_with_hierarchy() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
     // Create a hierarchy: web -> mid_team -> bottom_team
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
     let mid_subteam_id = client.create_subteam(None, TeamId::Web(web_id)).await?;
     let bottom_subteam_id = client
         .create_subteam(None, TeamId::Subteam(mid_subteam_id))
@@ -58,7 +67,7 @@ async fn delete_subteam_with_hierarchy() -> Result<(), Box<dyn Error>> {
 
     // Verify hierarchy is correctly established
     let subteam = client
-        .get_subteam(SubteamId::new(*bottom_subteam_id.as_uuid()))
+        .get_subteam(SubteamId::new(bottom_subteam_id.into_uuid()))
         .await?
         .expect("Subteam should exist");
 
@@ -98,7 +107,7 @@ async fn delete_subteam_with_hierarchy() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_non_existent_subteam() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.client().await?;
 
     // Try to delete a non-existent subteam
     let non_existent_id = SubteamId::new(Uuid::new_v4());
@@ -117,10 +126,12 @@ async fn delete_non_existent_subteam() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn can_delete_subteam_with_children() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
     // Create a simple parent-child hierarchy
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
     let parent_subteam_id = client.create_subteam(None, TeamId::Web(web_id)).await?;
     let child_subteam_id = client
         .create_subteam(None, TeamId::Subteam(parent_subteam_id))
@@ -139,10 +150,12 @@ async fn can_delete_subteam_with_children() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_subteam_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
     // Create a parent team
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
 
     // Create a subteam with a specific ID
     let id = Uuid::new_v4();
@@ -170,10 +183,12 @@ async fn create_subteam_with_duplicate_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_subteam() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.client().await?;
 
     // Create a parent team and subteam
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
     let subteam_id = client.create_subteam(None, TeamId::Web(web_id)).await?;
 
     // Get the subteam and verify it matches
@@ -189,7 +204,7 @@ async fn get_subteam() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_non_existent_subteam() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let client = db.client().await?;
+    let (client, _actor_id) = db.client().await?;
 
     // Try to get a non-existent subteam
     let non_existent_id = SubteamId::new(Uuid::new_v4());

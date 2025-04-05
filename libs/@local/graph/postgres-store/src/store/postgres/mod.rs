@@ -14,6 +14,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
+    policies::store::{CreateWebParameter, PrincipalStore, error::WebCreationError},
     schema::{
         AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
         WebEntityCreatorSubject, WebEntityEditorSubject, WebEntityTypeViewerSubject,
@@ -51,9 +52,10 @@ use type_system::{
         property_type::{PropertyType, schema::PropertyTypeReference},
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::ActorEntityUuid,
+    provenance::{ActorEntityUuid, ActorId},
     web::{ActorGroupId, OwnedById},
 };
+use uuid::Uuid;
 
 pub use self::{
     pool::{AsClient, PostgresStorePool},
@@ -83,6 +85,33 @@ pub struct PostgresStore<C, A> {
     pub authorization_api: A,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub settings: PostgresStoreSettings,
+}
+
+impl<C, A> PrincipalStore for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: Send + Sync,
+{
+    async fn create_web(
+        &mut self,
+        actor: ActorId,
+        parameter: CreateWebParameter,
+    ) -> Result<OwnedById, Report<WebCreationError>> {
+        let web_id = OwnedById::new(parameter.id.unwrap_or_else(Uuid::new_v4));
+        if let Err(error) = self
+            .as_mut_client()
+            .execute("INSERT INTO web (id) VALUES ($1)", &[web_id.as_uuid()])
+            .await
+        {
+            return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
+                Err(error).change_context(WebCreationError::AlreadyExists { web_id })
+            } else {
+                Err(error).change_context(WebCreationError::StoreError)
+            };
+        }
+
+        Ok(web_id)
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
