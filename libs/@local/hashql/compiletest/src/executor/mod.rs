@@ -2,7 +2,6 @@ mod annotations;
 mod trial;
 mod trial_group;
 
-use alloc::sync::Arc;
 use core::error;
 use std::{self, io, thread};
 
@@ -15,8 +14,9 @@ use hashql_diagnostics::{
 };
 use nextest_filtering::{CompiledExpr, EvalContext, Filterset, FiltersetKind, ParseContext};
 
+pub(crate) use self::trial::TrialDescription;
 use self::trial_group::TrialGroup;
-use crate::{TestGroup, annotation::diagnostic::DiagnosticAnnotation};
+use crate::{TestGroup, annotation::diagnostic::DiagnosticAnnotation, reporter::Statistics};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 pub(crate) enum TrialError {
@@ -28,9 +28,9 @@ pub(crate) enum TrialError {
     AnnotationParsing,
     #[display("source parsing: invalid syntax in test code")]
     SourceParsing,
-    #[display("stdout discrepancy:\n{_0}")]
+    #[display("stdout discrepancy, try to bless the output:\n{_0}")]
     StdoutDiscrepancy(String),
-    #[display("stderr discrepancy:\n{_0}")]
+    #[display("stderr discrepancy, try to bless the output:\n{_0}")]
     StderrDiscrepancy(String),
     #[display("unfulfilled annotation: {_0:?} did not match any emitted diagnostics")]
     UnfulfilledAnnotation(DiagnosticAnnotation),
@@ -94,12 +94,12 @@ pub(crate) struct TrialSet<'graph> {
 }
 
 impl<'graph> TrialSet<'graph> {
-    pub(crate) fn from_test(groups: Vec<TestGroup<'graph>>) -> Self {
+    pub(crate) fn from_test(groups: Vec<TestGroup<'graph>>, statistics: &Statistics) -> Self {
         let groups = thread::scope(|scope| {
             let mut handles = Vec::new();
 
             for group in groups {
-                let handle = scope.spawn(|| trial_group::TrialGroup::from_test(group));
+                let handle = scope.spawn(|| trial_group::TrialGroup::from_test(group, statistics));
                 handles.push(handle);
             }
 
@@ -143,8 +143,7 @@ impl<'graph> TrialSet<'graph> {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all)]
-    pub(crate) fn run(&self, context: &TrialContext) -> Vec<Result<(), Report<[TrialError]>>> {
+    pub(crate) fn run(&self, context: &TrialContext) -> Vec<Report<[TrialError]>> {
         thread::scope(|scope| {
             let mut handles = Vec::new();
 

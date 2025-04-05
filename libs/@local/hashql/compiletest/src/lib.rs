@@ -1,25 +1,24 @@
-#![feature(pattern, assert_matches, file_buffered, if_let_guard, decl_macro)]
+#![feature(
+    pattern,
+    assert_matches,
+    file_buffered,
+    if_let_guard,
+    decl_macro,
+    lock_value_accessors
+)]
 extern crate alloc;
 
-use std::{
-    io::{Write as _, stderr, stdout},
-    path::PathBuf,
-};
+use std::{io::stdout, path::PathBuf, process::exit};
 
-use anstyle::{AnsiColor, Color, Style};
 use guppy::{
     MetadataCommand,
     graph::{PackageGraph, PackageMetadata},
 };
-use indicatif::ProgressStyle;
-use prodash::Root as _;
-use tracing::info_span;
-use tracing_indicatif::span_ext::IndicatifSpanExt as _;
 
 use self::{
     annotation::file::FileAnnotations,
     executor::{TrialContext, TrialSet},
-    reporter::{Reporter, header},
+    reporter::{Reporter, Statistics, Summary, setup_progress_header},
     suite::Suite,
 };
 
@@ -72,8 +71,9 @@ impl Options {
         let graph = PackageGraph::from_command(&mut command).expect("failed to load package graph");
 
         let tests = find::find_tests(&graph);
+        let statistics = Statistics::new();
 
-        let mut trials = TrialSet::from_test(tests);
+        let mut trials = TrialSet::from_test(tests, &statistics);
 
         if let Some(filter) = self.filter {
             trials.filter(filter, &graph);
@@ -81,14 +81,25 @@ impl Options {
 
         match self.command {
             Command::Run { bless } => {
-                let length = trials.len();
+                let total = trials.len();
                 let ignored = trials.ignored();
 
-                header!({reporter: reporter, length: length, ignored: ignored});
+                setup_progress_header!(reporter, Summary { total, ignored }, statistics);
 
-                let result = trials.run(&TrialContext { bless });
+                let reports = trials.run(&TrialContext { bless });
+                let failures = reports.len();
 
-                todo!("we need to actually report the errors")
+                tracing::info!(
+                    success = total - failures,
+                    failures = failures,
+                    "finished trial execution"
+                );
+
+                Reporter::report_errors(reports).expect("should be able to report errors");
+
+                if failures > 0 {
+                    exit(1);
+                }
             }
             Command::List => {
                 trials

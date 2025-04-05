@@ -7,7 +7,7 @@ use nextest_metadata::{RustBinaryId, RustTestBinaryKind};
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
 use super::{TrialContext, TrialError, trial::Trial};
-use crate::TestGroup;
+use crate::{TestGroup, reporter::Statistics};
 
 pub(crate) struct TrialGroup<'graph> {
     pub ignore: bool,
@@ -16,11 +16,11 @@ pub(crate) struct TrialGroup<'graph> {
 }
 
 impl<'graph> TrialGroup<'graph> {
-    pub(crate) fn from_test(group: TestGroup<'graph>) -> Self {
+    pub(crate) fn from_test(group: TestGroup<'graph>, statistics: &Statistics) -> Self {
         let mut trials = Vec::with_capacity(group.cases.len());
 
         for case in group.cases {
-            trials.push(Trial::from_test(case));
+            trials.push(Trial::from_test(case, statistics));
         }
 
         Self {
@@ -76,7 +76,7 @@ impl<'graph> TrialGroup<'graph> {
     }
 
     #[tracing::instrument(skip_all, fields(name = self.metadata.name()))]
-    pub(crate) fn run(&self, context: &TrialContext) -> Vec<Result<(), Report<[TrialError]>>> {
+    pub(crate) fn run(&self, context: &TrialContext) -> Vec<Report<[TrialError]>> {
         if self.ignore {
             return Vec::new();
         }
@@ -88,7 +88,7 @@ impl<'graph> TrialGroup<'graph> {
         // not
         self.trials
             .par_iter()
-            .map(|trial| trial.run(context))
+            .filter_map(|trial| trial.run(&self.metadata, context).err())
             .collect()
     }
 }

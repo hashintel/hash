@@ -1,15 +1,14 @@
 use alloc::sync::Arc;
-use core::time::Duration;
 use std::{
     fs::{self, File},
     io::{self, Cursor},
     path::{Path, PathBuf},
-    thread::sleep,
 };
 
 use error_stack::{
     Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, TryReportTupleExt as _,
 };
+use guppy::graph::PackageMetadata;
 use hashql_ast::{heap::Heap, node::expr::Expr};
 use hashql_core::span::storage::SpanStorage;
 use hashql_syntax_jexpr::{Parser, span::Span};
@@ -21,6 +20,7 @@ use super::{TrialContext, TrialError, annotations::verify_annotations, render_st
 use crate::{
     FileAnnotations, Suite, TestCase,
     annotation::directive::RunMode,
+    reporter::Statistics,
     styles::{BLUE, CYAN, GREEN, RED, YELLOW},
     suite::{ResolvedSuiteDiagnostic, find_suite},
 };
@@ -70,16 +70,23 @@ fn assert_output(
     Err(Report::new(error))
 }
 
+pub(crate) struct TrialDescription {
+    pub package: String,
+    pub namespace: Vec<String>,
+    pub name: String,
+}
+
 pub(crate) struct Trial {
     pub suite: &'static dyn Suite,
     pub path: PathBuf,
     pub namespace: Vec<String>,
     pub ignore: bool,
     pub annotations: FileAnnotations,
+    pub statistics: Statistics,
 }
 
 impl Trial {
-    pub(crate) fn from_test(case: TestCase) -> Self {
+    pub(crate) fn from_test(case: TestCase, statistics: &Statistics) -> Self {
         let suite = find_suite(&case.spec.suite).expect("suite should be available");
 
         let file = File::open_buffered(&case.path).expect("should be able to open file");
@@ -101,6 +108,7 @@ impl Trial {
             namespace: case.namespace,
             ignore: matches!(annotations.directive.run, RunMode::Skip { .. }),
             annotations,
+            statistics: statistics.clone(),
         }
     }
 
@@ -166,11 +174,27 @@ impl Trial {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all, fields(name = self.annotations.directive.name))]
-    pub(crate) fn run(&self, context: &TrialContext) -> Result<(), Report<[TrialError]>> {
-        sleep(Duration::from_secs(4));
+    #[tracing::instrument(skip_all, fields(namespace = self.namespace.join("::"), name = self.annotations.directive.name))]
+    pub(crate) fn run(
+        &self,
+        package: &PackageMetadata,
+        context: &TrialContext,
+    ) -> Result<(), Report<[TrialError]>> {
+        tracing::debug!("running trial");
 
-        let result = self.run_impl(context);
+        let result = self.run_impl(context).attach_lazy(|| TrialDescription {
+            package: package.name().to_owned(),
+            namespace: self.namespace.clone(),
+            name: self.annotations.directive.name.clone(),
+        });
+
+        if result.is_ok() {
+            tracing::info!("trial passed");
+            self.statistics.increase_passed();
+        } else {
+            tracing::error!("trial failed");
+            self.statistics.increase_failed();
+        }
 
         result
     }

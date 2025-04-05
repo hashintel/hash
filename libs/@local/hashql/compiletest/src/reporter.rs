@@ -1,12 +1,20 @@
-use core::{fmt, fmt::Write as _};
-use std::io::{IsTerminal as _, stderr};
+use alloc::sync::Arc;
+use core::fmt::{self, Write as _};
+use std::{
+    io::{self, IsTerminal as _, Write as _, stderr},
+    sync::RwLock,
+};
 
+use error_stack::Report;
 use indicatif::ProgressState;
 use tracing::info_span;
 use tracing_indicatif::{IndicatifLayer, span_ext::IndicatifSpanExt as _, style::ProgressStyle};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
-use crate::styles::{BOLD, GREEN, RED, YELLOW};
+use crate::{
+    executor::{TrialDescription, TrialError},
+    styles::{BLUE, BOLD, CYAN, GREEN, MAGENTA, RED, YELLOW},
+};
 
 #[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
 pub(crate) fn elapsed_subsec(state: &ProgressState, writer: &mut dyn fmt::Write) {
@@ -27,29 +35,87 @@ pub(crate) fn elapsed_subsec(state: &ProgressState, writer: &mut dyn fmt::Write)
         .expect("should be able to write to stdout");
 }
 
-pub(crate) macro header({ reporter: $reporter:expr,length: $length:expr,ignored: $ignored:expr }) {
+#[derive(Debug, Copy, Clone)]
+struct StatisticsInner {
+    passed: usize,
+    failed: usize,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Statistics {
+    inner: Arc<RwLock<StatisticsInner>>,
+}
+
+impl Statistics {
+    pub(crate) fn new() -> Self {
+        Self {
+            inner: Arc::new(RwLock::new(StatisticsInner {
+                passed: 0,
+                failed: 0,
+            })),
+        }
+    }
+
+    pub(crate) fn increase_passed(&self) {
+        self.inner
+            .write()
+            .expect("should be able to write to statistics")
+            .passed += 1;
+    }
+
+    pub(crate) fn increase_failed(&self) {
+        self.inner
+            .write()
+            .expect("should be able to write to statistics")
+            .failed += 1;
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct Summary {
+    pub total: usize,
+    pub ignored: usize,
+}
+
+pub(crate) fn create_progress_header_style(summary: Summary, state: Statistics) -> ProgressStyle {
+    let Summary { total, ignored } = summary;
+
     let mut header = String::new();
     let _ = write!(
         header,
-        "{GREEN}Running{GREEN:#} {BOLD}{}{BOLD:#} tests",
-        $length
+        "{GREEN}Running{GREEN:#} {BOLD}{total}{BOLD:#} tests"
     );
 
-    if $ignored > 0 {
-        let _ = write!(header, " {YELLOW}({} ignored){YELLOW:#}", $ignored);
+    if ignored > 0 {
+        let _ = write!(header, " {YELLOW}({ignored} ignored){YELLOW:#}");
     }
 
-    header.push_str(" {wide_msg} {elapsed_subsec}\n{wide_bar}");
+    header.push_str(" -- {status} {wide_msg} {elapsed_subsec}\n{wide_bar}");
 
+    ProgressStyle::with_template(&header)
+        .expect("progress style should be valid")
+        .with_key("elapsed_subsec", elapsed_subsec)
+        .with_key(
+            "status",
+            move |_: &ProgressState, writer: &mut dyn fmt::Write| {
+                let StatisticsInner { passed, failed } =
+                    state.inner.get_cloned().expect("should not be poisened");
+
+                let _ = write!(
+                    writer,
+                    "{BOLD}{passed}{BOLD:#} {GREEN}passed{GREEN:#} {BOLD}{failed}{BOLD:#} \
+                     {RED}failed{RED:#}"
+                );
+            },
+        )
+        .progress_chars("---")
+}
+
+pub(crate) macro setup_progress_header($reporter:expr, $summary:expr, $statistics:expr) {
     let header_span = info_span!("header");
 
     if $reporter.is_terminal {
-        header_span.pb_set_style(
-            &ProgressStyle::with_template(&header)
-                .expect("progress style should be valid")
-                .with_key("elapsed_subsec", elapsed_subsec)
-                .progress_chars("---"),
-        );
+        header_span.pb_set_style(&create_progress_header_style($summary, $statistics));
         header_span.pb_start();
 
         // Bit of a hack to show a full "-----" line underneath the header.
@@ -63,7 +129,7 @@ pub(crate) struct Reporter {
 }
 
 impl Reporter {
-    pub fn install() -> Self {
+    pub(crate) fn install() -> Self {
         if stderr().is_terminal() {
             Self::install_interactive()
         } else {
@@ -97,5 +163,48 @@ impl Reporter {
             .init();
 
         Self { is_terminal: true }
+    }
+
+    pub(crate) fn report_errors(reports: Vec<Report<[TrialError]>>) -> io::Result<()> {
+        let mut stderr = stderr();
+
+        let length = reports.len();
+        for (index, report) in reports.into_iter().enumerate() {
+            let mut delimiter = String::new();
+            let _ = write!(delimiter, "--- {RED}ERROR:{RED:#} ");
+
+            let description = report.request_ref::<TrialDescription>().next();
+
+            if let Some(TrialDescription {
+                package,
+                namespace,
+                name,
+            }) = description
+            {
+                let _ = write!(
+                    delimiter,
+                    "{MAGENTA}{}{MAGENTA:#} {CYAN}{}{CYAN:#}::{BLUE}{}{BLUE:#}",
+                    package,
+                    namespace.join("::"),
+                    name
+                );
+            } else {
+                let _ = write!(delimiter, "{RED}unknown{RED:#}");
+            }
+
+            write!(stderr, "{delimiter} ---")?;
+            write!(stderr, "\n\n")?;
+            write!(stderr, "{report}")?;
+            write!(stderr, "\n\n")?;
+            write!(stderr, "{delimiter} ---")?;
+
+            if index < length - 1 {
+                write!(stderr, "\n\n\n\n")?;
+            }
+
+            stderr.flush()?;
+        }
+
+        Ok(())
     }
 }
