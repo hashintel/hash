@@ -1,10 +1,44 @@
 use clap::Parser as _;
 use hashql_compiletest::Options;
 
+/// A test harness for HashQL that executes tests in the `/tests/ui` directory structure.
+///
+/// Compiletest runs J-Expr test cases and verifies their outputs against expected
+/// results, tracking diagnostics and assertions for each test case.
+#[derive(Debug, clap::Parser)]
+struct Cli {
+    /// Filter pattern to run a subset of tests.
+    ///
+    /// Uses nextest-compatible filter patterns to select which tests to run or list.
+    /// For example: `--filter "test(some_namespace::specific_test)"`
+    /// or `--filter package(hashql-ast)`
+    #[clap(long, short)]
+    filter: Option<String>,
+
+    /// The operation to perform.
+    #[clap(subcommand)]
+    command: Command,
+}
+
+/// Operations that can be performed on the test suite.
 #[derive(Debug, clap::Subcommand)]
 enum Command {
+    /// List all available tests without running them.
+    ///
+    /// Displays test names and their expected status (pass/fail/skip).
     List,
+
+    /// Run the test suite.
+    ///
+    /// Executes tests, verifying outputs against expected results stored in
+    /// `.stdout` and `.stderr` files. Tests are considered successful if their
+    /// actual output matches the expected output.
     Run {
+        /// Update expected output files with the actual test output.
+        ///
+        /// When specified, the tool will update any `.stdout` and `.stderr` files
+        /// for each test with the actual output produced, instead of failing on
+        /// discrepancies.
         #[clap(long, short, default_value_t = false)]
         bless: bool,
     },
@@ -17,15 +51,6 @@ impl From<Command> for hashql_compiletest::Command {
             Command::Run { bless } => Self::Run { bless },
         }
     }
-}
-
-#[derive(Debug, clap::Parser)]
-struct Cli {
-    #[clap(long, short)]
-    filter: Option<String>,
-
-    #[clap(subcommand)]
-    command: Command,
 }
 
 fn main() {

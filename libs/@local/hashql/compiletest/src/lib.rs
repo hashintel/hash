@@ -64,6 +64,13 @@ pub struct Options {
 }
 
 impl Options {
+    /// Runs the specified command with the given options.
+    ///
+    /// # Panics
+    ///
+    /// - Failed to load package graph
+    /// - Unable to write to stdout or stderr
+    /// - Unable to report errors
     pub fn run(self) {
         let reporter = Reporter::install();
 
