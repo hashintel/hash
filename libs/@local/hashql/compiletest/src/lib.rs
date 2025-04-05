@@ -1,4 +1,6 @@
 #![feature(pattern, assert_matches, file_buffered, if_let_guard, decl_macro)]
+extern crate alloc;
+
 use std::path::PathBuf;
 
 use guppy::graph::PackageMetadata;
