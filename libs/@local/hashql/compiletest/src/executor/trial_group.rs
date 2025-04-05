@@ -73,6 +73,18 @@ impl<'graph> TrialGroup<'graph> {
         tree
     }
 
+    pub(crate) const fn len(&self) -> usize {
+        self.trials.len()
+    }
+
+    pub(crate) fn ignored(&self) -> usize {
+        if self.ignore {
+            self.trials.len()
+        } else {
+            self.trials.iter().filter(|trial| trial.ignore).count()
+        }
+    }
+
     pub(crate) fn run(&self, context: &TrialContext) -> Vec<Result<(), Report<[TrialError]>>> {
         if self.ignore {
             return Vec::new();

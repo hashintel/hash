@@ -66,11 +66,19 @@ fn find_entry_points(graph: &PackageGraph) -> Vec<EntryPoint> {
             continue;
         }
 
+        for (path, workspace) in workspace.iter_by_path() {
+            tracing::info!(%path, ?workspace, "workspace member");
+        }
+
+        let root = workspace.root();
+        let relative_path = Utf8Path::from_path(&entry_path)
+            .expect("should be a valid path")
+            .strip_prefix(root)
+            .expect("path should be relative to workspace root");
+
         // We have an entry-point, check if a `Cargo.toml` exists, to query the name of the package
         // we're about to test
-        let metadata = match workspace
-            .member_by_path(Utf8Path::from_path(&entry_path).expect("should be a valid path"))
-        {
+        let metadata = match workspace.member_by_path(relative_path) {
             Ok(metadata) => metadata,
             Err(error) => {
                 tracing::error!(path = %entry_path.display(), ?error, "failed to get metadata");
@@ -95,7 +103,7 @@ fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {
     let mut candidates = Vec::new();
 
     for entry in walk {
-        if !entry.file_type().is_file() {
+        if entry.file_type().is_dir() {
             continue;
         }
 
@@ -106,7 +114,7 @@ fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {
 
         if file_name == ".spec.toml" {
             let contents =
-                fs::read_to_string(file_name).expect("should be able to read `.spec.toml`");
+                fs::read_to_string(&file_path).expect("should be able to read `.spec.toml`");
 
             specs.insert(
                 file_path
@@ -136,7 +144,7 @@ fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {
 
         cases.push(TestCase {
             spec: spec.clone(),
-            path: candidate.to_path_buf(),
+            path: candidate,
         });
     }
 

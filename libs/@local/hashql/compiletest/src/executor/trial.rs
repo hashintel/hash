@@ -1,9 +1,10 @@
-use alloc::sync::Arc;
+use alloc::{borrow::Cow, sync::Arc};
+use core::time::Duration;
 use std::{
-    borrow::Cow,
     fs::{self, File},
     io::Cursor,
     path::{Path, PathBuf},
+    thread::sleep,
 };
 
 use error_stack::{
@@ -143,6 +144,8 @@ impl Trial {
     pub(crate) fn run(&self, context: &TrialContext) -> Result<(), Report<[TrialError]>> {
         self.progress.running();
 
+        sleep(Duration::from_secs(1));
+
         if self.ignore {
             self.progress.message(MessageLevel::Info, "skipped");
             return Ok(());
@@ -152,9 +155,7 @@ impl Trial {
 
         match result.as_ref() {
             Ok(()) => self.progress.message(MessageLevel::Success, "passed"),
-            Err(report) => self
-                .progress
-                .message(MessageLevel::Failure, report.to_string()),
+            Err(_) => self.progress.message(MessageLevel::Failure, "failure"),
         }
 
         result

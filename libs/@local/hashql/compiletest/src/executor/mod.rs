@@ -16,7 +16,7 @@ use hashql_diagnostics::{
 use nextest_filtering::{CompiledExpr, EvalContext, Filterset, FiltersetKind, ParseContext};
 use termtree::Tree;
 
-pub(crate) use self::{trial::Trial, trial_group::TrialGroup};
+use self::trial_group::TrialGroup;
 use crate::{TestGroup, annotation::diagnostic::DiagnosticAnnotation};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
@@ -132,6 +132,14 @@ impl<'graph> TrialSet<'graph> {
 
     pub(crate) fn tree(&self) -> Arc<prodash::tree::Root> {
         Arc::clone(&self.tree)
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.groups.iter().map(TrialGroup::len).sum()
+    }
+
+    pub(crate) fn ignored(&self) -> usize {
+        self.groups.iter().map(TrialGroup::ignored).sum()
     }
 
     pub(crate) fn list(&self) -> impl Display {

@@ -1,11 +1,24 @@
 #![feature(pattern, assert_matches, file_buffered, if_let_guard, decl_macro)]
 extern crate alloc;
 
-use std::path::PathBuf;
+use std::{
+    io::{Write as _, stderr},
+    path::PathBuf,
+    sync::Arc,
+};
 
-use guppy::graph::PackageMetadata;
+use anstyle::{AnsiColor, Color, Style};
+use guppy::{
+    MetadataCommand,
+    graph::{PackageGraph, PackageMetadata},
+};
+use prodash::Root;
 
-use self::{annotation::file::FileAnnotations, suite::Suite};
+use self::{
+    annotation::file::FileAnnotations,
+    executor::{TrialContext, TrialSet},
+    suite::Suite,
+};
 
 mod annotation;
 mod executor;
@@ -33,4 +46,77 @@ struct TestGroup<'graph> {
 struct EntryPoint<'graph> {
     pub path: PathBuf,
     pub metadata: PackageMetadata<'graph>,
+}
+
+pub enum Command {
+    Run { bless: bool },
+    List,
+}
+
+pub struct Options {
+    pub filter: Option<String>,
+    pub command: Command,
+}
+
+impl Options {
+    pub fn run(self) {
+        tracing_subscriber::fmt().pretty().init();
+
+        let mut command = MetadataCommand::new();
+        let graph = PackageGraph::from_command(&mut command).expect("failed to load package graph");
+
+        let tests = find::find_tests(&graph);
+
+        let mut trials = TrialSet::from_test(tests);
+
+        if let Some(filter) = self.filter {
+            trials.filter(filter, &graph);
+        }
+
+        let tree = trials.tree();
+
+        match self.command {
+            Command::Run { bless } => {
+                let green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)));
+                let yellow = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Yellow)));
+                let bold = Style::new().bold();
+
+                let length = trials.len();
+                let ignored = trials.ignored();
+
+                let mut stderr = stderr();
+
+                write!(
+                    stderr,
+                    "{green}Starting{green:#} {bold}{length}{bold:#} tests"
+                )
+                .expect("should be able to write to stderr");
+
+                if ignored > 0 {
+                    write!(stderr, " {yellow}({ignored} ignored){yellow:#}")
+                        .expect("should be able to write to stderr");
+                }
+
+                writeln!(stderr);
+
+                let handle = prodash::render::line(
+                    stderr,
+                    tree.downgrade(),
+                    prodash::render::line::Options::default()
+                        .auto_configure(prodash::render::line::StreamKind::Stdout),
+                );
+
+                let result = trials.run(&TrialContext { bless });
+
+                drop(handle);
+
+                todo!("we need to actually report the errors")
+            }
+            #[expect(clippy::print_stdout)]
+            Command::List => {
+                let tree = trials.list();
+                println!("{tree}");
+            }
+        }
+    }
 }
