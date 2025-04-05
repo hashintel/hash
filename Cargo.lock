@@ -3672,6 +3672,7 @@ name = "hashql-compiletest"
 version = "0.0.0"
 dependencies = [
  "ariadne",
+ "camino",
  "clap",
  "derive_more 2.0.1",
  "error-stack",
@@ -3692,6 +3693,7 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-subscriber",
+ "walkdir",
 ]
 
 [[package]]

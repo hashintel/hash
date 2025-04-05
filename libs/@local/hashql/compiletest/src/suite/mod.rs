@@ -6,7 +6,7 @@ use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
 
 use self::parse_syntax_dump::ParseSyntaxDumpSuite;
 
-type SuiteDiagnostic = Diagnostic<Box<dyn DiagnosticCategory>, SpanId>;
+pub(crate) type SuiteDiagnostic = Diagnostic<Box<dyn DiagnosticCategory>, SpanId>;
 
 pub(crate) trait Suite: Send + Sync + 'static {
     fn name(&self) -> &'static str;
@@ -20,6 +20,6 @@ pub(crate) trait Suite: Send + Sync + 'static {
 
 const SUITES: &[&dyn Suite] = &[&ParseSyntaxDumpSuite];
 
-pub(crate) fn suite(name: &str) -> Option<&'static dyn Suite> {
+pub(crate) fn find_suite(name: &str) -> Option<&'static dyn Suite> {
     SUITES.iter().find(|&suite| suite.name() == name).copied()
 }

@@ -20,6 +20,7 @@ hashql-syntax-jexpr = { workspace = true }
 
 # Private third-party dependencies
 ariadne                   = { workspace = true }
+camino                    = "1.1.9"
 clap                      = { workspace = true, features = ["derive", "env"] }
 derive_more               = { workspace = true, features = ["display"] }
 guppy                     = "0.17.17"
@@ -35,6 +36,7 @@ snapbox                   = { version = "0.6.21", features = ["dir"] }
 toml                      = "0.8.20"
 tracing                   = { workspace = true }
 tracing-subscriber        = { workspace = true, features = ["env-filter"] }
+walkdir.workspace         = true
 
 [lints]
 workspace = true

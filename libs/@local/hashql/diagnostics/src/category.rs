@@ -28,7 +28,7 @@ where
     }
 }
 
-pub fn canonical_id<C>(category: &C) -> impl Display
+pub fn canonical_category_id<C>(category: &C) -> impl Display
 where
     C: DiagnosticCategory,
 {
@@ -62,7 +62,7 @@ where
     }
 }
 
-pub fn canonical_name<C>(category: &C) -> impl Display
+pub fn canonical_category_name<C>(category: &C) -> impl Display
 where
     C: DiagnosticCategory,
 {

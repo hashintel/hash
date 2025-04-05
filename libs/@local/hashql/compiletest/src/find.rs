@@ -1,12 +1,40 @@
-use std::{fs, path::PathBuf, thread};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    thread,
+};
 
+use camino::Utf8Path;
+use guppy::graph::PackageGraph;
 use radix_trie::Trie;
-use snapbox::{dir::Walk, utils::current_dir};
-use toml::Table;
+use walkdir::WalkDir;
 
 use crate::{EntryPoint, Spec, TestCase, TestGroup};
 
-fn find_entry_points() -> Vec<EntryPoint> {
+// vendored in from `snapbox`
+macro current_dir() {{
+    let root = cargo_rustc_current_dir!();
+    let file = file!();
+    let rel_path = Path::new(file).parent().unwrap();
+
+    root.join(rel_path)
+}}
+
+macro cargo_rustc_current_dir() {{
+    if let Some(rustc_root) = option_env!("CARGO_RUSTC_CURRENT_DIR") {
+        Path::new(rustc_root)
+    } else {
+        let manifest_dir = Path::new(::std::env!("CARGO_MANIFEST_DIR"));
+        manifest_dir
+            .ancestors()
+            .filter(|it| it.join("Cargo.toml").exists())
+            .last()
+            .unwrap()
+    }
+}}
+
+fn find_entry_points(graph: &PackageGraph) -> Vec<EntryPoint> {
+    let workspace = graph.workspace();
     let current_dir = current_dir!();
 
     // Our search location is that of the 2nd parent
@@ -40,46 +68,39 @@ fn find_entry_points() -> Vec<EntryPoint> {
 
         // We have an entry-point, check if a `Cargo.toml` exists, to query the name of the package
         // we're about to test
-        let manifest_path = entry.path().join("Cargo.toml");
-        if !manifest_path.exists() {
-            tracing::warn!(path = %entry_path.display(), "directory has a `tests/ui` directory, but no `Cargo.toml` file. Skipping...");
-            continue;
-        }
-
-        let manifest_content =
-            fs::read_to_string(&manifest_path).expect("should be able to read `Cargo.toml`");
-
-        let manifest = manifest_content
-            .parse::<Table>()
-            .expect("`Cargo.toml` should contain valid TOML");
-
-        let Some(package_name) = manifest
-            .get("package")
-            .and_then(|value| value.get("name"))
-            .and_then(|value| value.as_str())
-        else {
-            tracing::warn!(path = %entry_path.display(), "unable to determine the package name of the crate. Skipping...");
-            continue;
+        let metadata = match workspace
+            .member_by_path(Utf8Path::from_path(&entry_path).expect("should be a valid path"))
+        {
+            Ok(metadata) => metadata,
+            Err(error) => {
+                tracing::error!(path = %entry_path.display(), ?error, "failed to get metadata");
+                continue;
+            }
         };
 
         tracing::info!(path = %entry_path.display(), tests = %path.display(), "adding entry point");
 
-        entry_points.push(EntryPoint {
-            path,
-            krate: package_name.to_owned(),
-        });
+        entry_points.push(EntryPoint { path, metadata });
     }
 
     entry_points
 }
 
 fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {
-    let walk = Walk::new(&entry_point.path).filter_map(Result::ok);
+    let walk = WalkDir::new(&entry_point.path)
+        .into_iter()
+        .filter_map(Result::ok);
 
     let mut specs: Trie<PathBuf, Spec> = Trie::new();
     let mut candidates = Vec::new();
 
-    for file_path in walk {
+    for entry in walk {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+
+        let file_path = entry.path().to_path_buf();
+
         let file_name = file_path.file_name().expect("file should have file name");
         let extension = file_path.extension();
 
@@ -115,15 +136,15 @@ fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {
 
         cases.push(TestCase {
             spec: spec.clone(),
-            path: candidate,
+            path: candidate.to_path_buf(),
         });
     }
 
     cases
 }
 
-pub(crate) fn find_tests() -> Vec<TestGroup> {
-    let entry_points = find_entry_points();
+pub(crate) fn find_tests(graph: &PackageGraph) -> Vec<TestGroup> {
+    let entry_points = find_entry_points(graph);
 
     thread::scope(|scope| {
         let mut handles = Vec::new();

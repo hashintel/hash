@@ -1,5 +1,7 @@
-#![feature(pattern, assert_matches, file_buffered, if_let_guard)]
+#![feature(pattern, assert_matches, file_buffered, if_let_guard, decl_macro)]
 use std::path::PathBuf;
+
+use guppy::graph::PackageMetadata;
 
 use self::{annotation::file::FileAnnotations, suite::Suite};
 
@@ -20,13 +22,13 @@ struct TestCase {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct TestGroup {
-    pub entry: EntryPoint,
+struct TestGroup<'graph> {
+    pub entry: EntryPoint<'graph>,
     pub cases: Vec<TestCase>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct EntryPoint {
+struct EntryPoint<'graph> {
     pub path: PathBuf,
-    pub krate: String,
+    pub metadata: PackageMetadata<'graph>,
 }
