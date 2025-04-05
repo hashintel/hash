@@ -21,6 +21,11 @@ impl Note {
     }
 
     #[must_use]
+    pub const fn message(&self) -> &str {
+        &self.message
+    }
+
+    #[must_use]
     pub const fn with_color(mut self, color: Color) -> Self {
         self.color = Some(color);
         self

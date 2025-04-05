@@ -89,6 +89,7 @@ hash-tracing.path                   = "libs/@local/tracing"
 hashql-ast.path                     = "libs/@local/hashql/ast"
 hashql-core.path                    = "libs/@local/hashql/core"
 hashql-diagnostics.path             = "libs/@local/hashql/diagnostics"
+hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies

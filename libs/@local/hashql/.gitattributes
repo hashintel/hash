@@ -1,0 +1,2 @@
+*.stdout linguist-generated=true
+*.stderr linguist-generated=true

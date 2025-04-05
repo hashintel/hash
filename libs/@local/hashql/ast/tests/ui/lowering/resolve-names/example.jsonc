@@ -1,0 +1,2 @@
+//@ run: pass
+["add", { "#literal": 1 }, { "#literal": 2 }]
