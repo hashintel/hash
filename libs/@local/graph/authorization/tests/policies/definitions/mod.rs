@@ -33,7 +33,7 @@ fn read_policies(policy_strings: &str) -> Vec<Policy> {
             parse_policy_or_template(None, cedar_policy_string)
                 .expect("should be a valid policy")
                 .to_string(),
-            format!("{:?}", policy),
+            format!("{policy:?}"),
         );
 
         check_policy(policy).expect("should be a valid policy");

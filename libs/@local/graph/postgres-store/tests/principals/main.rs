@@ -1,8 +1,10 @@
 #![expect(clippy::panic_in_result_fn, clippy::significant_drop_tightening)]
 #![feature(assert_matches)]
 
+mod actions;
 mod ai;
 mod machine;
+mod policies;
 mod role;
 mod team;
 mod user;

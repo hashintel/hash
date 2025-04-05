@@ -11,17 +11,17 @@ mod set;
 mod validation;
 
 use alloc::{borrow::Cow, collections::BTreeMap, sync::Arc};
-use core::{fmt, str::FromStr as _};
+use core::fmt;
 
 use cedar::CedarEntityId as _;
 use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorId};
 use uuid::Uuid;
 
 pub(crate) use self::cedar::cedar_resource_type;
 use self::{
-    action::{ActionConstraint, ActionId},
+    action::ActionName,
     principal::PrincipalConstraint,
     resource::{EntityTypeId, ResourceConstraint},
 };
@@ -36,6 +36,11 @@ pub use self::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(
+    feature = "postgres",
+    derive(postgres_types::FromSql, postgres_types::ToSql),
+    postgres(name = "policy_effect", rename_all = "snake_case")
+)]
 #[serde(rename_all = "camelCase")]
 pub enum Effect {
     Permit,
@@ -87,8 +92,8 @@ pub struct Policy {
     pub id: PolicyId,
     pub effect: Effect,
     pub principal: Option<PrincipalConstraint>,
-    pub action: ActionConstraint,
-    pub resource: ResourceConstraint,
+    pub actions: Vec<ActionName>,
+    pub resource: Option<ResourceConstraint>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub constraints: Option<()>,
 }
@@ -122,7 +127,7 @@ pub enum PartialResourceId<'a> {
 #[derive(Debug)]
 pub struct Request<'a> {
     pub actor: ActorId,
-    pub action: ActionId,
+    pub action: ActionName,
     pub resource: Option<&'a PartialResourceId<'a>>,
     pub context: RequestContext,
 }
@@ -186,8 +191,8 @@ impl Request<'_> {
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum InvalidPolicy {
-    #[display("Invalid policy id")]
-    InvalidId,
+    #[display("Invalid policy ID")]
+    InvalidPolicyId,
     #[display("Invalid principal constraint")]
     InvalidPrincipalConstraint,
     #[display("Invalid action constraint")]
@@ -204,7 +209,11 @@ impl Policy {
     ) -> Result<Self, Report<InvalidPolicy>> {
         Ok(Self {
             id: PolicyId::new(
-                Uuid::from_str(policy.id().as_ref()).change_context(InvalidPolicy::InvalidId)?,
+                policy
+                    .id()
+                    .as_ref()
+                    .parse()
+                    .change_context(InvalidPolicy::InvalidPolicyId)?,
             ),
             effect: match policy.effect() {
                 ast::Effect::Permit => Effect::Permit,
@@ -212,8 +221,18 @@ impl Policy {
             },
             principal: PrincipalConstraint::try_from_cedar(policy.principal_constraint())
                 .change_context(InvalidPolicy::InvalidPrincipalConstraint)?,
-            action: ActionConstraint::try_from_cedar(policy.action_constraint())
-                .change_context(InvalidPolicy::InvalidActionConstraint)?,
+            actions: match policy.action_constraint() {
+                ast::ActionConstraint::Any => vec![ActionName::All],
+                ast::ActionConstraint::Eq(action) => vec![
+                    ActionName::from_euid(action)
+                        .change_context(InvalidPolicy::InvalidActionConstraint)?,
+                ],
+                ast::ActionConstraint::In(actions) => actions
+                    .iter()
+                    .map(|action| ActionName::from_euid(action))
+                    .try_collect_reports()
+                    .change_context(InvalidPolicy::InvalidActionConstraint)?,
+            },
             resource: ResourceConstraint::try_from_cedar(
                 policy.resource_constraint(),
                 policy.non_scope_constraints(),
@@ -224,7 +243,10 @@ impl Policy {
     }
 
     pub(crate) fn to_cedar_template(&self) -> ast::Template {
-        let (resource_constraint, resource_expr) = self.resource.to_cedar();
+        let (resource_constraint, resource_expr) = self.resource.as_ref().map_or_else(
+            || (ast::ResourceConstraint::any(), ast::Expr::val(true)),
+            ResourceConstraint::to_cedar,
+        );
         ast::Template::new(
             ast::PolicyID::from_string(self.id.to_string()),
             None,
@@ -236,7 +258,16 @@ impl Policy {
             self.principal
                 .as_ref()
                 .map_or_else(ast::PrincipalConstraint::any, PrincipalConstraint::to_cedar),
-            self.action.to_cedar(),
+            if self.actions.contains(&ActionName::All) {
+                ast::ActionConstraint::Any
+            } else {
+                ast::ActionConstraint::In(
+                    self.actions
+                        .iter()
+                        .map(|action| Arc::new(ActionName::to_euid(action)))
+                        .collect(),
+                )
+            },
             resource_constraint,
             resource_expr,
         )
@@ -315,12 +346,8 @@ mod tests {
         assert_eq!(format!("{policy:?}"), cedar_string.as_ref());
 
         let mut policy_set = PolicySet::default();
-        if policy.resource.has_slot() {
-            policy_set.add_template(policy)?;
-        } else {
-            let static_policy = policy.to_cedar_static_policy()?;
-            policy_set.add_policy(&Policy::try_from_cedar(&static_policy)?)?;
-        }
+        let static_policy = policy.to_cedar_static_policy()?;
+        policy_set.add_policy(&Policy::try_from_cedar(&static_policy)?)?;
 
         PolicyValidator.validate_policy_set(&policy_set)?;
 
@@ -341,47 +368,41 @@ mod tests {
 
         use super::*;
         use crate::policies::{
-            ActionConstraint, ActionId, Authorized, ContextBuilder, Effect, PartialResourceId,
-            PolicyId, PrincipalConstraint, Request, RequestContext, ResourceConstraint,
+            ActionName, Authorized, ContextBuilder, Effect, PartialResourceId, PolicyId,
+            PrincipalConstraint, Request, RequestContext, ResourceConstraint,
             principal::actor::User,
             resource::{EntityResource, EntityResourceConstraint},
         };
 
         #[test]
         fn user_can_view_entity_uuid() -> Result<(), Box<dyn Error>> {
-            let policy_id = PolicyId::new(Uuid::new_v4());
             let user_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
             let entity_uuid = EntityUuid::new(Uuid::new_v4());
 
             let policy = Policy {
-                id: policy_id,
+                id: PolicyId::new(Uuid::new_v4()),
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Actor {
                     actor: ActorId::User(user_id),
                 }),
-                action: ActionConstraint::Many {
-                    actions: vec![ActionId::View],
-                },
-                resource: ResourceConstraint::Entity(EntityResourceConstraint::Exact {
-                    id: Some(entity_uuid),
-                }),
+                actions: vec![ActionName::View],
+                resource: Some(ResourceConstraint::Entity(
+                    EntityResourceConstraint::Exact { id: entity_uuid },
+                )),
                 constraints: None,
             };
 
             check_policy(
                 &policy,
                 json!({
-                    "id": policy_id,
+                    "id": policy.id,
                     "effect": "permit",
                     "principal": {
                         "type": "actor",
                         "actorType": "user",
                         "id": user_id,
                     },
-                    "action": {
-                        "type": "many",
-                        "actions": ["view"],
-                    },
+                    "actions": ["view"],
                     "resource": {
                         "type": "entity",
                         "id": entity_uuid,
@@ -425,7 +446,7 @@ mod tests {
                 policy_set.evaluate(
                     &Request {
                         actor: actor_id,
-                        action: ActionId::View,
+                        action: ActionName::View,
                         resource: Some(&resource_id),
                         context: RequestContext,
                     },
@@ -438,7 +459,7 @@ mod tests {
                 policy_set.evaluate(
                     &Request {
                         actor: actor_id,
-                        action: ActionId::Update,
+                        action: ActionName::Update,
                         resource: Some(&resource_id),
                         context: RequestContext,
                     },

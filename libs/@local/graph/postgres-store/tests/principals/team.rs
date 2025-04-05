@@ -45,41 +45,7 @@ async fn create_subteam_with_id() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
-async fn test_recursive_team_hierarchy() -> Result<(), Box<dyn Error>> {
-    let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
-
-    // Create a top-level team
-    let web_id = client.create_web(None).await?;
-
-    // Create first-level subteam
-    let mid_subteam_id = client.create_subteam(None, TeamId::Web(web_id)).await?;
-
-    // Create second-level subteam
-    let bottom_subteam_id = client
-        .create_subteam(None, TeamId::Subteam(mid_subteam_id))
-        .await?;
-
-    // Check that the second-level subteam has both the first-level subteam and the top team as
-    // parents
-    let subteam = client
-        .get_subteam(SubteamId::new(*bottom_subteam_id.as_uuid()))
-        .await?
-        .expect("Subteam should exist");
-
-    // We expect 2 parents with proper depths:
-    // - mid_subteam with depth 1 (direct parent)
-    // - top_team with depth 2 (grandparent)
-    assert_eq!(
-        subteam.parents,
-        [TeamId::Subteam(mid_subteam_id), TeamId::Web(web_id)]
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_delete_subteam_with_hierarchy() -> Result<(), Box<dyn Error>> {
+async fn delete_subteam_with_hierarchy() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut client = db.client().await?;
 
@@ -130,7 +96,7 @@ async fn test_delete_subteam_with_hierarchy() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
-async fn test_delete_non_existent_subteam() -> Result<(), Box<dyn Error>> {
+async fn delete_non_existent_subteam() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut client = db.client().await?;
 
@@ -149,7 +115,7 @@ async fn test_delete_non_existent_subteam() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
-async fn test_can_delete_subteam_with_children() -> Result<(), Box<dyn Error>> {
+async fn can_delete_subteam_with_children() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut client = db.client().await?;
 

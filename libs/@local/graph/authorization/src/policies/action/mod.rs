@@ -1,28 +1,81 @@
-#![expect(
-    clippy::empty_enum,
-    reason = "serde::Deserialize does not use the never-type"
-)]
-
 use alloc::sync::Arc;
-use core::fmt;
+#[cfg(feature = "postgres")]
+use core::error::Error;
+use core::{fmt, str::FromStr};
 use std::sync::LazyLock;
 
+#[cfg(feature = "postgres")]
+use bytes::BytesMut;
 use cedar_policy_core::ast;
-use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
+use error_stack::{Report, ResultExt as _};
 use serde::Serialize as _;
 
 use crate::policies::cedar::CedarEntityId;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "camelCase")]
-pub enum ActionId {
+pub enum ActionName {
+    All,
+
     Create,
+
     View,
+    ViewEntity,
+
     Update,
+
     Instantiate,
 }
 
-impl CedarEntityId for ActionId {
+#[cfg(feature = "postgres")]
+impl<'a> postgres_types::FromSql<'a> for ActionName {
+    postgres_types::accepts!(TEXT);
+
+    fn from_sql(
+        ty: &postgres_types::Type,
+        raw: &'a [u8],
+    ) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self::from_str(
+            <&str as postgres_types::FromSql>::from_sql(ty, raw)?,
+        )?)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl postgres_types::ToSql for ActionName {
+    postgres_types::accepts!(TEXT);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(
+        &self,
+        ty: &postgres_types::Type,
+        out: &mut BytesMut,
+    ) -> Result<postgres_types::IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        self.to_string().to_sql(ty, out)
+    }
+}
+
+impl FromStr for ActionName {
+    type Err = Report<InvalidActionConstraint>;
+
+    fn from_str(action: &str) -> Result<Self, Self::Err> {
+        serde_plain::from_str(action).change_context(InvalidActionConstraint::InvalidAction)
+    }
+}
+
+impl fmt::Display for ActionName {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.serialize(fmt)
+    }
+}
+
+impl CedarEntityId for ActionName {
     type Error = Report<InvalidActionConstraint>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
@@ -36,73 +89,14 @@ impl CedarEntityId for ActionId {
     }
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
-        serde_plain::from_str(eid.as_ref()).change_context(InvalidActionConstraint::InvalidAction)
-    }
-}
-
-impl fmt::Display for ActionId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
+        Self::from_str(eid.as_ref()).change_context(InvalidActionConstraint::InvalidAction)
     }
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-pub(crate) enum InvalidActionConstraint {
+pub enum InvalidActionConstraint {
     #[display("Invalid action in constraint")]
     InvalidAction,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(
-    tag = "type",
-    rename_all = "camelCase",
-    rename_all_fields = "camelCase",
-    deny_unknown_fields
-)]
-pub enum ActionConstraint {
-    #[expect(
-        clippy::empty_enum_variants_with_brackets,
-        reason = "Serialization is different"
-    )]
-    All {},
-    One {
-        action: ActionId,
-    },
-    Many {
-        actions: Vec<ActionId>,
-    },
-}
-
-impl ActionConstraint {
-    pub(crate) fn try_from_cedar(
-        constraint: &ast::ActionConstraint,
-    ) -> Result<Self, Report<InvalidActionConstraint>> {
-        Ok(match constraint {
-            ast::ActionConstraint::Any => Self::All {},
-            ast::ActionConstraint::Eq(action) => Self::One {
-                action: ActionId::from_euid(action)
-                    .change_context(InvalidActionConstraint::InvalidAction)?,
-            },
-            ast::ActionConstraint::In(actions) => Self::Many {
-                actions: actions
-                    .iter()
-                    .map(|action| ActionId::from_euid(action))
-                    .try_collect_reports()
-                    .change_context(InvalidActionConstraint::InvalidAction)?,
-            },
-        })
-    }
-
-    #[must_use]
-    pub(crate) fn to_cedar(&self) -> ast::ActionConstraint {
-        match self {
-            Self::All {} => ast::ActionConstraint::any(),
-            Self::One { action } => ast::ActionConstraint::is_eq(action.to_euid()),
-            Self::Many { actions } => {
-                ast::ActionConstraint::is_in(actions.iter().map(ActionId::to_euid))
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -110,76 +104,78 @@ impl ActionConstraint {
 mod tests {
     use core::error::Error;
 
+    use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
+    use uuid::Uuid;
 
-    use super::ActionConstraint;
     use crate::{
-        policies::ActionId,
-        test_utils::{check_deserialization_error, check_serialization},
+        policies::{ActionName, Effect, Policy, PolicyId, tests::check_policy},
+        test_utils::check_serialization,
     };
 
     #[track_caller]
     pub(crate) fn check_action(
-        constraint: &ActionConstraint,
+        constraint: Vec<ActionName>,
         value: JsonValue,
         cedar_string: impl AsRef<str>,
     ) -> Result<(), Box<dyn Error>> {
-        check_serialization(constraint, value);
+        let cedar_string = cedar_string.as_ref();
 
-        let cedar_constraint = constraint.to_cedar();
-        assert_eq!(cedar_constraint.to_string(), cedar_string.as_ref());
-        ActionConstraint::try_from_cedar(&cedar_constraint)?;
+        let policy = Policy {
+            id: PolicyId::new(Uuid::new_v4()),
+            effect: Effect::Permit,
+            principal: None,
+            actions: constraint,
+            resource: None,
+            constraints: None,
+        };
+        let cedar_policy = policy.to_cedar_static_policy()?;
+
+        assert_eq!(cedar_policy.action_constraint().to_string(), cedar_string);
+
+        check_policy(
+            &policy,
+            json!({
+                "id": policy.id,
+                "effect": "permit",
+                "principal": null,
+                "actions": &value,
+                "resource": null,
+            }),
+            formatdoc!(
+                "permit(
+                  principal,
+                  {cedar_string},
+                  resource
+                ) when {{
+                  true
+                }};"
+            ),
+        )?;
+
+        check_serialization(&policy.actions, value);
+
+        let parsed_policy = Policy::try_from_cedar(&cedar_policy)?;
+        assert_eq!(parsed_policy, policy);
+
         Ok(())
     }
 
     #[test]
     fn constraint_all() -> Result<(), Box<dyn Error>> {
-        check_action(
-            &ActionConstraint::All {},
-            json!({
-                "type": "all",
-            }),
-            "action",
-        )?;
-
-        check_deserialization_error::<ActionConstraint>(
-            json!({
-                "type": "all",
-                "additional": "unexpected"
-            }),
-            "unknown field `additional`, there are no fields",
-        )?;
+        check_action(vec![ActionName::All], json!(["all"]), "action")?;
 
         Ok(())
     }
 
     #[test]
     fn constraint_one() -> Result<(), Box<dyn Error>> {
-        let action = ActionId::View;
+        let action = ActionName::View;
         check_action(
-            &ActionConstraint::One { action },
-            json!({
-                "type": "one",
-                "action": action,
-            }),
-            format!(r#"action == HASH::Action::"{action}""#),
-        )?;
-
-        check_deserialization_error::<ActionConstraint>(
-            json!({
-                "type": "one",
-            }),
-            "missing field `action`",
-        )?;
-
-        check_deserialization_error::<ActionConstraint>(
-            json!({
-                "type": "one",
-                "action": action,
-                "additional": "unexpected",
-            }),
-            "unknown field `additional`, expected `action`",
+            vec![action],
+            json!(["view"]),
+            format!(r#"action in [HASH::Action::"{action}"]"#),
         )?;
 
         Ok(())
@@ -187,35 +183,14 @@ mod tests {
 
     #[test]
     fn constraint_many() -> Result<(), Box<dyn Error>> {
-        let actions = [ActionId::View, ActionId::Update];
+        let actions = [ActionName::View, ActionName::Update];
         check_action(
-            &ActionConstraint::Many {
-                actions: actions.to_vec(),
-            },
-            json!({
-                "type": "many",
-                "actions": actions,
-            }),
+            vec![actions[0], actions[1]],
+            json!(["view", "update"]),
             format!(
                 r#"action in [HASH::Action::"{}",HASH::Action::"{}"]"#,
                 actions[0], actions[1]
             ),
-        )?;
-
-        check_deserialization_error::<ActionConstraint>(
-            json!({
-                "type": "many",
-            }),
-            "missing field `actions`",
-        )?;
-
-        check_deserialization_error::<ActionConstraint>(
-            json!({
-                "type": "many",
-                "actions": actions,
-                "additional": "unexpected",
-            }),
-            "unknown field `additional`, expected `actions`",
         )?;
 
         Ok(())
