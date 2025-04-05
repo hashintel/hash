@@ -3642,6 +3642,7 @@ dependencies = [
  "bumpalo",
  "foldhash",
  "hashbrown 0.15.2",
+ "hashql-compiletest",
  "hashql-core",
  "lexical",
  "simple-mermaid",
