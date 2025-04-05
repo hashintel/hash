@@ -29,6 +29,7 @@ pub(crate) struct DiagnosticAnnotation {
     pub category: Option<String>,
     pub severity: Severity,
     pub message: String,
+    // 1-indexed line number
     pub line: Option<u32>,
 }
 
