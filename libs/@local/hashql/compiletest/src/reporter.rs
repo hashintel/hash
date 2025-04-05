@@ -99,8 +99,7 @@ pub(crate) fn create_progress_header_style(summary: Summary, state: Statistics) 
             "status",
             move |_: &ProgressState, writer: &mut dyn fmt::Write| {
                 let StatisticsInner { passed, failed } =
-                    state.inner.get_cloned().expect("should not be poisened");
-
+                    state.inner.get_cloned().expect("should not be poisoned");
                 let _ = write!(
                     writer,
                     "{BOLD}{passed}{BOLD:#} {GREEN}passed{GREEN:#} {BOLD}{failed}{BOLD:#} \
