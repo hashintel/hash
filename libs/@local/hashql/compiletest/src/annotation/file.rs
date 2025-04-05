@@ -55,13 +55,13 @@ impl FileAnnotations {
     ///
     /// # Errors
     ///
-    /// - [`IoError`] if reading from the file fails
-    /// - [`DirectiveError`] if parsing a directive fails
-    /// - [`DiagnosticError`] if parsing a diagnostic annotation fails
+    /// - [`Io`] if reading from the file fails
+    /// - [`Directive`] if parsing a directive fails
+    /// - [`Diagnostic`] if parsing a diagnostic annotation fails
     ///
-    /// [`IoError`]: FileAnnotationError::IoError
-    /// [`DirectiveError`]: FileAnnotationError::DirectiveError
-    /// [`DiagnosticError`]: FileAnnotationError::DiagnosticError
+    /// [`Io`]: FileAnnotationError::Io
+    /// [`Directive`]: FileAnnotationError::Directive
+    /// [`Diagnostic`]: FileAnnotationError::Diagnostic
     pub(crate) fn parse_file(
         &mut self,
         mut reader: impl BufRead,

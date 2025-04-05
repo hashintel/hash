@@ -48,13 +48,7 @@ impl Directive {
     ///
     /// # Errors
     ///
-    /// - [`InvalidFormat`] if the annotation is missing the key-value separator
-    /// - [`UnknownRunMode`] if an invalid run mode is specified
-    /// - [`UnknownPropertyKey`] if an unknown property key is provided
-    ///
-    /// [`InvalidFormat`]: PropertyParseError::InvalidFormat
-    /// [`UnknownRunMode`]: PropertyParseError::UnknownRunMode
-    /// [`UnknownPropertyKey`]: PropertyParseError::UnknownPropertyKey
+    /// If an annotation is malformed.
     pub(crate) fn parse(&mut self, value: &str) -> Result<(), DirectiveParseError> {
         let (key, value) = value
             .split_once(':')
