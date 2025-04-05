@@ -3670,6 +3670,7 @@ dependencies = [
  "rayon",
  "serde",
  "similar-asserts",
+ "simple-mermaid",
  "toml",
  "tracing",
  "tracing-indicatif",
