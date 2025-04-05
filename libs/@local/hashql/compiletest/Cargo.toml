@@ -25,6 +25,7 @@ camino                    = "1.1.9"
 clap                      = { workspace = true, features = ["derive", "env"] }
 derive_more               = { workspace = true, features = ["display"] }
 guppy                     = "0.17.17"
+indicatif                 = "0.17.11"
 line-index                = "0.1.2"
 nextest-filtering         = "0.15.0"
 nextest-metadata          = "0.12.2"
@@ -35,6 +36,7 @@ serde.workspace           = true
 similar-asserts.workspace = true
 toml                      = "0.8.20"
 tracing                   = { workspace = true }
+tracing-indicatif         = "0.3.9"
 tracing-subscriber        = { workspace = true, features = ["ansi", "env-filter", "fmt"] }
 walkdir.workspace         = true
 

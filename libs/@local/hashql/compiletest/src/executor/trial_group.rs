@@ -13,24 +13,20 @@ pub(crate) struct TrialGroup<'graph> {
     pub ignore: bool,
     pub trials: Vec<Trial>,
     pub metadata: PackageMetadata<'graph>,
-    pub progress: prodash::tree::Item,
 }
 
 impl<'graph> TrialGroup<'graph> {
-    pub(crate) fn from_test(group: TestGroup<'graph>, root: &prodash::tree::Root) -> Self {
+    pub(crate) fn from_test(group: TestGroup<'graph>) -> Self {
         let mut trials = Vec::with_capacity(group.cases.len());
 
-        let mut progress = root.add_child(group.entry.metadata.name());
-
         for case in group.cases {
-            trials.push(Trial::from_test(case, &mut progress));
+            trials.push(Trial::from_test(case));
         }
 
         Self {
             metadata: group.entry.metadata,
             ignore: false,
             trials,
-            progress,
         }
     }
 
@@ -79,6 +75,7 @@ impl<'graph> TrialGroup<'graph> {
         }
     }
 
+    #[tracing::instrument(skip_all, fields(name = self.metadata.name()))]
     pub(crate) fn run(&self, context: &TrialContext) -> Vec<Result<(), Report<[TrialError]>>> {
         if self.ignore {
             return Vec::new();

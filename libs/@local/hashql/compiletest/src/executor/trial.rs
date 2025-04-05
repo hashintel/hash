@@ -15,7 +15,6 @@ use hashql_core::span::storage::SpanStorage;
 use hashql_syntax_jexpr::{Parser, span::Span};
 use line_index::LineIndex;
 use nextest_filtering::{BinaryQuery, EvalContext, Filterset, TestQuery};
-use prodash::messages::MessageLevel;
 use similar_asserts::SimpleDiff;
 
 use super::{TrialContext, TrialError, annotations::verify_annotations, render_stderr};
@@ -77,11 +76,10 @@ pub(crate) struct Trial {
     pub namespace: Vec<String>,
     pub ignore: bool,
     pub annotations: FileAnnotations,
-    pub progress: prodash::tree::Item,
 }
 
 impl Trial {
-    pub(crate) fn from_test(case: TestCase, parent: &mut prodash::tree::Item) -> Self {
+    pub(crate) fn from_test(case: TestCase) -> Self {
         let suite = find_suite(&case.spec.suite).expect("suite should be available");
 
         let file = File::open_buffered(&case.path).expect("should be able to open file");
@@ -97,17 +95,12 @@ impl Trial {
             .parse_file(file, false)
             .expect("should be able to parse file");
 
-        let progress = parent.add_child(&annotations.directive.name);
-        progress.init(None, None);
-        progress.halted("scheduled", None);
-
         Self {
             suite,
             path: case.path,
             namespace: case.namespace,
             ignore: matches!(annotations.directive.run, RunMode::Skip { .. }),
             annotations,
-            progress,
         }
     }
 
@@ -173,22 +166,11 @@ impl Trial {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, fields(name = self.annotations.directive.name))]
     pub(crate) fn run(&self, context: &TrialContext) -> Result<(), Report<[TrialError]>> {
-        self.progress.running();
-
-        sleep(Duration::from_secs(1));
-
-        if self.ignore {
-            self.progress.message(MessageLevel::Info, "skipped");
-            return Ok(());
-        }
+        sleep(Duration::from_secs(4));
 
         let result = self.run_impl(context);
-
-        match result.as_ref() {
-            Ok(()) => self.progress.message(MessageLevel::Success, "passed"),
-            Err(_) => self.progress.message(MessageLevel::Failure, "failure"),
-        }
 
         result
     }

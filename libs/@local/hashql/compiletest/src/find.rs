@@ -51,10 +51,6 @@ fn find_entry_point<'graph>(
         return;
     }
 
-    for (path, workspace) in workspace.iter_by_path() {
-        tracing::info!(%path, ?workspace, "workspace member");
-    }
-
     let root = workspace.root();
     let relative_path = Utf8Path::from_path(&entry_path)
         .expect("should be a valid path")

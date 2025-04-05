@@ -84,24 +84,22 @@ where
     Some(output.join("\n\n"))
 }
 
+#[derive(Debug)]
 pub(crate) struct TrialContext {
     pub bless: bool,
 }
 
 pub(crate) struct TrialSet<'graph> {
     groups: Vec<TrialGroup<'graph>>,
-    tree: Arc<prodash::tree::Root>,
 }
 
 impl<'graph> TrialSet<'graph> {
     pub(crate) fn from_test(groups: Vec<TestGroup<'graph>>) -> Self {
-        let tree = prodash::tree::Root::new();
-
         let groups = thread::scope(|scope| {
             let mut handles = Vec::new();
 
             for group in groups {
-                let handle = scope.spawn(|| trial_group::TrialGroup::from_test(group, &tree));
+                let handle = scope.spawn(|| trial_group::TrialGroup::from_test(group));
                 handles.push(handle);
             }
 
@@ -111,7 +109,7 @@ impl<'graph> TrialSet<'graph> {
                 .collect()
         });
 
-        Self { groups, tree }
+        Self { groups }
     }
 
     pub(crate) fn filter(&mut self, filter: String, graph: &'graph PackageGraph) {
@@ -127,10 +125,6 @@ impl<'graph> TrialSet<'graph> {
         for group in &mut self.groups {
             group.filter(&filterset, context);
         }
-    }
-
-    pub(crate) fn tree(&self) -> Arc<prodash::tree::Root> {
-        Arc::clone(&self.tree)
     }
 
     pub(crate) fn len(&self) -> usize {
@@ -149,6 +143,7 @@ impl<'graph> TrialSet<'graph> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub(crate) fn run(&self, context: &TrialContext) -> Vec<Result<(), Report<[TrialError]>>> {
         thread::scope(|scope| {
             let mut handles = Vec::new();

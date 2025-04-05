@@ -11,17 +11,22 @@ use guppy::{
     MetadataCommand,
     graph::{PackageGraph, PackageMetadata},
 };
+use indicatif::ProgressStyle;
 use prodash::Root as _;
+use tracing::info_span;
+use tracing_indicatif::span_ext::IndicatifSpanExt as _;
 
 use self::{
     annotation::file::FileAnnotations,
     executor::{TrialContext, TrialSet},
+    reporter::{Reporter, header},
     suite::Suite,
 };
 
 mod annotation;
 mod executor;
 mod find;
+mod reporter;
 mod styles;
 mod suite;
 
@@ -61,7 +66,7 @@ pub struct Options {
 
 impl Options {
     pub fn run(self) {
-        tracing_subscriber::fmt().pretty().init();
+        let reporter = Reporter::install();
 
         let mut command = MetadataCommand::new();
         let graph = PackageGraph::from_command(&mut command).expect("failed to load package graph");
@@ -74,42 +79,14 @@ impl Options {
             trials.filter(filter, &graph);
         }
 
-        let tree = trials.tree();
-
         match self.command {
             Command::Run { bless } => {
-                let green = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green)));
-                let yellow = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Yellow)));
-                let bold = Style::new().bold();
-
                 let length = trials.len();
                 let ignored = trials.ignored();
 
-                let mut stderr = stderr();
-
-                write!(
-                    stderr,
-                    "{green}Starting{green:#} {bold}{length}{bold:#} tests"
-                )
-                .expect("should be able to write to stderr");
-
-                if ignored > 0 {
-                    write!(stderr, " {yellow}({ignored} ignored){yellow:#}")
-                        .expect("should be able to write to stderr");
-                }
-
-                writeln!(stderr).expect("should be able to write to stderr");
-
-                let handle = prodash::render::line(
-                    stderr,
-                    tree.downgrade(),
-                    prodash::render::line::Options::default()
-                        .auto_configure(prodash::render::line::StreamKind::Stdout),
-                );
+                header!({reporter: reporter, length: length, ignored: ignored});
 
                 let result = trials.run(&TrialContext { bless });
-
-                drop(handle);
 
                 todo!("we need to actually report the errors")
             }
