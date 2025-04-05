@@ -1,3 +1,5 @@
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     pattern,
     assert_matches,

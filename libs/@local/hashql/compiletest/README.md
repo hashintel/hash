@@ -62,7 +62,7 @@ This will update `.stdout` and `.stderr` files for all tests with their actual o
 
 Tests are organized under the `tests/ui` directory of each package. **Important**: The `tests/ui` directory must be nested in an actual crate that's part of the workspace - the test harness discovers tests by scanning workspace members.
 
-```
+```text
 package_name/
   tests/
     ui/
@@ -104,7 +104,7 @@ Every test file must have an associated `.spec.toml` in its directory or any par
 
 ### Creating a New Test
 
-1. Create a `.jsonc` file with your test code:
+Create a `.jsonc` file with your test code:
 
 ```jsonc
 // example_test.jsonc
@@ -113,14 +113,14 @@ Every test file must have an associated `.spec.toml` in its directory or any par
 ]
 ```
 
-2. Ensure there's a `.spec.toml` file in the directory or a parent directory:
+Ensure there's a `.spec.toml` file in the directory or a parent directory:
 
 ```toml
 # .spec.toml
 suite = "parse/syntax-dump"
 ```
 
-3. Run the test with the `--bless` flag to generate initial reference files:
+Run the test with the `--bless` flag to generate initial reference files:
 
 ```bash
 cargo run -p hashql-compiletest run --filter "test(example_test)" --bless

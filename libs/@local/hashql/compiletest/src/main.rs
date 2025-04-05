@@ -1,3 +1,5 @@
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 use clap::Parser as _;
 use hashql_compiletest::Options;
 
