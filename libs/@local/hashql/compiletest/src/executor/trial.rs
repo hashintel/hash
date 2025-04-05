@@ -1,8 +1,8 @@
-use alloc::{borrow::Cow, sync::Arc};
+use alloc::sync::Arc;
 use core::time::Duration;
 use std::{
     fs::{self, File},
-    io::Cursor,
+    io::{self, Cursor},
     path::{Path, PathBuf},
     thread::sleep,
 };
@@ -22,6 +22,7 @@ use super::{TrialContext, TrialError, annotations::verify_annotations, render_st
 use crate::{
     FileAnnotations, Suite, TestCase,
     annotation::directive::RunMode,
+    styles::{BLUE, CYAN, GREEN, RED, YELLOW},
     suite::{ResolvedSuiteDiagnostic, find_suite},
 };
 
@@ -73,6 +74,7 @@ fn assert_output(
 pub(crate) struct Trial {
     pub suite: &'static dyn Suite,
     pub path: PathBuf,
+    pub namespace: Vec<String>,
     pub ignore: bool,
     pub annotations: FileAnnotations,
     pub progress: prodash::tree::Item,
@@ -102,6 +104,7 @@ impl Trial {
         Self {
             suite,
             path: case.path,
+            namespace: case.namespace,
             ignore: matches!(annotations.directive.run, RunMode::Skip { .. }),
             annotations,
             progress,
@@ -114,10 +117,14 @@ impl Trial {
         context: EvalContext,
         binary_query: BinaryQuery,
     ) {
+        let mut test_name = self.namespace.join("::");
+        test_name.push_str("::");
+        test_name.push_str(&self.annotations.directive.name);
+
         let matches = filterset.matches_test(
             &TestQuery {
                 binary_query,
-                test_name: &self.annotations.directive.name,
+                test_name: &test_name,
             },
             &context,
         );
@@ -133,12 +140,37 @@ impl Trial {
         self.path.with_extension("stderr")
     }
 
-    pub(crate) fn list(&self) -> Cow<str> {
-        Cow::Owned(format!(
-            "{}{}",
-            self.annotations.directive.name,
-            if self.ignore { " (ignored)" } else { "" },
-        ))
+    pub(crate) fn list(
+        &self,
+        mut output: impl io::Write,
+        parent: &str,
+        parent_ignore: bool,
+    ) -> io::Result<()> {
+        match self.annotations.directive.run {
+            RunMode::Pass => write!(output, "[{GREEN}PASS{GREEN:#}]"),
+            RunMode::Fail => write!(output, "[{RED}FAIL{RED:#}]"),
+            RunMode::Skip { .. } => write!(output, "[{YELLOW}SKIP{YELLOW:#}]"),
+        }?;
+
+        write!(output, " {CYAN}{parent}::")?;
+
+        for segment in &self.namespace {
+            write!(output, "{segment}::")?;
+        }
+
+        write!(
+            output,
+            "{CYAN:#}{BLUE}{}{BLUE:#}",
+            self.annotations.directive.name
+        )?;
+
+        if parent_ignore {
+            write!(output, " ({YELLOW}ignored{YELLOW:#} by parent)")?;
+        } else if self.ignore {
+            write!(output, " ({YELLOW}ignored{YELLOW:#})")?;
+        }
+
+        Ok(())
     }
 
     pub(crate) fn run(&self, context: &TrialContext) -> Result<(), Report<[TrialError]>> {

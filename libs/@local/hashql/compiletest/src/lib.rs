@@ -2,9 +2,8 @@
 extern crate alloc;
 
 use std::{
-    io::{Write as _, stderr},
+    io::{Write as _, stderr, stdout},
     path::PathBuf,
-    sync::Arc,
 };
 
 use anstyle::{AnsiColor, Color, Style};
@@ -12,7 +11,7 @@ use guppy::{
     MetadataCommand,
     graph::{PackageGraph, PackageMetadata},
 };
-use prodash::Root;
+use prodash::Root as _;
 
 use self::{
     annotation::file::FileAnnotations,
@@ -23,6 +22,7 @@ use self::{
 mod annotation;
 mod executor;
 mod find;
+mod styles;
 mod suite;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
@@ -34,6 +34,7 @@ struct Spec {
 struct TestCase {
     pub spec: Spec,
     pub path: PathBuf,
+    pub namespace: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -97,7 +98,7 @@ impl Options {
                         .expect("should be able to write to stderr");
                 }
 
-                writeln!(stderr);
+                writeln!(stderr).expect("should be able to write to stderr");
 
                 let handle = prodash::render::line(
                     stderr,
@@ -112,10 +113,10 @@ impl Options {
 
                 todo!("we need to actually report the errors")
             }
-            #[expect(clippy::print_stdout)]
             Command::List => {
-                let tree = trials.list();
-                println!("{tree}");
+                trials
+                    .list(&stdout())
+                    .expect("should be able to write to stdout");
             }
         }
     }

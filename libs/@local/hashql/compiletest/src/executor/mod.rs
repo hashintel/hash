@@ -2,9 +2,9 @@ mod annotations;
 mod trial;
 mod trial_group;
 
-use alloc::{borrow::Cow, sync::Arc};
-use core::{error, fmt::Display};
-use std::{self, thread};
+use alloc::sync::Arc;
+use core::error;
+use std::{self, io, thread};
 
 use ariadne::Source;
 use error_stack::Report;
@@ -14,7 +14,6 @@ use hashql_diagnostics::{
     Diagnostic, category::DiagnosticCategory, config::ReportConfig, span::DiagnosticSpan,
 };
 use nextest_filtering::{CompiledExpr, EvalContext, Filterset, FiltersetKind, ParseContext};
-use termtree::Tree;
 
 use self::trial_group::TrialGroup;
 use crate::{TestGroup, annotation::diagnostic::DiagnosticAnnotation};
@@ -142,14 +141,12 @@ impl<'graph> TrialSet<'graph> {
         self.groups.iter().map(TrialGroup::ignored).sum()
     }
 
-    pub(crate) fn list(&self) -> impl Display {
-        let mut tree = Tree::new(Cow::Borrowed("compiletest"));
-
+    pub(crate) fn list(&self, mut output: impl io::Write) -> io::Result<()> {
         for group in &self.groups {
-            tree.push(group.list());
+            group.list(&mut output)?;
         }
 
-        tree
+        Ok(())
     }
 
     pub(crate) fn run(&self, context: &TrialContext) -> Vec<Result<(), Report<[TrialError]>>> {

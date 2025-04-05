@@ -1,11 +1,11 @@
 use std::{
-    fs,
+    fs::{self, DirEntry},
     path::{Path, PathBuf},
     thread,
 };
 
 use camino::Utf8Path;
-use guppy::graph::PackageGraph;
+use guppy::graph::{PackageGraph, Workspace};
 use radix_trie::Trie;
 use walkdir::WalkDir;
 
@@ -33,6 +33,49 @@ macro cargo_rustc_current_dir() {{
     }
 }}
 
+fn find_entry_point<'graph>(
+    output: &mut Vec<EntryPoint<'graph>>,
+    workspace: &Workspace<'graph>,
+    entry: &DirEntry,
+) {
+    let is_dir = entry.file_type().is_ok_and(|r#type| r#type.is_dir());
+
+    if !is_dir {
+        return;
+    }
+
+    let entry_path = entry.path();
+
+    let path = entry_path.join("tests/ui");
+    if !path.exists() {
+        return;
+    }
+
+    for (path, workspace) in workspace.iter_by_path() {
+        tracing::info!(%path, ?workspace, "workspace member");
+    }
+
+    let root = workspace.root();
+    let relative_path = Utf8Path::from_path(&entry_path)
+        .expect("should be a valid path")
+        .strip_prefix(root)
+        .expect("path should be relative to workspace root");
+
+    // We have an entry-point, check if a `Cargo.toml` exists, to query the name of the package
+    // we're about to test
+    let metadata = match workspace.member_by_path(relative_path) {
+        Ok(metadata) => metadata,
+        Err(error) => {
+            tracing::error!(path = %entry_path.display(), ?error, "failed to get metadata");
+            return;
+        }
+    };
+
+    tracing::info!(path = %entry_path.display(), tests = %path.display(), "adding entry point");
+
+    output.push(EntryPoint { path, metadata });
+}
+
 fn find_entry_points(graph: &PackageGraph) -> Vec<EntryPoint> {
     let workspace = graph.workspace();
     let current_dir = current_dir!();
@@ -53,42 +96,7 @@ fn find_entry_points(graph: &PackageGraph) -> Vec<EntryPoint> {
         .filter_map(Result::ok);
 
     for entry in read_dir {
-        let is_dir = entry.file_type().is_ok_and(|r#type| r#type.is_dir());
-
-        if !is_dir {
-            continue;
-        }
-
-        let entry_path = entry.path();
-
-        let path = entry_path.join("tests/ui");
-        if !path.exists() {
-            continue;
-        }
-
-        for (path, workspace) in workspace.iter_by_path() {
-            tracing::info!(%path, ?workspace, "workspace member");
-        }
-
-        let root = workspace.root();
-        let relative_path = Utf8Path::from_path(&entry_path)
-            .expect("should be a valid path")
-            .strip_prefix(root)
-            .expect("path should be relative to workspace root");
-
-        // We have an entry-point, check if a `Cargo.toml` exists, to query the name of the package
-        // we're about to test
-        let metadata = match workspace.member_by_path(relative_path) {
-            Ok(metadata) => metadata,
-            Err(error) => {
-                tracing::error!(path = %entry_path.display(), ?error, "failed to get metadata");
-                continue;
-            }
-        };
-
-        tracing::info!(path = %entry_path.display(), tests = %path.display(), "adding entry point");
-
-        entry_points.push(EntryPoint { path, metadata });
+        find_entry_point(&mut entry_points, &workspace, &entry);
     }
 
     entry_points
@@ -127,14 +135,24 @@ fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {
             continue;
         }
 
+        let parent = file_path.parent().expect("should have parent");
+        let relative = parent
+            .strip_prefix(&entry_point.path)
+            .expect("file path should be child of entry point");
+
+        let namespace: Vec<_> = relative
+            .components()
+            .filter_map(|component| component.as_os_str().to_str().map(ToOwned::to_owned))
+            .collect();
+
         if extension.is_some_and(|extension| extension == "jsonc") {
-            candidates.push(file_path);
+            candidates.push((file_path, namespace));
         }
     }
 
     let mut cases = Vec::with_capacity(candidates.len());
 
-    for candidate in candidates {
+    for (candidate, namespace) in candidates {
         let Some(spec) = specs.get_ancestor_value(&candidate) else {
             panic!(
                 "{} does not have a `.spec.toml` file in any of it's parent test directories",
@@ -145,6 +163,7 @@ fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {
         cases.push(TestCase {
             spec: spec.clone(),
             path: candidate,
+            namespace,
         });
     }
 

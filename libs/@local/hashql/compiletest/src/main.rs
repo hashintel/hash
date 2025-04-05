@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::Parser as _;
 use hashql_compiletest::Options;
 
 #[derive(Debug, clap::Subcommand)]

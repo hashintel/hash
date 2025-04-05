@@ -38,7 +38,7 @@ impl Directive {
     pub(crate) const MARKER: &'static str = "//@";
 
     pub(crate) fn new(name: impl Into<String>) -> Self {
-        Directive {
+        Self {
             name: name.into(),
             run: RunMode::default(),
         }

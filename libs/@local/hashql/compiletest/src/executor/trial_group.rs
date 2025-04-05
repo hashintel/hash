@@ -1,11 +1,10 @@
-use alloc::borrow::Cow;
+use std::io;
 
 use error_stack::Report;
 use guppy::graph::{PackageMetadata, cargo::BuildPlatform};
 use nextest_filtering::{BinaryQuery, EvalContext, Filterset};
 use nextest_metadata::{RustBinaryId, RustTestBinaryKind};
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
-use termtree::Tree;
 
 use super::{TrialContext, TrialError, trial::Trial};
 use crate::TestGroup;
@@ -59,18 +58,13 @@ impl<'graph> TrialGroup<'graph> {
         }
     }
 
-    pub(crate) fn list(&self) -> Tree<Cow<str>> {
-        let mut tree = Tree::new(Cow::Owned(format!(
-            "{}{}",
-            self.metadata.name(),
-            if self.ignore { " (ignored)" } else { "" }
-        )));
-
+    pub(crate) fn list(&self, mut output: impl io::Write) -> io::Result<()> {
         for trial in &self.trials {
-            tree.push(trial.list());
+            trial.list(&mut output, self.metadata.name(), self.ignore)?;
+            writeln!(output)?;
         }
 
-        tree
+        Ok(())
     }
 
     pub(crate) const fn len(&self) -> usize {
