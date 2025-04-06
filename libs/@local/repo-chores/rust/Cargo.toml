@@ -28,7 +28,6 @@ derive_more    = { workspace = true, features = ["display"] }
 globset        = { workspace = true }
 guppy          = "0.17.17"
 hash-tracing   = { workspace = true, features = ["clap"] }
-petgraph       = { workspace = true }
 serde          = { workspace = true, features = ["derive", "std"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }

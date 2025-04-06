@@ -21,6 +21,10 @@ pub enum DependencyDiagramError {
     #[display("Failed to execute cargo metadata")]
     CargoMetadata,
 
+    /// Indicates a failure when writing to a file.
+    #[display("Failed to write to file")]
+    FileWrite,
+
     /// Indicates a failure when creating a glob pattern.
     #[display("Failed to create glob pattern")]
     GlobPattern,

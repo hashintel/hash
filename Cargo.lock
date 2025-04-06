@@ -2892,7 +2892,7 @@ dependencies = [
  "nested",
  "once_cell",
  "pathdiff",
- "petgraph 0.7.1",
+ "petgraph",
  "semver",
  "serde",
  "serde_json",
@@ -3556,7 +3556,6 @@ dependencies = [
  "guppy",
  "hash-tracing",
  "inferno",
- "petgraph 0.8.0",
  "serde",
  "serde_json",
  "simple-mermaid",
@@ -4494,7 +4493,7 @@ dependencies = [
  "ena",
  "itertools 0.14.0",
  "lalrpop-util",
- "petgraph 0.7.1",
+ "petgraph",
  "pico-args",
  "regex",
  "regex-syntax 0.8.5",
@@ -6040,17 +6039,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "petgraph"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c96dc3f2709da98e228764d8f4c01c39a101dcc441547e8036372ee0522eb108"
-dependencies = [
- "fixedbitset",
- "hashbrown 0.15.2",
- "indexmap 2.8.0",
-]
-
-[[package]]
 name = "phf"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6445,7 +6433,7 @@ dependencies = [
  "log",
  "multimap",
  "once_cell",
- "petgraph 0.7.1",
+ "petgraph",
  "prettyplease",
  "prost",
  "prost-types",
