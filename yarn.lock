@@ -13011,8 +13011,6 @@ __metadata:
   resolution: "@rust/hashql-ast@workspace:libs/@local/hashql/ast"
   dependencies:
     "@rust/hashql-core": "npm:0.0.0-private"
-  peerDependencies:
-    "@rust/hashql-compiletest": 0.0.0-private
   languageName: unknown
   linkType: soft
 
