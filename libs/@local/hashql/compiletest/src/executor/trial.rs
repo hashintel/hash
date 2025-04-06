@@ -206,7 +206,7 @@ impl Trial {
 
         let (expr, spans) = parse_source(&source, &heap)?;
 
-        let (received_stdout, diagnostics) = self.run_suite(&spans, expr)?;
+        let (received_stdout, diagnostics) = self.run_suite(&spans, &heap, expr)?;
 
         let mut sink = ReportSink::new_armed();
 
@@ -247,14 +247,15 @@ impl Trial {
         Ok((source, line_index, annotations))
     }
 
-    fn run_suite(
+    fn run_suite<'heap>(
         &self,
         spans: &SpanStorage<Span>,
-        expr: Expr,
+        heap: &'heap Heap,
+        expr: Expr<'heap>,
     ) -> Result<(Option<String>, Vec<ResolvedSuiteDiagnostic>), Report<TrialError>> {
         let mut diagnostics = vec![];
 
-        let result = self.suite.run(expr, &mut diagnostics);
+        let result = self.suite.run(heap, expr, &mut diagnostics);
 
         let (received_stdout, fatal_diagnostic) = match result {
             Ok(stdout) => (Some(stdout), None),

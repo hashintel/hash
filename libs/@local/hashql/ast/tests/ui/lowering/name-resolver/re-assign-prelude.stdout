@@ -1,0 +1,44 @@
+Expr#4294967040@21
+  ExprKind (Call)
+    CallExpr#4294967040@21
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: true)
+            PathSegment#4294967040@2 (name: kernel)
+            PathSegment#4294967040@2 (name: special_form)
+            PathSegment#4294967040@2 (name: let)
+      Argument#4294967040@7
+        Expr#4294967040@7
+          ExprKind (Path)
+            Path#4294967040@7 (rooted: true)
+              PathSegment#4294967040@6 (name: kernel)
+              PathSegment#4294967040@6 (name: special_form)
+              PathSegment#4294967040@6 (name: let)
+      Argument#4294967040@16
+        Expr#4294967040@16
+          ExprKind (Call)
+            CallExpr#4294967040@16
+              Expr#4294967040@11
+                ExprKind (Path)
+                  Path#4294967040@11 (rooted: true)
+                    PathSegment#4294967040@10 (name: math)
+                    PathSegment#4294967040@10 (name: add)
+              Argument#4294967040@13
+                Expr#4294967040@13
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@12
+                      LiteralKind (Integer)
+                        IntegerLiteral (1)
+              Argument#4294967040@15
+                Expr#4294967040@15
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@14
+                      LiteralKind (Integer)
+                        IntegerLiteral (2)
+      Argument#4294967040@20
+        Expr#4294967040@20
+          ExprKind (Path)
+            Path#4294967040@20 (rooted: true)
+              PathSegment#4294967040@19 (name: kernel)
+              PathSegment#4294967040@19 (name: special_form)
+              PathSegment#4294967040@19 (name: let)

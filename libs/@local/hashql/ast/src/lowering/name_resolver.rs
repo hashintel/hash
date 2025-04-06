@@ -271,7 +271,7 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
             return;
         }
 
-        // Check if the first segment exists, and if said exists in our mapping
+        // Check if the first segment exists, and if said segment exists in our mapping
         let Some(segment) = path.segments.first() else {
             walk_path(self, path);
             return;
@@ -284,9 +284,11 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
 
         let span = segment.span;
 
+        path.rooted = replacement.rooted;
+
         // Replace the segment with the aliased value
         path.segments.splice(
-            0..0,
+            0..1,
             replacement.segments.iter().cloned().map(|mut segment| {
                 // Make sure that we inherit the span from the original segment
                 segment.span = span;
@@ -353,15 +355,14 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
             return;
         };
 
-        self.visit_path(to);
-        self.visit_path(from);
-
+        // We do **not** resolve the `to` path, as it is supposed to be an identifier
         let Some(to_ident) = to.as_ident().cloned() else {
             walk_call_expr(self, expr);
             return;
         };
 
         // we have a new mapping from path to type
+        self.visit_path(from);
         let mut from_path = Some(from.clone());
 
         // we now need to call_expr, but important is that we don't apply the mapping
@@ -385,11 +386,11 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
         // While our call to `visit_argument` simply delegates to `visit_expr`, it's still important
         // to call it, as to not break any contracts down the line.
         for (index, argument) in arguments.iter_mut().enumerate() {
-            if index == arguments_length - 1 {
-                let old = self.mapping.insert(
-                    to_ident.name.clone(),
-                    from_path.take().unwrap_or_else(|| unreachable!()),
-                );
+            if index == 0 {
+                // The first argument is the identifier, which we shouldn't normalize
+            } else if index == arguments_length - 1 {
+                let from = from_path.take().unwrap_or_else(|| unreachable!());
+                let old = self.mapping.insert(to_ident.name.clone(), from);
 
                 self.visit_argument(argument);
 
@@ -401,6 +402,8 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
             }
         }
     }
+
+    // TODO: type and newtype expressions
 
     // In theory should never be called, because absolute name expansion should happen before
     // special forms are resolved. To make sure that even if it is called post-absolutization,

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: test that `let` does not leak out of scope
+["::+", { "#literal": 3 }, { "#literal": 4 }]

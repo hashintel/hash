@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: if the first argument cannot be interpreted as an ident, do nothing
+["let", "a<T>", "b", ["+", "a", "c"]]

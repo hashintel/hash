@@ -31,6 +31,7 @@ pub(crate) enum RunMode {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Directive {
     pub name: String,
+    pub description: Option<String>,
     pub run: RunMode,
 }
 
@@ -40,6 +41,7 @@ impl Directive {
     pub(crate) fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
+            description: None,
             run: RunMode::default(),
         }
     }
@@ -75,7 +77,12 @@ impl Directive {
             ("name", name) => {
                 name.clone_into(&mut self.name);
             }
-
+            ("description", "") => {
+                self.description = None;
+            }
+            ("description", description) => {
+                self.description = Some(description.to_owned());
+            }
             (key, value) => {
                 return Err(DirectiveParseError::UnknownPropertyKey(
                     key.to_owned(),

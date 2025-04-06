@@ -3,17 +3,17 @@ Expr#4294967040@8
     CallExpr#4294967040@8
       Expr#4294967040@3
         ExprKind (Path)
-          Path#4294967040@3 (rooted: false)
-            PathSegment#4294967040@2 (name: add)
+          Path#4294967040@3 (rooted: true)
+            PathSegment#4294967040@2 (name: +)
       Argument#4294967040@5
         Expr#4294967040@5
           ExprKind (Literal)
             LiteralExpr#4294967040@4
               LiteralKind (Integer)
-                IntegerLiteral (1)
+                IntegerLiteral (3)
       Argument#4294967040@7
         Expr#4294967040@7
           ExprKind (Literal)
             LiteralExpr#4294967040@6
               LiteralKind (Integer)
-                IntegerLiteral (2)
+                IntegerLiteral (4)
