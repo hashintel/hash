@@ -97,10 +97,6 @@ impl Heap {
         }
     }
 
-    pub fn empty_slice<T>(&self) -> Box<[T]> {
-        Box::new_in([], self)
-    }
-
     /// Creates a new vector allocated on this heap.
     ///
     /// The capacity is an optional initial capacity for the vector, a value of [`None`] indicates
@@ -112,11 +108,14 @@ impl Heap {
         )
     }
 
-    pub fn boxed_slice<T>(&self, vec: ::alloc::vec::Vec<T>) -> Box<[T]> {
+    /// Moves a vector allocated on the heap into this heap.
+    ///
+    /// The vector is moved into this heap, and the original vector is dropped.
+    pub fn transfer_vec<T>(&self, vec: alloc::vec::Vec<T>) -> Vec<T> {
         let mut target = Vec::with_capacity_in(vec.len(), self);
         target.extend(vec);
 
-        target.into_boxed_slice()
+        target
     }
 
     /// Creates a new hash map allocated on this heap.

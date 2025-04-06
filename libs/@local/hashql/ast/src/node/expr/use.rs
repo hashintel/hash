@@ -36,7 +36,7 @@ pub struct Glob {
 /// items are being imported with a glob.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum UseKind<'heap> {
-    Named(heap::Box<'heap, [UseBinding]>),
+    Named(heap::Vec<'heap, UseBinding>),
     Glob(Glob),
 }
 

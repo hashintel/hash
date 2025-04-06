@@ -154,8 +154,8 @@ pub(crate) fn parse_array<'heap, 'source>(
             id: NodeId::PLACEHOLDER,
             span,
             function: heap.boxed(function),
-            arguments: heap.boxed_slice(arguments),
-            labeled_arguments: heap.boxed_slice(labeled_arguments),
+            arguments: heap.transfer_vec(arguments),
+            labeled_arguments: heap.transfer_vec(labeled_arguments),
         }),
     })
 }

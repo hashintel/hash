@@ -105,7 +105,7 @@ where
                     kind: TypeKind::Tuple(TupleType {
                         id: NodeId::PLACEHOLDER,
                         span,
-                        fields: context.heap.empty_slice(),
+                        fields: context.heap.vec(None),
                     }),
                 }
             })
@@ -138,7 +138,7 @@ where
                     kind: TypeKind::Struct(StructType {
                         id: NodeId::PLACEHOLDER,
                         span,
-                        fields: context.heap.empty_slice(),
+                        fields: context.heap.vec(None),
                     }),
                 }
             })
@@ -199,7 +199,7 @@ where
                 kind: TypeKind::Struct(StructType {
                     id: NodeId::PLACEHOLDER,
                     span,
-                    fields: context.heap.boxed_slice(fields),
+                    fields: context.heap.transfer_vec(fields),
                 }),
             }
         })
@@ -255,7 +255,7 @@ where
                 kind: TypeKind::Tuple(TupleType {
                     id: NodeId::PLACEHOLDER,
                     span,
-                    fields: context.heap.boxed_slice(fields),
+                    fields: context.heap.transfer_vec(fields),
                 }),
             }
         })
@@ -381,7 +381,7 @@ where
                 kind: TypeKind::Union(UnionType {
                     id: NodeId::PLACEHOLDER,
                     span,
-                    types: types.into_boxed_slice(),
+                    types,
                 }),
             }
         })
@@ -415,7 +415,7 @@ where
                 kind: TypeKind::Intersection(IntersectionType {
                     id: NodeId::PLACEHOLDER,
                     span,
-                    types: types.into_boxed_slice(),
+                    types,
                 }),
             }
         })

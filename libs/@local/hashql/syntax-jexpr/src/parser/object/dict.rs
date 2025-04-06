@@ -120,7 +120,7 @@ fn parse_dict_object<'heap, 'source>(
     Ok(DictExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(span),
-        entries: state.heap().boxed_slice(entries),
+        entries: state.heap().transfer_vec(entries),
         r#type: None,
     })
 }
@@ -194,7 +194,7 @@ fn parse_dict_array<'heap, 'source>(
     Ok(DictExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(span),
-        entries: state.heap().boxed_slice(entries),
+        entries: state.heap().transfer_vec(entries),
         r#type: None,
     })
 }

@@ -30,7 +30,7 @@ pub struct ClosureSig<'heap> {
 
     pub generics: Generics<'heap>,
 
-    pub inputs: heap::Box<'heap, [ClosureParam<'heap>]>,
+    pub inputs: heap::Vec<'heap, ClosureParam<'heap>>,
     pub output: heap::Box<'heap, Type<'heap>>,
 }
 

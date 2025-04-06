@@ -106,7 +106,7 @@ fn parse_list<'heap>(
     Ok(ListExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(range),
-        elements: state.heap().boxed_slice(elements),
+        elements: state.heap().transfer_vec(elements),
         r#type: None,
     })
 }
