@@ -17,6 +17,13 @@ struct Cli {
     #[clap(long, short)]
     filter: Option<String>,
 
+    /// Enable quick filtering.
+    ///
+    /// Quick filtering will allow for faster test execution (reduction by 500ms), but won't allow
+    /// for any dependency related filtering.
+    #[clap(long, default_value_t = false)]
+    quick_filter: bool,
+
     /// The operation to perform.
     #[clap(subcommand)]
     command: Command,
@@ -60,6 +67,7 @@ fn main() {
 
     let options = Options {
         filter: cli.filter,
+        quick_filter: cli.quick_filter,
         command: cli.command.into(),
     };
 
