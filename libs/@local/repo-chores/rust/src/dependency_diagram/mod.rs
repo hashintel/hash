@@ -4,14 +4,17 @@
 //! dependencies within a workspace.
 
 use alloc::collections::{BTreeMap, BTreeSet};
-use core::{error::Error, fmt::Write as _};
+use core::{error::Error, fmt::Write as _, iter};
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use guppy::{
     MetadataCommand, PackageId,
-    graph::{DependencyDirection, PackageGraph, PackageSet},
+    graph::{
+        DependencyDirection, PackageGraph, PackageLink, PackageMetadata, PackageQuery,
+        PackageResolver, PackageSet,
+    },
 };
 
 /// Errors that can occur during dependency diagram generation.
@@ -207,23 +210,13 @@ fn graph_to_mermaid(
     let mut mermaid = GRAPH_PRELUDE.to_owned();
 
     // Collect all package IDs from the set and sort them for deterministic output
-    let mut package_ids: Vec<_> = set
-        .packages(DependencyDirection::Forward)
-        .map(|metadata| metadata.id())
-        .collect();
+    let mut packages: Vec<_> = set.packages(DependencyDirection::Forward).collect();
 
-    package_ids.sort();
+    packages.sort_by_key(PackageMetadata::id);
 
-    // Map the package id to a numerical one, as mermaid does not support package IDs directly
-    let package_id_lookup: HashMap<&PackageId, usize> = package_ids
-        .into_iter()
-        .enumerate()
-        .map(|(index, id)| (id, index))
-        .collect();
+    tracing::debug!(packages = packages.len(), "Processing packages",);
 
-    tracing::debug!(packages = package_id_lookup.len(), "Processing packages",);
-
-    for metadata in set.packages(DependencyDirection::Forward) {
+    for (index, metadata) in packages.iter().copied().enumerate() {
         let is_root = Some(metadata.name()) == root_crate;
         let create_link = match link_mode {
             LinkMode::All => true,
@@ -235,27 +228,24 @@ fn graph_to_mermaid(
             let path = format!("../{}", metadata.name().replace('-', "_"));
             let _ = writeln!(
                 mermaid,
-                "    {}[<a href=\"{path}\">{}</a>]",
-                package_id_lookup[metadata.id()],
+                "    {index}[<a href=\"{path}\">{}</a>]",
                 metadata.name()
             );
         } else {
-            let _ = writeln!(
-                mermaid,
-                "    {}[{}]",
-                package_id_lookup[metadata.id()],
-                metadata.name()
-            );
+            let _ = writeln!(mermaid, "    {index}[{}]", metadata.name());
         }
 
         if is_root {
-            let _ = writeln!(
-                mermaid,
-                "    class {} root",
-                package_id_lookup[metadata.id()]
-            );
+            let _ = writeln!(mermaid, "    class {index} root");
         }
     }
+
+    // Map the package id to a numerical one, as mermaid does not support package IDs directly
+    let package_id_lookup: HashMap<&PackageId, usize> = packages
+        .into_iter()
+        .enumerate()
+        .map(|(index, metadata)| (metadata.id(), index))
+        .collect();
 
     let mut transitive_edges = BTreeSet::new();
     let mut edges = BTreeMap::new();
@@ -327,6 +317,106 @@ fn graph_to_mermaid(
     mermaid
 }
 
+/// Requirements for filtering dependencies in the graph.
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "This is a configuration struct"
+)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct DependencyRequirement {
+    /// Whether to exclude dev-only dependencies
+    deny_dev: bool,
+
+    /// Whether to exclude build-only dependencies
+    deny_build: bool,
+
+    /// Whether to exclude normal dependencies
+    deny_normal: bool,
+
+    /// Whether to include only workspace crates
+    only_workspace: bool,
+}
+
+impl DependencyRequirement {
+    /// Determines if a package link represents a dev-only dependency.
+    ///
+    /// A dev-only dependency is one that is only used for development
+    /// purposes.
+    fn link_dev_only(link: PackageLink) -> bool {
+        link.dev_only()
+    }
+
+    /// Determines if a package link represents a build-only dependency.
+    ///
+    /// A build-only dependency is one that is only used during the build process.
+    fn link_build_only(link: PackageLink) -> bool {
+        !link.dev().is_present() && !link.normal().is_present()
+    }
+
+    /// Determines if a package link represents a normal dependency.
+    ///
+    /// A normal dependency is one that is neither dev-only nor build-only.
+    fn link_normal_only(link: PackageLink) -> bool {
+        !link.dev().is_present() && !link.build().is_present()
+    }
+
+    /// Evaluates whether a package link meets the dependency requirements.
+    fn eval(self, link: PackageLink) -> bool {
+        if self.deny_dev && Self::link_dev_only(link) {
+            return false;
+        }
+
+        if self.deny_build && Self::link_build_only(link) {
+            return false;
+        }
+
+        if self.deny_normal && Self::link_normal_only(link) {
+            return false;
+        }
+
+        if self.only_workspace && (!link.from().in_workspace() || !link.to().in_workspace()) {
+            return false;
+        }
+
+        true
+    }
+}
+
+/// A resolver for filtering package dependencies based on defined criteria.
+#[derive(Debug, Copy, Clone)]
+struct PackageQueryResolver<'a> {
+    /// Glob patterns for packages to include (if specified)
+    include: Option<&'a GlobSet>,
+
+    /// Glob patterns for packages to exclude (if specified)
+    exclude: Option<&'a GlobSet>,
+
+    /// Requirements for filtering dependencies by type and workspace membership
+    dependency: DependencyRequirement,
+}
+
+impl<'graph> PackageResolver<'graph> for PackageQueryResolver<'_> {
+    fn accept(&mut self, _: &PackageQuery<'graph>, link: PackageLink<'graph>) -> bool {
+        if let Some(include) = &self.include {
+            if !include.is_match(link.from().name()) || !include.is_match(link.to().name()) {
+                return false;
+            }
+        }
+
+        if let Some(exclude) = &self.exclude {
+            if exclude.is_match(link.from().name()) || exclude.is_match(link.to().name()) {
+                return false;
+            }
+        }
+
+        if !self.dependency.eval(link) {
+            return false;
+        }
+
+        true
+    }
+}
+
 /// Generates a Mermaid diagram for crate dependencies in the workspace.
 ///
 /// This is the main entry point for the diagram generation functionality. It orchestrates
@@ -391,69 +481,52 @@ pub fn generate_dependency_diagram(
         }
     }
 
-    let query_root = root_set.as_ref().map_or_else(
-        || {
-            tracing::debug!("Using all workspace packages as query root");
-            graph.query_workspace()
+    let resolver = PackageQueryResolver {
+        include: include_globset.as_ref(),
+        exclude: exclude_globset.as_ref(),
+        dependency: DependencyRequirement {
+            deny_dev: !include_dev_deps,
+            deny_build: !include_build_deps,
+            deny_normal: false,
+            only_workspace: *workspace_only,
         },
-        |root_set| {
-            tracing::debug!("Using root package as query root");
-            root_set.to_package_query(DependencyDirection::Forward)
-        },
-    );
+    };
 
-    let query = query_root.resolve_with_fn(|_, link| {
-        if let Some(include) = &include_globset {
-            if !include.is_match(link.from().name()) || !include.is_match(link.to().name()) {
-                return false;
-            }
+    let mut set = graph
+        .query_forward(iter::empty())
+        .expect("infallible; is empty")
+        .resolve();
+
+    if let Some(root) = &root_set
+        && (*root_deps_only || *root_deps_and_dependents)
+    {
+        tracing::debug!(
+            root_deps_only,
+            root_deps_and_dependents,
+            "Applying root-based filtering",
+        );
+
+        set = set.union(
+            &root
+                .to_package_query(DependencyDirection::Forward)
+                .resolve_with(resolver),
+        );
+
+        if *root_deps_and_dependents {
+            set = set.union(
+                &root
+                    .to_package_query(DependencyDirection::Reverse)
+                    .resolve_with(resolver),
+            );
         }
+    } else {
+        set = set.union(&graph.query_workspace().resolve_with(resolver));
+    }
 
-        if let Some(exclude) = &exclude_globset {
-            if exclude.is_match(link.from().name()) || exclude.is_match(link.to().name()) {
-                return false;
-            }
-        }
-
-        if !*include_dev_deps && link.dev_only() {
-            return false;
-        }
-
-        if !*include_build_deps && !link.normal().is_present() && !link.dev().is_present() {
-            return false;
-        }
-
-        if *workspace_only && (!link.from().in_workspace() || !link.to().in_workspace()) {
-            return false;
-        }
-
-        if *root_deps_only && *root_deps_and_dependents {
-            if let Some(root) = &root_set {
-                return root
-                    .contains(link.from().id())
-                    .expect("package graph should know package id")
-                    || root
-                        .contains(link.to().id())
-                        .expect("package graph should know package id");
-            }
-        } else if *root_deps_only {
-            if let Some(root) = &root_set {
-                return root
-                    .contains(link.from().id())
-                    .expect("package graph should know package id");
-            }
-        }
-
-        true
-    });
-
-    tracing::info!(
-        packages = query.packages(DependencyDirection::Forward).count(),
-        "Graph has been filtered"
-    );
+    tracing::info!(packages = set.len(), "Graph has been filtered");
 
     // Convert the package set to a mermaid diagram
-    let diagram = graph_to_mermaid(query, root.as_deref(), !no_dedup_transitive, *link_mode);
+    let diagram = graph_to_mermaid(set, root.as_deref(), !no_dedup_transitive, *link_mode);
 
     Ok(diagram)
 }
