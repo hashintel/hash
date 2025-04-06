@@ -47,7 +47,8 @@
     box_into_boxed_slice,
     formatting_options,
     never_type,
-    decl_macro
+    decl_macro,
+    macro_metavar_expr
 )]
 #![cfg_attr(test, feature(assert_matches))]
 
