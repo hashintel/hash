@@ -24,7 +24,7 @@ runs:
         fi
 
         # Workaround as turbo doesn't allow for cyclic dependencies
-        if echo "$SCOPES" | grep -q "@rust/hashql\(-ast)"; then
+        if echo "$SCOPES" | grep -q "@rust/hashql-ast"; then
           SCOPES="$SCOPES @rust/hashql-compiletest"
         fi
 
