@@ -11,7 +11,7 @@ nodejs_package_json = { version = "*", features = ["serialize"] }
 ---
 
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     env, fs,
     path::{Path, PathBuf},
 };
@@ -180,6 +180,9 @@ impl<'a> WorkspaceMember<'a> {
             });
 
         dependencies.extend(members);
+
+        let ignore_dev_dependencies = self.ignore_dev_dependencies();
+        dependencies.retain(|name, _| !ignore_dev_dependencies.contains(name));
     }
 
     fn parse_extra_dependencies(dependencies: &[serde_json::Value]) -> BTreeMap<String, String> {
@@ -203,6 +206,16 @@ impl<'a> WorkspaceMember<'a> {
             })
             .collect()
     }
+
+    fn parse_ignore_dependencies(dependencies: &[serde_json::Value]) -> BTreeSet<String> {
+        dependencies
+            .iter()
+            .map(|dependency| {
+                dependency.as_str().expect("dependency should be a string").to_owned()
+            })
+            .collect()
+    }
+
 
     fn extra_dependencies(&self) -> BTreeMap<String, String> {
         let Some(sync) = self.package.metadata.get("sync") else {
@@ -242,6 +255,26 @@ impl<'a> WorkspaceMember<'a> {
             .expect("extra-dev-dependencies should be an array");
 
         Self::parse_extra_dependencies(dependencies)
+    }
+
+    fn ignore_dev_dependencies(&self) -> BTreeSet<String> {
+        let Some(sync) = self.package.metadata.get("sync") else {
+            return BTreeSet::new();
+        };
+
+        let Some(turborepo) = sync.get("turborepo") else {
+            return BTreeSet::new();
+        };
+
+        let Some(dependencies) = turborepo.get("ignore-dev-dependencies") else {
+            return BTreeSet::new();
+        };
+
+        let dependencies = dependencies
+            .as_array()
+            .expect("ignore-dev-dependencies should be an array");
+
+        Self::parse_ignore_dependencies(dependencies)
     }
 
     fn is_ignored(&self) -> bool {

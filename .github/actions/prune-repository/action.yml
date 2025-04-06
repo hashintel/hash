@@ -23,6 +23,11 @@ runs:
           SCOPES="$SCOPES @rust/deer @rust/deer-desert @rust/deer-macros @rust/deer-json"
         fi
 
+        # Workaround as turbo doesn't allow for cyclic dependencies
+        if echo "$SCOPES" | grep -q "@rust/hashql\(-ast)"; then
+          SCOPES="$SCOPES @rust/hashql-compiletest"
+        fi
+
         # Deduplicate scopes
         SCOPES=$(echo "$SCOPES" | tr ' ' '\n' | sort -u | tr '\n' ' ')
 

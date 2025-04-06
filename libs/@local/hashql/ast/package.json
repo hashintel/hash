@@ -11,8 +11,5 @@
   },
   "dependencies": {
     "@rust/hashql-core": "0.0.0-private"
-  },
-  "peerDependencies": {
-    "@rust/hashql-compiletest": "0.0.0-private"
   }
 }
