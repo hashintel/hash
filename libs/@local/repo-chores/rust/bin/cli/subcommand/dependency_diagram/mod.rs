@@ -2,7 +2,9 @@ use std::{fs, io::Write as _, path::PathBuf};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_repo_chores::dependency_diagram::{self, DependencyDiagramConfig, DependencyDiagramError};
+use hash_repo_chores::dependency_diagram::v2::{
+    DependencyDiagramConfig, DependencyDiagramError, LinkMode, generate_dependency_diagram,
+};
 use tracing::{debug, info, instrument};
 
 /// Arguments for the diagram subcommand.
@@ -57,7 +59,7 @@ pub(crate) struct Args {
     ///
     /// Controls how documentation links are generated in the diagram.
     #[arg(long, value_enum)]
-    link_mode: Option<dependency_diagram::LinkMode>,
+    link_mode: Option<LinkMode>,
 
     /// Do not deduplicate transitive dependencies
     ///
@@ -77,6 +79,12 @@ pub(crate) struct Args {
     /// When enabled, includes build dependencies in the diagram with dashed arrow style.
     #[arg(short = 'b', long)]
     include_build_deps: bool,
+
+    /// Only include workspace dependencies
+    ///
+    /// When enabled, only includes dependencies that are part of the workspace.
+    #[arg(short = 'w', long, default_value_t = true)]
+    workspace_only: bool,
 }
 
 /// Writes the diagram to an output file or stdout.
@@ -170,9 +178,10 @@ pub(super) fn run(args: Args) -> Result<(), Report<DependencyDiagramError>> {
         include_build_deps: args.include_build_deps,
         exclude: args.exclude.clone(),
         link_mode: args.link_mode.unwrap_or_default(),
+        workspace_only: args.workspace_only,
     };
 
-    let diagram = dependency_diagram::generate_dependency_diagram(&config)?;
+    let diagram = generate_dependency_diagram(&config)?;
     output_diagram(&diagram, args.output.as_ref())?;
 
     Ok(())

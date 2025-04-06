@@ -3,6 +3,8 @@
 //! This module provides functionality for generating Mermaid diagrams of Rust crate
 //! dependencies within a workspace.
 
+pub mod v2;
+
 use alloc::collections::{BTreeMap, BTreeSet, VecDeque};
 use core::error::Error;
 

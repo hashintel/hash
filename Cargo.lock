@@ -3553,6 +3553,7 @@ dependencies = [
  "derive_more 2.0.1",
  "error-stack",
  "globset",
+ "guppy",
  "hash-tracing",
  "inferno",
  "petgraph 0.8.0",
