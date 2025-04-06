@@ -1,4 +1,9 @@
-use alloc::collections::BTreeSet;
+//! Utilities for generating dependency diagrams.
+//!
+//! This module provides functionality for generating Mermaid diagrams of Rust crate
+//! dependencies within a workspace.
+
+use alloc::collections::{BTreeMap, BTreeSet};
 use core::{error::Error, fmt::Write as _};
 use std::collections::HashMap;
 
@@ -15,10 +20,6 @@ pub enum DependencyDiagramError {
     /// Indicates a failure when running the cargo metadata command.
     #[display("Failed to execute cargo metadata")]
     CargoMetadata,
-
-    /// Indicates a failure when writing the output file.
-    #[display("Failed to write output file")]
-    FileWrite,
 
     /// Indicates a failure when creating a glob pattern.
     #[display("Failed to create glob pattern")]
@@ -104,6 +105,11 @@ pub struct DependencyDiagramConfig {
 /// # Errors
 ///
 /// - [`DependencyDiagramError::GlobPattern`] if any of the glob patterns is invalid
+///
+/// # Performance
+///
+/// This function compiles all glob patterns into a single optimized matcher,
+/// which provides O(1) matching time regardless of the number of patterns.
 #[tracing::instrument(level = "debug")]
 fn compile_patterns(
     patterns: &[String],
@@ -127,11 +133,15 @@ fn compile_patterns(
         .build()
         .change_context(DependencyDiagramError::GlobPattern)?;
 
-    tracing::debug!("glob set created successfully");
+    tracing::debug!(patterns = patterns.len(), "glob set created successfully");
 
     Ok(Some(globset))
 }
 
+/// Constant containing the standard Mermaid graph prelude for dependency diagrams.
+///
+/// This defines the graph direction, styling, and includes a legend for
+/// understanding the different arrow types in the diagram.
 const GRAPH_PRELUDE: &str = "graph TD
     linkStyle default stroke-width:1.5px
     classDef default stroke-width:1px
@@ -144,9 +154,14 @@ const GRAPH_PRELUDE: &str = "graph TD
     %% ---> : Build dependency
 ";
 
+/// Arrow styles for different dependency types in Mermaid diagram syntax.
+const ARROW_STYLE_NORMAL: &str = "-->"; // Standard arrow for normal dependencies
+const ARROW_STYLE_DEV: &str = "-.->"; // Dotted line for dev dependencies
+const ARROW_STYLE_BUILD: &str = "--->"; // Dashed line for build dependencies
+
 /// Converts a dependency graph to a Mermaid diagram format.
 ///
-/// Takes a dependency graph and generates Mermaid diagram syntax for visualization.
+/// Takes a package set from guppy and generates Mermaid diagram syntax for visualization.
 /// The diagram represents crate dependencies with different arrow styles based on
 /// dependency type and highlights the root crate with a thicker border.
 ///
@@ -154,17 +169,12 @@ const GRAPH_PRELUDE: &str = "graph TD
 /// - Normal dependencies: solid arrow (`-->`)
 /// - Dev dependencies: dotted arrow (`-.->`)
 /// - Build dependencies: dashed arrow (`--->`),
-/// - Root crate dependencies and dependents: bold arrow (`==>`)
 ///
-/// Root crates are highlighted with a thicker border (3px vs 1px for normal crates)
-/// and displayed without a documentation link. Both dependencies of the root crate
-/// (outgoing arrows) and dependents of the root crate (incoming arrows) are shown
-/// with bold arrows for better visibility.
+/// Root crates are highlighted with a thicker border (3px vs 1px for normal crates).
 ///
 /// # Arguments
 ///
-/// * `graph` - The dependency graph where nodes are crate names and edges represent dependency
-///   relationships
+/// * `set` - The package set containing nodes and links to include in the diagram
 /// * `root_crate` - Optional crate to highlight as the root in the diagram with thicker borders
 /// * `dedup_transitive` - Whether to deduplicate transitive dependencies (e.g., if A->B->C and
 ///   A->C, only show A->B->C)
@@ -176,7 +186,7 @@ const GRAPH_PRELUDE: &str = "graph TD
 ///
 /// # Performance
 ///
-/// This function performs multiple passes over the graph to generate the diagram:
+/// This function performs multiple passes over the package graph to generate the diagram:
 /// - One pass to create node representations - O(n) where n is the number of nodes
 /// - One pass to identify transitive edges (if `dedup_transitive` is `true`) - O(n³) in the worst
 ///   case where n is the number of nodes
@@ -197,6 +207,7 @@ fn graph_to_mermaid(
 
     let mut mermaid = GRAPH_PRELUDE.to_owned();
 
+    // Collect all package IDs from the set and sort them for deterministic output
     let mut package_ids: Vec<_> = set
         .packages(DependencyDirection::Forward)
         .map(|metadata| metadata.id())
@@ -204,13 +215,15 @@ fn graph_to_mermaid(
 
     package_ids.sort();
 
+    // Map the package id to a numerical one, as mermaid does not support package IDs directly
     let package_id_lookup: HashMap<&PackageId, usize> = package_ids
         .into_iter()
         .enumerate()
         .map(|(index, id)| (id, index))
         .collect();
 
-    // Each node will use its index directly as its ID in the Mermaid diagram
+    tracing::debug!(packages = package_id_lookup.len(), "Processing packages",);
+
     for metadata in set.packages(DependencyDirection::Forward) {
         let is_root = Some(metadata.name()) == root_crate;
         let create_link = match link_mode {
@@ -246,58 +259,76 @@ fn graph_to_mermaid(
     }
 
     let mut transitive_edges = BTreeSet::new();
+    let mut edges = BTreeMap::new();
 
+    for link in set.links(DependencyDirection::Forward) {
+        let from = package_id_lookup[link.from().id()];
+        let to = package_id_lookup[link.to().id()];
+        edges.insert((from, to), link);
+    }
+
+    tracing::debug!(edges = edges.len(), "Processing links between packages");
+
+    // Identify transitive edges to skip if deduplication is enabled
     if dedup_transitive {
-        let mut edges = BTreeSet::new();
-        for link in set.links(DependencyDirection::Forward) {
-            let from = package_id_lookup[link.from().id()];
-            let to = package_id_lookup[link.to().id()];
-            edges.insert((from, to));
-        }
+        tracing::debug!("Identifying transitive edges for deduplication");
 
         for &node in package_id_lookup.values() {
             // For each node, find paths of length 2 (i.e., A->B->C means A->C is transitive)
-            for &(_, neighbour) in edges.range((node, usize::MIN)..=(node, usize::MAX)) {
-                for &(_, transitive) in
+            for (&(_, neighbour), _) in edges.range((node, usize::MIN)..=(node, usize::MAX)) {
+                for (&(_, transitive), _) in
                     edges.range((neighbour, usize::MIN)..=(neighbour, usize::MAX))
                 {
                     // If there's a direct edge from node to transitive, it's transitive
-                    if edges.contains(&(node, transitive)) {
+                    if edges.contains_key(&(node, transitive)) {
+                        tracing::trace!(
+                            from = node,
+                            to = transitive,
+                            via = neighbour,
+                            "Identified transitive edge"
+                        );
+
                         transitive_edges.insert((node, transitive));
                     }
                 }
             }
         }
+
+        tracing::debug!(
+            edges = edges.len(),
+            transitive_edges = transitive_edges.len(),
+            "Identified transitive edges",
+        );
     }
 
-    for link in set.links(DependencyDirection::Forward) {
-        let from_id = package_id_lookup[link.from().id()];
-        let to_id = package_id_lookup[link.to().id()];
-
+    for ((from_id, to_id), link) in edges {
+        // Skip transitive edges if deduplication is enabled
         if transitive_edges.contains(&(from_id, to_id)) {
-            tracing::debug!(
+            tracing::trace!(
                 from = link.from().name(),
                 to = link.to().name(),
                 "Skipping transitive edge"
             );
-
             continue;
         }
 
+        // Determine the arrow style based on dependency type
         let is_build = link.build().is_present();
         let is_dev = link.dev().is_present();
 
         let arrow_style = if is_dev {
-            "-.->" // Dotted line for dev dependencies
+            ARROW_STYLE_DEV
         } else if is_build {
-            "--->" // Dashed line for build dependencies
+            ARROW_STYLE_BUILD
         } else {
-            "-->" // Standard arrow for normal dependencies
+            ARROW_STYLE_NORMAL
         };
 
+        // Add the edge with the appropriate arrow style
         let _ = writeln!(mermaid, "    {from_id} {arrow_style} {to_id}");
     }
 
+    tracing::debug!(size = mermaid.len(), "Mermaid diagram generated");
     mermaid
 }
 
@@ -305,17 +336,30 @@ fn graph_to_mermaid(
 ///
 /// This is the main entry point for the diagram generation functionality. It orchestrates
 /// the entire process of generating a Mermaid dependency diagram:
-/// 1. Gathers metadata from cargo
-/// 2. Processes workspace crates and their dependencies
-/// 3. Builds and filters the dependency graph
-/// 4. Generates the Mermaid diagram
+/// 1. Gathers metadata from cargo using guppy
+/// 2. Applies filtering based on configuration options
+/// 3. Generates the Mermaid diagram representation
+///
+/// # Arguments
+///
+/// * Configuration options controlling which crates to include, how to filter dependencies, and how
+///   to format the diagram
+///
+/// # Returns
+///
+/// A string containing the Mermaid diagram syntax.
 ///
 /// # Errors
 ///
 /// - [`DependencyDiagramError::CargoMetadata`] if gathering cargo metadata fails
 /// - [`DependencyDiagramError::GlobPattern`] if creating glob patterns fails
-/// - [`DependencyDiagramError::RootCrateNotFound`] if the specified root crate is not found in the
-///   dependency graph
+/// - [`DependencyDiagramError::RootCrateNotFound`] if the specified root crate is not found
+///
+/// # Performance
+///
+/// This function uses guppy to efficiently analyze package dependencies. The most
+/// computationally expensive operation is detecting and removing transitive dependencies,
+/// which has O(n³) complexity in the worst case.
 #[tracing::instrument(level = "debug")]
 pub fn generate_dependency_diagram(
     DependencyDiagramConfig {
@@ -331,10 +375,12 @@ pub fn generate_dependency_diagram(
         workspace_only,
     }: &DependencyDiagramConfig,
 ) -> Result<String, Report<DependencyDiagramError>> {
-    tracing::info!("Generating dependency diagram");
-
+    // Get package graph from cargo metadata
+    tracing::debug!("Retrieving cargo metadata using guppy");
     let graph = PackageGraph::from_command(&mut MetadataCommand::new())
         .change_context(DependencyDiagramError::CargoMetadata)?;
+
+    tracing::info!(packages = graph.package_count(), "Package graph loaded");
 
     // Create glob sets for filtering
     let include_globset = compile_patterns(include)?;
@@ -342,9 +388,23 @@ pub fn generate_dependency_diagram(
 
     let root_set = root.as_ref().map(|root| graph.resolve_package_name(root));
 
+    if let Some(root_set) = &root_set {
+        if root_set.is_empty() {
+            return Err(Report::new(DependencyDiagramError::RootCrateNotFound(
+                root.clone().unwrap_or_else(|| unreachable!()),
+            )));
+        }
+    }
+
     let query_root = root_set.as_ref().map_or_else(
-        || graph.query_workspace(),
-        |root_set| root_set.to_package_query(DependencyDirection::Forward),
+        || {
+            tracing::debug!("Using all workspace packages as query root");
+            graph.query_workspace()
+        },
+        |root_set| {
+            tracing::debug!("Using root package as query root");
+            root_set.to_package_query(DependencyDirection::Forward)
+        },
     );
 
     let query = query_root.resolve_with_fn(|_, link| {
@@ -373,7 +433,6 @@ pub fn generate_dependency_diagram(
         }
 
         if *root_deps_only && *root_deps_and_dependents {
-            // Root dependencies where from or to must be the root
             if let Some(root) = &root_set {
                 return root
                     .contains(link.from().id())
@@ -383,7 +442,6 @@ pub fn generate_dependency_diagram(
                         .expect("package graph should know package id");
             }
         } else if *root_deps_only {
-            // Root dependencies where from must be the root
             if let Some(root) = &root_set {
                 return root
                     .contains(link.from().id())
@@ -394,7 +452,12 @@ pub fn generate_dependency_diagram(
         true
     });
 
-    // Convert the graph to a mermaid diagram
+    tracing::info!(
+        packages = query.packages(DependencyDirection::Forward).count(),
+        "Graph has been filtered"
+    );
+
+    // Convert the package set to a mermaid diagram
     let diagram = graph_to_mermaid(query, root.as_deref(), !no_dedup_transitive, *link_mode);
 
     Ok(diagram)
