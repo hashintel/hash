@@ -55,6 +55,24 @@ pub use text_size::{TextRange, TextSize};
 pub struct SpanId(u32);
 
 impl SpanId {
+    /// A special span ID for compiler-generated nodes that don't correspond to actual source code.
+    ///
+    /// This constant represents spans that were synthetically created during compilation rather
+    /// than representing a location in the original source text. These spans might be used for
+    /// compiler-generated constructs, inferred types, or other elements that don't have a direct
+    /// mapping to the source.
+    ///
+    /// Diagnostic renderers (like `hashql_diagnostics`) have freedom in how they choose to
+    /// represent synthetic spans. For example, they might:
+    /// - Omit the location completely in output
+    /// - Display them with a special indicator or style
+    /// - Replace them with the closest relevant source location
+    /// - Show them as occurring at an implicit location, such as the start of a file
+    ///
+    /// The interpretation and visualization of synthetic spans is left to the implementation
+    /// of the consuming renderer.
+    pub const SYNTHETIC: Self = Self(u32::MAX);
+
     pub(crate) const fn new(id: u32) -> Self {
         Self(id)
     }

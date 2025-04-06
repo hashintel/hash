@@ -3644,6 +3644,7 @@ dependencies = [
  "hashbrown 0.15.2",
  "hashql-compiletest",
  "hashql-core",
+ "hashql-diagnostics",
  "lexical",
  "simple-mermaid",
 ]

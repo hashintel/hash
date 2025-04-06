@@ -8,7 +8,8 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hashql-core = { workspace = true, public = true }
+hashql-core        = { workspace = true, public = true }
+hashql-diagnostics = { workspace = true, public = true }
 
 # Public third-party dependencies
 bumpalo   = { workspace = true, public = true, features = ["allocator_api"] }

@@ -42,12 +42,20 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(allocator_api, box_into_boxed_slice, formatting_options)]
+#![feature(
+    allocator_api,
+    box_into_boxed_slice,
+    formatting_options,
+    never_type,
+    decl_macro
+)]
 #![cfg_attr(test, feature(assert_matches))]
 
 extern crate alloc;
 
+pub mod error;
 pub mod format;
 pub mod heap;
+pub mod lowering;
 pub mod node;
 pub mod visit;
