@@ -137,15 +137,12 @@ pub fn nextest_bridge(package: &str) {
 
     let mut stdout = stdout();
 
-    // Handle the command to list available tests
     if args[1..] == ["--list", "--format", "terse"] {
         write!(stdout, "compiletest: test").expect("should be able to write to stdout");
         return;
     }
 
-    // Handle the command to list ignored tests (empty response)
     if args[1..] == ["--list", "--format", "terse", "--ignored"] {
-        // writeln!(stdout).expect("should be able to write to stdout");
         return;
     }
 
