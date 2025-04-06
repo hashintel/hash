@@ -299,18 +299,23 @@ fn graph_to_mermaid(
             continue;
         }
 
-        let is_build = link.build().is_present();
-        let is_dev = link.dev().is_present();
+        let mut arrows = Vec::new();
 
-        let arrow_style = if is_dev {
-            ARROW_STYLE_DEV
-        } else if is_build {
-            ARROW_STYLE_BUILD
-        } else {
-            ARROW_STYLE_NORMAL
-        };
+        if link.dev().is_present() {
+            arrows.push(ARROW_STYLE_DEV);
+        }
 
-        let _ = writeln!(mermaid, "    {from_id} {arrow_style} {to_id}");
+        if link.build().is_present() {
+            arrows.push(ARROW_STYLE_BUILD);
+        }
+
+        if link.normal().is_present() {
+            arrows.push(ARROW_STYLE_NORMAL);
+        }
+
+        for arrow in arrows {
+            let _ = writeln!(mermaid, "    {from_id} {arrow} {to_id}");
+        }
     }
 
     tracing::debug!(size = mermaid.len(), "Mermaid diagram generated");
@@ -338,39 +343,17 @@ struct DependencyRequirement {
 }
 
 impl DependencyRequirement {
-    /// Determines if a package link represents a dev-only dependency.
-    ///
-    /// A dev-only dependency is one that is only used for development
-    /// purposes.
-    fn link_dev_only(link: PackageLink) -> bool {
-        link.dev_only()
-    }
-
-    /// Determines if a package link represents a build-only dependency.
-    ///
-    /// A build-only dependency is one that is only used during the build process.
-    fn link_build_only(link: PackageLink) -> bool {
-        !link.dev().is_present() && !link.normal().is_present()
-    }
-
-    /// Determines if a package link represents a normal dependency.
-    ///
-    /// A normal dependency is one that is neither dev-only nor build-only.
-    fn link_normal_only(link: PackageLink) -> bool {
-        !link.dev().is_present() && !link.build().is_present()
-    }
-
     /// Evaluates whether a package link meets the dependency requirements.
     fn eval(self, link: PackageLink) -> bool {
-        if self.deny_dev && Self::link_dev_only(link) {
+        if self.deny_dev && link.dev().is_present() {
             return false;
         }
 
-        if self.deny_build && Self::link_build_only(link) {
+        if self.deny_build && link.build().is_present() {
             return false;
         }
 
-        if self.deny_normal && Self::link_normal_only(link) {
+        if self.deny_normal && link.normal().is_present() {
             return false;
         }
 
