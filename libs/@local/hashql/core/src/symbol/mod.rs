@@ -16,7 +16,10 @@
 //! The [`Symbol`] type is designed as an opaque wrapper around its internal string storage.
 //! This encapsulation enables future optimizations such as string interning (either through
 //! the `string_interner` crate or a custom implementation) without requiring API changes.
-use core::fmt::{self, Display, Formatter};
+use core::{
+    borrow::Borrow,
+    fmt::{self, Display, Formatter},
+};
 
 use ecow::EcoString;
 
@@ -112,6 +115,19 @@ impl Symbol {
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
+    }
+}
+
+// Sound because Symbol is a newtype wrapper around EcoString
+impl Borrow<str> for Symbol {
+    fn borrow(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl AsRef<str> for Symbol {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 
@@ -255,6 +271,12 @@ pub struct Ident {
 
     pub name: Symbol,
     pub kind: IdentKind,
+}
+
+impl AsRef<str> for Ident {
+    fn as_ref(&self) -> &str {
+        self.name.as_str()
+    }
 }
 
 impl Display for Ident {
