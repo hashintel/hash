@@ -138,10 +138,6 @@ fn compile_patterns(
     Ok(Some(globset))
 }
 
-/// Constant containing the standard Mermaid graph prelude for dependency diagrams.
-///
-/// This defines the graph direction, styling, and includes a legend for
-/// understanding the different arrow types in the diagram.
 const GRAPH_PRELUDE: &str = "graph TD
     linkStyle default stroke-width:1.5px
     classDef default stroke-width:1px
@@ -154,10 +150,9 @@ const GRAPH_PRELUDE: &str = "graph TD
     %% ---> : Build dependency
 ";
 
-/// Arrow styles for different dependency types in Mermaid diagram syntax.
-const ARROW_STYLE_NORMAL: &str = "-->"; // Standard arrow for normal dependencies
-const ARROW_STYLE_DEV: &str = "-.->"; // Dotted line for dev dependencies
-const ARROW_STYLE_BUILD: &str = "--->"; // Dashed line for build dependencies
+const ARROW_STYLE_NORMAL: &str = "-->";
+const ARROW_STYLE_DEV: &str = "-.->";
+const ARROW_STYLE_BUILD: &str = "--->";
 
 /// Converts a dependency graph to a Mermaid diagram format.
 ///
@@ -269,7 +264,6 @@ fn graph_to_mermaid(
 
     tracing::debug!(edges = edges.len(), "Processing links between packages");
 
-    // Identify transitive edges to skip if deduplication is enabled
     if dedup_transitive {
         tracing::debug!("Identifying transitive edges for deduplication");
 
@@ -302,7 +296,6 @@ fn graph_to_mermaid(
     }
 
     for ((from_id, to_id), link) in edges {
-        // Skip transitive edges if deduplication is enabled
         if transitive_edges.contains(&(from_id, to_id)) {
             tracing::trace!(
                 from = link.from().name(),
@@ -312,7 +305,6 @@ fn graph_to_mermaid(
             continue;
         }
 
-        // Determine the arrow style based on dependency type
         let is_build = link.build().is_present();
         let is_dev = link.dev().is_present();
 
@@ -324,7 +316,6 @@ fn graph_to_mermaid(
             ARROW_STYLE_NORMAL
         };
 
-        // Add the edge with the appropriate arrow style
         let _ = writeln!(mermaid, "    {from_id} {arrow_style} {to_id}");
     }
 
