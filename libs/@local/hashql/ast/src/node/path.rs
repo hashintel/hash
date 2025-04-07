@@ -1,4 +1,7 @@
-use hashql_core::{span::SpanId, symbol::Ident};
+use hashql_core::{
+    span::SpanId,
+    symbol::{Ident, Symbol},
+};
 
 use super::{generic::GenericArgument, id::NodeId};
 use crate::heap;
@@ -110,7 +113,7 @@ impl Path<'_> {
     /// - None of the path segments have generic arguments
     pub(crate) fn matches_absolute_path<'a>(
         &self,
-        path: impl ExactSizeIterator<Item = &'a Ident>,
+        path: impl ExactSizeIterator<Item = &'a Symbol>,
     ) -> bool {
         if !self.rooted {
             return false;
@@ -123,6 +126,6 @@ impl Path<'_> {
         self.segments
             .iter()
             .zip(path)
-            .all(|(segment, ident)| segment.name == *ident && segment.arguments.is_empty())
+            .all(|(segment, ident)| segment.name.name == *ident && segment.arguments.is_empty())
     }
 }

@@ -10,11 +10,12 @@ use hashql_core::{
 use crate::{
     heap::Heap,
     node::{
-        expr::{CallExpr, ExprKind, LetExpr},
+        expr::{CallExpr, ExprKind, LetExpr, NewTypeExpr, TypeExpr},
         id::NodeId,
         path::{Path, PathSegment},
+        r#type::TypeKind,
     },
-    visit::{Visitor, walk_call_expr, walk_let_expr, walk_path},
+    visit::{Visitor, walk_call_expr, walk_let_expr, walk_newtype_expr, walk_path, walk_type_expr},
 };
 
 macro symbol {
@@ -313,6 +314,18 @@ impl<'heap> NameResolver<'heap> {
             }
         }
     }
+
+    fn absolute_path<'this>(
+        &'this self,
+        name: &str,
+    ) -> impl ExactSizeIterator<Item = &'this Symbol> {
+        self.mapping
+            .get(name)
+            .expect("let special form should be present in mapping")
+            .segments
+            .iter()
+            .map(|segment| &segment.name.name)
+    }
 }
 
 impl<'heap> Visitor<'heap> for NameResolver<'heap> {
@@ -367,6 +380,12 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
     }
 
     fn visit_call_expr(&mut self, expr: &mut CallExpr<'heap>) {
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        enum Kind {
+            Let,
+            Type,
+            Newtype,
+        }
         // Look for expressions that is pre-expansion and *looks* like a let expressions
 
         // special forms don't support labeled arguments
@@ -391,20 +410,24 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
         self.visit_path(function);
 
         // Check if said path is equivalent to the let special form
-        let let_special_form = self
-            .mapping
-            .get("let")
-            .expect("let special form should be present in mapping")
-            .segments
-            .iter()
-            .map(|segment| &segment.name);
+        let kind = if function.matches_absolute_path(self.absolute_path("let")) {
+            Kind::Let
+        } else if function.matches_absolute_path(self.absolute_path("type")) {
+            Kind::Type
+        } else if function.matches_absolute_path(self.absolute_path("newtype")) {
+            Kind::Newtype
+        } else {
+            walk_call_expr(self, expr);
+            return;
+        };
 
-        if !function.matches_absolute_path(let_special_form) {
+        let arguments_length = expr.arguments.len();
+
+        if kind != Kind::Let && arguments_length != 3 {
+            // `type/4` and `newtype/4` do **not** exist
             walk_call_expr(self, expr);
             return;
         }
-
-        let arguments_length = expr.arguments.len();
 
         // we know this is a let expression, now we just need to make sure that both the first and
         // second-to-last argument are identifiers
@@ -473,12 +496,84 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
             self.visit_type(r#type);
         }
 
-        let old = self.mapping.insert(name.name.clone(), value.clone());
+        let old = self.mapping.insert(name.name.clone(), value);
 
         self.visit_expr(body);
 
         if let Some(old) = old {
             self.mapping.insert(name.name.clone(), old);
+        } else {
+            self.mapping.remove(&name.name);
+        }
+    }
+
+    fn visit_type_expr(&mut self, expr: &mut TypeExpr<'heap>) {
+        let TypeKind::Path(path) = &mut expr.value.kind else {
+            walk_type_expr(self, expr);
+            return;
+        };
+
+        self.visit_path(path);
+        let path = path.clone();
+
+        let TypeExpr {
+            id,
+            span,
+            name,
+            // We've already confirmed and visited the type
+            value: _,
+            body,
+        } = expr;
+
+        self.visit_id(id);
+        self.visit_span(span);
+
+        self.visit_ident(name);
+
+        let old = self.mapping.insert(name.name.clone(), path);
+
+        self.visit_expr(body);
+
+        if let Some(old) = old {
+            self.mapping.insert(name.name.clone(), old);
+        } else {
+            self.mapping.remove(&name.name);
+        }
+    }
+
+    fn visit_newtype_expr(&mut self, expr: &mut NewTypeExpr<'heap>) {
+        let TypeKind::Path(path) = &mut expr.value.kind else {
+            walk_newtype_expr(self, expr);
+            return;
+        };
+
+        self.visit_id(&mut expr.value.id);
+        self.visit_span(&mut expr.value.span);
+        self.visit_path(path);
+        let path = path.clone();
+
+        let NewTypeExpr {
+            id,
+            span,
+            name,
+            // We've already confirmed and visited the type
+            value: _,
+            body,
+        } = expr;
+
+        self.visit_id(id);
+        self.visit_span(span);
+
+        self.visit_ident(name);
+
+        let old = self.mapping.insert(name.name.clone(), path);
+
+        self.visit_expr(body);
+
+        if let Some(old) = old {
+            self.mapping.insert(name.name.clone(), old);
+        } else {
+            self.mapping.remove(&name.name);
         }
     }
 }
