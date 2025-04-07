@@ -3,7 +3,7 @@
 //! This module provides functionality for generating Mermaid diagrams of Rust crate
 //! dependencies within a workspace.
 
-use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::collections::{BTreeMap, BTreeSet, VecDeque};
 use core::{error::Error, fmt::Write as _, iter};
 use std::collections::HashMap;
 
@@ -161,6 +161,56 @@ const ARROW_STYLE_NORMAL: &str = "-->";
 const ARROW_STYLE_DEV: &str = "-.->";
 const ARROW_STYLE_BUILD: &str = "--->";
 
+/// Checks if removing an edge would break connectivity between two nodes.
+///
+/// This function determines whether removing the edge from `from` to `to` would
+/// make it impossible to reach `to` from `from` through other paths in the graph.
+/// It uses a breadth-first search algorithm to check if an alternative path exists.
+///
+/// # Arguments
+///
+/// * `edges` - A map of edges in the graph, where keys are (from, to) tuples and values are the
+///   corresponding edge data
+/// * `from` - The source node of the edge being considered for removal
+/// * `to` - The target node of the edge being considered for removal
+///
+/// # Returns
+///
+/// * `true` if removing the edge would break connectivity (i.e., no alternative path exists)
+/// * `false` if removing the edge would preserve connectivity (i.e., an alternative path exists)
+///
+/// # Performance
+///
+/// This function performs a breadth-first search with time complexity O(V + E),
+/// where V is the number of nodes and E is the number of edges in the graph.
+/// In the worst case, it might visit all nodes and edges in the graph.
+fn would_break_connectivity(
+    edges: &BTreeMap<(usize, usize), PackageLink>,
+    from: usize,
+    to: usize,
+) -> bool {
+    let mut queue = VecDeque::new();
+    let mut visited = BTreeSet::new();
+
+    queue.push_back(from);
+    visited.insert(from);
+
+    while let Some(current) = queue.pop_front() {
+        if current == to {
+            return false;
+        }
+
+        for &(from, to) in edges.keys() {
+            if from == current && !visited.contains(&to) {
+                visited.insert(to);
+                queue.push_back(to);
+            }
+        }
+    }
+
+    true
+}
+
 /// Converts a dependency graph to a Mermaid diagram format.
 ///
 /// Takes a package set from guppy and generates Mermaid diagram syntax for visualization.
@@ -259,26 +309,47 @@ fn graph_to_mermaid(
     tracing::debug!(edges = edges.len(), "Processing links between packages");
 
     if dedup_transitive {
+        let mut potential_transitive = BTreeSet::new();
         tracing::debug!("Identifying transitive edges for deduplication");
 
+        // First pass: identify potentially transitive edges
+        // An edge A→C is potentially transitive if there exists a path A→B→C
         for &node in package_id_lookup.values() {
-            // For each node, find paths of length 2 (i.e., A->B->C means A->C is transitive)
             for (&(_, neighbour), _) in edges.range((node, usize::MIN)..=(node, usize::MAX)) {
+                if node == neighbour {
+                    // self-loops should be preserved
+                    continue;
+                }
+
                 for (&(_, transitive), _) in
                     edges.range((neighbour, usize::MIN)..=(neighbour, usize::MAX))
                 {
-                    // If there's a direct edge from node to transitive, it's transitive
-                    if edges.contains_key(&(node, transitive)) {
-                        tracing::trace!(
-                            from = node,
-                            to = transitive,
-                            via = neighbour,
-                            "Identified transitive edge"
-                        );
+                    if node == transitive || neighbour == transitive {
+                        // self-loops should be preserved
+                        continue;
+                    }
 
-                        transitive_edges.insert((node, transitive));
+                    // If there's a direct edge from node to transitive, it's potentially transitive
+                    // The edge could still break connectivity, the second pass verifies if that is
+                    // the case.
+                    if edges.contains_key(&(node, transitive)) {
+                        potential_transitive.insert((node, transitive));
                     }
                 }
+            }
+        }
+
+        // Second pass: verify each potentially transitive edge
+        // Only mark an edge as truly transitive if removing it doesn't break connectivity
+        for (from, to) in potential_transitive {
+            let link = edges.remove(&(from, to)).expect("edge should exist");
+
+            if would_break_connectivity(&edges, from, to) {
+                edges.insert((from, to), link);
+            } else {
+                tracing::trace!(from, to, "Identified transitive edge");
+
+                transitive_edges.insert((from, to));
             }
         }
 
@@ -290,15 +361,6 @@ fn graph_to_mermaid(
     }
 
     for ((from_id, to_id), link) in edges {
-        if transitive_edges.contains(&(from_id, to_id)) {
-            tracing::trace!(
-                from = link.from().name(),
-                to = link.to().name(),
-                "Skipping transitive edge"
-            );
-            continue;
-        }
-
         let mut arrows = Vec::new();
 
         if link.dev().is_present() {
