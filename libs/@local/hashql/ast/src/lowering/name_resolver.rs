@@ -88,6 +88,19 @@ use crate::{
     visit::{Visitor, walk_call_expr, walk_let_expr, walk_newtype_expr, walk_path, walk_type_expr},
 };
 
+/// Creates a `Symbol` with the given identifier or literal.
+///
+/// # Examples
+///
+/// Using an identifier:
+/// ```ignore
+/// let sym = symbol!(kernel); // Creates a Symbol containing "kernel"
+/// ```
+///
+/// Using a string literal:
+/// ```ignore
+/// let sym = symbol!("kernel::type"); // Creates a Symbol containing "kernel::type"
+/// ```
 macro symbol {
     ($value:ident) => {
         Symbol::new(stringify!($value))
@@ -98,6 +111,23 @@ macro symbol {
     }
 }
 
+/// Creates an `Ident` with the given identifier or literal.
+///
+/// All identifiers created by this macro have a synthetic span and appropriate kind:
+/// - Identifiers use `IdentKind::Lexical`
+/// - String literals use `IdentKind::Symbol`
+///
+/// # Examples
+///
+/// Using an identifier:
+/// ```ignore
+/// let id = ident!(kernel); // Creates a lexical identifier "kernel"
+/// ```
+///
+/// Using a string literal:
+/// ```ignore
+/// let id = ident!("+"); // Creates a symbol identifier "+"
+/// ```
 macro ident {
     ($value:ident) => {
         Ident {
@@ -116,7 +146,18 @@ macro ident {
     }
 }
 
-macro path($heap:expr; $($segment:tt)::*) {
+/// Creates a rooted `Path` with the given segments.
+///
+/// This macro generates a fully qualified path with synthetic spans for all components.
+/// Each segment in the path is separated by the `::` token in the macro invocation.
+///
+/// # Examples
+///
+/// ```ignore
+/// let kernel_path = path!(heap; kernel::special_form::let);
+/// // Creates a path equivalent to "::kernel::special_form::let"
+/// ```
+macro path($heap:expr; ::$($segment:tt)::*) {
     Path {
         id: NodeId::PLACEHOLDER,
         span: SpanId::SYNTHETIC,
@@ -138,9 +179,26 @@ macro path($heap:expr; $($segment:tt)::*) {
     }
 }
 
-macro mapping($mapping:expr, $heap:expr; [$($key:tt => $($segment:tt)::*),* $(,)?]) {
+/// Populates a name mapping with multiple key-path pairs.
+///
+/// This macro takes a name mapping, a heap, and a list of key-path pairs to insert.
+/// Each key is mapped to a fully qualified path constructed using the `path!` macro.
+///
+/// # Examples
+///
+/// ```ignore
+/// mapping!(self.mapping, self.heap; [
+///     let => ::kernel::special_form::let,
+///     "+" => ::math::add
+/// ]);
+/// ```
+///
+/// This adds two mappings:
+/// - The symbol "let" maps to the path "`::kernel::special_form::let`"
+/// - The symbol "+" maps to the path "`::math::add`"
+macro mapping($mapping:expr, $heap:expr; [$($key:tt => ::$($segment:tt)::*),* $(,)?]) {
     $(
-        $mapping.insert(symbol!($key), path!($heap; $($segment)::*));
+        $mapping.insert(symbol!($key), path!($heap; ::$($segment)::*));
     )*
 }
 
@@ -187,164 +245,168 @@ impl<'heap> NameResolver<'heap> {
 
     fn prefill_kernel_special_forms(&mut self) {
         mapping!(self.mapping, self.heap; [
-            if => kernel::special_form::if,
-            is => kernel::special_form::is,
-            let => kernel::special_form::let,
-            type => kernel::special_form::type,
-            newtype => kernel::special_form::newtype,
-            use => kernel::special_form::use,
-            fn => kernel::special_form::fn,
-            input => kernel::special_form::input,
+            if => ::kernel::special_form::if,
+            is => ::kernel::special_form::is,
+            let => ::kernel::special_form::let,
+            type => ::kernel::special_form::type,
+            newtype => ::kernel::special_form::newtype,
+            use => ::kernel::special_form::use,
+            fn => ::kernel::special_form::fn,
+            input => ::kernel::special_form::input,
 
-            "." => kernel::special_form::access,
-            access => kernel::special_form::access,
+            "." => ::kernel::special_form::access,
+            access => ::kernel::special_form::access,
 
-            "[]" => kernel::special_form::index,
-            index => kernel::special_form::index,
+            "[]" => ::kernel::special_form::index,
+            index => ::kernel::special_form::index,
         ]);
     }
 
     fn prefill_kernel_types(&mut self) {
         mapping!(self.mapping, self.heap; [
-            Boolean => kernel::type::Boolean,
+            Boolean => ::kernel::type::Boolean,
 
-            Number => kernel::type::Number,
-            Integer => kernel::type::Integer,
-            Natural => kernel::type::Natural,
+            Number => ::kernel::type::Number,
+            Integer => ::kernel::type::Integer,
+            Natural => ::kernel::type::Natural,
 
-            String => kernel::type::String,
-            Url => kernel::type::Url,
-            BaseUrl => kernel::type::BaseUrl,
+            String => ::kernel::type::String,
+            Url => ::kernel::type::Url,
+            BaseUrl => ::kernel::type::BaseUrl,
 
-            List => kernel::type::List,
-            Tuple => kernel::type::Tuple,
+            List => ::kernel::type::List,
+            Tuple => ::kernel::type::Tuple,
 
-            Dict => kernel::type::Dict,
-            Struct => kernel::type::Struct,
+            Dict => ::kernel::type::Dict,
+            Struct => ::kernel::type::Struct,
 
-            Null => kernel::type::Null,
+            Null => ::kernel::type::Null,
 
-            "?" => kernel::type::Unknown,
-            Unknown => kernel::type::Unknown,
+            "?" => ::kernel::type::Unknown,
+            Unknown => ::kernel::type::Unknown,
 
-            // "!" => kernel::type::"!",
+            // "!" => ::kernel::type::"!",
             // ^ a later step specializes "::math::not" into "::kernel::type::!" if the operation happens in the type context
-            Never => kernel::type::Never,
+            Never => ::kernel::type::Never,
 
-            // "|" => kernel::type::Union,
+            // "|" => ::kernel::type::Union,
             // ^ a later step specializes "::math::bit_or" into "::kernel::type::Union" if the operation happens in the type context
-            Union => kernel::type::Union,
+            Union => ::kernel::type::Union,
 
-            // "&" => kernel::type::Intersection,
+            // "&" => ::kernel::type::Intersection,
             // ^ a later step specializes "::math::bit_and" into "::kernel::type::Intersection" if the operation happens in the type context
-            Intersection => kernel::type::Intersection,
+            Intersection => ::kernel::type::Intersection,
 
-            Option => kernel::type::Option,
-            Result => kernel::type::Result,
+            Option => ::kernel::type::Option,
+            Result => ::kernel::type::Result,
         ]);
     }
 
     fn prefill_kernel(&mut self) {
         self.prefill_kernel_special_forms();
         self.prefill_kernel_types();
+
+        mapping!(self.mapping, self.heap; [
+            kernel => ::kernel
+        ]);
     }
 
     fn prefill_math(&mut self) {
         mapping!(self.mapping, self.heap; [
-            "+" => math::add,
-            "-" => math::sub,
-            "*" => math::mul,
-            "/" => math::div,
-            "%" => math::mod,
-            "^" => math::pow,
+            "+" => ::math::add,
+            "-" => ::math::sub,
+            "*" => ::math::mul,
+            "/" => ::math::div,
+            "%" => ::math::mod,
+            "^" => ::math::pow,
 
-            "&" => math::bit_and,
-            "|" => math::bit_or,
-            "~" => math::bit_not,
-            "<<" => math::lshift,
-            ">>" => math::rshift,
+            "&" => ::math::bit_and,
+            "|" => ::math::bit_or,
+            "~" => ::math::bit_not,
+            "<<" => ::math::lshift,
+            ">>" => ::math::rshift,
 
-            ">" => math::gt,
-            "<" => math::lt,
-            ">=" => math::gte,
-            "<=" => math::lte,
-            "==" => math::eq,
-            "!=" => math::ne,
+            ">" => ::math::gt,
+            "<" => ::math::lt,
+            ">=" => ::math::gte,
+            "<=" => ::math::lte,
+            "==" => ::math::eq,
+            "!=" => ::math::ne,
 
-            "!" => math::not,
-            "&&" => math::and,
-            "||" => math::or,
+            "!" => ::math::not,
+            "&&" => ::math::and,
+            "||" => ::math::or,
         ]);
     }
 
     fn prefill_graph_types(&mut self) {
         mapping!(self.mapping, self.heap; [
-            Graph => graph::Graph,
-            SortedGraph => graph::SortedGraph,
+            Graph => ::graph::Graph,
+            SortedGraph => ::graph::SortedGraph,
 
-            VariableTimeAxis => graph::VariableTimeAxis,
-            PinnedTimeAxis => graph::PinnedTimeAxis,
-            TimeAxis => graph::TimeAxis,
+            VariableTimeAxis => ::graph::VariableTimeAxis,
+            PinnedTimeAxis => ::graph::PinnedTimeAxis,
+            TimeAxis => ::graph::TimeAxis,
 
-            Entities => graph::Entities,
-            Relationship => graph::Relationship,
+            Entities => ::graph::Entities,
+            Relationship => ::graph::Relationship,
 
-            EntityLinks => graph::EntityLinks,
-            EntityProvenance => graph::EntityProvenance,
-            Entity => graph::Entity,
+            EntityLinks => ::graph::EntityLinks,
+            EntityProvenance => ::graph::EntityProvenance,
+            Entity => ::graph::Entity,
 
-            EntityTypeProvenance => graph::EntityTypeProvenance,
-            EntityType => graph::EntityType,
+            EntityTypeProvenance => ::graph::EntityTypeProvenance,
+            EntityType => ::graph::EntityType,
 
-            PropertyTypeProvenance => graph::PropertyTypeProvenance,
-            PropertyType => graph::PropertyType,
+            PropertyTypeProvenance => ::graph::PropertyTypeProvenance,
+            PropertyType => ::graph::PropertyType,
 
-            DataTypeProvenance => graph::DataTypeProvenance,
-            DataType => graph::DataType,
+            DataTypeProvenance => ::graph::DataTypeProvenance,
+            DataType => ::graph::DataType,
         ]);
     }
 
     fn prefill_graph_head(&mut self) {
         mapping!(self.mapping, self.heap; [
-            entities => graph::head::entities,
-            entity_types => graph::head::entity_types,
-            property_types => graph::head::property_types,
-            data_types => graph::head::data_types,
+            entities => ::graph::head::entities,
+            entity_types => ::graph::head::entity_types,
+            property_types => ::graph::head::property_types,
+            data_types => ::graph::head::data_types,
 
-            from_array => graph::head::from_array,
+            from_array => ::graph::head::from_array,
         ]);
     }
 
     fn prefill_graph_body(&mut self) {
         mapping!(self.mapping, self.heap; [
-            map => graph::body::map,
-            filter => graph::body::filter,
-            flat_map => graph::body::flat_map,
+            map => ::graph::body::map,
+            filter => ::graph::body::filter,
+            flat_map => ::graph::body::flat_map,
 
-            insert => graph::body::insert,
-            remove => graph::body::remove,
+            insert => ::graph::body::insert,
+            remove => ::graph::body::remove,
         ]);
     }
 
     fn prefill_graph_tail(&mut self) {
         mapping!(self.mapping, self.heap; [
-            reduce => graph::tail::reduce,
+            reduce => ::graph::tail::reduce,
 
-            collect => graph::tail::collect,
-            select => graph::tail::select,
-            exists => graph::tail::exists,
+            collect => ::graph::tail::collect,
+            select => ::graph::tail::select,
+            exists => ::graph::tail::exists,
 
-            Ordering => graph::tail::Ordering,
-            SortFn => graph::tail::SortFn,
+            Ordering => ::graph::tail::Ordering,
+            SortFn => ::graph::tail::SortFn,
 
-            sort_by => graph::tail::sort_by,
+            sort_by => ::graph::tail::sort_by,
 
             // sorted methods
-            Cursor => graph::tail::Cursor,
-            CursorResult => graph::tail::CursorResult,
+            Cursor => ::graph::tail::Cursor,
+            CursorResult => ::graph::tail::CursorResult,
 
-            cursor => graph::tail::cursor, // module by itself, has `cursor::after` and `cursor::before`
-            offset => graph::tail::offset,
+            cursor => ::graph::tail::cursor, // module by itself, has `cursor::after` and `cursor::before`
+            offset => ::graph::tail::offset,
         ]);
     }
 
@@ -354,6 +416,10 @@ impl<'heap> NameResolver<'heap> {
         self.prefill_graph_head();
         self.prefill_graph_body();
         self.prefill_graph_tail();
+
+        mapping!(self.mapping, self.heap; [
+            graph => ::graph,
+        ]);
     }
 
     /// Fills the name mapping with all built-in names.
@@ -367,9 +433,9 @@ impl<'heap> NameResolver<'heap> {
     }
 
     fn walk_call(&mut self, expr: &mut CallExpr<'heap>, to: &Ident, mut from: Option<Path<'heap>>) {
-        // we now need to call_expr, but important is that we don't apply the mapping
-        // indiscriminately but instead we do so selectively on only the last argument, as that is
-        // the body.
+        // We now need to call_expr, but it's important that we don't apply the mapping
+        // indiscriminately but instead we do so selectively on only on the last argument, as that
+        // is the body of the expression.
 
         let CallExpr {
             id,
@@ -488,13 +554,13 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
         }
         // Look for expressions that is pre-expansion and *looks* like a let expressions
 
-        // special forms don't support labeled arguments
+        // Special forms don't support labeled arguments
         if !expr.labeled_arguments.is_empty() {
             walk_call_expr(self, expr);
             return;
         }
 
-        // let supports two forms: let/3 and let/4 (w/ or w/o type assertion)
+        // `let` supports two forms: `let/3` and `let/4` (w/ or w/o type assertion)
         if expr.arguments.len() != 3 && expr.arguments.len() != 4 {
             walk_call_expr(self, expr);
             return;
@@ -508,8 +574,8 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
 
         // First resolve the path
         // In theory as we're accessing the path here, we'd need to call `visit_id` and `visit_span`
-        // as well here, but we're not interested in those this is actually a no-op and therefore
-        // fine to omit.
+        // as well, but as we don't actually implement these methods, and they're no-op we're free
+        // to omit those calls.
         self.visit_path(function);
 
         // Check if said path is equivalent to the let special form
@@ -559,7 +625,7 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
             return;
         };
 
-        // we have a new mapping from path to type
+        // We have a new mapping from path to type
         self.visit_path(from);
         let from = Some(from.clone());
 
