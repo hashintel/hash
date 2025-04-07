@@ -1,0 +1,18 @@
+Expr#4294967040@12
+  ExprKind (Call)
+    CallExpr#4294967040@12
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: true)
+            PathSegment#4294967040@2 (name: math)
+            PathSegment#4294967040@2 (name: and)
+      Argument#4294967040@7
+        Expr#4294967040@7
+          ExprKind (Path)
+            Path#4294967040@7 (rooted: false)
+              PathSegment#4294967040@6 (name: a)
+      Argument#4294967040@11
+        Expr#4294967040@11
+          ExprKind (Path)
+            Path#4294967040@11 (rooted: false)
+              PathSegment#4294967040@10 (name: b)

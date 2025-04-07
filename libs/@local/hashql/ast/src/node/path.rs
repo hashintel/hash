@@ -1,4 +1,7 @@
-use hashql_core::{span::SpanId, symbol::Ident};
+use hashql_core::{
+    span::SpanId,
+    symbol::{Ident, Symbol},
+};
 
 use super::{generic::GenericArgument, id::NodeId};
 use crate::heap;
@@ -68,4 +71,61 @@ pub struct Path<'heap> {
     /// Whether the path is rooted (starts with a double colon `::`).
     pub rooted: bool,
     pub segments: heap::Vec<'heap, PathSegment<'heap>>,
+}
+
+impl Path<'_> {
+    // Check if the path is a single identifier, guarantees that there's at least one segment
+    fn is_ident(&self) -> bool {
+        if self.rooted {
+            return false;
+        }
+
+        if self.segments.len() != 1 {
+            return false;
+        }
+
+        let segment = &self.segments[0];
+
+        if !segment.arguments.is_empty() {
+            return false;
+        }
+
+        true
+    }
+
+    // Check if the path is a single identifier, and return if that's the case
+    pub(crate) fn as_ident(&self) -> Option<&Ident> {
+        if !self.is_ident() {
+            return None;
+        }
+
+        let segment = &self.segments[0];
+
+        Some(&segment.name)
+    }
+
+    /// Checks if this path is an absolute path that matches the provided sequence of identifiers.
+    ///
+    /// A path matches when:
+    /// - The path is absolute (rooted with `::`)
+    /// - It has the same number of segments as provided identifiers
+    /// - Each segment name matches the corresponding identifier
+    /// - None of the path segments have generic arguments
+    pub(crate) fn matches_absolute_path<'a>(
+        &self,
+        path: impl ExactSizeIterator<Item = &'a Symbol>,
+    ) -> bool {
+        if !self.rooted {
+            return false;
+        }
+
+        if self.segments.len() != path.len() {
+            return false;
+        }
+
+        self.segments
+            .iter()
+            .zip(path)
+            .all(|(segment, ident)| segment.name.name == *ident && segment.arguments.is_empty())
+    }
 }

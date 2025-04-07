@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: absolute paths should stay untouched
+["let", "a", "b", "b", ["+", "a", "c"]]

@@ -1,4 +1,4 @@
-use hashql_ast::{format::SyntaxDump as _, node::expr::Expr};
+use hashql_ast::{format::SyntaxDump as _, heap::Heap, node::expr::Expr};
 
 use super::{Suite, SuiteDiagnostic};
 
@@ -9,7 +9,12 @@ impl Suite for ParseSyntaxDumpSuite {
         "parse/syntax-dump"
     }
 
-    fn run(&self, expr: Expr<'_>, _: &mut Vec<SuiteDiagnostic>) -> Result<String, SuiteDiagnostic> {
+    fn run<'heap>(
+        &self,
+        _: &'heap Heap,
+        expr: Expr<'heap>,
+        _: &mut Vec<SuiteDiagnostic>,
+    ) -> Result<String, SuiteDiagnostic> {
         Ok(expr.syntax_dump_to_string())
     }
 }

@@ -122,7 +122,7 @@ use crate::node::{
 /// - To replace a node with a new one, modify its fields directly
 /// - To recursively process child nodes, call the corresponding `walk_*` function
 /// - To skip processing child nodes, don't call the `walk_*` function
-pub trait Visitor {
+pub trait Visitor<'heap> {
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_id(&mut self, id: &mut NodeId) {
         // do nothing, no fields to walk
@@ -137,111 +137,111 @@ pub trait Visitor {
         walk_ident(self, ident);
     }
 
-    fn visit_path(&mut self, path: &mut Path) {
+    fn visit_path(&mut self, path: &mut Path<'heap>) {
         walk_path(self, path);
     }
 
-    fn visit_path_segment(&mut self, segment: &mut PathSegment) {
+    fn visit_path_segment(&mut self, segment: &mut PathSegment<'heap>) {
         walk_path_segment(self, segment);
     }
 
-    fn visit_generic_argument(&mut self, argument: &mut GenericArgument) {
+    fn visit_generic_argument(&mut self, argument: &mut GenericArgument<'heap>) {
         walk_generic_argument(self, argument);
     }
 
-    fn visit_type(&mut self, r#type: &mut Type) {
+    fn visit_type(&mut self, r#type: &mut Type<'heap>) {
         walk_type(self, r#type);
     }
 
-    fn visit_tuple_type(&mut self, r#type: &mut TupleType) {
+    fn visit_tuple_type(&mut self, r#type: &mut TupleType<'heap>) {
         walk_tuple_type(self, r#type);
     }
 
-    fn visit_tuple_type_field(&mut self, field: &mut TupleField) {
+    fn visit_tuple_type_field(&mut self, field: &mut TupleField<'heap>) {
         walk_tuple_type_field(self, field);
     }
 
-    fn visit_struct_type(&mut self, r#type: &mut StructType) {
+    fn visit_struct_type(&mut self, r#type: &mut StructType<'heap>) {
         walk_struct_type(self, r#type);
     }
 
-    fn visit_struct_type_field(&mut self, field: &mut StructField) {
+    fn visit_struct_type_field(&mut self, field: &mut StructField<'heap>) {
         walk_struct_type_field(self, field);
     }
 
-    fn visit_union_type(&mut self, r#type: &mut UnionType) {
+    fn visit_union_type(&mut self, r#type: &mut UnionType<'heap>) {
         walk_union_type(self, r#type);
     }
 
-    fn visit_intersection_type(&mut self, r#type: &mut IntersectionType) {
+    fn visit_intersection_type(&mut self, r#type: &mut IntersectionType<'heap>) {
         walk_intersection_type(self, r#type);
     }
 
-    fn visit_expr(&mut self, expr: &mut Expr) {
+    fn visit_expr(&mut self, expr: &mut Expr<'heap>) {
         walk_expr(self, expr);
     }
 
-    fn visit_call_expr(&mut self, expr: &mut CallExpr) {
+    fn visit_call_expr(&mut self, expr: &mut CallExpr<'heap>) {
         walk_call_expr(self, expr);
     }
 
-    fn visit_argument(&mut self, argument: &mut Argument) {
+    fn visit_argument(&mut self, argument: &mut Argument<'heap>) {
         walk_argument(self, argument);
     }
 
-    fn visit_labeled_argument(&mut self, labeled_argument: &mut LabeledArgument) {
+    fn visit_labeled_argument(&mut self, labeled_argument: &mut LabeledArgument<'heap>) {
         walk_labeled_argument(self, labeled_argument);
     }
 
-    fn visit_struct_expr(&mut self, expr: &mut StructExpr) {
+    fn visit_struct_expr(&mut self, expr: &mut StructExpr<'heap>) {
         walk_struct_expr(self, expr);
     }
 
-    fn visit_struct_expr_entry(&mut self, entry: &mut StructEntry) {
+    fn visit_struct_expr_entry(&mut self, entry: &mut StructEntry<'heap>) {
         walk_struct_expr_entry(self, entry);
     }
 
-    fn visit_dict_expr(&mut self, expr: &mut DictExpr) {
+    fn visit_dict_expr(&mut self, expr: &mut DictExpr<'heap>) {
         walk_dict_expr(self, expr);
     }
 
-    fn visit_dict_expr_entry(&mut self, entry: &mut DictEntry) {
+    fn visit_dict_expr_entry(&mut self, entry: &mut DictEntry<'heap>) {
         walk_dict_expr_entry(self, entry);
     }
 
-    fn visit_tuple_expr(&mut self, expr: &mut TupleExpr) {
+    fn visit_tuple_expr(&mut self, expr: &mut TupleExpr<'heap>) {
         walk_tuple_expr(self, expr);
     }
 
-    fn visit_tuple_expr_element(&mut self, element: &mut TupleElement) {
+    fn visit_tuple_expr_element(&mut self, element: &mut TupleElement<'heap>) {
         walk_tuple_expr_element(self, element);
     }
 
-    fn visit_list_expr(&mut self, expr: &mut ListExpr) {
+    fn visit_list_expr(&mut self, expr: &mut ListExpr<'heap>) {
         walk_list_expr(self, expr);
     }
 
-    fn visit_list_expr_element(&mut self, element: &mut ListElement) {
+    fn visit_list_expr_element(&mut self, element: &mut ListElement<'heap>) {
         walk_list_expr_element(self, element);
     }
 
-    fn visit_literal_expr(&mut self, expr: &mut LiteralExpr) {
+    fn visit_literal_expr(&mut self, expr: &mut LiteralExpr<'heap>) {
         walk_literal_expr(self, expr);
     }
 
-    fn visit_let_expr(&mut self, expr: &mut LetExpr) {
+    fn visit_let_expr(&mut self, expr: &mut LetExpr<'heap>) {
         walk_let_expr(self, expr);
     }
 
-    fn visit_type_expr(&mut self, expr: &mut TypeExpr) {
+    fn visit_type_expr(&mut self, expr: &mut TypeExpr<'heap>) {
         walk_type_expr(self, expr);
     }
 
-    fn visit_newtype_expr(&mut self, expr: &mut NewTypeExpr) {
+    fn visit_newtype_expr(&mut self, expr: &mut NewTypeExpr<'heap>) {
         walk_newtype_expr(self, expr);
     }
 
-    fn visit_use_expr(&mut self, expr: &mut UseExpr) {
+    fn visit_use_expr(&mut self, expr: &mut UseExpr<'heap>) {
         walk_use_expr(self, expr);
     }
 
@@ -253,43 +253,43 @@ pub trait Visitor {
         walk_use_expr_glob(self, glob);
     }
 
-    fn visit_input_expr(&mut self, expr: &mut InputExpr) {
+    fn visit_input_expr(&mut self, expr: &mut InputExpr<'heap>) {
         walk_input_expr(self, expr);
     }
 
-    fn visit_closure_expr(&mut self, expr: &mut ClosureExpr) {
+    fn visit_closure_expr(&mut self, expr: &mut ClosureExpr<'heap>) {
         walk_closure_expr(self, expr);
     }
 
-    fn visit_closure_sig(&mut self, sig: &mut ClosureSig) {
+    fn visit_closure_sig(&mut self, sig: &mut ClosureSig<'heap>) {
         walk_closure_sig(self, sig);
     }
 
-    fn visit_closure_param(&mut self, param: &mut ClosureParam) {
+    fn visit_closure_param(&mut self, param: &mut ClosureParam<'heap>) {
         walk_closure_param(self, param);
     }
 
-    fn visit_generics(&mut self, generics: &mut Generics) {
+    fn visit_generics(&mut self, generics: &mut Generics<'heap>) {
         walk_generics(self, generics);
     }
 
-    fn visit_generic_param(&mut self, param: &mut GenericParam) {
+    fn visit_generic_param(&mut self, param: &mut GenericParam<'heap>) {
         walk_generic_param(self, param);
     }
 
-    fn visit_if_expr(&mut self, expr: &mut IfExpr) {
+    fn visit_if_expr(&mut self, expr: &mut IfExpr<'heap>) {
         walk_if_expr(self, expr);
     }
 
-    fn visit_field_expr(&mut self, expr: &mut FieldExpr) {
+    fn visit_field_expr(&mut self, expr: &mut FieldExpr<'heap>) {
         walk_field_expr(self, expr);
     }
-    fn visit_index_expr(&mut self, expr: &mut IndexExpr) {
+    fn visit_index_expr(&mut self, expr: &mut IndexExpr<'heap>) {
         walk_index_expr(self, expr);
     }
 }
 
-pub fn walk_ident<T: Visitor + ?Sized>(
+pub fn walk_ident<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     Ident {
         name: _,
@@ -300,7 +300,10 @@ pub fn walk_ident<T: Visitor + ?Sized>(
     visitor.visit_span(span);
 }
 
-pub fn walk_type<T: Visitor + ?Sized>(visitor: &mut T, Type { id, span, kind }: &mut Type) {
+pub fn walk_type<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Type { id, span, kind }: &mut Type<'heap>,
+) {
     visitor.visit_id(id);
     visitor.visit_span(span);
 
@@ -316,9 +319,9 @@ pub fn walk_type<T: Visitor + ?Sized>(visitor: &mut T, Type { id, span, kind }: 
     }
 }
 
-pub fn walk_tuple_type<T: Visitor + ?Sized>(
+pub fn walk_tuple_type<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    TupleType { id, span, fields }: &mut TupleType,
+    TupleType { id, span, fields }: &mut TupleType<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -328,9 +331,9 @@ pub fn walk_tuple_type<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_tuple_type_field<T: Visitor + ?Sized>(
+pub fn walk_tuple_type_field<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    TupleField { id, span, r#type }: &mut TupleField,
+    TupleField { id, span, r#type }: &mut TupleField<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -338,9 +341,9 @@ pub fn walk_tuple_type_field<T: Visitor + ?Sized>(
     visitor.visit_type(r#type);
 }
 
-pub fn walk_struct_type<T: Visitor + ?Sized>(
+pub fn walk_struct_type<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    StructType { id, span, fields }: &mut StructType,
+    StructType { id, span, fields }: &mut StructType<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -350,14 +353,14 @@ pub fn walk_struct_type<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_struct_type_field<T: Visitor + ?Sized>(
+pub fn walk_struct_type_field<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     StructField {
         id,
         span,
         name,
         r#type,
-    }: &mut StructField,
+    }: &mut StructField<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -365,9 +368,9 @@ pub fn walk_struct_type_field<T: Visitor + ?Sized>(
     visitor.visit_type(r#type);
 }
 
-pub fn walk_union_type<T: Visitor + ?Sized>(
+pub fn walk_union_type<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    UnionType { id, span, types }: &mut UnionType,
+    UnionType { id, span, types }: &mut UnionType<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -377,9 +380,9 @@ pub fn walk_union_type<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_intersection_type<T: Visitor + ?Sized>(
+pub fn walk_intersection_type<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    IntersectionType { id, span, types }: &mut IntersectionType,
+    IntersectionType { id, span, types }: &mut IntersectionType<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -389,7 +392,10 @@ pub fn walk_intersection_type<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_expr<T: Visitor + ?Sized>(visitor: &mut T, Expr { id, span, kind }: &mut Expr) {
+pub fn walk_expr<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Expr { id, span, kind }: &mut Expr<'heap>,
+) {
     visitor.visit_id(id);
     visitor.visit_span(span);
 
@@ -413,7 +419,7 @@ pub fn walk_expr<T: Visitor + ?Sized>(visitor: &mut T, Expr { id, span, kind }: 
     }
 }
 
-pub fn walk_call_expr<T: Visitor + ?Sized>(
+pub fn walk_call_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     CallExpr {
         id,
@@ -421,7 +427,7 @@ pub fn walk_call_expr<T: Visitor + ?Sized>(
         function,
         arguments,
         labeled_arguments,
-    }: &mut CallExpr,
+    }: &mut CallExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -437,23 +443,23 @@ pub fn walk_call_expr<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_argument<T: Visitor + ?Sized>(
+pub fn walk_argument<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Argument { id, span, value }: &mut Argument,
+    Argument { id, span, value }: &mut Argument<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
     visitor.visit_expr(value);
 }
 
-pub fn walk_labeled_argument<T: Visitor + ?Sized>(
+pub fn walk_labeled_argument<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     LabeledArgument {
         id,
         span,
         label,
         value,
-    }: &mut LabeledArgument,
+    }: &mut LabeledArgument<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -461,14 +467,14 @@ pub fn walk_labeled_argument<T: Visitor + ?Sized>(
     visitor.visit_argument(value);
 }
 
-pub fn walk_struct_expr<T: Visitor + ?Sized>(
+pub fn walk_struct_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     StructExpr {
         id,
         span,
         entries,
         r#type,
-    }: &mut StructExpr,
+    }: &mut StructExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -482,14 +488,14 @@ pub fn walk_struct_expr<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_struct_expr_entry<T: Visitor + ?Sized>(
+pub fn walk_struct_expr_entry<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     StructEntry {
         id,
         span,
         key,
         value,
-    }: &mut StructEntry,
+    }: &mut StructEntry<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -497,14 +503,14 @@ pub fn walk_struct_expr_entry<T: Visitor + ?Sized>(
     visitor.visit_expr(value);
 }
 
-pub fn walk_dict_expr<T: Visitor + ?Sized>(
+pub fn walk_dict_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     DictExpr {
         id,
         span,
         entries,
         r#type,
-    }: &mut DictExpr,
+    }: &mut DictExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -518,14 +524,14 @@ pub fn walk_dict_expr<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_dict_expr_entry<T: Visitor + ?Sized>(
+pub fn walk_dict_expr_entry<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     DictEntry {
         id,
         span,
         key,
         value,
-    }: &mut DictEntry,
+    }: &mut DictEntry<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -533,14 +539,14 @@ pub fn walk_dict_expr_entry<T: Visitor + ?Sized>(
     visitor.visit_expr(value);
 }
 
-pub fn walk_tuple_expr<T: Visitor + ?Sized>(
+pub fn walk_tuple_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     TupleExpr {
         id,
         span,
         elements,
         r#type,
-    }: &mut TupleExpr,
+    }: &mut TupleExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -554,23 +560,23 @@ pub fn walk_tuple_expr<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_tuple_expr_element<T: Visitor + ?Sized>(
+pub fn walk_tuple_expr_element<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    TupleElement { id, span, value }: &mut TupleElement,
+    TupleElement { id, span, value }: &mut TupleElement<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
     visitor.visit_expr(value);
 }
 
-pub fn walk_list_expr<T: Visitor + ?Sized>(
+pub fn walk_list_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     ListExpr {
         id,
         span,
         elements,
         r#type,
-    }: &mut ListExpr,
+    }: &mut ListExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -584,23 +590,23 @@ pub fn walk_list_expr<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_list_expr_element<T: Visitor + ?Sized>(
+pub fn walk_list_expr_element<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    ListElement { id, span, value }: &mut ListElement,
+    ListElement { id, span, value }: &mut ListElement<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
     visitor.visit_expr(value);
 }
 
-pub fn walk_literal_expr<T: Visitor + ?Sized>(
+pub fn walk_literal_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     LiteralExpr {
         id,
         span,
         kind: _,
         r#type,
-    }: &mut LiteralExpr,
+    }: &mut LiteralExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -610,7 +616,7 @@ pub fn walk_literal_expr<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_let_expr<T: Visitor + ?Sized>(
+pub fn walk_let_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     LetExpr {
         id,
@@ -619,7 +625,7 @@ pub fn walk_let_expr<T: Visitor + ?Sized>(
         value,
         r#type,
         body,
-    }: &mut LetExpr,
+    }: &mut LetExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -634,7 +640,7 @@ pub fn walk_let_expr<T: Visitor + ?Sized>(
     visitor.visit_expr(body);
 }
 
-pub fn walk_type_expr<T: Visitor + ?Sized>(
+pub fn walk_type_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     TypeExpr {
         id,
@@ -642,7 +648,7 @@ pub fn walk_type_expr<T: Visitor + ?Sized>(
         name,
         value,
         body,
-    }: &mut TypeExpr,
+    }: &mut TypeExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -652,7 +658,7 @@ pub fn walk_type_expr<T: Visitor + ?Sized>(
     visitor.visit_expr(body);
 }
 
-pub fn walk_newtype_expr<T: Visitor + ?Sized>(
+pub fn walk_newtype_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     NewTypeExpr {
         id,
@@ -660,7 +666,7 @@ pub fn walk_newtype_expr<T: Visitor + ?Sized>(
         name,
         value,
         body,
-    }: &mut NewTypeExpr,
+    }: &mut NewTypeExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -670,7 +676,7 @@ pub fn walk_newtype_expr<T: Visitor + ?Sized>(
     visitor.visit_expr(body);
 }
 
-pub fn walk_use_expr<T: Visitor + ?Sized>(
+pub fn walk_use_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     UseExpr {
         id,
@@ -678,7 +684,7 @@ pub fn walk_use_expr<T: Visitor + ?Sized>(
         path,
         kind,
         body,
-    }: &mut UseExpr,
+    }: &mut UseExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -697,7 +703,7 @@ pub fn walk_use_expr<T: Visitor + ?Sized>(
     visitor.visit_expr(body);
 }
 
-pub fn walk_use_expr_binding<T: Visitor + ?Sized>(
+pub fn walk_use_expr_binding<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     UseBinding {
         id,
@@ -716,12 +722,15 @@ pub fn walk_use_expr_binding<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_use_expr_glob<T: Visitor + ?Sized>(visitor: &mut T, Glob { id, span }: &mut Glob) {
+pub fn walk_use_expr_glob<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Glob { id, span }: &mut Glob,
+) {
     visitor.visit_id(id);
     visitor.visit_span(span);
 }
 
-pub fn walk_input_expr<T: Visitor + ?Sized>(
+pub fn walk_input_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     InputExpr {
         id,
@@ -729,7 +738,7 @@ pub fn walk_input_expr<T: Visitor + ?Sized>(
         name,
         r#type,
         default,
-    }: &mut InputExpr,
+    }: &mut InputExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -745,14 +754,14 @@ pub fn walk_input_expr<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_closure_expr<T: Visitor + ?Sized>(
+pub fn walk_closure_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     ClosureExpr {
         id,
         span,
         sig,
         body,
-    }: &mut ClosureExpr,
+    }: &mut ClosureExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -762,7 +771,7 @@ pub fn walk_closure_expr<T: Visitor + ?Sized>(
     visitor.visit_expr(body);
 }
 
-pub fn walk_closure_sig<T: Visitor + ?Sized>(
+pub fn walk_closure_sig<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     ClosureSig {
         id,
@@ -770,7 +779,7 @@ pub fn walk_closure_sig<T: Visitor + ?Sized>(
         generics,
         inputs,
         output,
-    }: &mut ClosureSig,
+    }: &mut ClosureSig<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -784,14 +793,14 @@ pub fn walk_closure_sig<T: Visitor + ?Sized>(
     visitor.visit_type(output);
 }
 
-pub fn walk_closure_param<T: Visitor + ?Sized>(
+pub fn walk_closure_param<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     ClosureParam {
         id,
         span,
         name,
         r#type,
-    }: &mut ClosureParam,
+    }: &mut ClosureParam<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -800,9 +809,9 @@ pub fn walk_closure_param<T: Visitor + ?Sized>(
     visitor.visit_type(r#type);
 }
 
-pub fn walk_generics<T: Visitor + ?Sized>(
+pub fn walk_generics<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Generics { id, span, params }: &mut Generics,
+    Generics { id, span, params }: &mut Generics<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -812,14 +821,14 @@ pub fn walk_generics<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_generic_param<T: Visitor + ?Sized>(
+pub fn walk_generic_param<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     GenericParam {
         id,
         span,
         name,
         bound,
-    }: &mut GenericParam,
+    }: &mut GenericParam<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -831,7 +840,7 @@ pub fn walk_generic_param<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_if_expr<T: Visitor + ?Sized>(
+pub fn walk_if_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     IfExpr {
         id,
@@ -839,7 +848,7 @@ pub fn walk_if_expr<T: Visitor + ?Sized>(
         test,
         then,
         r#else,
-    }: &mut IfExpr,
+    }: &mut IfExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -852,14 +861,14 @@ pub fn walk_if_expr<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_field_expr<T: Visitor + ?Sized>(
+pub fn walk_field_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     FieldExpr {
         id,
         span,
         value,
         field,
-    }: &mut FieldExpr,
+    }: &mut FieldExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -868,14 +877,14 @@ pub fn walk_field_expr<T: Visitor + ?Sized>(
     visitor.visit_ident(field);
 }
 
-pub fn walk_index_expr<T: Visitor + ?Sized>(
+pub fn walk_index_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     IndexExpr {
         id,
         span,
         value,
         index,
-    }: &mut IndexExpr,
+    }: &mut IndexExpr<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -884,14 +893,14 @@ pub fn walk_index_expr<T: Visitor + ?Sized>(
     visitor.visit_expr(index);
 }
 
-pub fn walk_path<T: Visitor + ?Sized>(
+pub fn walk_path<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     Path {
         id,
         span,
         rooted: _,
         segments,
-    }: &mut Path,
+    }: &mut Path<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -901,14 +910,14 @@ pub fn walk_path<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_path_segment<T: Visitor + ?Sized>(
+pub fn walk_path_segment<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     PathSegment {
         id,
         span,
         name,
         arguments,
-    }: &mut PathSegment,
+    }: &mut PathSegment<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -920,9 +929,9 @@ pub fn walk_path_segment<T: Visitor + ?Sized>(
     }
 }
 
-pub fn walk_generic_argument<T: Visitor + ?Sized>(
+pub fn walk_generic_argument<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    GenericArgument { id, span, r#type }: &mut GenericArgument,
+    GenericArgument { id, span, r#type }: &mut GenericArgument<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);

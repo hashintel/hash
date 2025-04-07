@@ -1,0 +1,6 @@
+//@ run: pass
+//@ description: Should be able to alias to a symbol and from a symbol
+// biome-ignore format: readability
+["let", "!&&", "&&",
+  ["!&&", "a", "b"]
+]
