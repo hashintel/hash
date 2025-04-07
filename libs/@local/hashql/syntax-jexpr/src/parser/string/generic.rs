@@ -9,7 +9,7 @@ use winnow::{
 };
 
 use super::{
-    combinator::{separated_boxed1, ws},
+    combinator::{separated_alloc1, ws},
     context::Input,
     ident::parse_ident,
     r#type::parse_type,
@@ -72,7 +72,7 @@ where
 
     delimited(
         ws("<"),
-        separated_boxed1(context.heap, parse_generic_param, ws(",")),
+        separated_alloc1(context.heap, parse_generic_param, ws(",")),
         ws(cut_err(">").context(StrContext::Expected(StrContextValue::CharLiteral('>')))),
     )
     .with_span()

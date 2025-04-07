@@ -9,7 +9,7 @@ use winnow::{
 };
 
 use super::{
-    combinator::{separated_boxed1, ws},
+    combinator::{separated_alloc1, ws},
     context::Input,
     generic::parse_generic_argument,
     ident::parse_ident,
@@ -26,7 +26,7 @@ where
 
     let arguments = opt(delimited(
         ws("<"),
-        separated_boxed1(context.heap, parse_generic_argument, ws(",")),
+        separated_alloc1(context.heap, parse_generic_argument, ws(",")),
         ws(cut_err(">").context(StrContext::Expected(StrContextValue::CharLiteral('>')))),
     ));
 
@@ -36,7 +36,7 @@ where
             id: NodeId::PLACEHOLDER,
             span: context.span(span),
             name: ident,
-            arguments: arguments.unwrap_or_else(|| context.heap.empty_slice()),
+            arguments: arguments.unwrap_or_else(|| context.heap.vec(None)),
         })
         .parse_next(input)
 }
@@ -51,7 +51,7 @@ where
     let context = input.state;
 
     let root = opt(ws("::")).map(|value| value.is_some());
-    let segments = separated_boxed1(context.heap, parse_path_segment, ws("::"));
+    let segments = separated_alloc1(context.heap, parse_path_segment, ws("::"));
 
     (root, segments)
         .with_span()

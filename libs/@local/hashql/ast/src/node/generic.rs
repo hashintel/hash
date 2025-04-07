@@ -57,5 +57,5 @@ pub struct Generics<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub params: heap::Box<'heap, [GenericParam<'heap>]>,
+    pub params: heap::Vec<'heap, GenericParam<'heap>>,
 }

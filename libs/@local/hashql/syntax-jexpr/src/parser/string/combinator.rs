@@ -7,19 +7,26 @@ use winnow::{
     stream::{AsChar, Stream, StreamIsPartial},
 };
 
-enum VecOrOneValue<T> {
-    Vec(Vec<T>),
+enum VecOrOneValue<'heap, T> {
+    Vec(heap::Vec<'heap, T>),
     One(T),
 }
 
-impl<T> VecOrOneValue<T> {
-    fn as_vec(this: &mut Option<Self>) -> &mut Vec<T> {
-        // capacity of 0 will not allocate
-        let value = this.take().unwrap_or_else(|| Self::Vec(Vec::new()));
+impl<'heap, T> VecOrOneValue<'heap, T> {
+    fn as_vec<'this>(
+        this: &'this mut Option<Self>,
+        heap: &'heap Heap,
+    ) -> &'this mut heap::Vec<'heap, T> {
+        // Vec won't allocate until it is pushed to
+        let value = this.take().unwrap_or_else(|| Self::Vec(heap.vec(None)));
 
         let value = match value {
             Self::Vec(value) => value,
-            Self::One(value) => vec![value],
+            Self::One(value) => {
+                let mut vec = heap.vec(None);
+                vec.push(value);
+                vec
+            }
         };
 
         let value = this.insert(Self::Vec(value));
@@ -32,7 +39,7 @@ impl<T> VecOrOneValue<T> {
 
 struct VecOrOne<'heap, T> {
     heap: &'heap Heap,
-    value: Option<VecOrOneValue<T>>,
+    value: Option<VecOrOneValue<'heap, T>>,
 }
 
 impl<'heap, T> VecOrOne<'heap, T> {
@@ -43,11 +50,15 @@ impl<'heap, T> VecOrOne<'heap, T> {
         }
     }
 
-    fn into_boxed_slice(self) -> heap::Box<'heap, [T]> {
+    fn into_vec(self) -> heap::Vec<'heap, T> {
         match self.value {
-            Some(VecOrOneValue::Vec(vec)) => self.heap.boxed_slice(vec),
-            Some(VecOrOneValue::One(value)) => Box::into_boxed_slice(self.heap.boxed(value)),
-            None => self.heap.boxed([]),
+            Some(VecOrOneValue::Vec(vec)) => vec,
+            Some(VecOrOneValue::One(value)) => {
+                let mut vec = self.heap.vec(None);
+                vec.push(value);
+                vec
+            }
+            None => self.heap.vec(None),
         }
     }
 
@@ -56,7 +67,7 @@ impl<'heap, T> VecOrOne<'heap, T> {
             return self;
         };
 
-        let vec = VecOrOneValue::as_vec(&mut self.value);
+        let vec = VecOrOneValue::as_vec(&mut self.value, self.heap);
         match value {
             VecOrOneValue::Vec(mut values) => {
                 vec.append(&mut values);
@@ -70,11 +81,11 @@ impl<'heap, T> VecOrOne<'heap, T> {
     }
 }
 
-pub(crate) fn separated_boxed1<Input, Output, Sep, Error, ParseNext, SepParser>(
+pub(crate) fn separated_alloc1<Input, Output, Sep, Error, ParseNext, SepParser>(
     heap: &Heap,
     parser: ParseNext,
     sep: SepParser,
-) -> impl Parser<Input, heap::Box<'_, [Output]>, Error>
+) -> impl Parser<Input, heap::Vec<'_, Output>, Error>
 where
     Input: Stream,
     ParseNext: Parser<Input, Output, Error>,
@@ -82,7 +93,7 @@ where
     Error: ParserError<Input>,
 {
     trace(
-        "separated_boxed1",
+        "separated_alloc1",
         separated_foldl1(
             parser.map(|value| VecOrOne::new(heap, value)),
             sep,
@@ -91,7 +102,7 @@ where
                 left
             },
         )
-        .map(VecOrOne::into_boxed_slice),
+        .map(VecOrOne::into_vec),
     )
 }
 

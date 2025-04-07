@@ -50,6 +50,6 @@ pub struct StructExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub entries: heap::Box<'heap, [StructEntry<'heap>]>,
+    pub entries: heap::Vec<'heap, StructEntry<'heap>>,
     pub r#type: Option<heap::Box<'heap, Type<'heap>>>,
 }

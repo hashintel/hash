@@ -22,7 +22,7 @@ pub struct PathSegment<'heap> {
 
     pub name: Ident,
     /// Type parameters attached to this path segment
-    pub arguments: heap::Box<'heap, [GenericArgument<'heap>]>,
+    pub arguments: heap::Vec<'heap, GenericArgument<'heap>>,
 }
 
 /// A path expression in the HashQL Abstract Syntax Tree.
@@ -67,5 +67,5 @@ pub struct Path<'heap> {
 
     /// Whether the path is rooted (starts with a double colon `::`).
     pub rooted: bool,
-    pub segments: heap::Box<'heap, [PathSegment<'heap>]>,
+    pub segments: heap::Vec<'heap, PathSegment<'heap>>,
 }

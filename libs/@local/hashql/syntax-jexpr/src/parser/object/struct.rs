@@ -121,7 +121,7 @@ fn parse_struct<'heap>(
     Ok(StructExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(span),
-        entries: state.heap().boxed_slice(entries),
+        entries: state.heap().transfer_vec(entries),
         r#type: None,
     })
 }

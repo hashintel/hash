@@ -46,6 +46,6 @@ pub struct DictExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub entries: heap::Box<'heap, [DictEntry<'heap>]>,
+    pub entries: heap::Vec<'heap, DictEntry<'heap>>,
     pub r#type: Option<heap::Box<'heap, Type<'heap>>>,
 }
