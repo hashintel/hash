@@ -1,17 +1,22 @@
 Expr#4294967040@29
   ExprKind (Call)
     CallExpr#4294967040@29
-      Expr#4294967040@7
+      Expr#4294967040@3
         ExprKind (Path)
-          Path#4294967040@7 (rooted: true)
+          Path#4294967040@3 (rooted: true)
             PathSegment#4294967040@2 (name: kernel)
-            PathSegment#4294967040@4 (name: special_form)
-            PathSegment#4294967040@6 (name: let)
+            PathSegment#4294967040@2 (name: special_form)
+            PathSegment#4294967040@2 (name: newtype)
+      Argument#4294967040@7
+        Expr#4294967040@7
+          ExprKind (Path)
+            Path#4294967040@7 (rooted: false)
+              PathSegment#4294967040@6 (name: a)
       Argument#4294967040@11
         Expr#4294967040@11
           ExprKind (Path)
             Path#4294967040@11 (rooted: false)
-              PathSegment#4294967040@10 (name: a)
+              PathSegment#4294967040@10 (name: Int)
       Argument#4294967040@15
         Expr#4294967040@15
           ExprKind (Path)
@@ -30,7 +35,7 @@ Expr#4294967040@29
                 Expr#4294967040@23
                   ExprKind (Path)
                     Path#4294967040@23 (rooted: false)
-                      PathSegment#4294967040@22 (name: b)
+                      PathSegment#4294967040@22 (name: a)
               Argument#4294967040@27
                 Expr#4294967040@27
                   ExprKind (Path)

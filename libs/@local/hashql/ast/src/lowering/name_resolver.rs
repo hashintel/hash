@@ -407,6 +407,9 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
         };
 
         // First resolve the path
+        // In theory as we're accessing the path here, we'd need to call `visit_id` and `visit_span`
+        // as well here, but we're not interested in those this is actually a no-op and therefore
+        // fine to omit.
         self.visit_path(function);
 
         // Check if said path is equivalent to the let special form
@@ -462,8 +465,6 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
 
         self.walk_call(expr, &to, from);
     }
-
-    // TODO: type and newtype expressions
 
     // In theory should never be called, because absolute name expansion should happen before
     // special forms are resolved. To make sure that even if it is called post-absolutization,

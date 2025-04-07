@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test that `newtype/4` is resolved to `::kernel::special_form::newtype`, but that no aliases are created.
+["newtype", "a", "Int", "b", ["+", "a", "c"]]
