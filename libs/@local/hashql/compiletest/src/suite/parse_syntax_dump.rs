@@ -1,0 +1,15 @@
+use hashql_ast::{format::SyntaxDump as _, node::expr::Expr};
+
+use super::{Suite, SuiteDiagnostic};
+
+pub(crate) struct ParseSyntaxDumpSuite;
+
+impl Suite for ParseSyntaxDumpSuite {
+    fn name(&self) -> &'static str {
+        "parse/syntax-dump"
+    }
+
+    fn run(&self, expr: Expr<'_>, _: &mut Vec<SuiteDiagnostic>) -> Result<String, SuiteDiagnostic> {
+        Ok(expr.syntax_dump_to_string())
+    }
+}

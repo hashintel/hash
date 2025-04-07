@@ -49,10 +49,15 @@ pub struct AbsoluteDiagnosticSpan {
 }
 
 impl AbsoluteDiagnosticSpan {
-    pub(crate) fn new<S>(node: &SpanNode<S>, transform: &mut impl TransformSpan<S>) -> Self {
+    pub fn new<S>(node: &SpanNode<S>, transform: &mut impl TransformSpan<S>) -> Self {
         let range = absolute_span(node, transform);
 
         Self { range }
+    }
+
+    #[must_use]
+    pub const fn range(&self) -> TextRange {
+        self.range
     }
 
     pub(crate) const fn full() -> Self {

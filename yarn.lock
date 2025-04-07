@@ -13014,6 +13014,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hashql-compiletest@workspace:libs/@local/hashql/compiletest":
+  version: 0.0.0-use.local
+  resolution: "@rust/hashql-compiletest@workspace:libs/@local/hashql/compiletest"
+  dependencies:
+    "@rust/error-stack": "npm:0.5.0"
+    "@rust/hashql-ast": "npm:0.0.0-private"
+    "@rust/hashql-core": "npm:0.0.0-private"
+    "@rust/hashql-diagnostics": "npm:0.0.0-private"
+    "@rust/hashql-syntax-jexpr": "npm:0.0.0-private"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hashql-core@npm:0.0.0-private, @rust/hashql-core@workspace:libs/@local/hashql/core":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-core@workspace:libs/@local/hashql/core"
@@ -13029,7 +13041,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hashql-syntax-jexpr@workspace:libs/@local/hashql/syntax-jexpr":
+"@rust/hashql-syntax-jexpr@npm:0.0.0-private, @rust/hashql-syntax-jexpr@workspace:libs/@local/hashql/syntax-jexpr":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-syntax-jexpr@workspace:libs/@local/hashql/syntax-jexpr"
   dependencies:

@@ -33,6 +33,14 @@ impl<S> Label<S> {
         }
     }
 
+    pub const fn span(&self) -> &S {
+        &self.span
+    }
+
+    pub const fn message(&self) -> &str {
+        &self.message
+    }
+
     #[must_use]
     pub const fn with_order(mut self, order: i32) -> Self {
         self.order = Some(order);
