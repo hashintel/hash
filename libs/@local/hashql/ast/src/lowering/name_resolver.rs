@@ -1,3 +1,73 @@
+//! Name resolution for the HashQL Abstract Syntax Tree.
+//!
+//! This module provides functionality for resolving identifiers in the AST to their fully
+//! qualified paths. It handles path resolution, scoping rules, and special form detection
+//! for constructs like `let`, `type`, and `newtype`.
+//!
+//! # Overview
+//!
+//! Name resolution is a critical part of the HashQL compilation pipeline, converting:
+//!
+//! - Unqualified identifiers (`map`) to absolute paths (`::graph::body::map`)
+//! - Operators (`+`) to their function equivalents (`::math::add`)
+//! - Special forms to their kernel representations (`let` to `::kernel::special_form::let`)
+//!
+//! The resolver also manages scoping rules to ensure that bindings from `let`, `type`, and
+//! `newtype` expressions only apply within their respective bodies.
+//!
+//! # Architecture
+//!
+//! The name resolver works as a visitor pattern implementation that traverses the AST and:
+//!
+//! 1. Maintains a mapping of identifiers to their absolute paths
+//! 2. Applies transformations to convert relative paths to absolute ones
+//! 3. Recognizes special forms and establishes proper scoping for bindings
+//! 4. Preserves source location information during transformations
+//!
+//! # Examples
+//!
+//! Input AST:
+//! ```json
+//! ["let", "x", "10", ["+", "x", "5"]]
+//! ```
+//!
+//! After name resolution:
+//! ```json
+//! ["::kernel::special_form::let", "x", "10", ["::math::add", "10", "5"]]
+//! ```
+//!
+//! # Special Forms
+//!
+//! The resolver recognizes and properly processes several special forms:
+//!
+//! - **let**: Binds a value to a name within a scope
+//!   - `let/3`: `[let, name, value, body]`
+//!   - `let/4`: `[let, name, type, value, body]`
+//!
+//! - **type**: Defines a type alias within a scope
+//!   - `type/3`: `[type, name, underlying_type, body]`
+//!
+//! - **newtype**: Defines a new nominal type based on an existing type
+//!   - `newtype/3`: `[newtype, name, underlying_type, body]`
+//!
+//! # Path Resolution Behavior
+//!
+//! When processing paths, the resolver follows these rules:
+//!
+//! 1. Absolute paths (starting with `::`) remain unchanged
+//! 2. Unrooted paths are checked against the current name mapping
+//! 3. If the first segment matches an entry in the mapping, it's replaced with the absolute path
+//! 4. Generic arguments are preserved during path resolution
+//! 5. Source location information is maintained for error reporting
+//!
+//! # Scoping Rules
+//!
+//! The resolver enforces lexical scoping rules:
+//!
+//! 1. Bindings only apply within their defined scope (body of let/type/newtype expressions)
+//! 2. Inner bindings shadow outer bindings with the same name
+//! 3. Original bindings are restored when exiting a scope
+//! 4. Built-in names can be shadowed by local bindings
 use core::mem;
 
 use foldhash::fast::RandomState;
@@ -74,13 +144,40 @@ macro mapping($mapping:expr, $heap:expr; [$($key:tt => $($segment:tt)::*),* $(,)
     )*
 }
 
-/// Resolve name aliases and turn them into their absolute counter paths.
+/// Resolves name aliases in the HashQL AST, converting identifiers to their absolute path
+/// representation.
+///
+/// The `NameResolver` performs several key functions during AST processing:
+///
+/// 1. Path Resolution: Converts unrooted paths (like `map`) to their absolute forms (like
+///    `::graph::body::map`)
+/// 2. Special Form Handling: Recognizes and processes special forms like `let`, `type`, and
+///    `newtype`, but does **not** transform them yet.
+/// 3. Scope Management: Maintains proper lexical scoping of bindings within expressions
+///
+/// # Example
+///
+/// The name resolver converts expressions like:
+/// ```json
+/// ["let", "x", "10", ["+", "x", "5"]]
+/// ```
+///
+/// Into their resolved forms:
+/// ```json
+/// [
+///     "::kernel::special_form::let",
+///     "x",
+///     "10",
+///     ["::math::add", "10", "5"],
+/// ]
+/// ```
 pub struct NameResolver<'heap> {
     mapping: HashMap<Symbol, Path<'heap>, RandomState>,
     heap: &'heap Heap,
 }
 
 impl<'heap> NameResolver<'heap> {
+    /// Creates a new `NameResolver` with an empty mapping.
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
             mapping: HashMap::with_hasher(RandomState::default()),
@@ -259,10 +356,11 @@ impl<'heap> NameResolver<'heap> {
         self.prefill_graph_tail();
     }
 
+    /// Fills the name mapping with all built-in names.
+    ///
+    /// This acts as a polyfill for the eventual prelude system by registering
+    /// all kernel functions, types, operators, and graph-specific functionality.
     pub fn prefill(&mut self) {
-        // Pre-fill with well-known aliases, this is a polyfill for which in the future the prelude
-        // will be able to provide a more comprehensive solution.
-
         self.prefill_kernel();
         self.prefill_math();
         self.prefill_graph();
@@ -465,6 +563,9 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
 
         self.walk_call(expr, &to, from);
     }
+
+    // consider moving this out into another lowering stage, and rename this to
+    // `NameResolverPreSpecialForm` and the other one to `NameResolverPostSpecialForm`
 
     // In theory should never be called, because absolute name expansion should happen before
     // special forms are resolved. To make sure that even if it is called post-absolutization,
