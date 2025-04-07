@@ -9,7 +9,7 @@ use error_stack::{Report, ResultExt as _};
 
 use super::{
     PolicyValidator,
-    principal::{Actor, actor::Machine, role::Role, team::Team},
+    principal::{Actor, role::Role, team::Team},
     resource::{EntityResource, EntityTypeResource},
 };
 

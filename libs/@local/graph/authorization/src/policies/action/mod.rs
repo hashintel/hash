@@ -142,7 +142,7 @@ pub enum InvalidActionConstraint {
 #[expect(clippy::panic_in_result_fn, reason = "Assertions in test are expected")]
 mod tests {
     use core::error::Error;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashMap;
 
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
