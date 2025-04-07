@@ -8,37 +8,37 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
-    1[<a href="../type_system/index.html">type-system</a>]
-    2[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
-    3[<a href="../hash_graph/index.html">hash-graph</a>]
-    4[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
-    5[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
-    6[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    7[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    8[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    9[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
-    10[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
-    11[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
-    12[<a href="../harpc_server/index.html">harpc-server</a>]
-    13[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    0[<a href="../hash_graph">hash-graph</a>]
+    1[<a href="../type_system">type-system</a>]
+    2[<a href="../hash_graph_api">hash-graph-api</a>]
+    3[<a href="../hash_graph_authorization">hash-graph-authorization</a>]
+    4[<a href="../hash_graph_postgres_store">hash-graph-postgres-store</a>]
+    5[<a href="../hash_graph_store">hash-graph-store</a>]
+    6[<a href="../hash_graph_test_server">hash-graph-test-server</a>]
+    7[<a href="../hash_graph_type_fetcher">hash-graph-type-fetcher</a>]
+    8[<a href="../hash_graph_types">hash-graph-types</a>]
+    9[<a href="../hash_graph_validation">hash-graph-validation</a>]
+    10[<a href="../harpc_server">harpc-server</a>]
+    11[<a href="../hash_temporal_client">hash-temporal-client</a>]
+    12[<a href="../hash_graph_benches">hash-graph-benches</a>]
+    13[<a href="../hash_graph_integration">hash-graph-integration</a>]
     14[hash-graph-test-data]
     class 14 root
-    4 --> 12
-    4 --> 10
-    2 --> 11
-    6 -.-> 4
+    0 --> 6
     1 -.-> 14
-    0 --> 4
-    10 --> 9
-    7 -.-> 10
+    2 --> 4
+    2 --> 7
+    2 --> 10
+    3 --> 1
+    4 --> 9
+    5 --> 3
+    5 --> 8
+    5 --> 11
+    6 --> 2
+    7 --> 5
     8 --> 1
-    11 --> 5
-    9 --> 11
-    5 --> 1
-    12 -.-> 1
-    4 --> 2
-    11 --> 8
-    11 --> 13
-    3 --> 0
-    13 --> 1
+    9 --> 5
+    10 -.-> 1
+    11 --> 1
+    12 -.-> 2
+    13 -.-> 4

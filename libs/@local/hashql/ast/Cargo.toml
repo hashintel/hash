@@ -21,5 +21,18 @@ hashbrown = { workspace = true, public = true }
 lexical        = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
 simple-mermaid = { workspace = true }
 
+[dev-dependencies]
+hashql-compiletest = { workspace = true }
+
 [lints]
 workspace = true
+
+[[test]]
+name    = "compiletest"
+harness = false
+
+
+[package.metadata.sync.turborepo]
+ignore-dev-dependencies = [
+    "@rust/hashql-compiletest",
+]

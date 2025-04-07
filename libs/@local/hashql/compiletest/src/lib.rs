@@ -10,7 +10,12 @@
 )]
 extern crate alloc;
 
-use std::{io::stdout, path::PathBuf, process::exit};
+use std::{
+    env,
+    io::{Write as _, stdout},
+    path::PathBuf,
+    process::exit,
+};
 
 use guppy::{
     MetadataCommand,
@@ -62,6 +67,8 @@ pub enum Command {
 
 pub struct Options {
     pub filter: Option<String>,
+    pub quick_filter: bool,
+
     pub command: Command,
 }
 
@@ -77,6 +84,11 @@ impl Options {
         let reporter = Reporter::install();
 
         let mut command = MetadataCommand::new();
+        if self.quick_filter {
+            // speeds up tests from >600ms to ~40ms
+            command.no_deps();
+        }
+
         let graph = PackageGraph::from_command(&mut command).expect("failed to load package graph");
 
         let tests = find::find_tests(&graph);
@@ -117,4 +129,65 @@ impl Options {
             }
         }
     }
+}
+
+/// Provides a minimal compatibility layer for use with `nextest`.
+pub fn nextest_bridge(package: &str) {
+    let args: Vec<_> = env::args().collect();
+
+    let mut stdout = stdout();
+
+    if args[1..] == ["--list", "--format", "terse"] {
+        write!(stdout, "compiletest: test").expect("should be able to write to stdout");
+        return;
+    }
+
+    if args[1..] == ["--list", "--format", "terse", "--ignored"] {
+        return;
+    }
+
+    let options = Options {
+        filter: Some(format!("package({package})")),
+        quick_filter: true,
+        command: Command::Run { bless: false },
+    };
+
+    options.run();
+}
+
+/// Generates a standard entry point for the compiletest test harness.
+///
+/// This macro creates a `main` function that sets up a bridge between the compiletest harness and
+/// any libtest-mimic compatible test runner (notably nextest).
+///
+/// # Usage
+///
+/// Add this macro to a test file (typically named `compiletest.rs` or similar):
+///
+/// ```no_run
+/// use hashql_compiletest::compiletest_main;
+///
+/// compiletest_main!();
+/// ```
+///
+/// This will enable the test file to be discovered and run by both the standard
+/// Rust test harness and nextest.
+///
+/// # Integration with cargo and nextest
+///
+/// When using this macro, the test can be:
+///
+/// - Run directly with `cargo test`
+/// - Run through nextest with `cargo nextest run`
+///
+/// Only tests that are applicable to the current package are run.
+#[macro_export]
+macro_rules! compiletest_main {
+    () => {
+        fn main() {
+            let crate_name = env!("CARGO_PKG_NAME");
+
+            $crate::nextest_bridge(crate_name);
+        }
+    };
 }
