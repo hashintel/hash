@@ -1245,6 +1245,15 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
     ///
     /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
     /// [`StoreError`]: PrincipalError::StoreError
+    ///
+    /// # Performance considerations
+    ///
+    /// This function performs multiple database queries to collect all entities needed for policy
+    /// evaluation, which could become a performance bottleneck for frequently accessed actors.
+    /// Future optimizations may include:
+    ///   - Combining some queries into a single more complex query
+    ///   - Implementing caching strategies for frequently accessed contexts
+    ///   - Prefetching contexts for related actors in batch operations
     pub async fn build_principal_context(
         &self,
         actor_id: ActorId,

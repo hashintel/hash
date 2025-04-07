@@ -25,6 +25,7 @@ cedar-policy-core      = { workspace = true }
 cedar-policy-validator = { workspace = true }
 derive-where           = { workspace = true }
 derive_more            = { workspace = true, features = ["display", "error", "from"] }
+enum-iterator          = { workspace = true }
 futures                = { workspace = true }
 serde                  = { workspace = true, features = ["derive", "unstable"] }
 serde_json             = { workspace = true }

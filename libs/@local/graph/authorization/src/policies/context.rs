@@ -43,18 +43,26 @@ pub struct ContextBuilder {
 }
 
 impl ContextBuilder {
-    pub fn add_machine(&mut self, machine: &Machine) {
-        self.entities.push(machine.to_cedar_entity());
-    }
-
+    /// Adds an actor to the context for policy evaluation.
+    ///
+    /// This allows the actor to be identified as a principal during authorization,
+    /// making it available for matching against principal constraints in policies.
     pub fn add_actor(&mut self, actor: &Actor) {
         self.entities.push(actor.to_cedar_entity());
     }
 
+    /// Adds a role to the context for policy evaluation.
+    ///
+    /// This allows policies associated with the role to be considered during authorization,
+    /// enabling role-based access control as part of the Cedar evaluation context.
     pub fn add_role(&mut self, role: &Role) {
         self.entities.push(role.to_cedar_entity());
     }
 
+    /// Adds a team to the context for policy evaluation.
+    ///
+    /// This allows policies associated with the team to be considered during authorization,
+    /// making the team available as a potential principal in the Cedar evaluation context.
     pub fn add_team(&mut self, team: &Team) {
         self.entities.push(team.to_cedar_entity());
     }

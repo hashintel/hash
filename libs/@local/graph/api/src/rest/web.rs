@@ -13,7 +13,7 @@ use error_stack::Report;
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
-    policies::store::{CreateWebParameter, PrincipalStore},
+    policies::store::PrincipalStore,
     schema::{
         WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
         WebEntityTypeViewerSubject, WebEntityViewerSubject, WebOwnerSubject, WebPermission,
@@ -27,10 +27,7 @@ use hash_graph_store::{
 };
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize;
-use type_system::{
-    provenance::{ActorId, UserId},
-    web::OwnedById,
-};
+use type_system::web::OwnedById;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to_response};
