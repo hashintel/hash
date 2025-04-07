@@ -134,7 +134,7 @@ const graphApiClient = createGraphClient(
   },
 );
 
-const actorId = "642e7739-3337-4ed0-9051-b075d2bc5a08" as ActorId;
+const actorId = "dbd0026a-84e0-488b-9134-6808b8a37bf7" as ActorId;
 
 const useCases: CreateEntityRequest[] = [];
 
@@ -221,20 +221,20 @@ for (const database of parsedDatabases) {
       person.hasBeenCreated = true;
 
       if (company) {
-        // links.push({
-        //   ...commonFields,
-        //   entityTypeIds: [
-        //     systemLinkEntityTypes.affiliatedWith.linkEntityTypeId,
-        //   ],
-        //   properties: { value: {} },
-        //   linkData: {
-        //     leftEntityId: personEntityId,
-        //     rightEntityId: entityIdFromComponents(
-        //       actorId as OwnedById,
-        //       company.id as EntityUuid,
-        //     ),
-        //   },
-        // });
+        links.push({
+          ...commonFields,
+          entityTypeIds: [
+            systemLinkEntityTypes.affiliatedWith.linkEntityTypeId,
+          ],
+          properties: { value: {} },
+          linkData: {
+            leftEntityId: personEntityId,
+            rightEntityId: entityIdFromComponents(
+              actorId as OwnedById,
+              company.id as EntityUuid,
+            ),
+          },
+        });
       }
     }
 
@@ -268,51 +268,51 @@ for (const database of parsedDatabases) {
         company.hasBeenCreated = true;
       }
 
-      //   links.push({
-      //     ...commonFields,
-      //     entityTypeIds: [systemLinkEntityTypes.sponsoredBy.linkEntityTypeId],
-      //     properties: { value: {} },
-      //     linkData: {
-      //       leftEntityId: useCaseEntityId,
-      //       rightEntityId: entityIdFromComponents(
-      //         actorId as OwnedById,
-      //         company.id as EntityUuid,
-      //       ),
-      //     },
-      //   });
+      links.push({
+        ...commonFields,
+        entityTypeIds: [systemLinkEntityTypes.sponsoredBy.linkEntityTypeId],
+        properties: { value: {} },
+        linkData: {
+          leftEntityId: useCaseEntityId,
+          rightEntityId: entityIdFromComponents(
+            actorId as OwnedById,
+            company.id as EntityUuid,
+          ),
+        },
+      });
     }
   }
 }
 
-// console.log("Creating use cases", JSON.stringify(useCases, null, 2));
+console.log("Creating use cases", JSON.stringify(useCases, null, 2));
 
-// try {
-//   await graphApiClient.createEntities(actorId, useCases);
-// } catch (error) {
-//   console.error(JSON.stringify(error, null, 2));
-//   console.error("Could not create use cases");
-//   throw error;
-// }
+try {
+  await graphApiClient.createEntities(actorId, useCases);
+} catch (error) {
+  console.error(JSON.stringify(error, null, 2));
+  console.error("Could not create use cases");
+  throw error;
+}
 
-// console.log("Creating people");
+console.log("Creating people");
 
-// try {
-//   await graphApiClient.createEntities(actorId, people);
-// } catch (error) {
-//   console.error(JSON.stringify(error, null, 2));
-//   console.error("Could not create people");
-//   throw error;
-// }
+try {
+  await graphApiClient.createEntities(actorId, people);
+} catch (error) {
+  console.error(JSON.stringify(error, null, 2));
+  console.error("Could not create people");
+  throw error;
+}
 
-// console.log("Creating companies");
+console.log("Creating companies");
 
-// try {
-//   await graphApiClient.createEntities(actorId, companies);
-// } catch (error) {
-//   console.error(JSON.stringify(error, null, 2));
-//   console.error("Could not create companies");
-//   throw error;
-// }
+try {
+  await graphApiClient.createEntities(actorId, companies);
+} catch (error) {
+  console.error(JSON.stringify(error, null, 2));
+  console.error("Could not create companies");
+  throw error;
+}
 
 console.log("Creating links");
 
@@ -323,7 +323,3 @@ try {
   console.error("Could not create links", JSON.stringify(links, null, 2));
   throw error;
 }
-
-// console.log(parsedDatabases);
-
-// console.log(companiesByNotionId);
