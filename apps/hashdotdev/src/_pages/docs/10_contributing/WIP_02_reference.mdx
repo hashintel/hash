@@ -75,7 +75,7 @@ The `Global Public Graph` is a planned initiative which will allow for unifyied 
 **Entities** are identified using:
 
 - `EntityId`: Primary identifier for an entity, encoded as `{WebId}~{EntityUuid}`
-  - `WebId`/`WebId` (both terms mean the same): Identifies a 'Web', currently part of the primary key for entities but likely to be moved to entity metadata
+  - `WebId`: Identifies a 'Web', currently part of the primary key for entities but likely to be moved to entity metadata
   - `EntityUuid`: a UUIDv4
 - `EditionId`: Each update of an entity is persisted in the datastore. Each update creates a new edition.
 - `TransactionTime`: The time point when an entity or a type was inserted into the datastore (precisely the time when the transaction started to create that record)

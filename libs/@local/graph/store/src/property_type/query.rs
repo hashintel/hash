@@ -77,7 +77,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["WebId"]))?;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["webId"]))?;
     /// assert_eq!(path, PropertyTypeQueryPath::WebId);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -279,7 +279,7 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
             Self::Version => fmt.write_str("version"),
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
-            Self::WebId => fmt.write_str("WebId"),
+            Self::WebId => fmt.write_str("webId"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -347,7 +347,7 @@ pub(crate) struct PropertyTypeQueryPathVisitor {
 
 impl PropertyTypeQueryPathVisitor {
     pub(crate) const EXPECTING: &'static str =
-        "one of `baseUrl`, `version`, `versionedUrl`, `WebId`, `title`, `description`, \
+        "one of `baseUrl`, `version`, `versionedUrl`, `webId`, `title`, `description`, \
          `editionProvenance`, `dataTypes`, `propertyTypes`, `embedding`";
 
     #[must_use]
@@ -508,7 +508,7 @@ mod tests {
             deserialize(["versionedUrl"]),
             PropertyTypeQueryPath::VersionedUrl
         );
-        assert_eq!(deserialize(["WebId"]), PropertyTypeQueryPath::WebId);
+        assert_eq!(deserialize(["webId"]), PropertyTypeQueryPath::WebId);
         assert_eq!(deserialize(["title"]), PropertyTypeQueryPath::Title);
         assert_eq!(
             deserialize(["description"]),

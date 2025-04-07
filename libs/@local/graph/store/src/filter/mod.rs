@@ -788,7 +788,7 @@ mod tests {
         let expected = json!({
           "all": [
             { "equal": [
-              { "path": ["WebId"] },
+              { "path": ["webId"] },
               { "parameter": entity_id.web_id }
             ]},
             { "equal": [
@@ -812,7 +812,7 @@ mod tests {
         let expected = json!({
           "all": [
             { "equal": [
-              { "path": ["WebId"] },
+              { "path": ["webId"] },
               { "parameter": entity_id.web_id }
             ]},
             { "equal": [

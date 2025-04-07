@@ -42,7 +42,7 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use hash_graph_store::entity::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["WebId"]))?;
+    /// let path = EntityQueryPath::deserialize(json!(["webId"]))?;
     /// assert_eq!(path, EntityQueryPath::WebId);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -493,7 +493,7 @@ impl fmt::Display for EntityQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Uuid => fmt.write_str("uuid"),
-            Self::WebId => fmt.write_str("WebId"),
+            Self::WebId => fmt.write_str("webId"),
             Self::DraftId => fmt.write_str("draftId"),
             Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
@@ -615,7 +615,7 @@ pub(crate) struct EntityQueryPathVisitor {
 
 impl EntityQueryPathVisitor {
     pub(crate) const EXPECTING: &'static str =
-        "one of `uuid`, `editionId`, `draftId`, `archived`, `WebId`, `type`, `properties`, \
+        "one of `uuid`, `editionId`, `draftId`, `archived`, `webId`, `type`, `properties`, \
          `label`, `provenance`, `editionProvenance`, `embedding`, `incomingLinks`, \
          `outgoingLinks`, `leftEntity`, `rightEntity`";
 
@@ -1119,7 +1119,7 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        assert_eq!(deserialize(["WebId"]), EntityQueryPath::WebId);
+        assert_eq!(deserialize(["webId"]), EntityQueryPath::WebId);
         assert_eq!(
             deserialize(["type", "version"]),
             EntityQueryPath::EntityTypeEdge {

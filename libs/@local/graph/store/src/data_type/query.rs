@@ -104,7 +104,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use hash_graph_store::data_type::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["WebId"]))?;
+    /// let path = DataTypeQueryPath::deserialize(json!(["webId"]))?;
     /// assert_eq!(path, DataTypeQueryPath::WebId);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -365,7 +365,7 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::Version => fmt.write_str("version"),
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
-            Self::WebId => fmt.write_str("WebId"),
+            Self::WebId => fmt.write_str("webId"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -424,7 +424,7 @@ pub(crate) struct DataTypeQueryPathVisitor {
 
 impl DataTypeQueryPathVisitor {
     pub(crate) const EXPECTING: &'static str =
-        "one of `baseUrl`, `version`, `versionedUrl`, `WebId`, `title`, `description`, `type`, \
+        "one of `baseUrl`, `version`, `versionedUrl`, `webId`, `title`, `description`, `type`, \
          `inheritsFrom`, `children`, `editionProvenance`, `embedding`";
 
     #[must_use]
@@ -594,7 +594,7 @@ mod tests {
             deserialize(["versionedUrl"]),
             DataTypeQueryPath::VersionedUrl
         );
-        assert_eq!(deserialize(["WebId"]), DataTypeQueryPath::WebId);
+        assert_eq!(deserialize(["webId"]), DataTypeQueryPath::WebId);
         assert_eq!(deserialize(["type"]), DataTypeQueryPath::Type);
         assert_eq!(deserialize(["title"]), DataTypeQueryPath::Title);
         assert_eq!(deserialize(["description"]), DataTypeQueryPath::Description);

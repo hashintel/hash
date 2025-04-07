@@ -99,7 +99,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["WebId"]))?;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["webId"]))?;
     /// assert_eq!(path, EntityTypeQueryPath::WebId);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -551,7 +551,7 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::Version => fmt.write_str("version"),
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
-            Self::WebId => fmt.write_str("WebId"),
+            Self::WebId => fmt.write_str("webId"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::ClosedSchema(Some(path)) => write!(fmt, "closedSchema.{path}"),
@@ -674,7 +674,7 @@ pub(crate) struct EntityTypeQueryPathVisitor {
 
 impl EntityTypeQueryPathVisitor {
     pub(crate) const EXPECTING: &'static str =
-        "one of `baseUrl`, `version`, `versionedUrl`, `WebId`, `title`, `description`, \
+        "one of `baseUrl`, `version`, `versionedUrl`, `webId`, `title`, `description`, \
          `properties`, `required`, `labelProperty`, `icon`, `editionProvenance`, `links`, \
          `linkDestinations`, `inheritsFrom`, `children`, `embedding`";
 
@@ -933,7 +933,7 @@ mod tests {
             deserialize(["versionedUrl"]),
             EntityTypeQueryPath::VersionedUrl
         );
-        assert_eq!(deserialize(["WebId"]), EntityTypeQueryPath::WebId);
+        assert_eq!(deserialize(["webId"]), EntityTypeQueryPath::WebId);
         assert_eq!(deserialize(["title"]), EntityTypeQueryPath::Title);
         assert_eq!(
             deserialize(["description"]),
