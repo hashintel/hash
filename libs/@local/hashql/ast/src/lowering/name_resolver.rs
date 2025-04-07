@@ -466,6 +466,8 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
                     // Make sure that we inherit the span from the original segment
                     segment.span = span;
 
+                    // Take the arguments if we're at the last segment, as converting from
+                    // `a<T>` to `math<T>::add<T>` wouldn't be a valid transformation.
                     if index == replacement_len - 1 {
                         segment.arguments = arguments.take().unwrap_or_else(|| unreachable!());
                     }
@@ -564,8 +566,8 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
         self.walk_call(expr, &to, from);
     }
 
-    // consider moving this out into another lowering stage, and rename this to
-    // `NameResolverPreSpecialForm` and the other one to `NameResolverPostSpecialForm`
+    // TODO: consider moving this out into another lowering stage, and rename this to
+    // `NameResolverPreExpansion` and the other one to `NameResolverPostExpansion`
 
     // In theory should never be called, because absolute name expansion should happen before
     // special forms are resolved. To make sure that even if it is called post-absolutization,
