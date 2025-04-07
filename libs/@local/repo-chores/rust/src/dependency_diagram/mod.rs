@@ -297,7 +297,6 @@ fn graph_to_mermaid(
         .map(|(index, metadata)| (metadata.id(), index))
         .collect();
 
-    let mut transitive_edges = BTreeSet::new();
     let mut edges = BTreeMap::new();
 
     for link in set.links(DependencyDirection::Forward) {
@@ -309,6 +308,7 @@ fn graph_to_mermaid(
     tracing::debug!(edges = edges.len(), "Processing links between packages");
 
     if dedup_transitive {
+        let mut transitive_edges = 0_usize;
         let mut potential_transitive = BTreeSet::new();
         tracing::debug!("Identifying transitive edges for deduplication");
 
@@ -347,15 +347,19 @@ fn graph_to_mermaid(
             if would_break_connectivity(&edges, from, to) {
                 edges.insert((from, to), link);
             } else {
-                tracing::trace!(from, to, "Identified transitive edge");
+                tracing::trace!(
+                    from = link.from().name(),
+                    to = link.to().name(),
+                    "Identified transitive edge"
+                );
 
-                transitive_edges.insert((from, to));
+                transitive_edges += 1;
             }
         }
 
         tracing::debug!(
             edges = edges.len(),
-            transitive_edges = transitive_edges.len(),
+            transitive_edges,
             "Identified transitive edges",
         );
     }
