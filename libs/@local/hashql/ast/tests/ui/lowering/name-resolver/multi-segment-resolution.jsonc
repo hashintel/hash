@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test resolution of multi-segment paths
+["+::total"]

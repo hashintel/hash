@@ -111,7 +111,7 @@ impl Options {
                 let failures = reports.len();
 
                 tracing::info!(
-                    success = total - failures,
+                    success = total - ignored - failures,
                     failures = failures,
                     "finished trial execution"
                 );

@@ -1,3 +1,5 @@
+use core::mem;
+
 use foldhash::fast::RandomState;
 use hashbrown::HashMap;
 use hashql_core::{
@@ -90,6 +92,8 @@ impl<'heap> NameResolver<'heap> {
             if => kernel::special_form::if,
             is => kernel::special_form::is,
             let => kernel::special_form::let,
+            type => kernel::special_form::type,
+            newtype => kernel::special_form::newtype,
             use => kernel::special_form::use,
             fn => kernel::special_form::fn,
             input => kernel::special_form::input,
@@ -262,6 +266,53 @@ impl<'heap> NameResolver<'heap> {
         self.prefill_math();
         self.prefill_graph();
     }
+
+    fn walk_call(&mut self, expr: &mut CallExpr<'heap>, to: &Ident, mut from: Option<Path<'heap>>) {
+        // we now need to call_expr, but important is that we don't apply the mapping
+        // indiscriminately but instead we do so selectively on only the last argument, as that is
+        // the body.
+
+        let CallExpr {
+            id,
+            span,
+            // We don't need to visit the function, as we've already visited it
+            function: _,
+            arguments,
+            // We've checked beforehand that there are no labeled arguments, therefore it's
+            // pointless to visit them
+            labeled_arguments: _,
+        } = expr;
+
+        self.visit_id(id);
+        self.visit_span(span);
+
+        let len = arguments.len();
+
+        // While our call to `visit_argument` simply delegates to `visit_expr`, it's still important
+        // to call it, as to not break any contracts down the line.
+        for (index, argument) in arguments.iter_mut().enumerate() {
+            if index == 0 {
+                // The first argument is the identifier, which we shouldn't normalize
+            } else if index == len - 1 {
+                let old = if let Some(from) = from.take() {
+                    self.mapping.insert(to.name.clone(), from)
+                } else {
+                    self.mapping.remove(&to.name)
+                };
+
+                self.visit_argument(argument);
+
+                if let Some(old) = old {
+                    self.mapping.insert(to.name.clone(), old);
+                } else {
+                    // The binding hasn't existed before, therefore restoration = deletion
+                    self.mapping.remove(&to.name);
+                }
+            } else {
+                self.visit_argument(argument);
+            }
+        }
+    }
 }
 
 impl<'heap> Visitor<'heap> for NameResolver<'heap> {
@@ -272,29 +323,47 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
         }
 
         // Check if the first segment exists, and if said segment exists in our mapping
-        let Some(segment) = path.segments.first() else {
+        let Some(segment) = path.segments.first_mut() else {
             walk_path(self, path);
             return;
         };
 
         let Some(replacement) = self.mapping.get(&segment.name.name) else {
+            // ... and back with you to the original segment
+
             walk_path(self, path);
             return;
         };
+
+        let mut arguments = Some(mem::replace(&mut segment.arguments, self.heap.vec(None)));
 
         let span = segment.span;
 
         path.rooted = replacement.rooted;
 
+        let replacement_len = replacement.segments.len();
+
         // Replace the segment with the aliased value
         path.segments.splice(
             0..1,
-            replacement.segments.iter().cloned().map(|mut segment| {
-                // Make sure that we inherit the span from the original segment
-                segment.span = span;
-                segment
-            }),
+            replacement
+                .segments
+                .iter()
+                .cloned()
+                .enumerate()
+                .map(|(index, mut segment)| {
+                    // Make sure that we inherit the span from the original segment
+                    segment.span = span;
+
+                    if index == replacement_len - 1 {
+                        segment.arguments = arguments.take().unwrap_or_else(|| unreachable!());
+                    }
+
+                    segment
+                }),
         );
+
+        walk_path(self, path);
     }
 
     fn visit_call_expr(&mut self, expr: &mut CallExpr<'heap>) {
@@ -350,57 +419,25 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
             return;
         };
 
-        let ExprKind::Path(from) = &mut from.value.kind else {
+        // We do **not** resolve the `to` path, as it is supposed to be an identifier
+        let Some(to) = to.as_ident().cloned() else {
             walk_call_expr(self, expr);
             return;
         };
 
-        // We do **not** resolve the `to` path, as it is supposed to be an identifier
-        let Some(to_ident) = to.as_ident().cloned() else {
-            walk_call_expr(self, expr);
+        let ExprKind::Path(from) = &mut from.value.kind else {
+            // While it isn't a path and therefore not an alias, this is still a valid assignment,
+            // therefore we need to actually *remove* the mapping for the duration of the call.
+
+            self.walk_call(expr, &to, None);
             return;
         };
 
         // we have a new mapping from path to type
         self.visit_path(from);
-        let mut from_path = Some(from.clone());
+        let from = Some(from.clone());
 
-        // we now need to call_expr, but important is that we don't apply the mapping
-        // indiscriminately but instead we do so selectively on only the last argument, as that is
-        // the body.
-
-        let CallExpr {
-            id,
-            span,
-            // We don't need to visit the function, as we've already visited it
-            function: _,
-            arguments,
-            // We've checked beforehand that there are no labeled arguments, therefore it's
-            // pointless to visit them
-            labeled_arguments: _,
-        } = expr;
-
-        self.visit_id(id);
-        self.visit_span(span);
-
-        // While our call to `visit_argument` simply delegates to `visit_expr`, it's still important
-        // to call it, as to not break any contracts down the line.
-        for (index, argument) in arguments.iter_mut().enumerate() {
-            if index == 0 {
-                // The first argument is the identifier, which we shouldn't normalize
-            } else if index == arguments_length - 1 {
-                let from = from_path.take().unwrap_or_else(|| unreachable!());
-                let old = self.mapping.insert(to_ident.name.clone(), from);
-
-                self.visit_argument(argument);
-
-                if let Some(old) = old {
-                    self.mapping.insert(to_ident.name.clone(), old);
-                }
-            } else {
-                self.visit_argument(argument);
-            }
-        }
+        self.walk_call(expr, &to, from);
     }
 
     // TODO: type and newtype expressions

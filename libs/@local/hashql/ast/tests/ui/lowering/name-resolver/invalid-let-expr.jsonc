@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test let expression with non-path target is not treated specially
+["let", ["+", "a", "b"], "c", "body"]

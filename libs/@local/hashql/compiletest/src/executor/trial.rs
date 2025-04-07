@@ -180,6 +180,10 @@ impl Trial {
         package: &PackageMetadata,
         context: &TrialContext,
     ) -> Result<(), Report<[TrialError]>> {
+        if self.ignore {
+            return Ok(());
+        }
+
         tracing::debug!("running trial");
 
         let result = self.run_impl(context).attach_lazy(|| TrialDescription {

@@ -10,9 +10,7 @@ Expr#4294967040@21
       Argument#4294967040@7
         Expr#4294967040@7
           ExprKind (Path)
-            Path#4294967040@7 (rooted: true)
-              PathSegment#4294967040@6 (name: kernel)
-              PathSegment#4294967040@6 (name: special_form)
+            Path#4294967040@7 (rooted: false)
               PathSegment#4294967040@6 (name: let)
       Argument#4294967040@16
         Expr#4294967040@16
@@ -38,7 +36,5 @@ Expr#4294967040@21
       Argument#4294967040@20
         Expr#4294967040@20
           ExprKind (Path)
-            Path#4294967040@20 (rooted: true)
-              PathSegment#4294967040@19 (name: kernel)
-              PathSegment#4294967040@19 (name: special_form)
+            Path#4294967040@20 (rooted: false)
               PathSegment#4294967040@19 (name: let)
