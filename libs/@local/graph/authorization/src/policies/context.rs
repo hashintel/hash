@@ -9,7 +9,7 @@ use error_stack::{Report, ResultExt as _};
 
 use super::{
     PolicyValidator,
-    principal::{Actor, actor::Machine, role::Role},
+    principal::{Actor, actor::Machine, role::Role, team::Team},
     resource::{EntityResource, EntityTypeResource},
 };
 
@@ -19,7 +19,7 @@ pub enum ContextError {
     TransitiveClosureError,
 }
 
-#[derive(Default)]
+#[derive(Default, derive_more::Display)]
 pub struct Context {
     entities: Entities,
 }
@@ -53,6 +53,10 @@ impl ContextBuilder {
 
     pub fn add_role(&mut self, role: &Role) {
         self.entities.push(role.to_cedar_entity());
+    }
+
+    pub fn add_team(&mut self, team: &Team) {
+        self.entities.push(team.to_cedar_entity());
     }
 
     pub fn add_entity(&mut self, entity: &EntityResource) {

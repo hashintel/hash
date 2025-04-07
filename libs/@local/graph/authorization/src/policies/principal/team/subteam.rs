@@ -1,8 +1,8 @@
 use alloc::sync::Arc;
-use core::str::FromStr as _;
+use core::{iter, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::ast;
+use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use uuid::Uuid;
 
@@ -64,6 +64,19 @@ pub struct Subteam {
     pub id: SubteamId,
     pub parents: Vec<TeamId>,
     pub roles: HashSet<SubteamRoleId>,
+}
+
+impl Subteam {
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+        ast::Entity::new(
+            self.id.to_euid(),
+            iter::empty(),
+            self.parents.iter().copied().map(TeamId::to_euid).collect(),
+            iter::empty(),
+            Extensions::none(),
+        )
+        .expect("subteam should be a valid Cedar entity")
+    }
 }
 
 #[cfg(test)]

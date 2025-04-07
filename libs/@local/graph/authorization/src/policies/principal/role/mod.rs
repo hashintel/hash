@@ -8,6 +8,7 @@ pub use self::{
     subteam::{SubteamRole, SubteamRoleId},
     web::{WebRole, WebRoleId},
 };
+use super::team::TeamId;
 use crate::policies::cedar::CedarEntityId as _;
 
 #[derive(
@@ -68,6 +69,14 @@ impl Role {
         match self {
             Self::Web(web_role) => web_role.to_cedar_entity(),
             Self::Subteam(subteam_role) => subteam_role.to_cedar_entity(),
+        }
+    }
+
+    #[must_use]
+    pub const fn team_id(&self) -> TeamId {
+        match self {
+            Self::Web(web_role) => TeamId::Web(web_role.web_id),
+            Self::Subteam(subteam_role) => TeamId::Subteam(subteam_role.subteam_id),
         }
     }
 }

@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{fmt, str::FromStr};
+use core::{fmt, iter, str::FromStr};
 use std::sync::LazyLock;
 
 #[cfg(feature = "postgres")]
@@ -20,13 +20,42 @@ pub enum ActionName {
     All,
 
     Create,
+    CreateWeb,
 
     View,
     ViewEntity,
+    ViewEntityType,
 
     Update,
 
     Instantiate,
+}
+
+impl ActionName {
+    #[must_use]
+    pub const fn parent(self) -> Option<Self> {
+        match self {
+            Self::All => None,
+            Self::Create | Self::CreateWeb | Self::View | Self::Update | Self::Instantiate => {
+                Some(Self::All)
+            }
+            Self::ViewEntity | Self::ViewEntityType => Some(Self::View),
+        }
+    }
+
+    pub fn parents(self) -> impl Iterator<Item = Self> {
+        iter::successors(self.parent(), |&action| action.parent())
+    }
+
+    #[must_use]
+    pub fn is_parent_of(self, other: Self) -> bool {
+        other.parents().any(|parent| parent == self)
+    }
+
+    #[must_use]
+    pub fn is_child_of(self, other: Self) -> bool {
+        self.parents().any(|parent| parent == other)
+    }
 }
 
 #[cfg(feature = "postgres")]
@@ -110,7 +139,10 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
-        policies::{ActionName, Effect, Policy, PolicyId, tests::check_policy},
+        policies::{
+            ActionName, Effect, Policy, PolicyId, cedar::CedarEntityId as _, tests::check_policy,
+            validation,
+        },
         test_utils::check_serialization,
     };
 
@@ -192,6 +224,26 @@ mod tests {
                 actions[0], actions[1]
             ),
         )?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn action_ids() -> Result<(), Box<dyn Error>> {
+        for action_id in validation::PolicyValidator::schema().action_ids() {
+            let action_name = ActionName::from_euid(action_id.name())?;
+            for descendant_id in action_id.descendants() {
+                let descendant = ActionName::from_euid(descendant_id)?;
+                assert!(
+                    action_name.is_parent_of(descendant),
+                    "{action_name} is not a parent of {descendant}"
+                );
+                assert!(
+                    descendant.is_child_of(action_name),
+                    "{descendant} is not a child of {action_name}"
+                );
+            }
+        }
 
         Ok(())
     }

@@ -1,6 +1,10 @@
 use core::{assert_matches::assert_matches, error::Error};
 
-use hash_graph_authorization::policies::principal::PrincipalId;
+use hash_graph_authorization::policies::{
+    action::ActionName,
+    principal::PrincipalId,
+    store::{CreateWebParameter, PrincipalStore as _},
+};
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
 use type_system::{
@@ -14,7 +18,7 @@ use crate::DatabaseTestWrapper;
 #[tokio::test]
 async fn create_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let machine_id = client.create_machine(None).await?;
     assert!(client.is_machine(machine_id).await?);
@@ -25,11 +29,11 @@ async fn create_machine() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_machine_with_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let id = Uuid::new_v4();
     let machine_id = client.create_machine(Some(id)).await?;
-    assert_eq!(*machine_id.as_uuid(), id);
+    assert_eq!(machine_id.into_uuid(), id);
     assert!(client.is_machine(machine_id).await?);
 
     Ok(())
@@ -38,7 +42,7 @@ async fn create_machine_with_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let machine_id = client.create_machine(None).await?;
     assert!(client.is_machine(machine_id).await?);
@@ -52,10 +56,10 @@ async fn delete_machine() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_machine_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let machine_id = client.create_machine(Some(Uuid::new_v4())).await?;
-    let result = client.create_machine(Some(*machine_id.as_uuid())).await;
+    let result = client.create_machine(Some(machine_id.into_uuid())).await;
     drop(client);
 
     assert_matches!(
@@ -69,7 +73,7 @@ async fn create_machine_with_duplicate_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let non_existent_id = MachineId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
     let result = client.delete_machine(non_existent_id).await;
@@ -86,9 +90,11 @@ async fn delete_non_existent_machine() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_web_machine_relation() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
     let machine_id = client.create_machine(None).await?;
 
     assert!(client.is_web(web_id).await?);
@@ -100,7 +106,7 @@ async fn create_web_machine_relation() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let client = db.client().await?;
+    let (client, _actor_id) = db.seed([]).await?;
 
     let non_existent_id = MachineId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
     let result = client.get_machine(non_existent_id).await?;
@@ -116,7 +122,7 @@ async fn get_non_existent_machine() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let machine_id = client.create_machine(None).await?;
     let retrieved = client

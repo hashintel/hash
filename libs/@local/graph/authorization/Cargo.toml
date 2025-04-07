@@ -34,6 +34,7 @@ smol_str               = { workspace = true }
 tokio                  = { workspace = true }
 tokio-util             = { workspace = true, features = ["io"] }
 tracing                = { workspace = true, features = ["attributes"] }
+trait-variant          = { workspace = true }
 utoipa                 = { workspace = true, optional = true }
 uuid                   = { workspace = true, features = ["v4"] }
 

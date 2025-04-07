@@ -10,8 +10,13 @@ mod team;
 mod user;
 mod web;
 
-use error_stack::Report;
-use hash_graph_authorization::{AuthorizationApi, NoAuthorization};
+use std::collections::HashSet;
+
+use error_stack::{Report, ResultExt as _};
+use hash_graph_authorization::{
+    AuthorizationApi, NoAuthorization,
+    policies::{Effect, Policy, PolicyId, action::ActionName, principal::PrincipalConstraint},
+};
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
@@ -22,6 +27,8 @@ use hash_graph_postgres_store::{
 use hash_graph_store::pool::StorePool;
 use hash_tracing::logging::env_filter;
 use tokio_postgres::NoTls;
+use type_system::provenance::ActorId;
+use uuid::Uuid;
 
 pub fn init_logging() {
     // It's likely that the initialization failed due to a previous initialization attempt. In this
@@ -84,9 +91,42 @@ impl DatabaseTestWrapper<NoAuthorization> {
         }
     }
 
-    pub(crate) async fn client(
+    pub(crate) async fn seed<const N: usize>(
         &mut self,
-    ) -> Result<PostgresStore<impl AsClient, impl AuthorizationApi>, Report<StoreError>> {
-        self.connection.transaction().await
+        actions: [ActionName; N],
+    ) -> Result<(PostgresStore<impl AsClient, impl AuthorizationApi>, ActorId), Report<StoreError>>
+    {
+        let mut transaction = self.connection.transaction().await?;
+        let actor = ActorId::Machine(
+            transaction
+                .create_machine(None)
+                .await
+                .change_context(StoreError)?,
+        );
+
+        let mut registered_actions = HashSet::new();
+        for action in actions {
+            transaction
+                .register_action(action)
+                .await
+                .change_context(StoreError)?;
+            registered_actions.insert(action);
+        }
+
+        if registered_actions.contains(&ActionName::CreateWeb) {
+            transaction
+                .create_policy(Policy {
+                    id: PolicyId::new(Uuid::new_v4()),
+                    effect: Effect::Permit,
+                    principal: Some(PrincipalConstraint::Actor { actor }),
+                    actions: vec![ActionName::CreateWeb],
+                    resource: None,
+                    constraints: None,
+                })
+                .await
+                .change_context(StoreError)?;
+        }
+
+        Ok((transaction, actor))
     }
 }

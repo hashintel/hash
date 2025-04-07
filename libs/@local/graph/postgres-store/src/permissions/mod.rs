@@ -2,19 +2,16 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::TryStreamExt as _;
-use hash_graph_authorization::{
-    AuthorizationApi,
-    policies::{
-        Policy, PolicyId,
-        action::ActionName,
-        principal::{
-            PrincipalConstraint, PrincipalId,
-            actor::{Ai, Machine, User},
-            role::{Role, RoleId, SubteamRole, SubteamRoleId, WebRole, WebRoleId},
-            team::{Subteam, SubteamId, TeamId, Web},
-        },
-        resource::ResourceConstraint,
+use hash_graph_authorization::policies::{
+    Context, ContextBuilder, Policy, PolicyId,
+    action::ActionName,
+    principal::{
+        Actor, PrincipalConstraint, PrincipalId,
+        actor::{Ai, Machine, User},
+        role::{Role, RoleId, SubteamRole, SubteamRoleId, WebRole, WebRoleId},
+        team::{Subteam, SubteamId, Team, TeamId, Web},
     },
+    resource::ResourceConstraint,
 };
 use postgres_types::{Json, ToSql};
 use tokio_postgres::{GenericClient as _, error::SqlState};
@@ -111,7 +108,7 @@ pub enum RoleUnassignmentStatus {
     NotAssigned,
 }
 
-impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
+impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
     /// Checks if a principal with the given ID exists.
     ///
     /// # Errors
@@ -191,37 +188,6 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
         ensure!(num_deleted > 0, PrincipalError::PrincipalNotFound { id });
 
         Ok(())
-    }
-
-    /// Creates a new web with the given ID, or generates a new UUID if none is provided.
-    ///
-    /// # Errors
-    ///
-    /// - [`PrincipalAlreadyExists`] if a web with the given ID already exists
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`PrincipalAlreadyExists`]: PrincipalError::PrincipalAlreadyExists
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn create_web(
-        &mut self,
-        id: Option<Uuid>,
-    ) -> Result<OwnedById, Report<PrincipalError>> {
-        let web_id = OwnedById::new(id.unwrap_or_else(Uuid::new_v4));
-        if let Err(error) = self
-            .as_mut_client()
-            .execute("INSERT INTO web (id) VALUES ($1)", &[web_id.as_uuid()])
-            .await
-        {
-            return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
-                Err(error).change_context(PrincipalError::PrincipalAlreadyExists {
-                    id: PrincipalId::Team(TeamId::Web(web_id)),
-                })
-            } else {
-                Err(error).change_context(PrincipalError::StoreError)
-            };
-        }
-
-        Ok(web_id)
     }
 
     /// Checks if a web with the given ID exists.
@@ -442,6 +408,21 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
         Ok(user_id)
     }
 
+    /// Gets an actor by its ID.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn get_actor(&self, id: ActorId) -> Result<Option<Actor>, Report<PrincipalError>> {
+        Ok(match id {
+            ActorId::User(id) => self.get_user(id).await?.map(Actor::User),
+            ActorId::Machine(id) => self.get_machine(id).await?.map(Actor::Machine),
+            ActorId::Ai(id) => self.get_ai(id).await?.map(Actor::Ai),
+        })
+    }
+
     /// Checks if a user with the given ID exists.
     ///
     /// # Errors
@@ -464,12 +445,37 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     pub async fn get_user(&self, id: UserId) -> Result<Option<User>, Report<PrincipalError>> {
         Ok(self
             .as_client()
-            .query_opt("SELECT id FROM \"user\" WHERE id = $1", &[id.as_uuid()])
+            .query_opt(
+                "
+                SELECT \"user\".id,
+                       array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
+                       array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
+                FROM \"user\"
+                LEFT OUTER JOIN actor_role ON \"user\".id = actor_role.actor_id
+                LEFT OUTER JOIN role ON actor_role.role_id = role.id
+                WHERE \"user\".id = $1
+                GROUP BY \"user\".id",
+                &[id.as_uuid()],
+            )
             .await
             .change_context(PrincipalError::StoreError)?
-            .map(|row| User {
-                id: UserId::new(ActorEntityUuid::new(row.get(0))),
-                roles: HashSet::new(),
+            .map(|row| {
+                let role_ids = row.get::<_, Option<Vec<Uuid>>>(1).unwrap_or_default();
+                let principal_types = row
+                    .get::<_, Option<Vec<PrincipalType>>>(2)
+                    .unwrap_or_default();
+                User {
+                    id: UserId::new(row.get(0)),
+                    roles: role_ids
+                        .into_iter()
+                        .zip(principal_types)
+                        .map(|(id, principal_type)| match principal_type {
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                            PrincipalType::SubteamRole => RoleId::Subteam(SubteamRoleId::new(id)),
+                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                        })
+                        .collect(),
+                }
             }))
     }
 
@@ -545,12 +551,37 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     ) -> Result<Option<Machine>, Report<PrincipalError>> {
         Ok(self
             .as_client()
-            .query_opt("SELECT id FROM machine WHERE id = $1", &[id.as_uuid()])
+            .query_opt(
+                "
+                SELECT machine.id,
+                       array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
+                       array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
+                FROM machine
+                LEFT OUTER JOIN actor_role ON machine.id = actor_role.actor_id
+                LEFT OUTER JOIN role ON actor_role.role_id = role.id
+                WHERE machine.id = $1
+                GROUP BY machine.id",
+                &[id.as_uuid()],
+            )
             .await
             .change_context(PrincipalError::StoreError)?
-            .map(|row| Machine {
-                id: MachineId::new(ActorEntityUuid::new(row.get(0))),
-                roles: HashSet::new(),
+            .map(|row| {
+                let role_ids = row.get::<_, Option<Vec<Uuid>>>(1).unwrap_or_default();
+                let principal_types = row
+                    .get::<_, Option<Vec<PrincipalType>>>(2)
+                    .unwrap_or_default();
+                Machine {
+                    id: MachineId::new(row.get(0)),
+                    roles: role_ids
+                        .into_iter()
+                        .zip(principal_types)
+                        .map(|(id, principal_type)| match principal_type {
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                            PrincipalType::SubteamRole => RoleId::Subteam(SubteamRoleId::new(id)),
+                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                        })
+                        .collect(),
+                }
             }))
     }
 
@@ -619,12 +650,37 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     pub async fn get_ai(&self, id: AiId) -> Result<Option<Ai>, Report<PrincipalError>> {
         Ok(self
             .as_client()
-            .query_opt("SELECT id FROM ai WHERE id = $1", &[id.as_uuid()])
+            .query_opt(
+                "
+                SELECT ai.id,
+                       array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
+                       array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
+                FROM ai
+                LEFT OUTER JOIN actor_role ON ai.id = actor_role.actor_id
+                LEFT OUTER JOIN role ON actor_role.role_id = role.id
+                WHERE ai.id = $1
+                GROUP BY ai.id",
+                &[id.as_uuid()],
+            )
             .await
             .change_context(PrincipalError::StoreError)?
-            .map(|row| Ai {
-                id: AiId::new(ActorEntityUuid::new(row.get(0))),
-                roles: HashSet::new(),
+            .map(|row| {
+                let role_ids = row.get::<_, Option<Vec<Uuid>>>(1).unwrap_or_default();
+                let principal_types = row
+                    .get::<_, Option<Vec<PrincipalType>>>(2)
+                    .unwrap_or_default();
+                Ai {
+                    id: AiId::new(row.get(0)),
+                    roles: role_ids
+                        .into_iter()
+                        .zip(principal_types)
+                        .map(|(id, principal_type)| match principal_type {
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                            PrincipalType::SubteamRole => RoleId::Subteam(SubteamRoleId::new(id)),
+                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                        })
+                        .collect(),
+                }
             }))
     }
 
@@ -838,7 +894,7 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     pub async fn get_actor_roles(
         &self,
         actor_id: ActorId,
-    ) -> Result<HashSet<RoleId>, Report<PrincipalError>> {
+    ) -> Result<HashMap<RoleId, Role>, Report<PrincipalError>> {
         // Check if the actor exists
         if !self.is_principal(PrincipalId::Actor(actor_id)).await? {
             return Err(Report::new(PrincipalError::PrincipalNotFound {
@@ -846,33 +902,42 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             }));
         }
 
-        let rows = self
-            .as_client()
-            .query(
-                "SELECT r.id, r.principal_type
-                 FROM actor_role ar
-                 JOIN role r ON ar.role_id = r.id
-                 WHERE ar.actor_id = $1",
+        self.as_client()
+            .query_raw(
+                "SELECT role.id, role.principal_type, role.team_id
+                 FROM actor_role
+                 JOIN role ON actor_role.role_id = role.id
+                 WHERE actor_role.actor_id = $1",
                 &[actor_id.as_uuid()],
             )
             .await
-            .change_context(PrincipalError::StoreError)?;
+            .change_context(PrincipalError::StoreError)?
+            .map_ok(|row| {
+                let role_id: Uuid = row.get(0);
+                let principal_type: PrincipalType = row.get(1);
+                let team_id: Uuid = row.get(2);
 
-        let mut roles = HashSet::new();
-        for row in rows {
-            let id: Uuid = row.get(0);
-            let principal_type: PrincipalType = row.get(1);
-
-            let role_id = match principal_type {
-                PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                PrincipalType::SubteamRole => RoleId::Subteam(SubteamRoleId::new(id)),
-                _ => continue, // Skip non-role principal types
-            };
-
-            roles.insert(role_id);
-        }
-
-        Ok(roles)
+                match principal_type {
+                    PrincipalType::WebRole => (
+                        RoleId::Web(WebRoleId::new(role_id)),
+                        Role::Web(WebRole {
+                            id: WebRoleId::new(role_id),
+                            web_id: OwnedById::new(team_id),
+                        }),
+                    ),
+                    PrincipalType::SubteamRole => (
+                        RoleId::Subteam(SubteamRoleId::new(role_id)),
+                        Role::Subteam(SubteamRole {
+                            id: SubteamRoleId::new(role_id),
+                            subteam_id: SubteamId::new(team_id),
+                        }),
+                    ),
+                    _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                }
+            })
+            .try_collect()
+            .await
+            .change_context(PrincipalError::StoreError)
     }
 
     /// Gets all actors assigned to a specific role.
@@ -931,18 +996,12 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     ///
     /// - [`AlreadyExists`] if an action with the same ID already exists
     /// - [`NotFound`] if the parent action doesn't exist
-    /// - [`HasSelfCycle`] if the action has a self-cycle
     /// - [`StoreError`] if a database error occurs
     ///
     /// [`AlreadyExists`]: ActionError::AlreadyExists
     /// [`NotFound`]: ActionError::NotFound
-    /// [`HasSelfCycle`]: ActionError::HasSelfCycle
     /// [`StoreError`]: ActionError::StoreError
-    pub async fn register_action(
-        &mut self,
-        action: ActionName,
-        parent: Option<ActionName>,
-    ) -> Result<(), Report<ActionError>> {
+    pub async fn register_action(&mut self, action: ActionName) -> Result<(), Report<ActionError>> {
         let transaction = self
             .transaction()
             .await
@@ -952,11 +1011,11 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .as_client()
             .execute(
                 "INSERT INTO action (name, parent) VALUES ($1, $2)",
-                &[&action, &parent],
+                &[&action, &action.parent()],
             )
             .await
             .map_err(|error| {
-                let policy_error = match (error.code(), parent) {
+                let policy_error = match (error.code(), action.parent()) {
                     (Some(&SqlState::CHECK_VIOLATION), _) => {
                         ActionError::HasSelfCycle { id: action }
                     }
@@ -971,40 +1030,18 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
                 Report::new(error).change_context(policy_error)
             })?;
 
-        if let Some(parent) = parent {
-            // Set up all parent-child relationships in a single query
-            // - We insert the self-cycle first with depth 0. This allows easier lookup of the
-            //   hierarchy as every action is present in the hierarchy table
-            // - Next we insert the direct parent-child relationship with depth 1
-            // - Finally, we insert the transitive relationships for all other depths
-            transaction
-                .as_client()
-                .execute(
-                    "INSERT INTO action_hierarchy (child_name, parent_name, depth)
+        transaction
+            .as_client()
+            .execute(
+                "INSERT INTO action_hierarchy (child_name, parent_name, depth)
                     SELECT $1, $1, 0
                     UNION ALL
-                    SELECT $1, $2, 1
-                    UNION ALL
-                    SELECT $1, parent_name, depth + 1
-                    FROM action_hierarchy
-                    WHERE child_name = $2 AND depth > 0",
-                    &[&action, &parent],
-                )
-                .await
-                .change_context(ActionError::StoreError)?;
-        } else if action == ActionName::All {
-            transaction
-                .as_client()
-                .execute(
-                    "INSERT INTO action_hierarchy (child_name, parent_name, depth)
-                    VALUES ($1, $1, 0)",
-                    &[&action],
-                )
-                .await
-                .change_context(ActionError::StoreError)?;
-        } else {
-            return Err(Report::new(ActionError::HasNoParent { id: action }));
-        }
+                    SELECT $1, parent_name, ordinality
+                    FROM unnest($2::text[]) WITH ORDINALITY as t(parent_name, ordinality)",
+                &[&action, &action.parents().collect::<Vec<_>>()],
+            )
+            .await
+            .change_context(ActionError::StoreError)?;
 
         transaction
             .commit()
@@ -1197,6 +1234,99 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
             .change_context(PolicyError::StoreError)?;
 
         Ok(policy_id)
+    }
+
+    /// Builds a context used to evaluate policies for an actor.
+    ///
+    /// # Errors
+    ///
+    /// - [`PrincipalNotFound`] if the actor with the given ID doesn't exist
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn build_principal_context(
+        &self,
+        actor_id: ActorId,
+    ) -> Result<Context, Report<PrincipalError>> {
+        let mut context_builder = ContextBuilder::default();
+
+        let actor = self
+            .get_actor(actor_id)
+            .await?
+            .ok_or(PrincipalError::PrincipalNotFound {
+                id: PrincipalId::Actor(actor_id),
+            })?;
+        context_builder.add_actor(&actor);
+
+        let team_ids = self
+            .get_actor_roles(actor_id)
+            .await?
+            .into_values()
+            .map(|role| {
+                context_builder.add_role(&role);
+                role.team_id().into_uuid()
+            })
+            .collect::<Vec<_>>();
+
+        self.as_client()
+            .query_raw(
+                "
+                WITH teams AS (
+                    SELECT parent_id AS id FROM team_hierarchy WHERE child_id = ANY($1)
+                    UNION ALL
+                    SELECT id FROM team WHERE id = ANY($1)
+                )
+                SELECT
+                    'subteam'::PRINCIPAL_TYPE,
+                    subteam.id,
+                    parent.principal_type,
+                    parent.id
+                 FROM subteam
+                 JOIN teams ON subteam.id = teams.id
+                 JOIN team parent ON subteam.parent_id = parent.id
+
+                 UNION ALL
+
+                 SELECT
+                    'web'::PRINCIPAL_TYPE,
+                    web.id,
+                    NULL,
+                    NULL
+                 FROM web
+                 JOIN teams ON web.id = teams.id
+                 ",
+                &[&team_ids],
+            )
+            .await
+            .change_context(PrincipalError::StoreError)?
+            .map_ok(|row| match row.get(0) {
+                PrincipalType::Web => Team::Web(Web {
+                    id: OwnedById::new(row.get(1)),
+                    roles: HashSet::new(),
+                }),
+                PrincipalType::Subteam => Team::Subteam(Subteam {
+                    id: SubteamId::new(row.get(1)),
+                    parents: vec![match row.get(2) {
+                        PrincipalType::Web => TeamId::Web(OwnedById::new(row.get(3))),
+                        PrincipalType::Subteam => TeamId::Subteam(SubteamId::new(row.get(3))),
+                        team_type => unreachable!("Unexpected team type: {team_type:?}"),
+                    }],
+                    roles: HashSet::new(),
+                }),
+                team_type => unreachable!("Unexpected team type: {team_type:?}"),
+            })
+            .try_collect::<Vec<_>>()
+            .await
+            .change_context(PrincipalError::StoreError)?
+            .into_iter()
+            .for_each(|team| {
+                context_builder.add_team(&team);
+            });
+
+        context_builder
+            .build()
+            .change_context(PrincipalError::ContextBuilderError)
     }
 
     /// Gets all policies associated with an actor.
