@@ -58,8 +58,8 @@ impl ToSchema<'static> for DataTypeMetadata {
                             .title(Some("OwnedDataTypeMetadata"))
                             .property("recordId", Ref::from_schema_name("OntologyTypeRecordId"))
                             .required("recordId")
-                            .property("webId", Ref::from_schema_name("webId"))
-                            .required("webId")
+                            .property("WebId", Ref::from_schema_name("WebId"))
+                            .required("WebId")
                             .property(
                                 "temporalVersioning",
                                 Ref::from_schema_name("OntologyTemporalMetadata"),
