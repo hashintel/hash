@@ -5,9 +5,9 @@ import type {
   DataTypeWithMetadata,
   OntologyTemporalMetadata,
   OntologyTypeRecordId,
-  OwnedById,
   ProvidedOntologyEditionProvenance,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
@@ -53,15 +53,15 @@ import { getWebShortname, isExternalTypeId } from "./util";
  *   Depends on the RFC captured by:
  *   https://linear.app/hash/issue/BP-104
  *
- * @param params.ownedById - the id of the account who owns the data type
+ * @param params.webId - the id of the account who owns the data type
  * @param [params.webShortname] – the shortname of the web that owns the data type, if the web entity does not yet exist.
- *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
+ *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the webId.
  * @param params.schema - the `DataType`
  * @param params.actorId - the id of the account that is creating the data type
  */
 export const createDataType: ImpureGraphFunction<
   {
-    ownedById: OwnedById;
+    webId: WebId;
     schema: ConstructDataTypeParams;
     webShortname?: string;
     relationships: DataTypeRelationAndSubject[];
@@ -70,12 +70,12 @@ export const createDataType: ImpureGraphFunction<
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname, conversions } = params;
+  const { webId, webShortname, conversions } = params;
 
   const shortname =
     webShortname ??
     (await getWebShortname(ctx, authentication, {
-      accountOrAccountGroupId: params.ownedById,
+      accountOrAccountGroupId: params.webId,
     }));
 
   const { graphApi } = ctx;
@@ -97,7 +97,7 @@ export const createDataType: ImpureGraphFunction<
     authentication.actorId,
     {
       schema,
-      ownedById,
+      webId,
       relationships: params.relationships,
       provenance: {
         ...ctx.provenance,

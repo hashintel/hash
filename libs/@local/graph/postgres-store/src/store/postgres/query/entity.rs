@@ -19,7 +19,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {
         match self {
             Self::Uuid
-            | Self::OwnedById
+            | Self::WebId
             | Self::EditionId
             | Self::DecisionTime
             | Self::TransactionTime
@@ -57,7 +57,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path,
                 direction: EdgeDirection::Outgoing,
-            } if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::OwnedById => {
+            } if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::WebId => {
                 vec![Relation::LeftEntity]
             }
             Self::EntityEdge {
@@ -74,7 +74,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path,
                 direction: EdgeDirection::Outgoing,
-            } if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::OwnedById => {
+            } if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::WebId => {
                 vec![Relation::RightEntity]
             }
             Self::EntityEdge {
@@ -97,7 +97,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
     #[expect(clippy::too_many_lines)]
     fn terminating_column(&self) -> (Column, Option<JsonField<'_>>) {
         match self {
-            Self::OwnedById => (
+            Self::WebId => (
                 Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
                 None,
             ),
@@ -138,7 +138,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path,
                 direction: EdgeDirection::Outgoing,
-            } if **path == EntityQueryPath::OwnedById => (
+            } if **path == EntityQueryPath::WebId => (
                 Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityWebId),
                 None,
             ),
@@ -154,7 +154,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path,
                 direction: EdgeDirection::Outgoing,
-            } if **path == EntityQueryPath::OwnedById => (
+            } if **path == EntityQueryPath::WebId => (
                 Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityWebId),
                 None,
             ),

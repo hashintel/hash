@@ -80,14 +80,14 @@
 //!         ProvidedOntologyEditionProvenance,
 //!     },
 //!     provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-//!     web::OwnedById,
+//!     web::WebId,
 //! };
 //! use uuid::Uuid;
 //!
 //! // Create ownership information for a locally owned type
 //! let web_id = Uuid::from_str("01234567-89ab-cdef-0123-456789abcdef").unwrap();
-//! let owned_by_id = OwnedById::new(web_id);
-//! let ownership = OntologyOwnership::Local { owned_by_id };
+//! let web_id = WebId::new(web_id);
+//! let ownership = OntologyOwnership::Local { web_id };
 //!
 //! // Alternative: For a type fetched from elsewhere
 //! let remote_ownership = OntologyOwnership::Remote {

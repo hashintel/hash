@@ -6,13 +6,13 @@ import type {
   DataTypeWithMetadata,
   EntityId,
   EntityTypeWithMetadata,
-  OwnedById,
   PropertyObject,
   PropertyTypeWithMetadata,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   isEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -70,13 +70,12 @@ export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
         ? entity.properties
         : Object.entries(entity.properties).reduce<PropertyObject>(
             (acc, [key, value]) => {
-              const ownedById = extractOwnedByIdFromEntityId(
+              const webId = extractWebIdFromEntityId(
                 entity.metadata.recordId.entityId as EntityId,
               );
 
               const requesterOwnsEntity =
-                userAccountId &&
-                (userAccountId as string as OwnedById) === ownedById;
+                userAccountId && (userAccountId as string as WebId) === webId;
 
               if (
                 !restrictedPropertyBaseUrls.includes(key) ||

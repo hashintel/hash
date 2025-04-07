@@ -22,7 +22,7 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-   "ownedById": "{{account_id}}",
+   "webId": "{{account_id}}",
    "owner": {
        "kind": "account",
        "subjectId": "{{account_id}}"
@@ -55,7 +55,7 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-   "ownedById": "{{account_group_id}}",
+   "webId": "{{account_group_id}}",
    "owner": {
        "kind": "accountGroup",
        "subjectId": "{{account_group_id}}"
@@ -163,7 +163,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": [
     {
       "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -418,7 +418,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
@@ -480,7 +480,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
@@ -740,7 +740,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -867,7 +867,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -1410,7 +1410,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "properties": {
     "value": {
       "http://localhost:3000/@alice/types/property-type/name/": {
@@ -1443,7 +1443,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("person_a_entity_id", response.body.metadata.recordId.entityId);
-    client.global.set("person_a_owned_by_id", response.body.metadata.recordId.entityId.split("~")[0])
+    client.global.set("person_a_web_id", response.body.metadata.recordId.entityId.split("~")[0])
     client.global.set("person_a_entity_uuid", response.body.metadata.recordId.entityId.split("~")[1])
 %}
 
@@ -1613,7 +1613,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "properties": {
     "value": {
       "http://localhost:3000/@alice/types/property-type/name/": {
@@ -1781,7 +1781,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["{{friendship_link_entity_type_id}}"],
   "linkData": {
@@ -2307,7 +2307,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "properties": {
     "value": {
       "http://localhost:3000/@alice/types/property-type/name/": {

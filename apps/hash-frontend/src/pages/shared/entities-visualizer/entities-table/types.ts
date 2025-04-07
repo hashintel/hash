@@ -2,10 +2,10 @@ import type {
   ActorEntityUuid,
   BaseUrl,
   EntityId,
-  OwnedById,
   PropertyMetadata,
   PropertyValue,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
@@ -106,7 +106,7 @@ export type GenerateEntitiesTableDataParams = {
   hideColumns?: (keyof EntitiesTableRow)[];
   hideArchivedColumn?: boolean;
   hidePropertiesColumns: boolean;
-  webNameByOwnedById: Record<OwnedById, string>;
+  webNameByWebId: Record<WebId, string>;
 };
 
 export type ActorTableFilterData = {
@@ -123,7 +123,7 @@ export type EntityTypeTableFilterData = {
 };
 
 export type WebTableFilterData = {
-  webId: OwnedById;
+  webId: WebId;
   count: number;
   shortname: string;
 };

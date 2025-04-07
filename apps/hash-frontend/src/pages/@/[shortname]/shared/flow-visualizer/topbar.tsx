@@ -316,7 +316,7 @@ export const Topbar = ({
                     throw new Error(`Flow run with id ${value} not found`);
                   }
 
-                  const { shortname } = getOwner({ ownedById: flowRun.webId });
+                  const { shortname } = getOwner({ webId: flowRun.webId });
 
                   void push(
                     generateWorkerRunPath({

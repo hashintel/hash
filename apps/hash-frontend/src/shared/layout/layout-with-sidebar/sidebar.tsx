@@ -62,7 +62,7 @@ const isNavLinkActive = ({
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { activeWorkspaceOwnedById } = useActiveWorkspace();
+  const { activeWorkspaceWebId } = useActiveWorkspace();
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
 
@@ -262,10 +262,10 @@ export const PageSidebar: FunctionComponent = () => {
           </Fragment>
         );
       })}
-      {/* 
-        Commented out nav links whose functionality have not been 
+      {/*
+        Commented out nav links whose functionality have not been
         implemented yet
-        
+
         @todo uncomment when the functionalities are implemented
       */}
 
@@ -284,28 +284,28 @@ export const PageSidebar: FunctionComponent = () => {
           pb: 4,
         }}
       >
-        {activeWorkspaceOwnedById ? (
+        {activeWorkspaceWebId ? (
           <>
             {preferences.favorites.length > 0 && <FavoritesList />}
             {hashInstance?.properties.pagesAreEnabled &&
             enabledFeatureFlags.pages ? (
               <AccountPageList
                 currentPageEntityUuid={routePageEntityUuid}
-                ownedById={activeWorkspaceOwnedById}
+                webId={activeWorkspaceWebId}
               />
             ) : null}
             {preferences.sidebarSections.entities.variant === "list" && (
-              <AccountEntitiesList ownedById={activeWorkspaceOwnedById} />
+              <AccountEntitiesList webId={activeWorkspaceWebId} />
             )}
             {preferences.sidebarSections.entityTypes.variant === "list" && (
-              <AccountEntityTypeList ownedById={activeWorkspaceOwnedById} />
+              <AccountEntityTypeList webId={activeWorkspaceWebId} />
             )}
           </>
         ) : null}
       </Box>
 
-      {/* 
-        Commented this out because its functionality has not been 
+      {/*
+        Commented this out because its functionality has not been
         implemented yet
         @todo uncomment when this is done
       */}

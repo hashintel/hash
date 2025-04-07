@@ -4,7 +4,7 @@ use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
-use type_system::web::OwnedById;
+use type_system::web::WebId;
 use uuid::Uuid;
 
 use crate::policies::cedar::CedarEntityId;
@@ -62,7 +62,7 @@ impl CedarEntityId for WebRoleId {
 #[derive(Debug)]
 pub struct WebRole {
     pub id: WebRoleId,
-    pub web_id: OwnedById,
+    pub web_id: WebId,
 }
 
 impl WebRole {

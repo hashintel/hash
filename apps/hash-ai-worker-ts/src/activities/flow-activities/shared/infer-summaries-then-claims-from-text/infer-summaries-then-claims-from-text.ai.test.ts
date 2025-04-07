@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { EntityUuid, OwnedById, Url } from "@blockprotocol/type-system";
+import type { EntityUuid, Url, WebId } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { expect, test } from "vitest";
@@ -128,10 +128,10 @@ test(
   },
 );
 
-const ownedById = generateUuid();
+const webId = generateUuid();
 
 const generateEntityId = (entityUuid: string) =>
-  entityIdFromComponents(ownedById as OwnedById, entityUuid as EntityUuid);
+  entityIdFromComponents(webId as WebId, entityUuid as EntityUuid);
 
 const _ftse350EntitySummaries: LocalEntitySummary[] = [
   {

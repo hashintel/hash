@@ -1,7 +1,4 @@
-import type {
-  EntityTypeWithMetadata,
-  OwnedById,
-} from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -142,14 +139,14 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
 
   const [sortOrder, setSortOrder] = useState<SortOrder>("updated-at-desc");
 
-  const ownedById = (
+  const webId = (
     profile.kind === "user" ? profile.accountId : profile.accountGroupId
-  ) as OwnedById;
+  ) as WebId;
 
-  const { lastRootPageIndex } = useAccountPages(ownedById);
+  const { lastRootPageIndex } = useAccountPages(webId);
   const [createUntitledPage] = useCreatePage({
     shortname: profile.shortname,
-    ownedById,
+    webId,
   });
 
   const createPage = useCallback(async () => {

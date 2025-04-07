@@ -40,14 +40,14 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { activeWorkspace, activeWorkspaceOwnedById } =
+  const { activeWorkspace, activeWorkspaceWebId } =
     useContext(WorkspaceContext);
 
   const [createEntity] = useMutation<
     CreateEntityMutation,
     CreateEntityMutationVariables
   >(createEntityMutation, {
-    refetchQueries: activeWorkspaceOwnedById
+    refetchQueries: activeWorkspaceWebId
       ? [
           /**
            * This refetch query accounts for the "Entities" section
@@ -57,7 +57,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
           {
             query: getEntitySubgraphQuery,
             variables: generateSidebarEntityTypeEntitiesQueryVariables({
-              ownedById: activeWorkspaceOwnedById,
+              webId: activeWorkspaceWebId,
             }),
           },
         ]
@@ -72,7 +72,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
-  if (!activeWorkspaceOwnedById) {
+  if (!activeWorkspaceWebId) {
     return <EntityPageLoadingState />;
   }
 
@@ -91,7 +91,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       const { data } = await createEntity({
         variables: {
           entityTypeIds: localDraft.metadata.entityTypeIds,
-          ownedById: activeWorkspaceOwnedById,
+          webId: activeWorkspaceWebId,
           properties: mergePropertyObjectAndMetadata(
             localDraft.properties,
             localDraft.metadata.properties,
@@ -120,7 +120,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   };
 
   const entityId = entityIdFromComponents(
-    activeWorkspaceOwnedById,
+    activeWorkspaceWebId,
     "draft" as EntityUuid,
   );
 

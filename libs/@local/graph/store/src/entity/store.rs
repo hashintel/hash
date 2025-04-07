@@ -22,7 +22,7 @@ use type_system::{
     },
     ontology::{VersionedUrl, entity_type::ClosedMultiEntityType},
     provenance::ActorEntityUuid,
-    web::OwnedById,
+    web::WebId,
 };
 #[cfg(feature = "utoipa")]
 use utoipa::{
@@ -128,7 +128,7 @@ impl Default for ValidateEntityComponents {
     bound(deserialize = "R: Deserialize<'de>")
 )]
 pub struct CreateEntityParams<R> {
-    pub owned_by_id: OwnedById,
+    pub web_id: WebId,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub entity_uuid: Option<EntityUuid>,
@@ -243,7 +243,7 @@ pub struct GetEntitiesResponse<'r> {
     pub definitions: Option<EntityTypeResolveDefinitions>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub web_ids: Option<HashMap<OwnedById, usize>>,
+    pub web_ids: Option<HashMap<WebId, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
@@ -284,7 +284,7 @@ pub struct GetEntitySubgraphResponse<'r> {
     pub count: Option<usize>,
     pub closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
     pub definitions: Option<EntityTypeResolveDefinitions>,
-    pub web_ids: Option<HashMap<OwnedById, usize>>,
+    pub web_ids: Option<HashMap<WebId, usize>>,
     pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     pub type_ids: Option<HashMap<VersionedUrl, usize>>,
@@ -381,7 +381,7 @@ pub trait EntityStore {
     /// - if the [`EntityType`] doesn't exist
     /// - if the [`PropertyObjectWithMetadata`] is not valid with respect to the specified
     ///   [`EntityType`]
-    /// - if the account referred to by `owned_by_id` does not exist
+    /// - if the account referred to by `web_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType

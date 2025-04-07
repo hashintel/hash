@@ -15,7 +15,7 @@ use type_system::{
     },
     ontology::{VersionedUrl, entity_type::EntityType},
     provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -151,7 +151,7 @@ async fn seed_db<A: AuthorizationApi>(
         .insert_web_id(
             account_id,
             InsertWebIdParams {
-                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                web_id: WebId::new(account_id.into_uuid()),
                 owner: WebOwnerSubject::Account { id: account_id },
             },
         )
@@ -182,7 +182,7 @@ async fn seed_db<A: AuthorizationApi>(
                 account_id,
                 repeat_n(
                     CreateEntityParams {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id.into_uuid()),
                         entity_uuid: None,
                         decision_time: None,
                         entity_type_ids: HashSet::from([entity_type_id]),
@@ -221,7 +221,7 @@ async fn seed_db<A: AuthorizationApi>(
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
                     .map(|(left_entity, right_entity)| CreateEntityParams {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id.into_uuid()),
                         entity_uuid: None,
                         decision_time: None,
                         entity_type_ids: HashSet::from([entity_type_id.clone()]),

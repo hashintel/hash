@@ -57,7 +57,7 @@ const NotesPage: NextPageWithLayout = () => {
             ),
             {
               equal: [
-                { path: ["ownedById"] },
+                { path: ["webId"] },
                 { parameter: authenticatedUser.accountId },
               ],
             },

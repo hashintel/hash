@@ -1,9 +1,9 @@
 import type {
   ActorEntityUuid,
   BaseUrl,
-  OwnedById,
   PropertyObjectWithMetadata,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
@@ -41,7 +41,7 @@ export const upgradeWebEntities = async ({
   entityTypeBaseUrls,
   migrationState,
   migrateProperties,
-  webOwnedById,
+  webWebId,
 }: {
   authentication: { actorId: ActorEntityUuid };
   context: ImpureGraphContext<false, true>;
@@ -53,10 +53,10 @@ export const upgradeWebEntities = async ({
       previousProperties: PropertyObjectWithMetadata,
     ) => PropertyObjectWithMetadata
   >;
-  webOwnedById: OwnedById;
+  webWebId: WebId;
 }) => {
   const webBotAccountId = await getWebMachineActorId(context, authentication, {
-    ownedById: webOwnedById,
+    webId: webWebId,
   });
 
   const webBotAuthentication = { actorId: webBotAccountId };
@@ -87,9 +87,9 @@ export const upgradeWebEntities = async ({
           },
           {
             equal: [
-              { path: ["ownedById"] },
+              { path: ["webId"] },
               {
-                parameter: webOwnedById,
+                parameter: webWebId,
               },
             ],
           },

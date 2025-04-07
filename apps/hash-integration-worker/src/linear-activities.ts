@@ -2,9 +2,9 @@ import type {
   ActorEntityUuid,
   EntityId,
   OriginProvenance,
-  OwnedById,
   PropertyObject,
   ProvidedEntityEditionProvenance,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { Connection, LinearDocument, Team } from "@linear/sdk";
 import { LinearClient } from "@linear/sdk";
@@ -52,12 +52,12 @@ const createHashEntity = async (params: {
     linkEntityTypeId: `${string}v/${number}`;
     destinationEntityId: EntityId;
   }[];
-  ownedById: OwnedById;
+  webId: WebId;
 }): Promise<void> => {
-  const { graphApiClient, ownedById } = params;
+  const { graphApiClient, webId } = params;
 
   const entity = await Entity.create(graphApiClient, params.authentication, {
-    ownedById,
+    webId,
     draft: false,
     relationships: [
       {
@@ -93,7 +93,7 @@ const createHashEntity = async (params: {
     graphApiClient,
     { actorId: params.authentication.actorId },
     params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => ({
-      ownedById,
+      webId,
       linkData: {
         leftEntityId: entity.metadata.recordId.entityId,
         rightEntityId: destinationEntityId,
@@ -135,7 +135,7 @@ const createOrUpdateHashEntity = async (params: {
     linkEntityTypeId: `${string}v/${number}`;
     destinationEntityId: EntityId;
   }[];
-  ownedById: OwnedById;
+  webId: WebId;
 }): Promise<void> => {
   const { partialEntity, graphApiClient } = params;
 
@@ -155,7 +155,7 @@ const createOrUpdateHashEntity = async (params: {
     ...params,
     entityTypeId: partialEntity.entityTypeId,
     linearId: linearId as string,
-    webOwnedById: params.ownedById,
+    webWebId: params.webId,
   });
 
   for (const existingEntity of entities) {
@@ -206,7 +206,7 @@ const createOrUpdateHashEntity = async (params: {
           },
           properties: { value: {} },
           provenance,
-          ownedById: params.ownedById,
+          webId: params.webId,
           draft: false,
           relationships: [
             {
@@ -294,7 +294,7 @@ const createHashEntityFromLinearData =
     await createHashEntity({
       graphApiClient,
       authentication: params.authentication,
-      ownedById: params.ownedById,
+      webId: params.webId,
       partialEntity,
       outgoingLinks,
     });
@@ -326,7 +326,7 @@ const updateHashEntityFromLinearData =
       authentication: params.authentication,
       partialEntity,
       outgoingLinks,
-      ownedById: params.ownedById,
+      webId: params.webId,
     });
   };
 
@@ -350,14 +350,14 @@ export const createLinearIntegrationActivities = ({
   async createPartialEntities(params: {
     authentication: { actorId: ActorEntityUuid };
     entities: PartialEntity[];
-    workspaceOwnedById: OwnedById;
+    workspaceWebId: WebId;
   }): Promise<void> {
     await Promise.all(
       params.entities.map((partialEntity) =>
         createOrUpdateHashEntity({
           graphApiClient,
           authentication: params.authentication,
-          ownedById: params.workspaceOwnedById,
+          webId: params.workspaceWebId,
           partialEntity,
           outgoingLinks: [],
         }),

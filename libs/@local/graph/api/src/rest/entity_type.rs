@@ -51,7 +51,7 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     provenance::ActorEntityUuid,
-    web::OwnedById,
+    web::WebId,
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -173,7 +173,7 @@ impl RoutedResource for EntityTypeResource {
 struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
-    owned_by_id: OwnedById,
+    web_id: WebId,
     relationships: Vec<EntityTypeRelationAndSubject>,
     provenance: ProvidedOntologyEditionProvenance,
 }
@@ -446,7 +446,7 @@ where
 
     let Json(CreateEntityTypeRequest {
         schema,
-        owned_by_id,
+        web_id,
         relationships,
         provenance,
     }) = body;
@@ -480,7 +480,7 @@ where
 
                 Ok(CreateEntityTypeParams {
                     schema,
-                    ownership: OntologyOwnership::Local { owned_by_id },
+                    ownership: OntologyOwnership::Local { web_id },
                     relationships: relationships.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: provenance.clone(),
@@ -843,7 +843,7 @@ struct GetEntityTypeSubgraphResponse {
     count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    web_ids: Option<HashMap<OwnedById, usize>>,
+    web_ids: Option<HashMap<WebId, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,

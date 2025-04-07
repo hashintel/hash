@@ -2,12 +2,12 @@ import type {
   ActorEntityUuid,
   EntityId,
   EntityUuid,
-  OwnedById,
   PropertyObject,
   PropertyObjectMetadata,
   ProvidedEntityEditionProvenance,
   Url,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
@@ -85,7 +85,7 @@ export type FlowInputs = [
     dataSources: FlowDataSources;
     flowDefinition: FlowDefinition;
     flowTrigger: FlowTrigger;
-    webId: OwnedById;
+    webId: WebId;
   },
 ];
 

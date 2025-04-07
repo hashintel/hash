@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
@@ -34,9 +34,9 @@ export const ProfileBio: FunctionComponent<{
   refetchProfile: () => Promise<void>;
   isEditable: boolean;
 }> = ({ profile, refetchProfile, isEditable }) => {
-  const ownedById = (
+  const webId = (
     profile.kind === "user" ? profile.accountId : profile.accountGroupId
-  ) as OwnedById;
+  ) as WebId;
 
   const { data, loading, refetch } = useQuery<
     GetEntityQuery,
@@ -70,9 +70,9 @@ export const ProfileBio: FunctionComponent<{
         })
       : undefined;
 
-  const { createEntity } = useBlockProtocolCreateEntity(ownedById);
+  const { createEntity } = useBlockProtocolCreateEntity(webId);
   const { createBlockCollectionEntity } = useCreateBlockCollection({
-    ownedById,
+    webId,
   });
 
   const createProfileBioEntity = useCallback(async () => {
@@ -174,7 +174,7 @@ export const ProfileBio: FunctionComponent<{
                 >
                   <BlockCollection
                     contents={profileBioContents}
-                    ownedById={ownedById}
+                    webId={webId}
                     entityId={
                       profile.hasBio.profileBioEntity.metadata.recordId.entityId
                     }

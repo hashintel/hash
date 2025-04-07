@@ -2,8 +2,8 @@ import type {
   ActorEntityUuid,
   ActorGroupId,
   EntityUuid,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type {
@@ -32,20 +32,20 @@ export const isExternalTypeId = (typeId: VersionedUrl) =>
  */
 export const getWebShortname: ImpureGraphFunction<
   {
-    accountOrAccountGroupId: OwnedById;
+    accountOrAccountGroupId: WebId;
   },
   Promise<string>
 > = async (ctx, authentication, params) => {
   const namespace = (
     (await getUserById(ctx, authentication, {
       entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId as ActorEntityUuid as OwnedById,
+        params.accountOrAccountGroupId as ActorEntityUuid as WebId,
         params.accountOrAccountGroupId as ActorEntityUuid,
       ),
     }).catch(() => undefined)) ??
     (await getOrgById(ctx, authentication, {
       entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId as ActorGroupId as OwnedById,
+        params.accountOrAccountGroupId as ActorGroupId as WebId,
         params.accountOrAccountGroupId as string as EntityUuid,
       ),
     }).catch(() => undefined))
@@ -61,16 +61,16 @@ export const getWebShortname: ImpureGraphFunction<
 };
 
 export const getWebAuthorizationRelationships: ImpureGraphFunction<
-  { ownedById: OwnedById },
+  { webId: WebId },
   Promise<WebAuthorizationRelationship[]>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .getWebAuthorizationRelationships(actorId, params.ownedById)
+    .getWebAuthorizationRelationships(actorId, params.webId)
     .then(({ data }) =>
       data.map(
         (relationship) =>
           ({
-            resource: { kind: "web", resourceId: params.ownedById },
+            resource: { kind: "web", resourceId: params.webId },
             ...relationship,
           }) as WebAuthorizationRelationship,
       ),
@@ -94,9 +94,9 @@ export const modifyWebAuthorizationRelationships: ImpureGraphFunction<
 };
 
 export const checkWebPermission: ImpureGraphFunction<
-  { ownedById: OwnedById; permission: WebPermission },
+  { webId: WebId; permission: WebPermission },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .checkWebPermission(actorId, params.ownedById, params.permission)
+    .checkWebPermission(actorId, params.webId, params.permission)
     .then(({ data }) => data.has_permission);

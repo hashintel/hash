@@ -16,7 +16,7 @@ use type_system::{
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
@@ -91,7 +91,7 @@ async fn initial_draft() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -211,8 +211,8 @@ async fn initial_draft() {
         .expect("could not update entity");
 
     assert_eq!(
-        updated_entity.metadata.record_id.entity_id.owned_by_id,
-        updated_live_entity.metadata.record_id.entity_id.owned_by_id
+        updated_entity.metadata.record_id.entity_id.web_id,
+        updated_live_entity.metadata.record_id.entity_id.web_id
     );
     assert_eq!(
         updated_entity.metadata.record_id.entity_id.entity_uuid,
@@ -276,7 +276,7 @@ async fn no_initial_draft() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -346,8 +346,8 @@ async fn no_initial_draft() {
             .expect("could not update entity");
 
         assert_eq!(
-            entity.metadata.record_id.entity_id.owned_by_id,
-            updated_entity.metadata.record_id.entity_id.owned_by_id
+            entity.metadata.record_id.entity_id.web_id,
+            updated_entity.metadata.record_id.entity_id.web_id
         );
         assert_eq!(
             entity.metadata.record_id.entity_id.entity_uuid,
@@ -463,7 +463,7 @@ async fn multiple_drafts() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -539,8 +539,8 @@ async fn multiple_drafts() {
             .expect("could not update entity");
 
         assert_eq!(
-            entity.metadata.record_id.entity_id.owned_by_id,
-            updated_entity.metadata.record_id.entity_id.owned_by_id
+            entity.metadata.record_id.entity_id.web_id,
+            updated_entity.metadata.record_id.entity_id.web_id
         );
         assert_eq!(
             entity.metadata.record_id.entity_id.entity_uuid,

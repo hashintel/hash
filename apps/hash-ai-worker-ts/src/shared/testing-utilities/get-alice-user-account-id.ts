@@ -1,7 +1,7 @@
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
@@ -51,7 +51,7 @@ export const getAliceUserAccountId = async () => {
     throw new Error("Could not find a user entity with shortname 'alice'");
   }
 
-  const aliceUserAccountId = extractOwnedByIdFromEntityId(
+  const aliceUserAccountId = extractWebIdFromEntityId(
     aliceUserEntity.metadata.recordId.entityId,
   );
 

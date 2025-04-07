@@ -64,12 +64,10 @@ export const HistoryRow = ({
     if (!user) {
       return null;
     }
-    if (user.webOwnedById === flowRun.webId) {
+    if (user.webWebId === flowRun.webId) {
       return user;
     }
-    const orgOwner = user.orgs.find(
-      (org) => org.webOwnedById === flowRun.webId,
-    );
+    const orgOwner = user.orgs.find((org) => org.webWebId === flowRun.webId);
     if (!orgOwner) {
       throw new Error(`Owner with webId ${flowRun.webId} not found`);
     }

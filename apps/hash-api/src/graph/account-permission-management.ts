@@ -1,7 +1,7 @@
 import type {
   ActorEntityUuid,
   ActorGroupId,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import type {
   InsertAccountGroupIdParams,
@@ -54,7 +54,7 @@ export const createAccountGroup: ImpureGraphFunction<
     .then(({ data }) => data as ActorGroupId);
 
 export const createWeb: ImpureGraphFunction<
-  { ownedById: OwnedById; owner: WebOwnerSubject },
+  { webId: WebId; owner: WebOwnerSubject },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.createWeb(actorId, params);

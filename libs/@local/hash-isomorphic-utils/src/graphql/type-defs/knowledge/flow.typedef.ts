@@ -141,7 +141,7 @@ export const flowTypedef = gql`
     """
     The web this flow run is associated with
     """
-    webId: OwnedById!
+    webId: WebId!
     """
     Details of the run's status, inputs, outputs etc
     """
@@ -208,7 +208,7 @@ export const flowTypedef = gql`
       dataSources: FlowDataSources!
       flowDefinition: FlowDefinition!
       flowTrigger: FlowTrigger!
-      webId: OwnedById!
+      webId: WebId!
     ): EntityUuid!
 
     """

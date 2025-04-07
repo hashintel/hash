@@ -37,7 +37,7 @@ export const getLatestEntityById = async (params: {
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
-  const [ownedById, entityUuid] = splitEntityId(entityId);
+  const [webId, entityUuid] = splitEntityId(entityId);
 
   const response = await graphApiClient.getEntitySubgraph(
     authentication.actorId,
@@ -48,7 +48,7 @@ export const getLatestEntityById = async (params: {
             equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
           },
           {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            equal: [{ path: ["webId"] }, { parameter: webId }],
           },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],

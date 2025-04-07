@@ -11,7 +11,6 @@ import type {
   EntityType,
   EntityTypeWithMetadata,
   OneOfSchema,
-  OwnedById,
   PropertyObjectWithMetadata,
   PropertyType,
   PropertyTypeReference,
@@ -21,13 +20,14 @@ import type {
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   atLeastOne,
   DATA_TYPE_META_SCHEMA,
   ENTITY_TYPE_META_SCHEMA,
   extractBaseUrl,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   PROPERTY_TYPE_META_SCHEMA,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
@@ -287,7 +287,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
       context,
       { actorId: machineActorId },
       {
-        ownedById: accountGroupId as OwnedById,
+        webId: accountGroupId as WebId,
         schema: dataTypeSchema,
         webShortname,
         relationships,
@@ -385,7 +385,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
       context,
       { actorId: machineActorId },
       {
-        ownedById: accountGroupId as OwnedById,
+        webId: accountGroupId as WebId,
         schema: propertyTypeSchema,
         webShortname,
         relationships,
@@ -614,7 +614,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       context,
       { actorId: machineActorId },
       {
-        ownedById: accountGroupId as OwnedById,
+        webId: accountGroupId as WebId,
         schema: entityTypeSchema,
         webShortname,
         relationships,
@@ -1045,7 +1045,7 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
   );
 
   for (const webEntity of [...users, ...orgs]) {
-    const webOwnedById = extractOwnedByIdFromEntityId(
+    const webWebId = extractWebIdFromEntityId(
       webEntity.metadata.recordId.entityId,
     );
 
@@ -1055,7 +1055,7 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
       entityTypeBaseUrls,
       migrationState,
       migrateProperties,
-      webOwnedById,
+      webWebId,
     });
   }
 };

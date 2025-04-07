@@ -27,7 +27,7 @@ use hash_graph_store::{
 };
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize;
-use type_system::web::OwnedById;
+use type_system::web::WebId;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to_response};
@@ -139,7 +139,7 @@ where
     //     .create_web(
     //         ActorId::User(UserId::new(actor_id)),
     //         CreateWebParameter {
-    //             id: Some(params.owned_by_id.into_uuid()),
+    //             id: Some(params.web_id.into_uuid()),
     //         },
     //     )
     //     .await
@@ -179,7 +179,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn check_web_permission<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((web_id, permission)): Path<(OwnedById, WebPermission)>,
+    Path((web_id, permission)): Path<(WebId, WebPermission)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<Json<PermissionResponse>, StatusCode>
 where
@@ -212,7 +212,7 @@ where
     tag = "Web",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("web_id" = OwnedById, Path, description = "The web to read the relations for"),
+        ("web_id" = WebId, Path, description = "The web to read the relations for"),
     ),
     responses(
         (status = 200, description = "The relations of the web", body = [WebRelationAndSubject]),
@@ -223,7 +223,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn get_web_authorization_relationships<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path(owned_by_id): Path<OwnedById>,
+    Path(web_id): Path<WebId>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<Json<Vec<WebRelationAndSubject>>, Response>
 where
@@ -236,7 +236,7 @@ where
 
     Ok(Json(
         authorization_api
-            .get_web_relations(owned_by_id, Consistency::FullyConsistent)
+            .get_web_relations(web_id, Consistency::FullyConsistent)
             .await
             .map_err(report_to_response)?,
     ))
@@ -246,7 +246,7 @@ where
 #[serde(rename_all = "camelCase")]
 struct ModifyWebAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
-    resource: OwnedById,
+    resource: WebId,
     relation_and_subject: WebRelationAndSubject,
 }
 

@@ -32,7 +32,7 @@ export const createLinkEntity = async <Properties extends EntityProperties>(
 ): ReturnType<CreateLinkEntityFunction<Properties>> => {
   const [context, authentication, params] = args;
   const {
-    ownedById,
+    webId,
     linkData,
     entityTypeIds,
     properties = { value: {} },
@@ -45,7 +45,7 @@ export const createLinkEntity = async <Properties extends EntityProperties>(
     context.graphApi,
     authentication,
     {
-      ownedById,
+      webId,
       linkData,
       entityTypeIds,
       properties,

@@ -60,7 +60,7 @@ mod tests {
     use type_system::{
         knowledge::entity::id::EntityUuid,
         provenance::{ActorEntityUuid, ActorId, ActorType, MachineId},
-        web::OwnedById,
+        web::WebId,
     };
     use uuid::Uuid;
 
@@ -68,8 +68,8 @@ mod tests {
         policies::{
             PrincipalConstraint,
             principal::{
-                role::{RoleId, SubteamRoleId, WebRoleId},
-                team::{SubteamId, TeamId},
+                group::{ActorGroupId, TeamId},
+                role::{RoleId, TeamRoleId, WebRoleId},
                 tests::check_principal,
             },
         },
@@ -122,15 +122,15 @@ mod tests {
 
     #[test]
     fn web() -> Result<(), Box<dyn Error>> {
-        let web_id = OwnedById::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::Team {
+            PrincipalConstraint::ActorGroup {
                 actor_type: Some(ActorType::Machine),
-                team: TeamId::Web(web_id),
+                actor_group: ActorGroupId::Web(web_id),
             },
             json!({
-                "type": "team",
-                "teamType": "web",
+                "type": "actorGroup",
+                "actorGroupType": "web",
                 "actorType": "machine",
                 "id": web_id,
             }),
@@ -139,8 +139,8 @@ mod tests {
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "team",
-                "teamType": "web",
+                "type": "actorGroup",
+                "actorGroupType": "web",
                 "actorType": "machine",
                 "id": web_id,
                 "additional": "unexpected",
@@ -152,28 +152,28 @@ mod tests {
     }
 
     #[test]
-    fn subteam() -> Result<(), Box<dyn Error>> {
-        let subteam_id = SubteamId::new(Uuid::new_v4());
+    fn team() -> Result<(), Box<dyn Error>> {
+        let team_id = TeamId::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::Team {
+            PrincipalConstraint::ActorGroup {
                 actor_type: Some(ActorType::Machine),
-                team: TeamId::Subteam(subteam_id),
+                actor_group: ActorGroupId::Team(team_id),
             },
             json!({
-                "type": "team",
-                "teamType": "subteam",
+                "type": "actorGroup",
+                "actorGroupType": "team",
                 "actorType": "machine",
-                "id": subteam_id,
+                "id": team_id,
             }),
-            format!(r#"principal is HASH::Machine in HASH::Subteam::"{subteam_id}""#),
+            format!(r#"principal is HASH::Machine in HASH::Team::"{team_id}""#),
         )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "team",
-                "teamType": "subteam",
+                "type": "actorGroup",
+                "actorGroupType": "team",
                 "actorType": "machine",
-                "id": subteam_id,
+                "id": team_id,
                 "additional": "unexpected",
             }),
             "unknown field `additional`",
@@ -214,28 +214,28 @@ mod tests {
     }
 
     #[test]
-    fn subteam_role() -> Result<(), Box<dyn Error>> {
-        let subteam_role_id = SubteamRoleId::new(Uuid::new_v4());
+    fn team_role() -> Result<(), Box<dyn Error>> {
+        let team_role_id = TeamRoleId::new(Uuid::new_v4());
         check_principal(
             PrincipalConstraint::Role {
                 actor_type: Some(ActorType::Machine),
-                role: RoleId::Subteam(subteam_role_id),
+                role: RoleId::Team(team_role_id),
             },
             json!({
                 "type": "role",
-                "roleType": "subteam",
+                "roleType": "team",
                 "actorType": "machine",
-                "id": subteam_role_id,
+                "id": team_role_id,
             }),
-            format!(r#"principal is HASH::Machine in HASH::Subteam::Role::"{subteam_role_id}""#),
+            format!(r#"principal is HASH::Machine in HASH::Team::Role::"{team_role_id}""#),
         )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
                 "type": "role",
-                "roleType": "subteam",
+                "roleType": "team",
                 "actorType": "machine",
-                "id": subteam_role_id,
+                "id": team_role_id,
                 "additional": "unexpected",
             }),
             "unknown field `additional`",

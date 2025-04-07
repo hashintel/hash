@@ -60,7 +60,7 @@ const Page: NextPageWithLayout = () => {
     () =>
       !routeNamespace
         ? null
-        : entityIdFromComponents(routeNamespace.ownedById, entityUuid, draftId),
+        : entityIdFromComponents(routeNamespace.webId, entityUuid, draftId),
     [routeNamespace, entityUuid, draftId],
   );
 

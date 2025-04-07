@@ -1,7 +1,7 @@
 import {
   extractBaseUrl,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
@@ -76,16 +76,16 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     [entity, entitySubgraph],
   );
 
-  const entityOwnedById = useMemo(
+  const entityWebId = useMemo(
     () =>
       entity
-        ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+        ? extractWebIdFromEntityId(entity.metadata.recordId.entityId)
         : undefined,
     [entity],
   );
 
   const { userOrOrg: owner } = useUserOrOrg({
-    accountOrAccountGroupId: entityOwnedById,
+    accountOrAccountGroupId: entityWebId,
   });
 
   const entityOwnerShortname = useMemo(() => {

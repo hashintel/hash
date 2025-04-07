@@ -1,4 +1,4 @@
-import type { EntityUuid, OwnedById } from "@blockprotocol/type-system";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
@@ -81,7 +81,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
       const pageAuthor = await getUserById(context, authentication, {
         entityId: entityIdFromComponents(
-          pageAuthorAccountId as OwnedById,
+          pageAuthorAccountId as WebId,
           pageAuthorAccountId as string as EntityUuid,
         ),
       });
@@ -106,7 +106,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
           context,
           { actorId: pageAuthor.accountId },
           {
-            ownedById: pageAuthor.accountId as OwnedById,
+            webId: pageAuthor.accountId as WebId,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
             occurredInEntity,
@@ -170,7 +170,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
           context,
           { actorId: parentCommentAuthor.accountId },
           {
-            ownedById: parentCommentAuthor.accountId as OwnedById,
+            webId: parentCommentAuthor.accountId as WebId,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
             occurredInEntity,
@@ -218,7 +218,7 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
   const triggeredByUser = await getUserById(context, authentication, {
     entityId: entityIdFromComponents(
-      authentication.actorId as OwnedById,
+      authentication.actorId as WebId,
       authentication.actorId as string as EntityUuid,
     ),
   });
@@ -258,7 +258,7 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
             /** @todo: use authentication of machine user instead */
             { actorId: mentionedUser.accountId },
             {
-              ownedById: mentionedUser.accountId as OwnedById,
+              webId: mentionedUser.accountId as WebId,
               occurredInEntity,
               occurredInBlock,
               occurredInComment,

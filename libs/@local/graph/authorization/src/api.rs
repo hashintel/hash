@@ -8,7 +8,7 @@ use type_system::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, OwnedById},
+    web::{ActorGroupId, WebId},
 };
 
 use crate::{
@@ -65,7 +65,7 @@ pub trait AuthorizationApi: Send + Sync {
         &self,
         actor: ActorEntityUuid,
         permission: WebPermission,
-        web: OwnedById,
+        web: WebId,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
@@ -73,11 +73,10 @@ pub trait AuthorizationApi: Send + Sync {
         &self,
         actor: ActorEntityUuid,
         permission: WebPermission,
-        entities: impl IntoIterator<Item = OwnedById, IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = WebId, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<
-        Output = Result<(HashMap<OwnedById, bool>, Zookie<'static>), Report<CheckError>>,
-    > + Send {
+    ) -> impl Future<Output = Result<(HashMap<WebId, bool>, Zookie<'static>), Report<CheckError>>> + Send
+    {
         async move {
             let mut zookie = Zookie::empty();
             let mut result = HashMap::new();
@@ -98,18 +97,14 @@ pub trait AuthorizationApi: Send + Sync {
     fn modify_web_relations(
         &mut self,
         relationships: impl IntoIterator<
-            Item = (
-                ModifyRelationshipOperation,
-                OwnedById,
-                WebRelationAndSubject,
-            ),
+            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
             IntoIter: Send,
         > + Send,
     ) -> impl Future<Output = Result<Zookie<'static>, Report<ModifyRelationError>>> + Send;
 
     fn get_web_relations(
         &self,
-        web: OwnedById,
+        web: WebId,
         consistency: Consistency<'static>,
     ) -> impl Future<Output = Result<Vec<WebRelationAndSubject>, Report<ReadError>>> + Send;
 
@@ -329,7 +324,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         actor: ActorEntityUuid,
         permission: WebPermission,
-        web: OwnedById,
+        web: WebId,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         (**self)
@@ -340,11 +335,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
     async fn modify_web_relations(
         &mut self,
         relationships: impl IntoIterator<
-            Item = (
-                ModifyRelationshipOperation,
-                OwnedById,
-                WebRelationAndSubject,
-            ),
+            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
             IntoIter: Send,
         > + Send,
     ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
@@ -353,7 +344,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn get_web_relations(
         &self,
-        web: OwnedById,
+        web: WebId,
         consistency: Consistency<'static>,
     ) -> Result<Vec<WebRelationAndSubject>, Report<ReadError>> {
         (**self).get_web_relations(web, consistency).await

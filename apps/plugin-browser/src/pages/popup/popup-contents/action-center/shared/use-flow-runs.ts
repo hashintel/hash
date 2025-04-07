@@ -1,5 +1,5 @@
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
   automaticBrowserInferenceFlowDefinition,
   manualBrowserInferenceFlowDefinition,
@@ -125,7 +125,7 @@ export const useFlowRuns = (): {
     if (!user) {
       return null;
     }
-    return extractOwnedByIdFromEntityId(
+    return extractWebIdFromEntityId(
       user.metadata.recordId.entityId,
     ) as ActorEntityUuid;
   }, [user]);

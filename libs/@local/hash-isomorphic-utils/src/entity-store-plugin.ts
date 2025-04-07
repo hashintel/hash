@@ -1,8 +1,8 @@
 import {
   currentTimestamp,
   type EntityId,
-  type OwnedById,
   type PropertyObject,
+  type WebId,
 } from "@blockprotocol/type-system";
 import type { Draft } from "immer";
 import { castDraft, produce } from "immer";
@@ -85,7 +85,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
   | {
       type: "newDraftEntity";
       payload: {
-        ownedById: OwnedById;
+        webId: WebId;
         draftId: string;
         entityId: EntityId | null;
       };
@@ -523,7 +523,7 @@ class ProsemirrorStateChangeHandler {
 
   constructor(
     private state: EditorState,
-    private ownedById: OwnedById,
+    private webId: WebId,
   ) {
     this.tr = state.tr;
   }
@@ -702,7 +702,7 @@ class ProsemirrorStateChangeHandler {
       addEntityStoreAction(this.state, this.tr, {
         type: "newDraftEntity",
         payload: {
-          ownedById: this.ownedById,
+          webId: this.webId,
           draftId,
           entityId: entityId ?? null,
         },
@@ -784,9 +784,9 @@ const scheduleNotifyEntityStoreSubscribers = collect<
 });
 
 export const createEntityStorePlugin = ({
-  ownedById,
+  webId,
 }: {
-  ownedById: OwnedById;
+  webId: WebId;
 }) => {
   // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
   const entityStorePlugin = new Plugin<EntityStorePluginState>({
@@ -833,7 +833,7 @@ export const createEntityStorePlugin = ({
         return;
       }
 
-      return new ProsemirrorStateChangeHandler(state, ownedById).handleDoc();
+      return new ProsemirrorStateChangeHandler(state, webId).handleDoc();
     },
   });
   return entityStorePlugin;

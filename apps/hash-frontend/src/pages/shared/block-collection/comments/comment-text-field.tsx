@@ -69,7 +69,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
 }) => {
   const viewRef = useRef<EditorView>(null);
   const [portals, renderPortal] = usePortals();
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { activeWorkspaceWebId } = useContext(WorkspaceContext);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const editableRef = useRef(false);
   const eventsRef = useRef({ onClose, onSubmit, onLineCountChange });
@@ -97,7 +97,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   useEffect(() => {
     const editorContainer = editorContainerRef.current;
 
-    if (editorContainer && activeWorkspaceOwnedById) {
+    if (editorContainer && activeWorkspaceWebId) {
       const schema = createSchema({
         doc: {
           content: "inline*",
@@ -128,11 +128,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
           keymap(baseKeymap),
           ...createFormatPlugins(renderPortal),
           formatKeymap(schema),
-          createSuggester(
-            renderPortal,
-            activeWorkspaceOwnedById,
-            editorContainer,
-          ),
+          createSuggester(renderPortal, activeWorkspaceWebId, editorContainer),
           commentPlaceholderPlugin(renderPortal),
         ],
       });
@@ -141,7 +137,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         state,
         editorContainer,
         renderPortal,
-        activeWorkspaceOwnedById,
+        activeWorkspaceWebId,
         {
           dispatchTransaction: (tr) => {
             const newState = view.state.apply(tr);
@@ -184,7 +180,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         viewRef.current = null;
       };
     }
-  }, [onChange, activeWorkspaceOwnedById, renderPortal]);
+  }, [onChange, activeWorkspaceWebId, renderPortal]);
 
   useEffect(() => {
     viewRef.current?.setProps({ editable: () => editable });

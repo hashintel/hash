@@ -31,7 +31,7 @@ use type_system::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, OwnedById},
+    web::{ActorGroupId, WebId},
 };
 
 use crate::{
@@ -81,7 +81,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: ActorEntityUuid,
         _: WebPermission,
-        _: OwnedById,
+        _: WebId,
         _: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         Ok(CheckResponse {
@@ -93,11 +93,7 @@ impl AuthorizationApi for NoAuthorization {
     async fn modify_web_relations(
         &mut self,
         _: impl IntoIterator<
-            Item = (
-                ModifyRelationshipOperation,
-                OwnedById,
-                WebRelationAndSubject,
-            ),
+            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
             IntoIter: Send,
         > + Send,
     ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
@@ -114,7 +110,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_web_relations(
         &self,
-        _: OwnedById,
+        _: WebId,
         _: Consistency<'static>,
     ) -> Result<Vec<WebRelationAndSubject>, Report<ReadError>> {
         Ok(Vec::new())

@@ -1,8 +1,8 @@
 import type {
   ActorEntityUuid,
   BaseUrl,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
@@ -192,15 +192,15 @@ export const useEntitiesTable = (
       return actorsByAccount;
     }, [actors]);
 
-  const webNameByOwnedById = useMemo(() => {
+  const webNameByWebId = useMemo(() => {
     if (!entities || !webIds) {
       return {};
     }
 
-    const webNameByOwner: Record<OwnedById, string> = {};
+    const webNameByOwner: Record<WebId, string> = {};
 
     for (const webId of typedKeys(webIds)) {
-      const owner = getOwnerForEntity({ ownedById: webId });
+      const owner = getOwnerForEntity({ webId });
       webNameByOwner[webId] = owner.shortname;
     }
 
@@ -263,12 +263,12 @@ export const useEntitiesTable = (
       }
 
       const webCounts: EntitiesTableFilterData["webs"] = [];
-      for (const [ownedById, count] of typedEntries(webIds ?? {})) {
-        const webname = webNameByOwnedById[ownedById] ?? ownedById;
+      for (const [webId, count] of typedEntries(webIds ?? {})) {
+        const webname = webNameByWebId[webId] ?? webId;
         webCounts.push({
           count,
           shortname: `@${webname}`,
-          webId: ownedById,
+          webId,
         });
       }
 
@@ -286,7 +286,7 @@ export const useEntitiesTable = (
       typeIds,
       typeTitles,
       webIds,
-      webNameByOwnedById,
+      webNameByWebId,
     ]);
 
   useEffect(() => {
@@ -360,7 +360,7 @@ export const useEntitiesTable = (
           hideColumns,
           hideArchivedColumn,
           hidePropertiesColumns,
-          webNameByOwnedById,
+          webNameByWebId,
         },
       } satisfies GenerateEntitiesTableDataRequestMessage);
     }
@@ -376,7 +376,7 @@ export const useEntitiesTable = (
     hideArchivedColumn,
     hidePropertiesColumns,
     subgraph,
-    webNameByOwnedById,
+    webNameByWebId,
     worker,
   ]);
 

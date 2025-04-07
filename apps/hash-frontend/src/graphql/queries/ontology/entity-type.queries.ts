@@ -70,11 +70,11 @@ export const getClosedMultiEntityTypesQuery = gql`
 
 export const createEntityTypeMutation = gql`
   mutation createEntityType(
-    $ownedById: OwnedById!
+    $webId: WebId!
     $entityType: ConstructEntityTypeParams!
   ) {
     # This is a scalar, which has no selection.
-    createEntityType(ownedById: $ownedById, entityType: $entityType)
+    createEntityType(webId: $webId, entityType: $entityType)
   }
 `;
 

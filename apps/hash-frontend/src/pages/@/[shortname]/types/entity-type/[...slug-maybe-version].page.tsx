@@ -2,7 +2,7 @@ import type {
   ActorEntityUuid,
   EntityTypeWithMetadata,
   OntologyTypeVersion,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
@@ -94,7 +94,7 @@ const Page: NextPageWithLayout = () => {
               },
             },
           },
-          ownedById: "irrelevant-here" as OwnedById,
+          webId: "irrelevant-here" as WebId,
         },
         schema: entityTypeSchema,
       } satisfies EntityTypeWithMetadata;
@@ -119,7 +119,7 @@ const Page: NextPageWithLayout = () => {
     <>
       <EntityType
         isInSlide={false}
-        ownedById={routeNamespace.ownedById}
+        webId={routeNamespace.webId}
         draftEntityType={draftEntityType}
         entityTypeBaseUrl={entityTypeBaseUrl}
         key={`${entityTypeBaseUrl}-${requestedVersion}`}

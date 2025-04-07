@@ -68,7 +68,7 @@ export type UpdateEntityMessageCallback = MessageCallback<
 export type UploadFileRequestData = BpUploadFileData &
   (
     | {
-        fileEntityCreationInput: Omit<FileEntityCreationInput, "ownedById">;
+        fileEntityCreationInput: Omit<FileEntityCreationInput, "webId">;
       }
     | { fileEntityUpdateInput: FileEntityUpdateInput }
   );

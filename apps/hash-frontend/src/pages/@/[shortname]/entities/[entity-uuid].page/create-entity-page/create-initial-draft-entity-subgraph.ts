@@ -1,7 +1,7 @@
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   generateTimestamp,
 } from "@blockprotocol/type-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
@@ -27,7 +27,7 @@ export const createInitialDraftEntitySubgraph = (
     baseId: "draft~draft" as EntityId,
     revisionId: now,
   };
-  const creator = extractOwnedByIdFromEntityId(draftEntityVertexId.baseId);
+  const creator = extractWebIdFromEntityId(draftEntityVertexId.baseId);
 
   const serializedEntity: GraphApiEntity = {
     properties: {},

@@ -1,7 +1,7 @@
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import {
   extractDraftIdFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import {
   typedEntries,
@@ -135,16 +135,14 @@ const createBaseSimpleEntityFields = (
     properties[propertyType.title] = propertyValue;
   }
 
-  const ownedById = extractOwnedByIdFromEntityId(
-    entity.metadata.recordId.entityId,
-  );
+  const webId = extractWebIdFromEntityId(entity.metadata.recordId.entityId);
 
   return {
     draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
     entityId: entity.metadata.recordId.entityId,
     entityTypes: typeTitles,
     properties,
-    webUuid: ownedById,
+    webUuid: webId,
   };
 };
 

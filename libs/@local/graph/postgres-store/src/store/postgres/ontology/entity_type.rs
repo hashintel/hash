@@ -62,7 +62,7 @@ use type_system::{
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     provenance::ActorEntityUuid,
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::store::{
@@ -389,7 +389,7 @@ where
             let ontology_id_idx = compiler.add_selection_path(&EntityTypeQueryPath::OntologyId);
             let web_id_idx = params
                 .include_web_ids
-                .then(|| compiler.add_selection_path(&EntityTypeQueryPath::OwnedById));
+                .then(|| compiler.add_selection_path(&EntityTypeQueryPath::WebId));
             let edition_provenance_idx = params.include_edition_created_by_ids.then(|| {
                 compiler.add_selection_path(&EntityTypeQueryPath::EditionProvenance(None))
             });
@@ -439,7 +439,7 @@ where
                 .filter(|(entity_type_id, _)| permitted_ids.contains(entity_type_id))
                 .inspect(|(_, row)| {
                     if let Some((web_ids, web_id_idx)) = web_ids.as_mut().zip(web_id_idx) {
-                        let web_id: OwnedById = row.get(web_id_idx);
+                        let web_id: WebId = row.get(web_id_idx);
                         web_ids.extend_one(web_id);
                     }
 
@@ -791,13 +791,13 @@ where
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
             let entity_type_id = EntityTypeUuid::from_url(&parameters.schema.id);
 
-            if let OntologyOwnership::Local { owned_by_id } = &parameters.ownership {
+            if let OntologyOwnership::Local { web_id } = &parameters.ownership {
                 transaction
                     .authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreateEntityType,
-                        *owned_by_id,
+                        *web_id,
                         Consistency::FullyConsistent,
                     )
                     .await
@@ -808,7 +808,7 @@ where
                 relationships.insert((
                     entity_type_id,
                     EntityTypeRelationAndSubject::Owner {
-                        subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },
+                        subject: EntityTypeOwnerSubject::Web { id: *web_id },
                         level: 0,
                     },
                 ));
@@ -1370,13 +1370,13 @@ where
                 .assert_permission()
                 .change_context(UpdateError)?;
 
-            let (_ontology_id, owned_by_id, temporal_versioning) = transaction
+            let (_ontology_id, web_id, temporal_versioning) = transaction
                 .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
                 .await?;
 
             relationships.extend(
                 iter::once(EntityTypeRelationAndSubject::Owner {
-                    subject: EntityTypeOwnerSubject::Web { id: owned_by_id },
+                    subject: EntityTypeOwnerSubject::Web { id: web_id },
                     level: 0,
                 })
                 .chain(parameters.relationships)
@@ -1392,7 +1392,7 @@ where
             inserted_entity_types.push((entity_type_id, Arc::new(parameters.schema)));
             updated_entity_type_metadata.push(EntityTypeMetadata {
                 record_id,
-                ownership: OntologyOwnership::Local { owned_by_id },
+                ownership: OntologyOwnership::Local { web_id },
                 temporal_versioning,
                 provenance,
             });

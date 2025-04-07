@@ -1,12 +1,12 @@
-mod subteam;
+mod team;
 mod web;
 
 use cedar_policy_core::ast;
-use type_system::web::OwnedById;
+use type_system::web::WebId;
 use uuid::Uuid;
 
 pub use self::{
-    subteam::{Subteam, SubteamId},
+    team::{Team, TeamId},
     web::Web,
 };
 use crate::policies::cedar::CedarEntityId as _;
@@ -22,18 +22,18 @@ use crate::policies::cedar::CedarEntityId as _;
     serde::Deserialize,
     derive_more::Display,
 )]
-#[serde(tag = "teamType", content = "id", rename_all = "lowercase")]
-pub enum TeamId {
-    Web(OwnedById),
-    Subteam(SubteamId),
+#[serde(tag = "actorGroupType", content = "id", rename_all = "lowercase")]
+pub enum ActorGroupId {
+    Web(WebId),
+    Team(TeamId),
 }
 
-impl TeamId {
+impl ActorGroupId {
     #[must_use]
     pub const fn into_uuid(self) -> Uuid {
         match self {
             Self::Web(id) => id.into_uuid(),
-            Self::Subteam(id) => id.into_uuid(),
+            Self::Team(id) => id.into_uuid(),
         }
     }
 
@@ -41,29 +41,29 @@ impl TeamId {
     pub const fn as_uuid(&self) -> &Uuid {
         match self {
             Self::Web(id) => id.as_uuid(),
-            Self::Subteam(id) => id.as_uuid(),
+            Self::Team(id) => id.as_uuid(),
         }
     }
 
     pub(crate) fn to_euid(self) -> ast::EntityUID {
         match self {
             Self::Web(id) => id.to_euid(),
-            Self::Subteam(id) => id.to_euid(),
+            Self::Team(id) => id.to_euid(),
         }
     }
 }
 
 #[derive(Debug)]
-pub enum Team {
+pub enum ActorGroup {
     Web(Web),
-    Subteam(Subteam),
+    Team(Team),
 }
 
-impl Team {
+impl ActorGroup {
     pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
         match self {
             Self::Web(web) => web.to_cedar_entity(),
-            Self::Subteam(subteam) => subteam.to_cedar_entity(),
+            Self::Team(team) => team.to_cedar_entity(),
         }
     }
 }
@@ -79,20 +79,20 @@ mod tests {
     fn missing_team_type() -> Result<(), Box<dyn Error>> {
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "team",
+                "type": "actorGroup",
             }),
-            "missing field `teamType`",
+            "missing field `actorGroupType`",
         )
     }
 
     #[test]
-    fn wrong_team_type() -> Result<(), Box<dyn Error>> {
+    fn wrong_actor_group_type() -> Result<(), Box<dyn Error>> {
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "team",
-                "teamType": "wrong",
+                "type": "actorGroup",
+                "actorGroupType": "wrong",
             }),
-            "unknown variant `wrong`, expected `web` or `subteam`",
+            "unknown variant `wrong`, expected `web` or `team`",
         )
     }
 }

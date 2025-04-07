@@ -73,7 +73,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     filter: {
       all: [
         {
-          equal: [{ path: ["ownedById"] }, { parameter: webId }],
+          equal: [{ path: ["webId"] }, { parameter: webId }],
         },
         {
           equal: [

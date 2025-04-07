@@ -1,8 +1,8 @@
 import { useMutation } from "@apollo/client";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
@@ -19,10 +19,10 @@ import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 
 export const useCreatePage = ({
   shortname,
-  ownedById,
+  webId,
 }: {
   shortname?: string;
-  ownedById?: OwnedById;
+  webId?: WebId;
 }) => {
   const router = useRouter();
 
@@ -37,7 +37,7 @@ export const useCreatePage = ({
             {
               query: getEntitySubgraphQuery,
               variables: getAccountPagesVariables({
-                ownedById: extractOwnedByIdFromEntityId(
+                webId: extractWebIdFromEntityId(
                   data.createPage.metadata.recordId.entityId,
                 ),
               }),
@@ -48,13 +48,13 @@ export const useCreatePage = ({
 
   const createUntitledPage = useCallback(
     async (prevFractionalIndex: string | null, type: "canvas" | "document") => {
-      if (!ownedById) {
-        throw new Error("No ownedById provided to useCreatePage");
+      if (!webId) {
+        throw new Error("No webId provided to useCreatePage");
       }
 
       const response = await createPageFn({
         variables: {
-          ownedById,
+          webId,
           properties: {
             title: "",
             prevFractionalIndex,
@@ -75,7 +75,7 @@ export const useCreatePage = ({
         );
       }
     },
-    [createPageFn, ownedById, router, shortname],
+    [createPageFn, webId, router, shortname],
   );
 
   return [createUntitledPage, { loading: createPageLoading }] as const;

@@ -86,7 +86,7 @@ use type_system::{
         },
     },
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, OwnedById},
+    web::{ActorGroupId, WebId},
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,
@@ -433,7 +433,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
 
             BaseUrl,
             VersionedUrl,
-            OwnedById,
+            WebId,
             OntologyProvenance,
             OntologyEditionProvenance,
             ProvidedOntologyEditionProvenance,

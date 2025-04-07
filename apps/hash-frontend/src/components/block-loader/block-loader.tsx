@@ -11,7 +11,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   isEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -125,18 +125,18 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   readonly,
   userPermissionsOnEntities: initialUserPermissions,
 }) => {
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { activeWorkspaceWebId } = useContext(WorkspaceContext);
 
   const { queryEntities } = useBlockProtocolQueryEntities();
   const { createEntity } = useBlockProtocolCreateEntity(
-    activeWorkspaceOwnedById ?? null,
+    activeWorkspaceWebId ?? null,
     readonly,
   );
   const { archiveEntity: deleteEntity } = useBlockProtocolArchiveEntity();
   const { getEntity } = useBlockProtocolGetEntity();
   const { updateEntity } = useBlockProtocolUpdateEntity();
   const { uploadFile } = useBlockProtocolFileUpload(
-    activeWorkspaceOwnedById,
+    activeWorkspaceWebId,
     readonly,
   );
 
@@ -305,11 +305,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
                   createdAtTransactionTime:
                     entityInStore.metadata.temporalVersioning.transactionTime
                       .start.limit,
-                  createdById: extractOwnedByIdFromEntityId(
+                  createdById: extractWebIdFromEntityId(
                     entityInStore.metadata.recordId.entityId as EntityId,
                   ),
                   edition: {
-                    createdById: extractOwnedByIdFromEntityId(
+                    createdById: extractWebIdFromEntityId(
                       entityInStore.metadata.recordId.entityId as EntityId,
                     ),
                     actorType: "user",

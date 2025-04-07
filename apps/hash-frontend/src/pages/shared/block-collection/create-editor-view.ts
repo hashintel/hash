@@ -1,5 +1,5 @@
 import type { ApolloClient } from "@apollo/client";
-import type { EntityId, OwnedById } from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
@@ -32,7 +32,7 @@ import { LoadingView } from "./loading-view";
 import styles from "./style.module.css";
 
 const createSavePlugin = (
-  ownedById: OwnedById,
+  webId: WebId,
   pageEntityId: EntityId,
   getBlocksMap: () => ComponentIdHashBlockMap,
   client: ApolloClient<unknown>,
@@ -50,7 +50,7 @@ const createSavePlugin = (
       try {
         const [newContents, newDraftToEntityId] = await save({
           apolloClient: client,
-          ownedById,
+          webId,
           blockCollectionEntityId: pageEntityId,
           doc: view.state.doc,
           store: entityStorePluginState(view.state).store,
@@ -144,7 +144,7 @@ export const createEditorView = (params: {
   getBlocksMap: () => ComponentIdHashBlockMap;
   getLastSavedValue: () => BlockEntity[];
   isCommentingEnabled: boolean;
-  ownedById: OwnedById;
+  webId: WebId;
   pageEntityId: EntityId;
   pageTitleRef?: RefObject<HTMLTextAreaElement | null>;
   readonly: boolean;
@@ -158,7 +158,7 @@ export const createEditorView = (params: {
     getBlocksMap,
     getLastSavedValue,
     isCommentingEnabled,
-    ownedById,
+    webId,
     pageEntityId,
     pageTitleRef,
     readonly,
@@ -178,12 +178,12 @@ export const createEditorView = (params: {
     ? []
     : [
         ...createFormatPlugins(renderPortal),
-        createSuggester(renderPortal, ownedById, renderNode, () => manager),
+        createSuggester(renderPortal, webId, renderNode, () => manager),
         createPlaceholderPlugin(renderPortal),
         errorPlugin,
         ...(pageTitleRef ? [createFocusPageTitlePlugin(pageTitleRef)] : []),
         createSavePlugin(
-          ownedById,
+          webId,
           pageEntityId,
           getBlocksMap,
           client,
@@ -197,43 +197,37 @@ export const createEditorView = (params: {
         ),
       ];
 
-  const state = createProseMirrorState({ ownedById, plugins });
+  const state = createProseMirrorState({ webId, plugins });
 
   let connection: EditorConnection | undefined;
 
-  const view = createTextEditorView(
-    state,
-    renderNode,
-    renderPortal,
-    ownedById,
-    {
-      nodeViews: {
-        block(currentNode, currentView, getPos) {
-          if (typeof getPos === "boolean") {
-            throw new Error("Invalid config for nodeview");
-          }
-          return new BlockView(
-            currentNode,
-            currentView,
-            getPos,
-            renderPortal,
-            manager,
-            renderNode,
-            readonly,
-            isCommentingEnabled,
-          );
-        },
-        loading(currentNode, _currentView, _getPos) {
-          return new LoadingView(currentNode, renderPortal);
-        },
+  const view = createTextEditorView(state, renderNode, renderPortal, webId, {
+    nodeViews: {
+      block(currentNode, currentView, getPos) {
+        if (typeof getPos === "boolean") {
+          throw new Error("Invalid config for nodeview");
+        }
+        return new BlockView(
+          currentNode,
+          currentView,
+          getPos,
+          renderPortal,
+          manager,
+          renderNode,
+          readonly,
+          isCommentingEnabled,
+        );
       },
-      editable: () => !readonly,
+      loading(currentNode, _currentView, _getPos) {
+        return new LoadingView(currentNode, renderPortal);
+      },
     },
-  );
+    editable: () => !readonly,
+  });
 
   manager = new ProsemirrorManager(
     state.schema,
-    ownedById,
+    webId,
     view,
     (block) => (node, editorView, getPos) => {
       if (typeof getPos === "boolean") {

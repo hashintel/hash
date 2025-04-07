@@ -80,7 +80,7 @@ export const gptQueryTypes: RequestHandler<
             ? [
                 {
                   any: webUuids.map((webUuid) => ({
-                    equal: [{ path: ["ownedById"] }, { parameter: webUuid }],
+                    equal: [{ path: ["webId"] }, { parameter: webUuid }],
                   })),
                 },
               ]
@@ -119,9 +119,9 @@ export const gptQueryTypes: RequestHandler<
         user.accountId,
       );
 
-      const vertices = typedValues(subgraph.vertices)
-        .map((vertex) => typedValues(vertex))
-        .flat();
+      const vertices = typedValues(subgraph.vertices).flatMap((vertex) =>
+        typedValues(vertex),
+      );
 
       for (const vertex of vertices) {
         if (vertex.kind === "entityType") {

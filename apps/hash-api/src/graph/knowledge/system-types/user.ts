@@ -2,7 +2,7 @@ import type {
   ActorEntityUuid,
   EntityId,
   EntityUuid,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
@@ -301,7 +301,7 @@ export const createUser: ImpureGraphFunction<
       ctx,
       { actorId: systemAccountId },
       {
-        ownedById: userAccountId as OwnedById,
+        webId: userAccountId as WebId,
         owner: {
           kind: "account",
           /**
@@ -324,7 +324,7 @@ export const createUser: ImpureGraphFunction<
       actorId: userShouldHavePermissionsOnWeb ? userAccountId : systemAccountId,
     },
     {
-      ownedById: userAccountId as OwnedById,
+      webId: userAccountId as WebId,
       logger,
     },
   );
@@ -410,7 +410,7 @@ export const createUser: ImpureGraphFunction<
     ctx,
     { actorId: userWebMachineActorId },
     {
-      ownedById: userAccountId as OwnedById,
+      webId: userAccountId as WebId,
       properties,
       entityTypeIds: [systemEntityTypes.user.entityTypeId],
       entityUuid: userAccountId as string as EntityUuid,

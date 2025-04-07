@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::entity::id::EntityUuid,
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, OwnedById},
+    web::{ActorGroupId, WebId},
 };
 use uuid::Uuid;
 
@@ -81,7 +81,7 @@ pub enum EntitySetting {
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum EntitySubject {
     Setting(EntitySetting),
-    Web(OwnedById),
+    Web(WebId),
     Public,
     Account(ActorEntityUuid),
     AccountGroup(ActorGroupId),
@@ -127,7 +127,7 @@ impl Resource for EntitySubject {
                 Self::Setting(setting)
             }
             (EntitySubjectNamespace::Web, EntitySubjectId::Uuid(uuid)) => {
-                Self::Web(OwnedById::new(uuid))
+                Self::Web(WebId::new(uuid))
             }
             (EntitySubjectNamespace::Account, EntitySubjectId::Asteriks(PublicAccess::Public)) => {
                 Self::Public
@@ -198,7 +198,7 @@ pub enum EntitySettingSubject {
 pub enum EntityOwnerSubject {
     Web {
         #[serde(rename = "subjectId")]
-        id: OwnedById,
+        id: WebId,
     },
 }
 
