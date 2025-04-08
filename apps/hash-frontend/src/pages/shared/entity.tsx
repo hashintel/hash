@@ -359,6 +359,10 @@ export const Entity = ({
   );
 
   const isReadOnly =
+    /**
+     * @todo H-3398 fix Glide grid editor overlays when body isn't fullscreened
+     */
+    !!document.fullscreenElement ||
     !!draftEntity?.metadata.archived ||
     !!proposedEntitySubgraph ||
     (!draftLocalEntity &&

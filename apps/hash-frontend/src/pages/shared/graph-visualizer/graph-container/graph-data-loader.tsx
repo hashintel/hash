@@ -218,7 +218,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
     const edgeSignificanceRange = highestSignificance - lowestSignificance;
 
     const minEdgeSize = config.edgeSizing.min;
-    const maxEdgeSize = 20;
+    const maxEdgeSize = config.edgeSizing.max;
     const maxEdgeSizeIncrease = maxEdgeSize - minEdgeSize;
 
     const nodeIdToTotalEdgeSignificance: Record<
@@ -229,8 +229,12 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
     let edgeGeometricSizeFactor: number | undefined;
     if (config.edgeSizing.scale === "Geometric") {
       const edgeSignificanceRatio = highestSignificance / lowestSignificance;
+
       edgeGeometricSizeFactor =
-        (maxEdgeSize / minEdgeSize) ** (1 / Math.log(edgeSignificanceRatio));
+        edgeSignificanceRatio === 1
+          ? 1
+          : (maxEdgeSize / minEdgeSize) **
+            (1 / Math.log(edgeSignificanceRatio));
     }
 
     for (const aggregateEdge of Object.values(aggregateEdgesById)) {
@@ -340,7 +344,9 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
           if (config.nodeSizing.scale === "Geometric") {
             const countRatio = highestCount / lowestCount;
             geometricSizeFactor =
-              (maxNodeSize / minNodeSize) ** (1 / Math.log(countRatio));
+              countRatio === 1
+                ? 1
+                : (maxNodeSize / minNodeSize) ** (1 / Math.log(countRatio));
           }
 
           for (const [nodeId, significanceCounts] of Object.entries(
