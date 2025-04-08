@@ -188,12 +188,10 @@ pub enum EntityTypeResourceConstraint {
         filter: EntityTypeResourceFilter,
     },
     Exact {
-        #[serde(deserialize_with = "Option::deserialize")]
-        id: Option<EntityTypeId>,
+        id: EntityTypeId,
     },
     Web {
-        #[serde(deserialize_with = "Option::deserialize")]
-        web_id: Option<OwnedById>,
+        web_id: OwnedById,
         filter: EntityTypeResourceFilter,
     },
 }
@@ -211,23 +209,6 @@ pub enum EntityTypeResourceConstraints {
 
 impl EntityTypeResourceConstraint {
     #[must_use]
-    pub const fn has_slot(&self) -> bool {
-        match self {
-            Self::Any { filter: _ }
-            | Self::Exact { id: Some(_) }
-            | Self::Web {
-                web_id: Some(_),
-                filter: _,
-            } => false,
-            Self::Exact { id: None }
-            | Self::Web {
-                web_id: None,
-                filter: _,
-            } => true,
-        }
-    }
-
-    #[must_use]
     pub(crate) fn to_cedar(&self) -> (ast::ResourceConstraint, ast::Expr) {
         match self {
             Self::Any { filter } => (
@@ -235,25 +216,13 @@ impl EntityTypeResourceConstraint {
                 filter.to_cedar(),
             ),
             Self::Exact { id } => (
-                id.as_ref()
-                    .map_or_else(ast::ResourceConstraint::is_eq_slot, |id| {
-                        ast::ResourceConstraint::is_eq(Arc::new(id.to_euid()))
-                    }),
+                ast::ResourceConstraint::is_eq(Arc::new(id.to_euid())),
                 ast::Expr::val(true),
             ),
             Self::Web { web_id, filter } => (
-                web_id.map_or_else(
-                    || {
-                        ast::ResourceConstraint::is_entity_type_in_slot(Arc::clone(
-                            EntityTypeId::entity_type(),
-                        ))
-                    },
-                    |web_id| {
-                        ast::ResourceConstraint::is_entity_type_in(
-                            Arc::clone(EntityTypeId::entity_type()),
-                            Arc::new(web_id.to_euid()),
-                        )
-                    },
+                ast::ResourceConstraint::is_entity_type_in(
+                    Arc::clone(EntityTypeId::entity_type()),
+                    Arc::new(web_id.to_euid()),
                 ),
                 filter.to_cedar(),
             ),
@@ -278,9 +247,11 @@ mod tests {
     #[test]
     fn constraint_any() -> Result<(), Box<dyn Error>> {
         check_resource(
-            ResourceConstraint::EntityType(EntityTypeResourceConstraint::Any {
-                filter: EntityTypeResourceFilter::All { filters: vec![] },
-            }),
+            Some(ResourceConstraint::EntityType(
+                EntityTypeResourceConstraint::Any {
+                    filter: EntityTypeResourceFilter::All { filters: vec![] },
+                },
+            )),
             json!({
                 "type": "entityType",
                 "filter": {
@@ -309,23 +280,16 @@ mod tests {
         )?);
 
         check_resource(
-            ResourceConstraint::EntityType(EntityTypeResourceConstraint::Exact {
-                id: Some(entity_type_id.clone()),
-            }),
+            Some(ResourceConstraint::EntityType(
+                EntityTypeResourceConstraint::Exact {
+                    id: entity_type_id.clone(),
+                },
+            )),
             json!({
                 "type": "entityType",
                 "id": entity_type_id,
             }),
             format!(r#"resource == HASH::EntityType::"{entity_type_id}""#),
-        )?;
-
-        check_resource(
-            ResourceConstraint::EntityType(EntityTypeResourceConstraint::Exact { id: None }),
-            json!({
-                "type": "entityType",
-                "id": null,
-            }),
-            "resource == ?resource",
         )?;
 
         check_deserialization_error::<ResourceConstraint>(
@@ -344,10 +308,12 @@ mod tests {
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
         let web_id = OwnedById::new(Uuid::new_v4());
         check_resource(
-            ResourceConstraint::EntityType(EntityTypeResourceConstraint::Web {
-                web_id: Some(web_id),
-                filter: EntityTypeResourceFilter::All { filters: vec![] },
-            }),
+            Some(ResourceConstraint::EntityType(
+                EntityTypeResourceConstraint::Web {
+                    web_id,
+                    filter: EntityTypeResourceFilter::All { filters: vec![] },
+                },
+            )),
             json!({
                 "type": "entityType",
                 "webId": web_id,
@@ -357,22 +323,6 @@ mod tests {
                 },
             }),
             format!(r#"resource is HASH::EntityType in HASH::Web::"{web_id}""#),
-        )?;
-
-        check_resource(
-            ResourceConstraint::EntityType(EntityTypeResourceConstraint::Web {
-                web_id: None,
-                filter: EntityTypeResourceFilter::All { filters: vec![] },
-            }),
-            json!({
-                "type": "entityType",
-                "webId": null,
-                "filter": {
-                    "type": "all",
-                    "filters": [],
-                },
-            }),
-            "resource is HASH::EntityType in ?resource",
         )?;
 
         check_deserialization_error::<ResourceConstraint>(

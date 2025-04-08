@@ -1,20 +1,26 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
-    policies::principal::{
-        PrincipalId,
-        actor::{Ai, Machine, User},
-        role::{Role, RoleId, SubteamRole, SubteamRoleId, WebRole, WebRoleId},
-        team::{Subteam, SubteamId, TeamId, Web},
+    policies::{
+        Policy, PolicyId,
+        action::ActionName,
+        principal::{
+            PrincipalConstraint, PrincipalId,
+            actor::{Ai, Machine, User},
+            role::{Role, RoleId, SubteamRole, SubteamRoleId, WebRole, WebRoleId},
+            team::{Subteam, SubteamId, TeamId, Web},
+        },
+        resource::ResourceConstraint,
     },
 };
+use postgres_types::{Json, ToSql};
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorId, AiId, MachineId, UserId},
+    provenance::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
     web::OwnedById,
 };
 use uuid::Uuid;
@@ -22,11 +28,11 @@ use uuid::Uuid;
 use crate::store::{AsClient, PostgresStore};
 
 mod error;
-pub use error::PrincipalError;
+pub use self::error::{ActionError, PolicyError, PrincipalError};
 
 #[derive(Debug, postgres_types::ToSql, postgres_types::FromSql)]
 #[postgres(name = "principal_type", rename_all = "snake_case")]
-pub enum PrincipalType {
+enum PrincipalType {
     User,
     Machine,
     Ai,
@@ -34,6 +40,63 @@ pub enum PrincipalType {
     Subteam,
     WebRole,
     SubteamRole,
+}
+
+impl PrincipalType {
+    const fn from_principal_id(principal_id: &PrincipalId) -> Self {
+        match principal_id {
+            PrincipalId::Actor(ActorId::User(_)) => Self::User,
+            PrincipalId::Actor(ActorId::Machine(_)) => Self::Machine,
+            PrincipalId::Actor(ActorId::Ai(_)) => Self::Ai,
+            PrincipalId::Team(TeamId::Web(_)) => Self::Web,
+            PrincipalId::Team(TeamId::Subteam(_)) => Self::Subteam,
+            PrincipalId::Role(RoleId::Web(_)) => Self::WebRole,
+            PrincipalId::Role(RoleId::Subteam(_)) => Self::SubteamRole,
+        }
+    }
+
+    const fn into_actor_type(self) -> Option<ActorType> {
+        match self {
+            Self::User => Some(ActorType::User),
+            Self::Machine => Some(ActorType::Machine),
+            Self::Ai => Some(ActorType::Ai),
+            _ => None,
+        }
+    }
+
+    const fn make_principal_id(self, id: Uuid) -> PrincipalId {
+        match self {
+            Self::User => PrincipalId::Actor(ActorId::User(UserId::new(ActorEntityUuid::new(
+                EntityUuid::new(id),
+            )))),
+            Self::Machine => PrincipalId::Actor(ActorId::Machine(MachineId::new(
+                ActorEntityUuid::new(EntityUuid::new(id)),
+            ))),
+            Self::Ai => PrincipalId::Actor(ActorId::Ai(AiId::new(ActorEntityUuid::new(
+                EntityUuid::new(id),
+            )))),
+            Self::Web => PrincipalId::Team(TeamId::Web(OwnedById::new(id))),
+            Self::Subteam => PrincipalId::Team(TeamId::Subteam(SubteamId::new(id))),
+            Self::WebRole => PrincipalId::Role(RoleId::Web(WebRoleId::new(id))),
+            Self::SubteamRole => PrincipalId::Role(RoleId::Subteam(SubteamRoleId::new(id))),
+        }
+    }
+
+    const fn from_actor_id(actor_id: ActorId) -> Self {
+        match actor_id {
+            ActorId::User(_) => Self::User,
+            ActorId::Machine(_) => Self::Machine,
+            ActorId::Ai(_) => Self::Ai,
+        }
+    }
+
+    const fn from_actor_type(actor_type: ActorType) -> Self {
+        match actor_type {
+            ActorType::User => Self::User,
+            ActorType::Machine => Self::Machine,
+            ActorType::Ai => Self::Ai,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -862,13 +925,287 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
         Ok(actors)
     }
 
-    /// Gets all principal IDs associated with an actor.
+    /// Registers an action in the database.
     ///
-    /// This provides a complete set of principals that the actor can act as, including:
-    /// - The actor itself
-    /// - All roles directly assigned to the actor
-    /// - All teams that the actor's roles belong to
-    /// - All parent teams of those teams (for subteams)
+    /// # Errors
+    ///
+    /// - [`AlreadyExists`] if an action with the same ID already exists
+    /// - [`NotFound`] if the parent action doesn't exist
+    /// - [`HasSelfCycle`] if the action has a self-cycle
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`AlreadyExists`]: ActionError::AlreadyExists
+    /// [`NotFound`]: ActionError::NotFound
+    /// [`HasSelfCycle`]: ActionError::HasSelfCycle
+    /// [`StoreError`]: ActionError::StoreError
+    pub async fn register_action(
+        &mut self,
+        action: ActionName,
+        parent: Option<ActionName>,
+    ) -> Result<(), Report<ActionError>> {
+        let transaction = self
+            .transaction()
+            .await
+            .change_context(ActionError::StoreError)?;
+
+        transaction
+            .as_client()
+            .execute(
+                "INSERT INTO action (name, parent) VALUES ($1, $2)",
+                &[&action, &parent],
+            )
+            .await
+            .map_err(|error| {
+                let policy_error = match (error.code(), parent) {
+                    (Some(&SqlState::CHECK_VIOLATION), _) => {
+                        ActionError::HasSelfCycle { id: action }
+                    }
+                    (Some(&SqlState::UNIQUE_VIOLATION), _) => {
+                        ActionError::AlreadyExists { id: action }
+                    }
+                    (Some(&SqlState::FOREIGN_KEY_VIOLATION), Some(parent)) => {
+                        ActionError::NotFound { id: parent }
+                    }
+                    _ => ActionError::StoreError,
+                };
+                Report::new(error).change_context(policy_error)
+            })?;
+
+        if let Some(parent) = parent {
+            // Set up all parent-child relationships in a single query
+            // - We insert the self-cycle first with depth 0. This allows easier lookup of the
+            //   hierarchy as every action is present in the hierarchy table
+            // - Next we insert the direct parent-child relationship with depth 1
+            // - Finally, we insert the transitive relationships for all other depths
+            transaction
+                .as_client()
+                .execute(
+                    "INSERT INTO action_hierarchy (child_name, parent_name, depth)
+                    SELECT $1, $1, 0
+                    UNION ALL
+                    SELECT $1, $2, 1
+                    UNION ALL
+                    SELECT $1, parent_name, depth + 1
+                    FROM action_hierarchy
+                    WHERE child_name = $2 AND depth > 0",
+                    &[&action, &parent],
+                )
+                .await
+                .change_context(ActionError::StoreError)?;
+        } else if action == ActionName::All {
+            transaction
+                .as_client()
+                .execute(
+                    "INSERT INTO action_hierarchy (child_name, parent_name, depth)
+                    VALUES ($1, $1, 0)",
+                    &[&action],
+                )
+                .await
+                .change_context(ActionError::StoreError)?;
+        } else {
+            return Err(Report::new(ActionError::HasNoParent { id: action }));
+        }
+
+        transaction
+            .commit()
+            .await
+            .change_context(ActionError::StoreError)?;
+
+        Ok(())
+    }
+
+    /// Checks if an action exists in the database.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`StoreError`]: ActionError::StoreError
+    pub async fn has_action(&self, action: ActionName) -> Result<bool, Report<ActionError>> {
+        let row = self
+            .as_client()
+            .query_one(
+                "SELECT EXISTS(SELECT 1 FROM action WHERE name = $1)",
+                &[&action],
+            )
+            .await
+            .change_context(ActionError::StoreError)?;
+
+        Ok(row.get(0))
+    }
+
+    /// Gets all parent actions for a given action.
+    ///
+    /// # Errors
+    ///
+    /// - [`NotFound`] if the action doesn't exist
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`NotFound`]: ActionError::NotFound
+    /// [`StoreError`]: ActionError::StoreError
+    pub async fn get_parent_actions(
+        &self,
+        action: ActionName,
+    ) -> Result<Vec<ActionName>, Report<ActionError>> {
+        let parents = self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT parent_name
+                      FROM action_hierarchy
+                     WHERE child_name = $1 AND depth > 0
+                     ORDER BY depth",
+                &[&action],
+            )
+            .await
+            .change_context(ActionError::StoreError)?
+            .map_ok(|row| row.get::<_, ActionName>(0))
+            .try_collect::<Vec<_>>()
+            .await
+            .change_context(ActionError::StoreError)?;
+
+        // We expect all actions to have a parent, except for the root action so if we find that
+        // the action has no parents, we return an error
+        if action != ActionName::All && parents.is_empty() {
+            Err(Report::new(ActionError::NotFound { id: action }))
+        } else {
+            Ok(parents)
+        }
+    }
+
+    /// Unregisters an action from the database.
+    ///
+    /// # Errors
+    ///
+    /// - [`HasChildren`] if the action has children which must be unregistered first
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`HasChildren`]: ActionError::HasChildren
+    /// [`StoreError`]: ActionError::StoreError
+    pub async fn unregister_action(
+        &mut self,
+        action: ActionName,
+    ) -> Result<(), Report<ActionError>> {
+        let num_deleted = self
+            .as_mut_client()
+            .execute("DELETE FROM action WHERE name = $1", &[&action])
+            .await
+            .map_err(|error| {
+                let policy_error = match error.code() {
+                    Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
+                        ActionError::HasChildren { id: action }
+                    }
+                    _ => ActionError::StoreError,
+                };
+                Report::new(error).change_context(policy_error)
+            })?;
+
+        if num_deleted > 0 {
+            Ok(())
+        } else {
+            Err(Report::new(ActionError::NotFound { id: action }))
+        }
+    }
+
+    /// Creates a new policy in the database.
+    ///
+    /// # Errors
+    ///
+    /// - [`PolicyAlreadyExists`] if a policy with the same ID already exists
+    /// - [`PrincipalNotFound`] if a principal referenced in the policy doesn't exist
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`PolicyAlreadyExists`]: PolicyError::PolicyAlreadyExists
+    /// [`PrincipalNotFound`]: PolicyError::PrincipalNotFound
+    /// [`StoreError`]: PolicyError::StoreError
+    pub async fn create_policy(&mut self, policy: Policy) -> Result<PolicyId, Report<PolicyError>> {
+        if policy.actions.is_empty() {
+            return Err(Report::new(PolicyError::PolicyHasNoActions));
+        }
+
+        let (principal_id, actor_type) = match policy.principal {
+            Some(PrincipalConstraint::ActorType { actor_type }) => (None, Some(actor_type)),
+            Some(PrincipalConstraint::Actor { actor }) => (Some(PrincipalId::Actor(actor)), None),
+            Some(PrincipalConstraint::Team { team, actor_type }) => {
+                (Some(PrincipalId::Team(team)), actor_type)
+            }
+            Some(PrincipalConstraint::Role { role, actor_type }) => {
+                (Some(PrincipalId::Role(role)), actor_type)
+            }
+            None => (None, None),
+        };
+        let principal_type = principal_id.as_ref().map(PrincipalType::from_principal_id);
+        let actor_type = actor_type.map(PrincipalType::from_actor_type);
+
+        let transaction = self
+            .as_mut_client()
+            .transaction()
+            .await
+            .change_context(PolicyError::StoreError)?;
+
+        let policy_id = PolicyId::new(Uuid::new_v4());
+        transaction
+            .execute(
+                "INSERT INTO policy (
+                    id, effect, principal_id, principal_type, actor_type, resource_constraint
+                ) VALUES (
+                    $1, $2, $3, $4, $5, $6
+                 )",
+                &[
+                    &policy_id,
+                    &policy.effect,
+                    &principal_id.map(PrincipalId::into_uuid),
+                    &principal_type,
+                    &actor_type,
+                    &policy.resource.as_ref().map(Json),
+                ],
+            )
+            .await
+            .map_err(|error| {
+                let policy_error = match (error.code(), principal_id) {
+                    (Some(&SqlState::UNIQUE_VIOLATION), _) => {
+                        PolicyError::PolicyAlreadyExists { id: policy_id }
+                    }
+                    (Some(&SqlState::FOREIGN_KEY_VIOLATION), Some(principal_id)) => {
+                        PolicyError::PrincipalNotFound { id: principal_id }
+                    }
+                    _ => PolicyError::StoreError,
+                };
+                Report::new(error).change_context(policy_error)
+            })?;
+
+        for action in policy.actions {
+            transaction
+                .execute(
+                    "INSERT INTO policy_action (policy_id, action_name) VALUES ($1, $2)",
+                    &[&policy_id, &action],
+                )
+                .await
+                .map_err(|error| {
+                    let policy_error = match error.code() {
+                        Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
+                            PolicyError::ActionNotFound { id: action }
+                        }
+                        _ => PolicyError::StoreError,
+                    };
+                    Report::new(error).change_context(policy_error)
+                })?;
+        }
+        transaction
+            .commit()
+            .await
+            .change_context(PolicyError::StoreError)?;
+
+        Ok(policy_id)
+    }
+
+    /// Gets all policies associated with an actor.
+    ///
+    /// This provides a complete set of policies that apply to an actor, including all policies that
+    ///   - apply to the actor itself,
+    ///   - apply to the actor's roles,
+    ///   - apply to the actor's teams, and
+    ///   - apply to the actor's parent teams (for subteams).
     ///
     /// # Errors
     ///
@@ -877,93 +1214,160 @@ impl<C: AsClient, A: AuthorizationApi> PostgresStore<C, A> {
     ///
     /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
     /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn get_actor_principals(
+    // TODO: We should probably allow filtering based on the action as well here
+    #[expect(clippy::too_many_lines)]
+    pub async fn get_policies_for_actor(
         &self,
         actor_id: ActorId,
-    ) -> Result<HashSet<PrincipalId>, Report<PrincipalError>> {
-        // Use a single optimized query that gets all principals in one go:
-        // 1. The actor itself
-        // 2. All roles assigned to the actor
-        // 3. All teams associated with those roles
-        // 4. All parent teams of those teams (for subteams)
-        // We utilize the team_hierarchy table which already stores parent-child relationships
-        let principals = self
-            .as_client()
+    ) -> Result<HashMap<PolicyId, Policy>, Report<PolicyError>> {
+        // The below query does several things. It:
+        //   1. gets all principals that the actor can act as
+        //   2. gets all policies that apply to those principals
+        //   3. TODO: filters the policies based on the action -- currently not implemented
+        //
+        // Principals are retrieved by:
+        //   - the actor itself, filtered by the actor ID and actor type
+        //   - all roles assigned to the actor, filtered by the actor ID
+        //   - all teams associated with those roles, determined by the role's team ID
+        //   - all parent teams of those teams (for subteams), determined by the team hierarchy
+        //
+        // The actions are associated in the `policy_action` table. We join that table and aggregate
+        // the actions for each policy. All actions are included, but the action hierarchy is used
+        // to determine which actions are relevant to the actor.
+        self.as_client()
             .query_raw(
                 "
-                -- The actor itself
-                SELECT $1 AS id, principal_type
-                FROM actor
-                WHERE id = $1
+                WITH principals AS (
+                    -- The actor itself
+                    SELECT id, principal_type
+                    FROM actor
+                    WHERE id = $1 AND principal_type = $2
 
-                UNION ALL
+                    UNION ALL
 
-                -- All roles directly assigned to the actor
-                SELECT role.id, role.principal_type
-                FROM actor_role
-                JOIN role ON actor_role.role_id = role.id
-                WHERE actor_role.actor_id = $1
+                    -- All roles directly assigned to the actor
+                    SELECT role.id, role.principal_type
+                    FROM actor_role
+                    JOIN role ON actor_role.role_id = role.id
+                    WHERE actor_role.actor_id = $1
 
-                UNION ALL
+                    UNION ALL
 
-                -- Direct team of each role - always included
-                SELECT team.id, team.principal_type
-                FROM actor_role
-                JOIN role ON actor_role.role_id = role.id
-                JOIN team ON team.id = role.team_id
-                WHERE actor_role.actor_id = $1
+                    -- Direct team of each role - always included
+                    SELECT team.id, team.principal_type
+                    FROM actor_role
+                    JOIN role ON actor_role.role_id = role.id
+                    JOIN team ON team.id = role.team_id
+                    WHERE actor_role.actor_id = $1
 
-                UNION ALL
+                    UNION ALL
 
-                -- All parent teams of subteams (recursively through hierarchy)
-                SELECT parent.id, parent.principal_type
-                FROM actor_role
-                JOIN role ON actor_role.role_id = role.id
-                JOIN team_hierarchy ON team_hierarchy.child_id = role.team_id
-                JOIN team parent ON parent.id = team_hierarchy.parent_id
-                WHERE actor_role.actor_id = $1
+                    -- All parent teams of subteams (recursively through hierarchy)
+                    SELECT parent.id, parent.principal_type
+                    FROM actor_role
+                    JOIN role ON actor_role.role_id = role.id
+                    JOIN team_hierarchy ON team_hierarchy.child_id = role.team_id
+                    JOIN team parent ON parent.id = team_hierarchy.parent_id
+                    WHERE actor_role.actor_id = $1
+                ),
+                -- We filter out policies that don't apply to the actor's type or principal ID
+                policy AS (
+                    -- global and actor-type based policies
+                    SELECT policy.*
+                    FROM policy
+                    WHERE principal_id IS NULL
+                      AND (actor_type IS NULL OR actor_type = $2)
+
+                    UNION ALL
+
+                    -- actor type policies
+                    SELECT policy.*
+                    FROM policy
+                    JOIN principals
+                      ON policy.principal_id = principals.id
+                     AND policy.principal_type = principals.principal_type
+                    WHERE policy.actor_type IS NULL OR policy.actor_type = $2
+                )
+                SELECT
+                    policy.id,
+                    policy.effect,
+                    policy.principal_id,
+                    policy.principal_type,
+                    policy.actor_type,
+                    policy.resource_constraint,
+                    array_agg(policy_action.action_name)
+                FROM policy
+                JOIN policy_action ON policy.id = policy_action.policy_id
+                GROUP BY
+                    policy.id, policy.effect, policy.principal_id, policy.principal_type,
+                    policy.actor_type, policy.resource_constraint
                 ",
-                &[actor_id.as_uuid()],
+                [
+                    actor_id.as_uuid() as &(dyn ToSql + Sync),
+                    &PrincipalType::from_actor_id(actor_id),
+                ],
             )
             .await
-            .change_context(PrincipalError::StoreError)?
-            .map_ok(|row| {
-                let id: Uuid = row.get(0);
-                match row.get(1) {
-                    // Actors
-                    PrincipalType::User => PrincipalId::Actor(ActorId::User(UserId::new(
-                        ActorEntityUuid::new(EntityUuid::new(id)),
-                    ))),
-                    PrincipalType::Machine => PrincipalId::Actor(ActorId::Machine(MachineId::new(
-                        ActorEntityUuid::new(EntityUuid::new(id)),
-                    ))),
-                    PrincipalType::Ai => PrincipalId::Actor(ActorId::Ai(AiId::new(
-                        ActorEntityUuid::new(EntityUuid::new(id)),
-                    ))),
+            .change_context(PolicyError::StoreError)?
+            .map_err(|error| Report::new(error).change_context(PolicyError::StoreError))
+            .and_then(async |row| -> Result<_, Report<PolicyError>> {
+                let policy_id = PolicyId::new(row.get(0));
+                let effect = row.get(1);
+                let principal_uuid: Option<Uuid> = row.get(2);
+                let principal_type: Option<PrincipalType> = row.get(3);
+                let actor_type: Option<PrincipalType> = row.get(4);
+                let resource_constraint = row
+                    .get::<_, Option<Json<ResourceConstraint>>>(5)
+                    .map(|json| json.0);
+                let actions = row.get(6);
 
-                    // Teams
-                    PrincipalType::Web => PrincipalId::Team(TeamId::Web(OwnedById::new(id))),
-                    PrincipalType::Subteam => {
-                        PrincipalId::Team(TeamId::Subteam(SubteamId::new(id)))
+                let principal_id = match (principal_uuid, principal_type) {
+                    (Some(uuid), Some(principal_type)) => {
+                        Some(principal_type.make_principal_id(uuid))
                     }
+                    (None, None) => None,
+                    (Some(_), None) | (None, Some(_)) => {
+                        return Err(Report::new(PolicyError::InvalidPrincipalConstraint));
+                    }
+                };
 
-                    // Roles
-                    PrincipalType::WebRole => PrincipalId::Role(RoleId::Web(WebRoleId::new(id))),
-                    PrincipalType::SubteamRole => {
-                        PrincipalId::Role(RoleId::Subteam(SubteamRoleId::new(id)))
+                let actor_type = actor_type
+                    .map(|actor_type| {
+                        actor_type
+                            .into_actor_type()
+                            .ok_or(PolicyError::InvalidPrincipalConstraint)
+                    })
+                    .transpose()?;
+
+                let principal_constraint = match (principal_id, actor_type) {
+                    (None, None) => None,
+                    (None, Some(actor_type)) => Some(PrincipalConstraint::ActorType { actor_type }),
+                    (Some(PrincipalId::Actor(actor)), None) => {
+                        Some(PrincipalConstraint::Actor { actor })
                     }
-                }
+                    (Some(PrincipalId::Team(team)), actor_type) => {
+                        Some(PrincipalConstraint::Team { team, actor_type })
+                    }
+                    (Some(PrincipalId::Role(role)), actor_type) => {
+                        Some(PrincipalConstraint::Role { role, actor_type })
+                    }
+                    _ => return Err(Report::new(PolicyError::InvalidPrincipalConstraint)),
+                };
+
+                Ok((
+                    policy_id,
+                    Policy {
+                        id: policy_id,
+                        effect,
+                        principal: principal_constraint,
+                        actions,
+                        resource: resource_constraint,
+                        constraints: None,
+                    },
+                ))
             })
-            .try_collect::<HashSet<_>>()
+            .try_collect::<HashMap<_, _>>()
             .await
-            .change_context(PrincipalError::StoreError)?;
-
-        if principals.is_empty() {
-            Err(Report::new(PrincipalError::PrincipalNotFound {
-                id: PrincipalId::Actor(actor_id),
-            }))
-        } else {
-            Ok(principals)
-        }
+            .change_context(PolicyError::StoreError)
     }
 }

@@ -269,10 +269,7 @@ mod tests {
 
     use super::PrincipalConstraint;
     use crate::{
-        policies::{
-            Effect, Policy, PolicyId, action::ActionConstraint, resource::ResourceConstraint,
-            tests::check_policy,
-        },
+        policies::{ActionName, Effect, Policy, PolicyId, tests::check_policy},
         test_utils::check_serialization,
     };
 
@@ -282,20 +279,22 @@ mod tests {
         value: JsonValue,
         cedar_string: impl AsRef<str>,
     ) -> Result<(), Box<dyn Error>> {
-        let cedar_constraint = constraint.to_cedar();
         let cedar_string = cedar_string.as_ref();
-
-        assert_eq!(cedar_constraint.to_string(), cedar_string);
-        PrincipalConstraint::try_from_cedar(&cedar_constraint)?;
 
         let policy = Policy {
             id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
             principal: Some(constraint),
-            action: ActionConstraint::All {},
-            resource: ResourceConstraint::Global {},
+            actions: vec![ActionName::All],
+            resource: None,
             constraints: None,
         };
+        let cedar_policy = policy.to_cedar_static_policy()?;
+
+        assert_eq!(
+            cedar_policy.principal_constraint().to_string(),
+            cedar_string
+        );
 
         check_policy(
             &policy,
@@ -303,12 +302,8 @@ mod tests {
                 "id": policy.id,
                 "effect": "permit",
                 "principal": &value,
-                "action": {
-                    "type": "all",
-                },
-                "resource": {
-                    "type": "global",
-                },
+                "actions": ["all"],
+                "resource": null,
             }),
             formatdoc!(
                 "permit(
@@ -322,6 +317,9 @@ mod tests {
         )?;
 
         check_serialization(&policy.principal, value);
+
+        let parsed_policy = Policy::try_from_cedar(&cedar_policy)?;
+        assert_eq!(parsed_policy, policy);
 
         Ok(())
     }

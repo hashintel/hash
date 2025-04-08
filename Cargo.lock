@@ -3226,6 +3226,7 @@ dependencies = [
 name = "hash-graph-authorization"
 version = "0.0.0"
 dependencies = [
+ "bytes",
  "cedar-policy-core",
  "cedar-policy-validator",
  "derive-where",

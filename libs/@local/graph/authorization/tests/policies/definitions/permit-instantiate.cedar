@@ -1,6 +1,6 @@
 permit (
   principal,
-  action == HASH::Action::"instantiate",
+  action in [HASH::Action::"instantiate"],
   resource is HASH::EntityType
 )
 unless
@@ -13,6 +13,6 @@ unless
 
 permit (
   principal == HASH::Machine::"{system_machine_id}",
-  action == HASH::Action::"instantiate",
+  action in [HASH::Action::"instantiate"],
   resource is HASH::EntityType
 );

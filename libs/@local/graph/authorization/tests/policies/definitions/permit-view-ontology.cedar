@@ -1,5 +1,5 @@
 permit (
   principal,
-  action == HASH::Action::"view",
+  action in [HASH::Action::"view"],
   resource is HASH::EntityType
 );

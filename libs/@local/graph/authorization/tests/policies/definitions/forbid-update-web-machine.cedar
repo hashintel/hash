@@ -1,6 +1,6 @@
 forbid (
   principal is HASH::User,
-  action == HASH::Action::"update",
+  action in [HASH::Action::"update"],
   resource is HASH::Entity
 )
 when
