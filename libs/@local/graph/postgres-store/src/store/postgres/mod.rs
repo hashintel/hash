@@ -136,7 +136,8 @@ where
         }
 
         // We have not identified the machine, yet. We can check if there are more than one machine.
-        // If there is only one machine, it is the system account.
+        // If there is only one machine, it is the system account because it is the only machine
+        // which could create new machines.
         let machines = self
             .as_client()
             .query_raw(
@@ -172,10 +173,13 @@ where
         let machine_id = if let Some(machine) = self.search_existing_system_account().await? {
             machine
         } else {
+            // TODO: Create an actual machine once we have proper machine management in the
+            // database.
             // self.create_machine(None)
             //     .await
             //     .change_context(GetSystemAccountError::CreateSystemAccountFailed)?
 
+            // Use the public NIL UUID as actor here.
             let machine_id = ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4()));
             self.insert_account_id(
                 ActorEntityUuid::new(EntityUuid::new(Uuid::nil())),
