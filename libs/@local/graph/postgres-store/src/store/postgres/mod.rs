@@ -179,7 +179,7 @@ where
             //     .await
             //     .change_context(GetSystemAccountError::CreateSystemAccountFailed)?
 
-            // Use the public NIL UUID as actor here.
+            // Use the public NIL UUID as actor here as we don't have a valid one, yet.
             let machine_id = ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4()));
             self.insert_account_id(
                 ActorEntityUuid::new(EntityUuid::new(Uuid::nil())),
