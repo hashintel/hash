@@ -14,10 +14,10 @@ import type { ReadableStream } from "node:stream/web";
 import { fileURLToPath } from "node:url";
 
 import type {
-  EntityUuid,
+  ActorId,
+  OwnedById,
   PropertyObjectMetadata,
   ProvidedEntityEditionProvenance,
-  VersionedUrl,
 } from "@blockprotocol/type-system";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import {
@@ -25,7 +25,7 @@ import {
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import type { GraphApi } from "@local/hash-graph-client/dist/api.d";
 import {
   Entity,
   mergePropertyObjectAndMetadata,
@@ -40,11 +40,6 @@ import type {
   FileProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import mime from "mime-types";
-
-import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity.js";
-import { logger } from "../../shared/activity-logger.js";
-import { getFlowContext } from "../../shared/get-flow-context.js";
-import { graphApiClient } from "../../shared/graph-api-client.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -128,13 +123,14 @@ const writeFileToS3URL = async ({
 };
 
 export const createFileEntityFromUrl = async (params: {
-  entityUuid: EntityUuid | null;
+  actorId: ActorId;
+  graphApiClient: GraphApi;
   url: string;
   propertyMetadata?: PropertyObjectMetadata;
   provenance?: ProvidedEntityEditionProvenance;
-  entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
   description?: string;
   displayName?: string;
+  webId: OwnedById;
 }): Promise<
   | {
       status: "ok";
@@ -150,15 +146,15 @@ export const createFileEntityFromUrl = async (params: {
     }
 > => {
   const {
+    actorId,
+    graphApiClient,
     url: originalUrl,
     description,
     displayName,
     propertyMetadata,
     provenance: provenanceFromParams,
+    webId,
   } = params;
-
-  const { userAuthentication, webId, flowEntityId, stepId } =
-    await getFlowContext();
 
   const urlObject = new URL(originalUrl);
   const urlWithoutParams = new URL(urlObject.origin + urlObject.pathname);
@@ -174,7 +170,8 @@ export const createFileEntityFromUrl = async (params: {
       (err as Error).message
     }`;
 
-    logger.error(message);
+    // eslint-disable-next-line no-console
+    console.error(message);
 
     return {
       status: "error-downloading-file",
@@ -183,10 +180,9 @@ export const createFileEntityFromUrl = async (params: {
   }
 
   const mimeType = mime.lookup(filename) || "application/octet-stream";
-  const entityTypeIds =
-    (params.entityTypeIds ?? getEntityTypeIdForMimeType(mimeType))
-      ? [getEntityTypeIdForMimeType(mimeType)]
-      : [systemEntityTypes.file.entityTypeId];
+  const entityTypeIds = getEntityTypeIdForMimeType(mimeType)
+    ? [getEntityTypeIdForMimeType(mimeType)]
+    : [systemEntityTypes.file.entityTypeId];
 
   const stats = statSync(localFilePath);
   const fileSizeInBytes = stats.size;
@@ -212,40 +208,16 @@ export const createFileEntityFromUrl = async (params: {
       fileSizeInBytes,
   };
 
-  const ownedById = webId;
-
-  const isAiGenerated = provenanceFromParams?.actorType === "ai";
-
-  const webBotActorId = isAiGenerated
-    ? await getAiAssistantAccountIdActivity({
-        authentication: { actorId: userAuthentication.actorId },
-        graphApiClient,
-        grantCreatePermissionForWeb: ownedById,
-      })
-    : await getWebMachineActorId(
-        { graphApi: graphApiClient },
-        { actorId: userAuthentication.actorId },
-        { ownedById },
-      );
-
-  if (!webBotActorId) {
-    throw new Error(
-      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${ownedById}`,
-    );
-  }
-
   const provenance: ProvidedEntityEditionProvenance = provenanceFromParams ?? {
     actorType: "machine",
     origin: {
       type: "flow",
-      id: flowEntityId,
-      stepIds: [stepId],
     },
   };
 
   const incompleteFileEntity = await Entity.create<File>(
     graphApiClient,
-    { actorId: webBotActorId },
+    { actorId },
     {
       draft: false,
       ownedById: webId,
@@ -256,8 +228,7 @@ export const createFileEntityFromUrl = async (params: {
       entityTypeIds: entityTypeIds as [
         typeof systemEntityTypes.file.entityTypeId,
       ],
-      relationships:
-        createDefaultAuthorizationRelationships(userAuthentication),
+      relationships: createDefaultAuthorizationRelationships({ actorId }),
       provenance,
     },
   );
@@ -300,7 +271,7 @@ export const createFileEntityFromUrl = async (params: {
 
   const updatedEntity = await incompleteFileEntity.patch(
     graphApiClient,
-    { actorId: webBotActorId },
+    { actorId },
     {
       propertyPatches: propertyObjectToPatches(updatedProperties),
       provenance,
