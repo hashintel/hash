@@ -79,15 +79,15 @@ export const GraphContainer = memo(
 
     const { palette } = useTheme();
 
+    /**
+     * These are the settings that won't change in the lifetime of the graph
+     * (unless code is changed to make onEdgeClick or palette dynamic).
+     *
+     * If you need to make some settings dependent on potentially fast-changing state (e.g. viz config),
+     * put them in {@link useSetDrawSettings} and {@link useEventHandlers}.
+     */
     const settings = useMemo(
       () => ({
-        /**
-         * These are the settings that won't change in the lifetime of the graph
-         * (unless code is changed to make onEdgeClick or palette dynamic).
-         *
-         * If you need to make some settings dependent on potentially fast-changing state (e.g. viz config),
-         * put them in {@link useSetDrawSettings} and {@link useEventHandlers}.
-         */
         defaultNodeType: "bordered",
         enableEdgeEvents: !!onEdgeClick,
         /**

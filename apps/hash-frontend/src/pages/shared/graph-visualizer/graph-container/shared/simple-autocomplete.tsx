@@ -156,7 +156,7 @@ export const SimpleAutocomplete = <
           ? options.sort((a, b) => a.label.localeCompare(b.label))
           : options
       }
-      renderOption={(props, option) => {
+      renderOption={({ key: _, ...props }, option) => {
         const label =
           option.label +
           (suffixKey && option[suffixKey] ? ` ${option[suffixKey]}` : "");

@@ -227,8 +227,6 @@ export const drawChipWithIcon = ({
         height: imageHeight,
         width,
       });
-    } else {
-      throw new Error(`Image not loaded: ${icon.imageSrc}`);
     }
   } else {
     ({ height: chipHeight, top: chipTop } = drawChip(

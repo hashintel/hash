@@ -1,6 +1,7 @@
 import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
 import {
   ArrowLeftIcon,
+  ArrowUpRightAndArrowDownLeftFromCenterIcon,
   ArrowUpRightFromSquareRegularIcon,
   DownloadRegularIcon,
   FileRegularIcon,
@@ -21,6 +22,7 @@ import {
 } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useState } from "react";
+import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 import {
   useFileUploads,
@@ -178,6 +180,10 @@ export const FilePreviewSection = () => {
 
   const { isImage, fileUrl } = getFileProperties(entity.properties);
 
+  const fullScreenHandle = useFullScreenHandle();
+
+  const isFullScreen = fullScreenHandle.active;
+
   if (!fileUrl) {
     return null;
   }
@@ -222,7 +228,15 @@ export const FilePreviewSection = () => {
       }
       titleEndContent={
         <Stack direction="row" gap={1}>
-          {" "}
+          {isImage && (
+            <Tooltip placement="top" title="View in fullscreen">
+              <Box>
+                <GrayToBlueIconButton onClick={() => fullScreenHandle.enter()}>
+                  <ArrowUpRightAndArrowDownLeftFromCenterIcon />
+                </GrayToBlueIconButton>
+              </Box>
+            </Tooltip>
+          )}
           {!readonly && (
             <Tooltip
               placement="top"
@@ -277,7 +291,7 @@ export const FilePreviewSection = () => {
           justifyContent: "center",
           boxShadow: boxShadows.sm,
           borderRadius: 1,
-          height: isPdf ? "auto" : previewHeight,
+          height: isPdf ? "auto" : isFullScreen ? "100%" : previewHeight,
           position: "relative",
         })}
       >
@@ -289,11 +303,26 @@ export const FilePreviewSection = () => {
             isImage={!!isImage}
           />
         ) : isImage ? (
-          <ImageWithCheckedBackground
-            alt={alt}
-            src={fileUrl}
-            sx={{ height: previewHeight }}
-          />
+          <FullScreen
+            className="full-height-and-width-for-react-full-screen"
+            handle={fullScreenHandle}
+          >
+            <ImageWithCheckedBackground
+              alt={alt}
+              exitFullScreen={() => fullScreenHandle.exit()}
+              isFullScreen={isFullScreen}
+              src={fileUrl}
+              sx={
+                isFullScreen
+                  ? {
+                      background: ({ palette }) => palette.gray[90],
+                      padding: 4,
+                      height: "100%",
+                    }
+                  : { height: previewHeight }
+              }
+            />
+          </FullScreen>
         ) : isPdf ? (
           <PdfPreview
             setShowSearch={setShowSearch}
