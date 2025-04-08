@@ -11,13 +11,17 @@ use core::{fmt::Debug, hash::Hash};
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
+use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
         Authorized, PartialResourceId, PolicySet, Request, RequestContext,
         action::ActionName,
-        store::{CreateWebParameter, PrincipalStore, error::WebCreationError},
+        store::{
+            CreateWebParameter, PrincipalStore,
+            error::{GetSystemAccountError, WebCreationError},
+        },
     },
     schema::{
         AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
@@ -34,10 +38,10 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     query::ConflictBehavior,
 };
-use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
+use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
-use postgres_types::Json;
+use postgres_types::{Json, ToSql};
 use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
@@ -57,7 +61,7 @@ use type_system::{
         property_type::{PropertyType, schema::PropertyTypeReference},
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::{ActorEntityUuid, ActorId},
+    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId},
     web::{ActorGroupId, WebId},
 };
 use uuid::Uuid;
@@ -92,11 +96,108 @@ pub struct PostgresStore<C, A> {
     pub settings: PostgresStoreSettings,
 }
 
-impl<C, A> PrincipalStore for PostgresStore<C, A>
+impl<C, A> PostgresStore<C, A>
 where
     C: AsClient,
     A: Send + Sync,
 {
+    async fn search_existing_system_account(
+        &self,
+    ) -> Result<Option<MachineId>, Report<GetSystemAccountError>> {
+        let machine = self
+            .as_client()
+            .query_opt(
+                "
+                SELECT base_url, version, lower(transaction_time), CAST(provenance->>'createdById' AS UUID)
+                FROM ontology_temporal_metadata
+                JOIN ontology_ids ON ontology_temporal_metadata.ontology_id = ontology_ids.ontology_id
+                ORDER BY transaction_time ASC
+                LIMIT 1;
+                ",
+                &[],
+            )
+            .await
+            .change_context(GetSystemAccountError::StoreError)?
+            .map(|row| {
+                let ontology_type_id = VersionedUrl {
+                    base_url: row.get(0),
+                    version: row.get(1),
+                };
+                let transaction_time: Timestamp<TransactionTime> = row.get(2);
+                let system_account = MachineId::new(row.get(3));
+                tracing::info!(
+                    %system_account,
+                    "Found system account using ontology type `{ontology_type_id}` created at {transaction_time}"
+                );
+                system_account
+            });
+        if let Some(machine) = machine {
+            return Ok(Some(machine));
+        }
+
+        // We have not identified the machine, yet. We can check if there are more than one machine.
+        // If there is only one machine, it is the system account.
+        let machines = self
+            .as_client()
+            .query_raw(
+                "SELECT account_id FROM accounts LIMIT 2",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(GetSystemAccountError::StoreError)?
+            .map_ok(|row| MachineId::new(row.get(0)))
+            .try_collect::<Vec<_>>()
+            .await
+            .change_context(GetSystemAccountError::StoreError)?;
+
+        if machines.len() == 1 {
+            tracing::info!(
+                system_account = %machines[0],
+                "Found system account due to only one machine"
+            );
+            return Ok(Some(machines[0]));
+        }
+
+        Ok(None)
+    }
+}
+impl<C, A> PrincipalStore for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi + Send + Sync,
+{
+    async fn get_or_create_system_account(
+        &mut self,
+    ) -> Result<MachineId, Report<GetSystemAccountError>> {
+        let machine_id = if let Some(machine) = self.search_existing_system_account().await? {
+            machine
+        } else {
+            // self.create_machine(None)
+            //     .await
+            //     .change_context(GetSystemAccountError::CreateSystemAccountFailed)?
+
+            let machine_id = ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4()));
+            self.insert_account_id(
+                ActorEntityUuid::new(EntityUuid::new(Uuid::nil())),
+                InsertAccountIdParams {
+                    account_type: ActorType::Machine,
+                    account_id: machine_id,
+                },
+            )
+            .await
+            .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
+
+            tracing::info!(
+                system_account = %machine_id,
+                "Created new system account"
+            );
+
+            MachineId::new(machine_id)
+        };
+
+        Ok(machine_id)
+    }
+
     async fn create_web(
         &mut self,
         actor: ActorId,

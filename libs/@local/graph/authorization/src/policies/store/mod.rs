@@ -8,16 +8,17 @@ use std::collections::{
 
 use error_stack::{Report, bail, ensure};
 use type_system::{
-    knowledge::entity::id::EntityUuid,
+    knowledge::{entity::id::EntityUuid, property::PropertyObjectWithMetadata},
+    ontology::VersionedUrl,
     provenance::{ActorEntityUuid, ActorId, ActorType, MachineId, UserId},
     web::WebId,
 };
 use uuid::Uuid;
 
 use self::error::{
-    ActorCreationError, ContextCreationError, GetPoliciesError, PolicyStoreError,
-    RoleAssignmentError, TeamCreationError, TeamRoleCreationError, WebCreationError,
-    WebRoleCreationError,
+    ActorCreationError, ContextCreationError, GetPoliciesError, GetSystemAccountError,
+    PolicyStoreError, RoleAssignmentError, TeamCreationError, TeamRoleCreationError,
+    WebCreationError, WebRoleCreationError,
 };
 use super::{
     ContextBuilder, Policy, PolicyId,
@@ -57,12 +58,33 @@ pub enum RoleCreationParameter {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct CreateUserParameter {
+    pub entity_type_id: VersionedUrl,
+    pub properties: PropertyObjectWithMetadata,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CreateWebParameter {
     pub id: Option<Uuid>,
 }
 
 #[trait_variant::make(PrincipalStore: Send)]
 pub trait LocalPrincipalStore {
+    /// Searches for the system account and returns its ID.
+    ///
+    /// If the system account does not exist, it is created. Calling this function
+    /// also implies basic permissions on the system account, so it can be used to
+    /// further configure the system.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: GetSystemAccountError::StoreError
+    async fn get_or_create_system_account(
+        &mut self,
+    ) -> Result<MachineId, Report<GetSystemAccountError>>;
+
     /// Creates a new web and returns its ID.
     ///
     /// # Errors
