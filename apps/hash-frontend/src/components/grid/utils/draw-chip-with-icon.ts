@@ -227,6 +227,9 @@ export const drawChipWithIcon = ({
         height: imageHeight,
         width,
       });
+    } else {
+      chipTop = iconTop;
+      chipHeight = iconHeight;
     }
   } else {
     ({ height: chipHeight, top: chipTop } = drawChip(

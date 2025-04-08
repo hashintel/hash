@@ -309,7 +309,6 @@ export const FilePreviewSection = () => {
           >
             <ImageWithCheckedBackground
               alt={alt}
-              exitFullScreen={() => fullScreenHandle.exit()}
               isFullScreen={isFullScreen}
               src={fileUrl}
               sx={
