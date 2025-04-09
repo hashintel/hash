@@ -1,4 +1,5 @@
 mod ast_lowering_name_resolver;
+mod ast_lowering_special_form_expander;
 mod parse_syntax_dump;
 
 use hashql_ast::{heap::Heap, node::expr::Expr};
@@ -8,6 +9,7 @@ use hashql_syntax_jexpr::span::Span;
 
 use self::{
     ast_lowering_name_resolver::AstLoweringNameResolverSuite,
+    ast_lowering_special_form_expander::AstLoweringSpecialFormExpanderSuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 
@@ -25,7 +27,11 @@ pub(crate) trait Suite: Send + Sync + 'static {
     ) -> Result<String, SuiteDiagnostic>;
 }
 
-const SUITES: &[&dyn Suite] = &[&ParseSyntaxDumpSuite, &AstLoweringNameResolverSuite];
+const SUITES: &[&dyn Suite] = &[
+    &ParseSyntaxDumpSuite,
+    &AstLoweringNameResolverSuite,
+    &AstLoweringSpecialFormExpanderSuite,
+];
 
 pub(crate) fn find_suite(name: &str) -> Option<&'static dyn Suite> {
     SUITES.iter().find(|&suite| suite.name() == name).copied()

@@ -1,0 +1,8 @@
+//@ run: fail
+//@ description: if the path to the special form has too many segments error out
+[
+  "::kernel::special_form::if::extra",
+  { "#literal": true },
+  { "#literal": 1 },
+  { "#literal": 2 }
+]
