@@ -1,0 +1,8 @@
+//@ run: fail
+//@ description: a dict expression should not constitute a valid type expression
+[
+  "::kernel::special_form::is",
+  { "#literal": true },
+  { "#dict": { "a": "b" } } //
+  //~^ ERROR Replace this dictionary with a proper type expression
+]

@@ -7,7 +7,7 @@
    │                  │                 
    │                  ╰───────────────── This special form path is invalid
    │ 
-   │ Help: Did you mean to use 'newtype' instead? Replace 'nuwtype' with 'newtype'
+   │ Help: Did you mean to use 'newtype' instead?
    │ 
    │ Note: Available special forms include: if, is, let, type, newtype, use, fn, input, access, index
 ───╯

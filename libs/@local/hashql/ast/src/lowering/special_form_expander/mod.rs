@@ -18,7 +18,6 @@ use crate::{
     node::{
         expr::{CallExpr, Expr, ExprKind, IfExpr, IsExpr, StructExpr, TupleExpr},
         id::NodeId,
-        path::Path,
         r#type::{
             IntersectionType, StructField, StructType, TupleField, TupleType, Type, TypeKind,
             UnionType,
@@ -117,7 +116,8 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
 
         let ExprKind::Path(path) = expr.function.kind else {
-            self.diagnostics.push(invalid_type_call_function(expr.span));
+            self.diagnostics
+                .push(invalid_type_call_function(expr.function.span));
             return None;
         };
 
@@ -129,7 +129,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             create_union_type
         } else {
             self.diagnostics
-                .push(unsupported_type_constructor_function(expr.span));
+                .push(unsupported_type_constructor_function(expr.function.span));
             return None;
         };
 

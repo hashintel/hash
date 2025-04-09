@@ -263,8 +263,8 @@ pub(super) fn invalid_argument_length(
         SpecialFormKind::Newtype => {
             "The newtype/3 form should look like: (newtype name type-expr body)"
         }
-        SpecialFormKind::Use => todo!(),
-        SpecialFormKind::Fn => todo!(),
+        SpecialFormKind::Use => "The use/4 form should look like: (use module imports body)",
+        SpecialFormKind::Fn => "The fn/4 form should look like: (fn generics arguments body)",
         SpecialFormKind::Input => {
             "Use either:\n- input/3: (input name type body)\n- input/4: (input name type default \
              body)"
@@ -388,17 +388,8 @@ pub(crate) fn invalid_type_expression(
     );
 
     let message = match kind {
-        InvalidTypeExpressionKind::Dict => {
-            Cow::Borrowed("Replace this dictionary with a proper type expression")
-        }
-        InvalidTypeExpressionKind::List => {
-            Cow::Borrowed("Replace this list with a proper type expression")
-        }
         InvalidTypeExpressionKind::Literal => {
             Cow::Borrowed("Replace this literal with a type name")
-        }
-        InvalidTypeExpressionKind::Closure => {
-            Cow::Borrowed("Replace this function with a type expression")
         }
         InvalidTypeExpressionKind::If => {
             Cow::Borrowed("Replace this conditional with a concrete type")

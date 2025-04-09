@@ -1,0 +1,7 @@
+//@ run: pass
+//@ description: Invoking `::math::bit_or` should convert into a union type expression
+[
+  "::kernel::special_form::is",
+  { "#literal": true },
+  ["::math::bit_or", "Int", "Float"]
+]
