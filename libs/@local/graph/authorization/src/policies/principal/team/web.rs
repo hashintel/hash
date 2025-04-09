@@ -1,8 +1,8 @@
 use alloc::sync::Arc;
-use core::str::FromStr as _;
+use core::{iter, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::ast;
+use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use type_system::web::OwnedById;
 use uuid::Uuid;
@@ -31,6 +31,19 @@ impl CedarEntityId for OwnedById {
 pub struct Web {
     pub id: OwnedById,
     pub roles: HashSet<WebRoleId>,
+}
+
+impl Web {
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+        ast::Entity::new(
+            self.id.to_euid(),
+            iter::empty(),
+            HashSet::new(),
+            iter::empty(),
+            Extensions::none(),
+        )
+        .expect("web should be a valid Cedar entity")
+    }
 }
 
 #[cfg(test)]

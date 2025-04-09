@@ -20,6 +20,10 @@ impl Error for ActorCreationError {}
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create web: {_variant}")]
 pub enum WebCreationError {
+    #[display("Web with ID `{web_id}` already exists")]
+    AlreadyExists { web_id: OwnedById },
+    #[display("Permission to create web was denied")]
+    NotAuthorized,
     #[display("Store operation failed")]
     StoreError,
 }

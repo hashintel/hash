@@ -59,6 +59,14 @@ pub enum Team {
     Subteam(Subteam),
 }
 
+impl Team {
+    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+        match self {
+            Self::Web(web) => web.to_cedar_entity(),
+            Self::Subteam(subteam) => subteam.to_cedar_entity(),
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use core::error::Error;

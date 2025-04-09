@@ -10,8 +10,8 @@ use uuid::Uuid;
 
 pub use self::actor::Actor;
 use self::{
-    role::{RoleId, SubteamRoleId, WebRoleId},
-    team::{SubteamId, TeamId},
+    role::{Role, RoleId, SubteamRoleId, WebRoleId},
+    team::{SubteamId, Team, TeamId},
 };
 use super::cedar::CedarEntityId as _;
 
@@ -44,6 +44,13 @@ impl PrincipalId {
             Self::Role(role_id) => role_id.into_uuid(),
         }
     }
+}
+
+#[derive(Debug)]
+pub enum Principal {
+    Actor(Actor),
+    Team(Team),
+    Role(Role),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

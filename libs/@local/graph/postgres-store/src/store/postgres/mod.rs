@@ -14,6 +14,11 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
+    policies::{
+        Authorized, PartialResourceId, PolicySet, Request, RequestContext,
+        action::ActionName,
+        store::{CreateWebParameter, PrincipalStore, error::WebCreationError},
+    },
     schema::{
         AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
         WebEntityCreatorSubject, WebEntityEditorSubject, WebEntityTypeViewerSubject,
@@ -30,6 +35,7 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
+use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
 use postgres_types::Json;
 use time::OffsetDateTime;
@@ -51,9 +57,10 @@ use type_system::{
         property_type::{PropertyType, schema::PropertyTypeReference},
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::ActorEntityUuid,
+    provenance::{ActorEntityUuid, ActorId},
     web::{ActorGroupId, OwnedById},
 };
+use uuid::Uuid;
 
 pub use self::{
     pool::{AsClient, PostgresStorePool},
@@ -83,6 +90,68 @@ pub struct PostgresStore<C, A> {
     pub authorization_api: A,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub settings: PostgresStoreSettings,
+}
+
+impl<C, A> PrincipalStore for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: Send + Sync,
+{
+    async fn create_web(
+        &mut self,
+        actor: ActorId,
+        parameter: CreateWebParameter,
+    ) -> Result<OwnedById, Report<WebCreationError>> {
+        let context = self
+            .build_principal_context(actor)
+            .await
+            .change_context(WebCreationError::StoreError)?;
+        let policies = self
+            .get_policies_for_actor(actor)
+            .await
+            .change_context(WebCreationError::StoreError)?;
+
+        let web_id = OwnedById::new(parameter.id.unwrap_or_else(Uuid::new_v4));
+
+        let policy_set = PolicySet::default()
+            .with_policies(policies.values())
+            .change_context(WebCreationError::StoreError)?;
+        match policy_set
+            .evaluate(
+                &Request {
+                    actor,
+                    action: ActionName::CreateWeb,
+                    resource: Some(&PartialResourceId::Web(Some(web_id))),
+                    context: RequestContext::default(),
+                },
+                &context,
+            )
+            .change_context(WebCreationError::StoreError)?
+        {
+            Authorized::Always => {}
+            Authorized::Never => {
+                return Err(Report::new(WebCreationError::NotAuthorized))
+                    .attach_printable(StatusCode::PermissionDenied);
+            }
+            Authorized::Partial(_) => {
+                unimplemented!("Web creation is not supported for partial authorization");
+            }
+        }
+
+        if let Err(error) = self
+            .as_mut_client()
+            .execute("INSERT INTO web (id) VALUES ($1)", &[web_id.as_uuid()])
+            .await
+        {
+            return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
+                Err(error).change_context(WebCreationError::AlreadyExists { web_id })
+            } else {
+                Err(error).change_context(WebCreationError::StoreError)
+            };
+        }
+
+        Ok(web_id)
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

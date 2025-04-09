@@ -51,6 +51,29 @@ pub enum RoleCreationParameter {
     Subteam { web_id: OwnedById, parent: TeamId },
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct CreateWebParameter {
+    pub id: Option<Uuid>,
+}
+
+#[trait_variant::make(PrincipalStore: Send)]
+pub trait LocalPrincipalStore {
+    /// Creates a new web and returns its ID.
+    ///
+    /// # Errors
+    ///
+    /// - [`AlreadyExists`] if the web already exists
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`AlreadyExists`]: WebCreationError::AlreadyExists
+    /// [`StoreError`]: WebCreationError::StoreError
+    async fn create_web(
+        &mut self,
+        actor: ActorId,
+        parameter: CreateWebParameter,
+    ) -> Result<OwnedById, Report<WebCreationError>>;
+}
+
 pub trait PolicyStore {
     /// Creates a new user within the given web and returns its ID.
     ///

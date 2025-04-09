@@ -20,12 +20,29 @@ namespace HASH {
   entity User, Machine, Ai in [HASH::Web::Role, HASH::Subteam::Role] {
   };
 
-  action create, view, update appliesTo {
+  action all;
+
+  action createWeb in [all] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Web],
+  };
+
+  action create, view, update in [all] appliesTo {
     principal: [User, Machine, Ai],
     resource: [Entity, EntityType],
   };
 
-  action instantiate appliesTo {
+  action viewEntity in [view] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Entity],
+  };
+
+  action viewEntityType in [view] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [EntityType],
+  };
+
+  action instantiate in [all] appliesTo {
     principal: [User, Machine, Ai],
     resource: [EntityType],
   };

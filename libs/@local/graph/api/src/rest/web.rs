@@ -13,6 +13,7 @@ use error_stack::Report;
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
+    policies::store::PrincipalStore,
     schema::{
         WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
         WebEntityTypeViewerSubject, WebEntityViewerSubject, WebOwnerSubject, WebPermission,
@@ -29,7 +30,6 @@ use serde::Deserialize;
 use type_system::web::OwnedById;
 use utoipa::{OpenApi, ToSchema};
 
-use super::api_resource::RoutedResource;
 use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to_response};
 
 #[derive(OpenApi)]
@@ -62,12 +62,13 @@ use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to
 )]
 pub(crate) struct WebResource;
 
-impl RoutedResource for WebResource {
+impl WebResource {
     /// Create routes for interacting with accounts.
-    fn routes<S, A>() -> Router
+    pub(crate) fn routes<S, A>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
+        for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
     {
         Router::new().nest(
             "/webs",
@@ -118,6 +119,7 @@ async fn create_web<S, A>(
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
     let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
@@ -131,6 +133,21 @@ where
             tracing::error!(error=?report, "Could not acquire store");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
+
+    // TODO: Uncomment this once we use the new principals
+    // store
+    //     .create_web(
+    //         ActorId::User(UserId::new(actor_id)),
+    //         CreateWebParameter {
+    //             id: Some(params.owned_by_id.into_uuid()),
+    //         },
+    //     )
+    //     .await
+    //     .map_err(|report| {
+    //         tracing::error!(error=?report, "Could not create web id");
+
+    //         StatusCode::INTERNAL_SERVER_ERROR
+    //     })?;
 
     store
         .insert_web_id(actor_id, params)
