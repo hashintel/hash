@@ -16,6 +16,8 @@
 //! The [`Symbol`] type is designed as an opaque wrapper around its internal string storage.
 //! This encapsulation enables future optimizations such as string interning (either through
 //! the `string_interner` crate or a custom implementation) without requiring API changes.
+pub mod sym;
+
 use core::{
     borrow::Borrow,
     fmt::{self, Display, Formatter},
@@ -65,6 +67,20 @@ impl Symbol {
     #[must_use]
     pub fn new(name: impl AsRef<str>) -> Self {
         Self(EcoString::from(name.as_ref()))
+    }
+
+    /// Creates a new symbol from a static string literal.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::symbol::Symbol;
+    /// let keyword = Symbol::new_static("function");
+    /// assert_eq!(keyword.as_str(), "function");
+    /// ```
+    #[must_use]
+    pub const fn new_static(name: &'static str) -> Self {
+        Self(EcoString::inline(name))
     }
 
     /// Creates a new symbol from an iterator of characters.
