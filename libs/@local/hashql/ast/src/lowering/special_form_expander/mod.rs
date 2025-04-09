@@ -5,17 +5,23 @@ use core::{
     mem,
 };
 
+use hashql_core::span::SpanId;
+
 use self::error::{
     InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic, invalid_argument_length,
     invalid_type_expression, labeled_arguments_not_supported, unknown_special_form_generics,
     unknown_special_form_length, unknown_special_form_name,
 };
 use crate::{
-    heap::Heap,
+    heap::{self, Heap},
     node::{
         expr::{CallExpr, Expr, ExprKind, IfExpr, IsExpr, StructExpr, TupleExpr},
+        id::NodeId,
         path::Path,
-        r#type::{StructField, StructType, TupleField, TupleType, Type, TypeKind},
+        r#type::{
+            IntersectionType, StructField, StructType, TupleField, TupleType, Type, TypeKind,
+            UnionType,
+        },
     },
     visit::{Visitor, walk_expr},
 };
@@ -100,7 +106,57 @@ impl<'heap> SpecialFormExpander<'heap> {
     }
 
     fn lower_expr_to_type_call(&mut self, expr: CallExpr<'heap>) -> Option<Type<'heap>> {
-        todo!()
+        const fn create_intersection_type<'heap>(
+            id: NodeId,
+            span: SpanId,
+            types: heap::Vec<'heap, Type<'heap>>,
+        ) -> TypeKind<'heap> {
+            TypeKind::Intersection(IntersectionType { id, span, types })
+        }
+
+        const fn create_union_type<'heap>(
+            id: NodeId,
+            span: SpanId,
+            types: heap::Vec<'heap, Type<'heap>>,
+        ) -> TypeKind<'heap> {
+            TypeKind::Union(UnionType { id, span, types })
+        }
+
+        let ExprKind::Path(path) = expr.function.kind else {
+            todo!("error out")
+        };
+
+        let constructor = if path.matches_absolute_path(["math", "bit_and"]) {
+            // The `&` operator, which is internally overloaded for types to create intersections
+            create_intersection_type
+        } else if path.matches_absolute_path(["math", "bit_or"]) {
+            // The `|` operator, which is internally overloaded for types to create unions
+            create_union_type
+        } else {
+            todo!("error out")
+        };
+
+        let mut types = self.heap.vec(Some(expr.arguments.len()));
+
+        let arguments_len = expr.arguments.len();
+        for mut argument in expr.arguments {
+            let Some(r#type) = self.lower_expr_to_type(&mut argument.value) else {
+                continue;
+            };
+
+            types.push(r#type);
+        }
+
+        if types.len() != arguments_len {
+            // An error occurred downstream, propagate said error
+            return None;
+        }
+
+        Some(Type {
+            id: expr.id,
+            span: expr.span,
+            kind: constructor(expr.id, expr.span, types),
+        })
     }
 
     fn lower_expr_to_type_struct(&mut self, expr: StructExpr<'heap>) -> Option<Type<'heap>> {
