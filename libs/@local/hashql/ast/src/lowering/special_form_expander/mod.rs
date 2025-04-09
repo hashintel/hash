@@ -223,7 +223,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         // Implementation for if/2 special form
         // The `if/2` form takes the form (if test then) and has no else branch.
 
-        // does not allocate if not pushed to (Vec that is)
+        // Does not allocate if not pushed to, therefore safe to create
         let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
 
         let [test, then] = arguments
@@ -243,7 +243,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         // Implementation for if/3 special form
         // The `if/3` form takes the form (if test then else) and has an else branch.
 
-        // does not allocate if not pushed to (Vec that is)
+        // Does not allocate if not pushed to, therefore safe to create
         let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
 
         let [test, then, r#else] = arguments
@@ -345,8 +345,12 @@ impl<'heap> SpecialFormExpander<'heap> {
         name: SpecialFormKind,
         expected: &[usize],
     ) {
-        self.diagnostics
-            .push(invalid_argument_length(name, &call.arguments, expected));
+        self.diagnostics.push(invalid_argument_length(
+            call.span,
+            name,
+            &call.arguments,
+            expected,
+        ));
     }
 
     fn error_labelled_arguments(&mut self, call: &CallExpr<'heap>) {

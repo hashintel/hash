@@ -16,7 +16,7 @@
     ┆ ┆   
  11 │ ├─▶ ]
     │ │       
-    │ ╰─────── In this function call
+    │ ╰─────── In this special form call
     │     
     │     Help: Special forms only accept positional arguments. Convert all labeled arguments to positional arguments in the correct order.
     │     

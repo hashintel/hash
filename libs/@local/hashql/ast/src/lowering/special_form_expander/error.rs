@@ -78,12 +78,10 @@ pub(crate) fn unknown_special_form_length(
         Severity::ERROR,
     );
 
-    // More specific, action-oriented label
     diagnostic
         .labels
         .push(Label::new(span, "Fix this path to have exactly 3 segments"));
 
-    // Add a second label to show what segment is causing the issue
     if path.segments.len() > 3 {
         // Point to the problematic segment(s)
         #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
@@ -125,7 +123,6 @@ pub(crate) fn unknown_special_form_name(
         format!("Replace '{function_name}' with a valid special form name"),
     ));
 
-    // Add a contextual label for the entire path
     diagnostic
         .labels
         .push(Label::new(span, "This special form path is invalid").with_order(1));
@@ -137,12 +134,7 @@ pub(crate) fn unknown_special_form_name(
     let help = if let Some((kind, distance)) = closest_match
         && distance > 0.7
     {
-        Cow::Owned(format!(
-            "Did you mean to use '{}' instead? Replace '{}' with '{}'",
-            kind.as_str(),
-            function_name,
-            kind.as_str()
-        ))
+        Cow::Owned(format!("Did you mean to use '{kind}' instead?"))
     } else {
         Cow::Borrowed("Special forms must use one of the predefined names shown in the note below")
     };
@@ -198,6 +190,7 @@ pub(crate) fn unknown_special_form_generics(
 }
 
 pub(super) fn invalid_argument_length(
+    span: SpanId,
     kind: SpecialFormKind,
     arguments: &[Argument],
     expected: &[usize],
@@ -216,6 +209,7 @@ pub(super) fn invalid_argument_length(
 
     let max_expected = expected.iter().max().copied().unwrap_or(0);
 
+    #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     if actual > max_expected {
         let excess = &arguments[max_expected..];
 
@@ -225,12 +219,20 @@ pub(super) fn invalid_argument_length(
             .labels
             .push(Label::new(first.span, "Remove this argument"));
 
-        #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
         for (index, argument) in rest.iter().enumerate() {
             diagnostic.labels.push(
                 Label::new(argument.span, "... and this argument").with_order(-(index as i32 + 1)),
             );
         }
+
+        diagnostic.labels.push(
+            Label::new(span, format!("In this `{kind}` special form call"))
+                .with_order(-((actual + 1) as i32)),
+        );
+    } else {
+        diagnostic
+            .labels
+            .push(Label::new(span, "Add missing arguments"));
     }
 
     // Specific help text with code examples
@@ -280,7 +282,7 @@ pub(crate) fn labeled_arguments_not_supported(
 
     diagnostic
         .labels
-        .push(Label::new(span, "In this function call"));
+        .push(Label::new(span, "In this special form call"));
 
     let (first, rest) = arguments.split_first().unwrap_or_else(|| unreachable!());
 
