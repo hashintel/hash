@@ -15,7 +15,7 @@ use crate::{
     node::{
         expr::{CallExpr, Expr, ExprKind, IfExpr, IsExpr, StructExpr, TupleExpr},
         path::Path,
-        r#type::{Type, TypeKind},
+        r#type::{StructField, StructType, TupleField, TupleType, Type, TypeKind},
     },
     visit::{Visitor, walk_expr},
 };
@@ -104,11 +104,68 @@ impl<'heap> SpecialFormExpander<'heap> {
     }
 
     fn lower_expr_to_type_struct(&mut self, expr: StructExpr<'heap>) -> Option<Type<'heap>> {
-        todo!()
+        let mut fields = self.heap.vec(Some(expr.entries.len()));
+
+        let entries_len = expr.entries.len();
+        for mut entry in expr.entries {
+            let Some(r#type) = self.lower_expr_to_type(&mut entry.value) else {
+                continue;
+            };
+
+            fields.push(StructField {
+                id: entry.id,
+                span: entry.span,
+                name: entry.key,
+                r#type,
+            });
+        }
+
+        if fields.len() != entries_len {
+            // Downstream an error happened so we're propagating the error
+            return None;
+        }
+
+        Some(Type {
+            id: expr.id,
+            span: expr.span,
+            kind: TypeKind::Struct(StructType {
+                id: expr.id,
+                span: expr.span,
+                fields,
+            }),
+        })
     }
 
     fn lower_expr_to_type_tuple(&mut self, expr: TupleExpr<'heap>) -> Option<Type<'heap>> {
-        todo!()
+        let mut fields = self.heap.vec(Some(expr.elements.len()));
+
+        let elements_len = expr.elements.len();
+        for mut element in expr.elements {
+            let Some(r#type) = self.lower_expr_to_type(&mut element.value) else {
+                continue;
+            };
+
+            fields.push(TupleField {
+                id: element.id,
+                span: element.span,
+                r#type,
+            });
+        }
+
+        if fields.len() != elements_len {
+            // Downstream an error happened, so we're propagating the error
+            return None;
+        }
+
+        Some(Type {
+            id: expr.id,
+            span: expr.span,
+            kind: TypeKind::Tuple(TupleType {
+                id: expr.id,
+                span: expr.span,
+                fields,
+            }),
+        })
     }
 
     fn lower_expr_to_type(&mut self, expr: &mut Expr<'heap>) -> Option<Type<'heap>> {

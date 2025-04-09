@@ -131,7 +131,7 @@ pub(crate) fn unknown_special_form_name(
 
     let closest_match = enum_iterator::all::<SpecialFormKind>()
         .map(|kind| (kind, jaro_winkler(function_name.as_str(), kind.as_str())))
-        .max_by(|&(_, a), &(_, b)| a.total_cmp(&b));
+        .max_by(|&(_, lhs), &(_, rhs)| lhs.total_cmp(&rhs));
 
     let help = if let Some((kind, distance)) = closest_match
         && distance > 0.7
@@ -149,7 +149,7 @@ pub(crate) fn unknown_special_form_name(
     diagnostic.help = Some(Help::new(help));
 
     let names = enum_iterator::all::<SpecialFormKind>()
-        .map(|kind| kind.as_str())
+        .map(SpecialFormKind::as_str)
         .collect::<Vec<_>>()
         .join(", ");
 
@@ -224,6 +224,7 @@ pub(super) fn invalid_argument_length(
             .labels
             .push(Label::new(first.span, "Remove this argument"));
 
+        #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
         for (index, argument) in rest.iter().enumerate() {
             diagnostic.labels.push(
                 Label::new(argument.span, "... and this argument").with_order(-(index as i32 + 1)),
@@ -281,6 +282,7 @@ pub(crate) fn labeled_arguments_not_supported(
         .labels
         .push(Label::new(first.span, "Remove this labeled argument"));
 
+    #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     for (index, argument) in rest.iter().enumerate() {
         diagnostic.labels.push(
             Label::new(argument.span, "... and this labeled argument")
@@ -301,6 +303,7 @@ pub(crate) fn labeled_arguments_not_supported(
     diagnostic
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum InvalidTypeExpressionKind {
     Dict,
     List,
@@ -319,22 +322,22 @@ pub(crate) enum InvalidTypeExpressionKind {
 }
 
 impl InvalidTypeExpressionKind {
-    fn as_str(&self) -> &'static str {
+    const fn as_str(self) -> &'static str {
         match self {
-            InvalidTypeExpressionKind::Dict => "dictionary",
-            InvalidTypeExpressionKind::List => "list",
-            InvalidTypeExpressionKind::Literal => "literal",
-            InvalidTypeExpressionKind::Let => "let binding",
-            InvalidTypeExpressionKind::Type => "type definition",
-            InvalidTypeExpressionKind::NewType => "newtype definition",
-            InvalidTypeExpressionKind::Use => "use",
-            InvalidTypeExpressionKind::Input => "input",
-            InvalidTypeExpressionKind::Closure => "function",
-            InvalidTypeExpressionKind::If => "if",
-            InvalidTypeExpressionKind::Field => "field access",
-            InvalidTypeExpressionKind::Index => "index",
-            InvalidTypeExpressionKind::Is => "is",
-            InvalidTypeExpressionKind::Dummy => "dummy",
+            Self::Dict => "dictionary",
+            Self::List => "list",
+            Self::Literal => "literal",
+            Self::Let => "let binding",
+            Self::Type => "type definition",
+            Self::NewType => "newtype definition",
+            Self::Use => "use",
+            Self::Input => "input",
+            Self::Closure => "function",
+            Self::If => "if",
+            Self::Field => "field access",
+            Self::Index => "index",
+            Self::Is => "is",
+            Self::Dummy => "dummy",
         }
     }
 }
@@ -354,27 +357,27 @@ pub(crate) fn invalid_type_expression(
         Severity::ERROR,
     );
 
-    // More specific, action-oriented message
     let message = match kind {
         InvalidTypeExpressionKind::Dict => {
-            "Replace this dictionary with a proper type expression".to_string()
+            Cow::Borrowed("Replace this dictionary with a proper type expression")
         }
         InvalidTypeExpressionKind::List => {
-            "Replace this list with a proper type expression".to_string()
+            Cow::Borrowed("Replace this list with a proper type expression")
         }
-        InvalidTypeExpressionKind::Literal => "Replace this literal with a type name".to_string(),
+        InvalidTypeExpressionKind::Literal => {
+            Cow::Borrowed("Replace this literal with a type name")
+        }
         InvalidTypeExpressionKind::Closure => {
-            "Replace this function with a type expression".to_string()
+            Cow::Borrowed("Replace this function with a type expression")
         }
         InvalidTypeExpressionKind::If => {
-            "Replace this conditional with a concrete type".to_string()
+            Cow::Borrowed("Replace this conditional with a concrete type")
         }
-        _ => format!("Replace this {} with a proper type expression", kind),
+        _ => Cow::Owned(format!("Replace this {kind} with a proper type expression")),
     };
 
     diagnostic.labels.push(Label::new(span, message));
 
-    // Specific help text with examples for each case
     let help_text = match kind {
         InvalidTypeExpressionKind::Dict => {
             "Dictionaries do not constitute a valid type expression, did you mean to instantiate a \
@@ -397,6 +400,8 @@ pub(crate) fn invalid_type_expression(
 - Type names: String, Int, Float
 - Struct types: {name: String, age: Int}
 - Tuple types: (String, Int, Boolean)
+- Unions: (| String Int)
+- Intersections: (& String Int)
 - Generic types: Array<String>, Option<Int>",
     ));
 
