@@ -89,7 +89,8 @@ pub(crate) fn unknown_special_form_length(
         #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
         for (index, segment) in path.segments.iter().enumerate().skip(3) {
             diagnostic.labels.push(
-                Label::new(segment.span, "Remove this extra segment").with_order(index as i32 - 2),
+                Label::new(segment.span, "Remove this extra segment")
+                    .with_order(-(index as i32 + 2)),
             );
         }
     }
@@ -269,12 +270,17 @@ pub(super) fn invalid_argument_length(
 }
 
 pub(crate) fn labeled_arguments_not_supported(
+    span: SpanId,
     arguments: &[LabeledArgument],
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
         Severity::ERROR,
     );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "In this function call"));
 
     let (first, rest) = arguments.split_first().unwrap_or_else(|| unreachable!());
 

@@ -68,12 +68,12 @@ impl DiagnosticAnnotation {
                 // SAFETY: `Searcher` is known to return valid indices.
                 value = unsafe { value.get_unchecked(index..value.len()) };
 
-                Some(current_line + (index as u32))
+                Some(current_line - (index as u32))
             } else {
                 value = "";
 
                 // The whole line is a caret(?)
-                Some(current_line + (value.len() as u32))
+                Some(current_line - (value.len() as u32))
             }
         } else if let Some(next) = value.strip_prefix('|') {
             value = next.trim();
@@ -89,12 +89,12 @@ impl DiagnosticAnnotation {
                 // SAFETY: `Searcher` is known to return valid indices.
                 value = unsafe { value.get_unchecked(index..value.len()) };
 
-                Some(current_line - (index as u32))
+                Some(current_line + (index as u32))
             } else {
                 value = "";
 
                 // The whole line is a caret(?)
-                Some(current_line - (value.len() as u32))
+                Some(current_line + (value.len() as u32))
             }
         } else if let Some(next) = value.strip_prefix('?') {
             value = next.trim();
@@ -211,7 +211,7 @@ mod tests {
                 severity: Severity::ERROR,
                 message: "missing semicolon".to_owned(),
                 category: None,
-                line: Some(23),
+                line: Some(17),
             }
         );
     }
@@ -227,7 +227,7 @@ mod tests {
                 severity: Severity::ERROR,
                 message: "undefined variable".to_owned(),
                 category: None,
-                line: Some(17),
+                line: Some(23),
             }
         );
     }
@@ -284,7 +284,7 @@ mod tests {
                 severity: Severity::ERROR,
                 message: "complex error description".to_owned(),
                 category: Some("E100".to_owned()),
-                line: Some(17),
+                line: Some(13),
             }
         );
 

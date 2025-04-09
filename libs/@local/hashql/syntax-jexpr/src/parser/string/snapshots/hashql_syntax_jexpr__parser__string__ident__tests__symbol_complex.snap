@@ -9,7 +9,7 @@ Ident {
     span: SpanId(
         1,
     ),
-    name: Symbol(
+    value: Symbol(
         "<=>",
     ),
     kind: Symbol,

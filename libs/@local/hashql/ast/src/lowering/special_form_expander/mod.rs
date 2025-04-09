@@ -350,8 +350,10 @@ impl<'heap> SpecialFormExpander<'heap> {
     }
 
     fn error_labelled_arguments(&mut self, call: &CallExpr<'heap>) {
-        self.diagnostics
-            .push(labeled_arguments_not_supported(&call.labeled_arguments));
+        self.diagnostics.push(labeled_arguments_not_supported(
+            call.span,
+            &call.labeled_arguments,
+        ));
     }
 
     fn error_unknown_special_form(&mut self, path: &Path<'_>, hint: UnknownHint) {
@@ -387,24 +389,23 @@ impl<'heap> Visitor<'heap> for SpecialFormExpander<'heap> {
             return;
         };
 
-        let Some(ExprKind::Path(path)) = call.arguments.first().map(|arg| &arg.value.kind) else {
+        let ExprKind::Path(path) = &call.function.kind else {
             return;
         };
 
-        if !path.starts_with_absolute_path(["kernel", "special_form"]) {
+        // We're not checking for arguments, as these will result in an error later
+        if !path.starts_with_absolute_path(["kernel", "special_form"], false) {
             return;
         }
 
         if !call.labeled_arguments.is_empty() {
             self.error_labelled_arguments(call);
+            return;
         }
 
         if path.segments.len() != 3 {
             // Special form path is always exactly three segments long
             self.error_unknown_special_form(path, UnknownHint::Length);
-
-            // We consider this "fatal", in the sense that any further error reporting would be
-            // redundant.
             return;
         }
 
@@ -414,6 +415,7 @@ impl<'heap> Visitor<'heap> for SpecialFormExpander<'heap> {
             .any(|segment| !segment.arguments.is_empty())
         {
             self.error_unknown_special_form(path, UnknownHint::Generics);
+            return;
         }
 
         let function = &path.segments[2].name;

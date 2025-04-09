@@ -19,10 +19,11 @@ impl Context<'_, '_> {
         reason = "The lexer ensures that we never have more than 4GiB of text"
     )]
     pub(crate) fn span(&self, range: Range<usize>) -> SpanId {
+        // `+ 1` here to offset the opening quote
         self.spans.insert(Span {
             range: TextRange::new(
-                TextSize::from(range.start as u32),
-                TextSize::from(range.end as u32),
+                TextSize::from((range.start + 1) as u32),
+                TextSize::from((range.end + 1) as u32),
             ),
             pointer: None,
             parent_id: Some(self.parent),

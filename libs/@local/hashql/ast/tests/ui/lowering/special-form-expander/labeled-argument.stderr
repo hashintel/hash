@@ -1,0 +1,24 @@
+[31m[special-form-expander::labeled-arguments-not-supported] Error:[0m Special Form Expander
+    ╭─[ <unknown>:3:1 ]
+    │
+  3 │ ╭─▶ [
+    ┆ ┆   
+  6 │ │       ":test": { "#literal": true },
+    │ │       ──────────────┬──────────────  
+    │ │                     ╰──────────────── Remove this labeled argument
+    ┆ ┆   
+  8 │ │       ":then": { "#literal": true },
+    │ │       ──────────────┬──────────────  
+    │ │                     ╰──────────────── ... and this labeled argument
+  9 │ │       ":else": { "#literal": false }
+    │ │       ───────────────┬──────────────  
+    │ │                      ╰──────────────── ... and this labeled argument
+    ┆ ┆   
+ 11 │ ├─▶ ]
+    │ │       
+    │ ╰─────── In this function call
+    │     
+    │     Help: Special forms only accept positional arguments. Convert all labeled arguments to positional arguments in the correct order.
+    │     
+    │     Note: Unlike regular functions, special forms have fixed parameter positions and cannot use labeled arguments.
+────╯

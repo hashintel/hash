@@ -133,6 +133,7 @@ impl Path<'_> {
     pub(crate) fn starts_with_absolute_path<T>(
         &self,
         path: impl IntoIterator<Item = T, IntoIter: ExactSizeIterator>,
+        arguments_must_be_empty: bool,
     ) -> bool
     where
         T: AsRef<str>,
@@ -148,7 +149,8 @@ impl Path<'_> {
         }
 
         self.segments.iter().zip(path).all(|(segment, ident)| {
-            segment.name.value.as_str() == ident.as_ref() && segment.arguments.is_empty()
+            segment.name.value.as_str() == ident.as_ref()
+                && (!arguments_must_be_empty || segment.arguments.is_empty())
         })
     }
 }
