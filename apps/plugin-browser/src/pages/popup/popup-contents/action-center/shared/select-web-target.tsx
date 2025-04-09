@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import type { SxProps, Theme } from "@mui/material";
 import { FormControlLabel, Radio, RadioGroup, Stack } from "@mui/material";
 
@@ -18,16 +18,16 @@ const createRadioItemSx = (active: boolean): SxProps<Theme> => ({
 type SelectWebTargetProps = {
   createAs: "draft" | "live";
   setCreateAs: (createAs: "draft" | "live") => void;
-  ownedById: OwnedById;
-  setOwnedById: (ownedById: OwnedById) => void;
+  webId: WebId;
+  setWebId: (webId: WebId) => void;
   user: NonNullable<LocalStorage["user"]>;
 };
 
 export const SelectWebTarget = ({
   createAs,
   setCreateAs,
-  ownedById,
-  setOwnedById,
+  webId,
+  setWebId,
   user,
 }: SelectWebTargetProps) => {
   return (
@@ -45,8 +45,8 @@ export const SelectWebTarget = ({
         />
         <WebSelector
           active={createAs === "draft"}
-          selectedWebOwnedById={ownedById}
-          setSelectedWebOwnedById={setOwnedById}
+          selectedWebWebId={webId}
+          setSelectedWebWebId={setWebId}
           user={user}
         />
       </Stack>
@@ -59,8 +59,8 @@ export const SelectWebTarget = ({
         />
         <WebSelector
           active={createAs === "live"}
-          selectedWebOwnedById={ownedById}
-          setSelectedWebOwnedById={setOwnedById}
+          selectedWebWebId={webId}
+          setSelectedWebWebId={setWebId}
           user={user}
         />
       </Stack>

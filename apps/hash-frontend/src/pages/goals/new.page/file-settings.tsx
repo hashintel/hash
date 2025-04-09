@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { FileRegularIcon, IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -22,7 +22,7 @@ export type FileSettingsState = {
 export type FileSettingsProps = {
   settings: FileSettingsState;
   setSettings: Dispatch<SetStateAction<FileSettingsState>>;
-  webId: OwnedById;
+  webId: WebId;
 };
 
 const uploadedFileSx: SxProps<Theme> = {
@@ -110,7 +110,7 @@ export const FileSettings = ({
               ],
             }));
           },
-          ownedById: webId,
+          webId,
           returnBeforeCompletion: true,
         }),
       ),

@@ -50,7 +50,7 @@ use type_system::{
         },
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    web::OwnedById,
+    web::WebId,
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -165,7 +165,7 @@ impl RoutedResource for PropertyTypeResource {
 struct CreatePropertyTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfPropertyType,
-    owned_by_id: OwnedById,
+    web_id: WebId,
     relationships: Vec<PropertyTypeRelationAndSubject>,
     provenance: ProvidedOntologyEditionProvenance,
 }
@@ -215,7 +215,7 @@ where
 
     let Json(CreatePropertyTypeRequest {
         schema,
-        owned_by_id,
+        web_id,
         relationships,
         provenance,
     }) = body;
@@ -234,7 +234,7 @@ where
 
                     Ok(CreatePropertyTypeParams {
                         schema,
-                        ownership: OntologyOwnership::Local { owned_by_id },
+                        ownership: OntologyOwnership::Local { web_id },
                         relationships: relationships.clone(),
                         conflict_behavior: ConflictBehavior::Fail,
                         provenance: provenance.clone(),

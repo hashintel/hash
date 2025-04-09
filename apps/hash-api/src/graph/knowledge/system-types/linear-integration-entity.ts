@@ -5,7 +5,7 @@ import type {
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -135,7 +135,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
       filter: {
         all: [
           {
-            equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
+            equal: [{ path: ["webId"] }, { parameter: userAccountId }],
           },
           generateVersionedUrlMatchingFilter(
             systemEntityTypes.linearIntegration.entityTypeId,
@@ -351,7 +351,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     });
   } else {
     await createLinkEntity<SyncLinearDataWith>(context, authentication, {
-      ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
+      webId: extractWebIdFromEntityId(linearIntegrationEntityId),
       properties,
       linkData: {
         leftEntityId: linearIntegrationEntityId,

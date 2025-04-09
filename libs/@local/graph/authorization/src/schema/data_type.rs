@@ -5,7 +5,7 @@ use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::data_type::DataTypeUuid,
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, OwnedById},
+    web::{ActorGroupId, WebId},
 };
 use uuid::Uuid;
 
@@ -77,7 +77,7 @@ pub enum DataTypeSetting {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum DataTypeSubject {
-    Web(OwnedById),
+    Web(WebId),
     Setting(DataTypeSetting),
     Public,
     Account(ActorEntityUuid),
@@ -120,7 +120,7 @@ impl Resource for DataTypeSubject {
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
             (DataTypeSubjectNamespace::Web, DataTypeSubjectId::Uuid(uuid)) => {
-                Self::Web(OwnedById::new(uuid))
+                Self::Web(WebId::new(uuid))
             }
             (DataTypeSubjectNamespace::Setting, DataTypeSubjectId::Setting(setting)) => {
                 Self::Setting(setting)
@@ -183,7 +183,7 @@ impl Resource for DataTypeSubject {
 pub enum DataTypeOwnerSubject {
     Web {
         #[serde(rename = "subjectId")]
-        id: OwnedById,
+        id: WebId,
     },
 }
 

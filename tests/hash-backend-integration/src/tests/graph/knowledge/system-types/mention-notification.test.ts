@@ -25,7 +25,7 @@ import {
 import type { Text } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import { getTextFromEntity } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   blockProtocolPropertyTypes,
@@ -96,7 +96,7 @@ describe.skip("Page Mention Notification", () => {
 
     occurredInEntity = await createPage(graphContext, authentication, {
       title: "Test Page",
-      ownedById: triggerUser.accountId as OwnedById,
+      webId: triggerUser.accountId as WebId,
       type: "document",
     });
 
@@ -127,7 +127,7 @@ describe.skip("Page Mention Notification", () => {
         occurredInEntity,
         occurredInText,
         occurredInBlock,
-        ownedById: recipientUser.accountId as OwnedById,
+        webId: recipientUser.accountId as WebId,
       },
     );
 
@@ -382,7 +382,7 @@ describe.skip("Page Mention Notification", () => {
       { actorId: triggerUser.accountId },
       {
         parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
-        ownedById: triggerUser.accountId as OwnedById,
+        webId: triggerUser.accountId as WebId,
         textualContent: [
           {
             mentionType: "user",

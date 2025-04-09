@@ -28,7 +28,7 @@ use type_system::{
     },
     ontology::entity_type::EntityType,
     provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -77,7 +77,7 @@ async fn seed_db<A: AuthorizationApi>(
         .insert_web_id(
             account_id,
             InsertWebIdParams {
-                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                web_id: WebId::new(account_id.into_uuid()),
                 owner: WebOwnerSubject::Account { id: account_id },
             },
         )
@@ -121,14 +121,14 @@ async fn seed_db<A: AuthorizationApi>(
     let link_type: EntityType =
         serde_json::from_str(entity_type::link::FRIEND_OF_V1).expect("could not parse entity type");
 
-    let owned_by_id = OwnedById::new(account_id.into_uuid());
+    let web_id = WebId::new(account_id.into_uuid());
 
     let entity_list = transaction
         .create_entities(
             account_id,
             repeat_n(
                 CreateEntityParams {
-                    owned_by_id,
+                    web_id,
                     entity_uuid: None,
                     decision_time: None,
                     entity_type_ids: HashSet::from([entity_type.id]),
@@ -158,7 +158,7 @@ async fn seed_db<A: AuthorizationApi>(
                 .iter()
                 .flat_map(|entity_a| {
                     entity_list.iter().map(|entity_b| CreateEntityParams {
-                        owned_by_id,
+                        web_id,
                         entity_uuid: None,
                         decision_time: None,
                         entity_type_ids: HashSet::from([link_type.id.clone()]),

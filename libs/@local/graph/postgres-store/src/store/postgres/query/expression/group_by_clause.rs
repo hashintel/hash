@@ -37,7 +37,7 @@ mod tests {
         let order_by_expression = GroupByExpression {
             expressions: vec![
                 Expression::ColumnReference {
-                    column: EntityQueryPath::OwnedById.terminating_column().0,
+                    column: EntityQueryPath::WebId.terminating_column().0,
                     table_alias: Some(Alias {
                         condition_index: 1,
                         chain_depth: 2,

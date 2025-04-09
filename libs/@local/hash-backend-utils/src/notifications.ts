@@ -1,9 +1,9 @@
 import type {
   ActorEntityUuid,
   EntityId,
-  OwnedById,
   ProvidedEntityEditionProvenance,
   Timestamp,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -91,7 +91,7 @@ export const createGraphChangeNotification = async (
   const webMachineActorId = await getWebMachineActorId(
     context,
     userAuthentication,
-    { ownedById: notifiedUserAccountId as OwnedById },
+    { webId: notifiedUserAccountId as WebId },
   );
 
   const { linkEntityRelationships, notificationEntityRelationships } =
@@ -115,7 +115,7 @@ export const createGraphChangeNotification = async (
     {
       draft: false,
       entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
-      ownedById: notifiedUserAccountId as OwnedById,
+      webId: notifiedUserAccountId as WebId,
       properties: {
         value: {
           "https://hash.ai/@h/types/property-type/graph-change-type/": {
@@ -145,7 +145,7 @@ export const createGraphChangeNotification = async (
     {
       draft: false,
       entityTypeIds: [systemLinkEntityTypes.occurredInEntity.linkEntityTypeId],
-      ownedById: notifiedUserAccountId as OwnedById,
+      webId: notifiedUserAccountId as WebId,
       linkData: {
         leftEntityId: notificationEntity.metadata.recordId.entityId,
         rightEntityId: changedEntityId,

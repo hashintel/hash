@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { BaseUrl, OwnedById } from "@blockprotocol/type-system";
+import type { BaseUrl, WebId } from "@blockprotocol/type-system";
 import { Autocomplete, TextField } from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -63,9 +63,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
 
   const defaultTitle = `Quick Note - ${createdAt.toLocaleString()}`;
 
-  const { data: pages } = useAccountPages(
-    authenticatedUser.accountId as OwnedById,
-  );
+  const { data: pages } = useAccountPages(authenticatedUser.accountId as WebId);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -73,7 +71,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
   >(updateEntityMutation);
 
   const { createEntity } = useBlockProtocolCreateEntity(
-    authenticatedUser.accountId as OwnedById,
+    authenticatedUser.accountId as WebId,
   );
 
   const innerSubmit = handleSubmit(async (data) => {

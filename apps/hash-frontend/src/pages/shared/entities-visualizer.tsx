@@ -3,8 +3,8 @@ import type {
   BaseUrl,
   ClosedMultiEntityType,
   EntityId,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl, isBaseUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
@@ -204,9 +204,9 @@ export const EntitiesVisualizer: FunctionComponent<{
   const internalWebIds = useMemoCompare(
     () => {
       return [
-        authenticatedUser.accountId as OwnedById,
+        authenticatedUser.accountId as WebId,
         ...authenticatedUser.memberOf.map(
-          ({ org }) => org.accountGroupId as OwnedById,
+          ({ org }) => org.accountGroupId as WebId,
         ),
       ];
     },
@@ -248,7 +248,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     variables: {
       request: {
         filter: generateUseEntityTypeEntitiesFilter({
-          excludeOwnedByIds: internalWebIds,
+          excludeWebIds: internalWebIds,
           entityTypeBaseUrl,
           entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
           includeArchived: !!filterState.includeArchived,
@@ -290,7 +290,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     includeArchived: !!filterState.includeArchived,
     /** @todo H-3255 enable pagination when performance improvements in place */
     // limit: view === "Graph" ? undefined : limit,
-    ownedByIds: filterState.includeGlobal ? undefined : internalWebIds,
+    webIds: filterState.includeGlobal ? undefined : internalWebIds,
     sort: graphSort,
   });
 

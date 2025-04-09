@@ -15,7 +15,7 @@ import {
   getPageBlocks,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -52,13 +52,13 @@ describe("Comment", () => {
       graphContext,
       { actorId: testUser.accountId },
       {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         componentId: "text",
         blockData: await createEntity<Text>(
           graphContext,
           { actorId: testUser.accountId },
           {
-            ownedById: testUser.accountId as OwnedById,
+            webId: testUser.accountId as WebId,
             entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
@@ -76,7 +76,7 @@ describe("Comment", () => {
 
     testPage = await createPage(graphContext, authentication, {
       initialBlocks: [initialBlock],
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       title: "test page",
       type: "document",
     });
@@ -101,7 +101,7 @@ describe("Comment", () => {
     const authentication = { actorId: testUser.accountId };
 
     const comment = await createComment(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       parentEntityId: testBlock.entity.metadata.recordId.entityId,
       textualContent: [],
       author: testUser,

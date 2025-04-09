@@ -7,7 +7,7 @@ import type {
 import {
   extractBaseUrl,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   isBaseUrl,
 } from "@blockprotocol/type-system";
 import type {
@@ -711,7 +711,7 @@ export const EntitiesTable: FunctionComponent<
         selectedFilterItemIds: selectedWebs,
         setSelectedFilterItemIds: setSelectedWebs,
         isRowFiltered: (row) =>
-          !selectedWebs.has(extractOwnedByIdFromEntityId(row.entityId)),
+          !selectedWebs.has(extractWebIdFromEntityId(row.entityId)),
       },
       {
         columnKey: "entityTypes",

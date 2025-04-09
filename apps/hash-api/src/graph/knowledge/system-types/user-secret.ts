@@ -1,8 +1,8 @@
 import type {
   ActorEntityUuid,
   EntityId,
-  OwnedById,
   ProvidedEntityEditionProvenance,
+  WebId,
 } from "@blockprotocol/type-system";
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type {
@@ -182,7 +182,7 @@ export const createUserSecret = async <
     authentication,
     {
       entityTypeIds: [systemEntityTypes.userSecret.entityTypeId],
-      ownedById: userAccountId as OwnedById,
+      webId: userAccountId as WebId,
       properties: secretMetadata,
       relationships: botEditorUserViewerOnly,
     },
@@ -193,7 +193,7 @@ export const createUserSecret = async <
     { graphApi, provenance },
     authentication,
     {
-      ownedById: userAccountId as OwnedById,
+      webId: userAccountId as WebId,
       properties: { value: {} },
       linkData: {
         leftEntityId: sourceIntegrationEntityId,

@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { CheckIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -159,7 +159,7 @@ export const CreateOrEditSheetsSync = ({
       const { data } = await createEntity({
         variables: {
           entityTypeIds: [blockProtocolEntityTypes.query.entityTypeId],
-          ownedById: authenticatedUser.accountId as OwnedById,
+          webId: authenticatedUser.accountId as WebId,
           properties: {
             value: {
               "https://blockprotocol.org/@hash/types/property-type/query/": {

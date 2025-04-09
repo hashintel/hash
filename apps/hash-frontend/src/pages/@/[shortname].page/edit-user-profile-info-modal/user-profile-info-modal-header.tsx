@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { faImage } from "@fortawesome/free-regular-svg-icons";
 import {
   Avatar,
@@ -146,7 +146,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
       setNewCoverImageUploading(true);
 
       await uploadFile({
-        ownedById: userProfile.accountId as OwnedById,
+        webId: userProfile.accountId as WebId,
         makePublic: true,
         fileData: {
           description: `The cover image for the ${userProfile.displayName} user in HASH`,

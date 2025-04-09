@@ -1,4 +1,4 @@
-import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -42,7 +42,7 @@ export const createFileFromUrl: ResolverFn<
     entity,
     temporalClient: temporal,
     userAccountId: authentication.actorId,
-    webId: extractOwnedByIdFromEntityId(entity.entityId),
+    webId: extractWebIdFromEntityId(entity.entityId),
   });
 
   return entity;

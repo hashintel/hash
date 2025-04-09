@@ -88,7 +88,7 @@ mod tests {
             },
         },
         provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-        web::OwnedById,
+        web::WebId,
     };
     use uuid::Uuid;
 
@@ -100,7 +100,7 @@ mod tests {
             metadata: DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(schema.id.clone()),
                 ownership: OntologyOwnership::Local {
-                    owned_by_id: OwnedById::new(actor.into_uuid()),
+                    web_id: WebId::new(actor.into_uuid()),
                 },
                 temporal_versioning: OntologyTemporalMetadata {
                     transaction_time: Interval::new(

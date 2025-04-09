@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { extractBaseUrl, type OwnedById } from "@blockprotocol/type-system";
+import { extractBaseUrl, type WebId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -34,12 +34,12 @@ import { SortActionsDropdown } from "./shared/sort-actions-dropdown";
 import { ViewAllLink } from "./shared/view-all-link";
 
 type AccountEntitiesListProps = {
-  ownedById: OwnedById;
+  webId: WebId;
 };
 
 export const AccountEntitiesList: FunctionComponent<
   AccountEntitiesListProps
-> = ({ ownedById }) => {
+> = ({ webId }) => {
   const preferences = useUserPreferences();
 
   const [expanded, setExpanded] = useState<boolean>(
@@ -84,7 +84,7 @@ export const AccountEntitiesList: FunctionComponent<
     GetEntitySubgraphQueryVariables
   >(getEntitySubgraphQuery, {
     variables: generateSidebarEntityTypeEntitiesQueryVariables({
-      ownedById,
+      webId,
     }),
     fetchPolicy: "network-only",
   });
@@ -106,7 +106,7 @@ export const AccountEntitiesList: FunctionComponent<
       return latestEntityTypes.filter(
         (root) =>
           ((isOwnedOntologyElementMetadata(root.metadata) &&
-            root.metadata.ownedById === ownedById) ||
+            root.metadata.webId === webId) ||
             Object.keys(
               userEntitiesData?.getEntitySubgraph.typeIds ?? {},
             ).includes(root.schema.$id)) &&
@@ -121,12 +121,7 @@ export const AccountEntitiesList: FunctionComponent<
     }
 
     return null;
-  }, [
-    latestEntityTypes,
-    ownedById,
-    userEntitiesData,
-    isSpecialEntityTypeLookup,
-  ]);
+  }, [latestEntityTypes, webId, userEntitiesData, isSpecialEntityTypeLookup]);
 
   const sidebarEntityTypes = useMemo(
     () => [...(pinnedEntityTypes ?? []), ...(accountEntityTypes ?? [])],

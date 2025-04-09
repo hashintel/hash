@@ -4,12 +4,12 @@ use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
-use type_system::web::OwnedById;
+use type_system::web::WebId;
 use uuid::Uuid;
 
 use crate::policies::{cedar::CedarEntityId, principal::role::WebRoleId};
 
-impl CedarEntityId for OwnedById {
+impl CedarEntityId for WebId {
     type Error = Report<uuid::Error>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
@@ -29,7 +29,7 @@ impl CedarEntityId for OwnedById {
 
 #[derive(Debug)]
 pub struct Web {
-    pub id: OwnedById,
+    pub id: WebId,
     pub roles: HashSet<WebRoleId>,
 }
 
@@ -51,27 +51,27 @@ mod tests {
     use core::error::Error;
 
     use serde_json::json;
-    use type_system::web::OwnedById;
+    use type_system::web::WebId;
     use uuid::Uuid;
 
     use crate::{
         policies::{
             PrincipalConstraint,
-            principal::{team::TeamId, tests::check_principal},
+            principal::{group::ActorGroupId, tests::check_principal},
         },
         test_utils::check_deserialization_error,
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let web_id = OwnedById::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::Team {
+            PrincipalConstraint::ActorGroup {
                 actor_type: None,
-                team: TeamId::Web(web_id),
+                actor_group: ActorGroupId::Web(web_id),
             },
             json!({
-                "type": "team",
-                "teamType": "web",
+                "type": "actorGroup",
+                "actorGroupType": "web",
                 "id": web_id,
             }),
             format!(r#"principal in HASH::Web::"{web_id}""#),
@@ -82,8 +82,8 @@ mod tests {
     fn missing_id() -> Result<(), Box<dyn Error>> {
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "team",
-                "teamType": "web",
+                "type": "actorGroup",
+                "actorGroupType": "web",
             }),
             "missing field `id`",
         )
@@ -93,8 +93,8 @@ mod tests {
     fn unexpected_field() -> Result<(), Box<dyn Error>> {
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "team",
-                "teamType": "web",
+                "type": "actorGroup",
+                "actorGroupType": "web",
                 "id": Uuid::new_v4(),
                 "additional": "unexpected",
             }),

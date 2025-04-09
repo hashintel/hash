@@ -85,7 +85,7 @@ export const pageTypedef = gql`
       """
       The new page's account ID.
       """
-      ownedById: OwnedById!
+      webId: WebId!
       """
       Initial properties to set for the new page.
       """

@@ -1,6 +1,6 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
-import type { EntityUuid, OwnedById } from "@blockprotocol/type-system";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { expect, test } from "vitest";
@@ -8,10 +8,10 @@ import { expect, test } from "vitest";
 import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import { deduplicateEntities } from "./deduplicate-entities.js";
 
-const ownedById = generateUuid();
+const webId = generateUuid();
 
 const generateEntityId = (entityUuid: string) =>
-  entityIdFromComponents(ownedById as OwnedById, entityUuid as EntityUuid);
+  entityIdFromComponents(webId as WebId, entityUuid as EntityUuid);
 
 const ftse350EntitySummaries: LocalEntitySummary[] = [
   {

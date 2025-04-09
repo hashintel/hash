@@ -2,8 +2,8 @@ import type {
   EntityId,
   EntityMetadata,
   EntityTypeWithMetadata,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -51,10 +51,10 @@ type UserAndLinkedData = SimplifiedUser & {
   avatar?: ImageFile;
   orgs: (Simplified<Entity<Organization>> & {
     avatar?: ImageFile;
-    webOwnedById: OwnedById;
+    webWebId: WebId;
   })[];
   settingsEntityId: EntityId;
-  webOwnedById: OwnedById;
+  webWebId: WebId;
 };
 
 const persistedUserSettingKeys = [
@@ -74,7 +74,7 @@ export type PersistedUserSettings = Subtype<
     manualInferenceConfig: {
       createAs: "draft" | "live";
       model: InferenceModelName;
-      ownedById: OwnedById;
+      webId: WebId;
       targetEntityTypeIds: VersionedUrl[];
     };
     popupTab: "one-off" | "automated" | "history";

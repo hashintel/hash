@@ -212,7 +212,7 @@ export const generateEntityIdFilter = ({
   entityId: EntityId;
   includeArchived: boolean;
 }): Filter => {
-  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
+  const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
   const conditions: Filter[] = [
     {
@@ -225,9 +225,9 @@ export const generateEntityIdFilter = ({
     },
     {
       equal: [
-        { path: ["ownedById"] },
+        { path: ["webId"] },
         {
-          parameter: ownedById,
+          parameter: webId,
         },
       ],
     },

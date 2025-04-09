@@ -2,10 +2,10 @@ import type {
   ActorEntityUuid,
   EntityId,
   EntityUuid,
-  OwnedById,
   PropertyObjectMetadata,
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
+  WebId,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
@@ -40,7 +40,7 @@ const createClaim = async ({
   creatorActorId,
   draft,
   objectText,
-  ownedById,
+  webId,
   propertyProvenance,
   provenance,
   subjectText,
@@ -50,7 +50,7 @@ const createClaim = async ({
   creatorActorId: ActorEntityUuid;
   draft: boolean;
   objectText: string;
-  ownedById: OwnedById;
+  webId: WebId;
   propertyProvenance: PropertyProvenance;
   provenance: ProvidedEntityEditionProvenance;
   subjectText: string;
@@ -63,7 +63,7 @@ const createClaim = async ({
       draft,
       entityUuid: generateUuid() as EntityUuid,
       entityTypeIds: ["https://hash.ai/@h/types/entity-type/claim/v/1"],
-      ownedById,
+      webId,
       provenance,
       relationships: createDefaultAuthorizationRelationships({
         actorId: userActorId,
@@ -186,7 +186,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       creatorActorId: aiAssistantAccountId,
       draft: createEntitiesAsDraft,
       objectText: documentTitle,
-      ownedById: webId,
+      webId,
       propertyProvenance,
       provenance,
       subjectText: authorName,
@@ -202,7 +202,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       {
         draft: createEntitiesAsDraft,
         entityTypeIds: [systemLinkEntityTypes.hasObject.linkEntityTypeId],
-        ownedById: webId,
+        webId,
         provenance,
         linkData: {
           leftEntityId: authorToDocClaim.entityId,
@@ -302,7 +302,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
         creatorActorId: aiAssistantAccountId,
         draft: createEntitiesAsDraft,
         objectText: affiliateName,
-        ownedById: webId,
+        webId,
         propertyProvenance,
         provenance,
         subjectText: authorName,

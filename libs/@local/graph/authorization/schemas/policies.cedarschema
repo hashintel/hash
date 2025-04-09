@@ -5,7 +5,7 @@ namespace HASH {
   entity Web {
   };
 
-  entity Subteam in [Web, Subteam] {
+  entity Team in [Web, Team] {
   };
 
   entity Entity in [Web] {
@@ -17,7 +17,7 @@ namespace HASH {
     version: Long,
   };
 
-  entity User, Machine, Ai in [HASH::Web::Role, HASH::Subteam::Role] {
+  entity User, Machine, Ai in [HASH::Web::Role, HASH::Team::Role] {
   };
 
   action all;
@@ -48,8 +48,8 @@ namespace HASH {
   };
 }
 
-namespace HASH::Subteam {
-  entity Role in [HASH::Subteam] {
+namespace HASH::Team {
+  entity Role in [HASH::Team] {
   };
 }
 

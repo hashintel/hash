@@ -3,7 +3,7 @@ use core::error::Error;
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::entity::id::EntityUuid, ontology::property_type::PropertyTypeUuid,
-    provenance::ActorEntityUuid, web::OwnedById,
+    provenance::ActorEntityUuid, web::WebId,
 };
 use uuid::Uuid;
 
@@ -75,7 +75,7 @@ pub enum PropertyTypeSetting {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum PropertyTypeSubject {
-    Web(OwnedById),
+    Web(WebId),
     Setting(PropertyTypeSetting),
     Public,
     Account(ActorEntityUuid),
@@ -118,7 +118,7 @@ impl Resource for PropertyTypeSubject {
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
             (PropertyTypeSubjectNamespace::Web, PropertyTypeSubjectId::Uuid(uuid)) => {
-                Self::Web(OwnedById::new(uuid))
+                Self::Web(WebId::new(uuid))
             }
             (PropertyTypeSubjectNamespace::Setting, PropertyTypeSubjectId::Setting(setting)) => {
                 Self::Setting(setting)
@@ -181,7 +181,7 @@ impl Resource for PropertyTypeSubject {
 pub enum PropertyTypeOwnerSubject {
     Web {
         #[serde(rename = "subjectId")]
-        id: OwnedById,
+        id: WebId,
     },
 }
 

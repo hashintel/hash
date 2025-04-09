@@ -247,12 +247,12 @@ impl<'p> Filter<'p, Entity> {
     /// Creates a `Filter` to search for a specific entities, identified by its [`EntityId`].
     #[must_use]
     pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
-        let owned_by_id_filter = Self::Equal(
+        let web_id_filter = Self::Equal(
             Some(FilterExpression::Path {
-                path: EntityQueryPath::OwnedById,
+                path: EntityQueryPath::WebId,
             }),
             Some(FilterExpression::Parameter {
-                parameter: Parameter::Uuid(entity_id.owned_by_id.into_uuid()),
+                parameter: Parameter::Uuid(entity_id.web_id.into_uuid()),
                 convert: None,
             }),
         );
@@ -268,7 +268,7 @@ impl<'p> Filter<'p, Entity> {
 
         if let Some(draft_id) = entity_id.draft_id {
             Self::All(vec![
-                owned_by_id_filter,
+                web_id_filter,
                 entity_uuid_filter,
                 Self::Equal(
                     Some(FilterExpression::Path {
@@ -281,7 +281,7 @@ impl<'p> Filter<'p, Entity> {
                 ),
             ])
         } else {
-            Self::All(vec![owned_by_id_filter, entity_uuid_filter])
+            Self::All(vec![web_id_filter, entity_uuid_filter])
         }
     }
 
@@ -530,7 +530,7 @@ impl TryFrom<PolicyExpressionTree> for Filter<'_, Entity> {
             PolicyExpressionTree::Is(PartialResourceId::Entity(None)) => Ok(Self::All(vec![])),
             PolicyExpressionTree::In(web_id) => Ok(Self::Equal(
                 Some(FilterExpression::Path {
-                    path: EntityQueryPath::OwnedById,
+                    path: EntityQueryPath::WebId,
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::Uuid(web_id.into_uuid()),
@@ -594,7 +594,7 @@ impl TryFrom<PolicyExpressionTree> for Filter<'_, EntityTypeWithMetadata> {
             PolicyExpressionTree::Is(PartialResourceId::EntityType(None)) => Ok(Self::All(vec![])),
             PolicyExpressionTree::In(web_id) => Ok(Self::Equal(
                 Some(FilterExpression::Path {
-                    path: EntityTypeQueryPath::OwnedById,
+                    path: EntityTypeQueryPath::WebId,
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::Uuid(web_id.into_uuid()),
@@ -687,7 +687,7 @@ mod tests {
     use type_system::{
         knowledge::entity::id::{DraftId, EntityUuid},
         ontology::data_type::{ClosedDataType, ConversionExpression},
-        web::OwnedById,
+        web::WebId,
     };
     use uuid::Uuid;
 
@@ -780,7 +780,7 @@ mod tests {
     #[tokio::test]
     async fn for_entity_by_entity_id() {
         let entity_id = EntityId {
-            owned_by_id: OwnedById::new(Uuid::new_v4()),
+            web_id: WebId::new(Uuid::new_v4()),
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
             draft_id: None,
         };
@@ -788,8 +788,8 @@ mod tests {
         let expected = json!({
           "all": [
             { "equal": [
-              { "path": ["ownedById"] },
-              { "parameter": entity_id.owned_by_id }
+              { "path": ["webId"] },
+              { "parameter": entity_id.web_id }
             ]},
             { "equal": [
               { "path": ["uuid"] },
@@ -804,7 +804,7 @@ mod tests {
     #[tokio::test]
     async fn for_entity_by_entity_draft_id() {
         let entity_id = EntityId {
-            owned_by_id: OwnedById::new(Uuid::new_v4()),
+            web_id: WebId::new(Uuid::new_v4()),
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
             draft_id: Some(DraftId::new(Uuid::new_v4())),
         };
@@ -812,8 +812,8 @@ mod tests {
         let expected = json!({
           "all": [
             { "equal": [
-              { "path": ["ownedById"] },
-              { "parameter": entity_id.owned_by_id }
+              { "path": ["webId"] },
+              { "parameter": entity_id.web_id }
             ]},
             { "equal": [
               { "path": ["uuid"] },

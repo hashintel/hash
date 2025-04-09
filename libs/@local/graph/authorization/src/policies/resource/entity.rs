@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::{Report, ResultExt as _};
 use smol_str::SmolStr;
-use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
+use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::WebId};
 use uuid::Uuid;
 
 use super::entity_type::EntityTypeId;
@@ -16,7 +16,7 @@ use crate::policies::cedar::{
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityResource<'a> {
-    pub web_id: OwnedById,
+    pub web_id: WebId,
     pub id: EntityUuid,
     pub entity_type: Cow<'a, [VersionedUrl]>,
 }
@@ -167,7 +167,7 @@ pub enum EntityResourceConstraint {
         id: EntityUuid,
     },
     Web {
-        web_id: OwnedById,
+        web_id: WebId,
         filter: EntityResourceFilter,
     },
 }
@@ -200,7 +200,7 @@ mod tests {
     use core::{error::Error, str::FromStr as _};
 
     use serde_json::json;
-    use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
+    use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::WebId};
     use uuid::Uuid;
 
     use super::{EntityResourceConstraint, EntityResourceFilter};
@@ -284,7 +284,7 @@ mod tests {
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "entity",
-                "webId": OwnedById::new(Uuid::new_v4()),
+                "webId": WebId::new(Uuid::new_v4()),
                 "id": entity_uuid,
             }),
             "data did not match any variant of untagged enum EntityResourceConstraint",
@@ -295,7 +295,7 @@ mod tests {
 
     #[test]
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
-        let web_id = OwnedById::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::new_v4());
         check_resource(
             Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
                 web_id,
@@ -315,7 +315,7 @@ mod tests {
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "entity",
-                "webId": OwnedById::new(Uuid::new_v4()),
+                "webId": WebId::new(Uuid::new_v4()),
                 "id": EntityUuid::new(Uuid::new_v4()),
             }),
             "data did not match any variant of untagged enum EntityResourceConstraint",
@@ -326,7 +326,7 @@ mod tests {
 
     #[test]
     fn constraint_in_web_with_filter() -> Result<(), Box<dyn Error>> {
-        let web_id = OwnedById::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::new_v4());
         check_resource(
             Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
                 web_id,

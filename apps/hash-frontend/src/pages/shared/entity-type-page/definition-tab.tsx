@@ -62,12 +62,12 @@ export const DefinitionTab = ({
     [entityTypeOptions, propertyTypeOptions],
   );
 
-  const newTypeOwnedById = useNewTypeOwner(
+  const newTypeWebId = useNewTypeOwner(
     entityTypeAndPropertyTypes.entityType.schema.$id,
   );
 
   const ontologyFunctions = useEditorOntologyFunctions(
-    newTypeOwnedById ?? null,
+    newTypeWebId ?? null,
     typesWithMetadata,
   );
 

@@ -6,7 +6,7 @@ use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use uuid::Uuid;
 
-use crate::policies::{cedar::CedarEntityId, principal::team::SubteamId};
+use crate::policies::{cedar::CedarEntityId, principal::group::TeamId};
 
 #[derive(
     Debug,
@@ -21,9 +21,9 @@ use crate::policies::{cedar::CedarEntityId, principal::team::SubteamId};
 )]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
-pub struct SubteamRoleId(Uuid);
+pub struct TeamRoleId(Uuid);
 
-impl SubteamRoleId {
+impl TeamRoleId {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
@@ -40,12 +40,12 @@ impl SubteamRoleId {
     }
 }
 
-impl CedarEntityId for SubteamRoleId {
+impl CedarEntityId for TeamRoleId {
     type Error = Report<uuid::Error>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
-            LazyLock::new(|| crate::policies::cedar_resource_type(["Subteam", "Role"]));
+            LazyLock::new(|| crate::policies::cedar_resource_type(["Team", "Role"]));
         &ENTITY_TYPE
     }
 
@@ -59,21 +59,21 @@ impl CedarEntityId for SubteamRoleId {
 }
 
 #[derive(Debug)]
-pub struct SubteamRole {
-    pub id: SubteamRoleId,
-    pub subteam_id: SubteamId,
+pub struct TeamRole {
+    pub id: TeamRoleId,
+    pub team_id: TeamId,
 }
 
-impl SubteamRole {
+impl TeamRole {
     pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
-            HashSet::from([self.subteam_id.to_euid()]),
+            HashSet::from([self.team_id.to_euid()]),
             iter::empty(),
             Extensions::none(),
         )
-        .expect("subteam role should be a valid Cedar entity")
+        .expect("team role should be a valid Cedar entity")
     }
 }
 
@@ -84,7 +84,7 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    use super::SubteamRoleId;
+    use super::TeamRoleId;
     use crate::{
         policies::{
             PrincipalConstraint,
@@ -94,18 +94,18 @@ mod tests {
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let subteam_role_id = SubteamRoleId::new(Uuid::new_v4());
+        let team_role_id = TeamRoleId::new(Uuid::new_v4());
         check_principal(
             PrincipalConstraint::Role {
                 actor_type: None,
-                role: RoleId::Subteam(subteam_role_id),
+                role: RoleId::Team(team_role_id),
             },
             json!({
                 "type": "role",
-                "roleType": "subteam",
-                "id": subteam_role_id,
+                "roleType": "team",
+                "id": team_role_id,
             }),
-            format!(r#"principal in HASH::Subteam::Role::"{subteam_role_id}""#),
+            format!(r#"principal in HASH::Team::Role::"{team_role_id}""#),
         )
     }
 
@@ -114,7 +114,7 @@ mod tests {
         check_deserialization_error::<PrincipalConstraint>(
             json!({
                 "type": "role",
-                "roleType": "subteam",
+                "roleType": "team",
             }),
             "missing field `id`",
         )
@@ -125,7 +125,7 @@ mod tests {
         check_deserialization_error::<PrincipalConstraint>(
             json!({
                 "type": "role",
-                "roleType": "subteam",
+                "roleType": "team",
                 "id": Uuid::new_v4(),
                 "additional": "unexpected",
             }),

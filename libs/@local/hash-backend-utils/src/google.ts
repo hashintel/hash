@@ -56,7 +56,7 @@ export const getGoogleAccountById = async ({
       filter: {
         all: [
           {
-            equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
+            equal: [{ path: ["webId"] }, { parameter: userAccountId }],
           },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
           generateVersionedUrlMatchingFilter(

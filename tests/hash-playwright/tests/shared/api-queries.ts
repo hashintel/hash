@@ -1,4 +1,4 @@
-import type { LinkData, OwnedById } from "@blockprotocol/type-system";
+import type { LinkData, WebId } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityProperties } from "@local/hash-graph-types/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
@@ -59,7 +59,7 @@ export const createEntity = async <T extends EntityProperties>(
     properties: T["propertiesWithMetadata"];
     linkData?: LinkData;
     linkedEntities?: LinkedEntityDefinition[];
-    ownedById: OwnedById;
+    webId: WebId;
   },
 ): Promise<Entity<T>> => {
   return callGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
@@ -72,7 +72,7 @@ export const createEntity = async <T extends EntityProperties>(
         properties: params.properties,
         linkData: params.linkData,
         linkedEntities: params.linkedEntities,
-        ownedById: params.ownedById,
+        webId: params.webId,
       },
     },
   ).then(({ data }) => {

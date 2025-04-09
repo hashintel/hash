@@ -5,11 +5,7 @@ import {
   createFileFromUploadRequest,
 } from "@apps/hash-api/src/graph/knowledge/system-types/file";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type {
-  EntityId,
-  OwnedById,
-  Timestamp,
-} from "@blockprotocol/type-system";
+import type { EntityId, Timestamp, WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -84,7 +80,7 @@ describe("File", () => {
       authentication,
       {
         name: "test-file",
-        fileEntityCreationInput: { ownedById: testUser.accountId as OwnedById },
+        fileEntityCreationInput: { webId: testUser.accountId as WebId },
         size: 100,
       },
     );
@@ -110,7 +106,7 @@ describe("File", () => {
     const authentication = { actorId: testUser.accountId };
 
     const file = await createFileFromExternalUrl(graphContext, authentication, {
-      fileEntityCreationInput: { ownedById: testUser.accountId as OwnedById },
+      fileEntityCreationInput: { webId: testUser.accountId as WebId },
       url: externalUrl,
     });
 

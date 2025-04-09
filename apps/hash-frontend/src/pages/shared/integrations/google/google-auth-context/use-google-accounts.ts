@@ -43,7 +43,7 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
             ),
             {
               equal: [
-                { path: ["ownedById"] },
+                { path: ["webId"] },
                 { parameter: authenticatedUser.accountId },
               ],
             },

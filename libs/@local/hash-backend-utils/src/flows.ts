@@ -2,11 +2,11 @@ import type {
   ActorEntityUuid,
   EntityId,
   EntityUuid,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   splitEntityId,
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
@@ -106,7 +106,7 @@ export async function getFlowRunById({
     return null;
   }
 
-  const webId = extractOwnedByIdFromEntityId(
+  const webId = extractWebIdFromEntityId(
     existingFlowEntity.metadata.recordId.entityId,
   );
 
@@ -209,10 +209,10 @@ export async function getFlowRuns({
     .then(({ data: response }) => {
       const flowRunIdToOwnedByAndName: Record<
         EntityUuid,
-        { ownedById: OwnedById; name: string }
+        { webId: WebId; name: string }
       > = {};
       for (const entity of response.entities) {
-        const [ownedById, entityUuid] = splitEntityId(
+        const [webId, entityUuid] = splitEntityId(
           entity.metadata.recordId.entityId as EntityId,
         );
 
@@ -220,7 +220,7 @@ export async function getFlowRuns({
           name: (entity.properties as FlowRunEntity["properties"])[
             "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
           ],
-          ownedById,
+          webId,
         };
       }
       return flowRunIdToOwnedByAndName;
@@ -279,7 +279,7 @@ export async function getFlowRuns({
         name: flowDetails.name,
         workflowId: flowRunId,
         temporalClient,
-        webId: flowDetails.ownedById,
+        webId: flowDetails.webId,
       });
       workflows.push(runInfo);
     }
@@ -317,7 +317,7 @@ export async function getFlowRuns({
         name: flowDetails.name,
         workflowId: flowRunId,
         temporalClient,
-        webId: flowDetails.ownedById,
+        webId: flowDetails.webId,
       });
       workflows.push(runInfo);
     }

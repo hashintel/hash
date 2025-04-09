@@ -2,12 +2,12 @@ use core::{assert_matches::assert_matches, error::Error};
 
 use hash_graph_authorization::policies::{
     action::ActionName,
-    principal::{PrincipalId, team::TeamId},
+    principal::{PrincipalId, group::ActorGroupId},
     store::{CreateWebParameter, PrincipalStore as _, error::WebCreationError},
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
-use type_system::web::OwnedById;
+use type_system::web::WebId;
 use uuid::Uuid;
 
 use crate::DatabaseTestWrapper;
@@ -37,7 +37,7 @@ async fn create_web_with_id() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: Some(id) })
         .await?;
-    assert_eq!(web_id, OwnedById::new(id));
+    assert_eq!(web_id, WebId::new(id));
     assert!(client.is_web(web_id).await?);
 
     Ok(())
@@ -95,7 +95,7 @@ async fn get_non_existent_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (client, _actor_id) = db.seed([]).await?;
 
-    let non_existent_id = OwnedById::new(Uuid::new_v4());
+    let non_existent_id = WebId::new(Uuid::new_v4());
     let result = client.get_web(non_existent_id).await?;
 
     assert!(
@@ -111,12 +111,12 @@ async fn delete_non_existent_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed([]).await?;
 
-    let non_existent_id = OwnedById::new(Uuid::new_v4());
+    let non_existent_id = WebId::new(Uuid::new_v4());
     let result = client.delete_web(non_existent_id).await;
 
     assert_matches!(
         result.expect_err("Deleting a non-existent web should fail").current_context(),
-        PrincipalError::PrincipalNotFound { id } if *id == PrincipalId::Team(TeamId::Web(non_existent_id))
+        PrincipalError::PrincipalNotFound { id } if *id == PrincipalId::ActorGroup(ActorGroupId::Web(non_existent_id))
     );
 
     Ok(())

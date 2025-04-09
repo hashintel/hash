@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import type {
   FlowDefinition,
@@ -70,7 +70,7 @@ type RunFlowModalProps = {
   flowDefinition: FlowDefinition;
   open: boolean;
   onClose: () => void;
-  runFlow: (outputs: FlowTrigger["outputs"], webId: OwnedById) => Promise<void>;
+  runFlow: (outputs: FlowTrigger["outputs"], webId: WebId) => Promise<void>;
 };
 
 export const RunFlowModal = ({
@@ -83,8 +83,8 @@ export const RunFlowModal = ({
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const [webId, setWebId] = useState<OwnedById>(
-    authenticatedUser.accountId as OwnedById,
+  const [webId, setWebId] = useState<WebId>(
+    authenticatedUser.accountId as WebId,
   );
 
   const [formState, setFormState] = useState<FormState>(() =>
@@ -212,8 +212,8 @@ export const RunFlowModal = ({
           })}
           <WebSelector
             inputHeight={inputHeight}
-            selectedWebOwnedById={webId}
-            setSelectedWebOwnedById={(newWebId) => setWebId(newWebId)}
+            selectedWebId={webId}
+            setSelectedWebId={(newWebId) => setWebId(newWebId)}
           />
           <Button
             disabled={!allRequiredValuesPresent || pending}

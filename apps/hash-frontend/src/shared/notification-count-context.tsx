@@ -99,7 +99,7 @@ export const NotificationCountContextProvider: FunctionComponent<
             all: [
               {
                 equal: [
-                  { path: ["ownedById"] },
+                  { path: ["webId"] },
                   { parameter: authenticatedUser?.accountId },
                 ],
               },
@@ -150,7 +150,7 @@ export const NotificationCountContextProvider: FunctionComponent<
               all: [
                 {
                   equal: [
-                    { path: ["ownedById"] },
+                    { path: ["webId"] },
                     { parameter: authenticatedUser?.accountId },
                   ],
                 },

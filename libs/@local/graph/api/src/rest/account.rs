@@ -26,7 +26,7 @@ use hash_graph_store::{
 use hash_temporal_client::TemporalClient;
 use type_system::{
     provenance::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
-    web::{ActorGroupId, OwnedById},
+    web::{ActorGroupId, WebId},
 };
 use utoipa::OpenApi;
 
@@ -194,7 +194,7 @@ where
         })?;
 
     let account = store
-        .identify_owned_by_id(OwnedById::from(actor_id))
+        .identify_web_id(WebId::from(actor_id))
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not identify account");

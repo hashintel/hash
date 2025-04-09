@@ -2,7 +2,7 @@ import type {
   ActorEntityUuid,
   ActorGroupId,
   EntityId,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
@@ -85,7 +85,7 @@ export const createEntityResolver: ResolverFn<
 > = async (
   _,
   {
-    ownedById,
+    webId,
     properties,
     entityTypeIds,
     linkedEntities,
@@ -121,7 +121,7 @@ export const createEntityResolver: ResolverFn<
     ]);
 
     entity = await createLinkEntity(context, authentication, {
-      ownedById: ownedById ?? (user.accountId as OwnedById),
+      webId: webId ?? (user.accountId as WebId),
       properties,
       linkData: {
         leftEntityId,
@@ -135,7 +135,7 @@ export const createEntityResolver: ResolverFn<
     });
   } else {
     entity = await createEntityWithLinks(context, authentication, {
-      ownedById: ownedById ?? (user.accountId as OwnedById),
+      webId: webId ?? (user.accountId as WebId),
       entityTypeIds: mustHaveAtLeastOne(entityTypeIds),
       properties,
       linkedEntities: linkedEntities ?? undefined,
@@ -281,12 +281,12 @@ export const getEntityResolver: ResolverFn<
   graphQLContext,
   info,
 ) => {
-  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
+  const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
   const filter: Filter = {
     all: [
       {
-        equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+        equal: [{ path: ["webId"] }, { parameter: webId }],
       },
       {
         equal: [{ path: ["uuid"] }, { parameter: entityUuid }],

@@ -1,7 +1,7 @@
 import type {
   ActorEntityUuid,
   DataTypeWithMetadata,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
@@ -95,7 +95,7 @@ const Page: NextPageWithLayout = () => {
               },
             },
           },
-          ownedById: "irrelevant-here" as OwnedById,
+          webId: "irrelevant-here" as WebId,
         },
         schema: dataTypeSchema,
       } satisfies DataTypeWithMetadata;
@@ -119,7 +119,7 @@ const Page: NextPageWithLayout = () => {
   return (
     <>
       <DataType
-        ownedById={routeNamespace.ownedById}
+        webId={routeNamespace.webId}
         draftNewDataType={draftDataType}
         dataTypeBaseUrl={dataTypeBaseUrl}
         key={`${dataTypeBaseUrl}-${requestedVersion}`}

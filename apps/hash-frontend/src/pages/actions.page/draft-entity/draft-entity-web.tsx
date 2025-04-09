@@ -1,4 +1,4 @@
-import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
@@ -14,8 +14,8 @@ import { DraftEntityChip } from "./draft-entity-chip";
 export const DraftEntityWeb: FunctionComponent<{ entity: Entity }> = ({
   entity,
 }) => {
-  const ownedById = useMemo(
-    () => extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+  const webId = useMemo(
+    () => extractWebIdFromEntityId(entity.metadata.recordId.entityId),
     [entity],
   );
 
@@ -28,26 +28,24 @@ export const DraftEntityWeb: FunctionComponent<{ entity: Entity }> = ({
       return undefined;
     }
 
-    const org = orgs.find(({ accountGroupId }) => accountGroupId === ownedById);
+    const org = orgs.find(({ accountGroupId }) => accountGroupId === webId);
 
     if (org) {
       return org;
     }
 
-    if (authenticatedUser.accountId === ownedById) {
+    if (authenticatedUser.accountId === webId) {
       return authenticatedUser;
     }
 
-    const user = users.find(({ accountId }) => accountId === ownedById);
+    const user = users.find(({ accountId }) => accountId === webId);
 
     if (user) {
       return user;
     }
 
-    throw new Error(
-      `Could not find web of draft entity with ownedById ${ownedById}`,
-    );
-  }, [ownedById, orgs, users, authenticatedUser]);
+    throw new Error(`Could not find web of draft entity with webId ${webId}`);
+  }, [webId, orgs, users, authenticatedUser]);
 
   const label = useMemo(() => {
     if (!web) {

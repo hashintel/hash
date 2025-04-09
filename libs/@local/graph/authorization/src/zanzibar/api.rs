@@ -9,7 +9,7 @@ use type_system::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, OwnedById},
+    web::{ActorGroupId, WebId},
 };
 
 use crate::{
@@ -153,7 +153,7 @@ where
         &self,
         actor: ActorEntityUuid,
         permission: WebPermission,
-        web: OwnedById,
+        web: WebId,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         self.backend
@@ -165,11 +165,7 @@ where
     async fn modify_web_relations(
         &mut self,
         relationships: impl IntoIterator<
-            Item = (
-                ModifyRelationshipOperation,
-                OwnedById,
-                WebRelationAndSubject,
-            ),
+            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
             IntoIter: Send,
         > + Send,
     ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
@@ -188,11 +184,11 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_web_relations(
         &self,
-        web: OwnedById,
+        web: WebId,
         consistency: Consistency<'static>,
     ) -> Result<Vec<WebRelationAndSubject>, Report<ReadError>> {
         self.backend
-            .read_relations::<(OwnedById, WebRelationAndSubject)>(
+            .read_relations::<(WebId, WebRelationAndSubject)>(
                 RelationshipFilter::from_resource(web),
                 consistency,
             )

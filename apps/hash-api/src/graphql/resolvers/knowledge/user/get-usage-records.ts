@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
 import {
@@ -68,7 +68,7 @@ export const getUsageRecordsResolver: ResolverFn<
       { graphApi: dataSources.graphApi },
       {
         userAccountId,
-        webId: userAccountId as OwnedById,
+        webId: userAccountId as WebId,
       },
     );
     records.push({ shortname: shortname ?? "NO SHORTNAME", usageRecords });

@@ -83,7 +83,7 @@ export const scalars = {
   LinkData: "@blockprotocol/type-system#LinkData",
   SubgraphTemporalAxes: "@local/hash-subgraph#SubgraphTemporalAxes",
 
-  OwnedById: "@blockprotocol/type-system#OwnedById",
+  WebId: "@blockprotocol/type-system#WebId",
   EditionCreatedById: "@local/hash-subgraph#EditionCreatedById",
   ActorId: "@blockprotocol/type-system#ActorId",
   ActorGroupId: "@blockprotocol/type-system#ActorGroupId",

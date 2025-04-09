@@ -2,8 +2,8 @@ import type {
   ActorEntityUuid,
   ActorGroupId,
   EntityId,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type {
   DataTypeRelationAndSubject as DataTypeRelationAndSubjectGraph,
@@ -39,7 +39,7 @@ export type WebRelationAndSubject =
 export type WebAuthorizationRelationship = {
   resource: {
     kind: "web";
-    resourceId: OwnedById;
+    resourceId: WebId;
   };
 } & WebRelationAndSubject;
 

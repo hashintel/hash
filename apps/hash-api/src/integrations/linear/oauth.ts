@@ -4,7 +4,7 @@ import type {
   ActorEntityUuid,
   EntityId,
   EntityUuid,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { LinearClient } from "@linear/sdk";
@@ -46,7 +46,7 @@ const stateMap = new Map<
   {
     actorEntityId: EntityId;
     expires: Date;
-    ownedById: EntityUuid;
+    webId: EntityUuid;
   }
 >();
 
@@ -64,7 +64,7 @@ export const oAuthLinear: RequestHandler<
   Record<string, never>,
   string,
   {
-    ownedById?: EntityUuid;
+    webId?: EntityUuid;
   }
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -84,26 +84,26 @@ export const oAuthLinear: RequestHandler<
   }
   const authentication = { actorId: req.user.accountId };
 
-  const { ownedById } = req.query;
+  const { webId } = req.query;
 
-  if (!ownedById) {
-    res.status(400).send("No ownedById for secret provided.");
+  if (!webId) {
+    res.status(400).send("No webId for secret provided.");
     return;
   }
 
   const userEntityId = req.user.entity.metadata.recordId.entityId;
 
   if (
-    extractEntityUuidFromEntityId(userEntityId) !== ownedById &&
+    extractEntityUuidFromEntityId(userEntityId) !== webId &&
     !(await isUserMemberOfOrg(req.context, authentication, {
       userEntityId,
-      orgEntityUuid: ownedById as EntityUuid,
+      orgEntityUuid: webId as EntityUuid,
     }))
   ) {
     res
       .status(403)
       .send(
-        "ownedById must represent the user or an organization they are a member of.",
+        "webId must represent the user or an organization they are a member of.",
       );
     return;
   }
@@ -113,7 +113,7 @@ export const oAuthLinear: RequestHandler<
   stateMap.set(state, {
     actorEntityId: req.user.entity.metadata.recordId.entityId,
     expires: new Date(Date.now() + 1000 * 60 * 5), // 5 minutes expiry
-    ownedById: ownedById as EntityUuid,
+    webId: webId as EntityUuid,
   });
 
   res.redirect(generateLinearOAuthUrl(state));
@@ -235,7 +235,7 @@ export const oAuthLinearCallback: RequestHandler<
       authentication,
       {
         entityTypeIds: [systemEntityTypes.linearIntegration.entityTypeId],
-        ownedById: userAccountId as OwnedById,
+        webId: userAccountId as WebId,
         properties: linearIntegrationProperties,
         relationships: createDefaultAuthorizationRelationships(authentication),
       },

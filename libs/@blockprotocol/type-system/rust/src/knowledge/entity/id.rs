@@ -10,7 +10,7 @@ use serde::{
 use utoipa::{ToSchema, openapi};
 use uuid::Uuid;
 
-use crate::web::OwnedById;
+use crate::web::WebId;
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
@@ -82,7 +82,7 @@ impl fmt::Display for DraftId {
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityId {
-    pub owned_by_id: OwnedById,
+    pub web_id: WebId,
     pub entity_uuid: EntityUuid,
     pub draft_id: Option<DraftId>,
 }
@@ -95,17 +95,13 @@ impl fmt::Display for EntityId {
             write!(
                 fmt,
                 "{}{}{}{}{}",
-                self.owned_by_id,
-                ENTITY_ID_DELIMITER,
-                self.entity_uuid,
-                ENTITY_ID_DELIMITER,
-                draft_id,
+                self.web_id, ENTITY_ID_DELIMITER, self.entity_uuid, ENTITY_ID_DELIMITER, draft_id,
             )
         } else {
             write!(
                 fmt,
                 "{}{}{}",
-                self.owned_by_id, ENTITY_ID_DELIMITER, self.entity_uuid
+                self.web_id, ENTITY_ID_DELIMITER, self.entity_uuid
             )
         }
     }
@@ -126,7 +122,7 @@ impl<'de> Deserialize<'de> for EntityId {
         D: Deserializer<'de>,
     {
         let entity_id = String::deserialize(deserializer)?;
-        let (owned_by_id, tail) = entity_id.split_once(ENTITY_ID_DELIMITER).ok_or_else(|| {
+        let (web_id, tail) = entity_id.split_once(ENTITY_ID_DELIMITER).ok_or_else(|| {
             de::Error::custom(format!(
                 "failed to find `{ENTITY_ID_DELIMITER}` delimited string",
             ))
@@ -138,7 +134,7 @@ impl<'de> Deserialize<'de> for EntityId {
             });
 
         Ok(Self {
-            owned_by_id: OwnedById::new(Uuid::from_str(owned_by_id).map_err(de::Error::custom)?),
+            web_id: WebId::new(Uuid::from_str(web_id).map_err(de::Error::custom)?),
             entity_uuid: EntityUuid::new(Uuid::from_str(entity_uuid).map_err(de::Error::custom)?),
             draft_id: draft_id
                 .map(|draft_id| {

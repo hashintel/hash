@@ -6,7 +6,7 @@ use error_stack::{Report, ResultExt as _};
 use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::{BaseUrl, VersionedUrl, id::OntologyTypeVersion},
-    web::OwnedById,
+    web::WebId,
 };
 
 use super::{
@@ -36,7 +36,7 @@ pub enum PermissionCondition {
     All(Vec<Self>),
     Any(Vec<Self>),
     Is(PartialResourceId<'static>),
-    In(OwnedById),
+    In(WebId),
     Attribute(ResourceAttribute),
 }
 

@@ -1,5 +1,5 @@
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
-import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   LinkEntity,
@@ -103,7 +103,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     HasSpatiallyPositionedContent | HasIndexedContent
   >(ctx, authentication, {
     // assume that link to block is owned by the same account as the blockCollection
-    ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
+    webId: extractWebIdFromEntityId(blockCollectionEntityId),
     properties: mergePropertyObjectAndMetadata<
       HasSpatiallyPositionedContent | HasIndexedContent
     >(canvasPosition || indexPosition, undefined),

@@ -406,13 +406,13 @@ where
 
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
             let data_type_id = DataTypeUuid::from_url(&parameters.schema.id);
-            if let OntologyOwnership::Local { owned_by_id } = &parameters.ownership {
+            if let OntologyOwnership::Local { web_id } = &parameters.ownership {
                 transaction
                     .authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreateDataType,
-                        *owned_by_id,
+                        *web_id,
                         Consistency::FullyConsistent,
                     )
                     .await
@@ -423,7 +423,7 @@ where
                 relationships.insert((
                     data_type_id,
                     DataTypeRelationAndSubject::Owner {
-                        subject: DataTypeOwnerSubject::Web { id: *owned_by_id },
+                        subject: DataTypeOwnerSubject::Web { id: *web_id },
                         level: 0,
                     },
                 ));
@@ -843,13 +843,13 @@ where
                 .assert_permission()
                 .change_context(UpdateError)?;
 
-            let (_ontology_id, owned_by_id, temporal_versioning) = transaction
+            let (_ontology_id, web_id, temporal_versioning) = transaction
                 .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
                 .await?;
 
             relationships.extend(
                 iter::once(DataTypeRelationAndSubject::Owner {
-                    subject: DataTypeOwnerSubject::Web { id: owned_by_id },
+                    subject: DataTypeOwnerSubject::Web { id: web_id },
                     level: 0,
                 })
                 .chain(parameters.relationships)
@@ -873,7 +873,7 @@ where
             ));
             updated_data_type_metadata.push(DataTypeMetadata {
                 record_id,
-                ownership: OntologyOwnership::Local { owned_by_id },
+                ownership: OntologyOwnership::Local { web_id },
                 temporal_versioning,
                 provenance,
                 conversions: parameters.conversions,

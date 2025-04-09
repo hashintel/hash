@@ -20,4 +20,4 @@ export const isExternalOntologyElementMetadata = (
 
 export const isOwnedOntologyElementMetadata = (
   metadata: OntologyElementMetadata,
-): metadata is OwnedOntologyElementMetadata => "ownedById" in metadata;
+): metadata is OwnedOntologyElementMetadata => "webId" in metadata;

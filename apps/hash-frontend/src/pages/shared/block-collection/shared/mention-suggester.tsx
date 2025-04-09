@@ -3,12 +3,12 @@ import type {
   BaseUrl,
   EntityId,
   EntityTypeWithMetadata,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -96,7 +96,7 @@ export interface MentionSuggesterProps {
   // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
   // before this was: onChange(mention: Mention): void;
   onChange: (mention: Mention) => void;
-  ownedById: OwnedById;
+  webId: WebId;
 }
 
 type EntitiesByType = {
@@ -110,7 +110,7 @@ const numberOfEntitiesDisplayedPerSection = 4;
 export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   search = "",
   onChange,
-  ownedById: _ownedById,
+  webId: _webId,
 }) => {
   const { authenticatedUser } = useAuthenticatedUser();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -154,16 +154,13 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               any: [
                 {
                   equal: [
-                    { path: ["ownedById"] },
+                    { path: ["webId"] },
                     { parameter: authenticatedUser.accountId },
                   ],
                 },
                 ...authenticatedUser.memberOf.map(
                   ({ org: { accountGroupId } }) => ({
-                    equal: [
-                      { path: ["ownedById"] },
-                      { parameter: accountGroupId },
-                    ],
+                    equal: [{ path: ["webId"] }, { parameter: accountGroupId }],
                   }),
                 ),
                 generateVersionedUrlMatchingFilter(
@@ -292,10 +289,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               // Sort the entities to ensure the user's entities are displayed first
               const sortedEntities = allEntities.sort((a, b) => {
                 const isAInUserAccount =
-                  extractOwnedByIdFromEntityId(a.metadata.recordId.entityId) ===
+                  extractWebIdFromEntityId(a.metadata.recordId.entityId) ===
                   authenticatedUser.accountId;
                 const isBInUserAccount =
-                  extractOwnedByIdFromEntityId(b.metadata.recordId.entityId) ===
+                  extractWebIdFromEntityId(b.metadata.recordId.entityId) ===
                   authenticatedUser.accountId;
 
                 if (isAInUserAccount && !isBInUserAccount) {

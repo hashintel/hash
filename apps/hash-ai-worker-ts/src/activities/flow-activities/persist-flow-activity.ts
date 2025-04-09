@@ -1,8 +1,8 @@
 import type {
   ActorEntityUuid,
   OriginProvenance,
-  OwnedById,
   ProvidedEntityEditionProvenance,
+  WebId,
 } from "@blockprotocol/type-system";
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -18,7 +18,7 @@ import { graphApiClient } from "../shared/graph-api-client.js";
 type PersistFlowActivityParams = {
   flow: LocalFlowRun;
   userAuthentication: { actorId: ActorEntityUuid };
-  webId: OwnedById;
+  webId: WebId;
 };
 
 export const persistFlowActivity = async (
@@ -60,7 +60,7 @@ export const persistFlowActivity = async (
     });
   } else {
     await Entity.create<FlowRun>(graphApiClient, userAuthentication, {
-      ownedById: webId,
+      webId,
       entityUuid: flowRunId,
       entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
       properties: flowRunProperties,

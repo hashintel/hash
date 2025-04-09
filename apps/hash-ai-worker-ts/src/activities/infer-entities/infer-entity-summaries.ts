@@ -1,8 +1,8 @@
 import type {
   ActorEntityUuid,
   EntityId,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Status } from "@local/status";
@@ -50,7 +50,7 @@ export const inferEntitySummaries = async (params: {
   userAccountId: ActorEntityUuid;
   graphApiClient: GraphApi;
   flowEntityId?: EntityId;
-  webId: OwnedById;
+  webId: WebId;
 }): Promise<Status<InferenceState>> => {
   const {
     completionPayload,

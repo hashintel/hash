@@ -135,7 +135,7 @@ export const createDataTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationCreateDataTypeArgs
 > = async (_, params, { dataSources, authentication, provenance }) => {
-  const { ownedById, conversions, dataType } = params;
+  const { webId, conversions, dataType } = params;
 
   const createdDataType = await createDataType(
     {
@@ -144,7 +144,7 @@ export const createDataTypeResolver: ResolverFn<
     },
     authentication,
     {
-      ownedById,
+      webId,
       schema: dataType,
       relationships: defaultDataTypeAuthorizationRelationships,
       conversions: conversions ?? {},

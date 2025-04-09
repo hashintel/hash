@@ -1,5 +1,5 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { Popper } from "@mui/material";
@@ -132,7 +132,7 @@ const docChangedInTransaction = (tr: Transaction) => {
  */
 export const createSuggester = (
   renderPortal: RenderPortal,
-  ownedById: OwnedById,
+  webId: WebId,
   documentRoot: HTMLElement,
   getManager?: () => ProsemirrorManager,
 ) =>
@@ -382,7 +382,7 @@ export const createSuggester = (
                 <MentionSuggester
                   search={search}
                   onChange={onMentionChange}
-                  ownedById={ownedById}
+                  webId={webId}
                 />
               );
           }

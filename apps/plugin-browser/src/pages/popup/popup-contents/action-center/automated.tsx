@@ -51,7 +51,7 @@ export const Automated = ({
   ) => void;
   user: NonNullable<LocalStorage["user"]>;
 }) => {
-  const { createAs, enabled, model, ownedById } = automaticInferenceConfig;
+  const { createAs, enabled, model, webId } = automaticInferenceConfig;
 
   return (
     <Box>
@@ -127,11 +127,11 @@ export const Automated = ({
                 createAs: newCreateAs,
               })
             }
-            ownedById={ownedById}
-            setOwnedById={(newOwnedById) =>
+            webId={webId}
+            setWebId={(newWebId) =>
               setAutomaticInferenceConfig({
                 ...automaticInferenceConfig,
-                ownedById: newOwnedById,
+                webId: newWebId,
               })
             }
             user={user}

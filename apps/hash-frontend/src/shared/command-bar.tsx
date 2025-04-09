@@ -211,14 +211,14 @@ export const CommandBar: FunctionComponent = () => {
 
   const router = useRouter();
 
-  const { activeWorkspaceOwnedById, activeWorkspace } = useActiveWorkspace();
+  const { activeWorkspaceWebId, activeWorkspace } = useActiveWorkspace();
 
   const { hashInstance } = useHashInstance();
 
-  const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
+  const { lastRootPageIndex } = useAccountPages(activeWorkspaceWebId);
   const [createUntitledPage] = useCreatePage({
     shortname: activeWorkspace?.shortname,
-    ownedById: activeWorkspaceOwnedById,
+    webId: activeWorkspaceWebId,
   });
 
   const [inputValue, setInputValue] = useState("");

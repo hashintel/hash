@@ -22,11 +22,11 @@ scenarios:
               url: /
               json:
                 query: |
-                  mutation createEntity($ownedById: OwnedById!, $entityTypeId: VersionedUrl!, $properties: PropertyObjectWithMetadata!) {
-                    createEntity(ownedById: $ownedById, entityTypeId: $entityTypeId, properties: $properties)
+                  mutation createEntity($webId: WebId!, $entityTypeId: VersionedUrl!, $properties: PropertyObjectWithMetadata!) {
+                    createEntity(webId: $webId, entityTypeId: $entityTypeId, properties: $properties)
                   }
                 variables:
-                  ownedById: "{{ session.ownedById }}"
+                  webId: "{{ session.webId }}"
                   entityTypeId: https://hash.ai/@h/types/entity-type/usage-record/v/1
                   properties:
                     value:
@@ -44,9 +44,9 @@ scenarios:
               name: Create entity in Graph
               url: http://127.0.0.1:4000/entities/bulk
               headers:
-                X-Authenticated-User-Actor-Id: "{{ session.ownedById }}"
+                X-Authenticated-User-Actor-Id: "{{ session.webId }}"
               json:
-                - ownedById: "{{ session.ownedById }}"
+                - webId: "{{ session.webId }}"
                   entityTypeIds:
                     - https://hash.ai/@h/types/entity-type/usage-record/v/1
                   properties:

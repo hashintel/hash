@@ -1,7 +1,7 @@
 import type {
   OntologyTemporalMetadata,
-  OwnedById,
   PropertyTypeWithMetadata,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
@@ -47,13 +47,13 @@ export const createPropertyTypeResolver: ResolverFn<
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const { ownedById, propertyType } = params;
+  const { webId, propertyType } = params;
 
   const createdPropertyType = await createPropertyType(
     context,
     authentication,
     {
-      ownedById: (ownedById ?? user.accountId) as OwnedById,
+      webId: (webId ?? user.accountId) as WebId,
       schema: propertyType,
       relationships: defaultPropertyTypeAuthorizationRelationships,
     },

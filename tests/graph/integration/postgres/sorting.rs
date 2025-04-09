@@ -27,7 +27,7 @@ use type_system::{
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -199,7 +199,7 @@ async fn insert<A: AuthorizationApi>(
         api.create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
                 decision_time: None,
                 entity_type_ids: HashSet::from([type_id.clone()]),

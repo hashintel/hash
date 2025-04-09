@@ -1,4 +1,4 @@
-import type { EntityUuid, OwnedById } from "@blockprotocol/type-system";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 import type {
   CheckpointLog,
   DetailedFlowField,
@@ -600,7 +600,7 @@ export const getSparseFlowRunFromWorkflowId = async ({
   temporalClient,
 }: {
   name: string;
-  webId: OwnedById;
+  webId: WebId;
   workflowId: EntityUuid;
   temporalClient: TemporalClient;
 }): Promise<SparseFlowRun> => {
@@ -624,7 +624,7 @@ export const getSparseFlowRunFromWorkflowId = async ({
 
 export const getFlowRunFromWorkflowId = async (args: {
   name: string;
-  webId: OwnedById;
+  webId: WebId;
   workflowId: EntityUuid;
   temporalClient: TemporalClient;
 }): Promise<FlowRun> => {

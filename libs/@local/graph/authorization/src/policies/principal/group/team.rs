@@ -6,8 +6,8 @@ use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use uuid::Uuid;
 
-use super::TeamId;
-use crate::policies::{cedar::CedarEntityId, principal::role::SubteamRoleId};
+use super::ActorGroupId;
+use crate::policies::{cedar::CedarEntityId, principal::role::TeamRoleId};
 
 #[derive(
     Debug,
@@ -22,9 +22,9 @@ use crate::policies::{cedar::CedarEntityId, principal::role::SubteamRoleId};
 )]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
-pub struct SubteamId(Uuid);
+pub struct TeamId(Uuid);
 
-impl SubteamId {
+impl TeamId {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
@@ -41,12 +41,12 @@ impl SubteamId {
     }
 }
 
-impl CedarEntityId for SubteamId {
+impl CedarEntityId for TeamId {
     type Error = Report<uuid::Error>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
-            LazyLock::new(|| crate::policies::cedar_resource_type(["Subteam"]));
+            LazyLock::new(|| crate::policies::cedar_resource_type(["Team"]));
         &ENTITY_TYPE
     }
 
@@ -60,22 +60,26 @@ impl CedarEntityId for SubteamId {
 }
 
 #[derive(Debug)]
-pub struct Subteam {
-    pub id: SubteamId,
-    pub parents: Vec<TeamId>,
-    pub roles: HashSet<SubteamRoleId>,
+pub struct Team {
+    pub id: TeamId,
+    pub parents: Vec<ActorGroupId>,
+    pub roles: HashSet<TeamRoleId>,
 }
 
-impl Subteam {
+impl Team {
     pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
-            self.parents.iter().copied().map(TeamId::to_euid).collect(),
+            self.parents
+                .iter()
+                .copied()
+                .map(ActorGroupId::to_euid)
+                .collect(),
             iter::empty(),
             Extensions::none(),
         )
-        .expect("subteam should be a valid Cedar entity")
+        .expect("team should be a valid Cedar entity")
     }
 }
 
@@ -86,28 +90,28 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    use super::SubteamId;
+    use super::TeamId;
     use crate::{
         policies::{
             PrincipalConstraint,
-            principal::{team::TeamId, tests::check_principal},
+            principal::{group::ActorGroupId, tests::check_principal},
         },
         test_utils::check_deserialization_error,
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let subteam_id = SubteamId::new(Uuid::new_v4());
+        let team_id = TeamId::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::Team {
+            PrincipalConstraint::ActorGroup {
                 actor_type: None,
-                team: TeamId::Subteam(subteam_id),
+                actor_group: ActorGroupId::Team(team_id),
             },
             json!({
-                "type": "team",
-                "teamType": "subteam",
-                "id": subteam_id,
+                "type": "actorGroup",
+                "actorGroupType": "team",
+                "id": team_id,
             }),
-            format!(r#"principal in HASH::Subteam::"{subteam_id}""#),
+            format!(r#"principal in HASH::Team::"{team_id}""#),
         )
     }
 
@@ -115,8 +119,8 @@ mod tests {
     fn missing_id() -> Result<(), Box<dyn Error>> {
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "team",
-                "teamType": "subteam",
+                "type": "actorGroup",
+                "actorGroupType": "team",
             }),
             "missing field `id`",
         )
@@ -126,8 +130,8 @@ mod tests {
     fn unexpected_field() -> Result<(), Box<dyn Error>> {
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "team",
-                "teamType": "subteam",
+                "type": "actorGroup",
+                "actorGroupType": "team",
                 "id": Uuid::new_v4(),
                 "additional": "unexpected",
             }),

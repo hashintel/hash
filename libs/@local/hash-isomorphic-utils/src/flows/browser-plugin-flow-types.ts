@@ -1,4 +1,4 @@
-import type { OwnedById, VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 
 import type { InferenceModelName } from "../ai-inference-types.js";
@@ -9,7 +9,7 @@ export type AutomaticInferenceSettings = {
   displayGroupedBy: "type" | "location";
   enabled: boolean;
   model: InferenceModelName;
-  ownedById: OwnedById;
+  webId: WebId;
   rules: {
     restrictToDomains: string[];
     entityTypeId: VersionedUrl;
@@ -51,7 +51,7 @@ export type ManualInferenceTriggerInputs = Subtype<
   }
 >;
 
-type BaseInferenceArguments = { webId: OwnedById };
+type BaseInferenceArguments = { webId: WebId };
 
 export type AutomaticInferenceArguments = AutomaticInferenceTriggerInputs &
   BaseInferenceArguments;

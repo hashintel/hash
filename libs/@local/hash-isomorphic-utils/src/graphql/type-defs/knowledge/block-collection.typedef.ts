@@ -46,7 +46,7 @@ export const blockCollectionTypedef = gql`
     """
     The account ID to create the block and associated entity in.
     """
-    ownedById: OwnedById!
+    webId: WebId!
     """
     The position of the block in the block collection
     """
@@ -132,7 +132,7 @@ export const blockCollectionTypedef = gql`
   input CreateEntityAction {
     entity: EntityDefinition!
     entityPlaceholderId: ID
-    ownedById: OwnedById!
+    webId: WebId!
   }
 
   """

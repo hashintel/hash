@@ -1,7 +1,7 @@
 import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
 import {
   extractDraftIdFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import {
   ArrowUpRightFromSquareRegularIcon,
@@ -15,7 +15,7 @@ import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import type { ReactNode } from "react";
 
-import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
+import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { isItemArchived } from "../../../shared/is-archived";
 import { Link } from "../../../shared/ui";
 import { inSlideContainerStyles } from "../shared/slide-styles";
@@ -54,10 +54,10 @@ export const EntityHeader = ({
   onUnarchived: () => void;
   showTabs?: boolean;
 }) => {
-  const { shortname } = useUserOrOrgShortnameByOwnedById({
-    ownedById:
+  const { shortname } = useUserOrOrgShortnameByWebId({
+    webId:
       entity && !isLocalDraft
-        ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+        ? extractWebIdFromEntityId(entity.metadata.recordId.entityId)
         : null,
   });
 

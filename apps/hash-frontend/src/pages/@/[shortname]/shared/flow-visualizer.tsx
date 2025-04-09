@@ -1,7 +1,7 @@
 import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
-import type { EntityId, OwnedById } from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import { IconButton, Skeleton } from "@hashintel/design-system";
 import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -534,9 +534,7 @@ export const FlowVisualizer = () => {
 
   const runFlow = useCallback(
     async (
-      args:
-        | { outputs: FlowTrigger["outputs"]; webId: OwnedById }
-        | { reRun: true },
+      args: { outputs: FlowTrigger["outputs"]; webId: WebId } | { reRun: true },
     ) => {
       let flowInputs: FlowInputs[number];
 
@@ -588,7 +586,7 @@ export const FlowVisualizer = () => {
 
       setShowRunModal(false);
 
-      const { shortname } = getOwner({ ownedById: flowInputs.webId });
+      const { shortname } = getOwner({ webId: flowInputs.webId });
 
       void push(generateWorkerRunPath({ shortname, flowRunId }));
     },

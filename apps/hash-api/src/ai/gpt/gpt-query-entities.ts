@@ -2,7 +2,7 @@ import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import {
   entityIdFromComponents,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import type {
   SimpleEntityWithoutHref,
@@ -199,7 +199,7 @@ export const gptQueryEntities: RequestHandler<
             ? [
                 {
                   any: webUuids.map((webUuid) => ({
-                    equal: [{ path: ["ownedById"] }, { parameter: webUuid }],
+                    equal: [{ path: ["webId"] }, { parameter: webUuid }],
                   })),
                 },
               ]
@@ -254,11 +254,9 @@ export const gptQueryEntities: RequestHandler<
         /**
          * Resolve details of the web that the entity belongs to
          */
-        const webOwnedById = extractOwnedByIdFromEntityId(
-          simpleEntity.entityId,
-        );
+        const webWebId = extractWebIdFromEntityId(simpleEntity.entityId);
 
-        let web = webs.find((resolvedWeb) => resolvedWeb.uuid === webOwnedById);
+        let web = webs.find((resolvedWeb) => resolvedWeb.uuid === webWebId);
 
         if (!web) {
           const owningEntity = await getLatestEntityById(
@@ -266,8 +264,8 @@ export const gptQueryEntities: RequestHandler<
             { actorId: user.accountId },
             {
               entityId: entityIdFromComponents(
-                webOwnedById,
-                webOwnedById as string as EntityUuid,
+                webWebId,
+                webWebId as string as EntityUuid,
               ),
             },
           );
@@ -280,7 +278,7 @@ export const gptQueryEntities: RequestHandler<
             name: (
               owningEntity.properties as UserProperties | OrganizationProperties
             )["https://hash.ai/@h/types/property-type/shortname/"]!,
-            uuid: webOwnedById,
+            uuid: webWebId,
           };
 
           webs.push(web);

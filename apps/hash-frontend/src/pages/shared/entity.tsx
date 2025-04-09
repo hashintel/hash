@@ -157,7 +157,7 @@ export const Entity = ({
 
   const { pushToSlideStack } = useSlideStack();
 
-  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
+  const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
   const [dataFromDb, setDataFromDb] =
     useState<
@@ -314,7 +314,7 @@ export const Entity = ({
               equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
             },
             {
-              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+              equal: [{ path: ["webId"] }, { parameter: webId }],
             },
             ...(draftId
               ? [

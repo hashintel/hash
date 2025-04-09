@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client";
-import type { BaseUrl, OwnedById } from "@blockprotocol/type-system";
+import type { BaseUrl, WebId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -117,7 +117,7 @@ export const EditableQuickNote: FunctionComponent<{
     useState(false);
 
   const { refetch: refetchPageTree } = useAccountPages(
-    authenticatedUser.accountId as OwnedById,
+    authenticatedUser.accountId as WebId,
   );
 
   const blockCollectionEntityId = quickNoteEntity.metadata.recordId.entityId;
@@ -377,7 +377,7 @@ export const EditableQuickNote: FunctionComponent<{
       {contents && contents.length > 0 ? (
         <BlockCollection
           autoFocus={autoFocus}
-          ownedById={authenticatedUser.accountId as OwnedById}
+          webId={authenticatedUser.accountId as WebId}
           entityId={quickNoteEntity.metadata.recordId.entityId}
           contents={contents}
           readonly={false}
