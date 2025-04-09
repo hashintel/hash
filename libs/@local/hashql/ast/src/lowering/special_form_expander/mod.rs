@@ -37,7 +37,7 @@ enum SpecialFormKind {
 }
 
 impl SpecialFormKind {
-    fn as_str(&self) -> &'static str {
+    const fn as_str(self) -> &'static str {
         match self {
             Self::If => "if",
             Self::Is => "is",
@@ -75,6 +75,7 @@ impl Display for SpecialFormKind {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum UnknownHint {
     Length,   // Either too long or too short
     Name,     // Unknown name
@@ -92,6 +93,10 @@ impl<'heap> SpecialFormExpander<'heap> {
             heap,
             diagnostics: Vec::new(),
         }
+    }
+
+    pub fn take_diagnostics(&mut self) -> Vec<SpecialFormExpanderDiagnostic> {
+        mem::take(&mut self.diagnostics)
     }
 
     fn lower_expr_to_type_call(&mut self, expr: CallExpr<'heap>) -> Option<Type<'heap>> {
@@ -283,17 +288,13 @@ impl<'heap> SpecialFormExpander<'heap> {
         name: SpecialFormKind,
         expected: &[usize],
     ) {
-        self.diagnostics.push(invalid_argument_length(
-            call.span,
-            name,
-            call.arguments.len(),
-            expected,
-        ));
+        self.diagnostics
+            .push(invalid_argument_length(name, &call.arguments, expected));
     }
 
     fn error_labelled_arguments(&mut self, call: &CallExpr<'heap>) {
         self.diagnostics
-            .push(labeled_arguments_not_supported(call.span));
+            .push(labeled_arguments_not_supported(&call.labeled_arguments));
     }
 
     fn error_unknown_special_form(&mut self, path: &Path<'_>, hint: UnknownHint) {
