@@ -82,6 +82,7 @@ use crate::node::{
         call::{Argument, LabeledArgument},
         closure::{ClosureParam, ClosureSig},
         dict::DictEntry,
+        is::IsExpr,
         list::ListElement,
         r#struct::StructEntry,
         tuple::TupleElement,
@@ -281,6 +282,10 @@ pub trait Visitor<'heap> {
         walk_if_expr(self, expr);
     }
 
+    fn visit_is_expr(&mut self, expr: &mut IsExpr<'heap>) {
+        walk_is_expr(self, expr);
+    }
+
     fn visit_field_expr(&mut self, expr: &mut FieldExpr<'heap>) {
         walk_field_expr(self, expr);
     }
@@ -292,7 +297,7 @@ pub trait Visitor<'heap> {
 pub fn walk_ident<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     Ident {
-        name: _,
+        value: _,
         span,
         kind: _,
     }: &mut Ident,
@@ -414,6 +419,7 @@ pub fn walk_expr<'heap, T: Visitor<'heap> + ?Sized>(
         ExprKind::Input(input_expr) => visitor.visit_input_expr(input_expr),
         ExprKind::Closure(closure_expr) => visitor.visit_closure_expr(closure_expr),
         ExprKind::If(if_expr) => visitor.visit_if_expr(if_expr),
+        ExprKind::Is(is_expr) => visitor.visit_is_expr(is_expr),
         ExprKind::Field(field_expr) => visitor.visit_field_expr(field_expr),
         ExprKind::Index(index_expr) => visitor.visit_index_expr(index_expr),
     }
@@ -859,6 +865,23 @@ pub fn walk_if_expr<'heap, T: Visitor<'heap> + ?Sized>(
     if let Some(r#else) = r#else {
         visitor.visit_expr(r#else);
     }
+}
+
+pub fn walk_is_expr<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    IsExpr {
+        id,
+        span,
+
+        value,
+        r#type,
+    }: &mut IsExpr<'heap>,
+) {
+    visitor.visit_id(id);
+    visitor.visit_span(span);
+
+    visitor.visit_expr(value);
+    visitor.visit_type(r#type);
 }
 
 pub fn walk_field_expr<'heap, T: Visitor<'heap> + ?Sized>(

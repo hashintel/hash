@@ -43,6 +43,7 @@ pub mod field;
 pub mod r#if;
 pub mod index;
 pub mod input;
+pub mod is;
 pub mod r#let;
 pub mod list;
 pub mod literal;
@@ -56,8 +57,9 @@ use hashql_core::span::SpanId;
 
 pub use self::{
     call::CallExpr, closure::ClosureExpr, dict::DictExpr, field::FieldExpr, r#if::IfExpr,
-    index::IndexExpr, input::InputExpr, r#let::LetExpr, list::ListExpr, literal::LiteralExpr,
-    newtype::NewTypeExpr, r#struct::StructExpr, tuple::TupleExpr, r#type::TypeExpr, r#use::UseExpr,
+    index::IndexExpr, input::InputExpr, is::IsExpr, r#let::LetExpr, list::ListExpr,
+    literal::LiteralExpr, newtype::NewTypeExpr, r#struct::StructExpr, tuple::TupleExpr,
+    r#type::TypeExpr, r#use::UseExpr,
 };
 use super::{id::NodeId, path::Path};
 
@@ -461,6 +463,29 @@ pub enum ExprKind<'heap> {
     /// matrix[i][j]
     /// ```
     Index(IndexExpr<'heap>),
+
+    /// A type assertion expression (special form).
+    ///
+    /// Checks at compile time whether a value conforms to a specified type.
+    /// This is useful for type narrowing and ensuring type safety in patterns
+    /// where the compiler needs additional type information.
+    ///
+    /// # Examples
+    ///
+    /// ## J-Expr
+    ///
+    /// ```json
+    /// ["is", "value", "String"]
+    /// ["is", ["get", "data", "field"], {"#type": {"name": "String", "age": "Int"}}]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// value is String
+    /// get(data, field) is {name: String, age: Int}
+    /// ```
+    Is(IsExpr<'heap>),
     // potentially relevant in the future: Ignore (for destructuring assignment, e.g. `_`)
 }
 
