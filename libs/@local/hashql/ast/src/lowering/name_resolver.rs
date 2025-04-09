@@ -343,18 +343,18 @@ impl<'heap> NameResolver<'heap> {
                 // The first argument is the identifier, which we shouldn't normalize
             } else if index == len - 1 {
                 let old = if let Some(from) = from.take() {
-                    self.mapping.insert(to.name.clone(), from)
+                    self.mapping.insert(to.value.clone(), from)
                 } else {
-                    self.mapping.remove(&to.name)
+                    self.mapping.remove(&to.value)
                 };
 
                 self.visit_argument(argument);
 
                 if let Some(old) = old {
-                    self.mapping.insert(to.name.clone(), old);
+                    self.mapping.insert(to.value.clone(), old);
                 } else {
                     // The binding hasn't existed before, therefore restoration = deletion
-                    self.mapping.remove(&to.name);
+                    self.mapping.remove(&to.value);
                 }
             } else {
                 self.visit_argument(argument);
@@ -371,7 +371,7 @@ impl<'heap> NameResolver<'heap> {
             .expect("let special form should be present in mapping")
             .segments
             .iter()
-            .map(|segment| &segment.name.name)
+            .map(|segment| &segment.name.value)
     }
 }
 
@@ -388,7 +388,7 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
             return;
         };
 
-        let Some(replacement) = self.mapping.get(&segment.name.name) else {
+        let Some(replacement) = self.mapping.get(&segment.name.value) else {
             // ... and back with you to the original segment
 
             walk_path(self, path);
@@ -549,14 +549,14 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
             self.visit_type(r#type);
         }
 
-        let old = self.mapping.insert(name.name.clone(), value);
+        let old = self.mapping.insert(name.value.clone(), value);
 
         self.visit_expr(body);
 
         if let Some(old) = old {
-            self.mapping.insert(name.name.clone(), old);
+            self.mapping.insert(name.value.clone(), old);
         } else {
-            self.mapping.remove(&name.name);
+            self.mapping.remove(&name.value);
         }
     }
 
@@ -583,14 +583,14 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
 
         self.visit_ident(name);
 
-        let old = self.mapping.insert(name.name.clone(), path);
+        let old = self.mapping.insert(name.value.clone(), path);
 
         self.visit_expr(body);
 
         if let Some(old) = old {
-            self.mapping.insert(name.name.clone(), old);
+            self.mapping.insert(name.value.clone(), old);
         } else {
-            self.mapping.remove(&name.name);
+            self.mapping.remove(&name.value);
         }
     }
 
@@ -619,14 +619,14 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
 
         self.visit_ident(name);
 
-        let old = self.mapping.insert(name.name.clone(), path);
+        let old = self.mapping.insert(name.value.clone(), path);
 
         self.visit_expr(body);
 
         if let Some(old) = old {
-            self.mapping.insert(name.name.clone(), old);
+            self.mapping.insert(name.value.clone(), old);
         } else {
-            self.mapping.remove(&name.name);
+            self.mapping.remove(&name.value);
         }
     }
 }

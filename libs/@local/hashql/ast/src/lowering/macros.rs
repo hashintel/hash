@@ -52,7 +52,7 @@ macro ident {
     ($value:ident) => {
         Ident {
             span: SpanId::SYNTHETIC,
-            name: symbol!($value),
+            value: symbol!($value),
             kind: IdentKind::Lexical,
         }
     },
@@ -60,7 +60,7 @@ macro ident {
     ($value:literal) => {
         Ident {
             span: SpanId::SYNTHETIC,
-            name: symbol!($value),
+            value: symbol!($value),
             kind: IdentKind::Symbol,
         }
     }

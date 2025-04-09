@@ -16,7 +16,6 @@
 //! The [`Symbol`] type is designed as an opaque wrapper around its internal string storage.
 //! This encapsulation enables future optimizations such as string interning (either through
 //! the `string_interner` crate or a custom implementation) without requiring API changes.
-pub mod sym;
 
 use core::{
     borrow::Borrow,
@@ -285,18 +284,18 @@ pub enum IdentKind {
 pub struct Ident {
     pub span: SpanId,
 
-    pub name: Symbol,
+    pub value: Symbol,
     pub kind: IdentKind,
 }
 
 impl AsRef<str> for Ident {
     fn as_ref(&self) -> &str {
-        self.name.as_str()
+        self.value.as_str()
     }
 }
 
 impl Display for Ident {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.name.0, fmt)
+        Display::fmt(&self.value.0, fmt)
     }
 }

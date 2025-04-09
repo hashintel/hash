@@ -40,7 +40,7 @@ where
                 Access::Field(Ident {
                     span: context.span(range),
 
-                    name: Symbol::new(digit),
+                    value: Symbol::new(digit),
                     kind: IdentKind::Lexical, // Do we need to specify a different kind here?
                 })
             }),
