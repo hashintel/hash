@@ -9,8 +9,9 @@ use hashql_core::span::SpanId;
 
 use self::error::{
     InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic, invalid_argument_length,
-    invalid_type_expression, labeled_arguments_not_supported, unknown_special_form_generics,
-    unknown_special_form_length, unknown_special_form_name,
+    invalid_type_call_function, invalid_type_expression, labeled_arguments_not_supported,
+    unknown_special_form_generics, unknown_special_form_length, unknown_special_form_name,
+    unsupported_type_constructor_function,
 };
 use crate::{
     heap::{self, Heap},
@@ -81,13 +82,6 @@ impl Display for SpecialFormKind {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum UnknownHint {
-    Length,   // Either too long or too short
-    Name,     // Unknown name
-    Generics, // Path makes use of generics
-}
-
 pub struct SpecialFormExpander<'heap> {
     heap: &'heap Heap,
     diagnostics: Vec<SpecialFormExpanderDiagnostic>,
@@ -123,7 +117,8 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
 
         let ExprKind::Path(path) = expr.function.kind else {
-            todo!("error out")
+            self.diagnostics.push(invalid_type_call_function(expr.span));
+            return None;
         };
 
         let constructor = if path.matches_absolute_path(["math", "bit_and"]) {
@@ -133,7 +128,9 @@ impl<'heap> SpecialFormExpander<'heap> {
             // The `|` operator, which is internally overloaded for types to create unions
             create_union_type
         } else {
-            todo!("error out")
+            self.diagnostics
+                .push(unsupported_type_constructor_function(expr.span));
+            return None;
         };
 
         let mut types = self.heap.vec(Some(expr.arguments.len()));
@@ -275,11 +272,12 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
     }
 
+    /// Lowers an if/2 special form to an `IfExpr` with no else branch.
+    ///
+    /// The if/2 form has the syntax: `(if condition then-expr)`
+    /// and is transformed into an if expression with no else branch.
     fn lower_if_2(&self, call: &mut CallExpr<'heap>) -> ExprKind<'heap> {
-        // Implementation for if/2 special form
-        // The `if/2` form takes the form (if test then) and has no else branch.
-
-        // Does not allocate if not pushed to, therefore safe to create
+        // Vec only allocates if pushed to
         let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
 
         let [test, then] = arguments
@@ -295,11 +293,12 @@ impl<'heap> SpecialFormExpander<'heap> {
         })
     }
 
+    /// Lowers an if/3 special form to an `IfExpr` with an else branch.
+    ///
+    /// The if/3 form has the syntax: `(if condition then-expr else-expr)`
+    /// and is transformed into a complete if-then-else expression.
     fn lower_if_3(&self, call: &mut CallExpr<'heap>) -> ExprKind<'heap> {
-        // Implementation for if/3 special form
-        // The `if/3` form takes the form (if test then else) and has an else branch.
-
-        // Does not allocate if not pushed to, therefore safe to create
+        // Vec only allocates if pushed to
         let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
 
         let [test, then, r#else] = arguments
@@ -315,28 +314,51 @@ impl<'heap> SpecialFormExpander<'heap> {
         })
     }
 
+    /// Lowers an if special form to the appropriate `IfExpr` variant.
+    ///
+    /// There are two forms of the `if` special form:
+    /// - if/2: `(if condition then-expr)` - no else branch
+    /// - if/3: `(if condition then-expr else-expr)` - with else branch
+    ///
+    /// This function validates the argument count and delegates to the appropriate
+    /// specialized lowering function.
     fn lower_if(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implementation for if special form
-        // There are 2 forms of `if`, there's `if/2` and `if/3`
-
         let kind = if call.arguments.len() == 2 {
             self.lower_if_2(call)
         } else if call.arguments.len() == 3 {
             self.lower_if_3(call)
         } else {
-            self.error_argument_length(call, SpecialFormKind::If, &[2, 3]);
+            self.diagnostics.push(invalid_argument_length(
+                call.span,
+                SpecialFormKind::If,
+                &call.arguments,
+                &[2, 3],
+            ));
+
             return None;
         };
 
         Some(kind)
     }
 
+    /// Lowers an is/2 special form to an `IsExpr`.
+    ///
+    /// The is/2 form has the syntax: `(is value type-expr)`
+    /// and is transformed into a type assertion expression. This validates
+    /// that `value` conforms to the type specified by `type-expr`.
+    ///
+    /// The function first checks that exactly 2 arguments are provided,
+    /// then attempts to convert the second argument into a valid type expression.
     fn lower_is(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implementation for is special form
-
         // There only exists `is/2`
         if call.arguments.len() != 2 {
-            self.error_argument_length(call, SpecialFormKind::Is, &[2]);
+            self.diagnostics.push(invalid_argument_length(
+                call.span,
+                SpecialFormKind::Is,
+                &call.arguments,
+                &[2],
+            ));
+
             return None;
         }
 
@@ -394,50 +416,6 @@ impl<'heap> SpecialFormExpander<'heap> {
         // Implementation for index special form
         todo!()
     }
-
-    fn error_argument_length(
-        &mut self,
-        call: &CallExpr<'heap>,
-        name: SpecialFormKind,
-        expected: &[usize],
-    ) {
-        self.diagnostics.push(invalid_argument_length(
-            call.span,
-            name,
-            &call.arguments,
-            expected,
-        ));
-    }
-
-    fn error_labelled_arguments(&mut self, call: &CallExpr<'heap>) {
-        self.diagnostics.push(labeled_arguments_not_supported(
-            call.span,
-            &call.labeled_arguments,
-        ));
-    }
-
-    fn error_unknown_special_form(&mut self, path: &Path<'_>, hint: UnknownHint) {
-        match hint {
-            UnknownHint::Length => {
-                self.diagnostics
-                    .push(unknown_special_form_length(path.span, path));
-            }
-            UnknownHint::Name => {
-                self.diagnostics
-                    .push(unknown_special_form_name(path.span, path));
-            }
-            UnknownHint::Generics => {
-                let mut arguments = Vec::new();
-
-                for segment in &path.segments {
-                    arguments.extend(&segment.arguments);
-                }
-
-                self.diagnostics
-                    .push(unknown_special_form_generics(&arguments));
-            }
-        }
-    }
 }
 
 impl<'heap> Visitor<'heap> for SpecialFormExpander<'heap> {
@@ -459,13 +437,19 @@ impl<'heap> Visitor<'heap> for SpecialFormExpander<'heap> {
         }
 
         if !call.labeled_arguments.is_empty() {
-            self.error_labelled_arguments(call);
+            self.diagnostics.push(labeled_arguments_not_supported(
+                call.span,
+                &call.labeled_arguments,
+            ));
+
             return;
         }
 
         if path.segments.len() != 3 {
             // Special form path is always exactly three segments long
-            self.error_unknown_special_form(path, UnknownHint::Length);
+            self.diagnostics
+                .push(unknown_special_form_length(path.span, path));
+
             return;
         }
 
@@ -474,14 +458,24 @@ impl<'heap> Visitor<'heap> for SpecialFormExpander<'heap> {
             .iter()
             .any(|segment| !segment.arguments.is_empty())
         {
-            self.error_unknown_special_form(path, UnknownHint::Generics);
+            let mut arguments = Vec::new();
+
+            for segment in &path.segments {
+                arguments.extend(&segment.arguments);
+            }
+
+            self.diagnostics
+                .push(unknown_special_form_generics(&arguments));
+
             return;
         }
 
         let function = &path.segments[2].name;
 
         let Some(special_form) = SpecialFormKind::from_str(function.value.as_str()) else {
-            self.error_unknown_special_form(path, UnknownHint::Name);
+            self.diagnostics
+                .push(unknown_special_form_name(path.span, path));
+
             return;
         };
 

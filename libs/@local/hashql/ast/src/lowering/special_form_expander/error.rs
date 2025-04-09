@@ -42,12 +42,24 @@ const INVALID_TYPE_EXPRESSION: TerminalDiagnosticCategory = TerminalDiagnosticCa
     name: "Invalid type expression",
 };
 
+const INVALID_TYPE_CALL: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-type-call",
+    name: "Invalid function call in type expression",
+};
+
+const UNSUPPORTED_TYPE_CONSTRUCTOR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unsupported-type-constructor",
+    name: "Unsupported type constructor",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SpecialFormExpanderDiagnosticCategory {
     UnknownSpecialForm,
     SpecialFormArgumentLength,
     LabeledArgumentsNotSupported,
     InvalidTypeExpression,
+    InvalidTypeCall,
+    UnsupportedTypeConstructor,
 }
 
 impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
@@ -65,6 +77,8 @@ impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
             Self::SpecialFormArgumentLength => Some(&SPECIAL_FORM_ARGUMENT_LENGTH),
             Self::LabeledArgumentsNotSupported => Some(&LABELED_ARGUMENTS_NOT_SUPPORTED),
             Self::InvalidTypeExpression => Some(&INVALID_TYPE_EXPRESSION),
+            Self::InvalidTypeCall => Some(&INVALID_TYPE_CALL),
+            Self::UnsupportedTypeConstructor => Some(&UNSUPPORTED_TYPE_CONSTRUCTOR),
         }
     }
 }
@@ -356,6 +370,14 @@ impl Display for InvalidTypeExpressionKind {
     }
 }
 
+const TYPE_EXPRESSION_NOTE: &str = "Valid type expressions include:
+- Type names: String, Int, Float
+- Struct types: {name: String, age: Int}
+- Tuple types: (String, Int, Boolean)
+- Unions: (| String Int)
+- Intersections: (& String Int)
+- Generic types: Array<String>, Option<Int>";
+
 pub(crate) fn invalid_type_expression(
     span: SpanId,
     kind: InvalidTypeExpressionKind,
@@ -403,14 +425,51 @@ pub(crate) fn invalid_type_expression(
 
     diagnostic.help = Some(Help::new(help_text));
 
+    diagnostic.note = Some(Note::new(TYPE_EXPRESSION_NOTE));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_type_call_function(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidTypeExpression,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        "Function call with non-path callee cannot be used as a type",
+    ));
+
+    diagnostic.help = Some(Help::new(
+        "Only specific type constructors like intersection (&) and union (|) operators can be \
+         used in type expressions.",
+    ));
+
+    diagnostic.note = Some(Note::new(TYPE_EXPRESSION_NOTE));
+
+    diagnostic
+}
+
+pub(crate) fn unsupported_type_constructor_function(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidTypeExpression,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        "This function cannot be used as a type constructor",
+    ));
+
+    diagnostic.help = Some(Help::new(
+        "Only specific type constructors like intersection (&) and union (|) operators can be \
+         used in type expressions.",
+    ));
+
     diagnostic.note = Some(Note::new(
-        "Valid type expressions include:
-- Type names: String, Int, Float
-- Struct types: {name: String, age: Int}
-- Tuple types: (String, Int, Boolean)
-- Unions: (| String Int)
-- Intersections: (& String Int)
-- Generic types: Array<String>, Option<Int>",
+        "Currently supported type operations are:\n- Intersection: math::bit_and (written as & in \
+         source)\n- Union: math::bit_or (written as | in source)",
     ));
 
     diagnostic
