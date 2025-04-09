@@ -486,6 +486,20 @@ pub enum ExprKind<'heap> {
     /// get(data, field) is {name: String, age: Int}
     /// ```
     Is(IsExpr<'heap>),
+
+    /// A placeholder expression used exclusively during AST transformation phases.
+    ///
+    /// The `Dummy` variant serves as a temporary placeholder during the lowering process when an
+    /// expression's `ExprKind` needs to be extracted or replaced. It allows the lowering pass to
+    /// safely move out the contents of an expression without immediately providing a replacement.
+    ///
+    /// # Implementation Note
+    ///
+    /// This variant should never appear in a fully processed AST, as it's intended only as an
+    /// intermediate state during transformation. Any `Dummy` nodes still present after lowering
+    /// indicates an error in the transformation process, and will produce a compilation error on
+    /// lowering into the HIR.
+    Dummy,
     // potentially relevant in the future: Ignore (for destructuring assignment, e.g. `_`)
 }
 

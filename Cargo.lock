@@ -3663,6 +3663,8 @@ name = "hashql-ast"
 version = "0.0.0"
 dependencies = [
  "bumpalo",
+ "derive_more 2.0.1",
+ "enum-iterator",
  "foldhash",
  "hashbrown 0.15.2",
  "hashql-compiletest",
@@ -3670,6 +3672,7 @@ dependencies = [
  "hashql-diagnostics",
  "lexical",
  "simple-mermaid",
+ "strsim",
  "tracing",
 ]
 

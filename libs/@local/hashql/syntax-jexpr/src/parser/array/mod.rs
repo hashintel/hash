@@ -92,7 +92,7 @@ fn parse_labelled_argument<'heap>(
             value: Argument {
                 id: NodeId::PLACEHOLDER,
                 span: value.span,
-                value,
+                value: state.heap().boxed(value),
             },
         });
 
@@ -125,7 +125,7 @@ pub(crate) fn parse_array<'heap, 'source>(
                 arguments.push(Argument {
                     id: NodeId::PLACEHOLDER,
                     span: expr.span,
-                    value: expr,
+                    value: state.heap().boxed(expr),
                 });
             }
             function @ None => *function = Some(parse_expr(state)?),

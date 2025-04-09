@@ -26,7 +26,8 @@ use hashql_core::span::SpanId;
 use crate::node::{
     expr::{
         CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
-        LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr, UseExpr,
+        IsExpr, LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr,
+        UseExpr,
         call::{Argument, LabeledArgument},
         closure::{ClosureParam, ClosureSig},
         dict::DictEntry,
@@ -394,6 +395,8 @@ impl_syntax_dump!(struct ClosureExpr(); sig body);
 #[rustfmt::skip]
 impl_syntax_dump!(struct IfExpr(); test then ?r#else);
 
+impl_syntax_dump!(struct IsExpr(); value r#type);
+
 #[rustfmt::skip]
 impl_syntax_dump!(struct FieldExpr(field); value);
 
@@ -472,6 +475,11 @@ impl SyntaxDump for ExprKind<'_> {
 
                 if_expr.syntax_dump(fmt, depth + 1)
             }
+            Self::Is(is_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Is"))?;
+
+                is_expr.syntax_dump(fmt, depth + 1)
+            }
             Self::Field(field_expr) => {
                 write_header(fmt, depth, "ExprKind", None, None, Some("Field"))?;
 
@@ -482,6 +490,7 @@ impl SyntaxDump for ExprKind<'_> {
 
                 index_expr.syntax_dump(fmt, depth + 1)
             }
+            Self::Dummy => write_header(fmt, depth, "ExprKind", None, None, Some("Dummy")),
         }
     }
 }
