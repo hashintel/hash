@@ -2,7 +2,12 @@
 //@ description: fn/4 tuple generics with argument as literal should fail to compile
 [
   "::kernel::special_form::fn",
-  { "#tuple": [{ "#literal": 1 }] },
+  {
+    "#tuple": [
+      { "#literal": 1 }
+      //~^ ERROR Use a valid generics expression
+    ]
+  },
   { "#struct": {} },
   "_",
   ["+", "a", "b"]

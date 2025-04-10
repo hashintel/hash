@@ -10,5 +10,5 @@
    │ Note: Valid import expressions include:
    │       - Glob: *
    │       - Tuple of identifiers: (name1, name2)
-   │       - Struct with aliases: {name1: alias1, name2: alias2} or {name1: _, name2: _}
+   │       - Struct with aliases: (name1: alias1, name2: alias2) or (name1: _, name2: _)
 ───╯

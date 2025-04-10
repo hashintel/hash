@@ -3,7 +3,11 @@
 [
   "::kernel::special_form::fn",
   { "#struct": {} },
-  { "#struct": {}, "#type": "Int" },
+  {
+    "#struct": {},
+    "#type": "Int"
+    //~^ ERROR Remove this type annotation
+  },
   "_",
   ["+", "a", "b"]
 ]

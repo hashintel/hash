@@ -796,7 +796,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         let mut params = self.heap.vec(Some(entries_len));
 
         for entry in r#struct.entries {
-            let bound = if matches!(entry.value.kind, ExprKind::Dummy) {
+            let bound = if matches!(entry.value.kind, ExprKind::Underscore) {
                 None
             } else if let Some(bound) = self.lower_expr_to_type(*entry.value) {
                 Some(self.heap.boxed(bound))

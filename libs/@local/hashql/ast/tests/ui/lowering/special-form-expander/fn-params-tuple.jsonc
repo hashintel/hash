@@ -4,6 +4,7 @@
   "::kernel::special_form::fn",
   { "#struct": {} },
   { "#tuple": [] },
+  //~^ ERROR Use a struct expression for parameters
   "_",
   ["+", "a", "b"]
 ]

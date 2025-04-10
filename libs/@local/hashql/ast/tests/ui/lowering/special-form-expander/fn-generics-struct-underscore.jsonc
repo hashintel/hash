@@ -1,8 +1,10 @@
-//@ run: fail
-//@ description: fn/4 struct generics with type annotation should fail to compile
+//@ run: pass
+//@ description: fn/4 struct generics with `_` implies no bound
 [
   "::kernel::special_form::fn",
-  { "#struct": { "T": "Int" }, "#type": "Int" },
+  {
+    "#struct": { "T": "_" }
+  },
   { "#struct": {} },
   "_",
   ["+", "a", "b"]

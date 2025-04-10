@@ -3,6 +3,7 @@
 [
   "::kernel::special_form::fn",
   { "#literal": 2 },
+  //~^ ERROR Use a valid generics expression
   { "#struct": {} },
   "_",
   ["+", "a", "b"]
