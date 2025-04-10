@@ -1,0 +1,37 @@
+[31m[special-form-expander::qualified-let-name] Error:[0m Special Form Expander
+    ╭─[ <unknown>:15:8 ]
+    │
+ 15 │       "::z",
+    │        ─┬─  
+    │         ╰─── Replace this with a simple identifier
+    │ 
+    │ Help: Let binding names must be simple identifiers without any path qualification. Qualified paths cannot be used as binding names.
+    │ 
+    │ Note: Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any namespace qualification, generic parameters, or path separators.
+────╯
+
+
+[31m[special-form-expander::qualified-let-name] Error:[0m Special Form Expander
+    ╭─[ <unknown>:10:6 ]
+    │
+ 10 │     "x::A",
+    │      ──┬─  
+    │        ╰─── Replace this with a simple identifier
+    │ 
+    │ Help: Let binding names must be simple identifiers without any path qualification. Qualified paths cannot be used as binding names.
+    │ 
+    │ Note: Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any namespace qualification, generic parameters, or path separators.
+────╯
+
+
+[31m[special-form-expander::qualified-let-name] Error:[0m Special Form Expander
+   ╭─[ <unknown>:5:4 ]
+   │
+ 5 │   "Int<T>",
+   │    ───┬──  
+   │       ╰──── Replace this with a simple identifier
+   │ 
+   │ Help: Let binding names must be simple identifiers without any path qualification. Qualified paths cannot be used as binding names.
+   │ 
+   │ Note: Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any namespace qualification, generic parameters, or path separators.
+───╯

@@ -52,6 +52,16 @@ const UNSUPPORTED_TYPE_CONSTRUCTOR: TerminalDiagnosticCategory = TerminalDiagnos
     name: "Unsupported type constructor",
 };
 
+const INVALID_LET_NAME: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-let-name",
+    name: "Invalid let binding name",
+};
+
+const QUALIFIED_LET_NAME: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "qualified-let-name",
+    name: "Qualified path used as let binding name",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SpecialFormExpanderDiagnosticCategory {
     UnknownSpecialForm,
@@ -60,6 +70,8 @@ pub enum SpecialFormExpanderDiagnosticCategory {
     InvalidTypeExpression,
     InvalidTypeCall,
     UnsupportedTypeConstructor,
+    InvalidLetName,
+    QualifiedLetName,
 }
 
 impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
@@ -79,6 +91,8 @@ impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
             Self::InvalidTypeExpression => Some(&INVALID_TYPE_EXPRESSION),
             Self::InvalidTypeCall => Some(&INVALID_TYPE_CALL),
             Self::UnsupportedTypeConstructor => Some(&UNSUPPORTED_TYPE_CONSTRUCTOR),
+            Self::InvalidLetName => Some(&INVALID_LET_NAME),
+            Self::QualifiedLetName => Some(&QUALIFIED_LET_NAME),
         }
     }
 }
@@ -461,6 +475,54 @@ pub(crate) fn unsupported_type_constructor_function(span: SpanId) -> SpecialForm
     diagnostic.note = Some(Note::new(
         "Currently supported type operations are:\n- Intersection: math::bit_and (written as & in \
          source)\n- Union: math::bit_or (written as | in source)",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_let_name_not_path(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidLetName,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        "Replace this expression with a simple identifier",
+    ));
+
+    diagnostic.help = Some(Help::new(
+        "The let binding name must be a simple identifier. Complex expressions are not allowed in \
+         binding positions.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Valid examples of let bindings:\n- (let x value body)\n- (let counter 0 ...)\n- (let \
+         user_name input ...)",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_let_name_qualified_path(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::QualifiedLetName,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        format!("Replace this with a simple identifier"),
+    ));
+
+    diagnostic.help = Some(Help::new(
+        "Let binding names must be simple identifiers without any path qualification. Qualified \
+         paths cannot be used as binding names.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any \
+         namespace qualification, generic parameters, or path separators.",
     ));
 
     diagnostic

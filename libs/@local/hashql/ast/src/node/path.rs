@@ -101,6 +101,15 @@ impl Path<'_> {
         Some(&segment.name)
     }
 
+    pub(crate) fn into_ident(mut self) -> Option<Ident> {
+        if !self.is_ident() {
+            return None;
+        }
+
+        let segment = self.segments.pop().unwrap_or_else(|| unreachable!());
+        Some(segment.name)
+    }
+
     /// Checks if this path is an absolute path that matches the provided sequence of identifiers.
     ///
     /// A path matches when:

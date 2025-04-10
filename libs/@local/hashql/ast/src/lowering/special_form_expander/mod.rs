@@ -5,18 +5,21 @@ use core::{
     mem,
 };
 
-use hashql_core::span::SpanId;
+use hashql_core::{span::SpanId, symbol::Ident};
 
 use self::error::{
     InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic, invalid_argument_length,
-    invalid_type_call_function, invalid_type_expression, labeled_arguments_not_supported,
-    unknown_special_form_generics, unknown_special_form_length, unknown_special_form_name,
-    unsupported_type_constructor_function,
+    invalid_let_name_not_path, invalid_let_name_qualified_path, invalid_type_call_function,
+    invalid_type_expression, labeled_arguments_not_supported, unknown_special_form_generics,
+    unknown_special_form_length, unknown_special_form_name, unsupported_type_constructor_function,
 };
 use crate::{
     heap::{self, Heap},
     node::{
-        expr::{CallExpr, Expr, ExprKind, IfExpr, IsExpr, StructExpr, TupleExpr},
+        expr::{
+            CallExpr, Expr, ExprKind, IfExpr, IsExpr, LetExpr, StructExpr, TupleExpr,
+            call::Argument,
+        },
         id::NodeId,
         r#type::{
             IntersectionType, StructField, StructType, TupleField, TupleType, Type, TypeKind,
@@ -323,10 +326,10 @@ impl<'heap> SpecialFormExpander<'heap> {
     /// This function validates the argument count and delegates to the appropriate
     /// specialized lowering function.
     fn lower_if(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        let kind = if call.arguments.len() == 2 {
-            self.lower_if_2(call)
+        if call.arguments.len() == 2 {
+            Some(self.lower_if_2(call))
         } else if call.arguments.len() == 3 {
-            self.lower_if_3(call)
+            Some(self.lower_if_3(call))
         } else {
             self.diagnostics.push(invalid_argument_length(
                 call.span,
@@ -335,10 +338,8 @@ impl<'heap> SpecialFormExpander<'heap> {
                 &[2, 3],
             ));
 
-            return None;
-        };
-
-        Some(kind)
+            None
+        }
     }
 
     /// Lowers an is/2 special form to an `IsExpr`.
@@ -376,43 +377,136 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
-    fn lower_let(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implementation for let special form
-        // There are 2 forms of `let`: `let/3` and `let/4`
-        todo!()
+    /// Extracts and validates a variable name from an argument for use in a bindings.
+    ///
+    /// This function checks that the argument provided is a valid variable name by verifying that:
+    /// 1. The argument is a path expression (not some other type of expression)
+    /// 2. The path is a simple identifier (not qualified with namespaces or having generics)
+    fn lower_argument_to_ident(&mut self, argument: Argument<'heap>) -> Option<Ident> {
+        let ExprKind::Path(path) = argument.value.kind else {
+            self.diagnostics
+                .push(invalid_let_name_not_path(argument.value.span));
+
+            return None;
+        };
+
+        let Some(name) = path.clone().into_ident() else {
+            self.diagnostics
+                .push(invalid_let_name_qualified_path(path.span));
+
+            return None;
+        };
+
+        Some(name)
     }
 
-    fn lower_type(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    /// Lowers a let/3 special form to a `LetExpr` without type annotation.
+    ///
+    /// The let/3 form has the syntax: `(let name value body)`
+    /// and is transformed into a let expression with no explicit type annotation.
+    fn lower_let_3(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        // Vec only allocates if pushed to
+        let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
+
+        let [name, value, body] = arguments
+            .try_into()
+            .expect("The caller should've verified the length of the arguments");
+
+        let name = self.lower_argument_to_ident(name)?;
+
+        Some(ExprKind::Let(LetExpr {
+            id: call.id,
+            span: call.span,
+            name,
+            value: value.value,
+            r#type: None,
+            body: body.value,
+        }))
+    }
+
+    /// Lowers a let/4 special form to a `LetExpr` with an explicit type annotation.
+    ///
+    /// The let/4 form has the syntax: `(let name type value body)`
+    /// and is transformed into a let expression with an explicit type annotation.
+    fn lower_let_4(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        // Vec only allocates if pushed to
+        let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
+
+        let [name, mut r#type, value, body] = arguments
+            .try_into()
+            .expect("The caller should've verified the length of the arguments");
+
+        let (name, r#type) = Option::zip(
+            self.lower_argument_to_ident(name),
+            self.lower_expr_to_type(&mut r#type.value),
+        )?;
+
+        Some(ExprKind::Let(LetExpr {
+            id: call.id,
+            span: call.span,
+            name,
+            value: value.value,
+            r#type: Some(self.heap.boxed(r#type)),
+            body: body.value,
+        }))
+    }
+
+    /// Lowers a `let` special form to the appropriate `LetExpr` variant.
+    ///
+    /// There are two forms of the `let` special form:
+    /// - let/3: `(let name value body)` - no type annotation
+    /// - let/4: `(let name type value body)` - with type annotation
+    ///
+    /// This function validates the argument count and delegates to the appropriate
+    /// specialized lowering function.
+    fn lower_let(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        if call.arguments.len() == 3 {
+            self.lower_let_3(call)
+        } else if call.arguments.len() == 4 {
+            self.lower_let_4(call)
+        } else {
+            self.diagnostics.push(invalid_argument_length(
+                call.span,
+                SpecialFormKind::Let,
+                &call.arguments,
+                &[3, 4],
+            ));
+
+            None
+        }
+    }
+
+    fn lower_type(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for type special form
         todo!()
     }
 
-    fn lower_newtype(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_newtype(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for newtype special form
         todo!()
     }
 
-    fn lower_use(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_use(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for use special form
         todo!()
     }
 
-    fn lower_fn(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_fn(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for fn special form
         todo!()
     }
 
-    fn lower_input(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_input(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for input special form
         todo!()
     }
 
-    fn lower_access(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_access(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for access special form
         todo!()
     }
 
-    fn lower_index(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_index(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for index special form
         todo!()
     }
