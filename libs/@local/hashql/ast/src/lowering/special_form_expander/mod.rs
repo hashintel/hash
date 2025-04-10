@@ -9,9 +9,11 @@ use hashql_core::{span::SpanId, symbol::Ident};
 
 use self::error::{
     InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic, invalid_argument_length,
-    invalid_let_name_not_path, invalid_let_name_qualified_path, invalid_type_call_function,
-    invalid_type_expression, labeled_arguments_not_supported, unknown_special_form_generics,
+    invalid_let_name_not_path, invalid_let_name_qualified_path, invalid_path_in_use_binding,
+    invalid_type_call_function, invalid_type_expression, invalid_use_import,
+    labeled_arguments_not_supported, type_with_existing_annotation, unknown_special_form_generics,
     unknown_special_form_length, unknown_special_form_name, unsupported_type_constructor_function,
+    use_imports_with_type_annotation, use_path_with_generics,
 };
 use crate::{
     heap::{self, Heap},
@@ -163,8 +165,9 @@ impl<'heap> SpecialFormExpander<'heap> {
     }
 
     fn lower_expr_to_type_struct(&mut self, expr: StructExpr<'heap>) -> Option<Type<'heap>> {
-        if expr.r#type.is_some() {
-            // TODO: register error
+        if let Some(type_expr) = &expr.r#type {
+            self.diagnostics
+                .push(type_with_existing_annotation(type_expr.span));
             return None;
         }
 
@@ -201,8 +204,9 @@ impl<'heap> SpecialFormExpander<'heap> {
     }
 
     fn lower_expr_to_type_tuple(&mut self, expr: TupleExpr<'heap>) -> Option<Type<'heap>> {
-        if expr.r#type.is_some() {
-            // TODO: register error
+        if let Some(type_expr) = &expr.r#type {
+            self.diagnostics
+                .push(type_with_existing_annotation(type_expr.span));
             return None;
         }
 
@@ -570,8 +574,9 @@ impl<'heap> SpecialFormExpander<'heap> {
 
     fn lower_use_imports_struct(&mut self, r#struct: StructExpr) -> Option<UseKind<'heap>> {
         // {key: value}, each value must be a value must be an underscore *or* ident
-        if r#struct.r#type.is_some() {
-            // TODO: register error
+        if let Some(type_expr) = &r#struct.r#type {
+            self.diagnostics
+                .push(use_imports_with_type_annotation(type_expr.span));
             return None;
         }
 
@@ -592,13 +597,15 @@ impl<'heap> SpecialFormExpander<'heap> {
                     continue;
                 }
                 _ => {
-                    // TODO: register error
+                    self.diagnostics.push(invalid_use_import(entry.value.span));
                     continue;
                 }
             };
 
+            let path_span = path.span;
             let Some(alias) = path.into_ident() else {
-                // TODO: register error
+                self.diagnostics
+                    .push(invalid_path_in_use_binding(path_span));
                 continue;
             };
 
@@ -619,17 +626,26 @@ impl<'heap> SpecialFormExpander<'heap> {
     }
 
     fn lower_use_imports_tuple(&mut self, tuple: TupleExpr) -> Option<UseKind<'heap>> {
+        if let Some(type_expr) = &tuple.r#type {
+            self.diagnostics
+                .push(use_imports_with_type_annotation(type_expr.span));
+            return None;
+        }
+
         let elements_len = tuple.elements.len();
         let mut bindings = self.heap.vec(Some(elements_len));
 
         for element in tuple.elements {
             let ExprKind::Path(path) = element.value.kind else {
-                // TODO: register error
+                self.diagnostics
+                    .push(invalid_use_import(element.value.span));
                 continue;
             };
 
+            let path_span = path.span;
             let Some(name) = path.into_ident() else {
-                // TODO: register error
+                self.diagnostics
+                    .push(invalid_path_in_use_binding(path_span));
                 continue;
             };
 
@@ -659,6 +675,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             ExprKind::Path(path) => {
                 let path_id = path.id;
 
+                let path_span = path.span;
                 if let Some(ident) = path.into_ident() {
                     if ident.value.as_str() == "*" {
                         return Some(UseKind::Glob(Glob {
@@ -667,14 +684,21 @@ impl<'heap> SpecialFormExpander<'heap> {
                         }));
                     }
 
-                    todo!("error out")
-                } else {
-                    todo!("error out")
+                    self.diagnostics.push(invalid_use_import(ident.span));
+                    return None;
                 }
+
+                self.diagnostics
+                    .push(invalid_path_in_use_binding(path_span));
+                None
             }
             ExprKind::Struct(r#struct) => self.lower_use_imports_struct(r#struct),
             ExprKind::Tuple(tuple) => self.lower_use_imports_tuple(tuple),
-            _ => todo!("error out"),
+            _ => {
+                self.diagnostics
+                    .push(invalid_use_import(argument.value.span));
+                None
+            }
         }
     }
 
@@ -699,7 +723,10 @@ impl<'heap> SpecialFormExpander<'heap> {
         )?;
 
         if path.has_generic_arguments() {
-            todo!("error out")
+            self.diagnostics
+                .push(use_path_with_generics(path.span, &path));
+
+            return None;
         }
 
         Some(ExprKind::Use(UseExpr {

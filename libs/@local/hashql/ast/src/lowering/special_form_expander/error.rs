@@ -62,6 +62,21 @@ const QUALIFIED_LET_NAME: TerminalDiagnosticCategory = TerminalDiagnosticCategor
     name: "Qualified path used as let binding name",
 };
 
+const TYPE_WITH_EXISTING_ANNOTATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "type-with-existing-annotation",
+    name: "Type expression with redundant type annotation",
+};
+
+const INVALID_USE_IMPORT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-use-import",
+    name: "Invalid use import expression",
+};
+
+const USE_PATH_WITH_GENERICS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "use-path-with-generics",
+    name: "Use path with generic arguments",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SpecialFormExpanderDiagnosticCategory {
     UnknownSpecialForm,
@@ -72,6 +87,9 @@ pub enum SpecialFormExpanderDiagnosticCategory {
     UnsupportedTypeConstructor,
     InvalidLetName,
     QualifiedLetName,
+    TypeWithExistingAnnotation,
+    InvalidUseImport,
+    UsePathWithGenerics,
 }
 
 impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
@@ -93,6 +111,9 @@ impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
             Self::UnsupportedTypeConstructor => Some(&UNSUPPORTED_TYPE_CONSTRUCTOR),
             Self::InvalidLetName => Some(&INVALID_LET_NAME),
             Self::QualifiedLetName => Some(&QUALIFIED_LET_NAME),
+            Self::TypeWithExistingAnnotation => Some(&TYPE_WITH_EXISTING_ANNOTATION),
+            Self::InvalidUseImport => Some(&INVALID_USE_IMPORT),
+            Self::UsePathWithGenerics => Some(&USE_PATH_WITH_GENERICS),
         }
     }
 }
@@ -522,6 +543,136 @@ pub(crate) fn invalid_let_name_qualified_path(span: SpanId) -> SpecialFormExpand
     diagnostic.note = Some(Note::new(
         "Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any \
          namespace qualification, generic parameters, or path separators.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn type_with_existing_annotation(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::TypeWithExistingAnnotation,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Remove this type annotation"));
+
+    diagnostic.help = Some(Help::new(
+        "Type expressions used in special forms cannot have their own type annotations. The \
+         expression itself defines a type and cannot be annotated with another type.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "When constructing type expressions for special forms like 'type', 'newtype', or 'is', \
+         the expression itself represents a type definition and cannot have a separate type \
+         annotation.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_use_import(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidUseImport,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Replace with a valid import expression"));
+
+    diagnostic.help = Some(Help::new(
+        "Use imports must be either a glob (*), a tuple of identifiers, or a struct of bindings. \
+         Other expression types are not valid in this context.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Valid import expressions include:\n- Glob: *\n- Tuple of identifiers: (name1, name2)\n- \
+         Struct with aliases: {name1: alias1, name2: alias2} or {name1: _, name2: _}",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn use_imports_with_type_annotation(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidUseImport,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Remove this type annotation"));
+
+    diagnostic.help = Some(Help::new(
+        "Use import expressions cannot have type annotations. Import expressions define which \
+         symbols to import, and do not have a meaningful type in this context.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Import expressions in the 'use' special form can only be a glob (*), a tuple of \
+         identifiers, or a struct of bindings, none of which should have type annotations.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_path_in_use_binding(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidUseImport,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Use a simple identifier here"));
+
+    diagnostic.help = Some(Help::new(
+        "Use binding names must be simple identifiers. Qualified paths or complex expressions \
+         cannot be used in this context.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "In tuple imports, each element must be a simple identifier. For example: (name1, name2) \
+         is valid, but (path::to::name) is not.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn use_path_with_generics(
+    span: SpanId,
+    path: &Path<'_>,
+) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::UsePathWithGenerics,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Remove these generic arguments"));
+
+    // Add labels for each generic argument segment in the path
+    for (index, segment) in path.segments.iter().enumerate() {
+        if !segment.arguments.is_empty() {
+            #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+            diagnostic.labels.push(
+                Label::new(segment.span, "Generic arguments are not allowed here")
+                    .with_order(-((index + 1) as i32)),
+            );
+        }
+    }
+
+    diagnostic.help = Some(Help::new(
+        "The 'use' special form does not support generic arguments in import paths. Remove all \
+         generic arguments from the path.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Use statements in HashQL can only import modules or specific symbols, but cannot specify \
+         generic parameters during import.",
     ));
 
     diagnostic
