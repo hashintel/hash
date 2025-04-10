@@ -90,8 +90,11 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::WebId,
+    },
+    provenance::{OriginProvenance, OriginType},
 };
 use uuid::Uuid;
 
@@ -236,7 +239,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .insert_web_id(
                 account_id,
                 InsertWebIdParams {
-                    web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
+                    web_id: WebId::new(account_id),
                     owner: WebOwnerSubject::Account { id: account_id },
                 },
             )
@@ -252,7 +255,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                     CreateDataTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
+                            web_id: WebId::new(account_id),
                         },
                         relationships: data_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
@@ -276,7 +279,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                     CreatePropertyTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
+                            web_id: WebId::new(account_id),
                         },
                         relationships: property_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
@@ -299,7 +302,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                     CreateEntityTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
+                            web_id: WebId::new(account_id),
                         },
                         relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,

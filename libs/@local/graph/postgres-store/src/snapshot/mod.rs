@@ -60,8 +60,10 @@ use type_system::{
         entity_type::{EntityTypeUuid, EntityTypeWithMetadata},
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
-    provenance::ActorEntityUuid,
-    web::{ActorGroupEntityUuid, WebId},
+    principal::{
+        actor::ActorEntityUuid,
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
 
 use crate::{
@@ -354,7 +356,7 @@ impl PostgresStorePool {
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
             .and_then(move |row| async move {
-                let id = WebId::new(row.get(0));
+                let id = row.get(0);
                 Ok(Web {
                     id,
                     relations: authorization_api

@@ -61,8 +61,7 @@ use type_system::{
         property_type::PropertyTypeUuid,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::ActorEntityUuid,
-    web::WebId,
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 
 use crate::store::{

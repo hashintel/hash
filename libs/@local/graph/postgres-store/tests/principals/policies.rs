@@ -5,11 +5,7 @@ use hash_graph_authorization::{
     policies::{
         Effect, Policy, PolicyId,
         action::ActionName,
-        principal::{
-            PrincipalConstraint,
-            group::{ActorGroupId, TeamId},
-            role::{RoleId, RoleName},
-        },
+        principal::PrincipalConstraint,
         resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
         store::{CreateWebParameter, PrincipalStore as _},
     },
@@ -17,8 +13,11 @@ use hash_graph_authorization::{
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
-    web::WebId,
+    principal::{
+        actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
+        actor_group::{ActorGroupId, TeamId, WebId},
+        role::{RoleId, RoleName},
+    },
 };
 use uuid::Uuid;
 

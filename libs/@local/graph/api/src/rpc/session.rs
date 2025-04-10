@@ -1,4 +1,4 @@
-use type_system::provenance::ActorEntityUuid;
+use type_system::principal::actor::ActorEntityUuid;
 
 #[derive(Debug, Clone, Default)]
 pub struct Account {

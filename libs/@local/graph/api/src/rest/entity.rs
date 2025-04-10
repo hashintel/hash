@@ -82,10 +82,11 @@ use type_system::{
         value::{ValueMetadata, metadata::ValueProvenance},
     },
     ontology::VersionedUrl,
-    provenance::{
-        ActorEntityUuid, ActorType, Location, OriginProvenance, SourceProvenance, SourceType,
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::WebId,
     },
-    web::WebId,
+    provenance::{Location, OriginProvenance, SourceProvenance, SourceType},
 };
 use utoipa::{OpenApi, ToSchema};
 

@@ -332,9 +332,9 @@ extern crate alloc;
 
 pub mod knowledge;
 pub mod ontology;
+pub mod principal;
 pub mod provenance;
 mod utils;
-pub mod web;
 
 use alloc::sync::Arc;
 #[cfg(feature = "postgres")]

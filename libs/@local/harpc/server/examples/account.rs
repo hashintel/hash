@@ -48,9 +48,8 @@ use harpc_types::{
     procedure::ProcedureId, response_kind::ResponseKind, subsystem::SubsystemId, version::Version,
 };
 use multiaddr::multiaddr;
-use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid};
+use type_system::{knowledge::entity::id::EntityUuid, principal::actor::ActorEntityUuid};
 use uuid::Uuid;
-
 #[derive(Debug, Copy, Clone)]
 enum System {
     Account,

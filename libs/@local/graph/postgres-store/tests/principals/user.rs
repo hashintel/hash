@@ -1,11 +1,13 @@
 use core::{assert_matches::assert_matches, error::Error};
 
-use hash_graph_authorization::policies::principal::PrincipalId;
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorId, UserId},
+    principal::{
+        PrincipalId,
+        actor::{ActorEntityUuid, ActorId, UserId},
+    },
 };
 use uuid::Uuid;
 
@@ -59,7 +61,7 @@ async fn create_user_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let (mut client, _actor_id) = db.seed([]).await?;
 
     let user_id = client.create_user(Some(Uuid::new_v4())).await?;
-    let result = client.create_user(Some(user_id.into_uuid())).await;
+    let result = client.create_user(Some(user_id.into())).await;
     drop(client);
 
     assert_matches!(

@@ -1,5 +1,5 @@
 use postgres_types::ToSql;
-use type_system::{provenance::ActorEntityUuid, web::ActorGroupEntityUuid};
+use type_system::principal::{actor::ActorEntityUuid, actor_group::ActorGroupEntityUuid};
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "accounts")]

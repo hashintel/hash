@@ -2,11 +2,6 @@ use core::{assert_matches::assert_matches, error::Error};
 
 use hash_graph_authorization::policies::{
     action::ActionName,
-    principal::{
-        PrincipalId,
-        group::ActorGroupId,
-        role::{Role, RoleId, RoleName, WebRoleId},
-    },
     store::{
         CreateWebParameter, PrincipalStore as _, RoleAssignmentStatus, RoleUnassignmentStatus,
     },
@@ -15,8 +10,12 @@ use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorId, UserId},
-    web::WebId,
+    principal::{
+        PrincipalId,
+        actor::{ActorEntityUuid, ActorId, UserId},
+        actor_group::{ActorGroupId, WebId},
+        role::{Role, RoleId, RoleName, WebRoleId},
+    },
 };
 use uuid::Uuid;
 

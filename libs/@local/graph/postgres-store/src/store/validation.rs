@@ -35,7 +35,7 @@ use type_system::{
         entity_type::{ClosedEntityType, EntityTypeUuid},
         property_type::{PropertyType, PropertyTypeUuid},
     },
-    provenance::ActorEntityUuid,
+    principal::actor::ActorEntityUuid,
 };
 
 use crate::store::postgres::{AsClient, PostgresStore};

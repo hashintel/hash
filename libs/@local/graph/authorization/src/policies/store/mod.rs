@@ -10,8 +10,11 @@ use error_stack::{Report, bail, ensure};
 use type_system::{
     knowledge::{entity::id::EntityUuid, property::PropertyObjectWithMetadata},
     ontology::VersionedUrl,
-    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId, UserId},
-    web::{ActorGroupEntityUuid, WebId},
+    principal::{
+        actor::{Actor, ActorEntityUuid, ActorId, ActorType, Machine, MachineId, User, UserId},
+        actor_group::{ActorGroup, ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
+        role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
+    },
 };
 use uuid::Uuid;
 
@@ -20,16 +23,7 @@ use self::error::{
     PolicyStoreError, RoleAssignmentError, TeamCreationError, TeamRoleCreationError,
     WebCreationError, WebRoleCreationError,
 };
-use super::{
-    ContextBuilder, Policy, PolicyId,
-    principal::{
-        Actor, PrincipalConstraint,
-        actor::Machine,
-        group::{ActorGroup, ActorGroupId, Team, TeamId, Web},
-        role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
-    },
-};
-use crate::policies::principal::actor::User;
+use super::{ContextBuilder, Policy, PolicyId, principal::PrincipalConstraint};
 
 #[derive(Debug, derive_more::Display)]
 #[display("Actor with ID `{actor}` already exists")]
@@ -354,7 +348,7 @@ impl PolicyStore for MemoryPolicyStore {
             ActorCreationError::WebNotFound { web_id }
         );
 
-        let user_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(web_id.into_uuid())));
+        let user_id = UserId::new(web_id);
         let Entry::Vacant(entry) = self.actors.entry(ActorId::User(user_id)) else {
             bail!(ActorCreationError::WebOccupied { web_id })
         };

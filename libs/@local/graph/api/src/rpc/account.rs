@@ -30,7 +30,8 @@ use hash_graph_store::{
 };
 use hash_temporal_client::TemporalClient;
 use type_system::{
-    knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid, web::ActorGroupEntityUuid,
+    knowledge::entity::id::EntityUuid,
+    principal::{actor::ActorEntityUuid, actor_group::ActorGroupEntityUuid},
 };
 
 use super::session::Account;
@@ -295,7 +296,7 @@ where
         let mut store = self.store().await?;
 
         let account = store
-            .identify_subject_id(EntityUuid::new(actor_id.into_uuid()))
+            .identify_subject_id(EntityUuid::new(actor_id))
             .await
             .inspect_err(|report| {
                 tracing::error!(error=?report, "Could not identify account");

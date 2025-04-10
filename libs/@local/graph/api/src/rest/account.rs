@@ -13,10 +13,7 @@ use error_stack::ResultExt as _;
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::ModifyRelationshipOperation,
-    policies::{
-        principal::group::{ActorGroupId, TeamId},
-        store::PrincipalStore,
-    },
+    policies::store::PrincipalStore,
     schema::{
         AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupPermission,
         AccountGroupRelationAndSubject, WebOwnerSubject,
@@ -30,8 +27,10 @@ use hash_graph_store::{
 use hash_temporal_client::TemporalClient;
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
-    web::{ActorGroupEntityUuid, WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
+        actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
+    },
 };
 use utoipa::OpenApi;
 
@@ -193,7 +192,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let actor = ActorId::new(params.account_type, params.account_id);
+    let actor = ActorId::new(params.account_id, params.account_type);
     store
         .insert_account_id(actor_id, params)
         .await
@@ -245,7 +244,7 @@ where
         })?;
 
     let account = store
-        .identify_subject_id(EntityUuid::new(actor_id.into_uuid()))
+        .identify_subject_id(EntityUuid::new(actor_id))
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not identify account");

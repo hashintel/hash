@@ -10,7 +10,8 @@ use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _};
 use serde::Serialize as _;
 
-use crate::policies::cedar::CedarEntityId;
+use super::cedar::ToCedarEntityId;
+use crate::policies::cedar::FromCedarEntityId;
 
 #[derive(
     Debug,
@@ -114,7 +115,7 @@ impl fmt::Display for ActionName {
     }
 }
 
-impl CedarEntityId for ActionName {
+impl FromCedarEntityId for ActionName {
     type Error = Report<InvalidActionConstraint>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
@@ -123,12 +124,18 @@ impl CedarEntityId for ActionName {
         &ENTITY_TYPE
     }
 
-    fn to_eid(&self) -> ast::Eid {
-        ast::Eid::new(self.to_string())
-    }
-
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
         Self::from_str(eid.as_ref()).change_context(InvalidActionConstraint::InvalidAction)
+    }
+}
+
+impl ToCedarEntityId for ActionName {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        Self::entity_type()
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        ast::Eid::new(self.to_string())
     }
 }
 
@@ -151,7 +158,9 @@ mod tests {
 
     use crate::{
         policies::{
-            ActionName, Effect, Policy, PolicyId, cedar::CedarEntityId as _, tests::check_policy,
+            ActionName, Effect, Policy, PolicyId,
+            cedar::{FromCedarEntityUId as _, ToCedarEntityId as _},
+            tests::check_policy,
             validation,
         },
         test_utils::check_serialization,

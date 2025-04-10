@@ -8,7 +8,7 @@ use type_system::ontology::{
 };
 
 use crate::policies::{
-    cedar::{CedarEntityId as _, CedarExpressionVisitor},
+    cedar::{CedarExpressionVisitor, FromCedarEntityId as _},
     resource::EntityTypeId,
 };
 

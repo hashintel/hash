@@ -18,12 +18,12 @@ use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::{
         Entity,
-        entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        entity::provenance::ProvidedEntityEditionProvenance,
         property::{PropertyObject, PropertyObjectWithMetadata},
     },
     ontology::VersionedUrl,
-    provenance::{ActorType, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{actor::ActorType, actor_group::WebId},
+    provenance::{OriginProvenance, OriginType},
 };
 
 use crate::{DatabaseApi, DatabaseTestWrapper, assert_equal_entities};
@@ -83,7 +83,7 @@ async fn empty_entity() {
         api.create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::new(),
@@ -117,7 +117,7 @@ async fn initial_person() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -288,7 +288,7 @@ async fn create_multi() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id(), org_entity_type_id()]),

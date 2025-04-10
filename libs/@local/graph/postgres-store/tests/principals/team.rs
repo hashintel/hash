@@ -2,14 +2,14 @@ use core::{assert_matches::assert_matches, error::Error};
 
 use hash_graph_authorization::policies::{
     action::ActionName,
-    principal::{
-        PrincipalId,
-        group::{ActorGroupId, TeamId},
-    },
     store::{CreateWebParameter, PrincipalStore as _},
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
+use type_system::principal::{
+    PrincipalId,
+    actor_group::{ActorGroupId, TeamId},
+};
 use uuid::Uuid;
 
 use crate::DatabaseTestWrapper;
@@ -25,10 +25,7 @@ async fn create_team() -> Result<(), Box<dyn Error>> {
     let team_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
     assert!(client.is_team(team_id).await?);
 
-    let team = client
-        .get_team(TeamId::new(team_id.into_uuid()))
-        .await?
-        .expect("Team should exist");
+    let team = client.get_team(team_id).await?.expect("Team should exist");
 
     assert_eq!(team.parents, [ActorGroupId::Web(web_id)]);
 
@@ -48,7 +45,7 @@ async fn create_team_with_id() -> Result<(), Box<dyn Error>> {
         .create_team(Some(id), ActorGroupId::Web(web_id))
         .await?;
 
-    assert_eq!(team_id.into_uuid(), id);
+    assert_eq!(Uuid::from(team_id), id);
     assert!(client.is_team(team_id).await?);
 
     Ok(())
@@ -70,7 +67,7 @@ async fn delete_team_with_hierarchy() -> Result<(), Box<dyn Error>> {
 
     // Verify hierarchy is correctly established
     let team = client
-        .get_team(TeamId::new(bottom_team_id.into_uuid()))
+        .get_team(bottom_team_id)
         .await?
         .expect("Team should exist");
 

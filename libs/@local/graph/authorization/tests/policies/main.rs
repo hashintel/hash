@@ -14,18 +14,17 @@ use std::sync::LazyLock;
 use hash_graph_authorization::policies::{
     Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
     action::ActionName,
-    principal::{
-        group::ActorGroupId,
-        role::{RoleId, RoleName, WebRoleId},
-    },
     resource::{EntityResource, EntityTypeId, EntityTypeResource},
     store::{MemoryPolicyStore, PolicyStore},
 };
 use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::VersionedUrl,
-    provenance::{ActorId, MachineId, UserId},
-    web::WebId,
+    principal::{
+        actor::{ActorId, MachineId, UserId},
+        actor_group::{ActorGroupId, WebId},
+        role::{RoleId, RoleName, WebRoleId},
+    },
 };
 use uuid::Uuid;
 
@@ -100,7 +99,7 @@ impl TestUser {
         let web = TestWeb::generate(policy_store, context)?;
         let id = policy_store.create_user(web.id)?;
         let entity = EntityResource {
-            id: EntityUuid::new(id.into_uuid()),
+            id: id.into(),
             web_id: web.id,
             entity_type: Cow::Borrowed(ENTITY_TYPES.as_slice()),
         };
@@ -141,7 +140,7 @@ impl TestMachine {
 
         let id = policy_store.create_machine()?;
         let entity = EntityResource {
-            id: EntityUuid::new(id.into_uuid()),
+            id: id.into(),
             web_id,
             entity_type: Cow::Borrowed(ENTITY_TYPES.as_slice()),
         };
@@ -569,9 +568,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: ActorId::Machine(org_web.machine.id),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(EntityUuid::new(
-                    user.web.machine.id.into_uuid()
-                )))),
+                resource: Some(&PartialResourceId::Entity(Some(user.web.machine.id.into()))),
                 context: RequestContext::default(),
             },
             &context,

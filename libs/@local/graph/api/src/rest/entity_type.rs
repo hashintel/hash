@@ -50,8 +50,7 @@ use type_system::{
         json_schema::{DomainValidator, ValidateOntologyType as _},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::ActorEntityUuid,
-    web::WebId,
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 use utoipa::{OpenApi, ToSchema};
 

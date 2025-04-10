@@ -19,7 +19,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TemporalBound;
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
-use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid};
+use type_system::{knowledge::entity::id::EntityUuid, principal::actor::ActorEntityUuid};
 
 use crate::util::Store;
 
@@ -48,7 +48,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
                                 path: EntityQueryPath::Uuid,
                             }),
                             Some(FilterExpression::Parameter {
-                                parameter: Parameter::Uuid(entity_uuid.into_uuid()),
+                                parameter: Parameter::Uuid(entity_uuid.into()),
                                 convert: None,
                             }),
                         ),

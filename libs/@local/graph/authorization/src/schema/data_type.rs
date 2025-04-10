@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::data_type::DataTypeUuid,
-    provenance::ActorEntityUuid,
-    web::{ActorGroupEntityUuid, WebId},
+    principal::{
+        actor::ActorEntityUuid,
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
 
 use crate::{
@@ -150,7 +152,7 @@ impl Resource for DataTypeSubject {
         match self {
             Self::Web(web_id) => (
                 DataTypeSubjectNamespace::Web,
-                DataTypeSubjectId::Uuid(EntityUuid::new(web_id.into_uuid())),
+                DataTypeSubjectId::Uuid(web_id.into()),
             ),
             Self::Setting(setting) => (
                 DataTypeSubjectNamespace::Setting,
@@ -162,11 +164,11 @@ impl Resource for DataTypeSubject {
             ),
             Self::Account(id) => (
                 DataTypeSubjectNamespace::Account,
-                DataTypeSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
+                DataTypeSubjectId::Uuid(id.into()),
             ),
             Self::AccountGroup(id) => (
                 DataTypeSubjectNamespace::AccountGroup,
-                DataTypeSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
+                DataTypeSubjectId::Uuid(id.into()),
             ),
         }
     }

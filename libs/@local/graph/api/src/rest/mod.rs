@@ -84,8 +84,10 @@ use type_system::{
             OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
         },
     },
-    provenance::ActorEntityUuid,
-    web::{ActorGroupEntityUuid, WebId},
+    principal::{
+        actor::ActorEntityUuid,
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,

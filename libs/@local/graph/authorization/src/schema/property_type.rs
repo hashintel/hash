@@ -2,13 +2,17 @@ use core::error::Error;
 
 use serde::{Deserialize, Serialize};
 use type_system::{
-    knowledge::entity::id::EntityUuid, ontology::property_type::PropertyTypeUuid,
-    provenance::ActorEntityUuid, web::WebId,
+    knowledge::entity::id::EntityUuid,
+    ontology::property_type::PropertyTypeUuid,
+    principal::{
+        actor::ActorEntityUuid,
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
 
 use crate::{
     schema::{
-        ActorGroupEntityUuid, PublicAccess,
+        PublicAccess,
         error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
@@ -148,7 +152,7 @@ impl Resource for PropertyTypeSubject {
         match self {
             Self::Web(web_id) => (
                 PropertyTypeSubjectNamespace::Web,
-                PropertyTypeSubjectId::Uuid(EntityUuid::new(web_id.into_uuid())),
+                PropertyTypeSubjectId::Uuid(web_id.into()),
             ),
             Self::Setting(setting) => (
                 PropertyTypeSubjectNamespace::Setting,
@@ -160,11 +164,11 @@ impl Resource for PropertyTypeSubject {
             ),
             Self::Account(id) => (
                 PropertyTypeSubjectNamespace::Account,
-                PropertyTypeSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
+                PropertyTypeSubjectId::Uuid(id.into()),
             ),
             Self::AccountGroup(id) => (
                 PropertyTypeSubjectNamespace::AccountGroup,
-                PropertyTypeSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
+                PropertyTypeSubjectId::Uuid(id.into()),
             ),
         }
     }

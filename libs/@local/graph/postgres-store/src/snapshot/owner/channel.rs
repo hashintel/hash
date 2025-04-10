@@ -11,7 +11,7 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use hash_graph_authorization::schema::AccountGroupRelationAndSubject;
-use type_system::web::ActorGroupEntityUuid;
+use type_system::principal::actor_group::ActorGroupEntityUuid;
 
 use crate::snapshot::{
     SnapshotRestoreError,

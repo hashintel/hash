@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorType},
-    web::{ActorGroupEntityUuid, WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
 
 fn random_account_id() -> ActorEntityUuid {

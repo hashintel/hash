@@ -2,32 +2,63 @@ mod ai;
 mod machine;
 mod user;
 
+use alloc::sync::Arc;
+
 use cedar_policy_core::ast;
+use error_stack::{Report, ResultExt as _};
+use type_system::principal::actor::{Actor, ActorId, AiId, MachineId, UserId};
 
-pub use self::{ai::Ai, machine::Machine, user::User};
-use super::role::RoleId;
+use crate::policies::{
+    cedar::{FromCedarEntityId as _, FromCedarEntityUId, ToCedarEntity, ToCedarEntityId},
+    error::FromCedarRefernceError,
+};
 
-#[derive(Debug)]
-pub enum Actor {
-    User(User),
-    Machine(Machine),
-    Ai(Ai),
+impl FromCedarEntityUId for ActorId {
+    fn from_euid(euid: &ast::EntityUID) -> Result<Self, Report<FromCedarRefernceError>> {
+        if *euid.entity_type() == **UserId::entity_type() {
+            UserId::from_eid(euid.eid())
+                .change_context(FromCedarRefernceError::InvalidCedarEntityId)
+                .map(Self::User)
+        } else if *euid.entity_type() == **MachineId::entity_type() {
+            MachineId::from_eid(euid.eid())
+                .change_context(FromCedarRefernceError::InvalidCedarEntityId)
+                .map(Self::Machine)
+        } else if *euid.entity_type() == **AiId::entity_type() {
+            AiId::from_eid(euid.eid())
+                .change_context(FromCedarRefernceError::InvalidCedarEntityId)
+                .map(Self::Ai)
+        } else {
+            Err(Report::new(FromCedarRefernceError::UnexpectedEntityType {
+                actual: euid.entity_type().clone(),
+            }))
+        }
+    }
 }
 
-impl Actor {
-    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+impl ToCedarEntityId for ActorId {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        match self {
+            Self::User(user_id) => user_id.to_cedar_entity_type(),
+            Self::Machine(machine_id) => machine_id.to_cedar_entity_type(),
+            Self::Ai(ai_id) => ai_id.to_cedar_entity_type(),
+        }
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        match self {
+            Self::User(user_id) => user_id.to_eid(),
+            Self::Machine(machine_id) => machine_id.to_eid(),
+            Self::Ai(ai_id) => ai_id.to_eid(),
+        }
+    }
+}
+
+impl ToCedarEntity for Actor {
+    fn to_cedar_entity(&self) -> ast::Entity {
         match self {
             Self::User(user) => user.to_cedar_entity(),
             Self::Machine(machine) => machine.to_cedar_entity(),
             Self::Ai(ai) => ai.to_cedar_entity(),
-        }
-    }
-
-    pub fn roles(&self) -> impl Iterator<Item = RoleId> {
-        match self {
-            Self::User(user) => user.roles.iter().copied(),
-            Self::Machine(machine) => machine.roles.iter().copied(),
-            Self::Ai(ai) => ai.roles.iter().copied(),
         }
     }
 }

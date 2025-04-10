@@ -3,8 +3,10 @@ use core::error::Error;
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::ActorEntityUuid,
-    web::{ActorGroupEntityUuid, WebId},
+    principal::{
+        actor::ActorEntityUuid,
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
 
 use crate::{
@@ -135,13 +137,10 @@ impl Resource for WebSubject {
                 WebSubjectNamespace::Account,
                 WebSubjectId::Asteriks(PublicAccess::Public),
             ),
-            Self::Account(id) => (
-                WebSubjectNamespace::Account,
-                WebSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
-            ),
+            Self::Account(id) => (WebSubjectNamespace::Account, WebSubjectId::Uuid(id.into())),
             Self::AccountGroup(id) => (
                 WebSubjectNamespace::AccountGroup,
-                WebSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
+                WebSubjectId::Uuid(id.into()),
             ),
         }
     }

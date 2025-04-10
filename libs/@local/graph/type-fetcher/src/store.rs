@@ -5,12 +5,9 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
-    policies::{
-        principal::role::RoleName,
-        store::{
-            CreateWebParameter, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
-            error::{GetSystemAccountError, RoleAssignmentError, WebCreationError},
-        },
+    policies::store::{
+        CreateWebParameter, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
+        error::{GetSystemAccountError, RoleAssignmentError, WebCreationError},
     },
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
@@ -81,8 +78,12 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId, OriginProvenance, OriginType},
-    web::{ActorGroupEntityUuid, WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId, ActorType, MachineId},
+        actor_group::{ActorGroupEntityUuid, WebId},
+        role::RoleName,
+    },
+    provenance::{OriginProvenance, OriginType},
 };
 
 use crate::fetcher::{FetchedOntologyType, FetcherClient};

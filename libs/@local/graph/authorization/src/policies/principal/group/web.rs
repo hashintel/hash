@@ -4,37 +4,37 @@ use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
-use type_system::{knowledge::entity::id::EntityUuid, web::WebId};
+use type_system::principal::actor_group::{Web, WebId};
 use uuid::Uuid;
 
-use crate::policies::{cedar::CedarEntityId, principal::role::WebRoleId};
+use crate::policies::cedar::{FromCedarEntityId, ToCedarEntity, ToCedarEntityId};
 
-impl CedarEntityId for WebId {
+impl FromCedarEntityId for WebId {
     type Error = Report<uuid::Error>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
-        static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
+        pub(crate) static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Web"]));
         &ENTITY_TYPE
     }
 
-    fn to_eid(&self) -> ast::Eid {
-        ast::Eid::new(self.as_uuid().to_string())
-    }
-
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
-        Ok(Self::new(EntityUuid::new(Uuid::from_str(eid.as_ref())?)))
+        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
     }
 }
 
-#[derive(Debug)]
-pub struct Web {
-    pub id: WebId,
-    pub roles: HashSet<WebRoleId>,
+impl ToCedarEntityId for WebId {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        Self::entity_type()
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        ast::Eid::new(self.to_string())
+    }
 }
 
-impl Web {
-    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+impl ToCedarEntity for Web {
+    fn to_cedar_entity(&self) -> ast::Entity {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
@@ -42,7 +42,7 @@ impl Web {
             iter::empty(),
             Extensions::none(),
         )
-        .expect("web should be a valid Cedar entity")
+        .expect("Web should be a valid Cedar entity")
     }
 }
 
@@ -51,19 +51,16 @@ mod tests {
     use core::error::Error;
 
     use serde_json::json;
-    use type_system::{knowledge::entity::id::EntityUuid, web::WebId};
+    use type_system::principal::actor_group::{ActorGroupId, WebId};
     use uuid::Uuid;
 
     use crate::{
-        policies::{
-            PrincipalConstraint,
-            principal::{group::ActorGroupId, tests::check_principal},
-        },
+        policies::{PrincipalConstraint, principal::tests::check_principal},
         test_utils::check_deserialization_error,
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(EntityUuid::new(Uuid::new_v4()));
+        let web_id = WebId::new(Uuid::new_v4());
         check_principal(
             PrincipalConstraint::ActorGroup {
                 actor_type: None,

@@ -27,7 +27,7 @@ use hash_graph_store::{
 };
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize;
-use type_system::web::WebId;
+use type_system::principal::actor_group::WebId;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to_response};

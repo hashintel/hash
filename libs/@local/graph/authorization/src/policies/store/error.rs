@@ -1,9 +1,8 @@
 use core::error::Error;
 
-use type_system::{provenance::ActorId, web::WebId};
-
-use crate::policies::principal::{
-    group::{ActorGroupId, TeamId},
+use type_system::principal::{
+    actor::ActorId,
+    actor_group::{ActorGroupId, TeamId, WebId},
     role::RoleName,
 };
 

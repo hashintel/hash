@@ -25,7 +25,7 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeUuid},
         provenance::OntologyEditionProvenance,
     },
-    web::{ActorGroupEntityUuid, WebId},
+    principal::actor_group::{ActorGroupEntityUuid, WebId},
 };
 
 use crate::store::postgres::query::Table;

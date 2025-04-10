@@ -6,10 +6,11 @@ use cedar_policy_core::{
     extensions::Extensions,
 };
 use error_stack::{Report, ResultExt as _};
+use type_system::principal::{actor::Actor, actor_group::ActorGroup, role::Role};
 
 use super::{
     PolicyValidator,
-    principal::{Actor, group::ActorGroup, role::Role},
+    cedar::ToCedarEntity as _,
     resource::{EntityResource, EntityTypeResource},
 };
 

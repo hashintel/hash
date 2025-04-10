@@ -18,7 +18,6 @@ use hash_graph_authorization::{
     policies::{
         Authorized, PartialResourceId, PolicySet, Request, RequestContext,
         action::ActionName,
-        principal::role::RoleName,
         store::{
             CreateWebParameter, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{GetSystemAccountError, RoleAssignmentError, WebCreationError},
@@ -64,8 +63,11 @@ use type_system::{
         property_type::{PropertyType, schema::PropertyTypeReference},
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId},
-    web::{ActorGroupEntityUuid, WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId, ActorType, MachineId},
+        actor_group::{ActorGroupEntityUuid, WebId},
+        role::RoleName,
+    },
 };
 use uuid::Uuid;
 
@@ -127,7 +129,7 @@ where
                     version: row.get(1),
                 };
                 let transaction_time: Timestamp<TransactionTime> = row.get(2);
-                let system_account = MachineId::new(row.get(3));
+                let system_account : MachineId = row.get(3);
                 tracing::info!(
                     %system_account,
                     "Found system account using ontology type `{ontology_type_id}` created at {transaction_time}"
@@ -144,12 +146,12 @@ where
         let machines = self
             .as_client()
             .query_raw(
-                "SELECT id FROM machine_actor LIMIT 2",
+                "SELECT account_id FROM accounts LIMIT 2",
                 [] as [&(dyn ToSql + Sync); 0],
             )
             .await
             .change_context(GetSystemAccountError::StoreError)?
-            .map_ok(|row| MachineId::new(row.get(0)))
+            .map_ok(|row| row.get::<_, MachineId>(0))
             .try_collect::<Vec<_>>()
             .await
             .change_context(GetSystemAccountError::StoreError)?;
@@ -248,7 +250,7 @@ where
 
         if let Err(error) = self
             .as_mut_client()
-            .execute("INSERT INTO web (id) VALUES ($1)", &[web_id.as_uuid()])
+            .execute("INSERT INTO web (id) VALUES ($1)", &[&web_id])
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {

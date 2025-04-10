@@ -12,7 +12,7 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata, PropertyTypeWithMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::ActorEntityUuid,
+    principal::actor::ActorEntityUuid,
 };
 
 use crate::{

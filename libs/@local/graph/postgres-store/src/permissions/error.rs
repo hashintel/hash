@@ -1,10 +1,7 @@
 use core::error::Error;
 
-use hash_graph_authorization::policies::{
-    PolicyId,
-    action::ActionName,
-    principal::{PrincipalId, group::ActorGroupId, role::RoleName},
-};
+use hash_graph_authorization::policies::{PolicyId, action::ActionName};
+use type_system::principal::{PrincipalId, actor_group::ActorGroupId, role::RoleName};
 
 /// Errors that can occur during principal management operations.
 #[derive(Debug, derive_more::Display)]

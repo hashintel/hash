@@ -34,7 +34,7 @@ use hash_graph_type_defs::error::{ErrorInfo, StatusPayloads};
 use hash_status::{Status, StatusCode};
 use tokio::io;
 use tokio_util::{codec::FramedRead, io::StreamReader};
-use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid};
+use type_system::{knowledge::entity::id::EntityUuid, principal::actor::ActorEntityUuid};
 use uuid::Uuid;
 
 /// Create routes for interacting with entities.

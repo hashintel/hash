@@ -2,12 +2,16 @@ use core::error::Error;
 
 use cedar_policy_core::parser::parse_policy_or_template;
 use error_stack::ResultExt as _;
-use hash_graph_authorization::policies::{
-    Policy, PolicySet, PolicyValidator,
-    principal::{group::TeamId, role::WebRoleId},
-};
+use hash_graph_authorization::policies::{Policy, PolicySet, PolicyValidator};
 use pretty_assertions::assert_eq;
-use type_system::{knowledge::entity::id::EntityUuid, provenance::MachineId, web::WebId};
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    principal::{
+        actor::MachineId,
+        actor_group::{TeamId, WebId},
+        role::WebRoleId,
+    },
+};
 
 #[track_caller]
 fn check_policy(policy: &Policy) -> Result<(), Box<dyn Error>> {

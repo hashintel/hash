@@ -20,8 +20,11 @@ use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use time::OffsetDateTime;
 
 use crate::{
-    provenance::{ActorEntityUuid, ActorType, OriginProvenance, SourceProvenance},
-    web::WebId,
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::WebId,
+    },
+    provenance::{OriginProvenance, SourceProvenance},
 };
 
 /// Specifies whether an ontology type is owned locally or fetched from a remote source.
