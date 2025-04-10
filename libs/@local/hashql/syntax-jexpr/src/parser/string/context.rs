@@ -6,6 +6,17 @@ use winnow::{LocatingSlice, Stateful};
 
 use crate::span::Span;
 
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "The lexer ensures that we never have more than 4GiB of text"
+)]
+fn range_to_text(range: Range<usize>) -> TextRange {
+    TextRange::new(
+        TextSize::from((range.start + 1) as u32),
+        TextSize::from((range.end + 1) as u32),
+    )
+}
+
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Context<'heap, 'span> {
     pub heap: &'heap Heap,
@@ -14,20 +25,19 @@ pub(crate) struct Context<'heap, 'span> {
 }
 
 impl Context<'_, '_> {
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "The lexer ensures that we never have more than 4GiB of text"
-    )]
     pub(crate) fn span(&self, range: Range<usize>) -> SpanId {
         // `+ 1` here to offset the opening quote
         self.spans.insert(Span {
-            range: TextRange::new(
-                TextSize::from((range.start + 1) as u32),
-                TextSize::from((range.end + 1) as u32),
-            ),
+            range: range_to_text(range),
             pointer: None,
             parent_id: Some(self.parent),
         })
+    }
+
+    pub(crate) fn cover(&self, span: SpanId, range: Range<usize>) {
+        self.spans.modify(span, |span| {
+            span.range = span.range.cover(range_to_text(range.clone()));
+        });
     }
 }
 

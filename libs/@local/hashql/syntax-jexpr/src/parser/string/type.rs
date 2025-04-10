@@ -178,13 +178,13 @@ where
         let fields = terminated(
             repeat(0.., preceded(ws(","), parse_type_struct_field)),
             opt(","),
-        )
-        .with_span();
+        );
 
         terminated(
             fields,
             ws(cut_err(')').context(StrContext::Expected(StrContextValue::CharLiteral(')')))),
         )
+        .with_span()
         .map(move |(mut fields, mut span): (Vec<_>, _)| {
             let field = field.take().expect("Parser called more than once");
 
@@ -275,6 +275,8 @@ where
         TupleOrParen(Type<'heap>),
     }
 
+    let context = input.state;
+
     let start_span = ws("(").span().parse_next(input)?;
 
     // when we're inside parenthesis we can be one of the following:
@@ -318,8 +320,17 @@ where
                 Some(')') => {
                     let mut r#type = Some(r#type);
                     cut_err(")")
+                        .span()
+                        .map(|mut span| {
+                            let r#type = r#type.take().expect("Parser called more than once");
+
+                            // Extend the span of the type to include the closing parenthesis
+                            span.start = start_span.start;
+                            context.cover(r#type.span, span);
+
+                            r#type
+                        })
                         .context(StrContext::Expected(StrContextValue::CharLiteral(')')))
-                        .map(|_| r#type.take().expect("Parser called more than once"))
                         .parse_next(input)
                 }
                 Some(',') => parse_type_paren_tuple(r#type, start_span).parse_next(input),

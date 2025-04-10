@@ -3,6 +3,10 @@
 [
   "::kernel::special_form::type",
   "x",
-  { "#tuple": ["Int"], "#type": "(Int,)" },
+  {
+    "#tuple": ["Int"],
+    "#type": "(Int)"
+    //~^ ERROR Remove this type annotation
+  },
   "x"
 ]

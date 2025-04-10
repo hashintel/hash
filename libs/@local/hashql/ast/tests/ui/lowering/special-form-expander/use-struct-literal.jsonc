@@ -3,6 +3,11 @@
 [
   "::kernel::special_form::use",
   "::math",
-  { "#struct": { "x": { "#literal": 1 } } },
+  {
+    "#struct": {
+      "x": { "#literal": 1 }
+      //~^ ERROR Replace with a valid import expression
+    }
+  },
   "x"
 ]

@@ -4,6 +4,6 @@
   "::kernel::special_form::use",
   "::math",
   { "#tuple": [{ "#literal": 1 }] },
-  //~^ ERROR garble barble
+  //~^ ERROR Replace with a valid import expression
   "x"
 ]

@@ -4,6 +4,6 @@
   "::kernel::special_form::use",
   "::math",
   { "#tuple": ["::math::sub"] },
-  //~^ ERROR garble barble
+  //~^ ERROR Use a simple identifier here
   "x"
 ]

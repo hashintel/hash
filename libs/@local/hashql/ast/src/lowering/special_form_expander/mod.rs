@@ -710,7 +710,7 @@ impl<'heap> SpecialFormExpander<'heap> {
                 call.span,
                 SpecialFormKind::Use,
                 &call.arguments,
-                &[4],
+                &[3],
             ));
             return None;
         }

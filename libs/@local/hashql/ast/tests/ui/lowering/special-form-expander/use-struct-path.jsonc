@@ -3,6 +3,11 @@
 [
   "::kernel::special_form::use",
   "::math",
-  { "#struct": { "x": "::math::sub" } },
+  {
+    "#struct": {
+      "x": "::math::sub"
+      //~^ ERROR Use a simple identifier here
+    }
+  },
   "x"
 ]

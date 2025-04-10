@@ -4,6 +4,6 @@
   "::kernel::special_form::use",
   "::math",
   { "#tuple": ["::math::sub"], "#type": "Number" },
-  //~^ ERROR garble barble
+  //~^ ERROR Remove this type annotation
   "x"
 ]

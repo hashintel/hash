@@ -1,3 +1,9 @@
 //@ run: fail
 //@ description: any ident that isn't `*` should fail
-["::kernel::special_form::use", "::math", "X", "x"]
+[
+  "::kernel::special_form::use",
+  "::math",
+  "X",
+  //~^ ERROR Replace with a valid import expression
+  "x"
+]
