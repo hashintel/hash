@@ -277,8 +277,8 @@ pub(super) fn invalid_argument_length(
         SpecialFormKind::Newtype => {
             "The newtype/3 form should look like: (newtype name type-expr body)"
         }
-        SpecialFormKind::Use => "The use/4 form should look like: (use module imports body)",
-        SpecialFormKind::Fn => "The fn/4 form should look like: (fn generics arguments body)",
+        SpecialFormKind::Use => "The use/3 form should look like: (use module imports body)",
+        SpecialFormKind::Fn => "The fn/3 form should look like: (fn generics arguments body)",
         SpecialFormKind::Input => {
             "Use either:\n- input/3: (input name type body)\n- input/4: (input name type default \
              body)"
@@ -510,10 +510,9 @@ pub(crate) fn invalid_let_name_qualified_path(span: SpanId) -> SpecialFormExpand
         Severity::ERROR,
     );
 
-    diagnostic.labels.push(Label::new(
-        span,
-        format!("Replace this with a simple identifier"),
-    ));
+    diagnostic
+        .labels
+        .push(Label::new(span, "Replace this with a simple identifier"));
 
     diagnostic.help = Some(Help::new(
         "Let binding names must be simple identifiers without any path qualification. Qualified \

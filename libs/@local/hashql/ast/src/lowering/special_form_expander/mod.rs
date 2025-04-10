@@ -18,9 +18,10 @@ use crate::{
     node::{
         expr::{
             CallExpr, Expr, ExprKind, IfExpr, IsExpr, LetExpr, NewTypeExpr, StructExpr, TupleExpr,
-            TypeExpr, call::Argument,
+            TypeExpr, UseExpr, call::Argument, r#use::UseKind,
         },
         id::NodeId,
+        path::Path,
         r#type::{
             IntersectionType, StructField, StructType, TupleField, TupleType, Type, TypeKind,
             UnionType,
@@ -139,8 +140,8 @@ impl<'heap> SpecialFormExpander<'heap> {
         let mut types = self.heap.vec(Some(expr.arguments.len()));
 
         let arguments_len = expr.arguments.len();
-        for mut argument in expr.arguments {
-            let Some(r#type) = self.lower_expr_to_type(&mut argument.value) else {
+        for argument in expr.arguments {
+            let Some(r#type) = self.lower_expr_to_type(*argument.value) else {
                 continue;
             };
 
@@ -163,8 +164,8 @@ impl<'heap> SpecialFormExpander<'heap> {
         let mut fields = self.heap.vec(Some(expr.entries.len()));
 
         let entries_len = expr.entries.len();
-        for mut entry in expr.entries {
-            let Some(r#type) = self.lower_expr_to_type(&mut entry.value) else {
+        for entry in expr.entries {
+            let Some(r#type) = self.lower_expr_to_type(*entry.value) else {
                 continue;
             };
 
@@ -196,8 +197,8 @@ impl<'heap> SpecialFormExpander<'heap> {
         let mut fields = self.heap.vec(Some(expr.elements.len()));
 
         let elements_len = expr.elements.len();
-        for mut element in expr.elements {
-            let Some(r#type) = self.lower_expr_to_type(&mut element.value) else {
+        for element in expr.elements {
+            let Some(r#type) = self.lower_expr_to_type(*element.value) else {
                 continue;
             };
 
@@ -224,17 +225,45 @@ impl<'heap> SpecialFormExpander<'heap> {
         })
     }
 
-    fn lower_expr_to_type(&mut self, expr: &mut Expr<'heap>) -> Option<Type<'heap>> {
-        let kind = mem::replace(&mut expr.kind, ExprKind::Dummy);
+    fn lower_expr_to_type_path(
+        &mut self,
+        id: NodeId,
+        span: SpanId,
+        path: Path<'heap>,
+    ) -> Type<'heap> {
+        if path.matches_absolute_path(["kernel", "type", "Never"]) {
+            return Type {
+                id,
+                span,
+                kind: TypeKind::Never,
+            };
+        }
 
-        match kind {
+        if path.matches_absolute_path(["kernel", "type", "Unknown"]) {
+            return Type {
+                id,
+                span,
+                kind: TypeKind::Unknown,
+            };
+        }
+
+        Type {
+            id,
+            span,
+            kind: TypeKind::Path(path),
+        }
+    }
+
+    fn lower_expr_to_type(&mut self, expr: Expr<'heap>) -> Option<Type<'heap>> {
+        match expr.kind {
             ExprKind::Call(call_expr) => self.lower_expr_to_type_call(call_expr),
             ExprKind::Struct(struct_expr) => self.lower_expr_to_type_struct(struct_expr),
             ExprKind::Tuple(tuple_expr) => self.lower_expr_to_type_tuple(tuple_expr),
-            ExprKind::Path(path) => Some(Type {
+            ExprKind::Path(path) => Some(self.lower_expr_to_type_path(expr.id, expr.span, path)),
+            ExprKind::Underscore => Some(Type {
                 id: expr.id,
                 span: expr.span,
-                kind: TypeKind::Path(path),
+                kind: TypeKind::Infer,
             }),
             kind @ (ExprKind::Dict(_)
             | ExprKind::List(_)
@@ -279,11 +308,9 @@ impl<'heap> SpecialFormExpander<'heap> {
     ///
     /// The if/2 form has the syntax: `(if condition then-expr)`
     /// and is transformed into an if expression with no else branch.
-    fn lower_if_2(&self, call: &mut CallExpr<'heap>) -> ExprKind<'heap> {
-        // Vec only allocates if pushed to
-        let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
-
-        let [test, then] = arguments
+    fn lower_if_2(call: CallExpr<'heap>) -> ExprKind<'heap> {
+        let [test, then] = call
+            .arguments
             .try_into()
             .expect("The caller should've verified the length of the arguments");
 
@@ -300,11 +327,9 @@ impl<'heap> SpecialFormExpander<'heap> {
     ///
     /// The if/3 form has the syntax: `(if condition then-expr else-expr)`
     /// and is transformed into a complete if-then-else expression.
-    fn lower_if_3(&self, call: &mut CallExpr<'heap>) -> ExprKind<'heap> {
-        // Vec only allocates if pushed to
-        let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
-
-        let [test, then, r#else] = arguments
+    fn lower_if_3(call: CallExpr<'heap>) -> ExprKind<'heap> {
+        let [test, then, r#else] = call
+            .arguments
             .try_into()
             .expect("The caller should've verified the length of the arguments");
 
@@ -325,11 +350,11 @@ impl<'heap> SpecialFormExpander<'heap> {
     ///
     /// This function validates the argument count and delegates to the appropriate
     /// specialized lowering function.
-    fn lower_if(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_if(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         if call.arguments.len() == 2 {
-            Some(self.lower_if_2(call))
+            Some(Self::lower_if_2(call))
         } else if call.arguments.len() == 3 {
-            Some(self.lower_if_3(call))
+            Some(Self::lower_if_3(call))
         } else {
             self.diagnostics.push(invalid_argument_length(
                 call.span,
@@ -350,7 +375,7 @@ impl<'heap> SpecialFormExpander<'heap> {
     ///
     /// The function first checks that exactly 2 arguments are provided,
     /// then attempts to convert the second argument into a valid type expression.
-    fn lower_is(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_is(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // There only exists `is/2`
         if call.arguments.len() != 2 {
             self.diagnostics.push(invalid_argument_length(
@@ -363,11 +388,9 @@ impl<'heap> SpecialFormExpander<'heap> {
             return None;
         }
 
-        let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
+        let [value, r#type] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
 
-        let [value, mut r#type] = arguments.try_into().unwrap_or_else(|_| unreachable!());
-
-        let r#type = self.lower_expr_to_type(&mut r#type.value)?;
+        let r#type = self.lower_expr_to_type(*r#type.value)?;
 
         Some(ExprKind::Is(IsExpr {
             id: call.id,
@@ -377,12 +400,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
-    /// Extracts and validates a variable name from an argument for use in a bindings.
-    ///
-    /// This function checks that the argument provided is a valid variable name by verifying that:
-    /// 1. The argument is a path expression (not some other type of expression)
-    /// 2. The path is a simple identifier (not qualified with namespaces or having generics)
-    fn lower_argument_to_ident(&mut self, argument: Argument<'heap>) -> Option<Ident> {
+    fn lower_argument_to_path(&mut self, argument: Argument<'heap>) -> Option<Path<'heap>> {
         let ExprKind::Path(path) = argument.value.kind else {
             self.diagnostics
                 .push(invalid_let_name_not_path(argument.value.span));
@@ -390,9 +408,15 @@ impl<'heap> SpecialFormExpander<'heap> {
             return None;
         };
 
-        let Some(name) = path.clone().into_ident() else {
-            self.diagnostics
-                .push(invalid_let_name_qualified_path(path.span));
+        Some(path)
+    }
+
+    fn lower_argument_to_ident(&mut self, argument: Argument<'heap>) -> Option<Ident> {
+        let path = self.lower_argument_to_path(argument)?;
+        let span = path.span;
+
+        let Some(name) = path.into_ident() else {
+            self.diagnostics.push(invalid_let_name_qualified_path(span));
 
             return None;
         };
@@ -404,11 +428,9 @@ impl<'heap> SpecialFormExpander<'heap> {
     ///
     /// The let/3 form has the syntax: `(let name value body)`
     /// and is transformed into a let expression with no explicit type annotation.
-    fn lower_let_3(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Vec only allocates if pushed to
-        let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
-
-        let [name, value, body] = arguments
+    fn lower_let_3(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        let [name, value, body] = call
+            .arguments
             .try_into()
             .expect("The caller should've verified the length of the arguments");
 
@@ -428,17 +450,15 @@ impl<'heap> SpecialFormExpander<'heap> {
     ///
     /// The let/4 form has the syntax: `(let name type value body)`
     /// and is transformed into a let expression with an explicit type annotation.
-    fn lower_let_4(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Vec only allocates if pushed to
-        let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
-
-        let [name, mut r#type, value, body] = arguments
+    fn lower_let_4(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        let [name, r#type, value, body] = call
+            .arguments
             .try_into()
             .expect("The caller should've verified the length of the arguments");
 
         let (name, r#type) = Option::zip(
             self.lower_argument_to_ident(name),
-            self.lower_expr_to_type(&mut r#type.value),
+            self.lower_expr_to_type(*r#type.value),
         )?;
 
         Some(ExprKind::Let(LetExpr {
@@ -459,7 +479,7 @@ impl<'heap> SpecialFormExpander<'heap> {
     ///
     /// This function validates the argument count and delegates to the appropriate
     /// specialized lowering function.
-    fn lower_let(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_let(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         if call.arguments.len() == 3 {
             self.lower_let_3(call)
         } else if call.arguments.len() == 4 {
@@ -480,7 +500,7 @@ impl<'heap> SpecialFormExpander<'heap> {
     ///
     /// The type/3 form has the syntax: `(type name type-expr body)`
     /// and is transformed into a type expression that defines a type alias.
-    fn lower_type(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_type(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         if call.arguments.len() != 3 {
             self.diagnostics.push(invalid_argument_length(
                 call.span,
@@ -492,13 +512,11 @@ impl<'heap> SpecialFormExpander<'heap> {
             return None;
         }
 
-        // Vec only allocates if pushed to
-        let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
-        let [name, mut value, body] = arguments.try_into().unwrap_or_else(|_| unreachable!());
+        let [name, value, body] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
 
         let (name, value) = Option::zip(
             self.lower_argument_to_ident(name),
-            self.lower_expr_to_type(&mut value.value),
+            self.lower_expr_to_type(*value.value),
         )?;
 
         Some(ExprKind::Type(TypeExpr {
@@ -515,7 +533,7 @@ impl<'heap> SpecialFormExpander<'heap> {
     /// The newtype/3 form has the syntax: `(newtype name type-expr body)`
     /// and is transformed into a newtype expression that defines a new type
     /// with the structure of the provided type expression.
-    fn lower_newtype(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_newtype(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         if call.arguments.len() != 3 {
             self.diagnostics.push(invalid_argument_length(
                 call.span,
@@ -527,13 +545,11 @@ impl<'heap> SpecialFormExpander<'heap> {
             return None;
         }
 
-        // Vec only allocates if pushed to
-        let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
-        let [name, mut value, body] = arguments.try_into().unwrap_or_else(|_| unreachable!());
+        let [name, value, body] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
 
         let (name, value) = Option::zip(
             self.lower_argument_to_ident(name),
-            self.lower_expr_to_type(&mut value.value),
+            self.lower_expr_to_type(*value.value),
         )?;
 
         Some(ExprKind::NewType(NewTypeExpr {
@@ -545,27 +561,62 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
-    fn lower_use(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implementation for use special form
+    fn lower_use_imports(&mut self, argument: Argument<'heap>) -> Option<UseKind<'heap>> {
+        // imports can have 3 forms:
+        // `*` (symbol)
+        //
         todo!()
     }
 
-    fn lower_fn(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_use(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        // Implementation for use special form
+        // There's only one version: use/4
+        if call.arguments.len() != 3 {
+            self.diagnostics.push(invalid_argument_length(
+                call.span,
+                SpecialFormKind::Use,
+                &call.arguments,
+                &[4],
+            ));
+            return None;
+        }
+
+        let [path, imports, body] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
+
+        let (path, kind) = Option::zip(
+            self.lower_argument_to_path(path),
+            self.lower_use_imports(imports),
+        )?;
+
+        if path.has_generic_arguments() {
+            todo!("error out")
+        }
+
+        Some(ExprKind::Use(UseExpr {
+            id: call.id,
+            span: call.span,
+            path,
+            kind,
+            body: body.value,
+        }))
+    }
+
+    fn lower_fn(&mut self, _call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for fn special form
         todo!()
     }
 
-    fn lower_input(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_input(&mut self, _call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for input special form
         todo!()
     }
 
-    fn lower_access(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_access(&mut self, _call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for access special form
         todo!()
     }
 
-    fn lower_index(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_index(&mut self, _call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for index special form
         todo!()
     }
@@ -589,6 +640,20 @@ impl<'heap> Visitor<'heap> for SpecialFormExpander<'heap> {
             return;
         }
 
+        // Anything below here means that we're dealing with a special form, therefore anytime we
+        // error out we replace the kind with a dummy expression. This allows us to continue
+        // processing the rest of the expression tree during the different phases of lowering.
+
+        let ExprKind::Call(call) = mem::replace(&mut expr.kind, ExprKind::Dummy) else {
+            // We're verified before that this is a call expression
+            unreachable!()
+        };
+
+        let ExprKind::Path(path) = &call.function.kind else {
+            // We're verified before that this is a path expression
+            unreachable!()
+        };
+
         if !call.labeled_arguments.is_empty() {
             self.diagnostics.push(labeled_arguments_not_supported(
                 call.span,
@@ -606,11 +671,7 @@ impl<'heap> Visitor<'heap> for SpecialFormExpander<'heap> {
             return;
         }
 
-        if path
-            .segments
-            .iter()
-            .any(|segment| !segment.arguments.is_empty())
-        {
+        if path.has_generic_arguments() {
             let mut arguments = Vec::new();
 
             for segment in &path.segments {
@@ -646,11 +707,7 @@ impl<'heap> Visitor<'heap> for SpecialFormExpander<'heap> {
         };
 
         if let Some(kind) = kind {
-            *expr = Expr {
-                id: expr.id,
-                span: expr.span,
-                kind,
-            }
+            expr.kind = kind;
         }
     }
 }

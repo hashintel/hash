@@ -90,6 +90,12 @@ impl Path<'_> {
         true
     }
 
+    pub(crate) fn has_generic_arguments(&self) -> bool {
+        self.segments
+            .iter()
+            .any(|segment| !segment.arguments.is_empty())
+    }
+
     // Check if the path is a single identifier, and return if that's the case
     pub(crate) fn as_ident(&self) -> Option<&Ident> {
         if !self.is_ident() {
