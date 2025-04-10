@@ -52,14 +52,14 @@ const UNSUPPORTED_TYPE_CONSTRUCTOR: TerminalDiagnosticCategory = TerminalDiagnos
     name: "Unsupported type constructor",
 };
 
-const INVALID_LET_NAME: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "invalid-let-name",
-    name: "Invalid let binding name",
+const INVALID_BINDING_NAME: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-binding-name",
+    name: "Invalid binding name",
 };
 
-const QUALIFIED_LET_NAME: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "qualified-let-name",
-    name: "Qualified path used as let binding name",
+const QUALIFIED_BINDING_NAME: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "qualified-binding-name",
+    name: "Qualified path used as binding name",
 };
 
 const TYPE_WITH_EXISTING_ANNOTATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -110,8 +110,8 @@ pub enum SpecialFormExpanderDiagnosticCategory {
     InvalidTypeExpression,
     InvalidTypeCall,
     UnsupportedTypeConstructor,
-    InvalidLetName,
-    QualifiedLetName,
+    InvalidBindingName,
+    QualifiedBindingName,
     TypeWithExistingAnnotation,
     InvalidUseImport,
     UsePathWithGenerics,
@@ -139,8 +139,8 @@ impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
             Self::InvalidTypeExpression => Some(&INVALID_TYPE_EXPRESSION),
             Self::InvalidTypeCall => Some(&INVALID_TYPE_CALL),
             Self::UnsupportedTypeConstructor => Some(&UNSUPPORTED_TYPE_CONSTRUCTOR),
-            Self::InvalidLetName => Some(&INVALID_LET_NAME),
-            Self::QualifiedLetName => Some(&QUALIFIED_LET_NAME),
+            Self::InvalidBindingName => Some(&INVALID_BINDING_NAME),
+            Self::QualifiedBindingName => Some(&QUALIFIED_BINDING_NAME),
             Self::TypeWithExistingAnnotation => Some(&TYPE_WITH_EXISTING_ANNOTATION),
             Self::InvalidUseImport => Some(&INVALID_USE_IMPORT),
             Self::UsePathWithGenerics => Some(&USE_PATH_WITH_GENERICS),
@@ -538,9 +538,26 @@ pub(crate) fn unsupported_type_constructor_function(span: SpanId) -> SpecialForm
     diagnostic
 }
 
-pub(crate) fn invalid_let_name_not_path(span: SpanId) -> SpecialFormExpanderDiagnostic {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
+pub(crate) enum BindingMode {
+    #[display("use")]
+    Use,
+    #[display("let")]
+    Let,
+    #[display("type")]
+    Type,
+    #[display("newtype")]
+    Newtype,
+    #[display("input")]
+    Input,
+}
+
+pub(crate) fn invalid_binding_name_not_path(
+    span: SpanId,
+    mode: BindingMode,
+) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
-        SpecialFormExpanderDiagnosticCategory::InvalidLetName,
+        SpecialFormExpanderDiagnosticCategory::InvalidBindingName,
         Severity::ERROR,
     );
 
@@ -549,22 +566,45 @@ pub(crate) fn invalid_let_name_not_path(span: SpanId) -> SpecialFormExpanderDiag
         "Replace this expression with a simple identifier",
     ));
 
-    diagnostic.help = Some(Help::new(
-        "The let binding name must be a simple identifier. Complex expressions are not allowed in \
-         binding positions.",
-    ));
+    diagnostic.help = Some(Help::new(format!(
+        "The {mode} binding name must be a simple identifier. Complex expressions are not allowed \
+         in binding positions."
+    )));
 
-    diagnostic.note = Some(Note::new(
-        "Valid examples of let bindings:\n- (let x value body)\n- (let counter 0 ...)\n- (let \
-         user_name input ...)",
-    ));
+    let note = match mode {
+        BindingMode::Use => {
+            "Valid examples of use bindings:\n- (use module_name * body)\n- (use ::math (sin, cos) \
+             ...)\n- (use ::string (trim: string_trim) ...)"
+        }
+        BindingMode::Let => {
+            "Valid examples of let bindings:\n- (let x value body)\n- (let counter 0 ...)\n- (let \
+             user_name input ...)"
+        }
+        BindingMode::Type => {
+            "Valid examples of type bindings:\n- (type Person (name: String, age: Int) body)\n- \
+             (type Output (| Integer Natural) ...)\n- (type UserId String ...)"
+        }
+        BindingMode::Newtype => {
+            "Valid examples of newtype bindings:\n- (newtype UserId String body)\n- (newtype Email \
+             String ...)\n- (newtype Percentage Number ...)"
+        }
+        BindingMode::Input => {
+            "Valid examples of input bindings:\n- (input name String body)\n- (input age Int \
+             default_age ...)\n- (input options (enabled: Boolean) ...)"
+        }
+    };
+
+    diagnostic.note = Some(Note::new(note));
 
     diagnostic
 }
 
-pub(crate) fn invalid_let_name_qualified_path(span: SpanId) -> SpecialFormExpanderDiagnostic {
+pub(crate) fn invalid_let_name_qualified_path(
+    span: SpanId,
+    mode: BindingMode,
+) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
-        SpecialFormExpanderDiagnosticCategory::QualifiedLetName,
+        SpecialFormExpanderDiagnosticCategory::QualifiedBindingName,
         Severity::ERROR,
     );
 
@@ -572,10 +612,10 @@ pub(crate) fn invalid_let_name_qualified_path(span: SpanId) -> SpecialFormExpand
         .labels
         .push(Label::new(span, "Replace this with a simple identifier"));
 
-    diagnostic.help = Some(Help::new(
-        "Let binding names must be simple identifiers without any path qualification. Qualified \
-         paths cannot be used as binding names.",
-    ));
+    diagnostic.help = Some(Help::new(format!(
+        "{mode} binding names must be simple identifiers without any path qualification. \
+         Qualified paths cannot be used as binding names."
+    )));
 
     diagnostic.note = Some(Note::new(
         "Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any \

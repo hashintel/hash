@@ -8,13 +8,13 @@ use core::{
 use hashql_core::{span::SpanId, symbol::Ident};
 
 use self::error::{
-    InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic, fn_generics_with_type_annotation,
-    fn_params_with_type_annotation, invalid_argument_length, invalid_fn_generic_param,
-    invalid_fn_generics_expression, invalid_fn_params_expression, invalid_let_name_not_path,
-    invalid_let_name_qualified_path, invalid_path_in_use_binding, invalid_type_call_function,
-    invalid_type_expression, invalid_use_import, labeled_arguments_not_supported,
-    type_with_existing_annotation, unknown_special_form_generics, unknown_special_form_length,
-    unknown_special_form_name, unsupported_type_constructor_function,
+    BindingMode, InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic,
+    fn_generics_with_type_annotation, fn_params_with_type_annotation, invalid_argument_length,
+    invalid_binding_name_not_path, invalid_fn_generic_param, invalid_fn_generics_expression,
+    invalid_fn_params_expression, invalid_let_name_qualified_path, invalid_path_in_use_binding,
+    invalid_type_call_function, invalid_type_expression, invalid_use_import,
+    labeled_arguments_not_supported, type_with_existing_annotation, unknown_special_form_generics,
+    unknown_special_form_length, unknown_special_form_name, unsupported_type_constructor_function,
     use_imports_with_type_annotation, use_path_with_generics,
 };
 use crate::{
@@ -415,10 +415,14 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
-    fn lower_argument_to_path(&mut self, argument: Argument<'heap>) -> Option<Path<'heap>> {
+    fn lower_argument_to_path(
+        &mut self,
+        mode: BindingMode,
+        argument: Argument<'heap>,
+    ) -> Option<Path<'heap>> {
         let ExprKind::Path(path) = argument.value.kind else {
             self.diagnostics
-                .push(invalid_let_name_not_path(argument.value.span));
+                .push(invalid_binding_name_not_path(argument.value.span, mode));
 
             return None;
         };
@@ -426,12 +430,17 @@ impl<'heap> SpecialFormExpander<'heap> {
         Some(path)
     }
 
-    fn lower_argument_to_ident(&mut self, argument: Argument<'heap>) -> Option<Ident> {
-        let path = self.lower_argument_to_path(argument)?;
+    fn lower_argument_to_ident(
+        &mut self,
+        mode: BindingMode,
+        argument: Argument<'heap>,
+    ) -> Option<Ident> {
+        let path = self.lower_argument_to_path(mode, argument)?;
         let span = path.span;
 
         let Some(name) = path.into_ident() else {
-            self.diagnostics.push(invalid_let_name_qualified_path(span));
+            self.diagnostics
+                .push(invalid_let_name_qualified_path(span, mode));
 
             return None;
         };
@@ -449,7 +458,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             .try_into()
             .expect("The caller should've verified the length of the arguments");
 
-        let name = self.lower_argument_to_ident(name)?;
+        let name = self.lower_argument_to_ident(BindingMode::Let, name)?;
 
         Some(ExprKind::Let(LetExpr {
             id: call.id,
@@ -472,7 +481,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             .expect("The caller should've verified the length of the arguments");
 
         let (name, r#type) = Option::zip(
-            self.lower_argument_to_ident(name),
+            self.lower_argument_to_ident(BindingMode::Let, name),
             self.lower_expr_to_type(*r#type.value),
         )?;
 
@@ -530,7 +539,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         let [name, value, body] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
 
         let (name, value) = Option::zip(
-            self.lower_argument_to_ident(name),
+            self.lower_argument_to_ident(BindingMode::Type, name),
             self.lower_expr_to_type(*value.value),
         )?;
 
@@ -563,7 +572,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         let [name, value, body] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
 
         let (name, value) = Option::zip(
-            self.lower_argument_to_ident(name),
+            self.lower_argument_to_ident(BindingMode::Newtype, name),
             self.lower_expr_to_type(*value.value),
         )?;
 
@@ -722,7 +731,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         let [path, imports, body] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
 
         let (path, kind) = Option::zip(
-            self.lower_argument_to_path(path),
+            self.lower_argument_to_path(BindingMode::Use, path),
             self.lower_use_imports(imports),
         )?;
 
@@ -920,8 +929,11 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
-    fn lower_input(&mut self, _call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_input(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for input special form
+        // input has 2 forms:
+        // input/3: (input <name> <type> <body>)
+        // input/4: (input <name> <type> <default> <body>)
         todo!()
     }
 
