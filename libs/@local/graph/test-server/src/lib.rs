@@ -160,7 +160,7 @@ where
     pool.acquire(authorization_api, None)
         .await
         .map_err(store_acquisition_error)?
-        .delete_accounts(ActorEntityUuid::new(Uuid::nil()))
+        .delete_principals(ActorEntityUuid::new(Uuid::nil()))
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not delete accounts");

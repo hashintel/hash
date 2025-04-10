@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
-use hash_graph_authorization::{AuthorizationApi, NoAuthorization, schema::WebOwnerSubject};
+use hash_graph_authorization::{AuthorizationApi, NoAuthorization};
 use hash_graph_store::{
     account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
     entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams},
@@ -68,7 +68,7 @@ async fn seed_db<A: AuthorizationApi>(
             account_id,
             InsertWebIdParams {
                 web_id: WebId::new(account_id),
-                owner: WebOwnerSubject::Account { id: account_id },
+                administrator: account_id,
             },
         )
         .await

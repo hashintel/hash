@@ -6,7 +6,7 @@ use type_system::{
     knowledge::entity::id::EntityUuid,
     principal::{
         actor::{ActorEntityUuid, ActorType},
-        actor_group::{ActorGroupEntityUuid, WebId},
+        actor_group::{ActorGroupId, TeamId, WebId},
     },
 };
 
@@ -14,8 +14,8 @@ fn random_account_id() -> ActorEntityUuid {
     ActorEntityUuid::new(uuid::Uuid::new_v4())
 }
 
-fn random_account_group_entity_uuid() -> ActorGroupEntityUuid {
-    ActorGroupEntityUuid::new(uuid::Uuid::new_v4())
+fn random_team_id() -> TeamId {
+    TeamId::new(uuid::Uuid::new_v4())
 }
 
 #[derive(Debug, Error)]
@@ -43,8 +43,9 @@ fn random_web_id() -> WebId {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InsertAccountGroupIdParams {
-    #[serde(default = "random_account_group_entity_uuid")]
-    pub account_group_id: ActorGroupEntityUuid,
+    #[serde(default = "random_team_id")]
+    pub team_id: TeamId,
+    pub parent: ActorGroupId,
 }
 
 #[derive(Debug, Error)]
@@ -57,7 +58,7 @@ pub struct WebInsertionError;
 pub struct InsertWebIdParams {
     #[serde(default = "random_web_id")]
     pub web_id: WebId,
-    pub owner: WebOwnerSubject,
+    pub administrator: ActorEntityUuid,
 }
 
 #[derive(Debug, Error)]
@@ -77,11 +78,11 @@ pub trait AccountStore {
         params: InsertAccountIdParams,
     ) -> impl Future<Output = Result<(), Report<AccountInsertionError>>> + Send;
 
-    /// Inserts the specified [`ActorGroupEntityUuid`] into the database.
+    /// Inserts the specified [`TeamId`] into the database.
     ///
     /// # Errors
     ///
-    /// - if insertion failed, e.g. because the [`ActorGroupEntityUuid`] already exists.
+    /// - if insertion failed, e.g. because the [`TeamId`] already exists.
     fn insert_account_group_id(
         &mut self,
         actor_id: ActorEntityUuid,

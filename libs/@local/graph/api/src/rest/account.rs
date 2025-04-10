@@ -5,18 +5,16 @@ use alloc::sync::Arc;
 use axum::{
     Extension, Router,
     extract::Path,
-    http::StatusCode,
     response::Response,
     routing::{get, post},
 };
 use error_stack::ResultExt as _;
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
-    backend::ModifyRelationshipOperation,
-    policies::store::PrincipalStore,
+    policies::store::{PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus},
     schema::{
         AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupPermission,
-        AccountGroupRelationAndSubject, WebOwnerSubject,
+        AccountGroupRelationAndSubject,
     },
     zanzibar::Consistency,
 };
@@ -25,12 +23,10 @@ use hash_graph_store::{
     pool::StorePool,
 };
 use hash_temporal_client::TemporalClient;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    principal::{
-        actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
-        actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
-    },
+use type_system::principal::{
+    actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
+    actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
+    role::RoleName,
 };
 use utoipa::OpenApi;
 
@@ -47,8 +43,8 @@ use crate::rest::{
         get_or_create_system_account,
 
         check_account_group_permission,
-        add_account_group_member,
-        remove_account_group_member,
+        assign_account_group_role,
+        unassign_account_group_role,
         get_account_group_relations,
     ),
     components(
@@ -63,6 +59,12 @@ use crate::rest::{
             TeamId,
             WebId,
             ActorGroupId,
+            TeamId,
+            WebId,
+            ActorGroupEntityUuid,
+            RoleName,
+            RoleAssignmentStatus,
+            RoleUnassignmentStatus,
             AccountGroupPermission,
             AccountGroupRelationAndSubject,
             AccountGroupMemberSubject,
@@ -103,9 +105,9 @@ impl AccountResource {
                             )
                             .route("/relations", get(get_account_group_relations::<A>))
                             .route(
-                                "/members/:account_id",
-                                post(add_account_group_member::<A>)
-                                    .delete(remove_account_group_member::<A>),
+                                "/:role/:account_id",
+                                post(assign_account_group_role::<S, A>)
+                                    .delete(unassign_account_group_role::<S, A>),
                             ),
                     ),
             )
@@ -225,48 +227,28 @@ async fn create_account_group<S, A>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<InsertAccountGroupIdParams>,
-) -> Result<Json<ActorGroupEntityUuid>, StatusCode>
+) -> Result<Json<TeamId>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
     let mut store = store_pool
         .acquire(authorization_api, temporal_client.0)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not acquire store");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        .map_err(report_to_response)?;
 
-    let account = store
-        .identify_subject_id(EntityUuid::new(actor_id))
-        .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not identify account");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-    if account != (WebOwnerSubject::Account { id: actor_id }) {
-        tracing::error!("Account does not exist in the graph");
-        return Err(StatusCode::NOT_FOUND);
-    }
-
-    let account_group_id = params.account_group_id;
+    let team_id = params.team_id;
     store
         .insert_account_group_id(actor_id, params)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not create account id");
+        .map_err(report_to_response)?;
 
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(account_group_id))
+    Ok(Json(team_id))
 }
 
 #[utoipa::path(
@@ -331,140 +313,108 @@ where
 
 #[utoipa::path(
     post,
-    path = "/account_groups/{account_group_id}/members/{account_id}",
+    path = "/account_groups/{account_group_id}/{role}/{account_id}",
     tag = "Account Group",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("account_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the account group to add the member to"),
+        ("role" = RoleName, Path, description = "The role to assign to the account"),
         ("account_id" = ActorEntityUuid, Path, description = "The ID of the account to add to the group"),
     ),
     responses(
-        (status = 201, description = "The account group member was added"),
+        (status = 200, body = RoleAssignmentStatus, description = "The account group member was added"),
 
         (status = 403, description = "Permission denied"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn add_account_group_member<A>(
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn assign_account_group_role<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((account_group_id, account_id)): Path<(ActorGroupEntityUuid, ActorEntityUuid)>,
+    Path((account_group_id, role_name, account_id)): Path<(
+        ActorGroupEntityUuid,
+        RoleName,
+        ActorEntityUuid,
+    )>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-) -> Result<StatusCode, StatusCode>
+) -> Result<Json<RoleAssignmentStatus>, Response>
 where
+    S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let has_permission = authorization_api
-        .check_account_group_permission(
-            actor_id,
-            AccountGroupPermission::AddMember,
-            account_group_id,
-            Consistency::FullyConsistent,
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
         )
         .await
-        .map_err(|error| {
-            tracing::error!(
-                ?error,
-                "Could not check if account group member can be added"
-            );
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .has_permission;
-
-    if !has_permission {
-        return Err(StatusCode::FORBIDDEN);
-    }
-
-    authorization_api
-        .modify_account_group_relations([(
-            ModifyRelationshipOperation::Create,
-            account_group_id,
-            AccountGroupRelationAndSubject::Member {
-                subject: AccountGroupMemberSubject::Account { id: account_id },
-                level: 0,
-            },
-        )])
+        .map_err(report_to_response)?
+        .assign_role(actor_id, account_id, account_group_id, role_name)
         .await
-        .map_err(|error| {
-            tracing::error!(?error, "Could not add account group member");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(StatusCode::CREATED)
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(
     delete,
-    path = "/account_groups/{account_group_id}/members/{account_id}",
+    path = "/account_groups/{account_group_id}/{role}/{account_id}",
     tag = "Account Group",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("account_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the account group to remove the member from"),
+        ("role" = RoleName, Path, description = "The role to remove from the account"),
         ("account_id" = ActorEntityUuid, Path, description = "The ID of the account to remove from the group")
     ),
     responses(
-        (status = 204, description = "The account group member was removed"),
+        (status = 200, body = RoleUnassignmentStatus, description = "The account group member was removed"),
 
         (status = 403, description = "Permission denied"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn remove_account_group_member<A>(
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn unassign_account_group_role<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((account_group_id, account_id)): Path<(ActorGroupEntityUuid, ActorEntityUuid)>,
+    Path((account_group_id, role_name, account_id)): Path<(
+        ActorGroupEntityUuid,
+        RoleName,
+        ActorEntityUuid,
+    )>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-) -> Result<StatusCode, StatusCode>
+) -> Result<Json<RoleUnassignmentStatus>, Response>
 where
+    S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let has_permission = authorization_api
-        .check_account_group_permission(
-            actor_id,
-            AccountGroupPermission::RemoveMember,
-            account_group_id,
-            Consistency::FullyConsistent,
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
         )
         .await
-        .map_err(|error| {
-            tracing::error!(
-                ?error,
-                "Could not check if account group member can be removed"
-            );
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .has_permission;
-
-    if !has_permission {
-        return Err(StatusCode::FORBIDDEN);
-    }
-
-    authorization_api
-        .modify_account_group_relations([(
-            ModifyRelationshipOperation::Delete,
-            account_group_id,
-            AccountGroupRelationAndSubject::Member {
-                subject: AccountGroupMemberSubject::Account { id: account_id },
-                level: 0,
-            },
-        )])
+        .map_err(report_to_response)?
+        .unassign_role(actor_id, account_id, account_group_id, role_name)
         .await
-        .map_err(|error| {
-            tracing::error!(?error, "Could not remove account group member");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(StatusCode::NO_CONTENT)
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(

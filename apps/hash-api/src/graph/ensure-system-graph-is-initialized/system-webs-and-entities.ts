@@ -22,7 +22,6 @@ import { logger } from "../../logger";
 import {
   addAccountGroupMember,
   createAccount,
-  createAccountGroup,
   createWeb,
 } from "../account-permission-management";
 import type { ImpureGraphContext } from "../context-types";
@@ -120,21 +119,11 @@ export const getOrCreateOwningWebId = async (
 
   const authentication = { actorId: machineActorIdForWeb };
 
-  const webId = (await createAccountGroup(
-    context,
-    { actorId: machineActorIdForWeb },
-    {},
-  )) as WebId;
-
-  await createWeb(context, authentication, {
-    webId,
-    owner: { kind: "accountGroup", subjectId: webId },
+  const webId = await createWeb(context, authentication, {
+    administrator: authentication.actorId,
   });
 
-  logger.info(
-    `Created accountGroup for web with shortname ${webShortname}, webId: ${webId}`,
-  );
-
+  logger.info(`Created web with shortname ${webShortname}, webId: ${webId}`);
   owningWebs[webShortname].webId = webId;
   owningWebs[webShortname].machineActorAccountId = machineActorIdForWeb;
 

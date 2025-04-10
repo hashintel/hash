@@ -298,19 +298,16 @@ export const createUser: ImpureGraphFunction<
     ctx,
     { actorId: systemAccountId },
     {
-      webId: userAccountId,
-      owner: {
-        kind: "account",
-        /**
-         * Creating a web allows users to create further entities in it
-         * – we don't want them to do that until they've completed signup (have a shortname and display name)
-         * - the web is created with the system account as the owner and will be updated to the user account as the
-         *   owner once the user has completed signup
-         */
-        subjectId: userShouldHavePermissionsOnWeb
-          ? userAccountId
-          : systemAccountId,
-      },
+      webId: userAccountId as WebId,
+      /**
+       * Creating a web allows users to create further entities in it
+       * – we don't want them to do that until they've completed signup (have a shortname and display name)
+       * - the web is created with the system account as the owner and will be updated to the user account as the
+       *   owner once the user has completed signup
+       */
+      administrator: userShouldHavePermissionsOnWeb
+        ? userAccountId
+        : systemAccountId,
     },
   );
 

@@ -21,10 +21,7 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { logger } from "../../../logger";
-import {
-  createAccountGroup,
-  createWeb,
-} from "../../account-permission-management";
+import { createWeb } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -133,11 +130,8 @@ export const createOrg: ImpureGraphFunction<
   if (params.webId) {
     orgWebId = params.webId;
   } else {
-    orgWebId = (await createAccountGroup(ctx, authentication, {})) as WebId;
-
-    await createWeb(ctx, authentication, {
-      webId: orgWebId,
-      owner: { kind: "accountGroup", subjectId: orgWebId },
+    orgWebId = await createWeb(ctx, authentication, {
+      administrator: authentication.actorId,
     });
 
     await createWebMachineActor(ctx, authentication, {

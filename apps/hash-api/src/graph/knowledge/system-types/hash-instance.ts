@@ -61,7 +61,12 @@ export const createHashInstance: ImpureGraphFunction<
   const hashInstanceAdminsAccountGroupId = await createAccountGroup(
     ctx,
     authentication,
-    {},
+    {
+      parent: {
+        actorGroupType: "web",
+        id: hashOrg.webId,
+      },
+    },
   );
 
   logger.info(
@@ -170,9 +175,10 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
     throw new Error("No administrator role over HASH Instance entity.");
   }
 
-  await ctx.graphApi.addAccountGroupMember(
+  await ctx.graphApi.assignAccountGroupRole(
     authentication.actorId,
     entityAdmin.subjectId,
+    "member",
     params.user.accountId,
   );
 };
@@ -239,9 +245,10 @@ export const removeHashInstanceAdmin: ImpureGraphFunction<
     throw new Error("No administrator role over HASH Instance entity.");
   }
 
-  await ctx.graphApi.removeAccountGroupMember(
+  await ctx.graphApi.unassignAccountGroupRole(
     authentication.actorId,
     entityAdmin.subjectId,
+    "member",
     params.user.accountId,
   );
 };

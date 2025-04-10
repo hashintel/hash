@@ -34,7 +34,6 @@ use hash_graph_authorization::{
         EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeSetting,
         EntityTypeSettingSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
         PropertyTypeSetting, PropertyTypeSettingSubject, PropertyTypeViewerSubject,
-        WebOwnerSubject,
     },
     zanzibar::Consistency,
 };
@@ -240,7 +239,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                 account_id,
                 InsertWebIdParams {
                     web_id: WebId::new(account_id),
-                    owner: WebOwnerSubject::Account { id: account_id },
+                    administrator: account_id,
                 },
             )
             .await

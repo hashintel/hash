@@ -57,102 +57,6 @@
         }
       }
     },
-    "/account_groups/{account_group_id}/members/{account_id}": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Account Group"
-        ],
-        "operationId": "add_account_group_member",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "account_group_id",
-            "in": "path",
-            "description": "The ID of the account group to add the member to",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorGroupEntityUuid"
-            }
-          },
-          {
-            "name": "account_id",
-            "in": "path",
-            "description": "The ID of the account to add to the group",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "The account group member was added"
-          },
-          "403": {
-            "description": "Permission denied"
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Graph",
-          "Account Group"
-        ],
-        "operationId": "remove_account_group_member",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "account_group_id",
-            "in": "path",
-            "description": "The ID of the account group to remove the member from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorGroupEntityUuid"
-            }
-          },
-          {
-            "name": "account_id",
-            "in": "path",
-            "description": "The ID of the account to remove from the group",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "The account group member was removed"
-          },
-          "403": {
-            "description": "Permission denied"
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      }
-    },
     "/account_groups/{account_group_id}/permissions/{permission}": {
       "get": {
         "tags": [
@@ -252,6 +156,134 @@
           },
           "500": {
             "description": "Internal error occurred"
+          }
+        }
+      }
+    },
+    "/account_groups/{account_group_id}/{role}/{account_id}": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "assign_account_group_role",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to add the member to",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "path",
+            "description": "The role to assign to the account",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RoleName"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to add to the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The account group member was added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleAssignmentStatus"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "unassign_account_group_role",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to remove the member from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "path",
+            "description": "The role to remove from the account",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RoleName"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to remove from the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The account group member was removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleUnassignmentStatus"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
           }
         }
       }
@@ -6949,9 +6981,15 @@
       },
       "InsertAccountGroupIdParams": {
         "type": "object",
+        "required": [
+          "parent"
+        ],
         "properties": {
-          "accountGroupId": {
-            "$ref": "#/components/schemas/ActorGroupEntityUuid"
+          "parent": {
+            "$ref": "#/components/schemas/ActorGroupId"
+          },
+          "teamId": {
+            "$ref": "#/components/schemas/TeamId"
           }
         },
         "additionalProperties": false
@@ -6974,11 +7012,11 @@
       "InsertWebIdParams": {
         "type": "object",
         "required": [
-          "owner"
+          "administrator"
         ],
         "properties": {
-          "owner": {
-            "$ref": "#/components/schemas/WebOwnerSubject"
+          "administrator": {
+            "$ref": "#/components/schemas/ActorEntityUuid"
           },
           "webId": {
             "$ref": "#/components/schemas/WebId"
@@ -9699,6 +9737,27 @@
             "$ref": "#/components/schemas/TemporalBound"
           }
         }
+      },
+      "RoleAssignmentStatus": {
+        "type": "string",
+        "enum": [
+          "newly-assigned",
+          "already-assigned"
+        ]
+      },
+      "RoleName": {
+        "type": "string",
+        "enum": [
+          "administrator",
+          "member"
+        ]
+      },
+      "RoleUnassignmentStatus": {
+        "type": "string",
+        "enum": [
+          "unassigned",
+          "not-assigned"
+        ]
       },
       "Selector": {
         "type": "string",

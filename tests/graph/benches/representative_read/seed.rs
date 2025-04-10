@@ -1,7 +1,7 @@
 use core::{iter::repeat_n, str::FromStr as _};
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use hash_graph_authorization::{AuthorizationApi, schema::WebOwnerSubject};
+use hash_graph_authorization::AuthorizationApi;
 use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::{
     account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
@@ -155,7 +155,7 @@ async fn seed_db<A: AuthorizationApi>(
             account_id,
             InsertWebIdParams {
                 web_id: WebId::new(account_id),
-                owner: WebOwnerSubject::Account { id: account_id },
+                administrator: account_id,
             },
         )
         .await
@@ -363,7 +363,7 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
         .as_client()
         .query_one(
             "
-            SELECT EXISTS(SELECT 1 FROM accounts WHERE account_id=$1)
+            SELECT EXISTS(SELECT 1 FROM actor WHERE id=$1)
             ",
             &[&account_id],
         )
