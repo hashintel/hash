@@ -415,6 +415,14 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
+    /// Attempts to extract a `Path` from an argument.
+    ///
+    /// This function is used by various special form lowering functions to extract
+    /// path expressions from arguments. It checks if the argument contains a path
+    /// expression and returns it if present, otherwise it adds a diagnostic and
+    /// returns `None`.
+    ///
+    /// The `mode` parameter is used for generating appropriate error diagnostics.
     fn lower_argument_to_path(
         &mut self,
         mode: BindingMode,
@@ -430,6 +438,13 @@ impl<'heap> SpecialFormExpander<'heap> {
         Some(path)
     }
 
+    /// Attempts to extract an identifier from an argument.
+    ///
+    /// This function validates that the argument contains a simple path expression that
+    /// can be converted to an identifier. It first extracts a path using `lower_argument_to_path`
+    /// and then ensures the path is a simple identifier (not a qualified path).
+    ///
+    /// The `mode` parameter is used for generating appropriate error diagnostics.
     fn lower_argument_to_ident(
         &mut self,
         mode: BindingMode,
@@ -585,6 +600,13 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
+    /// Processes a struct expression for use imports.
+    ///
+    /// Struct-style imports have the form `{key: value, ...}` where each key represents the
+    /// name to bind and each value is either an underscore (to use the same name) or
+    /// an identifier (to use as alias).
+    ///
+    /// Returns a `UseKind::Named` with the appropriate bindings if successful.
     fn lower_use_imports_struct(&mut self, r#struct: StructExpr) -> Option<UseKind<'heap>> {
         // {key: value}, each value must be a value must be an underscore *or* ident
         if let Some(type_expr) = &r#struct.r#type {
@@ -638,6 +660,12 @@ impl<'heap> SpecialFormExpander<'heap> {
         Some(UseKind::Named(bindings))
     }
 
+    /// Processes a tuple expression for use imports.
+    ///
+    /// Tuple-style imports have the form `(path1, path2, ...)` where each path
+    /// should be a simple identifier. These imports use the original name without aliasing.
+    ///
+    /// Returns a `UseKind::Named` with the appropriate bindings if successful.
     fn lower_use_imports_tuple(&mut self, tuple: TupleExpr) -> Option<UseKind<'heap>> {
         if let Some(type_expr) = &tuple.r#type {
             self.diagnostics
@@ -678,12 +706,15 @@ impl<'heap> SpecialFormExpander<'heap> {
         Some(UseKind::Named(bindings))
     }
 
+    /// Processes use imports in different forms.
+    ///
+    /// This function handles three forms of imports:
+    /// - `*` (symbol) - Import all items (glob import)
+    /// - Struct-style imports - Named imports with potential aliases
+    /// - Tuple-style imports - Named imports without aliases
+    ///
+    /// Returns the appropriate `UseKind` variant based on the import form.
     fn lower_use_imports(&mut self, argument: Argument<'heap>) -> Option<UseKind<'heap>> {
-        // imports can have 3 forms:
-        // `*` (symbol)
-        // struct
-        // tuple
-
         match argument.value.kind {
             ExprKind::Path(path) => {
                 let path_id = path.id;
@@ -715,9 +746,15 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
     }
 
+    /// Lowers a use/3 special form to a `UseExpr`.
+    ///
+    /// The use/3 form has the syntax: `(use path imports body)`
+    /// where path is the module path to import from, imports specifies
+    /// what to import, and body is the expression in which the imports are available.
+    ///
+    /// This function verifies the argument count and structure, then processes
+    /// the path and imports to create a `UseExpr`.
     fn lower_use(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implementation for use special form
-        // There's only one version: use/3
         if call.arguments.len() != 3 {
             self.diagnostics.push(invalid_argument_length(
                 call.span,
@@ -751,6 +788,13 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
+    /// Processes a tuple expression for function generic parameters.
+    ///
+    /// This function extracts generic parameter names from a tuple expression
+    /// with the form `(param1, param2, ...)` where each element is a path
+    /// that can be converted to an identifier.
+    ///
+    /// Returns a `Generics` instance containing the generic parameters with no bounds.
     fn lower_fn_generics_tuple(&mut self, tuple: TupleExpr<'heap>) -> Option<Generics<'heap>> {
         if let Some(type_expr) = &tuple.r#type {
             self.diagnostics
@@ -794,6 +838,13 @@ impl<'heap> SpecialFormExpander<'heap> {
         })
     }
 
+    /// Processes a struct expression for function generic parameters with bounds.
+    ///
+    /// This function extracts generic parameters from a struct expression with the form
+    /// `(param1: bound1, param2: _, ...)` where each key is a parameter name and each
+    /// value is either an underscore (for no bound) or a type expression (for a bound).
+    ///
+    /// Returns a `Generics` instance containing the generic parameters with their bounds.
     fn lower_fn_generics_struct(&mut self, r#struct: StructExpr<'heap>) -> Option<Generics<'heap>> {
         if let Some(type_expr) = &r#struct.r#type {
             self.diagnostics
@@ -833,11 +884,14 @@ impl<'heap> SpecialFormExpander<'heap> {
         })
     }
 
+    /// Processes an argument for function generic parameters.
+    ///
+    /// This function handles two forms of generic parameter declarations:
+    /// - Tuple form: Simple parameters without bounds
+    /// - Struct form: Parameters with optional type bounds
+    ///
+    /// Returns a `Generics` instance if successful.
     fn lower_fn_generics(&mut self, argument: Argument<'heap>) -> Option<Generics<'heap>> {
-        // There are two valid forms:
-        // tuples
-        // structs - where the values are type expressions and express bounds
-
         match argument.value.kind {
             ExprKind::Tuple(tuple) => self.lower_fn_generics_tuple(tuple),
             ExprKind::Struct(r#struct) => self.lower_fn_generics_struct(r#struct),
@@ -849,6 +903,13 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
     }
 
+    /// Processes a struct expression for function parameters.
+    ///
+    /// This function extracts parameter names and type bounds from a struct expression
+    /// with the form `(param1: type1, param2: type2, ...)` where each key is a parameter name
+    /// and each value is a type expression representing the parameter type.
+    ///
+    /// Returns a vector of `ClosureParam` instances if successful.
     fn lower_fn_parameters(
         &mut self,
         argument: Argument<'heap>,
@@ -889,9 +950,17 @@ impl<'heap> SpecialFormExpander<'heap> {
         Some(params)
     }
 
+    /// Lowers a fn/4 special form to a `ClosureExpr`.
+    ///
+    /// The fn/4 form has the syntax: `(fn generics params return-type body)`
+    /// where:
+    /// - `generics` defines type parameters
+    /// - `params` defines function parameters and their types
+    /// - `return-type` specifies the function return type
+    /// - `body` is the function implementation
+    ///
+    /// This function processes the arguments to create a function expression.
     fn lower_fn(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implement for fn special form
-        // There's only one version: fn/4
         if call.arguments.len() != 4 {
             self.diagnostics.push(invalid_argument_length(
                 call.span,
@@ -929,6 +998,10 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
+    /// Lowers an input/2 special form to an `InputExpr` without a default value.
+    ///
+    /// The input/2 form has the syntax: `(input name type)`
+    /// and is transformed into an input expression that defines a required input.
     fn lower_input_2(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         let [name, r#type] = call
             .arguments
@@ -949,6 +1022,10 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
+    /// Lowers an input/3 special form to an `InputExpr` with a default value.
+    ///
+    /// The input/3 form has the syntax: `(input name type default)`
+    /// and is transformed into an input expression with a default value.
     fn lower_input_3(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         let [name, r#type, default] = call
             .arguments
@@ -969,12 +1046,15 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
+    /// Lowers an input special form to the appropriate `InputExpr` variant.
+    ///
+    /// There are two forms of the `input` special form:
+    /// - input/2: `(input name type)` - defines a required input
+    /// - input/3: `(input name type default)` - defines an input with a default value
+    ///
+    /// This function validates the argument count and delegates to the appropriate
+    /// specialized lowering function.
     fn lower_input(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implementation for input special form
-        // input has 2 forms:
-        // input/2: (input <name> <type>)
-        // input/3: (input <name> <type> <default>)
-
         if call.arguments.len() == 2 {
             self.lower_input_2(call)
         } else if call.arguments.len() == 3 {
@@ -991,9 +1071,14 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
     }
 
+    /// Lowers an access/2 special form to a `FieldExpr`.
+    ///
+    /// The access/2 form has the syntax: `(access object field)`
+    /// and is transformed into a field access expression that retrieves
+    /// the specified field from the object.
+    ///
+    /// This is equivalent to the dot notation `object.field` in many languages.
     fn lower_access(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implementation for access special form
-        // There's only one form: access/2
         if call.arguments.len() != 2 {
             self.diagnostics.push(invalid_argument_length(
                 call.span,
@@ -1017,9 +1102,14 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
+    /// Lowers an index/2 special form to an `IndexExpr`.
+    ///
+    /// The index/2 form has the syntax: `(index collection index)`
+    /// and is transformed into an index access expression that retrieves
+    /// the element at the specified index from the collection.
+    ///
+    /// This is equivalent to the bracket notation `collection[index]` in many languages.
     fn lower_index(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implementation for index special form
-        // There's only one form: index/2
         if call.arguments.len() != 2 {
             self.diagnostics.push(invalid_argument_length(
                 call.span,
