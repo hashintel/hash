@@ -1,3 +1,12 @@
+//! Individual actors that can perform actions in the system.
+//!
+//! Defines the actor types and their associated identifiers:
+//! - Users: Human users with accounts
+//! - Machines: Server or programmatic agents
+//! - AI: Artificial intelligence agents
+//!
+//! Each actor type has a corresponding ID type for type-safe identification.
+
 mod ai;
 mod machine;
 mod user;
@@ -12,6 +21,10 @@ pub use self::{
 use super::role::RoleId;
 use crate::knowledge::entity::id::EntityUuid;
 
+/// A branded EntityUuid specifically for actor entities.
+///
+/// Provides type safety by distinguishing actor entity UUIDs from other entity UUIDs,
+/// preventing accidental misuse across different entity domains.
 #[derive(
     Debug,
     Copy,
@@ -40,6 +53,9 @@ pub struct ActorEntityUuid(
 );
 
 impl ActorEntityUuid {
+    /// Creates a new `ActorEntityUuid` from any value that can be converted to a `Uuid`.
+    ///
+    /// Wraps the provided UUID in the appropriate branded type structure.
     #[must_use]
     pub fn new(entity_uuid: impl Into<Uuid>) -> Self {
         Self(EntityUuid::new(entity_uuid))
@@ -58,6 +74,9 @@ impl From<ActorEntityUuid> for Uuid {
     }
 }
 
+/// Types of individual actors in the system.
+///
+/// Represents the different categories of entities that can perform actions.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -68,6 +87,10 @@ pub enum ActorType {
     Ai,
 }
 
+/// Type-safe identifier for an actor in the system.
+///
+/// Wraps specific actor ID types ([`UserId`], [`MachineId`], [`AiId`]) in a tagged enumeration,
+/// allowing different actor types to be handled uniformly while preserving type information.
 #[derive(
     Debug,
     Copy,
@@ -90,6 +113,10 @@ pub enum ActorId {
 }
 
 impl ActorId {
+    /// Creates a new [`ActorId`] from a UUID and actor type.
+    ///
+    /// Constructs the appropriate typed ID based on the specified [`ActorType`],
+    /// wrapping the provided UUID in the correct identifier structure.
     #[must_use]
     pub fn new(actor_entity_uuid: impl Into<Uuid>, actor_type: ActorType) -> Self {
         match actor_type {
@@ -99,6 +126,9 @@ impl ActorId {
         }
     }
 
+    /// Returns the [`ActorType`] of this ID.
+    ///
+    /// Determines the specific actor type based on the variant.
     #[must_use]
     pub const fn actor_type(self) -> ActorType {
         match self {
@@ -161,6 +191,10 @@ impl postgres_types::ToSql for ActorId {
     }
 }
 
+/// An individual actor that can perform actions in the system.
+///
+/// Represents the concrete implementation of an actor with its attributes and capabilities.
+/// Each variant corresponds to a specific [`ActorType`].
 #[derive(Debug, derive_more::From)]
 pub enum Actor {
     User(User),
@@ -169,6 +203,9 @@ pub enum Actor {
 }
 
 impl Actor {
+    /// Returns the [`ActorType`] of this actor.
+    ///
+    /// Determines the specific type based on the variant.
     #[must_use]
     pub const fn actor_type(&self) -> ActorType {
         match self {
@@ -178,6 +215,9 @@ impl Actor {
         }
     }
 
+    /// Returns the unique [`ActorId`] for this actor.
+    ///
+    /// Extracts the ID from the inner actor implementation.
     #[must_use]
     pub const fn id(&self) -> ActorId {
         match self {
@@ -187,6 +227,9 @@ impl Actor {
         }
     }
 
+    /// Returns an iterator over all [`RoleId`]s assigned to this actor.
+    ///
+    /// Provides access to the roles this actor has been granted in the system.
     pub fn roles(&self) -> impl Iterator<Item = RoleId> {
         match self {
             Self::User(user) => user.roles.iter().copied(),

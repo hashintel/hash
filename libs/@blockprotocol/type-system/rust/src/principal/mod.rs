@@ -1,3 +1,45 @@
+//! # Principal Module
+//!
+//! The Principal module defines a comprehensive identity and access management system for the Block
+//! Protocol type system. It establishes a hierarchical structure for representing various actors
+//! and their roles within a system.
+//!
+//! ## Core Components
+//!
+//! The principal system consists of three main categories:
+//!
+//! 1. **Actors** - Individual entities that can perform actions:
+//!    - `User` - Human users with accounts in the system
+//!    - `Machine` - Server or programmatic agents
+//!    - `Ai` - Artificial intelligence actors
+//!
+//! 2. **Actor Groups** - Collections of actors:
+//!    - `Web` - Web-based identity groupings
+//!    - `Team` - Organizational team structures
+//!
+//! 3. **Roles** - Access control designations:
+//!    - `WebRole` - Roles within web contexts
+//!    - `TeamRole` - Roles within team contexts
+//!
+//! Each component has a corresponding ID type that encapsulates its identity in a type-safe manner.
+//!
+//! ## Usage
+//!
+//! The principal system is used for:
+//!
+//! - Tracking the origin of changes in the type system
+//! - Implementing access control and permissions
+//! - Providing identity context for entities and operations
+//! - Supporting audit trails and provenance tracking
+//!
+//! ### Key Types
+//!
+//! - [`Actor`] - Represents individual agents that can perform actions in the system
+//! - [`ActorId`] - Type-safe identifier for actors
+//! - [`PrincipalId`] - Union type for all principal identifiers
+//! - [`PrincipalType`] - Enumeration of all principal categories
+//! - [`Principal`] - Union type for concrete principal implementations
+
 use uuid::Uuid;
 
 use self::{
@@ -10,6 +52,9 @@ pub mod actor;
 pub mod actor_group;
 pub mod role;
 
+/// Available principal types in the system.
+///
+/// Categorizes principals as individual actors, actor groups, or roles.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 #[cfg_attr(
     feature = "postgres",
@@ -54,6 +99,10 @@ impl From<RoleType> for PrincipalType {
     }
 }
 
+/// Unified identifier for any principal in the system.
+///
+/// Wraps specific identifier types for actors, actor groups, and roles into a single
+/// enumeration, allowing them to be used interchangeably in authorization contexts.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::From)]
 pub enum PrincipalId {
     Actor(ActorId),
@@ -62,6 +111,10 @@ pub enum PrincipalId {
 }
 
 impl PrincipalId {
+    /// Creates a new principal ID from a UUID and principal type.
+    ///
+    /// Constructs the appropriate typed ID based on the specified principal type,
+    /// wrapping the provided UUID in the correct identifier structure.
     #[must_use]
     pub fn new(uuid: Uuid, principal_type: PrincipalType) -> Self {
         match principal_type {
@@ -75,6 +128,9 @@ impl PrincipalId {
         }
     }
 
+    /// Returns the principal type of this ID.
+    ///
+    /// Inspects the variant and inner type to determine the specific principal type.
     #[must_use]
     pub const fn principal_type(self) -> PrincipalType {
         match self {
@@ -121,6 +177,10 @@ impl postgres_types::ToSql for PrincipalId {
     }
 }
 
+/// A concrete principal entity within the system.
+///
+/// Represents an actor, team, or role that can be referenced for authorization
+/// and provenance tracking purposes.
 #[derive(Debug, derive_more::From)]
 pub enum Principal {
     Actor(Actor),
@@ -129,6 +189,9 @@ pub enum Principal {
 }
 
 impl Principal {
+    /// Returns the unique identifier for this principal.
+    ///
+    /// Extracts the appropriate ID from the inner actor, team, or role.
     #[must_use]
     pub const fn id(&self) -> PrincipalId {
         match self {

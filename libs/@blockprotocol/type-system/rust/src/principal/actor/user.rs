@@ -1,3 +1,7 @@
+//! Human user actor implementation.
+//!
+//! Defines the user-specific ID and structure, representing human accounts in the system.
+
 use std::collections::HashSet;
 
 use uuid::Uuid;
@@ -8,6 +12,10 @@ use crate::{
     principal::{actor_group::WebId, role::RoleId},
 };
 
+/// A type-safe identifier for a user actor.
+///
+/// Branded [`ActorEntityUuid`] type that specifically represents user accounts,
+/// providing compile-time guarantees when working with user identifiers.
 #[derive(
     Debug,
     Copy,
@@ -36,6 +44,9 @@ pub struct UserId(
 );
 
 impl UserId {
+    /// Creates a new [`UserId`] from any value that can be converted to a `Uuid`.
+    ///
+    /// Wraps the provided UUID in the appropriate branded type structure.
     #[must_use]
     pub fn new(actor_entity_uuid: impl Into<Uuid>) -> Self {
         Self(ActorEntityUuid::new(actor_entity_uuid))
@@ -66,6 +77,9 @@ impl From<UserId> for WebId {
     }
 }
 
+/// A human user account within the system.
+///
+/// Represents a user with their unique identifier and assigned roles.
 #[derive(Debug)]
 pub struct User {
     pub id: UserId,

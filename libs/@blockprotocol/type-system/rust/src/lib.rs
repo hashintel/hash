@@ -40,8 +40,8 @@
 //!
 //! ## Core Components
 //!
-//! The type system consists of two main parts: the ontology (type definitions) and knowledge (data
-//! instances):
+//! The type system consists of three main parts: the ontology (type definitions), knowledge (data
+//! instances), and principals (identity and access):
 //!
 //! - [`ontology`] module - Contains the schema definitions for data, property, and entity types:
 //!   - [`ontology::data_type`] - Defines validation rules for primitive values
@@ -53,9 +53,15 @@
 //!   - [`knowledge::Property`] - Structured data conforming to property types
 //!   - [`knowledge::Entity`] - Complete entities conforming to entity types
 //!
+//! - [`principal`] module - Defines identity and access management constructs:
+//!   - [`principal::Actor`] - Individual entities that can perform actions
+//!   - [`principal::ActorGroup`] - Collections of actors sharing common characteristics
+//!   - [`principal::Role`] - Access control designations for principals
+//!
 //! The relationship between ontology and knowledge is similar to schemas and records in databases:
 //! ontology types define the structure and rules, while knowledge components contain the actual
-//! data conforming to those rules.
+//! data conforming to those rules. Principals provide identity context for operations performed
+//! on ontology and knowledge.
 //!
 //! Additional components:
 //!

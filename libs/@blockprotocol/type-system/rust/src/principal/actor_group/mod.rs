@@ -1,3 +1,11 @@
+//! Groups of actors that share common characteristics or purposes.
+//!
+//! Defines actor group types and their associated identifiers:
+//! - Web: Web-based groups representing domains or organizations
+//! - Team: Organizational teams with members and shared access
+//!
+//! Each group type has a corresponding ID type for type-safe identification.
+
 mod team;
 mod web;
 
@@ -9,6 +17,10 @@ pub use self::{
 };
 use crate::knowledge::entity::id::EntityUuid;
 
+/// A branded EntityUuid specifically for actor group entities.
+///
+/// Provides type safety by distinguishing actor group entity UUIDs from other entity UUIDs,
+/// preventing accidental misuse across different entity domains.
 #[derive(
     Debug,
     Copy,
@@ -37,6 +49,9 @@ pub struct ActorGroupEntityUuid(
 );
 
 impl ActorGroupEntityUuid {
+    /// Creates a new [`ActorGroupEntityUuid`] from any value that can be converted to a `Uuid`.
+    ///
+    /// Wraps the provided UUID in the appropriate branded type structure.
     #[must_use]
     pub fn new(entity_uuid: impl Into<Uuid>) -> Self {
         Self(EntityUuid::new(entity_uuid))
@@ -55,6 +70,9 @@ impl From<ActorGroupEntityUuid> for Uuid {
     }
 }
 
+/// Types of actor groups in the system.
+///
+/// Represents the different categories of actor groupings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -64,6 +82,10 @@ pub enum ActorGroupType {
     Team,
 }
 
+/// Type-safe identifier for an actor group in the system.
+///
+/// Wraps specific actor group ID types ([`WebId`], [`TeamId`]) in a tagged enumeration,
+/// allowing different actor group types to be handled uniformly while preserving type information.
 #[derive(
     Debug,
     Copy,
@@ -84,6 +106,10 @@ pub enum ActorGroupId {
     Team(TeamId),
 }
 impl ActorGroupId {
+    /// Creates a new [`ActorGroupId`] from a UUID and actor group type.
+    ///
+    /// Constructs the appropriate typed ID based on the specified [`ActorGroupType`],
+    /// wrapping the provided UUID in the correct identifier structure.
     #[must_use]
     pub fn new(actor_group_entity_uuid: impl Into<Uuid>, actor_type: ActorGroupType) -> Self {
         match actor_type {
@@ -92,6 +118,9 @@ impl ActorGroupId {
         }
     }
 
+    /// Returns the [`ActorGroupType`] of this ID.
+    ///
+    /// Determines the specific actor group type based on the variant.
     #[must_use]
     pub const fn actor_type(&self) -> ActorGroupType {
         match self {
@@ -149,6 +178,10 @@ impl postgres_types::ToSql for ActorGroupId {
     }
 }
 
+/// A group of actors that share common characteristics or purposes.
+///
+/// Represents the concrete implementation of an actor group with its attributes and capabilities.
+/// Each variant corresponds to a specific [`ActorGroupType`].
 #[derive(Debug, derive_more::From)]
 pub enum ActorGroup {
     Web(Web),
@@ -156,6 +189,9 @@ pub enum ActorGroup {
 }
 
 impl ActorGroup {
+    /// Returns the unique [`ActorGroupId`] for this actor group.
+    ///
+    /// Extracts the ID from the inner actor group implementation.
     #[must_use]
     pub const fn id(&self) -> ActorGroupId {
         match self {
