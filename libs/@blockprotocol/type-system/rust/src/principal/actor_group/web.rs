@@ -27,7 +27,7 @@ use crate::{knowledge::entity::id::EntityUuid, principal::role::WebRoleId};
 pub struct WebId(
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "Brand<ActorGroupEntityUuid, \"WebId\">")
+        tsify(type = "Brand<ActorEntityUuid | ActorGroupEntityUuid, \"WebId\">")
     )]
     ActorGroupEntityUuid,
 );

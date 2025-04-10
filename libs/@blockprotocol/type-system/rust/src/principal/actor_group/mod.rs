@@ -60,8 +60,8 @@ impl From<ActorGroupEntityUuid> for Uuid {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum ActorGroupType {
-    Team,
     Web,
+    Team,
 }
 
 #[derive(
@@ -78,10 +78,10 @@ pub enum ActorGroupType {
 )]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(tag = "actorGroupType", rename_all = "camelCase")]
+#[serde(tag = "actorGroupType", content = "id", rename_all = "camelCase")]
 pub enum ActorGroupId {
-    Team(TeamId),
     Web(WebId),
+    Team(TeamId),
 }
 impl ActorGroupId {
     #[must_use]
@@ -151,8 +151,8 @@ impl postgres_types::ToSql for ActorGroupId {
 
 #[derive(Debug, derive_more::From)]
 pub enum ActorGroup {
-    Team(Team),
     Web(Web),
+    Team(Team),
 }
 
 impl ActorGroup {

@@ -33,8 +33,8 @@ pub enum RoleName {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum RoleType {
-    Team,
     Web,
+    Team,
 }
 
 #[derive(
@@ -53,8 +53,8 @@ pub enum RoleType {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "roleType", content = "id", rename_all = "camelCase")]
 pub enum RoleId {
-    Team(TeamRoleId),
     Web(WebRoleId),
+    Team(TeamRoleId),
 }
 impl RoleId {
     #[must_use]

@@ -23,7 +23,7 @@ use crate::principal::actor_group::WebId;
 )]
 #[repr(transparent)]
 pub struct WebRoleId(
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<Uuid, \"WebRoleId\">"))] Uuid,
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<string, \"WebRoleId\">"))] Uuid,
 );
 
 impl WebRoleId {

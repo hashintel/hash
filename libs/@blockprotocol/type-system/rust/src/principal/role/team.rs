@@ -23,7 +23,7 @@ use crate::principal::actor_group::TeamId;
 )]
 #[repr(transparent)]
 pub struct TeamRoleId(
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<Uuid, \"TeamRoleId\">"))] Uuid,
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<string, \"TeamRoleId\">"))] Uuid,
 );
 
 impl TeamRoleId {

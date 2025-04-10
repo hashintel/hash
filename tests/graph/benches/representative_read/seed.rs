@@ -363,7 +363,7 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
         .as_client()
         .query_one(
             "
-            SELECT EXISTS(SELECT 1 FROM accounts WHERE accountid=$1)
+            SELECT EXISTS(SELECT 1 FROM accounts WHERE account_id=$1)
             ",
             &[&account_id],
         )
