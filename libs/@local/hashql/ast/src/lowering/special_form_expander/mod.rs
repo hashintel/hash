@@ -17,8 +17,8 @@ use crate::{
     heap::{self, Heap},
     node::{
         expr::{
-            CallExpr, Expr, ExprKind, IfExpr, IsExpr, LetExpr, StructExpr, TupleExpr,
-            call::Argument,
+            CallExpr, Expr, ExprKind, IfExpr, IsExpr, LetExpr, NewTypeExpr, StructExpr, TupleExpr,
+            TypeExpr, call::Argument,
         },
         id::NodeId,
         r#type::{
@@ -476,14 +476,73 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
     }
 
-    fn lower_type(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implementation for type special form
-        todo!()
+    /// Lowers a type/3 special form to a `TypeExpr`.
+    ///
+    /// The type/3 form has the syntax: `(type name type-expr body)`
+    /// and is transformed into a type expression that defines a type alias.
+    fn lower_type(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        if call.arguments.len() != 3 {
+            self.diagnostics.push(invalid_argument_length(
+                call.span,
+                SpecialFormKind::Type,
+                &call.arguments,
+                &[3],
+            ));
+
+            return None;
+        }
+
+        // Vec only allocates if pushed to
+        let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
+        let [name, mut value, body] = arguments.try_into().unwrap_or_else(|_| unreachable!());
+
+        let (name, value) = Option::zip(
+            self.lower_argument_to_ident(name),
+            self.lower_expr_to_type(&mut value.value),
+        )?;
+
+        Some(ExprKind::Type(TypeExpr {
+            id: call.id,
+            span: call.span,
+            name,
+            value: self.heap.boxed(value),
+            body: body.value,
+        }))
     }
 
-    fn lower_newtype(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implementation for newtype special form
-        todo!()
+    /// Lowers a newtype/3 special form to a `NewTypeExpr`.
+    ///
+    /// The newtype/3 form has the syntax: `(newtype name type-expr body)`
+    /// and is transformed into a newtype expression that defines a new type
+    /// with the structure of the provided type expression.
+    fn lower_newtype(&mut self, call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        if call.arguments.len() != 3 {
+            self.diagnostics.push(invalid_argument_length(
+                call.span,
+                SpecialFormKind::Newtype,
+                &call.arguments,
+                &[3],
+            ));
+
+            return None;
+        }
+
+        // Vec only allocates if pushed to
+        let arguments = mem::replace(&mut call.arguments, self.heap.vec(None));
+        let [name, mut value, body] = arguments.try_into().unwrap_or_else(|_| unreachable!());
+
+        let (name, value) = Option::zip(
+            self.lower_argument_to_ident(name),
+            self.lower_expr_to_type(&mut value.value),
+        )?;
+
+        Some(ExprKind::NewType(NewTypeExpr {
+            id: call.id,
+            span: call.span,
+            name,
+            value: self.heap.boxed(value),
+            body: body.value,
+        }))
     }
 
     fn lower_use(&mut self, _call: &mut CallExpr<'heap>) -> Option<ExprKind<'heap>> {

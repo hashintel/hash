@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: type/2 should error out
+["::kernel::special_form::type", "x", "Integer"]
+//~^ ERROR Add missing arguments
