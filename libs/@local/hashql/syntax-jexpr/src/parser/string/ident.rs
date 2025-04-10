@@ -42,7 +42,7 @@ where
         .with_span()
         .map(|(value, span): (&str, _)| Ident {
             span: context.span(span),
-            name: intern(value),
+            value: intern(value),
             kind: IdentKind::Lexical,
         })
         .parse_next(input)
@@ -84,7 +84,7 @@ where
         .with_span()
         .map(|(value, span): (&str, _)| Ident {
             span: context.span(span),
-            name: intern(value),
+            value: intern(value),
             kind: IdentKind::Symbol,
         })
         .parse_next(input)
@@ -157,7 +157,7 @@ where
     .with_span()
     .map(|(url, span)| Ident {
         span: context.span(span),
-        name: intern(url),
+        value: intern(url),
         kind: IdentKind::BaseUrl,
     })
     .parse_next(input)

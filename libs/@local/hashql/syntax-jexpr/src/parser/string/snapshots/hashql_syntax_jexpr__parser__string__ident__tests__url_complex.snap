@@ -9,7 +9,7 @@ Ident {
     span: SpanId(
         1,
     ),
-    name: Symbol(
+    value: Symbol(
         "https://sub.many.levels.example.co.uk:8443/very/deep/path/?q=complex&t=true#section/",
     ),
     kind: BaseUrl,

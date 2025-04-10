@@ -1,0 +1,9 @@
+Expr#4294967040@18
+  ExprKind (Type)
+    TypeExpr#4294967040@18 (name: x)
+      Type#4294967040@13
+        TypeKind (Infer)
+      Expr#4294967040@17
+        ExprKind (Path)
+          Path#4294967040@17 (rooted: false)
+            PathSegment#4294967040@16 (name: x)

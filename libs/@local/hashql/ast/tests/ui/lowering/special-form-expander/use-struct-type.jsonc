@@ -1,0 +1,12 @@
+//@ run: fail
+//@ description: struct that are annotated with a type should fail
+[
+  "::kernel::special_form::use",
+  "::math",
+  {
+    "#struct": { "x": "x" },
+    "#type": "X"
+    //~^ ERROR Remove this type annotation
+  },
+  "x"
+]

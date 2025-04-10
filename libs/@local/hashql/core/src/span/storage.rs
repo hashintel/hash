@@ -41,6 +41,17 @@ where
         SpanId::new(index as u32)
     }
 
+    pub fn modify(&self, span: SpanId, func: impl FnMut(&mut S)) -> bool {
+        let index = span.value() as usize;
+
+        let Some(element) = self.inner.get(index) else {
+            return false;
+        };
+
+        element.update(func);
+        true
+    }
+
     #[must_use]
     pub fn get(&self, span: SpanId) -> Option<Entry<S>> {
         let index = span.value() as usize;

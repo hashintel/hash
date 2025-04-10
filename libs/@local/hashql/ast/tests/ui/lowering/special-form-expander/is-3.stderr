@@ -1,0 +1,17 @@
+[31m[special-form-expander::special-form-argument-length] Error:[0m Special Form Expander
+   ╭─[ <unknown>:7:3 ]
+   │
+ 3 │ ╭─▶ [
+   ┆ ┆   
+ 7 │ │     { "#literal": true }
+   │ │     ──────────┬─────────  
+   │ │               ╰─────────── Remove this argument
+   ┆ ┆   
+ 9 │ ├─▶ ]
+   │ │       
+   │ ╰─────── In this `is` special form call
+   │     
+   │     Help: The is/2 form should look like: (is value type-expr)
+   │     
+   │     Note: The is function has 1 variant: is/2
+───╯

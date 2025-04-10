@@ -1,0 +1,11 @@
+[31m[special-form-expander::invalid-use-import] Error:[0m Special Form Expander
+   ╭─[ <unknown>:6:17 ]
+   │
+ 6 │   { "#tuple": ["::math::sub"] },
+   │                 ─────┬─────  
+   │                      ╰─────── Use a simple identifier here
+   │ 
+   │ Help: Use binding names must be simple identifiers. Qualified paths or complex expressions cannot be used in this context.
+   │ 
+   │ Note: In tuple imports, each element must be a simple identifier. For example: (name1, name2) is valid, but (path::to::name,) is not.
+───╯

@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: input/4 should not compile
+[
+  "::kernel::special_form::input",
+  "x",
+  "Y",
+  "z",
+  "w"
+  //~^ ERROR Remove this argument
+]

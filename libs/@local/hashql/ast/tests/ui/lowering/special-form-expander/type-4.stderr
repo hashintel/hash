@@ -1,0 +1,17 @@
+[31m[special-form-expander::special-form-argument-length] Error:[0m Special Form Expander
+    ╭─[ <unknown>:8:3 ]
+    │
+  3 │ ╭─▶ [
+    ┆ ┆   
+  8 │ │     { "#literal": true }
+    │ │     ──────────┬─────────  
+    │ │               ╰─────────── Remove this argument
+    ┆ ┆   
+ 10 │ ├─▶ ]
+    │ │       
+    │ ╰─────── In this `type` special form call
+    │     
+    │     Help: The type/3 form should look like: (type name type-expr body)
+    │     
+    │     Note: The type function has 1 variant: type/3
+────╯

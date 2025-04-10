@@ -1,0 +1,11 @@
+//@ run: fail
+//@ description: let/5 should error out
+[
+  "::kernel::special_form::let",
+  "x",
+  "Boolean",
+  { "#literal": true },
+  ["+", "x", "x"],
+  { "#literal": true }
+  //~^ ERROR Remove this argument
+]

@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: if/1 should error out
+["::kernel::special_form::if", { "#literal": true }]
+//~^ ERROR Add missing arguments

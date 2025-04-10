@@ -1,0 +1,7 @@
+//@ run: pass
+//@ description: structs should be converted to type expressions
+[
+  "::kernel::special_form::is",
+  { "#literal": true },
+  { "#struct": { "name": "Name", "birthday": "Date" } }
+]

@@ -1,0 +1,13 @@
+[31m[special-form-expander::special-form-argument-length] Error:[0m Special Form Expander
+   ╭─[ <unknown>:3:1 ]
+   │
+ 3 │ ["::kernel::special_form::input", "x"]
+   │ ───────────────────┬──────────────────  
+   │                    ╰──────────────────── Add missing arguments
+   │ 
+   │ Help: Use either:
+   │       - input/2: (input name type)
+   │       - input/3: (input name type default)
+   │ 
+   │ Note: The input function has 2 variants: input/2, input/3
+───╯

@@ -1,0 +1,19 @@
+[31m[special-form-expander::special-form-argument-length] Error:[0m Special Form Expander
+    ╭─[ <unknown>:8:3 ]
+    │
+  3 │ ╭─▶ [
+    ┆ ┆   
+  8 │ │     { "#literal": true }
+    │ │     ──────────┬─────────  
+    │ │               ╰─────────── Remove this argument
+    ┆ ┆   
+ 10 │ ├─▶ ]
+    │ │       
+    │ ╰─────── In this `if` special form call
+    │     
+    │     Help: Use either:
+    │           - if/2: (if condition then-expr)
+    │           - if/3: (if condition then-expr else-expr)
+    │     
+    │     Note: The if function has 2 variants: if/2, if/3
+────╯

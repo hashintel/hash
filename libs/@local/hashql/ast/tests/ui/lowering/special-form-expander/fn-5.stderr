@@ -1,0 +1,17 @@
+[31m[special-form-expander::special-form-argument-length] Error:[0m Special Form Expander
+    ╭─[ <unknown>:9:3 ]
+    │
+  3 │ ╭─▶ [
+    ┆ ┆   
+  9 │ │     ["*", "c", "d"]
+    │ │     ───────┬───────  
+    │ │            ╰───────── Remove this argument
+    ┆ ┆   
+ 11 │ ├─▶ ]
+    │ │       
+    │ ╰─────── In this `fn` special form call
+    │     
+    │     Help: The fn/4 form should look like: (fn generics arguments return-type body)
+    │     
+    │     Note: The fn function has 1 variant: fn/4
+────╯

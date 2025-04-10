@@ -21,7 +21,7 @@ use crate::{
     FileAnnotations, Suite, TestCase,
     annotation::directive::RunMode,
     reporter::Statistics,
-    styles::{BLUE, CYAN, GREEN, RED, YELLOW},
+    styles::{BLUE, CYAN, GRAY, GREEN, RED, YELLOW},
     suite::{ResolvedSuiteDiagnostic, find_suite},
 };
 
@@ -169,6 +169,11 @@ impl Trial {
             write!(output, " ({YELLOW}ignored{YELLOW:#} by parent)")?;
         } else if self.ignore {
             write!(output, " ({YELLOW}ignored{YELLOW:#})")?;
+        }
+
+        if let Some(description) = &self.annotations.directive.description {
+            writeln!(output)?;
+            write!(output, "    {GRAY}{description}{GRAY:#}")?;
         }
 
         Ok(())

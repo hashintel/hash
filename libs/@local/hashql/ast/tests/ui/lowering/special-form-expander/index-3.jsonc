@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: index/3 should not compile
+[
+  "::kernel::special_form::index",
+  "x",
+  "y",
+  "z"
+  //~^ ERROR Remove this argument
+]
