@@ -353,9 +353,9 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
     //
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(EntityUuid::new(
+    let account_id = ActorEntityUuid::new(
         Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"),
-    ));
+    );
 
     // We use the existence of the account ID as a marker for if the DB has been seeded already
     let already_seeded: bool = store_wrapper

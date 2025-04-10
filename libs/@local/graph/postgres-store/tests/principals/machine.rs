@@ -6,12 +6,9 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    principal::{
-        PrincipalId,
-        actor::{ActorEntityUuid, ActorId, MachineId},
-    },
+use type_system::principal::{
+    PrincipalId,
+    actor::{ActorId, MachineId},
 };
 use uuid::Uuid;
 
@@ -77,7 +74,7 @@ async fn delete_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed([]).await?;
 
-    let non_existent_id = MachineId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+    let non_existent_id = MachineId::new(Uuid::new_v4());
     let result = client.delete_machine(non_existent_id).await;
     drop(client);
 
@@ -110,7 +107,7 @@ async fn get_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (client, _actor_id) = db.seed([]).await?;
 
-    let non_existent_id = MachineId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+    let non_existent_id = MachineId::new(Uuid::new_v4());
     let result = client.get_machine(non_existent_id).await?;
 
     assert!(

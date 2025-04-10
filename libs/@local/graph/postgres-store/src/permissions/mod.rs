@@ -14,16 +14,13 @@ use hash_graph_authorization::{
 };
 use postgres_types::{Json, ToSql};
 use tokio_postgres::{GenericClient as _, error::SqlState};
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    principal::{
-        PrincipalId, PrincipalType,
-        actor::{
-            Actor, ActorEntityUuid, ActorId, ActorType, Ai, AiId, Machine, MachineId, User, UserId,
-        },
-        actor_group::{ActorGroup, ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
-        role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
+use type_system::principal::{
+    PrincipalId, PrincipalType,
+    actor::{
+        Actor, ActorEntityUuid, ActorId, ActorType, Ai, AiId, Machine, MachineId, User, UserId,
     },
+    actor_group::{ActorGroup, ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
+    role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
 };
 use uuid::Uuid;
 
@@ -136,9 +133,7 @@ where
         &mut self,
         id: Option<Uuid>,
     ) -> Result<UserId, Report<PrincipalError>> {
-        let user_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(
-            id.unwrap_or_else(Uuid::new_v4),
-        )));
+        let user_id = UserId::new(id.unwrap_or_else(Uuid::new_v4));
         if let Err(error) = self
             .as_mut_client()
             .execute("INSERT INTO user_actor (id) VALUES ($1)", &[&user_id])
@@ -297,9 +292,7 @@ where
         &mut self,
         id: Option<Uuid>,
     ) -> Result<MachineId, Report<PrincipalError>> {
-        let id = MachineId::new(ActorEntityUuid::new(EntityUuid::new(
-            id.unwrap_or_else(Uuid::new_v4),
-        )));
+        let id = MachineId::new(id.unwrap_or_else(Uuid::new_v4));
         if let Err(error) = self
             .as_mut_client()
             .execute("INSERT INTO machine_actor (id) VALUES ($1)", &[&id])
@@ -403,24 +396,22 @@ where
     /// [`PrincipalAlreadyExists`]: PrincipalError::PrincipalAlreadyExists
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn create_ai(&mut self, id: Option<Uuid>) -> Result<AiId, Report<PrincipalError>> {
-        let id = AiId::new(ActorEntityUuid::new(EntityUuid::new(
-            id.unwrap_or_else(Uuid::new_v4),
-        )));
+        let ai_id = AiId::new(id.unwrap_or_else(Uuid::new_v4));
         if let Err(error) = self
             .as_mut_client()
-            .execute("INSERT INTO ai_actor (id) VALUES ($1)", &[&id])
+            .execute("INSERT INTO ai_actor (id) VALUES ($1)", &[&ai_id])
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
                 Err(error).change_context(PrincipalError::PrincipalAlreadyExists {
-                    id: PrincipalId::Actor(ActorId::Ai(id)),
+                    id: PrincipalId::Actor(ActorId::Ai(ai_id)),
                 })
             } else {
                 Err(error).change_context(PrincipalError::StoreError)
             };
         }
 
-        Ok(id)
+        Ok(ai_id)
     }
 
     /// Checks if an AI with the given ID exists.
@@ -942,7 +933,7 @@ where
                         RoleId::Web(WebRoleId::new(role_id)),
                         Role::Web(WebRole {
                             id: WebRoleId::new(role_id),
-                            web_id: WebId::new(EntityUuid::new(actor_group_id)),
+                            web_id: WebId::new(actor_group_id),
                             name,
                         }),
                     ),

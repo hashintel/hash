@@ -11,13 +11,10 @@ use hash_graph_authorization::{
     },
 };
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    principal::{
-        actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
-        actor_group::{ActorGroupId, TeamId, WebId},
-        role::{RoleId, RoleName},
-    },
+use type_system::principal::{
+    actor::{ActorId, ActorType, AiId, MachineId, UserId},
+    actor_group::{ActorGroupId, TeamId, WebId},
+    role::{RoleId, RoleName},
 };
 use uuid::Uuid;
 
@@ -346,9 +343,7 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         .get_policies_for_actor(ActorId::Ai(env.ai_id))
         .await?;
     let nonexisting_policies = client
-        .get_policies_for_actor(ActorId::User(UserId::new(ActorEntityUuid::new(
-            EntityUuid::new(Uuid::new_v4()),
-        ))))
+        .get_policies_for_actor(ActorId::User(UserId::new(Uuid::new_v4())))
         .await?;
 
     // All actors should have the global policy
@@ -394,9 +389,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
         .get_policies_for_actor(ActorId::Machine(env.machine_id))
         .await?;
     let nonexisting_machine_policies = client
-        .get_policies_for_actor(ActorId::Machine(MachineId::new(ActorEntityUuid::new(
-            EntityUuid::new(Uuid::new_v4()),
-        ))))
+        .get_policies_for_actor(ActorId::Machine(MachineId::new(Uuid::new_v4())))
         .await?;
 
     // Users should have user type policies, machines should not
@@ -453,9 +446,7 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
         .get_policies_for_actor(ActorId::User(env.user2))
         .await?;
     let nonexisting_user_policies = client
-        .get_policies_for_actor(ActorId::User(UserId::new(ActorEntityUuid::new(
-            EntityUuid::new(Uuid::new_v4()),
-        ))))
+        .get_policies_for_actor(ActorId::User(UserId::new(Uuid::new_v4())))
         .await?;
 
     // User1 should have its specific policy, user2 should not
@@ -567,7 +558,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
 
     let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
-    let nonexistent_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+    let nonexistent_id = UserId::new(Uuid::new_v4());
 
     let user1_policies = client
         .get_policies_for_actor(ActorId::User(env.user1))

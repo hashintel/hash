@@ -148,10 +148,10 @@ impl ResourceConstraint {
     ) -> Result<Self, Report<InvalidResourceConstraint>> {
         if *resource.entity_type() == **WebId::entity_type() {
             Ok(Self::Web {
-                web_id: WebId::new(EntityUuid::new(
+                web_id: WebId::new(
                     Uuid::from_str(resource.eid().as_ref())
                         .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
-                )),
+                ),
             })
         } else {
             bail!(InvalidResourceConstraint::UnexpectedEntityType(
@@ -175,10 +175,10 @@ impl ResourceConstraint {
 
             if *in_resource.entity_type() == **WebId::entity_type() {
                 Ok(Self::Entity(EntityResourceConstraint::Web {
-                    web_id: WebId::new(EntityUuid::new(
+                    web_id: WebId::new(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
-                    )),
+                    ),
                     filter,
                 }))
             } else {
@@ -198,10 +198,10 @@ impl ResourceConstraint {
 
             if *in_resource.entity_type() == **WebId::entity_type() {
                 Ok(Self::EntityType(EntityTypeResourceConstraint::Web {
-                    web_id: WebId::new(EntityUuid::new(
+                    web_id: WebId::new(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
-                    )),
+                    ),
                     filter,
                 }))
             } else {
@@ -226,7 +226,7 @@ mod tests {
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
-    use type_system::{knowledge::entity::id::EntityUuid, principal::actor_group::WebId};
+    use type_system::principal::actor_group::WebId;
     use uuid::Uuid;
 
     use super::ResourceConstraint;
@@ -293,7 +293,7 @@ mod tests {
 
     #[test]
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(EntityUuid::new(Uuid::new_v4()));
+        let web_id = WebId::new(Uuid::new_v4());
         check_resource(
             Some(ResourceConstraint::Web { web_id }),
             json!({

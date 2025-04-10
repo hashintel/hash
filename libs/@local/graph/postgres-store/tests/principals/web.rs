@@ -6,12 +6,9 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    principal::{
-        PrincipalId,
-        actor_group::{ActorGroupId, WebId},
-    },
+use type_system::principal::{
+    PrincipalId,
+    actor_group::{ActorGroupId, WebId},
 };
 use uuid::Uuid;
 
@@ -42,7 +39,7 @@ async fn create_web_with_id() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: Some(id) })
         .await?;
-    assert_eq!(web_id, WebId::new(EntityUuid::new(id)));
+    assert_eq!(web_id, WebId::new(id));
     assert!(client.is_web(web_id).await?);
 
     Ok(())
@@ -100,7 +97,7 @@ async fn get_non_existent_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (client, _actor_id) = db.seed([]).await?;
 
-    let non_existent_id = WebId::new(EntityUuid::new(Uuid::new_v4()));
+    let non_existent_id = WebId::new(Uuid::new_v4());
     let result = client.get_web(non_existent_id).await?;
 
     assert!(
@@ -116,7 +113,7 @@ async fn delete_non_existent_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed([]).await?;
 
-    let non_existent_id = WebId::new(EntityUuid::new(Uuid::new_v4()));
+    let non_existent_id = WebId::new(Uuid::new_v4());
     let result = client.delete_web(non_existent_id).await;
 
     assert_matches!(

@@ -23,7 +23,7 @@ use tokio::runtime::Runtime;
 use type_system::{
     knowledge::{
         Entity,
-        entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::entity_type::EntityType,
@@ -330,9 +330,9 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(EntityUuid::new(
+    let account_id = ActorEntityUuid::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    ));
+    );
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read

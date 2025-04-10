@@ -180,14 +180,14 @@ where
         } else {
             // TODO: Create an actual machine once we have proper machine management in the
             // database.
-            // self.create_machine(None)
+            // let machine_id = self.create_machine(None)
             //     .await
             //     .change_context(GetSystemAccountError::CreateSystemAccountFailed)?
 
             // Use the public NIL UUID as actor here as we don't have a valid one, yet.
-            let machine_id = ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4()));
+            let machine_id = ActorEntityUuid::new(Uuid::new_v4());
             self.insert_account_id(
-                ActorEntityUuid::new(EntityUuid::new(Uuid::nil())),
+                ActorEntityUuid::new(Uuid::nil()),
                 InsertAccountIdParams {
                     account_type: ActorType::Machine,
                     account_id: machine_id,
@@ -221,7 +221,7 @@ where
             .await
             .change_context(WebCreationError::StoreError)?;
 
-        let web_id = WebId::new(EntityUuid::new(parameter.id.unwrap_or_else(Uuid::new_v4)));
+        let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
 
         let policy_set = PolicySet::default()
             .with_policies(policies.values())

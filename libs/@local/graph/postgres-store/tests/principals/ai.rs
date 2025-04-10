@@ -6,14 +6,11 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    principal::{
-        PrincipalId,
-        actor::{ActorEntityUuid, ActorId, AiId},
-        actor_group::ActorGroupId,
-        role::RoleName,
-    },
+use type_system::principal::{
+    PrincipalId,
+    actor::{ActorId, AiId},
+    actor_group::ActorGroupId,
+    role::RoleName,
 };
 use uuid::Uuid;
 
@@ -37,7 +34,7 @@ async fn create_ai_with_id() -> Result<(), Box<dyn Error>> {
 
     let id = Uuid::new_v4();
     let ai_id = client.create_ai(Some(id)).await?;
-    assert_eq!(ai_id, AiId::new(ActorEntityUuid::new(EntityUuid::new(id))));
+    assert_eq!(ai_id, AiId::new(id));
 
     assert!(client.is_ai(ai_id).await?);
 
@@ -82,7 +79,7 @@ async fn get_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (client, _actor_id) = db.seed([]).await?;
 
-    let non_existent_id = AiId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+    let non_existent_id = AiId::new(Uuid::new_v4());
     let result = client.get_ai(non_existent_id).await?;
 
     assert!(
@@ -98,7 +95,7 @@ async fn delete_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed([]).await?;
 
-    let non_existent_id = AiId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+    let non_existent_id = AiId::new(Uuid::new_v4());
     let result = client.delete_ai(non_existent_id).await;
 
     let expected_actor_id = ActorId::Ai(non_existent_id);

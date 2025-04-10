@@ -2,12 +2,9 @@ use core::{assert_matches::assert_matches, error::Error};
 
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    principal::{
-        PrincipalId,
-        actor::{ActorEntityUuid, ActorId, UserId},
-    },
+use type_system::principal::{
+    PrincipalId,
+    actor::{ActorId, UserId},
 };
 use uuid::Uuid;
 
@@ -31,10 +28,7 @@ async fn create_user_with_id() -> Result<(), Box<dyn Error>> {
 
     let id = Uuid::new_v4();
     let user_id = client.create_user(Some(id)).await?;
-    assert_eq!(
-        user_id,
-        UserId::new(ActorEntityUuid::new(EntityUuid::new(id)))
-    );
+    assert_eq!(user_id, UserId::new(id));
 
     assert!(client.is_user(user_id).await?);
 
@@ -77,7 +71,7 @@ async fn get_non_existent_user() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (client, _actor_id) = db.seed([]).await?;
 
-    let non_existent_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+    let non_existent_id = UserId::new(Uuid::new_v4());
     let result = client.get_user(non_existent_id).await?;
 
     assert!(
@@ -93,7 +87,7 @@ async fn delete_non_existent_user() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed([]).await?;
 
-    let non_existent_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+    let non_existent_id = UserId::new(Uuid::new_v4());
     let result = client.delete_user(non_existent_id).await;
 
     assert_matches!(

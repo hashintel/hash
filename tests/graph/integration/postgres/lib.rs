@@ -82,7 +82,7 @@ use hash_tracing::logging::env_filter;
 use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{
-    knowledge::entity::{Entity, EntityId, id::EntityUuid},
+    knowledge::entity::{Entity, EntityId},
     ontology::{
         OntologyTemporalMetadata, VersionedUrl,
         data_type::{DataType, DataTypeMetadata},
@@ -224,7 +224,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .await
             .expect("could not start test transaction");
 
-        let account_id = ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4()));
+        let account_id = ActorEntityUuid::new(Uuid::new_v4());
         store
             .insert_account_id(
                 account_id,

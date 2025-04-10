@@ -11,11 +11,11 @@ use type_system::{
 };
 
 fn random_account_id() -> ActorEntityUuid {
-    ActorEntityUuid::new(EntityUuid::new(uuid::Uuid::new_v4()))
+    ActorEntityUuid::new(uuid::Uuid::new_v4())
 }
 
 fn random_account_group_entity_uuid() -> ActorGroupEntityUuid {
-    ActorGroupEntityUuid::new(EntityUuid::new(uuid::Uuid::new_v4()))
+    ActorGroupEntityUuid::new(uuid::Uuid::new_v4())
 }
 
 #[derive(Debug, Error)]
@@ -36,7 +36,7 @@ pub struct InsertAccountIdParams {
 pub struct AccountGroupInsertionError;
 
 fn random_web_id() -> WebId {
-    WebId::new(EntityUuid::new(uuid::Uuid::new_v4()))
+    WebId::new(uuid::Uuid::new_v4())
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -8,14 +8,11 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    principal::{
-        PrincipalId,
-        actor::{ActorEntityUuid, ActorId, UserId},
-        actor_group::{ActorGroupId, WebId},
-        role::{Role, RoleId, RoleName, WebRoleId},
-    },
+use type_system::principal::{
+    PrincipalId,
+    actor::{ActorId, UserId},
+    actor_group::{ActorGroupId, WebId},
+    role::{Role, RoleId, RoleName, WebRoleId},
 };
 use uuid::Uuid;
 
@@ -83,7 +80,7 @@ async fn create_role_with_nonexistent_team() -> Result<(), Box<dyn Error>> {
     let (mut client, _actor_id) = db.seed([]).await?;
 
     // Try to create a role with a non-existent team
-    let non_existent_team_id = ActorGroupId::Web(WebId::new(EntityUuid::new(Uuid::new_v4())));
+    let non_existent_team_id = ActorGroupId::Web(WebId::new(Uuid::new_v4()));
     let result = client
         .create_role(None, non_existent_team_id, RoleName::Member)
         .await;
@@ -222,7 +219,7 @@ async fn assign_role_to_nonexistent_actor() -> Result<(), Box<dyn Error>> {
         .await?;
 
     // Try to assign the role to a non-existent user
-    let non_existent_user_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+    let non_existent_user_id = UserId::new(Uuid::new_v4());
     let result = client
         .assign_role_by_id(ActorId::User(non_existent_user_id), role_id)
         .await;

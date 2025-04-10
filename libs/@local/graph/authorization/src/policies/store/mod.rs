@@ -8,7 +8,7 @@ use std::collections::{
 
 use error_stack::{Report, bail, ensure};
 use type_system::{
-    knowledge::{entity::id::EntityUuid, property::PropertyObjectWithMetadata},
+    knowledge::property::PropertyObjectWithMetadata,
     ontology::VersionedUrl,
     principal::{
         actor::{Actor, ActorEntityUuid, ActorId, ActorType, Machine, MachineId, User, UserId},
@@ -362,7 +362,7 @@ impl PolicyStore for MemoryPolicyStore {
     }
 
     fn create_machine(&mut self) -> Result<MachineId, Report<ActorCreationError>> {
-        let machine_id = MachineId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+        let machine_id = MachineId::new(Uuid::new_v4());
         self.actors.insert(
             ActorId::Machine(machine_id),
             Actor::Machine(Machine {
@@ -375,7 +375,7 @@ impl PolicyStore for MemoryPolicyStore {
     }
 
     fn create_web(&mut self) -> Result<WebId, Report<WebCreationError>> {
-        let web_id = WebId::new(EntityUuid::new(Uuid::new_v4()));
+        let web_id = WebId::new(Uuid::new_v4());
         self.teams.insert(
             ActorGroupId::Web(web_id),
             ActorGroup::Web(Web {

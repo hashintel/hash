@@ -51,10 +51,7 @@ mod tests {
     use core::error::Error;
 
     use serde_json::json;
-    use type_system::{
-        knowledge::entity::id::EntityUuid,
-        principal::actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId},
-    };
+    use type_system::principal::actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId};
     use uuid::Uuid;
 
     use crate::{
@@ -63,7 +60,7 @@ mod tests {
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let team_id = TeamId::new(ActorGroupEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+        let team_id = TeamId::new(ActorGroupEntityUuid::new(Uuid::new_v4()));
         check_principal(
             PrincipalConstraint::ActorGroup {
                 actor_type: None,
