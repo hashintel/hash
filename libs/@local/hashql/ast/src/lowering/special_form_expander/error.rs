@@ -626,7 +626,7 @@ pub(crate) fn invalid_use_import(span: SpanId) -> SpecialFormExpanderDiagnostic 
 
     diagnostic.note = Some(Note::new(
         "Valid import expressions include:\n- Glob: *\n- Tuple of identifiers: (name1, name2)\n- \
-         Struct with aliases: {name1: alias1, name2: alias2} or {name1: _, name2: _}",
+         Struct with aliases: (name1: alias1, name2: alias2) or (name1: _, name2: _)",
     ));
 
     diagnostic
@@ -672,7 +672,7 @@ pub(crate) fn invalid_path_in_use_binding(span: SpanId) -> SpecialFormExpanderDi
 
     diagnostic.note = Some(Note::new(
         "In tuple imports, each element must be a simple identifier. For example: (name1, name2) \
-         is valid, but (path::to::name) is not.",
+         is valid, but (path::to::name,) is not.",
     ));
 
     diagnostic
