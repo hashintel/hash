@@ -385,7 +385,7 @@ impl SyntaxDump for UseKind<'_> {
 
 impl_syntax_dump!(struct UseExpr(); path kind body);
 
-impl_syntax_dump!(struct InputExpr(name); ?r#type ?default);
+impl_syntax_dump!(struct InputExpr(name); r#type ?default);
 
 #[rustfmt::skip]
 impl_syntax_dump!(struct ClosureParam(name); bound);

@@ -751,10 +751,7 @@ pub fn walk_input_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_span(span);
 
     visitor.visit_ident(name);
-
-    if let Some(r#type) = r#type {
-        visitor.visit_type(r#type);
-    }
+    visitor.visit_type(r#type);
 
     if let Some(default) = default {
         visitor.visit_expr(default);

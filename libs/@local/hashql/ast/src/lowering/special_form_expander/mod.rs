@@ -21,7 +21,7 @@ use crate::{
     heap::{self, Heap},
     node::{
         expr::{
-            CallExpr, ClosureExpr, Expr, ExprKind, IfExpr, IsExpr, LetExpr, NewTypeExpr,
+            CallExpr, ClosureExpr, Expr, ExprKind, IfExpr, InputExpr, IsExpr, LetExpr, NewTypeExpr,
             StructExpr, TupleExpr, TypeExpr, UseExpr,
             call::Argument,
             closure::{ClosureParam, ClosureSignature},
@@ -929,12 +929,66 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
+    fn lower_input_2(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        let [name, r#type] = call
+            .arguments
+            .try_into()
+            .expect("The caller should've verified the length of the arguments");
+
+        let (name, r#type) = Option::zip(
+            self.lower_argument_to_ident(BindingMode::Input, name),
+            self.lower_expr_to_type(*r#type.value),
+        )?;
+
+        Some(ExprKind::Input(InputExpr {
+            id: call.id,
+            span: call.span,
+            name,
+            r#type: self.heap.boxed(r#type),
+            default: None,
+        }))
+    }
+
+    fn lower_input_3(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        let [name, r#type, default] = call
+            .arguments
+            .try_into()
+            .expect("The caller should've verified the length of the arguments");
+
+        let (name, r#type) = Option::zip(
+            self.lower_argument_to_ident(BindingMode::Input, name),
+            self.lower_expr_to_type(*r#type.value),
+        )?;
+
+        Some(ExprKind::Input(InputExpr {
+            id: call.id,
+            span: call.span,
+            name,
+            r#type: self.heap.boxed(r#type),
+            default: Some(default.value),
+        }))
+    }
+
     fn lower_input(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for input special form
         // input has 2 forms:
-        // input/3: (input <name> <type> <body>)
-        // input/4: (input <name> <type> <default> <body>)
-        todo!()
+        // input/2: (input <name> <type>)
+        // input/3: (input <name> <type> <default>)
+
+        if call.arguments.len() == 2 {
+            self.lower_input_2(call)
+        } else if call.arguments.len() == 3 {
+            self.lower_input_3(call)
+        } else {
+            self.diagnostics.push(invalid_argument_length(
+                call.span,
+                SpecialFormKind::Input,
+                &call.arguments,
+                &[2, 3],
+            ));
+
+            None
+        }
     }
 
     fn lower_access(&mut self, _call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {

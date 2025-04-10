@@ -338,8 +338,7 @@ pub(super) fn invalid_argument_length(
             "The fn/4 form should look like: (fn generics arguments return-type body)"
         }
         SpecialFormKind::Input => {
-            "Use either:\n- input/3: (input name type body)\n- input/4: (input name type default \
-             body)"
+            "Use either:\n- input/2: (input name type)\n- input/3: (input name type default)"
         }
         SpecialFormKind::Access => "The access/2 form should look like: (access object field)",
         SpecialFormKind::Index => "The index/2 form should look like: (index object index)",
@@ -589,8 +588,8 @@ pub(crate) fn invalid_binding_name_not_path(
              String ...)\n- (newtype Percentage Number ...)"
         }
         BindingMode::Input => {
-            "Valid examples of input bindings:\n- (input name String body)\n- (input age Int \
-             default_age ...)\n- (input options (enabled: Boolean) ...)"
+            "Valid examples of input bindings:\n- (input name String)\n- (input age Int \
+             default_age)\n- (input options (enabled: Boolean))"
         }
     };
 
