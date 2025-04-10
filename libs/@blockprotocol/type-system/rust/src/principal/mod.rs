@@ -42,10 +42,11 @@
 
 use uuid::Uuid;
 
+pub use self::{actor::Actor, actor_group::ActorGroup, role::Role};
 use self::{
-    actor::{Actor, ActorId, ActorType, AiId, MachineId, UserId},
-    actor_group::{ActorGroup, ActorGroupId, ActorGroupType, TeamId, WebId},
-    role::{Role, RoleId, RoleType, TeamRoleId, WebRoleId},
+    actor::{ActorId, ActorType, AiId, MachineId, UserId},
+    actor_group::{ActorGroupId, ActorGroupType, TeamId, WebId},
+    role::{RoleId, RoleType, TeamRoleId, WebRoleId},
 };
 
 pub mod actor;

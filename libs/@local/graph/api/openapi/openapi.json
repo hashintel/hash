@@ -3362,48 +3362,43 @@
       "ActorGroupId": {
         "oneOf": [
           {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TeamId"
+            "type": "object",
+            "required": [
+              "actorGroupType",
+              "id"
+            ],
+            "properties": {
+              "actorGroupType": {
+                "type": "string",
+                "enum": [
+                  "web"
+                ]
               },
-              {
-                "type": "object",
-                "required": [
-                  "actorGroupType"
-                ],
-                "properties": {
-                  "actorGroupType": {
-                    "type": "string",
-                    "enum": [
-                      "team"
-                    ]
-                  }
-                }
+              "id": {
+                "$ref": "#/components/schemas/WebId"
               }
-            ]
+            }
           },
           {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/WebId"
+            "type": "object",
+            "required": [
+              "actorGroupType",
+              "id"
+            ],
+            "properties": {
+              "actorGroupType": {
+                "type": "string",
+                "enum": [
+                  "team"
+                ]
               },
-              {
-                "type": "object",
-                "required": [
-                  "actorGroupType"
-                ],
-                "properties": {
-                  "actorGroupType": {
-                    "type": "string",
-                    "enum": [
-                      "web"
-                    ]
-                  }
-                }
+              "id": {
+                "$ref": "#/components/schemas/TeamId"
               }
-            ]
+            }
           }
         ],
+        "description": "Type-safe identifier for an actor group in the system.\n\nWraps specific actor group ID types ([`WebId`], [`TeamId`]) in a tagged enumeration,\nallowing different actor group types to be handled uniformly while preserving type information.",
         "discriminator": {
           "propertyName": "actorGroupType"
         }
@@ -3465,12 +3460,14 @@
             }
           }
         ],
+        "description": "Type-safe identifier for an actor in the system.\n\nWraps specific actor ID types ([`UserId`], [`MachineId`], [`AiId`]) in a tagged enumeration,\nallowing different actor types to be handled uniformly while preserving type information.",
         "discriminator": {
           "propertyName": "actorType"
         }
       },
       "ActorType": {
         "type": "string",
+        "description": "Types of individual actors in the system.\n\nRepresents the different categories of entities that can perform actions.",
         "enum": [
           "user",
           "machine",
@@ -7995,7 +7992,8 @@
               }
             }
           }
-        ]
+        ],
+        "description": "Provenance information for a specific edition of an ontology type.\n\nContains comprehensive tracking of who created and potentially archived this\nedition, along with user-provided context about the creation process."
       },
       "OntologyOutwardEdge": {
         "oneOf": [
@@ -8043,6 +8041,7 @@
       },
       "OntologyProvenance": {
         "type": "object",
+        "description": "Provenance information for an ontology type.\n\nContains tracking information about the creation, modification, and origin of an ontology type.",
         "required": [
           "edition"
         ],
@@ -9463,6 +9462,7 @@
       },
       "ProvidedOntologyEditionProvenance": {
         "type": "object",
+        "description": "User-provided provenance information for an ontology type edition.\n\nContains information provided by the client about the creation context,\nincluding the acting entity's type and the origin of the creation action.",
         "required": [
           "actorType",
           "origin"

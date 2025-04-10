@@ -85,8 +85,11 @@
 //!         OntologyEditionProvenance, OntologyOwnership, OntologyProvenance,
 //!         ProvidedOntologyEditionProvenance,
 //!     },
-//!     provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-//!     web::WebId,
+//!     principal::{
+//!         actor::{ActorEntityUuid, ActorType},
+//!         actor_group::WebId,
+//!     },
+//!     provenance::{OriginProvenance, OriginType},
 //! };
 //! use uuid::Uuid;
 //!

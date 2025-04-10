@@ -21,7 +21,7 @@ pub use self::{
 use super::role::RoleId;
 use crate::knowledge::entity::id::EntityUuid;
 
-/// A branded EntityUuid specifically for actor entities.
+/// A branded [`EntityUuid`] specifically for actor entities.
 ///
 /// Provides type safety by distinguishing actor entity UUIDs from other entity UUIDs,
 /// preventing accidental misuse across different entity domains.

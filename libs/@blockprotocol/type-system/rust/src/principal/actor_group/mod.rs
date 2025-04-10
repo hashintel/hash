@@ -17,7 +17,7 @@ pub use self::{
 };
 use crate::knowledge::entity::id::EntityUuid;
 
-/// A branded EntityUuid specifically for actor group entities.
+/// A branded [`EntityUuid`] specifically for actor group entities.
 ///
 /// Provides type safety by distinguishing actor group entity UUIDs from other entity UUIDs,
 /// preventing accidental misuse across different entity domains.
