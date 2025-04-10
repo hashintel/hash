@@ -381,10 +381,10 @@ pub enum ExprKind<'heap> {
     /// ## J-Expr
     ///
     /// ```json
-    /// ["fn", [], {"#struct": {"x": "Int", "->": "Int"}}, ["*", "x", 2]]
+    /// ["fn", [], {"#struct": {"x": "Int"}}, "Int", ["*", "x", 2]]
     ///
-    /// ["fn", {"#tuple": ["T"]}, {"#struct": {"x": "T", "y": "T", "->": "T"}, ["*", "x", "y"]}]
-    /// ["fn", {"#struct": {"T": "Int"}}, {"#struct": {"x": "T", "y": "T", "->": "_"}}, ["*", "x", "y"]]
+    /// ["fn", {"#tuple": ["T"]}, {"#struct": {"x": "T", "y": "T"}}, "T", ["*", "x", "y"]]
+    /// ["fn", {"#struct": {"T": "Int"}}, {"#struct": {"x": "T", "y": "T"}}, "_", ["*", "x", "y"]]
     /// ```
     ///
     /// ## Documentation Format
@@ -490,7 +490,7 @@ pub enum ExprKind<'heap> {
     /// The underscore expression, used as a placeholder in various contexts.
     ///
     /// In HashQL, the underscore serves as a context-dependent placeholder that can indicate
-    /// type inference or same-name imports.
+    /// type inference, function generic bounds, or same-name imports.
     ///
     /// # Examples
     ///
@@ -498,7 +498,10 @@ pub enum ExprKind<'heap> {
     ///
     /// ```json
     /// // Type inference in function return type
-    /// ["fn", [], "_", ["body"]]
+    /// ["fn", {"#tuple": []}, {"#struct": {"name": "String"}}, "_", ["body"]]
+    ///
+    /// // No bounds for a generic
+    /// ["fn", {"#struct": {"A": "_"}}, {"#struct": {"name": "A"}}, "Integer", ["body"]]
     ///
     /// // Same-name import in struct pattern
     /// ["use", "module", {"#struct": {"name": "_"}}, "body"]
