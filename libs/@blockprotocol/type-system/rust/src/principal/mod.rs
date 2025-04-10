@@ -10,18 +10,12 @@ pub mod actor;
 pub mod actor_group;
 pub mod role;
 
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    derive_more::Display,
-    postgres_types::FromSql,
-    postgres_types::ToSql,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
+#[cfg_attr(
+    feature = "postgres",
+    derive(postgres_types::FromSql, postgres_types::ToSql),
+    postgres(name = "principal_type", rename_all = "snake_case")
 )]
-#[postgres(name = "principal_type", rename_all = "snake_case")]
 pub enum PrincipalType {
     User,
     Machine,

@@ -1272,8 +1272,8 @@ mod tests {
                 &[
                     &pinned_timestamp,
                     &temporal_axes.variable_interval(),
-                    &entity_id.web_id,
-                    &entity_id.entity_uuid,
+                    &Uuid::from(entity_id.web_id),
+                    &Uuid::from(entity_id.entity_uuid),
                 ],
             );
         }

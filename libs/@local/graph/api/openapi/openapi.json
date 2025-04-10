@@ -3362,40 +3362,46 @@
       "ActorGroupId": {
         "oneOf": [
           {
-            "type": "object",
-            "required": [
-              "actorGroupType",
-              "id"
-            ],
-            "properties": {
-              "actorGroupType": {
-                "type": "string",
-                "enum": [
-                  "web"
-                ]
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamId"
               },
-              "id": {
-                "$ref": "#/components/schemas/WebId"
+              {
+                "type": "object",
+                "required": [
+                  "actorGroupType"
+                ],
+                "properties": {
+                  "actorGroupType": {
+                    "type": "string",
+                    "enum": [
+                      "team"
+                    ]
+                  }
+                }
               }
-            }
+            ]
           },
           {
-            "type": "object",
-            "required": [
-              "actorGroupType",
-              "id"
-            ],
-            "properties": {
-              "actorGroupType": {
-                "type": "string",
-                "enum": [
-                  "team"
-                ]
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WebId"
               },
-              "id": {
-                "$ref": "#/components/schemas/TeamId"
+              {
+                "type": "object",
+                "required": [
+                  "actorGroupType"
+                ],
+                "properties": {
+                  "actorGroupType": {
+                    "type": "string",
+                    "enum": [
+                      "web"
+                    ]
+                  }
+                }
               }
-            }
+            ]
           }
         ],
         "discriminator": {
@@ -9818,8 +9824,7 @@
         }
       },
       "TeamId": {
-        "type": "string",
-        "format": "uuid"
+        "$ref": "#/components/schemas/ActorGroupEntityUuid"
       },
       "TemporalBound": {
         "oneOf": [
@@ -10585,7 +10590,7 @@
         }
       },
       "WebId": {
-        "$ref": "#/components/schemas/EntityUuid"
+        "$ref": "#/components/schemas/ActorGroupEntityUuid"
       },
       "WebOwnerSubject": {
         "oneOf": [
