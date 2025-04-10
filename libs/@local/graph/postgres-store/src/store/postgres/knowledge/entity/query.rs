@@ -9,15 +9,13 @@ use type_system::{
     knowledge::{
         entity::{
             Entity, EntityMetadata, EntityProvenance, LinkData,
-            id::{EntityId, EntityRecordId, EntityUuid},
+            id::{EntityId, EntityRecordId},
             metadata::EntityTemporalMetadata,
         },
         property::metadata::PropertyObjectMetadata,
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    web::WebId,
 };
-use uuid::Uuid;
 
 use crate::store::postgres::{
     crud::QueryRecordDecode,
@@ -95,10 +93,10 @@ impl QueryRecordDecode for Entity {
 
     fn decode(row: &Row, indices: &Self::Indices) -> Self {
         let link_data = {
-            let left_web_id: Option<Uuid> = row.get(indices.left_entity_web_id);
-            let left_entity_uuid: Option<Uuid> = row.get(indices.left_entity_uuid);
-            let right_web_id: Option<Uuid> = row.get(indices.right_entity_web_id);
-            let right_entity_uuid: Option<Uuid> = row.get(indices.right_entity_uuid);
+            let left_web_id = row.get(indices.left_entity_web_id);
+            let left_entity_uuid = row.get(indices.left_entity_uuid);
+            let right_web_id = row.get(indices.right_entity_web_id);
+            let right_entity_uuid = row.get(indices.right_entity_uuid);
             match (
                 left_web_id,
                 left_entity_uuid,
@@ -112,13 +110,13 @@ impl QueryRecordDecode for Entity {
                     Some(right_entity_uuid),
                 ) => Some(LinkData {
                     left_entity_id: EntityId {
-                        web_id: WebId::new(left_web_id),
-                        entity_uuid: EntityUuid::new(left_entity_uuid),
+                        web_id: left_web_id,
+                        entity_uuid: left_entity_uuid,
                         draft_id: None,
                     },
                     right_entity_id: EntityId {
-                        web_id: WebId::new(right_web_id),
-                        entity_uuid: EntityUuid::new(right_entity_uuid),
+                        web_id: right_web_id,
+                        entity_uuid: right_entity_uuid,
                         draft_id: None,
                     },
                     left_entity_confidence: row.get(indices.left_entity_confidence),

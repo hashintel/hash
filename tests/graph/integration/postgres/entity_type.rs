@@ -11,6 +11,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity_type, property_type};
 use type_system::{
+    knowledge::entity::id::EntityUuid,
     ontology::{
         entity_type::EntityType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
@@ -56,7 +57,7 @@ async fn insert() {
         CreateEntityTypeParams {
             schema: person_et,
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
             },
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -91,7 +92,7 @@ async fn query() {
         CreateEntityTypeParams {
             schema: organization_et.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
             },
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -179,7 +180,7 @@ async fn update() {
         CreateEntityTypeParams {
             schema: page_et_v1.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
             },
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,

@@ -148,7 +148,7 @@ const ProfilePage: NextPageWithLayout = () => {
                       {
                         parameter:
                           profile.kind === "org"
-                            ? profile.accountGroupId
+                            ? profile.webId
                             : profile.accountId,
                       },
                     ],

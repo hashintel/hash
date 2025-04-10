@@ -2,12 +2,7 @@ import {
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorEntityUuid,
-  ActorGroupId,
-  BaseUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, UserId, WebId } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
@@ -33,8 +28,8 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 import {
-  extractActorGroupId,
-  extractActorId,
+  extractActorIdFromActorEntityId,
+  extractWebIdFromActorEntityId,
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinkAndTargetEntities,
@@ -55,7 +50,7 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entity: orgEntity,
-    accountGroupId: extractActorGroupId(
+    webId: extractWebIdFromActorEntityId(
       orgEntity.metadata.recordId.entityId as ActorGroupEntityId,
     ),
     name: organizationName,
@@ -71,7 +66,7 @@ export const constructMinimalOrg = (params: {
 export type MinimalUser = {
   kind: "user";
   entity: Entity<UserEntity>;
-  accountId: ActorEntityUuid;
+  accountId: UserId;
   accountSignupComplete: boolean;
   enabledFeatureFlags: FeatureFlag[];
   pinnedEntityTypeBaseUrls?: BaseUrl[];
@@ -105,9 +100,9 @@ export const constructMinimalUser = (params: {
     kind: "user",
     entity: userEntity,
     // Cast reason: The EntityUuid of a User's baseId is an AccountId
-    accountId: extractActorId(
+    accountId: extractActorIdFromActorEntityId(
       userEntity.metadata.recordId.entityId as ActorEntityId,
-    ),
+    ) as UserId,
     accountSignupComplete,
     ...simpleProperties,
     enabledFeatureFlags,
@@ -506,7 +501,7 @@ export const constructUser = (params: {
 export type MinimalOrg = {
   kind: "org";
   entity: Entity;
-  accountGroupId: ActorGroupId;
+  webId: WebId;
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   description?: string;
   location?: string;
@@ -524,6 +519,4 @@ export const isOrg = (
 ): userOrOrg is MinimalOrg => "accountGroupId" in userOrOrg;
 
 export const extractWebId = (userOrOrg: MinimalUser | MinimalOrg): WebId =>
-  isUser(userOrOrg)
-    ? (userOrOrg.accountId as WebId)
-    : (userOrOrg.accountGroupId as WebId);
+  isUser(userOrOrg) ? userOrOrg.accountId : userOrOrg.webId;

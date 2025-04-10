@@ -168,7 +168,7 @@ describe("Entity CRU", () => {
     ]);
 
     entityType = await createEntityType(graphContext, authentication, {
-      webId: testOrg.accountGroupId as WebId,
+      webId: testOrg.webId,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
           webShortname: testOrg.shortname,
@@ -220,7 +220,7 @@ describe("Entity CRU", () => {
   it("can create an entity", async () => {
     const authentication = { actorId: testUser.accountId };
     createdEntity = await createEntity(graphContext, authentication, {
-      webId: testOrg.accountGroupId as WebId,
+      webId: testOrg.webId,
       properties: {
         value: {
           [namePropertyType.metadata.recordId.baseUrl]: {
@@ -245,7 +245,7 @@ describe("Entity CRU", () => {
   it("can create a multi-type entity", async () => {
     const authentication = { actorId: testUser.accountId };
     await createEntity(graphContext, authentication, {
-      webId: testOrg.accountGroupId as WebId,
+      webId: testOrg.webId,
       properties: {
         value: {
           [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]: {
@@ -409,10 +409,7 @@ describe("Entity CRU", () => {
         filter: {
           all: [
             {
-              equal: [
-                { path: ["webId"] },
-                { parameter: testOrg.accountGroupId },
-              ],
+              equal: [{ path: ["webId"] }, { parameter: testOrg.webId }],
             },
             {
               endsWith: [

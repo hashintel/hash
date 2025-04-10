@@ -14,7 +14,7 @@ use hash_graph_temporal_versioning::{ClosedTemporalBound, LimitedTemporalBound, 
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{
     knowledge::{
-        entity::provenance::ProvidedEntityEditionProvenance,
+        entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{
             Property, PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
             PropertyPath, PropertyWithMetadata,
@@ -62,7 +62,7 @@ async fn insert() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
@@ -143,7 +143,7 @@ async fn query() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
@@ -228,7 +228,7 @@ async fn update() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {

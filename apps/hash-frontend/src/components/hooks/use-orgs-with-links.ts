@@ -1,6 +1,6 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { ActorGroupId } from "@blockprotocol/type-system";
+import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -25,7 +25,7 @@ import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 export const useOrgsWithLinks = ({
   orgAccountGroupIds,
 }: {
-  orgAccountGroupIds?: ActorGroupId[];
+  orgAccountGroupIds?: ActorGroupEntityUuid[];
 }): {
   loading: boolean;
   orgs?: Org[];

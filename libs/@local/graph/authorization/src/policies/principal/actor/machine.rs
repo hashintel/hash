@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn web() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(Uuid::new_v4());
+        let web_id = WebId::new(EntityUuid::new(Uuid::new_v4()));
         check_principal(
             PrincipalConstraint::ActorGroup {
                 actor_type: Some(ActorType::Machine),

@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
-import type { ActorGroupId } from "@blockprotocol/type-system";
+import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import type { ActorEntityId } from "@local/hash-subgraph";
-import { extractActorId } from "@local/hash-subgraph/stdlib";
+import { extractActorIdFromActorEntityId } from "@local/hash-subgraph/stdlib";
 import { TableCell, TableRow, Typography } from "@mui/material";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
@@ -22,7 +22,7 @@ export const MemberRow = ({
   readonly,
   self,
 }: {
-  accountGroupId: ActorGroupId;
+  accountGroupId: ActorGroupEntityUuid;
   membership: Org["memberships"][0];
   readonly: boolean;
   self: boolean;
@@ -45,7 +45,7 @@ export const MemberRow = ({
       removeMemberPermission({
         variables: {
           accountGroupId,
-          accountId: extractActorId(
+          accountId: extractActorIdFromActorEntityId(
             membership.user.entity.metadata.recordId.entityId as ActorEntityId,
           ),
         },

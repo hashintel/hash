@@ -4,9 +4,8 @@ use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::entity::id::EntityUuid,
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, WebId},
+    web::{ActorGroupEntityUuid, WebId},
 };
-use uuid::Uuid;
 
 use crate::{
     schema::{
@@ -82,7 +81,7 @@ impl Permission<WebId> for WebPermission {}
 pub enum WebSubject {
     Public,
     Account(ActorEntityUuid),
-    AccountGroup(ActorGroupId),
+    AccountGroup(ActorGroupEntityUuid),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -105,7 +104,7 @@ pub enum WebSubjectNamespace {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum WebSubjectId {
-    Uuid(Uuid),
+    Uuid(EntityUuid),
     Asteriks(PublicAccess),
 }
 
@@ -118,11 +117,11 @@ impl Resource for WebSubject {
             (WebSubjectNamespace::Account, WebSubjectId::Asteriks(PublicAccess::Public)) => {
                 Self::Public
             }
-            (WebSubjectNamespace::Account, WebSubjectId::Uuid(id)) => {
-                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
+            (WebSubjectNamespace::Account, WebSubjectId::Uuid(uuid)) => {
+                Self::Account(ActorEntityUuid::new(uuid))
             }
-            (WebSubjectNamespace::AccountGroup, WebSubjectId::Uuid(id)) => {
-                Self::AccountGroup(ActorGroupId::new(id))
+            (WebSubjectNamespace::AccountGroup, WebSubjectId::Uuid(uuid)) => {
+                Self::AccountGroup(ActorGroupEntityUuid::new(uuid))
             }
             (WebSubjectNamespace::AccountGroup, WebSubjectId::Asteriks(PublicAccess::Public)) => {
                 return Err(InvalidResource::<Self>::invalid_id(kind, id));
@@ -138,11 +137,11 @@ impl Resource for WebSubject {
             ),
             Self::Account(id) => (
                 WebSubjectNamespace::Account,
-                WebSubjectId::Uuid(id.into_uuid()),
+                WebSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
             ),
             Self::AccountGroup(id) => (
                 WebSubjectNamespace::AccountGroup,
-                WebSubjectId::Uuid(id.into_uuid()),
+                WebSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
             ),
         }
     }
@@ -162,7 +161,7 @@ pub enum WebOwnerSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: ActorGroupEntityUuid,
     },
 }
 
@@ -176,7 +175,7 @@ pub enum WebEntityCreatorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: ActorGroupEntityUuid,
         #[serde(skip)]
         set: WebSubjectSet,
     },
@@ -192,7 +191,7 @@ pub enum WebEntityEditorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: ActorGroupEntityUuid,
         #[serde(skip)]
         set: WebSubjectSet,
     },
@@ -209,7 +208,7 @@ pub enum WebEntityViewerSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: ActorGroupEntityUuid,
         #[serde(skip)]
         set: WebSubjectSet,
     },

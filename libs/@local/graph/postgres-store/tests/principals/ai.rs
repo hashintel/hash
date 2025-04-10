@@ -2,7 +2,7 @@ use core::{assert_matches::assert_matches, error::Error};
 
 use hash_graph_authorization::policies::{
     action::ActionName,
-    principal::{PrincipalId, group::ActorGroupId},
+    principal::{PrincipalId, group::ActorGroupId, role::RoleName},
     store::{CreateWebParameter, PrincipalStore as _},
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
@@ -136,14 +136,16 @@ async fn ai_role_assignment() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let role_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
 
     let actor_id = ActorId::Ai(AiId::new(ActorEntityUuid::new(EntityUuid::new(
         ai_id.into_uuid(),
     ))));
 
     // Assign the role to the AI
-    client.assign_role_to_actor(actor_id, role_id).await?;
+    client.assign_role_by_id(actor_id, role_id).await?;
 
     // Check that the AI has the role assigned
     let ai_roles = client.get_actor_roles(actor_id).await?;
@@ -154,7 +156,7 @@ async fn ai_role_assignment() -> Result<(), Box<dyn Error>> {
     assert!(role_actors.contains(&actor_id));
 
     // Unassign the role from the AI
-    client.unassign_role_from_actor(actor_id, role_id).await?;
+    client.unassign_role_by_id(actor_id, role_id).await?;
 
     // Check that the AI no longer has the role assigned
     let ai_roles_after = client.get_actor_roles(actor_id).await?;

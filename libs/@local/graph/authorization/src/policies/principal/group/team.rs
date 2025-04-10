@@ -4,6 +4,7 @@ use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
+use type_system::{knowledge::entity::id::EntityUuid, web::ActorGroupEntityUuid};
 use uuid::Uuid;
 
 use super::ActorGroupId;
@@ -38,6 +39,12 @@ impl TeamId {
     #[must_use]
     pub const fn as_uuid(&self) -> &Uuid {
         &self.0
+    }
+}
+
+impl From<TeamId> for ActorGroupEntityUuid {
+    fn from(team_id: TeamId) -> Self {
+        Self::new(EntityUuid::new(team_id.into_uuid()))
     }
 }
 

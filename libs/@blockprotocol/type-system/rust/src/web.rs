@@ -7,7 +7,7 @@ use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::provenance::ActorEntityUuid;
+use crate::knowledge::entity::id::EntityUuid;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
@@ -17,37 +17,31 @@ use crate::provenance::ActorEntityUuid;
 pub struct WebId(
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "Brand<ActorEntityUuid | ActorGroupId, \"WebId\">")
+        tsify(type = "Brand<ActorEntityUuid | ActorGroupEntityUuid, \"WebId\">")
     )]
-    Uuid,
+    EntityUuid,
 );
 
 impl WebId {
     #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
+    pub const fn new(uuid: EntityUuid) -> Self {
         Self(uuid)
     }
 
     #[must_use]
     pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
+        self.0.as_uuid()
     }
 
     #[must_use]
     pub const fn into_uuid(self) -> Uuid {
-        self.0
+        self.0.into_uuid()
     }
 }
 
 impl fmt::Display for WebId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-impl From<ActorEntityUuid> for WebId {
-    fn from(actor_id: ActorEntityUuid) -> Self {
-        Self::new(actor_id.into_uuid())
     }
 }
 
@@ -60,39 +54,39 @@ impl From<ActorEntityUuid> for WebId {
     postgres(transparent)
 )]
 #[repr(transparent)]
-pub struct ActorGroupId(
+pub struct ActorGroupEntityUuid(
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "Brand<string, \"ActorGroupId\">")
+        tsify(type = "Brand<EntityUuid, \"ActorGroupEntityUuid\">")
     )]
-    Uuid,
+    EntityUuid,
 );
 
-impl ActorGroupId {
+impl ActorGroupEntityUuid {
     #[must_use]
-    pub const fn new(actor_id: Uuid) -> Self {
-        Self(actor_id)
+    pub const fn new(actor_group_id: EntityUuid) -> Self {
+        Self(actor_group_id)
     }
 
     #[must_use]
     pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
+        self.0.as_uuid()
     }
 
     #[must_use]
     pub const fn into_uuid(self) -> Uuid {
-        self.0
+        self.0.into_uuid()
     }
 }
 
-impl fmt::Display for ActorGroupId {
+impl fmt::Display for ActorGroupEntityUuid {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{}", &self.0)
+        fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl From<ActorGroupId> for WebId {
-    fn from(account_group_id: ActorGroupId) -> Self {
-        Self::new(account_group_id.into_uuid())
+impl From<WebId> for ActorGroupEntityUuid {
+    fn from(web_id: WebId) -> Self {
+        Self::new(EntityUuid::new(web_id.into_uuid()))
     }
 }

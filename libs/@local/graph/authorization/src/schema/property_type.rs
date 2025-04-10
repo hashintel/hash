@@ -5,11 +5,10 @@ use type_system::{
     knowledge::entity::id::EntityUuid, ontology::property_type::PropertyTypeUuid,
     provenance::ActorEntityUuid, web::WebId,
 };
-use uuid::Uuid;
 
 use crate::{
     schema::{
-        ActorGroupId, PublicAccess,
+        ActorGroupEntityUuid, PublicAccess,
         error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
@@ -79,7 +78,7 @@ pub enum PropertyTypeSubject {
     Setting(PropertyTypeSetting),
     Public,
     Account(ActorEntityUuid),
-    AccountGroup(ActorGroupId),
+    AccountGroup(ActorGroupEntityUuid),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -106,7 +105,7 @@ pub enum PropertyTypeSubjectNamespace {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum PropertyTypeSubjectId {
-    Uuid(Uuid),
+    Uuid(EntityUuid),
     Setting(PropertyTypeSetting),
     Asteriks(PublicAccess),
 }
@@ -127,11 +126,11 @@ impl Resource for PropertyTypeSubject {
                 PropertyTypeSubjectNamespace::Account,
                 PropertyTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
-            (PropertyTypeSubjectNamespace::Account, PropertyTypeSubjectId::Uuid(id)) => {
-                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
+            (PropertyTypeSubjectNamespace::Account, PropertyTypeSubjectId::Uuid(uuid)) => {
+                Self::Account(ActorEntityUuid::new(uuid))
             }
-            (PropertyTypeSubjectNamespace::AccountGroup, PropertyTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(ActorGroupId::new(id))
+            (PropertyTypeSubjectNamespace::AccountGroup, PropertyTypeSubjectId::Uuid(uuid)) => {
+                Self::AccountGroup(ActorGroupEntityUuid::new(uuid))
             }
             (
                 PropertyTypeSubjectNamespace::Web
@@ -149,7 +148,7 @@ impl Resource for PropertyTypeSubject {
         match self {
             Self::Web(web_id) => (
                 PropertyTypeSubjectNamespace::Web,
-                PropertyTypeSubjectId::Uuid(web_id.into_uuid()),
+                PropertyTypeSubjectId::Uuid(EntityUuid::new(web_id.into_uuid())),
             ),
             Self::Setting(setting) => (
                 PropertyTypeSubjectNamespace::Setting,
@@ -161,11 +160,11 @@ impl Resource for PropertyTypeSubject {
             ),
             Self::Account(id) => (
                 PropertyTypeSubjectNamespace::Account,
-                PropertyTypeSubjectId::Uuid(id.into_uuid()),
+                PropertyTypeSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
             ),
             Self::AccountGroup(id) => (
                 PropertyTypeSubjectNamespace::AccountGroup,
-                PropertyTypeSubjectId::Uuid(id.into_uuid()),
+                PropertyTypeSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
             ),
         }
     }
@@ -205,7 +204,7 @@ pub enum PropertyTypeEditorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: ActorGroupEntityUuid,
         #[serde(skip)]
         set: PropertyTypeSubjectSet,
     },

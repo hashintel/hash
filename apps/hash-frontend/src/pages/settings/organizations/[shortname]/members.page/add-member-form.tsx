@@ -10,7 +10,10 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ActorEntityId, EntityRootType } from "@local/hash-subgraph";
-import { extractActorId, getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  extractActorIdFromActorEntityId,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -128,7 +131,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
             rightEntityId: org.entity.metadata.recordId.entityId,
           },
           relationships: createOrgMembershipAuthorizationRelationships({
-            memberAccountId: extractActorId(
+            memberAccountId: extractActorIdFromActorEntityId(
               user.metadata.recordId.entityId as ActorEntityId,
             ),
           }),
@@ -136,8 +139,8 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       }),
       addMemberPermission({
         variables: {
-          accountGroupId: org.accountGroupId,
-          accountId: extractActorId(
+          accountGroupId: org.webId,
+          accountId: extractActorIdFromActorEntityId(
             user.metadata.recordId.entityId as ActorEntityId,
           ),
         },

@@ -91,7 +91,7 @@ const getLatestTypesInOrganizationQuery = (params: { organization: Org }) => ({
           {
             path: ["webId"],
           },
-          { parameter: params.organization.accountGroupId },
+          { parameter: params.organization.webId },
         ],
       },
     ],

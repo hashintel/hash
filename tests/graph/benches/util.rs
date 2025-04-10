@@ -30,6 +30,7 @@ use tokio_postgres::NoTls;
 use tracing_flame::FlameLayer;
 use tracing_subscriber::{prelude::*, registry::Registry};
 use type_system::{
+    knowledge::entity::id::EntityUuid,
     ontology::{
         data_type::DataType,
         entity_type::EntityType,
@@ -309,7 +310,7 @@ pub async fn seed<D, P, E, C, A>(
                 CreateDataTypeParams {
                     schema: data_type.clone(),
                     ownership: OntologyOwnership::Local {
-                        web_id: WebId::new(account_id.into_uuid()),
+                        web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
                     },
                     relationships: [DataTypeRelationAndSubject::Viewer {
                         subject: DataTypeViewerSubject::Public,
@@ -365,7 +366,7 @@ pub async fn seed<D, P, E, C, A>(
                 CreatePropertyTypeParams {
                     schema: property_type.clone(),
                     ownership: OntologyOwnership::Local {
-                        web_id: WebId::new(account_id.into_uuid()),
+                        web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
                     },
                     relationships: [PropertyTypeRelationAndSubject::Viewer {
                         subject: PropertyTypeViewerSubject::Public,
@@ -419,7 +420,7 @@ pub async fn seed<D, P, E, C, A>(
                 CreateEntityTypeParams {
                     schema: entity_type.clone(),
                     ownership: OntologyOwnership::Local {
-                        web_id: WebId::new(account_id.into_uuid()),
+                        web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
                     },
                     relationships: [EntityTypeRelationAndSubject::Viewer {
                         subject: EntityTypeViewerSubject::Public,

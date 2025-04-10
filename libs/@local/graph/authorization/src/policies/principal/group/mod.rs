@@ -2,7 +2,7 @@ mod team;
 mod web;
 
 use cedar_policy_core::ast;
-use type_system::web::WebId;
+use type_system::web::{ActorGroupEntityUuid, WebId};
 use uuid::Uuid;
 
 pub use self::{
@@ -23,6 +23,7 @@ use crate::policies::cedar::CedarEntityId as _;
     derive_more::Display,
 )]
 #[serde(tag = "actorGroupType", content = "id", rename_all = "lowercase")]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum ActorGroupId {
     Web(WebId),
     Team(TeamId),
@@ -49,6 +50,15 @@ impl ActorGroupId {
         match self {
             Self::Web(id) => id.to_euid(),
             Self::Team(id) => id.to_euid(),
+        }
+    }
+}
+
+impl From<ActorGroupId> for ActorGroupEntityUuid {
+    fn from(actor_group_id: ActorGroupId) -> Self {
+        match actor_group_id {
+            ActorGroupId::Web(id) => id.into(),
+            ActorGroupId::Team(id) => id.into(),
         }
     }
 }

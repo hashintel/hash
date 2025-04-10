@@ -77,7 +77,7 @@ async fn seed_db<A: AuthorizationApi>(
         .insert_web_id(
             account_id,
             InsertWebIdParams {
-                web_id: WebId::new(account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
                 owner: WebOwnerSubject::Account { id: account_id },
             },
         )
@@ -121,7 +121,7 @@ async fn seed_db<A: AuthorizationApi>(
     let link_type: EntityType =
         serde_json::from_str(entity_type::link::FRIEND_OF_V1).expect("could not parse entity type");
 
-    let web_id = WebId::new(account_id.into_uuid());
+    let web_id = WebId::new(EntityUuid::new(account_id.into_uuid()));
 
     let entity_list = transaction
         .create_entities(

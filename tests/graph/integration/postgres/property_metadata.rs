@@ -12,7 +12,7 @@ use serde_json::json;
 use type_system::{
     knowledge::{
         Confidence, PropertyValue,
-        entity::provenance::ProvidedEntityEditionProvenance,
+        entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{
             PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation, PropertyPath,
             PropertyPathElement, PropertyValueWithMetadata, PropertyWithMetadata,
@@ -179,7 +179,7 @@ async fn initial_metadata() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -319,7 +319,7 @@ async fn no_initial_metadata() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -539,7 +539,7 @@ async fn properties_add() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -644,7 +644,7 @@ async fn properties_remove() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),

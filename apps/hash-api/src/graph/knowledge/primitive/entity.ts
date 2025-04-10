@@ -1,6 +1,6 @@
 import type {
   ActorEntityUuid,
-  ActorGroupId,
+  ActorGroupEntityUuid,
   BaseUrl,
   EntityId,
   LinkData,
@@ -827,7 +827,7 @@ export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
 };
 
 export const addEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupId },
+  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupEntityUuid },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.addEntityAdministrator(
@@ -838,7 +838,7 @@ export const addEntityAdministrator: ImpureGraphFunction<
 };
 
 export const removeEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupId },
+  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupEntityUuid },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeEntityAdministrator(
@@ -849,14 +849,14 @@ export const removeEntityAdministrator: ImpureGraphFunction<
 };
 
 export const addEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupId },
+  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupEntityUuid },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.addEntityEditor(actorId, params.entityId, params.editor);
 };
 
 export const removeEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupId },
+  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupEntityUuid },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeEntityEditor(actorId, params.entityId, params.editor);

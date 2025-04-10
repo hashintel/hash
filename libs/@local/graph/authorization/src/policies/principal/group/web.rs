@@ -4,7 +4,7 @@ use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
-use type_system::web::WebId;
+use type_system::{knowledge::entity::id::EntityUuid, web::WebId};
 use uuid::Uuid;
 
 use crate::policies::{cedar::CedarEntityId, principal::role::WebRoleId};
@@ -23,7 +23,7 @@ impl CedarEntityId for WebId {
     }
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
-        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+        Ok(Self::new(EntityUuid::new(Uuid::from_str(eid.as_ref())?)))
     }
 }
 
@@ -51,7 +51,7 @@ mod tests {
     use core::error::Error;
 
     use serde_json::json;
-    use type_system::web::WebId;
+    use type_system::{knowledge::entity::id::EntityUuid, web::WebId};
     use uuid::Uuid;
 
     use crate::{
@@ -63,7 +63,7 @@ mod tests {
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(Uuid::new_v4());
+        let web_id = WebId::new(EntityUuid::new(Uuid::new_v4()));
         check_principal(
             PrincipalConstraint::ActorGroup {
                 actor_type: None,

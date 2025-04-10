@@ -31,7 +31,7 @@ use type_system::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, WebId},
+    web::{ActorGroupEntityUuid, WebId},
 };
 
 use crate::{
@@ -54,7 +54,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: ActorEntityUuid,
         _: AccountGroupPermission,
-        _: ActorGroupId,
+        _: ActorGroupEntityUuid,
         _: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         Ok(CheckResponse {
@@ -68,7 +68,7 @@ impl AuthorizationApi for NoAuthorization {
         _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                ActorGroupId,
+                ActorGroupEntityUuid,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,
@@ -102,7 +102,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_account_group_relations(
         &self,
-        _: ActorGroupId,
+        _: ActorGroupEntityUuid,
         _: Consistency<'_>,
     ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
         Ok(Vec::new())

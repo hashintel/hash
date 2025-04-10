@@ -1,6 +1,6 @@
 import type {
   ActorEntityUuid,
-  ActorGroupId,
+  ActorGroupEntityUuid,
   ClosedTemporalBound,
   EntityUuid,
   ProvidedEntityEditionProvenance,
@@ -280,7 +280,7 @@ export const createUsageRecord = async (
       relation: "viewer",
       subject: {
         kind: "accountGroup",
-        subjectId: assignUsageToWebId as ActorGroupId,
+        subjectId: assignUsageToWebId as ActorGroupEntityUuid,
         subjectSet: "administrator",
       },
     });

@@ -11,7 +11,7 @@ use type_system::{
     knowledge::{entity::id::EntityUuid, property::PropertyObjectWithMetadata},
     ontology::VersionedUrl,
     provenance::{ActorEntityUuid, ActorId, ActorType, MachineId, UserId},
-    web::WebId,
+    web::{ActorGroupEntityUuid, WebId},
 };
 use uuid::Uuid;
 
@@ -26,7 +26,7 @@ use super::{
         Actor, PrincipalConstraint,
         actor::Machine,
         group::{ActorGroup, ActorGroupId, Team, TeamId, Web},
-        role::{Role, RoleId, TeamRole, TeamRoleId, WebRole, WebRoleId},
+        role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
     },
 };
 use crate::policies::principal::actor::User;
@@ -68,6 +68,22 @@ pub struct CreateWebParameter {
     pub id: Option<Uuid>,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "kebab-case")]
+pub enum RoleAssignmentStatus {
+    NewlyAssigned,
+    AlreadyAssigned,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "kebab-case")]
+pub enum RoleUnassignmentStatus {
+    Unassigned,
+    NotAssigned,
+}
+
 #[trait_variant::make(PrincipalStore: Send)]
 pub trait LocalPrincipalStore {
     /// Searches for the system account and returns its ID.
@@ -99,6 +115,44 @@ pub trait LocalPrincipalStore {
         actor: ActorId,
         parameter: CreateWebParameter,
     ) -> Result<WebId, Report<WebCreationError>>;
+
+    /// Assigns an actor to a role.
+    ///
+    /// # Errors
+    ///
+    /// - [`ActorNotFound`] if the actor does not exist
+    /// - [`RoleNotFound`] if the role does not exist
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`ActorNotFound`]: RoleAssignmentError::ActorNotFound
+    /// [`RoleNotFound`]: RoleAssignmentError::RoleNotFound
+    /// [`StoreError`]: RoleAssignmentError::StoreError
+    async fn assign_role(
+        &mut self,
+        actor: ActorEntityUuid,
+        actor_to_assign: ActorEntityUuid,
+        actor_group_id: ActorGroupEntityUuid,
+        name: RoleName,
+    ) -> Result<RoleAssignmentStatus, Report<RoleAssignmentError>>;
+
+    /// Unassigns an actor from a role.
+    ///
+    /// # Errors
+    ///
+    /// - [`ActorNotFound`] if the actor does not exist
+    /// - [`RoleNotFound`] if the role does not exist
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`ActorNotFound`]: RoleAssignmentError::ActorNotFound
+    /// [`RoleNotFound`]: RoleAssignmentError::RoleNotFound
+    /// [`StoreError`]: RoleAssignmentError::StoreError
+    async fn unassign_role(
+        &mut self,
+        actor: ActorEntityUuid,
+        actor_to_unassign: ActorEntityUuid,
+        actor_group_id: ActorGroupEntityUuid,
+        name: RoleName,
+    ) -> Result<RoleUnassignmentStatus, Report<RoleAssignmentError>>;
 }
 
 pub trait PolicyStore {
@@ -142,8 +196,11 @@ pub trait PolicyStore {
     ///
     /// [`WebNotFound`]: WebRoleCreationError::WebNotFound
     /// [`StoreError`]: WebRoleCreationError::StoreError
-    fn create_web_role(&mut self, web_id: WebId)
-    -> Result<WebRoleId, Report<WebRoleCreationError>>;
+    fn create_web_role(
+        &mut self,
+        web_id: WebId,
+        name: RoleName,
+    ) -> Result<WebRoleId, Report<WebRoleCreationError>>;
 
     /// Creates a new team and returns its ID.
     ///
@@ -166,6 +223,7 @@ pub trait PolicyStore {
     fn create_team_role(
         &mut self,
         team_id: TeamId,
+        name: RoleName,
     ) -> Result<TeamRoleId, Report<TeamRoleCreationError>>;
 
     /// Assigns a role to an actor.
@@ -182,7 +240,8 @@ pub trait PolicyStore {
     fn assign_role(
         &mut self,
         actor_id: ActorId,
-        role_id: RoleId,
+        actor_group_id: ActorGroupId,
+        name: RoleName,
     ) -> Result<(), Report<RoleAssignmentError>>;
 
     /// Unassigns a role from an actor.
@@ -199,7 +258,8 @@ pub trait PolicyStore {
     fn unassign_role(
         &mut self,
         actor_id: ActorId,
-        role_id: RoleId,
+        actor_group_id: ActorGroupId,
+        name: RoleName,
     ) -> Result<(), Report<RoleAssignmentError>>;
 
     /// Extends the context by the actor and its assigned roles.
@@ -282,6 +342,7 @@ impl From<&PrincipalConstraint> for PrincipalIndex {
 pub struct MemoryPolicyStore {
     teams: HashMap<ActorGroupId, ActorGroup>,
     actors: HashMap<ActorId, Actor>,
+    role_ids: HashMap<(ActorGroupId, RoleName), RoleId>,
     roles: HashMap<RoleId, Role>,
     policies: HashMap<PrincipalIndex, HashMap<PolicyId, Policy>>,
 }
@@ -320,7 +381,7 @@ impl PolicyStore for MemoryPolicyStore {
     }
 
     fn create_web(&mut self) -> Result<WebId, Report<WebCreationError>> {
-        let web_id = WebId::new(Uuid::new_v4());
+        let web_id = WebId::new(EntityUuid::new(Uuid::new_v4()));
         self.teams.insert(
             ActorGroupId::Web(web_id),
             ActorGroup::Web(Web {
@@ -334,6 +395,7 @@ impl PolicyStore for MemoryPolicyStore {
     fn create_web_role(
         &mut self,
         web_id: WebId,
+        name: RoleName,
     ) -> Result<WebRoleId, Report<WebRoleCreationError>> {
         let Some(ActorGroup::Web(web)) = self.teams.get_mut(&ActorGroupId::Web(web_id)) else {
             bail!(WebRoleCreationError::WebNotFound { web_id })
@@ -341,11 +403,14 @@ impl PolicyStore for MemoryPolicyStore {
 
         let role_id = WebRoleId::new(Uuid::new_v4());
         web.roles.insert(role_id);
+        self.role_ids
+            .insert((ActorGroupId::Web(web_id), name), RoleId::Web(role_id));
         self.roles.insert(
             RoleId::Web(role_id),
             Role::Web(WebRole {
                 id: role_id,
                 web_id,
+                name,
             }),
         );
 
@@ -368,6 +433,7 @@ impl PolicyStore for MemoryPolicyStore {
     fn create_team_role(
         &mut self,
         team_id: TeamId,
+        name: RoleName,
     ) -> Result<TeamRoleId, Report<TeamRoleCreationError>> {
         let Some(ActorGroup::Team(team)) = self.teams.get_mut(&ActorGroupId::Team(team_id)) else {
             bail!(TeamRoleCreationError::TeamNotFound { team_id })
@@ -375,11 +441,14 @@ impl PolicyStore for MemoryPolicyStore {
 
         let role_id = TeamRoleId::new(Uuid::new_v4());
         team.roles.insert(role_id);
+        self.role_ids
+            .insert((ActorGroupId::Team(team_id), name), RoleId::Team(role_id));
         self.roles.insert(
             RoleId::Team(role_id),
             Role::Team(TeamRole {
                 id: role_id,
                 team_id,
+                name,
             }),
         );
 
@@ -389,25 +458,28 @@ impl PolicyStore for MemoryPolicyStore {
     fn assign_role(
         &mut self,
         actor_id: ActorId,
-        role_id: RoleId,
+        actor_group_id: ActorGroupId,
+        name: RoleName,
     ) -> Result<(), Report<RoleAssignmentError>> {
         let Some(actor) = self.actors.get_mut(&actor_id) else {
             bail!(RoleAssignmentError::ActorNotFound { actor_id })
         };
-        ensure!(
-            self.roles.contains_key(&role_id),
-            RoleAssignmentError::RoleNotFound { role_id }
-        );
+        let role_id = self.role_ids.get(&(actor_group_id, name)).ok_or(
+            RoleAssignmentError::RoleNotFound {
+                actor_group_id,
+                name,
+            },
+        )?;
 
         match actor {
             Actor::User(user) => {
-                user.roles.insert(role_id);
+                user.roles.insert(*role_id);
             }
             Actor::Machine(machine) => {
-                machine.roles.insert(role_id);
+                machine.roles.insert(*role_id);
             }
             Actor::Ai(ai) => {
-                ai.roles.insert(role_id);
+                ai.roles.insert(*role_id);
             }
         }
         Ok(())
@@ -416,25 +488,28 @@ impl PolicyStore for MemoryPolicyStore {
     fn unassign_role(
         &mut self,
         actor_id: ActorId,
-        role_id: RoleId,
+        actor_group_id: ActorGroupId,
+        name: RoleName,
     ) -> Result<(), Report<RoleAssignmentError>> {
         let Some(actor) = self.actors.get_mut(&actor_id) else {
             bail!(RoleAssignmentError::ActorNotFound { actor_id })
         };
-        ensure!(
-            self.roles.contains_key(&role_id),
-            RoleAssignmentError::RoleNotFound { role_id }
-        );
+        let role_id = self.role_ids.get(&(actor_group_id, name)).ok_or(
+            RoleAssignmentError::RoleNotFound {
+                actor_group_id,
+                name,
+            },
+        )?;
 
         match actor {
             Actor::User(user) => {
-                user.roles.remove(&role_id);
+                user.roles.remove(role_id);
             }
             Actor::Machine(machine) => {
-                machine.roles.remove(&role_id);
+                machine.roles.remove(role_id);
             }
             Actor::Ai(ai) => {
-                ai.roles.remove(&role_id);
+                ai.roles.remove(role_id);
             }
         }
         Ok(())
@@ -486,11 +561,19 @@ impl PolicyStore for MemoryPolicyStore {
                     actor
                         .roles()
                         .flat_map(|role_id| match &self.roles[&role_id] {
-                            Role::Web(WebRole { id, web_id }) => [
+                            Role::Web(WebRole {
+                                id,
+                                web_id,
+                                name: _,
+                            }) => [
                                 PrincipalIndex::Role(RoleId::Web(*id)),
                                 PrincipalIndex::Team(ActorGroupId::Web(*web_id)),
                             ],
-                            Role::Team(TeamRole { id, team_id }) => [
+                            Role::Team(TeamRole {
+                                id,
+                                team_id,
+                                name: _,
+                            }) => [
                                 PrincipalIndex::Role(RoleId::Team(*id)),
                                 PrincipalIndex::Team(ActorGroupId::Team(*team_id)),
                             ],

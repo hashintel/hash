@@ -6,6 +6,7 @@ use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
 use uuid::Uuid;
 
+use super::RoleName;
 use crate::policies::{cedar::CedarEntityId, principal::group::TeamId};
 
 #[derive(
@@ -62,6 +63,7 @@ impl CedarEntityId for TeamRoleId {
 pub struct TeamRole {
     pub id: TeamRoleId,
     pub team_id: TeamId,
+    pub name: RoleName,
 }
 
 impl TeamRole {

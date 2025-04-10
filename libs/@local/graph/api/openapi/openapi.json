@@ -46,7 +46,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ActorGroupId"
+                  "$ref": "#/components/schemas/ActorGroupEntityUuid"
                 }
               }
             }
@@ -80,7 +80,7 @@
             "description": "The ID of the account group to add the member to",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
             }
           },
           {
@@ -127,7 +127,7 @@
             "description": "The ID of the account group to remove the member from",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
             }
           },
           {
@@ -176,7 +176,7 @@
             "description": "The ID of the account group to check if the actor has the permission",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
             }
           },
           {
@@ -229,7 +229,7 @@
             "description": "The ID of the account group to get relations from",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
             }
           }
         ],
@@ -1474,7 +1474,7 @@
         }
       }
     },
-    "/entities/{entity_id}/administrators/{administrator}": {
+    "/entities/{entity_id}/administrators/{subject_id}": {
       "post": {
         "tags": [
           "Graph",
@@ -1501,12 +1501,12 @@
             }
           },
           {
-            "name": "administrator",
+            "name": "subject_id",
             "in": "path",
             "description": "The administrator to add to the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/WebId"
+              "$ref": "#/components/schemas/EntityUuid"
             }
           }
         ],
@@ -1545,12 +1545,12 @@
             }
           },
           {
-            "name": "administrator",
+            "name": "subject_id",
             "in": "path",
             "description": "The administrator to remove from the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/WebId"
+              "$ref": "#/components/schemas/EntityUuid"
             }
           }
         ],
@@ -1564,7 +1564,7 @@
         }
       }
     },
-    "/entities/{entity_id}/editors/{editor}": {
+    "/entities/{entity_id}/editors/{subject_id}": {
       "post": {
         "tags": [
           "Graph",
@@ -1591,12 +1591,12 @@
             }
           },
           {
-            "name": "editor",
+            "name": "subject_id",
             "in": "path",
             "description": "The editor to add to the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/WebId"
+              "$ref": "#/components/schemas/EntityUuid"
             }
           }
         ],
@@ -1635,12 +1635,12 @@
             }
           },
           {
-            "name": "editor",
+            "name": "subject_id",
             "in": "path",
             "description": "The editor to remove from the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/WebId"
+              "$ref": "#/components/schemas/EntityUuid"
             }
           }
         ],
@@ -3093,8 +3093,15 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": "The web was created successfully"
+          "200": {
+            "description": "The web was created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebId"
+                }
+              }
+            }
           },
           "500": {
             "description": "Store error occurred"
@@ -3349,9 +3356,51 @@
       "ActorEntityUuid": {
         "$ref": "#/components/schemas/EntityUuid"
       },
+      "ActorGroupEntityUuid": {
+        "$ref": "#/components/schemas/EntityUuid"
+      },
       "ActorGroupId": {
-        "type": "string",
-        "format": "uuid"
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "actorGroupType",
+              "id"
+            ],
+            "properties": {
+              "actorGroupType": {
+                "type": "string",
+                "enum": [
+                  "web"
+                ]
+              },
+              "id": {
+                "$ref": "#/components/schemas/WebId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "actorGroupType",
+              "id"
+            ],
+            "properties": {
+              "actorGroupType": {
+                "type": "string",
+                "enum": [
+                  "team"
+                ]
+              },
+              "id": {
+                "$ref": "#/components/schemas/TeamId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "actorGroupType"
+        }
       },
       "ActorId": {
         "oneOf": [
@@ -4065,7 +4114,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -4593,7 +4642,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -4669,7 +4718,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -5095,7 +5144,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -5210,7 +5259,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -5682,7 +5731,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -6899,7 +6948,7 @@
         "type": "object",
         "properties": {
           "accountGroupId": {
-            "$ref": "#/components/schemas/ActorGroupId"
+            "$ref": "#/components/schemas/ActorGroupEntityUuid"
           }
         },
         "additionalProperties": false
@@ -6922,7 +6971,6 @@
       "InsertWebIdParams": {
         "type": "object",
         "required": [
-          "webId",
           "owner"
         ],
         "properties": {
@@ -8922,7 +8970,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -9769,6 +9817,10 @@
           }
         }
       },
+      "TeamId": {
+        "type": "string",
+        "format": "uuid"
+      },
       "TemporalBound": {
         "oneOf": [
           {
@@ -10405,7 +10457,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -10448,7 +10500,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -10523,7 +10575,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -10533,8 +10585,7 @@
         }
       },
       "WebId": {
-        "type": "string",
-        "format": "uuid"
+        "$ref": "#/components/schemas/EntityUuid"
       },
       "WebOwnerSubject": {
         "oneOf": [
@@ -10570,7 +10621,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }

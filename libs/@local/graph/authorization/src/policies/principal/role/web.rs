@@ -7,6 +7,7 @@ use error_stack::Report;
 use type_system::web::WebId;
 use uuid::Uuid;
 
+use super::RoleName;
 use crate::policies::cedar::CedarEntityId;
 
 #[derive(
@@ -63,6 +64,7 @@ impl CedarEntityId for WebRoleId {
 pub struct WebRole {
     pub id: WebRoleId,
     pub web_id: WebId,
+    pub name: RoleName,
 }
 
 impl WebRole {

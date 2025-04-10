@@ -1,4 +1,3 @@
-import type { WebId } from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
 import {
   systemEntityTypes,
@@ -143,7 +142,7 @@ export const OrgForm = ({
     }
 
     await uploadFile({
-      webId: initialOrg.accountGroupId as WebId,
+      webId: initialOrg.webId,
       makePublic: true,
       fileData: {
         description: `The avatar for the ${nameWatcher} organization in HASH`,

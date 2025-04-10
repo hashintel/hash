@@ -1,6 +1,6 @@
 import type {
   ActorEntityUuid,
-  ActorGroupId,
+  ActorGroupEntityUuid,
   EntityId,
   WebId,
 } from "@blockprotocol/type-system";
@@ -583,7 +583,7 @@ const parseGqlAuthorizationViewerInput = ({
     }
     return {
       kind: "accountGroup",
-      subjectId: viewer as ActorGroupId,
+      subjectId: viewer as ActorGroupEntityUuid,
       subjectSet: "member",
     } as const;
   }

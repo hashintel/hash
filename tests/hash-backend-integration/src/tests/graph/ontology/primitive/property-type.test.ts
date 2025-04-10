@@ -12,10 +12,7 @@ import {
   unarchivePropertyType,
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import type {
-  PropertyTypeWithMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { PropertyTypeWithMetadata } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
@@ -98,7 +95,7 @@ describe("Property type CRU", () => {
       graphContext,
       authentication,
       {
-        webId: testOrg.accountGroupId as WebId,
+        webId: testOrg.webId,
         schema: propertyTypeSchema,
         relationships: [
           {

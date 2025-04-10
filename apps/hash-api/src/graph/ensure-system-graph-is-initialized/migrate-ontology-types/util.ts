@@ -20,7 +20,6 @@ import type {
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
-  WebId,
 } from "@blockprotocol/type-system";
 import {
   atLeastOne,
@@ -80,7 +79,7 @@ import {
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
 import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
-import { getOrCreateOwningAccountGroupId } from "../system-webs-and-entities";
+import { getOrCreateOwningWebId } from "../system-webs-and-entities";
 import type { MigrationState } from "./types";
 import { upgradeWebEntities } from "./util/upgrade-entities";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
@@ -253,8 +252,10 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
     dataTypeId,
   });
 
-  const { accountGroupId, machineActorId } =
-    await getOrCreateOwningAccountGroupId(context, webShortname);
+  const { webId, machineActorId } = await getOrCreateOwningWebId(
+    context,
+    webShortname,
+  );
 
   const relationships: DataTypeRelationAndSubject[] = [
     {
@@ -287,7 +288,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
       context,
       { actorId: machineActorId },
       {
-        webId: accountGroupId as WebId,
+        webId,
         schema: dataTypeSchema,
         webShortname,
         relationships,
@@ -345,8 +346,10 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     propertyTypeId,
   });
 
-  const { accountGroupId, machineActorId } =
-    await getOrCreateOwningAccountGroupId(context, webShortname);
+  const { webId, machineActorId } = await getOrCreateOwningWebId(
+    context,
+    webShortname,
+  );
 
   const relationships: PropertyTypeRelationAndSubject[] = [
     {
@@ -385,7 +388,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
       context,
       { actorId: machineActorId },
       {
-        webId: accountGroupId as WebId,
+        webId,
         schema: propertyTypeSchema,
         webShortname,
         relationships,
@@ -566,8 +569,10 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     entityTypeId,
   });
 
-  const { accountGroupId, machineActorId } =
-    await getOrCreateOwningAccountGroupId(context, webShortname);
+  const { webId, machineActorId } = await getOrCreateOwningWebId(
+    context,
+    webShortname,
+  );
 
   const relationships: EntityTypeRelationAndSubject[] = [
     {
@@ -614,7 +619,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       context,
       { actorId: machineActorId },
       {
-        webId: accountGroupId as WebId,
+        webId,
         schema: entityTypeSchema,
         webShortname,
         relationships,

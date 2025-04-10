@@ -1,5 +1,8 @@
 import { useMutation } from "@apollo/client";
-import type { ActorEntityUuid, ActorGroupId } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  ActorGroupEntityUuid,
+} from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { Box, Skeleton, Typography } from "@mui/material";
@@ -78,7 +81,7 @@ export const ShareEntitySection: FunctionComponent<{
 
   const sharedWithOrgAccountGroupIds = useMemo(
     () =>
-      accountAuthorizationRelationships?.reduce<ActorGroupId[]>(
+      accountAuthorizationRelationships?.reduce<ActorGroupEntityUuid[]>(
         (acc, { subject }) =>
           subject.__typename === "AccountGroupAuthorizationSubject" &&
           !acc.includes(subject.accountGroupId)
@@ -117,7 +120,7 @@ export const ShareEntitySection: FunctionComponent<{
             const existingAccountIndex = acc.findIndex(({ account }) =>
               account.kind === "user"
                 ? account.accountId === subjectId
-                : account.accountGroupId === subjectId,
+                : account.webId === subjectId,
             );
 
             if (existingAccountIndex !== -1) {
@@ -127,7 +130,7 @@ export const ShareEntitySection: FunctionComponent<{
                 account: accounts.find((account) =>
                   account.kind === "user"
                     ? account.accountId === subjectId
-                    : account.accountGroupId === subjectId,
+                    : account.webId === subjectId,
                 )!,
                 relationships: [relationship],
               });
@@ -161,10 +164,7 @@ export const ShareEntitySection: FunctionComponent<{
               account.kind === "user"
                 ? AuthorizationSubjectKind.Account
                 : AuthorizationSubjectKind.AccountGroup,
-            viewer:
-              account.kind === "user"
-                ? account.accountId
-                : account.accountGroupId,
+            viewer: account.kind === "user" ? account.accountId : account.webId,
           },
         },
       });
@@ -205,8 +205,7 @@ export const ShareEntitySection: FunctionComponent<{
               ({ account: ownerAccount }) =>
                 ownerAccount.kind === account.kind &&
                 (account.kind === "org"
-                  ? (ownerAccount as Org).accountGroupId ===
-                    account.accountGroupId
+                  ? (ownerAccount as Org).webId === account.webId
                   : (ownerAccount as User).accountId === account.accountId),
             ),
         )
@@ -256,9 +255,7 @@ export const ShareEntitySection: FunctionComponent<{
                 <EditableAuthorizationRelationships
                   objectEntity={entity}
                   key={
-                    account.kind === "user"
-                      ? account.accountId
-                      : account.accountGroupId
+                    account.kind === "user" ? account.accountId : account.webId
                   }
                   account={account}
                   relationships={relationships}
@@ -270,9 +267,7 @@ export const ShareEntitySection: FunctionComponent<{
                 <EditableAuthorizationRelationships
                   objectEntity={entity}
                   key={
-                    account.kind === "user"
-                      ? account.accountId
-                      : account.accountGroupId
+                    account.kind === "user" ? account.accountId : account.webId
                   }
                   account={account}
                   relationships={relationships}

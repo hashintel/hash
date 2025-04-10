@@ -158,11 +158,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                     { parameter: authenticatedUser.accountId },
                   ],
                 },
-                ...authenticatedUser.memberOf.map(
-                  ({ org: { accountGroupId } }) => ({
-                    equal: [{ path: ["webId"] }, { parameter: accountGroupId }],
-                  }),
-                ),
+                ...authenticatedUser.memberOf.map(({ org: { webId } }) => ({
+                  equal: [{ path: ["webId"] }, { parameter: webId }],
+                })),
                 generateVersionedUrlMatchingFilter(
                   systemEntityTypes.user.entityTypeId,
                   { ignoreParents: true },

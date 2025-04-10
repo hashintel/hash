@@ -12,6 +12,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, property_type};
 use type_system::{
+    knowledge::entity::id::EntityUuid,
     ontology::{
         property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
@@ -38,7 +39,7 @@ async fn insert() {
         CreatePropertyTypeParams {
             schema: age_pt,
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
             },
             relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -69,7 +70,7 @@ async fn query() {
         CreatePropertyTypeParams {
             schema: favorite_quote_pt.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
             },
             relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -137,7 +138,7 @@ async fn update() {
         CreatePropertyTypeParams {
             schema: user_id_pt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
             },
             relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,

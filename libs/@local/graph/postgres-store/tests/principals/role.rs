@@ -5,13 +5,13 @@ use hash_graph_authorization::policies::{
     principal::{
         PrincipalId,
         group::ActorGroupId,
-        role::{Role, RoleId, WebRoleId},
+        role::{Role, RoleId, RoleName, WebRoleId},
     },
-    store::{CreateWebParameter, PrincipalStore as _},
+    store::{
+        CreateWebParameter, PrincipalStore as _, RoleAssignmentStatus, RoleUnassignmentStatus,
+    },
 };
-use hash_graph_postgres_store::permissions::{
-    PrincipalError, RoleAssignmentStatus, RoleUnassignmentStatus,
-};
+use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::entity::id::EntityUuid,
@@ -33,8 +33,18 @@ async fn create_role() -> Result<(), Box<dyn Error>> {
         .await?;
 
     // Then create a role associated with the team
-    let role_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
     assert!(client.is_role(role_id).await?);
+
+    let Some(Role::Web(role)) = client
+        .get_role(ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?
+    else {
+        panic!("Role should exist");
+    };
+    assert_eq!(RoleId::Web(role.id), role_id);
 
     Ok(())
 }
@@ -52,10 +62,18 @@ async fn create_role_with_id() -> Result<(), Box<dyn Error>> {
     // Then create a role with a specific ID
     let id = Uuid::new_v4();
     let role_id = client
-        .create_role(Some(id), ActorGroupId::Web(web_id))
+        .create_role(Some(id), ActorGroupId::Web(web_id), RoleName::Member)
         .await?;
     assert_eq!(role_id, RoleId::Web(WebRoleId::new(id)));
     assert!(client.is_role(role_id).await?);
+
+    let Some(Role::Web(role)) = client
+        .get_role(ActorGroupId::Web(web_id), RoleName::Member)
+        .await?
+    else {
+        panic!("Role should exist");
+    };
+    assert_eq!(RoleId::Web(role.id), role_id);
 
     Ok(())
 }
@@ -66,8 +84,10 @@ async fn create_role_with_nonexistent_team() -> Result<(), Box<dyn Error>> {
     let (mut client, _actor_id) = db.seed([]).await?;
 
     // Try to create a role with a non-existent team
-    let non_existent_team_id = ActorGroupId::Web(WebId::new(Uuid::new_v4()));
-    let result = client.create_role(None, non_existent_team_id).await;
+    let non_existent_team_id = ActorGroupId::Web(WebId::new(EntityUuid::new(Uuid::new_v4())));
+    let result = client
+        .create_role(None, non_existent_team_id, RoleName::Member)
+        .await;
 
     assert_matches!(
         result.expect_err("Creating a role with a non-existent team should fail").current_context(),
@@ -88,10 +108,15 @@ async fn get_role() -> Result<(), Box<dyn Error>> {
         .await?;
 
     // Then create a role associated with the team
-    let role_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
 
     // Get the role and verify its details
-    let role = client.get_role(role_id).await?.expect("Role should exist");
+    let role = client
+        .get_role(ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?
+        .expect("Role should exist");
     match role {
         Role::Web(role) => {
             assert_eq!(RoleId::Web(role.id), role_id);
@@ -114,7 +139,9 @@ async fn delete_role() -> Result<(), Box<dyn Error>> {
         .await?;
 
     // Then create a role associated with the team
-    let role_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
     assert!(client.is_role(role_id).await?);
 
     // Delete the role
@@ -150,13 +177,15 @@ async fn assign_role_to_actor() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let role_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
     let user_id = client.create_user(None).await?;
 
     // Assign the role to the user
     assert_matches!(
         client
-            .assign_role_to_actor(ActorId::User(user_id), role_id)
+            .assign_role_by_id(ActorId::User(user_id), role_id)
             .await?,
         RoleAssignmentStatus::NewlyAssigned
     );
@@ -172,7 +201,7 @@ async fn assign_role_to_actor() -> Result<(), Box<dyn Error>> {
     // Try to assign the same role again
     assert_matches!(
         client
-            .assign_role_to_actor(ActorId::User(user_id), role_id)
+            .assign_role_by_id(ActorId::User(user_id), role_id)
             .await?,
         RoleAssignmentStatus::AlreadyAssigned
     );
@@ -189,12 +218,14 @@ async fn assign_role_to_nonexistent_actor() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let role_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
 
     // Try to assign the role to a non-existent user
     let non_existent_user_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
     let result = client
-        .assign_role_to_actor(ActorId::User(non_existent_user_id), role_id)
+        .assign_role_by_id(ActorId::User(non_existent_user_id), role_id)
         .await;
 
     assert_matches!(
@@ -216,7 +247,7 @@ async fn assign_nonexistent_role_to_actor() -> Result<(), Box<dyn Error>> {
     // Try to assign a non-existent role to the user
     let non_existent_role_id = RoleId::Web(WebRoleId::new(Uuid::new_v4()));
     let result = client
-        .assign_role_to_actor(ActorId::User(user_id), non_existent_role_id)
+        .assign_role_by_id(ActorId::User(user_id), non_existent_role_id)
         .await;
 
     assert_matches!(
@@ -236,12 +267,14 @@ async fn unassign_role_from_actor() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let role_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
     let user_id = client.create_user(None).await?;
 
     // Assign the role to the user
     client
-        .assign_role_to_actor(ActorId::User(user_id), role_id)
+        .assign_role_by_id(ActorId::User(user_id), role_id)
         .await?;
 
     // Verify the role was assigned
@@ -251,7 +284,7 @@ async fn unassign_role_from_actor() -> Result<(), Box<dyn Error>> {
     // Unassign the role from the user
     assert_matches!(
         client
-            .unassign_role_from_actor(ActorId::User(user_id), role_id)
+            .unassign_role_by_id(ActorId::User(user_id), role_id)
             .await?,
         RoleUnassignmentStatus::Unassigned
     );
@@ -267,7 +300,7 @@ async fn unassign_role_from_actor() -> Result<(), Box<dyn Error>> {
     // Try to unassign the role again
     assert_matches!(
         client
-            .unassign_role_from_actor(ActorId::User(user_id), role_id)
+            .unassign_role_by_id(ActorId::User(user_id), role_id)
             .await?,
         RoleUnassignmentStatus::NotAssigned
     );
@@ -299,7 +332,9 @@ async fn get_role_actors_empty() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let role_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
 
     // Get the role's actors (should be empty)
     let actors = client.get_role_actors(role_id).await?;
@@ -319,17 +354,18 @@ async fn create_web_team_role() -> Result<(), Box<dyn Error>> {
         .await?;
 
     // Create a role for the web team
-    let role_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
 
     // Verify the role was created properly
-    let role = client.get_role(role_id).await?.expect("Role should exist");
-    match role {
-        Role::Web(web_role) => {
-            assert_eq!(RoleId::Web(web_role.id), role_id);
-            assert_eq!(web_role.web_id, web_id);
-        }
-        Role::Team(_) => panic!("Expected a web role"),
-    }
+    let Some(Role::Web(role)) = client
+        .get_role(ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?
+    else {
+        panic!("Role should exist");
+    };
+    assert_eq!(RoleId::Web(role.id), role_id);
 
     Ok(())
 }
@@ -349,18 +385,17 @@ async fn create_team_role() -> Result<(), Box<dyn Error>> {
 
     // Create a role for the team
     let role_id = client
-        .create_role(None, ActorGroupId::Team(team_id))
+        .create_role(None, ActorGroupId::Team(team_id), RoleName::Member)
         .await?;
 
     // Verify the role was created properly
-    let role = client.get_role(role_id).await?.expect("Role should exist");
-    match role {
-        Role::Team(team_role) => {
-            assert_eq!(RoleId::Team(team_role.id), role_id);
-            assert_eq!(team_role.team_id, team_id);
-        }
-        Role::Web(_) => panic!("Expected a team role"),
-    }
+    let Some(Role::Team(role)) = client
+        .get_role(ActorGroupId::Team(team_id), RoleName::Member)
+        .await?
+    else {
+        panic!("Role should exist");
+    };
+    assert_eq!(RoleId::Team(role.id), role_id);
 
     Ok(())
 }
@@ -374,12 +409,14 @@ async fn assign_role_to_machine() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let role_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
     let machine_id = client.create_machine(None).await?;
 
     // Assign the role to the machine
     client
-        .assign_role_to_actor(ActorId::Machine(machine_id), role_id)
+        .assign_role_by_id(ActorId::Machine(machine_id), role_id)
         .await?;
 
     // Get the machine's roles
@@ -392,7 +429,7 @@ async fn assign_role_to_machine() -> Result<(), Box<dyn Error>> {
 
     // Unassign the role from the machine
     client
-        .unassign_role_from_actor(ActorId::Machine(machine_id), role_id)
+        .unassign_role_by_id(ActorId::Machine(machine_id), role_id)
         .await?;
 
     // Verify the role was unassigned

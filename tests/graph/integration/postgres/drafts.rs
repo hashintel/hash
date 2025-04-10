@@ -8,7 +8,7 @@ use pretty_assertions::assert_eq;
 use time::Duration;
 use type_system::{
     knowledge::{
-        entity::{EntityId, provenance::ProvidedEntityEditionProvenance},
+        entity::{EntityId, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{
             Property, PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
             PropertyPath, PropertyWithMetadata,
@@ -91,7 +91,7 @@ async fn initial_draft() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -276,7 +276,7 @@ async fn no_initial_draft() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -463,7 +463,7 @@ async fn multiple_drafts() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(api.account_id.into_uuid())),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),

@@ -190,7 +190,7 @@ const seedFlowTestTypes = async () => {
     });
   }
 
-  const webId = org.accountGroupId as WebId;
+  const webId = org.webId;
 
   const valuePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -499,7 +499,7 @@ const seedFlowTestTypes = async () => {
     throw new Error("HASH org not found");
   }
 
-  const hashWebId = hashOrg.accountGroupId as WebId;
+  const hashWebId = hashOrg.webId;
 
   const rolePropertyType = await createSystemPropertyTypeIfNotExists(
     context,

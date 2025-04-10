@@ -73,7 +73,7 @@ impl ActorEntityUuid {
 pub struct UserId(
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "Brand<ActorEntityUuid, \"UserId\">")
+        tsify(type = "Brand<ActorEntityUuid & WebId, \"UserId\">")
     )]
     ActorEntityUuid,
 );

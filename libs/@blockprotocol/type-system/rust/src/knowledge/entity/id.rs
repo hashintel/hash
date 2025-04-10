@@ -134,7 +134,9 @@ impl<'de> Deserialize<'de> for EntityId {
             });
 
         Ok(Self {
-            web_id: WebId::new(Uuid::from_str(web_id).map_err(de::Error::custom)?),
+            web_id: WebId::new(EntityUuid::new(
+                Uuid::from_str(web_id).map_err(de::Error::custom)?,
+            )),
             entity_uuid: EntityUuid::new(Uuid::from_str(entity_uuid).map_err(de::Error::custom)?),
             draft_id: draft_id
                 .map(|draft_id| {

@@ -5,9 +5,8 @@ use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::data_type::DataTypeUuid,
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, WebId},
+    web::{ActorGroupEntityUuid, WebId},
 };
-use uuid::Uuid;
 
 use crate::{
     schema::{
@@ -81,7 +80,7 @@ pub enum DataTypeSubject {
     Setting(DataTypeSetting),
     Public,
     Account(ActorEntityUuid),
-    AccountGroup(ActorGroupId),
+    AccountGroup(ActorGroupEntityUuid),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -108,7 +107,7 @@ pub enum DataTypeSubjectNamespace {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DataTypeSubjectId {
-    Uuid(Uuid),
+    Uuid(EntityUuid),
     Setting(DataTypeSetting),
     Asteriks(PublicAccess),
 }
@@ -129,11 +128,11 @@ impl Resource for DataTypeSubject {
                 DataTypeSubjectNamespace::Account,
                 DataTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
-            (DataTypeSubjectNamespace::Account, DataTypeSubjectId::Uuid(id)) => {
-                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
+            (DataTypeSubjectNamespace::Account, DataTypeSubjectId::Uuid(uuid)) => {
+                Self::Account(ActorEntityUuid::new(uuid))
             }
-            (DataTypeSubjectNamespace::AccountGroup, DataTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(ActorGroupId::new(id))
+            (DataTypeSubjectNamespace::AccountGroup, DataTypeSubjectId::Uuid(uuid)) => {
+                Self::AccountGroup(ActorGroupEntityUuid::new(uuid))
             }
             (
                 DataTypeSubjectNamespace::Web
@@ -151,7 +150,7 @@ impl Resource for DataTypeSubject {
         match self {
             Self::Web(web_id) => (
                 DataTypeSubjectNamespace::Web,
-                DataTypeSubjectId::Uuid(web_id.into_uuid()),
+                DataTypeSubjectId::Uuid(EntityUuid::new(web_id.into_uuid())),
             ),
             Self::Setting(setting) => (
                 DataTypeSubjectNamespace::Setting,
@@ -163,11 +162,11 @@ impl Resource for DataTypeSubject {
             ),
             Self::Account(id) => (
                 DataTypeSubjectNamespace::Account,
-                DataTypeSubjectId::Uuid(id.into_uuid()),
+                DataTypeSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
             ),
             Self::AccountGroup(id) => (
                 DataTypeSubjectNamespace::AccountGroup,
-                DataTypeSubjectId::Uuid(id.into_uuid()),
+                DataTypeSubjectId::Uuid(EntityUuid::new(id.into_uuid())),
             ),
         }
     }
@@ -207,7 +206,7 @@ pub enum DataTypeEditorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: ActorGroupEntityUuid,
         #[serde(skip)]
         set: DataTypeSubjectSet,
     },

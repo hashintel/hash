@@ -236,7 +236,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .insert_web_id(
                 account_id,
                 InsertWebIdParams {
-                    web_id: WebId::new(account_id.into_uuid()),
+                    web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
                     owner: WebOwnerSubject::Account { id: account_id },
                 },
             )
@@ -252,7 +252,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                     CreateDataTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(account_id.into_uuid()),
+                            web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
                         },
                         relationships: data_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
@@ -276,7 +276,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                     CreatePropertyTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(account_id.into_uuid()),
+                            web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
                         },
                         relationships: property_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
@@ -299,7 +299,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                     CreateEntityTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(account_id.into_uuid()),
+                            web_id: WebId::new(EntityUuid::new(account_id.into_uuid())),
                         },
                         relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,

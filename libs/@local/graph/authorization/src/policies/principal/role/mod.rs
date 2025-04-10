@@ -58,6 +58,12 @@ impl RoleId {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
+pub enum RoleName {
+    Administrator,
+    Member,
+}
+
 #[derive(Debug)]
 pub enum Role {
     Web(WebRole),
@@ -69,6 +75,14 @@ impl Role {
         match self {
             Self::Web(web_role) => web_role.to_cedar_entity(),
             Self::Team(team_role) => team_role.to_cedar_entity(),
+        }
+    }
+
+    #[must_use]
+    pub const fn id(&self) -> RoleId {
+        match self {
+            Self::Web(web_role) => RoleId::Web(web_role.id),
+            Self::Team(team_role) => RoleId::Team(team_role.id),
         }
     }
 

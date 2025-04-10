@@ -1,7 +1,7 @@
 import type {
-  ActorEntityUuid,
   EntityId,
   EntityUuid,
+  UserId,
   WebId,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
@@ -23,7 +23,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
 import type { ActorEntityId } from "@local/hash-subgraph";
-import { extractActorId } from "@local/hash-subgraph/stdlib";
+import { extractActorIdFromActorEntityId } from "@local/hash-subgraph/stdlib";
 
 import type {
   KratosUserIdentity,
@@ -56,7 +56,7 @@ import {
 } from "./org-membership";
 
 export type User = {
-  accountId: ActorEntityUuid;
+  accountId: UserId;
   kratosIdentityId: string;
   emails: string[];
   shortname?: string;
@@ -94,9 +94,9 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   const isAccountSignupComplete = !!shortname && !!displayName;
 
   return {
-    accountId: extractActorId(
+    accountId: extractActorIdFromActorEntityId(
       entity.metadata.recordId.entityId as ActorEntityId,
-    ),
+    ) as UserId,
     shortname,
     displayName,
     isAccountSignupComplete,
@@ -288,15 +288,15 @@ export const createUser: ImpureGraphFunction<
 
   const userShouldHavePermissionsOnWeb = shortname && displayName;
 
-  const userAccountId = await createAccount(ctx, authentication, {
+  const userAccountId = (await createAccount(ctx, authentication, {
     accountType: "user",
-  });
+  })) as UserId;
 
   await createWeb(
     ctx,
     { actorId: systemAccountId },
     {
-      webId: userAccountId as WebId,
+      webId: userAccountId,
       owner: {
         kind: "account",
         /**

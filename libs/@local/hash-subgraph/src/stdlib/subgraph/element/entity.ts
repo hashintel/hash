@@ -7,10 +7,10 @@ import {
 } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
-  ActorGroupId,
   EntityId,
   TemporalBound,
   TemporalInterval,
+  WebId,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
@@ -26,16 +26,17 @@ import { isEntityVertex } from "../../../main.js";
 import { mustBeDefined } from "../../../shared/invariant.js";
 
 /** If the underlying `EntityUuid` is an `AccountId`, use this cast to convert the type */
-export const extractActorId = extractEntityUuidFromEntityId as (
-  entityId: ActorEntityId,
-  // The type cannot be cast directly to `AccountId`, so we do it over two casts, but without `unknown`
-) => string as (entityId: ActorEntityId) => ActorEntityUuid;
+export const extractActorIdFromActorEntityId =
+  extractEntityUuidFromEntityId as (
+    entityId: ActorEntityId,
+    // The type cannot be cast directly to `AccountId`, so we do it over two casts, but without `unknown`
+  ) => string as (entityId: ActorEntityId) => ActorEntityUuid;
 
 /** If the underlying `EntityUuid` is an `AccountGroupId`, use this cast to convert the type */
-export const extractActorGroupId = extractEntityUuidFromEntityId as (
+export const extractWebIdFromActorEntityId = extractEntityUuidFromEntityId as (
   entityId: ActorGroupEntityId,
   // The type cannot be cast directly to `AccountGroupId`, so we do it over two casts, but without `unknown`
-) => string as (entityId: ActorGroupEntityId) => ActorGroupId;
+) => string as (entityId: ActorGroupEntityId) => WebId;
 
 /**
  * Returns all {@link Entity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their

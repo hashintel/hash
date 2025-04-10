@@ -47,8 +47,7 @@ export const WorkspaceSwitcher = () => {
     } else {
       const { org: activeOrg } =
         authenticatedUser.memberOf.find(
-          ({ org: { accountGroupId } }) =>
-            accountGroupId === activeWorkspaceWebId,
+          ({ org: { webId } }) => webId === activeWorkspaceWebId,
         ) ?? {};
 
       if (activeOrg) {
@@ -80,8 +79,8 @@ export const WorkspaceSwitcher = () => {
           : undefined,
       },
       ...authenticatedUser.memberOf.map(
-        ({ org: { accountGroupId, name, memberships, hasAvatar } }) => ({
-          webId: accountGroupId as WebId,
+        ({ org: { webId, name, memberships, hasAvatar } }) => ({
+          webId,
           title: name,
           subText: memberships.length ? `${memberships.length} members` : "", // memberships are loaded in the background
           avatarTitle: name,

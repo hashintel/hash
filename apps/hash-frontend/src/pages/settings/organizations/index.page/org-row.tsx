@@ -39,7 +39,7 @@ export const OrgRow = ({ org }: { org: Org }) => {
       }),
       removeMemberPermission({
         variables: {
-          accountGroupId: org.accountGroupId,
+          accountGroupId: org.webId,
           accountId: membership.user.accountId,
         },
       }),

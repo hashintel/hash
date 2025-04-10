@@ -3,7 +3,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { ActorEntityId } from "@local/hash-subgraph";
-import { extractActorId } from "@local/hash-subgraph/stdlib";
+import { extractActorIdFromActorEntityId } from "@local/hash-subgraph/stdlib";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";
@@ -78,7 +78,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const authorId = useMemo(
     () =>
-      extractActorId(
+      extractActorIdFromActorEntityId(
         comment.author.metadata.recordId.entityId as ActorEntityId,
       ),
     [comment.author],

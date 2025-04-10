@@ -436,7 +436,7 @@ mod tests {
                 roles: HashSet::new(),
             };
             let user_entity = EntityResource {
-                web_id: WebId::new(user_id.into_uuid()),
+                web_id: WebId::new(EntityUuid::new(user_id.into_uuid())),
                 id: entity_uuid,
                 entity_type: Cow::Owned(vec![
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,

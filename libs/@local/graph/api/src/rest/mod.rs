@@ -85,7 +85,7 @@ use type_system::{
         },
     },
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, WebId},
+    web::{ActorGroupEntityUuid, WebId},
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,
@@ -286,11 +286,11 @@ impl QueryLogger {
 #[serde(tag = "endpoint", content = "query", rename_all = "camelCase")]
 pub enum OpenApiQuery<'a> {
     CheckAccountGroupPermission {
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
         permission: AccountGroupPermission,
     },
     GetAccountGroupRelations {
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
     },
     GetDataTypes(&'a JsonValue),
     GetDataTypeSubgraph(&'a JsonValue),

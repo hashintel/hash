@@ -61,7 +61,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
               {authenticatedUser.memberOf
                 .sort(({ org: a }, { org: b }) => a.name.localeCompare(b.name))
                 .map(({ org }) => (
-                  <OrgRow key={org.accountGroupId} org={org} />
+                  <OrgRow key={org.webId} org={org} />
                 ))}
             </TableBody>
           </OrgTable>

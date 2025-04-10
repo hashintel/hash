@@ -1,4 +1,4 @@
-import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { LinkEntity } from "@local/hash-graph-sdk/entity";
@@ -6,8 +6,8 @@ import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomo
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
-  extractActorGroupId,
-  extractActorId,
+  extractActorIdFromActorEntityId,
+  extractWebIdFromActorEntityId,
 } from "@local/hash-subgraph/stdlib";
 import type {
   ActorEntityId,
@@ -68,21 +68,23 @@ export const createOrgMembership: ImpureGraphFunction<
   },
   Promise<OrgMembership>
 > = async (ctx, authentication, { userEntityId, orgEntityId }) => {
-  const userActorId = extractActorId(userEntityId as ActorEntityId);
-  const orgActorGroupId = extractActorGroupId(
+  const userActorId = extractActorIdFromActorEntityId(
+    userEntityId as ActorEntityId,
+  );
+  const orgWebId = extractWebIdFromActorEntityId(
     orgEntityId as ActorGroupEntityId,
   );
 
   await ctx.graphApi.addAccountGroupMember(
     authentication.actorId,
-    orgActorGroupId,
+    orgWebId,
     userActorId,
   );
 
   let linkEntity;
   try {
     linkEntity = await createLinkEntity<IsMemberOf>(ctx, authentication, {
-      webId: orgActorGroupId as WebId,
+      webId: orgWebId,
       properties: { value: {} },
       linkData: {
         leftEntityId: userEntityId,
@@ -97,7 +99,7 @@ export const createOrgMembership: ImpureGraphFunction<
     await ctx.graphApi.removeAccountGroupMember(
       authentication.actorId,
       extractEntityUuidFromEntityId(orgEntityId),
-      extractActorId(userEntityId as ActorEntityId),
+      extractActorIdFromActorEntityId(userEntityId as ActorEntityId),
     );
 
     throw error;

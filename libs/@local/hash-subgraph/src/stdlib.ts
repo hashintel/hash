@@ -18,8 +18,8 @@ export {
   getJsonSchemaTypeFromValue,
 } from "./stdlib/subgraph/element/data-type.js";
 export {
-  extractActorGroupId,
-  extractActorId,
+  extractActorIdFromActorEntityId,
+  extractWebIdFromActorEntityId,
   getEntities,
   getEntityRevision,
   getEntityRevisionsByEntityId,

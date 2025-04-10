@@ -1,5 +1,8 @@
 import { useQuery } from "@apollo/client";
-import type { ActorEntityUuid, ActorGroupId } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  ActorGroupEntityUuid,
+} from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -35,7 +38,7 @@ export const useUserOrOrg = (
     temporalAxes?: QueryTemporalAxesUnresolved;
   } & (
     | { shortname?: string }
-    | { accountOrAccountGroupId?: ActorEntityUuid | ActorGroupId }
+    | { accountOrAccountGroupId?: ActorEntityUuid | ActorGroupEntityUuid }
   ),
 ) => {
   const { data, loading, refetch } = useQuery<

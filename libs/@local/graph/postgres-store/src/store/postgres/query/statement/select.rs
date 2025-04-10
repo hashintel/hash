@@ -1246,7 +1246,7 @@ mod tests {
         #[test]
         fn for_entity_by_entity_id() {
             let entity_id = EntityId {
-                web_id: WebId::new(Uuid::new_v4()),
+                web_id: WebId::new(EntityUuid::new(Uuid::new_v4())),
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
                 draft_id: None,
             };
