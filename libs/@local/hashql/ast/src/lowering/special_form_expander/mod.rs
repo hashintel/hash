@@ -21,8 +21,8 @@ use crate::{
     heap::{self, Heap},
     node::{
         expr::{
-            CallExpr, ClosureExpr, Expr, ExprKind, IfExpr, InputExpr, IsExpr, LetExpr, NewTypeExpr,
-            StructExpr, TupleExpr, TypeExpr, UseExpr,
+            CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr, IsExpr,
+            LetExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr, UseExpr,
             call::Argument,
             closure::{ClosureParam, ClosureSignature},
             r#use::{Glob, UseBinding, UseKind},
@@ -991,14 +991,53 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
     }
 
-    fn lower_access(&mut self, _call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_access(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for access special form
-        todo!()
+        // There's only one form: access/2
+        if call.arguments.len() != 2 {
+            self.diagnostics.push(invalid_argument_length(
+                call.span,
+                SpecialFormKind::Access,
+                &call.arguments,
+                &[2],
+            ));
+
+            return None;
+        }
+
+        let [body, field] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
+
+        let field = self.lower_argument_to_ident(BindingMode::Access, field)?;
+
+        Some(ExprKind::Field(FieldExpr {
+            id: call.id,
+            span: call.span,
+            value: body.value,
+            field,
+        }))
     }
 
-    fn lower_index(&mut self, _call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_index(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for index special form
-        todo!()
+        // There's only one form: index/2
+        if call.arguments.len() != 2 {
+            self.diagnostics.push(invalid_argument_length(
+                call.span,
+                SpecialFormKind::Index,
+                &call.arguments,
+                &[2],
+            ));
+            return None;
+        }
+
+        let [body, index] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
+
+        Some(ExprKind::Index(IndexExpr {
+            id: call.id,
+            span: call.span,
+            value: body.value,
+            index: index.value,
+        }))
     }
 }
 

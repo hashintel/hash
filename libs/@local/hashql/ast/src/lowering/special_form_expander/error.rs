@@ -340,8 +340,8 @@ pub(super) fn invalid_argument_length(
         SpecialFormKind::Input => {
             "Use either:\n- input/2: (input name type)\n- input/3: (input name type default)"
         }
-        SpecialFormKind::Access => "The access/2 form should look like: (access object field)",
-        SpecialFormKind::Index => "The index/2 form should look like: (index object index)",
+        SpecialFormKind::Access => "The access/2 form should look like: (. object field)",
+        SpecialFormKind::Index => "The index/2 form should look like: ([] object index)",
     };
 
     diagnostic.help = Some(Help::new(help_text));
@@ -549,6 +549,8 @@ pub(crate) enum BindingMode {
     Newtype,
     #[display("input")]
     Input,
+    #[display("`.`")]
+    Access,
 }
 
 pub(crate) fn invalid_binding_name_not_path(
@@ -590,6 +592,10 @@ pub(crate) fn invalid_binding_name_not_path(
         BindingMode::Input => {
             "Valid examples of input bindings:\n- (input name String)\n- (input age Int \
              default_age)\n- (input options (enabled: Boolean))"
+        }
+        BindingMode::Access => {
+            "Valid examples of access bindings:\n- (. user name)\n- (. person age)\n- (. options \
+             enabled)"
         }
     };
 

@@ -1,0 +1,11 @@
+Expr#4294967040@16
+  ExprKind (Index)
+    IndexExpr#4294967040@16
+      Expr#4294967040@11
+        ExprKind (Path)
+          Path#4294967040@11 (rooted: false)
+            PathSegment#4294967040@10 (name: x)
+      Expr#4294967040@15
+        ExprKind (Path)
+          Path#4294967040@15 (rooted: false)
+            PathSegment#4294967040@14 (name: y)
