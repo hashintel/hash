@@ -19,11 +19,13 @@ use crate::{
     heap::{self, Heap},
     node::{
         expr::{
-            CallExpr, Expr, ExprKind, IfExpr, IsExpr, LetExpr, NewTypeExpr, StructExpr, TupleExpr,
-            TypeExpr, UseExpr,
+            CallExpr, ClosureExpr, Expr, ExprKind, IfExpr, IsExpr, LetExpr, NewTypeExpr,
+            StructExpr, TupleExpr, TypeExpr, UseExpr,
             call::Argument,
+            closure::{ClosureParam, ClosureSignature},
             r#use::{Glob, UseBinding, UseKind},
         },
+        generic::{GenericParam, Generics},
         id::NodeId,
         path::Path,
         r#type::{
@@ -704,7 +706,7 @@ impl<'heap> SpecialFormExpander<'heap> {
 
     fn lower_use(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         // Implementation for use special form
-        // There's only one version: use/4
+        // There's only one version: use/3
         if call.arguments.len() != 3 {
             self.diagnostics.push(invalid_argument_length(
                 call.span,
@@ -738,9 +740,168 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
-    fn lower_fn(&mut self, _call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // Implementation for fn special form
-        todo!()
+    fn lower_fn_generics_tuple(&mut self, tuple: TupleExpr<'heap>) -> Option<Generics<'heap>> {
+        if tuple.r#type.is_some() {
+            todo!("error out")
+        }
+
+        let elements_len = tuple.elements.len();
+        let mut params = self.heap.vec(Some(elements_len));
+
+        for element in tuple.elements {
+            let ExprKind::Path(path) = element.value.kind else {
+                // TODO: register error
+                continue;
+            };
+
+            let Some(name) = path.into_ident() else {
+                // TODO: register error
+                continue;
+            };
+
+            params.push(GenericParam {
+                id: element.id,
+                span: element.span,
+                name,
+                bound: None,
+            });
+        }
+
+        if params.len() != elements_len {
+            // Downstream an error happened which we catch
+            return None;
+        }
+
+        Some(Generics {
+            id: tuple.id,
+            span: tuple.span,
+            params,
+        })
+    }
+
+    fn lower_fn_generics_struct(&mut self, r#struct: StructExpr<'heap>) -> Option<Generics<'heap>> {
+        if r#struct.r#type.is_some() {
+            todo!("error out")
+        }
+
+        let entries_len = r#struct.entries.len();
+        let mut params = self.heap.vec(Some(entries_len));
+
+        for entry in r#struct.entries {
+            let bound = if matches!(entry.value.kind, ExprKind::Dummy) {
+                None
+            } else if let Some(bound) = self.lower_expr_to_type(*entry.value) {
+                Some(self.heap.boxed(bound))
+            } else {
+                continue;
+            };
+
+            params.push(GenericParam {
+                id: entry.id,
+                span: entry.span,
+                name: entry.key,
+                bound,
+            });
+        }
+
+        if params.len() != entries_len {
+            // Downstream an error happened which we catch
+            return None;
+        }
+
+        Some(Generics {
+            id: r#struct.id,
+            span: r#struct.span,
+            params,
+        })
+    }
+
+    fn lower_fn_generics(&mut self, argument: Argument<'heap>) -> Option<Generics<'heap>> {
+        // There are two valid forms:
+        // tuples
+        // structs - where the values are type expressions and express bounds
+
+        match argument.value.kind {
+            ExprKind::Tuple(tuple) => self.lower_fn_generics_tuple(tuple),
+            ExprKind::Struct(r#struct) => self.lower_fn_generics_struct(r#struct),
+            _ => todo!("error out"),
+        }
+    }
+
+    fn lower_fn_parameters(
+        &mut self,
+        argument: Argument<'heap>,
+    ) -> Option<heap::Vec<'heap, ClosureParam<'heap>>> {
+        let ExprKind::Struct(r#struct) = argument.value.kind else {
+            todo!("error out")
+        };
+
+        if r#struct.r#type.is_some() {
+            todo!("error out")
+        }
+
+        let entries_len = r#struct.entries.len();
+        let mut params = self.heap.vec(Some(entries_len));
+
+        for entry in r#struct.entries {
+            let Some(bound) = self.lower_expr_to_type(*entry.value) else {
+                continue;
+            };
+
+            params.push(ClosureParam {
+                id: entry.id,
+                span: entry.span,
+                name: entry.key,
+                bound: self.heap.boxed(bound),
+            });
+        }
+
+        if params.len() != entries_len {
+            // downstream we've received an error, propagate said error
+            return None;
+        }
+
+        Some(params)
+    }
+
+    fn lower_fn(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        // Implement for fn special form
+        // There's only one version: fn/4
+        if call.arguments.len() != 4 {
+            self.diagnostics.push(invalid_argument_length(
+                call.span,
+                SpecialFormKind::Fn,
+                &call.arguments,
+                &[4],
+            ));
+
+            return None;
+        }
+
+        let [generics, params, return_type, body] =
+            call.arguments.try_into().unwrap_or_else(|_| unreachable!());
+
+        let ((generics, params), return_type) = self
+            .lower_fn_generics(generics)
+            .zip(self.lower_fn_parameters(params))
+            .zip(self.lower_expr_to_type(*return_type.value))?;
+
+        let signature = ClosureSignature {
+            id: NodeId::PLACEHOLDER,
+            // TODO: ideally we'd like to merge the span of `generics`, `params`, and `return_type`
+            // into one.
+            span: call.span,
+            generics,
+            inputs: params,
+            output: self.heap.boxed(return_type),
+        };
+
+        Some(ExprKind::Closure(ClosureExpr {
+            id: call.id,
+            span: call.span,
+            signature: self.heap.boxed(signature),
+            body: body.value,
+        }))
     }
 
     fn lower_input(&mut self, _call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {

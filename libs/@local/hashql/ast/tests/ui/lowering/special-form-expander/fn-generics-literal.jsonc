@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: fn/4 literal as a generic should error out
+[
+  "::kernel::special_form::fn",
+  { "#literal": 2 },
+  { "#struct": {} },
+  "_",
+  ["+", "a", "b"]
+]

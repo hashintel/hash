@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: fn/4 tuple generics with type annotation should fail to compile
+[
+  "::kernel::special_form::fn",
+  { "#tuple": ["T"], "#type": "Int" },
+  { "#struct": {} },
+  "_",
+  ["+", "a", "b"]
+]

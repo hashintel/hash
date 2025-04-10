@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: fn/4 struct generics with underscore means no bounds
+[
+  "::kernel::special_form::fn",
+  { "#struct": { "T": "_" } },
+  { "#struct": {} },
+  "_",
+  ["+", "a", "b"]
+]

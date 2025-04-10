@@ -299,7 +299,9 @@ pub(super) fn invalid_argument_length(
             "The newtype/3 form should look like: (newtype name type-expr body)"
         }
         SpecialFormKind::Use => "The use/3 form should look like: (use module imports body)",
-        SpecialFormKind::Fn => "The fn/3 form should look like: (fn generics arguments body)",
+        SpecialFormKind::Fn => {
+            "The fn/4 form should look like: (fn generics arguments return-type body)"
+        }
         SpecialFormKind::Input => {
             "Use either:\n- input/3: (input name type body)\n- input/4: (input name type default \
              body)"

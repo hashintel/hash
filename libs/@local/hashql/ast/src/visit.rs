@@ -80,7 +80,7 @@ use crate::node::{
         CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
         LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr, UseExpr,
         call::{Argument, LabeledArgument},
-        closure::{ClosureParam, ClosureSig},
+        closure::{ClosureParam, ClosureSignature},
         dict::DictEntry,
         is::IsExpr,
         list::ListElement,
@@ -262,7 +262,7 @@ pub trait Visitor<'heap> {
         walk_closure_expr(self, expr);
     }
 
-    fn visit_closure_sig(&mut self, sig: &mut ClosureSig<'heap>) {
+    fn visit_closure_sig(&mut self, sig: &mut ClosureSignature<'heap>) {
         walk_closure_sig(self, sig);
     }
 
@@ -766,7 +766,7 @@ pub fn walk_closure_expr<'heap, T: Visitor<'heap> + ?Sized>(
     ClosureExpr {
         id,
         span,
-        sig,
+        signature: sig,
         body,
     }: &mut ClosureExpr<'heap>,
 ) {
@@ -780,13 +780,13 @@ pub fn walk_closure_expr<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_closure_sig<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    ClosureSig {
+    ClosureSignature {
         id,
         span,
         generics,
         inputs,
         output,
-    }: &mut ClosureSig<'heap>,
+    }: &mut ClosureSignature<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
@@ -806,14 +806,14 @@ pub fn walk_closure_param<'heap, T: Visitor<'heap> + ?Sized>(
         id,
         span,
         name,
-        r#type,
+        bound,
     }: &mut ClosureParam<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);
 
     visitor.visit_ident(name);
-    visitor.visit_type(r#type);
+    visitor.visit_type(bound);
 }
 
 pub fn walk_generics<'heap, T: Visitor<'heap> + ?Sized>(

@@ -29,7 +29,7 @@ use crate::node::{
         IsExpr, LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr,
         UseExpr,
         call::{Argument, LabeledArgument},
-        closure::{ClosureParam, ClosureSig},
+        closure::{ClosureParam, ClosureSignature},
         dict::DictEntry,
         list::ListElement,
         literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral},
@@ -388,9 +388,9 @@ impl_syntax_dump!(struct UseExpr(); path kind body);
 impl_syntax_dump!(struct InputExpr(name); ?r#type ?default);
 
 #[rustfmt::skip]
-impl_syntax_dump!(struct ClosureParam(name); r#type);
-impl_syntax_dump!(struct ClosureSig(); generics []inputs output);
-impl_syntax_dump!(struct ClosureExpr(); sig body);
+impl_syntax_dump!(struct ClosureParam(name); bound);
+impl_syntax_dump!(struct ClosureSignature(); generics []inputs output);
+impl_syntax_dump!(struct ClosureExpr(); signature body);
 
 #[rustfmt::skip]
 impl_syntax_dump!(struct IfExpr(); test then ?r#else);

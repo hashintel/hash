@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: fn/4 struct params with type annotations should fail to compile
+[
+  "::kernel::special_form::fn",
+  { "#struct": {} },
+  { "#struct": {}, "#type": "Int" },
+  "_",
+  ["+", "a", "b"]
+]

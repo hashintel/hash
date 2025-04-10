@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: fn/4 tuple generics with path as argument should fail to compile
+[
+  "::kernel::special_form::fn",
+  { "#tuple": ["::math::add"] },
+  { "#struct": {} },
+  "_",
+  ["+", "a", "b"]
+]
