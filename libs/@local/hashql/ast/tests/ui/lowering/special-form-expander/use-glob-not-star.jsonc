@@ -1,0 +1,3 @@
+//@ run: fail
+//@ description: any ident that isn't `*` should fail
+["::kernel::special_form::use", "::math", "X", "x"]

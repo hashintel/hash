@@ -18,7 +18,9 @@ use crate::{
     node::{
         expr::{
             CallExpr, Expr, ExprKind, IfExpr, IsExpr, LetExpr, NewTypeExpr, StructExpr, TupleExpr,
-            TypeExpr, UseExpr, call::Argument, r#use::UseKind,
+            TypeExpr, UseExpr,
+            call::Argument,
+            r#use::{Glob, UseBinding, UseKind},
         },
         id::NodeId,
         path::Path,
@@ -161,9 +163,14 @@ impl<'heap> SpecialFormExpander<'heap> {
     }
 
     fn lower_expr_to_type_struct(&mut self, expr: StructExpr<'heap>) -> Option<Type<'heap>> {
-        let mut fields = self.heap.vec(Some(expr.entries.len()));
+        if expr.r#type.is_some() {
+            // TODO: register error
+            return None;
+        }
 
         let entries_len = expr.entries.len();
+        let mut fields = self.heap.vec(Some(entries_len));
+
         for entry in expr.entries {
             let Some(r#type) = self.lower_expr_to_type(*entry.value) else {
                 continue;
@@ -194,9 +201,14 @@ impl<'heap> SpecialFormExpander<'heap> {
     }
 
     fn lower_expr_to_type_tuple(&mut self, expr: TupleExpr<'heap>) -> Option<Type<'heap>> {
-        let mut fields = self.heap.vec(Some(expr.elements.len()));
+        if expr.r#type.is_some() {
+            // TODO: register error
+            return None;
+        }
 
         let elements_len = expr.elements.len();
+        let mut fields = self.heap.vec(Some(elements_len));
+
         for element in expr.elements {
             let Some(r#type) = self.lower_expr_to_type(*element.value) else {
                 continue;
@@ -225,12 +237,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         })
     }
 
-    fn lower_expr_to_type_path(
-        &mut self,
-        id: NodeId,
-        span: SpanId,
-        path: Path<'heap>,
-    ) -> Type<'heap> {
+    fn lower_expr_to_type_path(id: NodeId, span: SpanId, path: Path<'heap>) -> Type<'heap> {
         if path.matches_absolute_path(["kernel", "type", "Never"]) {
             return Type {
                 id,
@@ -259,7 +266,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             ExprKind::Call(call_expr) => self.lower_expr_to_type_call(call_expr),
             ExprKind::Struct(struct_expr) => self.lower_expr_to_type_struct(struct_expr),
             ExprKind::Tuple(tuple_expr) => self.lower_expr_to_type_tuple(tuple_expr),
-            ExprKind::Path(path) => Some(self.lower_expr_to_type_path(expr.id, expr.span, path)),
+            ExprKind::Path(path) => Some(Self::lower_expr_to_type_path(expr.id, expr.span, path)),
             ExprKind::Underscore => Some(Type {
                 id: expr.id,
                 span: expr.span,
@@ -561,11 +568,114 @@ impl<'heap> SpecialFormExpander<'heap> {
         }))
     }
 
+    fn lower_use_imports_struct(&mut self, r#struct: StructExpr) -> Option<UseKind<'heap>> {
+        // {key: value}, each value must be a value must be an underscore *or* ident
+        if r#struct.r#type.is_some() {
+            // TODO: register error
+            return None;
+        }
+
+        let entries_len = r#struct.entries.len();
+        let mut bindings = self.heap.vec(Some(entries_len));
+
+        for entry in r#struct.entries {
+            let path = match entry.value.kind {
+                ExprKind::Path(path) => path,
+                ExprKind::Underscore => {
+                    bindings.push(UseBinding {
+                        id: entry.id,
+                        span: entry.span,
+                        name: entry.key,
+                        alias: None,
+                    });
+
+                    continue;
+                }
+                _ => {
+                    // TODO: register error
+                    continue;
+                }
+            };
+
+            let Some(alias) = path.into_ident() else {
+                // TODO: register error
+                continue;
+            };
+
+            bindings.push(UseBinding {
+                id: entry.id,
+                span: entry.span,
+                name: entry.key,
+                alias: Some(alias),
+            });
+        }
+
+        if bindings.len() != entries_len {
+            // error occurred downstream, propagate said error
+            return None;
+        }
+
+        Some(UseKind::Named(bindings))
+    }
+
+    fn lower_use_imports_tuple(&mut self, tuple: TupleExpr) -> Option<UseKind<'heap>> {
+        let elements_len = tuple.elements.len();
+        let mut bindings = self.heap.vec(Some(elements_len));
+
+        for element in tuple.elements {
+            let ExprKind::Path(path) = element.value.kind else {
+                // TODO: register error
+                continue;
+            };
+
+            let Some(name) = path.into_ident() else {
+                // TODO: register error
+                continue;
+            };
+
+            bindings.push(UseBinding {
+                id: element.id,
+                span: element.span,
+                name,
+                alias: None,
+            });
+        }
+
+        if bindings.len() != elements_len {
+            // error occurred downstream, propagate said error
+            return None;
+        }
+
+        Some(UseKind::Named(bindings))
+    }
+
     fn lower_use_imports(&mut self, argument: Argument<'heap>) -> Option<UseKind<'heap>> {
         // imports can have 3 forms:
         // `*` (symbol)
-        //
-        todo!()
+        // struct
+        // tuple
+
+        match argument.value.kind {
+            ExprKind::Path(path) => {
+                let path_id = path.id;
+
+                if let Some(ident) = path.into_ident() {
+                    if ident.value.as_str() == "*" {
+                        return Some(UseKind::Glob(Glob {
+                            id: path_id,
+                            span: ident.span,
+                        }));
+                    }
+
+                    todo!("error out")
+                } else {
+                    todo!("error out")
+                }
+            }
+            ExprKind::Struct(r#struct) => self.lower_use_imports_struct(r#struct),
+            ExprKind::Tuple(tuple) => self.lower_use_imports_tuple(tuple),
+            _ => todo!("error out"),
+        }
     }
 
     fn lower_use(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {

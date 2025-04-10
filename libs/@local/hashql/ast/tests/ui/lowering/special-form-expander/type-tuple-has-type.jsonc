@@ -1,0 +1,8 @@
+//@ run: fail
+//@ description: tuple type expression that has a type annotation is invalid
+[
+  "::kernel::special_form::type",
+  "x",
+  { "#tuple": ["Int"], "#type": "(Int,)" },
+  "x"
+]

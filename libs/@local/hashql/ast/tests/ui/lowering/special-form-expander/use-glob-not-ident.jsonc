@@ -1,0 +1,3 @@
+//@ run: fail
+//@ description: any path that isn't an identifier should fail
+["::kernel::special_form::use", "::math", "::math::X", "x"]
