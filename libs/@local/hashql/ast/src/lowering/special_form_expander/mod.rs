@@ -8,11 +8,13 @@ use core::{
 use hashql_core::{span::SpanId, symbol::Ident};
 
 use self::error::{
-    InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic, invalid_argument_length,
-    invalid_let_name_not_path, invalid_let_name_qualified_path, invalid_path_in_use_binding,
-    invalid_type_call_function, invalid_type_expression, invalid_use_import,
-    labeled_arguments_not_supported, type_with_existing_annotation, unknown_special_form_generics,
-    unknown_special_form_length, unknown_special_form_name, unsupported_type_constructor_function,
+    InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic, fn_generics_with_type_annotation,
+    fn_params_with_type_annotation, invalid_argument_length, invalid_fn_generic_param,
+    invalid_fn_generics_expression, invalid_fn_params_expression, invalid_let_name_not_path,
+    invalid_let_name_qualified_path, invalid_path_in_use_binding, invalid_type_call_function,
+    invalid_type_expression, invalid_use_import, labeled_arguments_not_supported,
+    type_with_existing_annotation, unknown_special_form_generics, unknown_special_form_length,
+    unknown_special_form_name, unsupported_type_constructor_function,
     use_imports_with_type_annotation, use_path_with_generics,
 };
 use crate::{
@@ -741,8 +743,10 @@ impl<'heap> SpecialFormExpander<'heap> {
     }
 
     fn lower_fn_generics_tuple(&mut self, tuple: TupleExpr<'heap>) -> Option<Generics<'heap>> {
-        if tuple.r#type.is_some() {
-            todo!("error out")
+        if let Some(type_expr) = &tuple.r#type {
+            self.diagnostics
+                .push(fn_generics_with_type_annotation(type_expr.span));
+            return None;
         }
 
         let elements_len = tuple.elements.len();
@@ -750,12 +754,14 @@ impl<'heap> SpecialFormExpander<'heap> {
 
         for element in tuple.elements {
             let ExprKind::Path(path) = element.value.kind else {
-                // TODO: register error
+                self.diagnostics
+                    .push(invalid_fn_generics_expression(element.value.span));
                 continue;
             };
 
+            let path_span = path.span;
             let Some(name) = path.into_ident() else {
-                // TODO: register error
+                self.diagnostics.push(invalid_fn_generic_param(path_span));
                 continue;
             };
 
@@ -780,8 +786,10 @@ impl<'heap> SpecialFormExpander<'heap> {
     }
 
     fn lower_fn_generics_struct(&mut self, r#struct: StructExpr<'heap>) -> Option<Generics<'heap>> {
-        if r#struct.r#type.is_some() {
-            todo!("error out")
+        if let Some(type_expr) = &r#struct.r#type {
+            self.diagnostics
+                .push(fn_generics_with_type_annotation(type_expr.span));
+            return None;
         }
 
         let entries_len = r#struct.entries.len();
@@ -824,7 +832,11 @@ impl<'heap> SpecialFormExpander<'heap> {
         match argument.value.kind {
             ExprKind::Tuple(tuple) => self.lower_fn_generics_tuple(tuple),
             ExprKind::Struct(r#struct) => self.lower_fn_generics_struct(r#struct),
-            _ => todo!("error out"),
+            _ => {
+                self.diagnostics
+                    .push(invalid_fn_generics_expression(argument.value.span));
+                None
+            }
         }
     }
 
@@ -833,11 +845,15 @@ impl<'heap> SpecialFormExpander<'heap> {
         argument: Argument<'heap>,
     ) -> Option<heap::Vec<'heap, ClosureParam<'heap>>> {
         let ExprKind::Struct(r#struct) = argument.value.kind else {
-            todo!("error out")
+            self.diagnostics
+                .push(invalid_fn_params_expression(argument.value.span));
+            return None;
         };
 
-        if r#struct.r#type.is_some() {
-            todo!("error out")
+        if let Some(type_expr) = &r#struct.r#type {
+            self.diagnostics
+                .push(fn_params_with_type_annotation(type_expr.span));
+            return None;
         }
 
         let entries_len = r#struct.entries.len();

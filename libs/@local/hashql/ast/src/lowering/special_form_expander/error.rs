@@ -77,6 +77,31 @@ const USE_PATH_WITH_GENERICS: TerminalDiagnosticCategory = TerminalDiagnosticCat
     name: "Use path with generic arguments",
 };
 
+const FN_GENERICS_WITH_TYPE_ANNOTATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "fn-generics-with-type-annotation",
+    name: "Function generics with type annotation",
+};
+
+const INVALID_FN_GENERICS_EXPRESSION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-fn-generics-expression",
+    name: "Invalid expression in function generics",
+};
+
+const INVALID_FN_PARAMS_EXPRESSION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-fn-params-expression",
+    name: "Invalid expression in function parameters",
+};
+
+const FN_PARAMS_WITH_TYPE_ANNOTATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "fn-params-with-type-annotation",
+    name: "Function parameters with type annotation",
+};
+
+const INVALID_FN_GENERIC_PARAM: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-fn-generic-param",
+    name: "Invalid generic parameter in function declaration",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SpecialFormExpanderDiagnosticCategory {
     UnknownSpecialForm,
@@ -90,6 +115,11 @@ pub enum SpecialFormExpanderDiagnosticCategory {
     TypeWithExistingAnnotation,
     InvalidUseImport,
     UsePathWithGenerics,
+    FnGenericsWithTypeAnnotation,
+    InvalidFnGenericsExpression,
+    InvalidFnParamsExpression,
+    FnParamsWithTypeAnnotation,
+    InvalidFnGenericParam,
 }
 
 impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
@@ -114,6 +144,11 @@ impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
             Self::TypeWithExistingAnnotation => Some(&TYPE_WITH_EXISTING_ANNOTATION),
             Self::InvalidUseImport => Some(&INVALID_USE_IMPORT),
             Self::UsePathWithGenerics => Some(&USE_PATH_WITH_GENERICS),
+            Self::FnGenericsWithTypeAnnotation => Some(&FN_GENERICS_WITH_TYPE_ANNOTATION),
+            Self::InvalidFnGenericsExpression => Some(&INVALID_FN_GENERICS_EXPRESSION),
+            Self::InvalidFnParamsExpression => Some(&INVALID_FN_PARAMS_EXPRESSION),
+            Self::FnParamsWithTypeAnnotation => Some(&FN_PARAMS_WITH_TYPE_ANNOTATION),
+            Self::InvalidFnGenericParam => Some(&INVALID_FN_GENERIC_PARAM),
         }
     }
 }
@@ -675,6 +710,123 @@ pub(crate) fn use_path_with_generics(
     diagnostic.note = Some(Note::new(
         "Use statements in HashQL can only import modules or specific symbols, but cannot specify \
          generic parameters during import.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn fn_generics_with_type_annotation(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::FnGenericsWithTypeAnnotation,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Remove this type annotation"));
+
+    diagnostic.help = Some(Help::new(
+        "Function generics declarations cannot have type annotations. Generic parameter lists \
+         define type parameters for the function, and do not have a meaningful type themselves.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "In the 'fn' special form, the generics argument should be either a tuple of identifiers \
+         such as (T, U) or a struct of bounded type parameters such as (T: SomeBound, U: \
+         OtherBound, V: _), where an underscore indicates no bound.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_fn_generics_expression(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidFnGenericsExpression,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Use a valid generics expression"));
+
+    diagnostic.help = Some(Help::new(
+        "Function generics must be specified as either a tuple of identifiers or a struct of \
+         bounded type parameters. Other expression types are not valid in this context.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Valid generics expressions include:\n- Empty: ()\n- Tuple of identifiers: (T, U, V)\n- \
+         Struct with bounds: (T: SomeBound, U: OtherBound) or (T: _, U: _) for unbounded types",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_fn_generic_param(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidFnGenericParam,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Use a simple identifier here"));
+
+    diagnostic.help = Some(Help::new(
+        "Generic type parameters must be simple identifiers. Qualified paths or complex \
+         expressions cannot be used in this context.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "In function generic parameter lists, each element must be a simple identifier. For \
+         example: (T, U, V) is valid, but (some::path,) is not.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn fn_params_with_type_annotation(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::FnParamsWithTypeAnnotation,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Remove this type annotation"));
+
+    diagnostic.help = Some(Help::new(
+        "Function parameter declarations cannot have type annotations at the struct level. The \
+         struct itself represents the parameter list, and each field represents a parameter with \
+         its type.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "In the 'fn' special form, parameter lists should be structured as (param1: Type1, \
+         param2: Type2), where the struct itself does not have a type annotation.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_fn_params_expression(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidFnParamsExpression,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Use a struct expression for parameters"));
+
+    diagnostic.help = Some(Help::new(
+        "Function parameters must be specified as a struct where field names are parameter names \
+         and field values are parameter types. Other expression types are not valid in this \
+         context.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Valid parameter expression is a struct in the form: (param1: Type1, param2: Type2, ...)",
     ));
 
     diagnostic
