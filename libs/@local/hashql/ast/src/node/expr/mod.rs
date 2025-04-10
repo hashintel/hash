@@ -487,6 +487,35 @@ pub enum ExprKind<'heap> {
     /// ```
     Is(IsExpr<'heap>),
 
+    /// The underscore expression, used as a placeholder in various contexts.
+    ///
+    /// In HashQL, the underscore serves as a context-dependent placeholder that can indicate
+    /// type inference or same-name imports.
+    ///
+    /// # Examples
+    ///
+    /// ## J-Expr
+    ///
+    /// ```json
+    /// // Type inference in function return type
+    /// ["fn", [], "_", ["body"]]
+    ///
+    /// // Same-name import in struct pattern
+    /// ["use", "module", {"#struct": {"name": "_"}}, "body"]
+    ///
+    /// // Same-name import in tuple pattern
+    /// ["use", "module", {"#tuple": ["name"]}, "body"]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// fn(): _ => body
+    /// use module::{name: _} in body
+    /// use module::{name} in body
+    /// ```
+    Underscore,
+
     /// A placeholder expression used exclusively during AST transformation phases.
     ///
     /// The `Dummy` variant serves as a temporary placeholder during the lowering process when an
@@ -500,7 +529,6 @@ pub enum ExprKind<'heap> {
     /// indicates an error in the transformation process, and will produce a compilation error on
     /// lowering into the HIR.
     Dummy,
-    // potentially relevant in the future: Ignore (for destructuring assignment, e.g. `_`)
 }
 
 /// An expression node in the HashQL Abstract Syntax Tree.

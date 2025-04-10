@@ -422,7 +422,7 @@ pub fn walk_expr<'heap, T: Visitor<'heap> + ?Sized>(
         ExprKind::Is(is_expr) => visitor.visit_is_expr(is_expr),
         ExprKind::Field(field_expr) => visitor.visit_field_expr(field_expr),
         ExprKind::Index(index_expr) => visitor.visit_index_expr(index_expr),
-        ExprKind::Dummy => {}
+        ExprKind::Underscore | ExprKind::Dummy => {}
     }
 }
 

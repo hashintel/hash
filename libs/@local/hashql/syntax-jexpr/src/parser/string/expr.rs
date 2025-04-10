@@ -9,7 +9,9 @@ use hashql_core::symbol::{Ident, IdentKind, Symbol};
 use winnow::{
     ModalResult, Parser as _,
     ascii::{digit1, multispace0},
-    combinator::{alt, cut_err, delimited, dispatch, fail, peek, preceded, repeat},
+    combinator::{
+        alt, cut_err, delimited, dispatch, eof, fail, peek, preceded, repeat, terminated,
+    },
     error::{AddContext, ParserError, StrContext, StrContextValue},
     token::any,
 };
@@ -79,8 +81,7 @@ where
     .parse_next(input)
 }
 
-// super limited set of expressions that are supported in strings for convenience
-pub(crate) fn parse_expr<'heap, 'span, 'source, E>(
+pub(crate) fn parse_expr_path<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
 ) -> ModalResult<Expr<'heap>, E>
 where
@@ -148,8 +149,29 @@ where
 
             expr
         })
-        .context(StrContext::Label("expression"))
         .parse_next(input)
+}
+
+// super limited set of expressions that are supported in strings for convenience
+pub(crate) fn parse_expr<'heap, 'span, 'source, E>(
+    input: &mut Input<'heap, 'span, 'source>,
+) -> ModalResult<Expr<'heap>, E>
+where
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+{
+    let context = input.state;
+
+    alt((
+        terminated('_', eof).span().map(|span| Expr {
+            id: NodeId::PLACEHOLDER,
+            span: context.span(span),
+            kind: ExprKind::Underscore,
+        }),
+        parse_expr_path,
+    ))
+    .context(StrContext::Label("expression"))
+    .parse_next(input)
 }
 
 #[cfg(test)]
@@ -217,6 +239,10 @@ mod tests {
         // Rooted paths
         rooted_path("::foo") => "Rooted path",
         rooted_with_access("::foo.bar[0]") => "Rooted path with access",
+
+        // Underscore paths
+        underscore("_") => "Underscore path",
+        underscore_identifier("_name") => "Underscore identifier",
     );
 
     // Error cases for full expressions

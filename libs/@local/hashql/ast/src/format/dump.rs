@@ -490,6 +490,9 @@ impl SyntaxDump for ExprKind<'_> {
 
                 index_expr.syntax_dump(fmt, depth + 1)
             }
+            Self::Underscore => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("Underscore"))
+            }
             Self::Dummy => write_header(fmt, depth, "ExprKind", None, None, Some("Dummy")),
         }
     }
