@@ -48,7 +48,7 @@ pub enum EntityQueryPath<'p> {
     /// ```
     ///
     /// [`Entity`]: type_system::knowledge::Entity
-    /// [`WebId`]: type_system::web::WebId
+    /// [`WebId`]: type_system::principal::actor_group::WebId
     /// [`EntityId`]: type_system::knowledge::entity::EntityId
     WebId,
     /// The [`DraftId`] of the [`EntityId`] belonging to the [`Entity`].

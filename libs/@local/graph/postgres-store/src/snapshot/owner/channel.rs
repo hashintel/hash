@@ -23,8 +23,8 @@ use crate::snapshot::{
 /// An `AccountSender` with the corresponding [`OwnerReceiver`] are created using the [`channel`]
 /// function.
 ///
-/// [`ActorEntityUuid`]: type_system::provenance::ActorEntityUuid
-/// [`ActorGroupEntityUuid`]: type_system::web::ActorGroupEntityUuid
+/// [`ActorEntityUuid`]: type_system::principal::actor::ActorEntityUuid
+/// [`ActorGroupEntityUuid`]: type_system::principal::actor_group::ActorGroupEntityUuid
 #[derive(Debug, Clone)]
 #[expect(clippy::struct_field_names)]
 pub struct OwnerSender {
