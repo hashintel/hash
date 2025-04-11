@@ -171,7 +171,10 @@ impl NameMangler {
         let count = self.counter.entry(symbol.clone()).or_insert(0);
 
         symbol.push(':');
-        let _ = write!(symbol, "{count}");
+
+        // Unwrapping here is fine, because the formatter for numbers is infallible and the
+        // underlying write implementation is infallible as well.
+        write!(symbol, "{count}").unwrap_or_else(|_| unreachable!());
 
         *count += 1;
 
