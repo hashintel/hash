@@ -6,7 +6,7 @@ use hashql_core::symbol::Symbol;
 
 use crate::{
     node::{
-        expr::{Expr, LetExpr, NewTypeExpr, TypeExpr},
+        expr::{ClosureExpr, Expr, LetExpr, NewTypeExpr, TypeExpr, closure::ClosureSignature},
         path::Path,
         r#type::Type,
     },
@@ -69,6 +69,11 @@ impl Scopes {
             Scope::Value => self.value.get(name).cloned(),
         }
     }
+}
+
+struct MangledClosureSignature {
+    generic_params: Vec<(Symbol, Symbol)>,
+    inputs: Vec<(Symbol, Symbol)>,
 }
 
 pub struct NameMangler {
@@ -140,6 +145,56 @@ impl NameMangler {
         }
 
         result
+    }
+
+    fn mangle_closure_signature(
+        &mut self,
+        ClosureSignature {
+            id,
+            span,
+            generics,
+            inputs,
+            output,
+        }: &mut ClosureSignature<'_>,
+    ) -> MangledClosureSignature {
+        self.visit_id(id);
+        self.visit_span(span);
+
+        let mangled_generic_params: Vec<_> = generics
+            .params
+            .iter_mut()
+            .map(|param| {
+                let original = param.name.value.clone();
+                let mangled = self.mangle(&mut param.name.value);
+
+                (original, mangled)
+            })
+            .collect();
+
+        let mangled_inputs: Vec<_> = inputs
+            .iter_mut()
+            .map(|input| {
+                let original = input.name.value.clone();
+                let mangled = self.mangle(&mut input.name.value);
+
+                (original, mangled)
+            })
+            .collect();
+
+        self.visit_generics(generics);
+
+        self.enter_many(Scope::Type, mangled_generic_params.clone(), |this| {
+            for param in inputs {
+                this.visit_closure_param(param);
+            }
+
+            this.visit_type(output);
+        });
+
+        MangledClosureSignature {
+            generic_params: mangled_generic_params,
+            inputs: mangled_inputs,
+        }
     }
 }
 
@@ -251,6 +306,27 @@ impl<'heap> Visitor<'heap> for NameMangler {
         self.current_scope = Scope::Type;
         walk_type(self, r#type);
         self.current_scope = previous;
+    }
+
+    fn visit_closure_expr(&mut self, expr: &mut ClosureExpr<'heap>) {
+        let ClosureExpr {
+            id,
+            span,
+            signature,
+            body,
+        } = expr;
+
+        self.visit_id(id);
+        self.visit_span(span);
+
+        let MangledClosureSignature {
+            generic_params,
+            inputs,
+        } = self.mangle_closure_signature(signature);
+
+        self.enter_many(Scope::Type, generic_params, |this| {
+            this.enter_many(Scope::Value, inputs, |this| this.visit_expr(body));
+        });
     }
 }
 
