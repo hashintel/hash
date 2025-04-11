@@ -131,6 +131,34 @@ impl Symbol {
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
+
+    /// Appends a single character to this symbol, modifying it in place.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::symbol::Symbol;
+    /// let mut symbol = Symbol::new("abc");
+    /// symbol.push('d');
+    /// assert_eq!(symbol.as_str(), "abcd");
+    /// ```
+    pub fn push(&mut self, char: char) {
+        self.0.push(char);
+    }
+
+    /// Appends a string-like value to this symbol, modifying it in place.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::symbol::Symbol;
+    /// let mut symbol = Symbol::new("prefix_");
+    /// symbol.push_str("suffix");
+    /// assert_eq!(symbol.as_str(), "prefix_suffix");
+    /// ```
+    pub fn push_str(&mut self, string: impl AsRef<str>) {
+        self.0.push_str(string.as_ref());
+    }
 }
 
 // Sound because Symbol is a newtype wrapper around EcoString
@@ -149,6 +177,19 @@ impl AsRef<str> for Symbol {
 impl Display for Symbol {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, fmt)
+    }
+}
+
+#[expect(clippy::renamed_function_params)]
+impl fmt::Write for Symbol {
+    #[inline]
+    fn write_str(&mut self, string: &str) -> fmt::Result {
+        EcoString::write_str(&mut self.0, string)
+    }
+
+    #[inline]
+    fn write_char(&mut self, char: char) -> fmt::Result {
+        EcoString::write_char(&mut self.0, char)
     }
 }
 

@@ -1,4 +1,5 @@
 mod ast_lowering_name_resolver;
+mod ast_lowering_node_mangler;
 mod ast_lowering_node_renumberer;
 mod ast_lowering_special_form_expander;
 pub(crate) mod common;
@@ -11,6 +12,7 @@ use hashql_syntax_jexpr::span::Span;
 
 use self::{
     ast_lowering_name_resolver::AstLoweringNameResolverSuite,
+    ast_lowering_node_mangler::AstLoweringNameManglerSuite,
     ast_lowering_node_renumberer::AstLoweringNodeRenumbererSuite,
     ast_lowering_special_form_expander::AstLoweringSpecialFormExpanderSuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
@@ -35,6 +37,7 @@ const SUITES: &[&dyn Suite] = &[
     &AstLoweringNameResolverSuite,
     &AstLoweringSpecialFormExpanderSuite,
     &AstLoweringNodeRenumbererSuite,
+    &AstLoweringNameManglerSuite,
 ];
 
 pub(crate) fn find_suite(name: &str) -> Option<&'static dyn Suite> {
