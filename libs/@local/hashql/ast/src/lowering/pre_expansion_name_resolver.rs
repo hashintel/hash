@@ -60,6 +60,26 @@
 //! 4. Generic arguments are preserved during path resolution
 //! 5. Source location information is maintained for error reporting
 //!
+//! # Selective Tree Resolution and Scope Separation
+//!
+//! The name resolver intentionally processes only specific parts of the AST:
+//!
+//! 1. We only resolve the function name.
+//! 2. For `let` expressions, only the value of the binding is resolved.
+//!
+//! This selective approach is intentionally conservative and critical because:
+//!
+//! - It prepares the AST specifically for special form expansion, which only takes the function
+//!   name into account.
+//! - It maintains a strict separation between value and type scopes, which don't share the same
+//!   identifier resolutions.
+//! - The function called can only ever be a value, never a type, so we ensure consistent handling.
+//!
+//! By deliberately restricting name resolution to only the necessary parts of the tree, the
+//! resolver prevents scope contamination and ensures correct expansion in subsequent compilation
+//! phases. This conservative approach to resolution helps avoid unintended transformations that
+//! could lead to subtle errors in later processing stages.
+//!
 //! # Scoping Rules
 //!
 //! The resolver enforces lexical scoping rules:
@@ -94,6 +114,8 @@ use crate::{
 /// 2. Special Form Handling: Recognizes and processes special forms like `let`, `type`, and
 ///    `newtype`, but does **not** transform them yet.
 /// 3. Scope Management: Maintains proper lexical scoping of bindings within expressions
+/// 4. Selective Value-Scope Resolution: Only resolves specific parts of the AST (binding values and
+///    function identifiers) to maintain strict separation between value and type scopes
 ///
 /// # Example
 ///
@@ -111,13 +133,16 @@ use crate::{
 ///     ["::math::add", "10", "5"],
 /// ]
 /// ```
-pub struct SpecialFormNameResolver<'heap> {
+///
+/// Note that the identifier `x` in the binding position (first argument) is preserved exactly as
+/// written, while its use in the body expression is resolved according to the current scope.
+pub struct PreExpansionNameResolver<'heap> {
     mapping: HashMap<Symbol, Path<'heap>, RandomState>,
     resolve: bool,
     heap: &'heap Heap,
 }
 
-impl<'heap> SpecialFormNameResolver<'heap> {
+impl<'heap> PreExpansionNameResolver<'heap> {
     /// Creates a new `NameResolver` with an empty mapping.
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
@@ -376,7 +401,7 @@ impl<'heap> SpecialFormNameResolver<'heap> {
     }
 }
 
-impl<'heap> Visitor<'heap> for SpecialFormNameResolver<'heap> {
+impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'heap> {
     fn visit_path(&mut self, path: &mut Path<'heap>) {
         if !self.resolve {
             walk_path(self, path);
@@ -433,12 +458,6 @@ impl<'heap> Visitor<'heap> for SpecialFormNameResolver<'heap> {
     }
 
     fn visit_call_expr(&mut self, expr: &mut CallExpr<'heap>) {
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        enum Kind {
-            Let,
-            Type,
-            Newtype,
-        }
         // Look for expressions that is pre-expansion and *looks* like a let expressions
 
         // Special forms don't support labeled arguments
@@ -468,24 +487,12 @@ impl<'heap> Visitor<'heap> for SpecialFormNameResolver<'heap> {
         }
 
         // Check if said path is equivalent to the let special form
-        let kind = if function.matches_absolute_path(self.absolute_path("let")) {
-            Kind::Let
-        } else if function.matches_absolute_path(self.absolute_path("type")) {
-            Kind::Type
-        } else if function.matches_absolute_path(self.absolute_path("newtype")) {
-            Kind::Newtype
-        } else {
-            walk_call_expr(self, expr);
-            return;
-        };
-
-        let arguments_length = expr.arguments.len();
-
-        if kind != Kind::Let && arguments_length != 3 {
-            // `type/4` and `newtype/4` do **not** exist
+        if !function.matches_absolute_path(self.absolute_path("let")) {
             walk_call_expr(self, expr);
             return;
         }
+
+        let arguments_length = expr.arguments.len();
 
         // we know this is a let expression, now we just need to make sure that both the first and
         // second-to-last argument are identifiers

@@ -2,7 +2,7 @@ use hashql_ast::{
     format::SyntaxDump as _,
     heap::Heap,
     lowering::{
-        name_mangler::NameMangler, name_resolver::SpecialFormNameResolver,
+        name_mangler::NameMangler, pre_expansion_name_resolver::PreExpansionNameResolver,
         special_form_expander::SpecialFormExpander,
     },
     node::expr::Expr,
@@ -24,7 +24,7 @@ impl Suite for AstLoweringNameManglerSuite {
         mut expr: Expr<'heap>,
         diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
-        let mut resolver = SpecialFormNameResolver::new(heap);
+        let mut resolver = PreExpansionNameResolver::new(heap);
         resolver.prefill();
 
         resolver.visit_expr(&mut expr);

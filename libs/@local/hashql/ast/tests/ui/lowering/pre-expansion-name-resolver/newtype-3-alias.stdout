@@ -24,7 +24,7 @@ Expr#4294967040@25
               Expr#4294967040@15
                 ExprKind (Path)
                   Path#4294967040@15 (rooted: false)
-                    PathSegment#4294967040@14 (name: b)
+                    PathSegment#4294967040@14 (name: a)
               Argument#4294967040@19
                 Expr#4294967040@19
                   ExprKind (Path)

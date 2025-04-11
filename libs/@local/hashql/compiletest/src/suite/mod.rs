@@ -1,6 +1,6 @@
-mod ast_lowering_name_resolver;
 mod ast_lowering_node_mangler;
 mod ast_lowering_node_renumberer;
+mod ast_lowering_pre_expansion_name_resolver;
 mod ast_lowering_special_form_expander;
 pub(crate) mod common;
 mod parse_syntax_dump;
@@ -11,9 +11,9 @@ use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
 use hashql_syntax_jexpr::span::Span;
 
 use self::{
-    ast_lowering_name_resolver::AstLoweringNameResolverSuite,
     ast_lowering_node_mangler::AstLoweringNameManglerSuite,
     ast_lowering_node_renumberer::AstLoweringNodeRenumbererSuite,
+    ast_lowering_pre_expansion_name_resolver::AstLoweringNameResolverSuite,
     ast_lowering_special_form_expander::AstLoweringSpecialFormExpanderSuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
