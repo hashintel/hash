@@ -1,3 +1,38 @@
+//! Name mangling for the HashQL compiler.
+//!
+//! This module implements a name mangling system that ensures uniqueness of identifiers
+//! across different scopes during the compilation process.
+//!
+//! # Overview
+//!
+//! The name mangler traverses the AST and:
+//!
+//! 1. Maintains separate namespaces for value-level and type-level identifiers
+//! 2. Generates unique mangled names by appending `:n` suffixes to symbols
+//! 3. Tracks scoping information to properly manage name visibility
+//! 4. Preserves the relationship between original and mangled names
+//!
+//! # Name Mangling Strategy
+//!
+//! Mangled symbols in HashQL follow the pattern `<symbol>:<count>`, where:
+//!   - `<symbol>` is the original identifier
+//!   - `:<count>` is a unique numeric suffix
+//!
+//! This approach exploits the fact that a colon followed by a number is invalid in:
+//!   - Lexical identifiers (which follow Rust's identifier rules)
+//!   - Symbols (which explicitly exclude colons)
+//!   - `BaseUrl`s (which must end with a slash, not a colon)
+//!
+//! # Scope Management
+//!
+//! The mangler maintains separate namespaces for:
+//!
+//! - Type-level identifiers (types, newtypes)
+//! - Value-level identifiers (variables, functions)
+//!
+//! This separation allows for shadowing between namespaces while maintaining uniqueness
+//! within each namespace.
+
 use core::fmt::Write as _;
 
 use foldhash::fast::RandomState;
@@ -76,6 +111,38 @@ struct MangledSignature {
     inputs: Vec<(Symbol, Symbol)>,
 }
 
+/// Name mangler for HashQL, responsible for ensuring identifier uniqueness.
+///
+/// The `NameMangler` traverses the AST and transforms identifiers to guarantee uniqueness
+/// across different scopes and binding forms. It works by appending unique suffixes to
+/// identifiers and tracking the relationship between original and mangled names.
+///
+/// The mangler maintains separate namespaces for type-level and value-level identifiers. It handles
+/// all binding forms in HashQL including:
+///
+/// - `let` expressions (value scope)
+/// - `type` expressions (type scope)
+/// - `newtype` expressions (both type and value scopes)
+/// - Closure parameters (value scope)
+/// - Generic parameters (type scope)
+///
+/// # Examples
+///
+/// Conceptual transformation (simplified):
+///
+/// ```text
+/// let x = 1 in
+/// let x = 2 in
+///     x + x
+/// ```
+///
+/// After mangling:
+///
+/// ```text
+/// let x:0 = 1 in
+/// let x:1 = 2 in
+///     x:1 + x:1;
+/// ```
 pub struct NameMangler {
     namespaces: Namespaces,
     scope: Scope,
@@ -84,6 +151,7 @@ pub struct NameMangler {
 }
 
 impl NameMangler {
+    /// Creates a new name mangler.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -93,15 +161,15 @@ impl NameMangler {
         }
     }
 
+    /// Mangles a symbol by appending a unique suffix.
+    ///
+    /// The mangling pattern is `<symbol>:<count>` where count is a unique number
+    /// for each original symbol. This exploits the fact that `:` followed by a number
+    /// is invalid in regular identifiers, symbols, and `BaseUrl`s, ensuring the mangled
+    /// name will not conflict with any valid user-defined identifier.
     fn mangle(&mut self, symbol: &mut Symbol) -> Symbol {
         let count = self.counter.entry(symbol.clone()).or_insert(0);
 
-        // Mangled symbols in hashql are `<symbol>:<count>`, as any identifier with `:<count>` is
-        // invalid. This exploits the fact that `:` is neither valid in symbol, BaseUrl nor lexical
-        // identifiers at this position.
-        // Lexical identifiers can't have a colon in them, symbols are expressively forbidden to
-        // have a colon in them and `BaseUrl` must end with a `/`. This means that even though the
-        // url can have a `:` in it, it can't have it at the end with a number.
         symbol.push(':');
         let _ = write!(symbol, "{count}");
 
@@ -110,6 +178,11 @@ impl NameMangler {
         symbol.clone()
     }
 
+    /// Enters a new scope with a binding.
+    ///
+    /// Creates a new binding in the specified scope (type or value) that maps an original
+    /// symbol to its mangled version. The binding is active during the execution of the
+    /// provided closure, and is automatically removed when the closure completes.
     fn enter<T>(
         &mut self,
         scope: Scope,
@@ -126,6 +199,12 @@ impl NameMangler {
         result
     }
 
+    /// Enters a new scope with multiple bindings.
+    ///
+    /// Similar to `enter` but for multiple bindings at once. Creates bindings for each
+    /// (original, mangled) pair in the specified scope. All bindings are active during
+    /// the execution of the provided closure and are automatically removed in reverse
+    /// order when the closure completes.
     fn enter_many<T>(
         &mut self,
         scope: Scope,
@@ -147,6 +226,11 @@ impl NameMangler {
         result
     }
 
+    /// Processes a closure signature and mangles its parameters.
+    ///
+    /// Transforms the names of generic parameters and input parameters in a closure signature
+    /// by applying the mangling process to each one. The mangled parameters are then used to
+    /// create appropriate scopes for processing the closure body.
     fn mangle_closure_signature(
         &mut self,
         ClosureSignature {
@@ -215,13 +299,6 @@ impl<'heap> Visitor<'heap> for NameMangler {
         walk_path(self, path);
     }
 
-    // visit any binding form to rename it, there are the following binding forms available:
-    // let (value scope)
-    // type (type scope)
-    // newtype (type scope)
-    // fn (type *and* value scope)
-    // use (value *or* type scope)
-    //
     // TODO: H-4377
     // The use expressions are not further mangled, as the import resolver (run before this) will
     // have replaced any import in the code with the absolute path.
