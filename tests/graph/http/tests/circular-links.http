@@ -23,10 +23,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
    "webId": "{{account_id}}",
-   "owner": {
-       "kind": "account",
-       "subjectId": "{{account_id}}"
-    }
+   "administrator": "{{account_id}}"
 }
 
 > {%

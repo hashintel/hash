@@ -23,29 +23,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
    "webId": "{{account_id}}",
-   "owner": {
-       "kind": "account",
-       "subjectId": "{{account_id}}"
-    }
+   "administrator": "{{account_id}}"
 }
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-    });
-%}
-
-### Create account group
-POST http://127.0.0.1:4000/account_groups
-Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
-
-{}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.global.set("account_group_id", response.body.toString());
     });
 %}
 
@@ -55,16 +38,13 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-   "webId": "{{account_group_id}}",
-   "owner": {
-       "kind": "accountGroup",
-       "subjectId": "{{account_group_id}}"
-    }
+   "administrator": "{{account_id}}"
 }
 
 > {%
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
+    client.global.set("account_group_id", response.body.toString());
   });
 %}
 
@@ -80,13 +60,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Add account group member
-POST http://127.0.0.1:4000/account_groups/{{account_group_id}}/members/{{account_id}}
+POST http://127.0.0.1:4000/account_groups/{{account_group_id}}/member/{{account_id}}
 Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
     client.test("status", function() {
-        client.assert(response.status === 201, "Response status is not 204");
+        client.assert(response.status === 200, "Response status is not 200");
     });
 %}
 
@@ -102,12 +82,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Remove account group member
-DELETE http://127.0.0.1:4000/account_groups/{{account_group_id}}/members/{{account_id}}
+DELETE http://127.0.0.1:4000/account_groups/{{account_group_id}}/member/{{account_id}}
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
     client.test("status", function() {
-        client.assert(response.status === 204, "Response status is not 204");
+        client.assert(response.status === 200, "Response status is not 200");
     });
 %}
 
