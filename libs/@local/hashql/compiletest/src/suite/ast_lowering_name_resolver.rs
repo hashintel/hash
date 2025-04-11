@@ -1,6 +1,6 @@
 use hashql_ast::{
-    format::SyntaxDump as _, heap::Heap, lowering::name_resolver::NameResolver, node::expr::Expr,
-    visit::Visitor as _,
+    format::SyntaxDump as _, heap::Heap, lowering::name_resolver::SpecialFormNameResolver,
+    node::expr::Expr, visit::Visitor as _,
 };
 
 use super::{Suite, SuiteDiagnostic};
@@ -18,7 +18,7 @@ impl Suite for AstLoweringNameResolverSuite {
         mut expr: Expr<'heap>,
         _: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
-        let mut resolver = NameResolver::new(heap);
+        let mut resolver = SpecialFormNameResolver::new(heap);
         resolver.prefill();
 
         resolver.visit_expr(&mut expr);

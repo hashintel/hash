@@ -20,13 +20,9 @@ Expr#4294967040@36
                 IsExpr#4294967040@34
                   Expr#4294967040@29
                     ExprKind (Path)
-                      Path#4294967040@29 (rooted: true)
-                        PathSegment#4294967040@28 (name: kernel)
-                        PathSegment#4294967040@28 (name: type)
-                        PathSegment#4294967040@28 (name: Integer)
+                      Path#4294967040@29 (rooted: false)
+                        PathSegment#4294967040@28 (name: a:0)
                   Type#4294967040@33
                     TypeKind (Path)
-                      Path#4294967040@33 (rooted: true)
-                        PathSegment#4294967040@32 (name: kernel)
-                        PathSegment#4294967040@32 (name: type)
-                        PathSegment#4294967040@32 (name: Integer)
+                      Path#4294967040@33 (rooted: false)
+                        PathSegment#4294967040@32 (name: a:1)

@@ -1,6 +1,6 @@
-Expr#4294967040@21
+Expr#4294967040@30
   ExprKind (Call)
-    CallExpr#4294967040@21
+    CallExpr#4294967040@30
       Expr#4294967040@3
         ExprKind (Path)
           Path#4294967040@3 (rooted: true)
@@ -33,8 +33,21 @@ Expr#4294967040@21
                     LiteralExpr#4294967040@14
                       LiteralKind (Integer)
                         IntegerLiteral (2)
-      Argument#4294967040@20
-        Expr#4294967040@20
-          ExprKind (Path)
-            Path#4294967040@20 (rooted: false)
-              PathSegment#4294967040@19 (name: let)
+      Argument#4294967040@29
+        Expr#4294967040@29
+          ExprKind (Call)
+            CallExpr#4294967040@29
+              Expr#4294967040@20
+                ExprKind (Path)
+                  Path#4294967040@20 (rooted: false)
+                    PathSegment#4294967040@19 (name: let)
+              Argument#4294967040@24
+                Expr#4294967040@24
+                  ExprKind (Path)
+                    Path#4294967040@24 (rooted: false)
+                      PathSegment#4294967040@23 (name: a)
+              Argument#4294967040@28
+                Expr#4294967040@28
+                  ExprKind (Path)
+                    Path#4294967040@28 (rooted: false)
+                      PathSegment#4294967040@27 (name: b)

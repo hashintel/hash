@@ -1,3 +1,3 @@
 //@ run: pass
 //@ description: This is funky, re-assign `let` to a new value, so that it is no longer resolved
-["let", "let", ["+", { "#literal": 1 }, { "#literal": 2 }], "let"]
+["let", "let", ["+", { "#literal": 1 }, { "#literal": 2 }], ["let", "a", "b"]]

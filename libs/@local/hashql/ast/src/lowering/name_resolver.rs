@@ -78,11 +78,10 @@ use crate::{
     heap::Heap,
     lowering::macros::mapping,
     node::{
-        expr::{CallExpr, ExprKind, LetExpr, NewTypeExpr, TypeExpr},
+        expr::{CallExpr, ExprKind},
         path::Path,
-        r#type::TypeKind,
     },
-    visit::{Visitor, walk_call_expr, walk_let_expr, walk_newtype_expr, walk_path, walk_type_expr},
+    visit::{Visitor, walk_call_expr, walk_path},
 };
 
 /// Resolves name aliases in the HashQL AST, converting identifiers to their absolute path
@@ -112,16 +111,18 @@ use crate::{
 ///     ["::math::add", "10", "5"],
 /// ]
 /// ```
-pub struct NameResolver<'heap> {
+pub struct SpecialFormNameResolver<'heap> {
     mapping: HashMap<Symbol, Path<'heap>, RandomState>,
+    resolve: bool,
     heap: &'heap Heap,
 }
 
-impl<'heap> NameResolver<'heap> {
+impl<'heap> SpecialFormNameResolver<'heap> {
     /// Creates a new `NameResolver` with an empty mapping.
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
             mapping: HashMap::with_hasher(RandomState::default()),
+            resolve: false,
             heap,
         }
     }
@@ -375,8 +376,13 @@ impl<'heap> NameResolver<'heap> {
     }
 }
 
-impl<'heap> Visitor<'heap> for NameResolver<'heap> {
+impl<'heap> Visitor<'heap> for SpecialFormNameResolver<'heap> {
     fn visit_path(&mut self, path: &mut Path<'heap>) {
+        if !self.resolve {
+            walk_path(self, path);
+            return;
+        }
+
         if path.rooted {
             walk_path(self, path);
             return;
@@ -389,8 +395,6 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
         };
 
         let Some(replacement) = self.mapping.get(&segment.name.value) else {
-            // ... and back with you to the original segment
-
             walk_path(self, path);
             return;
         };
@@ -443,12 +447,6 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
             return;
         }
 
-        // `let` supports two forms: `let/3` and `let/4` (w/ or w/o type assertion)
-        if expr.arguments.len() != 3 && expr.arguments.len() != 4 {
-            walk_call_expr(self, expr);
-            return;
-        }
-
         // Check if the argument is a path that can be an ident
         let ExprKind::Path(function) = &mut expr.function.kind else {
             walk_call_expr(self, expr);
@@ -459,7 +457,15 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
         // In theory as we're accessing the path here, we'd need to call `visit_id` and `visit_span`
         // as well, but as we don't actually implement these methods, and they're no-op we're free
         // to omit those calls.
+        self.resolve = true;
         self.visit_path(function);
+        self.resolve = false;
+
+        // `let` supports two forms: `let/3` and `let/4` (w/ or w/o type assertion)
+        if expr.arguments.len() != 3 && expr.arguments.len() != 4 {
+            walk_call_expr(self, expr);
+            return;
+        }
 
         // Check if said path is equivalent to the let special form
         let kind = if function.matches_absolute_path(self.absolute_path("let")) {
@@ -509,124 +515,11 @@ impl<'heap> Visitor<'heap> for NameResolver<'heap> {
         };
 
         // We have a new mapping from path to type
+        self.resolve = true;
         self.visit_path(from);
+        self.resolve = false;
         let from = Some(from.clone());
 
         self.walk_call(expr, &to, from);
-    }
-
-    // TODO: consider moving this out into another lowering stage, and rename this to
-    // `NameResolverPreExpansion` and the other one to `NameResolverPostExpansion`
-
-    // In theory should never be called, because absolute name expansion should happen before
-    // special forms are resolved. To make sure that even if it is called post-absolutization,
-    // we visit let expressions.
-    fn visit_let_expr(&mut self, expr: &mut LetExpr<'heap>) {
-        let ExprKind::Path(value) = &mut expr.value.kind else {
-            walk_let_expr(self, expr);
-            return;
-        };
-
-        self.visit_path(value);
-        let value = value.clone();
-
-        let LetExpr {
-            id,
-            span,
-            name,
-            // We've already confirmed and visited the type
-            value: _,
-            r#type,
-            body,
-        } = expr;
-
-        self.visit_id(id);
-        self.visit_span(span);
-
-        self.visit_ident(name);
-
-        if let Some(r#type) = r#type {
-            self.visit_type(r#type);
-        }
-
-        let old = self.mapping.insert(name.value.clone(), value);
-
-        self.visit_expr(body);
-
-        if let Some(old) = old {
-            self.mapping.insert(name.value.clone(), old);
-        } else {
-            self.mapping.remove(&name.value);
-        }
-    }
-
-    fn visit_type_expr(&mut self, expr: &mut TypeExpr<'heap>) {
-        let TypeKind::Path(path) = &mut expr.value.kind else {
-            walk_type_expr(self, expr);
-            return;
-        };
-
-        self.visit_path(path);
-        let path = path.clone();
-
-        let TypeExpr {
-            id,
-            span,
-            name,
-            // We've already confirmed and visited the type
-            value: _,
-            body,
-        } = expr;
-
-        self.visit_id(id);
-        self.visit_span(span);
-
-        self.visit_ident(name);
-
-        let old = self.mapping.insert(name.value.clone(), path);
-
-        self.visit_expr(body);
-
-        if let Some(old) = old {
-            self.mapping.insert(name.value.clone(), old);
-        } else {
-            self.mapping.remove(&name.value);
-        }
-    }
-
-    fn visit_newtype_expr(&mut self, expr: &mut NewTypeExpr<'heap>) {
-        let TypeKind::Path(path) = &mut expr.value.kind else {
-            walk_newtype_expr(self, expr);
-            return;
-        };
-
-        self.visit_id(&mut expr.value.id);
-        self.visit_span(&mut expr.value.span);
-        self.visit_path(path);
-        let path = path.clone();
-
-        let NewTypeExpr {
-            id,
-            span,
-            name,
-            // We've already confirmed and visited the type
-            value: _,
-            body,
-        } = expr;
-
-        self.visit_id(id);
-        self.visit_span(span);
-
-        self.visit_ident(name);
-
-        let old = self.mapping.insert(name.value.clone(), path);
-
-        self.visit_expr(body);
-
-        if let Some(old) = old {
-            self.mapping.insert(name.value.clone(), old);
-        } else {
-            self.mapping.remove(&name.value);
-        }
     }
 }
