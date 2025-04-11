@@ -1,0 +1,13 @@
+Expr#4294967040@12
+  ExprKind (Let)
+    LetExpr#4294967040@12 (name: a:0)
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@8
+            LiteralKind (Integer)
+              IntegerLiteral (2)
+      Expr#4294967040@11
+        ExprKind (Literal)
+          LiteralExpr#4294967040@10
+            LiteralKind (Integer)
+              IntegerLiteral (3)

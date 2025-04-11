@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: The name should only be mangled in the body of the expression, not the value assignment
+["let", "a", { "#literal": 2 }, ["let", "a", "a", "a"]]

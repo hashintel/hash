@@ -5,7 +5,10 @@ use hashbrown::HashMap;
 use hashql_core::symbol::Symbol;
 
 use crate::{
-    node::{expr::LetExpr, path::Path},
+    node::{
+        expr::{LetExpr, NewTypeExpr, TypeExpr},
+        path::Path,
+    },
     visit::{Visitor, walk_path},
 };
 
@@ -110,6 +113,52 @@ impl<'heap> Visitor<'heap> for NameMangler {
 
         self.enter(original, mangled, |this| this.visit_expr(body));
     }
+
+    fn visit_type_expr(&mut self, expr: &mut TypeExpr<'heap>) {
+        let original = expr.name.value.clone();
+        let mangled = self.mangle(&mut expr.name.value);
+
+        let TypeExpr {
+            id,
+            span,
+            name,
+            value,
+            body,
+        } = expr;
+
+        self.visit_id(id);
+        self.visit_span(span);
+        self.visit_ident(name);
+        self.visit_type(value);
+
+        self.enter(original, mangled, |this| this.visit_expr(body));
+    }
+
+    fn visit_newtype_expr(&mut self, expr: &mut NewTypeExpr<'heap>) {
+        let original = expr.name.value.clone();
+        let mangled = self.mangle(&mut expr.name.value);
+
+        let NewTypeExpr {
+            id,
+            span,
+            name,
+            value,
+            body,
+        } = expr;
+
+        self.visit_id(id);
+        self.visit_span(span);
+        self.visit_ident(name);
+        self.visit_type(value);
+
+        self.enter(original, mangled, |this| this.visit_expr(body));
+    }
+
+    // TODO: use globs cannot be mangled because we don't know what it actually imports (we need
+    // module environment here)
+    //
+    // TODO: use expressions should never be affected from mangling (at least the path shouldn't be)
+    // - this means we need to skip it during mangling
 }
 
 impl Default for NameMangler {
