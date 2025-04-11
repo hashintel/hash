@@ -6,14 +6,75 @@ use hashql_core::symbol::Symbol;
 
 use crate::{
     node::{
-        expr::{LetExpr, NewTypeExpr, TypeExpr},
+        expr::{Expr, LetExpr, NewTypeExpr, TypeExpr},
         path::Path,
+        r#type::Type,
     },
-    visit::{Visitor, walk_path},
+    visit::{Visitor, walk_expr, walk_path, walk_type},
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+enum Scope {
+    Type,
+    Value,
+}
+
+struct Residual {
+    name: Symbol,
+    value: Option<Symbol>,
+}
+
+struct Scopes {
+    value: HashMap<Symbol, Symbol, RandomState>,
+    r#type: HashMap<Symbol, Symbol, RandomState>,
+}
+
+impl Scopes {
+    fn new() -> Self {
+        Self {
+            value: HashMap::with_hasher(RandomState::default()),
+            r#type: HashMap::with_hasher(RandomState::default()),
+        }
+    }
+
+    fn enter(&mut self, scope: Scope, original: Symbol, mangled: Symbol) -> Residual {
+        let residual = match scope {
+            Scope::Type => self.r#type.insert(original.clone(), mangled),
+            Scope::Value => self.value.insert(original.clone(), mangled),
+        };
+
+        Residual {
+            name: original,
+            value: residual,
+        }
+    }
+
+    fn exit(&mut self, scope: Scope, residual: Residual) {
+        if let Some(old) = residual.value {
+            match scope {
+                Scope::Type => self.r#type.insert(residual.name, old),
+                Scope::Value => self.value.insert(residual.name, old),
+            };
+        } else {
+            match scope {
+                Scope::Type => self.r#type.remove(&residual.name),
+                Scope::Value => self.value.remove(&residual.name),
+            };
+        }
+    }
+
+    fn get(&self, scope: Scope, name: &Symbol) -> Option<Symbol> {
+        match scope {
+            Scope::Type => self.r#type.get(name).cloned(),
+            Scope::Value => self.value.get(name).cloned(),
+        }
+    }
+}
+
 pub struct NameMangler {
-    scope: HashMap<Symbol, Symbol, RandomState>,
+    scopes: Scopes,
+    current_scope: Scope,
+
     counter: HashMap<Symbol, usize, RandomState>,
 }
 
@@ -21,7 +82,8 @@ impl NameMangler {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            scope: HashMap::with_hasher(RandomState::default()),
+            scopes: Scopes::new(),
+            current_scope: Scope::Value,
             counter: HashMap::with_hasher(RandomState::default()),
         }
     }
@@ -45,18 +107,36 @@ impl NameMangler {
 
     fn enter<T>(
         &mut self,
-        symbol: Symbol,
-        replace_with: Symbol,
+        scope: Scope,
+        original: Symbol,
+        mangled: Symbol,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        let old = self.scope.insert(symbol.clone(), replace_with);
+        let residual = self.scopes.enter(scope, original, mangled);
 
         let result = closure(self);
 
-        if let Some(old) = old {
-            self.scope.insert(symbol, old);
-        } else {
-            self.scope.remove(&symbol);
+        self.scopes.exit(scope, residual);
+
+        result
+    }
+
+    fn enter_many<T>(
+        &mut self,
+        scope: Scope,
+        replacements: Vec<(Symbol, Symbol)>,
+        closure: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        let mut residuals = Vec::with_capacity(replacements.len());
+
+        for (original, replacement) in replacements {
+            residuals.push(self.scopes.enter(scope, original, replacement));
+        }
+
+        let result = closure(self);
+
+        for residual in residuals.into_iter().rev() {
+            self.scopes.exit(scope, residual);
         }
 
         result
@@ -73,8 +153,8 @@ impl<'heap> Visitor<'heap> for NameMangler {
         }
 
         let first = &mut path.segments[0];
-        if let Some(replacement) = self.scope.get(&first.name.value) {
-            first.name.value = replacement.clone();
+        if let Some(replacement) = self.scopes.get(self.current_scope, &first.name.value) {
+            first.name.value = replacement;
         }
 
         walk_path(self, path);
@@ -84,10 +164,13 @@ impl<'heap> Visitor<'heap> for NameMangler {
     // let (value scope)
     // type (type scope)
     // newtype (type scope)
+    // fn (type *and* value scope)
     // use (value *or* type scope)
-
-    // We do not need to distinguish between value and type scopes here, as we mangle the symbols of
-    // everyone regardless and they should be unique across the different environments.
+    //
+    // TODO: H-4377
+    // The use expressions are not further mangled, as the import resolver (run before this) will
+    // have replaced any import in the code with the absolute path.
+    // In this stage any use statement should no longer be present.
 
     fn visit_let_expr(&mut self, expr: &mut LetExpr<'heap>) {
         let original = expr.name.value.clone();
@@ -111,7 +194,9 @@ impl<'heap> Visitor<'heap> for NameMangler {
             self.visit_type(r#type);
         }
 
-        self.enter(original, mangled, |this| this.visit_expr(body));
+        self.enter(Scope::Value, original, mangled, |this| {
+            this.visit_expr(body);
+        });
     }
 
     fn visit_type_expr(&mut self, expr: &mut TypeExpr<'heap>) {
@@ -131,7 +216,7 @@ impl<'heap> Visitor<'heap> for NameMangler {
         self.visit_ident(name);
         self.visit_type(value);
 
-        self.enter(original, mangled, |this| this.visit_expr(body));
+        self.enter(Scope::Type, original, mangled, |this| this.visit_expr(body));
     }
 
     fn visit_newtype_expr(&mut self, expr: &mut NewTypeExpr<'heap>) {
@@ -151,14 +236,22 @@ impl<'heap> Visitor<'heap> for NameMangler {
         self.visit_ident(name);
         self.visit_type(value);
 
-        self.enter(original, mangled, |this| this.visit_expr(body));
+        self.enter(Scope::Type, original, mangled, |this| this.visit_expr(body));
     }
 
-    // TODO: use globs cannot be mangled because we don't know what it actually imports (we need
-    // module environment here)
-    //
-    // TODO: use expressions should never be affected from mangling (at least the path shouldn't be)
-    // - this means we need to skip it during mangling
+    fn visit_expr(&mut self, expr: &mut Expr<'heap>) {
+        let previous = self.current_scope;
+        self.current_scope = Scope::Value;
+        walk_expr(self, expr);
+        self.current_scope = previous;
+    }
+
+    fn visit_type(&mut self, r#type: &mut Type<'heap>) {
+        let previous = self.current_scope;
+        self.current_scope = Scope::Type;
+        walk_type(self, r#type);
+        self.current_scope = previous;
+    }
 }
 
 impl Default for NameMangler {
