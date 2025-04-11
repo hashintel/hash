@@ -3,6 +3,11 @@ use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
 
 use super::SuiteDiagnostic;
 
+/// Process diagnostics from a lowering step.
+///
+/// This will scan through all the reported diagnostics and
+/// push them into the output vector. If a fatal diagnostic is found,
+/// it will be returned as an error.
 pub(crate) fn process_diagnostics<C>(
     output: &mut Vec<SuiteDiagnostic>,
     reported: impl IntoIterator<Item = Diagnostic<C, SpanId>>,
@@ -10,7 +15,6 @@ pub(crate) fn process_diagnostics<C>(
 where
     C: DiagnosticCategory + 'static,
 {
-    // Find if there's a diagnostic that's fatal
     let mut fatal = None;
 
     for diagnostic in reported {
