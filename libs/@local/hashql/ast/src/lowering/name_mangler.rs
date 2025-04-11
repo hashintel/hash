@@ -19,17 +19,17 @@ enum Scope {
     Value,
 }
 
-struct Residual {
+struct Binding {
     name: Symbol,
-    value: Option<Symbol>,
+    previous: Option<Symbol>,
 }
 
-struct Scopes {
+struct Namespaces {
     value: HashMap<Symbol, Symbol, RandomState>,
     r#type: HashMap<Symbol, Symbol, RandomState>,
 }
 
-impl Scopes {
+impl Namespaces {
     fn new() -> Self {
         Self {
             value: HashMap::with_hasher(RandomState::default()),
@@ -37,20 +37,20 @@ impl Scopes {
         }
     }
 
-    fn enter(&mut self, scope: Scope, original: Symbol, mangled: Symbol) -> Residual {
+    fn enter(&mut self, scope: Scope, original: Symbol, mangled: Symbol) -> Binding {
         let residual = match scope {
             Scope::Type => self.r#type.insert(original.clone(), mangled),
             Scope::Value => self.value.insert(original.clone(), mangled),
         };
 
-        Residual {
+        Binding {
             name: original,
-            value: residual,
+            previous: residual,
         }
     }
 
-    fn exit(&mut self, scope: Scope, residual: Residual) {
-        if let Some(old) = residual.value {
+    fn exit(&mut self, scope: Scope, residual: Binding) {
+        if let Some(old) = residual.previous {
             match scope {
                 Scope::Type => self.r#type.insert(residual.name, old),
                 Scope::Value => self.value.insert(residual.name, old),
@@ -71,14 +71,14 @@ impl Scopes {
     }
 }
 
-struct MangledClosureSignature {
+struct MangledSignature {
     generic_params: Vec<(Symbol, Symbol)>,
     inputs: Vec<(Symbol, Symbol)>,
 }
 
 pub struct NameMangler {
-    scopes: Scopes,
-    current_scope: Scope,
+    namespaces: Namespaces,
+    scope: Scope,
 
     counter: HashMap<Symbol, usize, RandomState>,
 }
@@ -87,8 +87,8 @@ impl NameMangler {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            scopes: Scopes::new(),
-            current_scope: Scope::Value,
+            namespaces: Namespaces::new(),
+            scope: Scope::Value,
             counter: HashMap::with_hasher(RandomState::default()),
         }
     }
@@ -117,11 +117,11 @@ impl NameMangler {
         mangled: Symbol,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        let residual = self.scopes.enter(scope, original, mangled);
+        let binding = self.namespaces.enter(scope, original, mangled);
 
         let result = closure(self);
 
-        self.scopes.exit(scope, residual);
+        self.namespaces.exit(scope, binding);
 
         result
     }
@@ -132,16 +132,16 @@ impl NameMangler {
         replacements: Vec<(Symbol, Symbol)>,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        let mut residuals = Vec::with_capacity(replacements.len());
+        let mut bindings = Vec::with_capacity(replacements.len());
 
         for (original, replacement) in replacements {
-            residuals.push(self.scopes.enter(scope, original, replacement));
+            bindings.push(self.namespaces.enter(scope, original, replacement));
         }
 
         let result = closure(self);
 
-        for residual in residuals.into_iter().rev() {
-            self.scopes.exit(scope, residual);
+        for binding in bindings.into_iter().rev() {
+            self.namespaces.exit(scope, binding);
         }
 
         result
@@ -156,7 +156,7 @@ impl NameMangler {
             inputs,
             output,
         }: &mut ClosureSignature<'_>,
-    ) -> MangledClosureSignature {
+    ) -> MangledSignature {
         self.visit_id(id);
         self.visit_span(span);
 
@@ -191,7 +191,7 @@ impl NameMangler {
             this.visit_type(output);
         });
 
-        MangledClosureSignature {
+        MangledSignature {
             generic_params: mangled_generic_params,
             inputs: mangled_inputs,
         }
@@ -208,7 +208,7 @@ impl<'heap> Visitor<'heap> for NameMangler {
         }
 
         let first = &mut path.segments[0];
-        if let Some(replacement) = self.scopes.get(self.current_scope, &first.name.value) {
+        if let Some(replacement) = self.namespaces.get(self.scope, &first.name.value) {
             first.name.value = replacement;
         }
 
@@ -291,21 +291,26 @@ impl<'heap> Visitor<'heap> for NameMangler {
         self.visit_ident(name);
         self.visit_type(value);
 
-        self.enter(Scope::Type, original, mangled, |this| this.visit_expr(body));
+        self.enter(Scope::Type, original.clone(), mangled.clone(), |this| {
+            // unlike types, newtypes also bring a constructor into scope
+            this.enter(Scope::Value, original, mangled, |this| {
+                this.visit_expr(body);
+            });
+        });
     }
 
     fn visit_expr(&mut self, expr: &mut Expr<'heap>) {
-        let previous = self.current_scope;
-        self.current_scope = Scope::Value;
+        let previous = self.scope;
+        self.scope = Scope::Value;
         walk_expr(self, expr);
-        self.current_scope = previous;
+        self.scope = previous;
     }
 
     fn visit_type(&mut self, r#type: &mut Type<'heap>) {
-        let previous = self.current_scope;
-        self.current_scope = Scope::Type;
+        let previous = self.scope;
+        self.scope = Scope::Type;
         walk_type(self, r#type);
-        self.current_scope = previous;
+        self.scope = previous;
     }
 
     fn visit_closure_expr(&mut self, expr: &mut ClosureExpr<'heap>) {
@@ -319,7 +324,7 @@ impl<'heap> Visitor<'heap> for NameMangler {
         self.visit_id(id);
         self.visit_span(span);
 
-        let MangledClosureSignature {
+        let MangledSignature {
             generic_params,
             inputs,
         } = self.mangle_closure_signature(signature);
