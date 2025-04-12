@@ -10,6 +10,7 @@ use error_stack::{Report, TryReportIteratorExt as _};
 use crate::{
     category::{
         CanonicalDiagnosticCategoryId, CanonicalDiagnosticCategoryName, DiagnosticCategory,
+        category_display_name,
     },
     config::ReportConfig,
     error::ResolveError,
@@ -116,7 +117,11 @@ where
         let mut builder = ariadne::Report::build(self.severity.as_ref().kind(), span)
             .with_code(CanonicalDiagnosticCategoryId::new(&self.category));
 
-        builder.set_message(self.message.clone().unwrap_or_else(|| self.category.name()));
+        builder.set_message(
+            self.message
+                .clone()
+                .unwrap_or_else(|| category_display_name(&self.category)),
+        );
 
         if let Some(note) = &self.note {
             builder.set_note(note.colored(config.color));
