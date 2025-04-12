@@ -24,7 +24,7 @@ fn filter_labels<'label>(
         let absolute_span = AbsoluteDiagnosticSpan::new(label.span(), &mut |span: &Span| {
             DiagnosticSpan::from(span)
         });
-        let range = absolute_span.range();
+        let range = absolute_span.span();
 
         let LineCol {
             line: start,

@@ -1,7 +1,9 @@
-use hashql_core::span::SpanId;
+use core::error::Error;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 pub enum ResolveError {
-    #[error("unknown span {id:?}")]
-    UnknownSpan { id: SpanId },
+    #[display("unknown span {span}")]
+    UnknownSpan { span: String },
 }
+
+impl Error for ResolveError {}

@@ -30,7 +30,7 @@ impl From<&Span> for DiagnosticSpan {
     fn from(value: &Span) -> Self {
         Self {
             range: value.range,
-            parent_id: value.parent_id,
+            parent: value.parent_id,
         }
     }
 }

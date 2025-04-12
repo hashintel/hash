@@ -1,68 +1,60 @@
-use hashql_core::span::{SpanId, TextRange, TextSize, node::SpanNode};
+use core::fmt::Display;
 
-pub trait TransformSpan<S> {
-    fn transform(&mut self, span: &S) -> DiagnosticSpan;
-}
+use error_stack::Report;
+use text_size::{TextRange, TextSize};
 
-impl<F, S> TransformSpan<S> for F
-where
-    F: FnMut(&S) -> DiagnosticSpan,
-{
-    fn transform(&mut self, span: &S) -> DiagnosticSpan {
-        (self)(span)
-    }
-}
+use crate::error::ResolveError;
 
-impl TransformSpan<DiagnosticSpan> for () {
-    fn transform(&mut self, span: &DiagnosticSpan) -> DiagnosticSpan {
-        *span
-    }
+pub trait DiagnosticSpan: Display {
+    type Context;
+
+    fn span(&self, context: &mut Self::Context) -> Option<TextRange>;
+
+    fn ancestors(&self, context: &mut Self::Context) -> impl IntoIterator<Item = Self> + use<Self>;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct DiagnosticSpan {
-    pub range: TextRange,
-    pub parent_id: Option<SpanId>,
-}
-
-impl hashql_core::span::Span for DiagnosticSpan {
-    fn parent_id(&self) -> Option<SpanId> {
-        self.parent_id
-    }
-}
-
-pub(crate) fn absolute_span<S>(
-    span: &SpanNode<S>,
-    transform: &mut impl TransformSpan<S>,
-) -> TextRange {
-    let parent_offset = span.parent.as_ref().map_or_else(
-        || TextSize::new(0),
-        |parent| absolute_span(parent, transform).start(),
-    );
-
-    let span = transform.transform(&span.value);
-    span.range + parent_offset
-}
-
 pub struct AbsoluteDiagnosticSpan {
-    range: TextRange,
+    span: TextRange,
 }
 
 impl AbsoluteDiagnosticSpan {
-    pub fn new<S>(node: &SpanNode<S>, transform: &mut impl TransformSpan<S>) -> Self {
-        let range = absolute_span(node, transform);
+    /// Creates a new `AbsoluteDiagnosticSpan` from a diagnostic span and its context.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ResolveError::UnknownSpan` if either the span or any of its ancestors
+    /// cannot be resolved in the provided context.
+    pub fn new<S>(span: &S, context: &mut S::Context) -> Result<Self, Report<ResolveError>>
+    where
+        S: DiagnosticSpan,
+    {
+        let mut absolute = span
+            .span(context)
+            .ok_or_else(|| ResolveError::UnknownSpan {
+                span: span.to_string(),
+            })?;
 
-        Self { range }
+        for ancestor in span.ancestors(context) {
+            absolute += ancestor
+                .span(context)
+                .ok_or_else(|| ResolveError::UnknownSpan {
+                    span: span.to_string(),
+                })?
+                .start();
+        }
+
+        Ok(Self { span: absolute })
     }
 
     #[must_use]
-    pub const fn range(&self) -> TextRange {
-        self.range
+    pub const fn span(self) -> TextRange {
+        self.span
     }
 
     pub(crate) const fn full() -> Self {
         Self {
-            range: TextRange::new(TextSize::new(0), TextSize::new(u32::MAX)),
+            span: TextRange::new(TextSize::new(0), TextSize::new(u32::MAX)),
         }
     }
 }
@@ -75,19 +67,19 @@ impl ariadne::Span for AbsoluteDiagnosticSpan {
     }
 
     fn start(&self) -> usize {
-        self.range.start().into()
+        self.span.start().into()
     }
 
     fn end(&self) -> usize {
-        self.range.end().into()
+        self.span.end().into()
     }
 
     fn len(&self) -> usize {
-        self.range.len().into()
+        self.span.len().into()
     }
 
     fn is_empty(&self) -> bool {
-        self.range.is_empty()
+        self.span.is_empty()
     }
 
     #[expect(
@@ -95,6 +87,6 @@ impl ariadne::Span for AbsoluteDiagnosticSpan {
         reason = "Text will never be larger than u32::MAX (4GiB) due to the use of `TextSize`"
     )]
     fn contains(&self, offset: usize) -> bool {
-        self.range.contains(TextSize::from(offset as u32))
+        self.span.contains(TextSize::from(offset as u32))
     }
 }

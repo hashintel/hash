@@ -9,7 +9,6 @@ authors.workspace = true
 [dependencies]
 # Public workspace dependencies
 error-stack = { workspace = true, public = true, features = ["unstable"] }
-hashql-core = { workspace = true, public = true }
 
 # Public third-party dependencies
 anstyle   = { workspace = true, public = true }
@@ -21,16 +20,16 @@ text-size = { workspace = true, public = true }
 
 # Private third-party dependencies
 anstyle-yansi  = { workspace = true }
+derive_more    = { workspace = true, features = ["display"] }
 serde_with     = { workspace = true, optional = true, features = ["std", "macros"] }
 simple-mermaid = { workspace = true }
-thiserror      = { workspace = true }
 
 [dev-dependencies]
 jsonptr    = "0.7.0"
 serde_json = { workspace = true }
 
 [features]
-serde = ["dep:serde", "dep:serde_with", "hashql-core/serde"]
+serde = ["dep:serde", "dep:serde_with"]
 
 [lints]
 workspace = true
