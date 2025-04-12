@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "ada-url"
-version = "3.1.0"
+version = "3.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c796c8e5f815bd755e7e2818d683ffc7430f20f7f69b8e7f33257b4e4a75490"
+checksum = "f97eb4d376c8497daada967dbce372a388b9bab8934dc4eab31be03b7e6f0509"
 dependencies = [
  "cc",
  "derive_more 1.0.0",
@@ -1926,7 +1926,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "18e4fdb82bd54a12e42fb58a800dcae6b9e13982238ce2296dc3570b92148e1f"
 dependencies = [
  "data-encoding",
- "syn 2.0.100",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -7948,6 +7948,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
 dependencies = [
  "proc-macro2",
+ "quote",
  "unicode-ident",
 ]
 
