@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Invalid number format (trailing decimal point)
 expression: "{\"number\": 42.}"
 ---
-[31m[lexer::invalid-number] Error:[0m Lexer
+[31m[lexer::invalid-number] Error:[0m Invalid number literal
    ╭─[ <unknown>:1:12 ]
    │
  1 │ {"number": 42.}

@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/list.rs
 description: Rejects non-array values for lists
 expression: "{\"#list\": {\"not\": \"an-array\"}}"
 ---
-[31m[parser::object::list-expected-array] Error:[0m Parser
+[31m[parser::object::list-expected-array] Error:[0m Expected array for #list definition
    ╭─[ <unknown>:1:11 ]
    │
  1 │ {"#list": {"not": "an-array"}}

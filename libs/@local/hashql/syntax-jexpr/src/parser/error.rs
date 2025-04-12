@@ -41,6 +41,8 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         match self {
             Self::Lexer(category) => category.id(),
+            Self::Object(ObjectDiagnosticCategory::Lexer(category)) => category.id(),
+            Self::Array(ArrayDiagnosticCategory::Lexer(category)) => category.id(),
             _ => Cow::Borrowed("parser"),
         }
     }
@@ -48,16 +50,18 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
     fn name(&self) -> Cow<'_, str> {
         match self {
             Self::Lexer(category) => category.name(),
+            Self::Object(ObjectDiagnosticCategory::Lexer(category)) => category.name(),
+            Self::Array(ArrayDiagnosticCategory::Lexer(category)) => category.name(),
             _ => Cow::Borrowed("Parser"),
         }
     }
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            Self::Lexer(category) => Some(category),
+            Self::Lexer(category) => category.subcategory(),
             Self::String(category) => Some(category),
-            Self::Array(category) => Some(category),
-            Self::Object(category) => Some(category),
+            Self::Array(category) => Some(category.hoist()),
+            Self::Object(category) => Some(category.hoist()),
             Self::ExpectedLanguageItem => Some(&EXPECTED_LANGUAGE_ITEM),
             Self::ExpectedEof => Some(&EXPECTED_EOF),
         }

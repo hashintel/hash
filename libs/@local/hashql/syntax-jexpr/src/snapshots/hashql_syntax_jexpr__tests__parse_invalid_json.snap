@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/lib.rs
 description: End-to-end test of error handling with invalid JSON
 expression: error
 ---
-[31m[jexpr::parser::lexer::lexer::invalid-character] Error:[0m J-Expr syntax
+[31m[jexpr::lexer::invalid-character] Error:[0m Invalid character
    ╭─[ <unknown>:1:2 ]
    │
  1 │ {invalid

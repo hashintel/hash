@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
 description: Rejects dict entry with too few items in array format
 expression: "{\"#dict\": [\n            [{\"#literal\": \"key1\"}]\n        ]}"
 ---
-[31m[parser::object::dict-entry-too-few-items] Error:[0m Parser
+[31m[parser::object::dict-entry-too-few-items] Error:[0m Not enough items in dictionary entry
    ╭─[ <unknown>:2:13 ]
    │
  2 │             [{"#literal": "key1"}]

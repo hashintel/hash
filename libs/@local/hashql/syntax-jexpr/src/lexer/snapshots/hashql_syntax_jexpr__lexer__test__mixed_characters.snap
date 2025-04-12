@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Mix of single and multi-byte characters
 expression: あa三b
 ---
-[31m[lexer::invalid-character] Error:[0m Lexer
+[31m[lexer::invalid-character] Error:[0m Invalid character
    ╭─[ <unknown>:1:1 ]
    │
  1 │ あa三b

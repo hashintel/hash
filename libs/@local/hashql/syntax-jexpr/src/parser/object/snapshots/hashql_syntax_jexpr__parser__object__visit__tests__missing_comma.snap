@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/visit.rs
 description: Object with missing comma should fail
 expression: "{\"a\": 1 \"b\": 2}"
 ---
-[31m[lexer::lexer::unexpected-token] Error:[0m Lexer
+[31m[lexer::unexpected-token] Error:[0m Unexpected token
    ╭─[ <unknown>:1:9 ]
    │
  1 │ {"a": 1 "b": 2}

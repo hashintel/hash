@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Multiple emoji characters in sequence
 expression: 🚀🦀💻
 ---
-[31m[lexer::invalid-character] Error:[0m Lexer
+[31m[lexer::invalid-character] Error:[0m Invalid character
    ╭─[ <unknown>:1:1 ]
    │
  1 │ 🚀🦀💻
