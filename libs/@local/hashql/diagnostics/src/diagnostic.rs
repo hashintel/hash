@@ -68,19 +68,19 @@ impl<C, S> Diagnostic<C, S> {
     }
 }
 
-impl<C, S> Diagnostic<C, S>
-where
-    S: DiagnosticSpan,
-{
+impl<C, S> Diagnostic<C, S> {
     /// Resolve the diagnostic, into a proper diagnostic with span nodes.
     ///
     /// # Errors
     ///
     /// This function will return an error if the span id is not found in the span storage.
-    pub fn resolve(
+    pub fn resolve<DiagnosticContext>(
         self,
-        context: &mut S::Context,
-    ) -> Result<Diagnostic<C, AbsoluteDiagnosticSpan>, Report<[ResolveError]>> {
+        context: &mut DiagnosticContext,
+    ) -> Result<Diagnostic<C, AbsoluteDiagnosticSpan>, Report<[ResolveError]>>
+    where
+        S: DiagnosticSpan<DiagnosticContext>,
+    {
         let labels: Vec<_> = self
             .labels
             .into_iter()

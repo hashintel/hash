@@ -5,12 +5,13 @@ use text_size::{TextRange, TextSize};
 
 use crate::error::ResolveError;
 
-pub trait DiagnosticSpan: Display {
-    type Context;
+pub trait DiagnosticSpan<Context>: Display {
+    fn span(&self, context: &mut Context) -> Option<TextRange>;
 
-    fn span(&self, context: &mut Self::Context) -> Option<TextRange>;
-
-    fn ancestors(&self, context: &mut Self::Context) -> impl IntoIterator<Item = Self> + use<Self>;
+    fn ancestors(
+        &self,
+        context: &mut Context,
+    ) -> impl IntoIterator<Item = Self> + use<Self, Context>;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -25,9 +26,9 @@ impl AbsoluteDiagnosticSpan {
     ///
     /// Returns `ResolveError::UnknownSpan` if either the span or any of its ancestors
     /// cannot be resolved in the provided context.
-    pub fn new<S>(span: &S, context: &mut S::Context) -> Result<Self, Report<ResolveError>>
+    pub fn new<S, C>(span: &S, context: &mut C) -> Result<Self, Report<ResolveError>>
     where
-        S: DiagnosticSpan,
+        S: DiagnosticSpan<C>,
     {
         let mut absolute = span
             .span(context)

@@ -76,14 +76,14 @@ impl<S> Label<S> {
     }
 }
 
-impl<S> Label<S>
-where
-    S: DiagnosticSpan,
-{
-    pub(crate) fn resolve(
+impl<S> Label<S> {
+    pub(crate) fn resolve<C>(
         self,
-        context: &mut S::Context,
-    ) -> Result<Label<AbsoluteDiagnosticSpan>, Report<ResolveError>> {
+        context: &mut C,
+    ) -> Result<Label<AbsoluteDiagnosticSpan>, Report<ResolveError>>
+    where
+        S: DiagnosticSpan<C>,
+    {
         let span = AbsoluteDiagnosticSpan::new(&self.span, context)?;
 
         Ok(Label {
