@@ -6,6 +6,8 @@
 
 extern crate alloc;
 
+pub mod arena;
 pub mod id;
 pub mod span;
 pub mod symbol;
+pub mod r#type;

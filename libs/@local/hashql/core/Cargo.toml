@@ -16,8 +16,10 @@ text-size = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
+anstyle.workspace  = true
 ecow               = { workspace = true }
 orx-concurrent-vec = { workspace = true }
+pretty             = "0.12.4"
 serde              = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid     = { workspace = true }
 
