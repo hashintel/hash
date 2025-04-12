@@ -67,11 +67,11 @@ impl PrettyPrint for IntrinsicType {
     fn pretty<'a>(
         &'a self,
         arena: &'a Arena<Type>,
-        recursion: RecursionLimit,
+        limit: RecursionLimit,
     ) -> RcDoc<'a, anstyle::Style> {
         match self {
-            Self::List(list) => list.pretty(arena, recursion),
-            Self::Dict(dict) => dict.pretty(arena, recursion),
+            Self::List(list) => list.pretty(arena, limit),
+            Self::Dict(dict) => dict.pretty(arena, limit),
         }
     }
 }
@@ -129,6 +129,10 @@ pub(crate) fn unify_intrinsic(
                 &rhs,
                 help,
             ));
+
+            // Mark both as errors, as to not propagate errors further
+            context.mark_error(lhs);
+            context.mark_error(rhs);
         }
     }
 }

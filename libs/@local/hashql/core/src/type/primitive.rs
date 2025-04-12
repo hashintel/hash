@@ -98,8 +98,8 @@ pub(crate) fn unify_primitive(
             ));
 
             // Mark both as errors, as to not propagate errors further
-            context.arena.update(lhs.id, lhs.map(|_| TypeKind::Error));
-            context.arena.update(rhs.id, rhs.map(|_| TypeKind::Error));
+            context.mark_error(lhs);
+            context.mark_error(rhs);
         }
     }
 }

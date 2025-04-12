@@ -56,11 +56,11 @@ pub struct Type<K = TypeKind> {
 }
 
 impl<K> Type<K> {
-    pub fn map<K2>(self, f: impl FnOnce(K) -> K2) -> Type<K2> {
+    pub fn map<K2>(self, closure: impl FnOnce(K) -> K2) -> Type<K2> {
         Type {
             id: self.id,
             span: self.span,
-            kind: f(self.kind),
+            kind: closure(self.kind),
         }
     }
 }
