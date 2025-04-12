@@ -16,7 +16,7 @@ pub trait DiagnosticSpan<Context>: Display {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct AbsoluteDiagnosticSpan {
-    span: TextRange,
+    range: TextRange,
 }
 
 impl AbsoluteDiagnosticSpan {
@@ -30,14 +30,14 @@ impl AbsoluteDiagnosticSpan {
     where
         S: DiagnosticSpan<C>,
     {
-        let mut absolute = span
+        let mut range = span
             .span(context)
             .ok_or_else(|| ResolveError::UnknownSpan {
                 span: span.to_string(),
             })?;
 
         for ancestor in span.ancestors(context) {
-            absolute += ancestor
+            range += ancestor
                 .span(context)
                 .ok_or_else(|| ResolveError::UnknownSpan {
                     span: span.to_string(),
@@ -45,17 +45,22 @@ impl AbsoluteDiagnosticSpan {
                 .start();
         }
 
-        Ok(Self { span: absolute })
+        Ok(Self { range })
     }
 
     #[must_use]
-    pub const fn span(self) -> TextRange {
-        self.span
+    pub const fn from_range(range: TextRange) -> Self {
+        Self { range }
+    }
+
+    #[must_use]
+    pub const fn range(self) -> TextRange {
+        self.range
     }
 
     pub(crate) const fn full() -> Self {
         Self {
-            span: TextRange::new(TextSize::new(0), TextSize::new(u32::MAX)),
+            range: TextRange::new(TextSize::new(0), TextSize::new(u32::MAX)),
         }
     }
 }
@@ -68,19 +73,19 @@ impl ariadne::Span for AbsoluteDiagnosticSpan {
     }
 
     fn start(&self) -> usize {
-        self.span.start().into()
+        self.range.start().into()
     }
 
     fn end(&self) -> usize {
-        self.span.end().into()
+        self.range.end().into()
     }
 
     fn len(&self) -> usize {
-        self.span.len().into()
+        self.range.len().into()
     }
 
     fn is_empty(&self) -> bool {
-        self.span.is_empty()
+        self.range.is_empty()
     }
 
     #[expect(
@@ -88,6 +93,6 @@ impl ariadne::Span for AbsoluteDiagnosticSpan {
         reason = "Text will never be larger than u32::MAX (4GiB) due to the use of `TextSize`"
     )]
     fn contains(&self, offset: usize) -> bool {
-        self.span.contains(TextSize::from(offset as u32))
+        self.range.contains(TextSize::from(offset as u32))
     }
 }

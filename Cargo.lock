@@ -3712,6 +3712,7 @@ name = "hashql-core"
 version = "0.0.0"
 dependencies = [
  "ecow",
+ "hashql-diagnostics",
  "orx-concurrent-vec",
  "serde",
  "simple-mermaid",
