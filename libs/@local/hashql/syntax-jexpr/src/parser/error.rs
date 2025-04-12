@@ -40,18 +40,18 @@ pub enum ParserDiagnosticCategory {
 impl DiagnosticCategory for ParserDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         match self {
-            Self::Lexer(category) => category.id(),
-            Self::Object(ObjectDiagnosticCategory::Lexer(category)) => category.id(),
-            Self::Array(ArrayDiagnosticCategory::Lexer(category)) => category.id(),
+            Self::Lexer(category)
+            | Self::Object(ObjectDiagnosticCategory::Lexer(category))
+            | Self::Array(ArrayDiagnosticCategory::Lexer(category)) => category.id(),
             _ => Cow::Borrowed("parser"),
         }
     }
 
     fn name(&self) -> Cow<'_, str> {
         match self {
-            Self::Lexer(category) => category.name(),
-            Self::Object(ObjectDiagnosticCategory::Lexer(category)) => category.name(),
-            Self::Array(ArrayDiagnosticCategory::Lexer(category)) => category.name(),
+            Self::Lexer(category)
+            | Self::Object(ObjectDiagnosticCategory::Lexer(category))
+            | Self::Array(ArrayDiagnosticCategory::Lexer(category)) => category.name(),
             _ => Cow::Borrowed("Parser"),
         }
     }
