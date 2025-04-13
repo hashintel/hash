@@ -4,6 +4,7 @@ use pretty::RcDoc;
 use super::{
     Type, TypeId,
     pretty_print::{ORANGE, PrettyPrint, RecursionLimit},
+    unify::UnificationContext,
 };
 use crate::{arena::Arena, newtype, symbol::Ident};
 
@@ -13,13 +14,13 @@ newtype!(
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GenericArgument {
-    id: GenericArgumentId,
-    name: Ident,
+    pub id: GenericArgumentId,
+    pub name: Ident,
 
     // The initial type constraint (if present), only used during instantiation and pretty-printing
-    constraint: Option<TypeId>,
+    pub constraint: Option<TypeId>,
 
-    r#type: TypeId,
+    pub r#type: TypeId,
 }
 
 impl PrettyPrint for GenericArgument {
@@ -45,6 +46,31 @@ impl PrettyPrint for GenericArgument {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GenericArguments(EcoVec<GenericArgument>);
 
+impl GenericArguments {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self(EcoVec::new())
+    }
+
+    pub fn enter_scope(&self, context: &mut UnificationContext) {
+        for argument in &self.0 {
+            context.enter_generic_argument_scope(argument.id, argument.r#type);
+        }
+    }
+
+    pub fn exit_scope(&self, context: &mut UnificationContext) {
+        for argument in &self.0 {
+            context.exit_generic_argument_scope(argument.id);
+        }
+    }
+}
+
+impl FromIterator<GenericArgument> for GenericArguments {
+    fn from_iter<T: IntoIterator<Item = GenericArgument>>(iter: T) -> Self {
+        Self(EcoVec::from_iter(iter))
+    }
+}
+
 impl PrettyPrint for GenericArguments {
     fn pretty<'a>(
         &'a self,
@@ -65,5 +91,11 @@ impl PrettyPrint for GenericArguments {
                 )
                 .append(RcDoc::text(">"))
         }
+    }
+}
+
+impl Default for GenericArguments {
+    fn default() -> Self {
+        Self::new()
     }
 }

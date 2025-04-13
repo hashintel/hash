@@ -58,7 +58,7 @@ pub enum TypeKind {
 
 impl TypeKind {
     #[must_use]
-    pub fn as_primitive(&self) -> Option<PrimitiveType> {
+    pub const fn as_primitive(&self) -> Option<PrimitiveType> {
         match self {
             &Self::Primitive(r#type) => Some(r#type),
             _ => None,
@@ -66,9 +66,17 @@ impl TypeKind {
     }
 
     #[must_use]
-    pub fn as_intrinsic(&self) -> Option<IntrinsicType> {
+    pub const fn as_intrinsic(&self) -> Option<IntrinsicType> {
         match self {
             &Self::Intrinsic(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
+
+    #[must_use]
+    pub fn into_struct(self) -> Option<StructType> {
+        match self {
+            Self::Struct(r#type) => Some(r#type),
             _ => None,
         }
     }
@@ -91,7 +99,7 @@ impl<K> Type<K> {
         }
     }
 
-    pub fn as_ref(&self) -> Type<&K> {
+    pub const fn as_ref(&self) -> Type<&K> {
         Type {
             id: self.id,
             span: self.span,

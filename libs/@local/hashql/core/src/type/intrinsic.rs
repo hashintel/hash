@@ -122,7 +122,7 @@ pub(crate) fn unify_intrinsic(
                 _ => None,
             };
 
-            context.diagnostics.push(type_mismatch(
+            context.record_diagnostic(type_mismatch(
                 context.source,
                 &context.arena,
                 &lhs,
@@ -174,7 +174,7 @@ mod tests {
         unify_intrinsic(&mut context, lhs, rhs);
 
         assert!(
-            context.diagnostics.is_empty(),
+            context.take_diagnostics().is_empty(),
             "Failed to unify identical List types"
         );
 
@@ -214,7 +214,7 @@ mod tests {
         unify_intrinsic(&mut context, lhs, rhs);
 
         assert!(
-            context.diagnostics.is_empty(),
+            context.take_diagnostics().is_empty(),
             "Failed to unify lists with unifiable elements"
         );
 
@@ -260,7 +260,7 @@ mod tests {
         unify_intrinsic(&mut context, lhs, rhs);
 
         assert!(
-            context.diagnostics.is_empty(),
+            context.take_diagnostics().is_empty(),
             "Failed to unify identical Dict types"
         );
 
@@ -300,7 +300,7 @@ mod tests {
         unify_intrinsic(&mut context, lhs, rhs);
 
         assert!(
-            context.diagnostics.is_empty(),
+            context.take_diagnostics().is_empty(),
             "Failed to unify dicts with unifiable values"
         );
 
@@ -388,7 +388,7 @@ mod tests {
             unify_intrinsic(&mut context, lhs, rhs);
 
             assert_eq!(
-                context.diagnostics.len(),
+                context.take_diagnostics().len(),
                 1,
                 "Expected error when unifying {description}"
             );
@@ -435,7 +435,7 @@ mod tests {
 
         unify_intrinsic(&mut context, list, dict);
 
-        let diagnostic = &context.diagnostics[0];
+        let diagnostic = &context.take_diagnostics()[0];
         assert_eq!(
             diagnostic
                 .help

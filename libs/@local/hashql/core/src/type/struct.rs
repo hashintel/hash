@@ -1,10 +1,14 @@
+use std::collections::HashMap;
+
 use ecow::EcoVec;
 use pretty::RcDoc;
 
 use super::{
-    Type, TypeId,
+    Type, TypeId, TypeKind,
     generic_argument::GenericArguments,
     pretty_print::{PrettyPrint, RecursionLimit},
+    unify::UnificationContext,
+    unify_type,
 };
 use crate::{arena::Arena, symbol::Ident};
 
@@ -30,10 +34,10 @@ impl PrettyPrint for StructField {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructType {
+    // Any extends is resolved in a previous pass
     fields: EcoVec<StructField>,
-    extends: EcoVec<TypeId>,
 
-    args: GenericArguments,
+    arguments: GenericArguments,
 }
 
 impl PrettyPrint for StructType {
@@ -55,6 +59,362 @@ impl PrettyPrint for StructType {
                     .group(),
                 )
                 .append(RcDoc::text(")"))
+        }
+    }
+}
+
+pub(crate) fn unify_struct(
+    context: &mut UnificationContext,
+    mut lhs: Type<StructType>,
+    mut rhs: Type<StructType>,
+) {
+    lhs.kind.arguments.enter_scope(context);
+    rhs.kind.arguments.enter_scope(context);
+
+    // Unification for structs works very similarly to in TypeScript, we basically do a `T & U`
+    let mut lhs_fields = EcoVec::with_capacity(lhs.kind.fields.len());
+    let mut rhs_fields = EcoVec::with_capacity(rhs.kind.fields.len());
+
+    let rhs_by_key: HashMap<_, _> = rhs
+        .kind
+        .fields
+        .into_iter()
+        .map(|field| (field.key.value.clone(), field))
+        .collect();
+
+    for lhs_field in lhs.kind.fields {
+        let Some(rhs_field) = rhs_by_key.get(&lhs_field.key.value) else {
+            continue;
+        };
+
+        unify_type(context, lhs_field.value, rhs_field.value);
+        lhs_fields.push(lhs_field.clone());
+        rhs_fields.push((*rhs_field).clone());
+    }
+
+    lhs.kind.fields = lhs_fields;
+    rhs.kind.fields = rhs_fields;
+
+    lhs.kind.arguments.exit_scope(context);
+    rhs.kind.arguments.exit_scope(context);
+
+    context.arena.update(lhs.id, lhs.map(TypeKind::Struct));
+    context.arena.update(rhs.id, rhs.map(TypeKind::Struct));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{StructField, StructType};
+    use crate::r#type::{
+        TypeKind,
+        generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+        primitive::PrimitiveType,
+        r#struct::unify_struct,
+        test::{ident, instantiate, setup},
+    };
+
+    #[test]
+    fn identical_structs_unify() {
+        let mut context = setup();
+
+        // Create a struct with two fields: name: String, age: Number
+        let name_field = StructField {
+            key: ident("name"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+        };
+        let age_field = StructField {
+            key: ident("age"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+        };
+
+        let struct_type = StructType {
+            fields: vec![name_field, age_field].into(),
+            arguments: GenericArguments::new(),
+        };
+
+        let lhs_id = instantiate(&mut context, TypeKind::Struct(struct_type.clone()));
+        let rhs_id = instantiate(&mut context, TypeKind::Struct(struct_type));
+
+        let lhs = context.arena[lhs_id]
+            .clone()
+            .map(|kind| kind.into_struct().expect("type should be a struct"));
+        let rhs = context.arena[rhs_id]
+            .clone()
+            .map(|kind| kind.into_struct().expect("type should be a struct"));
+
+        unify_struct(&mut context, lhs, rhs);
+
+        assert!(
+            context.take_diagnostics().is_empty(),
+            "Failed to unify identical structs"
+        );
+
+        // Check both structs maintained their fields
+        let lhs = context.arena[lhs_id].clone();
+        let rhs = context.arena[rhs_id].clone();
+
+        assert_eq!(lhs.kind, rhs.kind);
+    }
+
+    #[test]
+    fn overlapping_structs_unify() {
+        let mut context = setup();
+
+        // Create two structs with overlapping fields:
+        // lhs: (name: String, age: Number)
+        // rhs: (name: String, id: Number)
+        let name_field = StructField {
+            key: ident("name"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+        };
+        let age_field = StructField {
+            key: ident("age"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+        };
+        let id_field = StructField {
+            key: ident("id"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+        };
+
+        let lhs_type = StructType {
+            fields: [name_field.clone(), age_field].into(),
+            arguments: GenericArguments::default(),
+        };
+        let rhs_type = StructType {
+            fields: [name_field, id_field].into(),
+            arguments: GenericArguments::default(),
+        };
+
+        let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
+        let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));
+
+        let lhs = context.arena[lhs_id]
+            .clone()
+            .map(|kind| kind.into_struct().expect("type should be a struct"));
+        let rhs = context.arena[rhs_id]
+            .clone()
+            .map(|kind| kind.into_struct().expect("type should be a struct"));
+
+        unify_struct(&mut context, lhs, rhs);
+
+        assert!(
+            context.take_diagnostics().is_empty(),
+            "Failed to unify structs with overlapping fields"
+        );
+
+        // Check that both structs only contain the common field (name)
+        let lhs = context.arena[lhs_id].clone();
+        let rhs = context.arena[rhs_id].clone();
+
+        if let TypeKind::Struct(lhs_struct) = lhs.kind {
+            assert_eq!(
+                lhs_struct.fields.len(),
+                1,
+                "LHS should only have common fields"
+            );
+            assert_eq!(lhs_struct.fields[0].key, ident("name"));
+        }
+
+        if let TypeKind::Struct(rhs_struct) = rhs.kind {
+            assert_eq!(
+                rhs_struct.fields.len(),
+                1,
+                "RHS should only have common fields"
+            );
+            assert_eq!(rhs_struct.fields[0].key, ident("name"));
+        }
+    }
+
+    #[test]
+    fn struct_field_types_unify() {
+        let mut context = setup();
+
+        // Create structs with a field that needs type promotion:
+        // lhs: { value: Integer }
+        // rhs: { value: Number }
+        let lhs_field = StructField {
+            key: ident("value"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer)),
+        };
+        let rhs_field = StructField {
+            key: ident("value"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+        };
+
+        let lhs_type = StructType {
+            fields: [lhs_field].into(),
+            arguments: GenericArguments::default(),
+        };
+        let rhs_type = StructType {
+            fields: [rhs_field].into(),
+            arguments: GenericArguments::default(),
+        };
+
+        let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
+        let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));
+
+        let lhs = context.arena[lhs_id]
+            .clone()
+            .map(|kind| kind.into_struct().expect("type should be a struct"));
+        let rhs = context.arena[rhs_id]
+            .clone()
+            .map(|kind| kind.into_struct().expect("type should be a struct"));
+
+        unify_struct(&mut context, lhs, rhs);
+
+        assert!(
+            context.take_diagnostics().is_empty(),
+            "Failed to unify structs with unifiable field types"
+        );
+
+        // Check that Integer was promoted to Number in both structs
+        let lhs = context.arena[lhs_id].clone();
+        let rhs = context.arena[rhs_id].clone();
+
+        if let TypeKind::Struct(lhs_struct) = lhs.kind {
+            let field_type = &context.arena[lhs_struct.fields[0].value].kind;
+            assert!(
+                matches!(field_type, TypeKind::Primitive(PrimitiveType::Number)),
+                "LHS field type should be promoted to Number"
+            );
+        }
+
+        if let TypeKind::Struct(rhs_struct) = rhs.kind {
+            let field_type = &context.arena[rhs_struct.fields[0].value].kind;
+            assert!(
+                matches!(field_type, TypeKind::Primitive(PrimitiveType::Number)),
+                "RHS field type should be Number"
+            );
+        }
+    }
+
+    #[test]
+    fn disjoint_structs_unify_to_empty() {
+        let mut context = setup();
+
+        // Create structs with no fields in common:
+        // lhs: { name: String }
+        // rhs: { age: Number }
+        let name_field = StructField {
+            key: ident("name"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+        };
+        let age_field = StructField {
+            key: ident("age"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+        };
+
+        let lhs_type = StructType {
+            fields: vec![name_field].into(),
+            arguments: GenericArguments::default(),
+        };
+        let rhs_type = StructType {
+            fields: vec![age_field].into(),
+            arguments: GenericArguments::default(),
+        };
+
+        let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
+        let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));
+
+        let lhs = context.arena[lhs_id]
+            .clone()
+            .map(|kind| kind.into_struct().expect("type should be a struct"));
+        let rhs = context.arena[rhs_id]
+            .clone()
+            .map(|kind| kind.into_struct().expect("type should be a struct"));
+
+        unify_struct(&mut context, lhs, rhs);
+
+        assert!(
+            context.take_diagnostics().is_empty(),
+            "Failed to unify disjoint structs"
+        );
+
+        // Check that both structs are now empty
+        let lhs = context.arena[lhs_id].clone();
+        let rhs = context.arena[rhs_id].clone();
+
+        if let TypeKind::Struct(lhs_struct) = lhs.kind {
+            assert!(lhs_struct.fields.is_empty(), "LHS should have no fields");
+        }
+
+        if let TypeKind::Struct(rhs_struct) = rhs.kind {
+            assert!(rhs_struct.fields.is_empty(), "RHS should have no fields");
+        }
+    }
+
+    #[test]
+    fn generic_struct_args_scope() {
+        let mut context = setup();
+
+        // Create a generic argument T
+        let t_id = GenericArgumentId::new(0);
+        let t_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let t_arg = GenericArgument {
+            id: t_id,
+            name: ident("T"),
+            constraint: None,
+            r#type: t_type,
+        };
+
+        // Create structs with generic field:
+        // lhs: { value: T }
+        let lhs_field = StructField {
+            key: ident("value"),
+            value: t_type,
+        };
+
+        let lhs_type = StructType {
+            fields: vec![lhs_field].into(),
+            arguments: GenericArguments::from_iter([t_arg]),
+        };
+
+        // rhs: { value: Number }
+        let rhs_field = StructField {
+            key: ident("value"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+        };
+
+        let rhs_type = StructType {
+            fields: vec![rhs_field].into(),
+            arguments: GenericArguments::new(),
+        };
+
+        let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
+        let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));
+
+        // Verify arg is not in scope before unification
+        assert!(context.generic_argument(t_id).is_none());
+
+        let lhs = context.arena[lhs_id]
+            .clone()
+            .map(|kind| kind.into_struct().expect("type should be a struct"));
+        let rhs = context.arena[rhs_id]
+            .clone()
+            .map(|kind| kind.into_struct().expect("type should be a struct"));
+
+        unify_struct(&mut context, lhs, rhs);
+
+        // Verify arg was properly removed from scope after unification
+        assert!(context.generic_argument(t_id).is_none());
+
+        assert!(
+            context.take_diagnostics().is_empty(),
+            "Failed to unify struct with generic argument"
+        );
+
+        // Check that both structs maintained their field
+        let lhs = context.arena[lhs_id].clone();
+        let rhs = context.arena[rhs_id].clone();
+
+        if let TypeKind::Struct(lhs_struct) = lhs.kind {
+            assert_eq!(lhs_struct.fields.len(), 1);
+            assert_eq!(lhs_struct.fields[0].key, ident("value"));
+        }
+
+        if let TypeKind::Struct(rhs_struct) = rhs.kind {
+            assert_eq!(rhs_struct.fields.len(), 1);
+            assert_eq!(rhs_struct.fields[0].key, ident("value"));
         }
     }
 }

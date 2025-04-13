@@ -1,12 +1,12 @@
 use super::{Type, TypeId, TypeKind, unify::UnificationContext};
-use crate::{arena::Arena, span::SpanId};
+use crate::{
+    arena::Arena,
+    span::SpanId,
+    symbol::{Ident, IdentKind, Symbol},
+};
 
 pub(crate) fn setup() -> UnificationContext {
-    UnificationContext {
-        source: SpanId::SYNTHETIC,
-        arena: Arena::new(),
-        diagnostics: Vec::new(),
-    }
+    UnificationContext::new(SpanId::SYNTHETIC, Arena::new())
 }
 
 pub(crate) fn instantiate(context: &mut UnificationContext, kind: TypeKind) -> TypeId {
@@ -15,4 +15,12 @@ pub(crate) fn instantiate(context: &mut UnificationContext, kind: TypeKind) -> T
         span: SpanId::SYNTHETIC,
         kind,
     })
+}
+
+pub(crate) fn ident(value: &str) -> Ident {
+    Ident {
+        span: SpanId::SYNTHETIC,
+        value: Symbol::new(value),
+        kind: IdentKind::Lexical,
+    }
 }

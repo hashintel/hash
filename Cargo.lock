@@ -3719,6 +3719,7 @@ version = "0.0.0"
 dependencies = [
  "anstyle",
  "ecow",
+ "foldhash",
  "hashql-diagnostics",
  "orx-concurrent-vec",
  "pretty",
