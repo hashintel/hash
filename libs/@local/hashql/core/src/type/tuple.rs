@@ -62,11 +62,17 @@ impl PrettyPrint for TupleType {
     }
 }
 
+/// Unifies tuple types, respecting variance without concern for backward compatibility.
+///
+/// In a covariant context:
+/// - Both tuples must have the same number of fields (tuples are invariant in length)
+/// - Each corresponding field must be covariant
 pub(crate) fn unify_tuple(
     context: &mut UnificationContext,
     lhs: &Type<TupleType>,
     rhs: &Type<TupleType>,
 ) {
+    // Tuples must have the same number of fields
     if lhs.kind.fields.len() != rhs.kind.fields.len() {
         let diagnostic = tuple_length_mismatch(
             context.source,
@@ -82,15 +88,25 @@ pub(crate) fn unify_tuple(
         return;
     }
 
+    // Enter generic argument scope for both tuples
     lhs.kind.arguments.enter_scope(context);
     rhs.kind.arguments.enter_scope(context);
 
+    // Unify corresponding fields in each tuple
+    // In most type systems, tuple fields are covariant
     for (lhs_field, rhs_field) in lhs.kind.fields.iter().zip(rhs.kind.fields.iter()) {
-        unify_type(context, lhs_field.value, rhs_field.value);
+        // Use covariant context for field types
+        context.in_covariant(|ctx| {
+            unify_type(ctx, lhs_field.value, rhs_field.value);
+        });
     }
 
+    // Exit generic argument scope
     lhs.kind.arguments.exit_scope(context);
     rhs.kind.arguments.exit_scope(context);
+
+    // In a strictly variance-aware system, we do NOT modify the tuple types
+    // Each tuple maintains its original structure, preserving identity and subtyping relationships
 }
 
 #[cfg(test)]

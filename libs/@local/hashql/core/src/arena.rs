@@ -2,6 +2,7 @@ use core::ops::Index;
 
 use crate::id::{HasId, Id as _};
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Arena<T> {
     // In theory we could chunks here instead, that'd require unsafe code, and therefore also
     // require to run miri.

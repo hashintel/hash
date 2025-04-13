@@ -9,7 +9,7 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-use super::{Type, generic_argument, pretty_print::PrettyPrint};
+use super::{Type, generic_argument::GenericArgumentId, pretty_print::PrettyPrint};
 use crate::{arena::Arena, span::SpanId};
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
@@ -221,13 +221,13 @@ where
 
     diagnostic
         .labels
-        .push(Label::new(span, "Tuple length mismatch in this expression").with_order(3));
+        .push(Label::new(span, "The tuples have different numbers of elements").with_order(3));
 
     diagnostic.labels.push(
         Label::new(
             lhs.span,
             format!(
-                "This is a tuple with {} element{}",
+                "This tuple has {} element{}",
                 lhs_len,
                 if lhs_len == 1 { "" } else { "s" }
             ),
@@ -239,7 +239,7 @@ where
         Label::new(
             rhs.span,
             format!(
-                "This is a tuple with {} element{}",
+                "This tuple has {} element{}",
                 rhs_len,
                 if rhs_len == 1 { "" } else { "s" }
             ),
@@ -248,13 +248,13 @@ where
     );
 
     diagnostic.help = Some(Help::new(
-        "Tuples can only be unified when they have the same number of elements. Make sure both \
-         tuples have the same length by adding or removing elements.",
+        "Tuples must have the same number of elements to be compatible. You need to adjust one of \
+         the tuples to match the other's length.",
     ));
 
     diagnostic.note = Some(Note::new(
-        "Tuple types are only compatible when they have the same number of elements, even if the \
-         element types would be compatible individually.",
+        "Unlike some collections, tuples have a fixed length that is part of their type. This \
+         means (String, Number) and (String, Number, Boolean) are completely different types.",
     ));
 
     diagnostic
@@ -276,26 +276,31 @@ where
         Severity::ERROR,
     );
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Incompatible opaque types in this expression").with_order(3));
+    diagnostic.labels.push(
+        Label::new(
+            span,
+            "These named types are different and cannot be used interchangeably",
+        )
+        .with_order(3),
+    );
 
     diagnostic
         .labels
-        .push(Label::new(lhs.span, format!("This is opaque type '{}'", lhs_name)).with_order(1));
+        .push(Label::new(lhs.span, format!("This is type '{lhs_name}'")).with_order(1));
 
     diagnostic
         .labels
-        .push(Label::new(rhs.span, format!("This is opaque type '{}'", rhs_name)).with_order(2));
+        .push(Label::new(rhs.span, format!("This is type '{rhs_name}'")).with_order(2));
 
     diagnostic.help = Some(Help::new(
-        "Opaque types are nominally typed, which means they can only be unified with other \
-         instances of the same named type. Make sure both values have the same opaque type name.",
+        "Named types can only be used with other instances of the exact same type. This is \
+         similar to how 'UserId' and 'PostId' would be different types even if they're both \
+         numbers underneath.",
     ));
 
     diagnostic.note = Some(Note::new(
-        "Opaque types enforce strong type safety by not allowing different named types to be used \
-         interchangeably, even if their underlying representations would be compatible.",
+        "This distinction prevents accidentally mixing up different types that happen to have the \
+         same internal structure, helping catch logical errors in your code.",
     ));
 
     diagnostic
@@ -305,7 +310,7 @@ where
 pub(crate) fn generic_argument_not_found<K>(
     span: SpanId,
     param_type: &Type<K>,
-    argument_id: generic_argument::GenericArgumentId,
+    argument_id: GenericArgumentId,
 ) -> TypeCheckDiagnostic
 where
     K: PrettyPrint,
@@ -322,10 +327,7 @@ where
     diagnostic.labels.push(
         Label::new(
             param_type.span,
-            format!(
-                "This parameter refers to an undefined generic argument ID {:?}",
-                argument_id
-            ),
+            format!("This parameter refers to an undefined generic argument ID {argument_id}"),
         )
         .with_order(1),
     );

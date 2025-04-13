@@ -9,7 +9,9 @@ pub struct UnificationContext {
     pub source: SpanId,
     pub arena: Arena<Type>,
 
-    diagnostics: Vec<TypeCheckDiagnostic>,
+    variance_context: Variance,
+
+    pub(super) diagnostics: Vec<TypeCheckDiagnostic>,
     visited: HashSet<(TypeId, TypeId), foldhash::fast::RandomState>,
 
     // The arguments currently in scope
@@ -22,6 +24,7 @@ impl UnificationContext {
         Self {
             source,
             arena,
+            variance_context: Variance::default(),
             diagnostics: Vec::new(),
             visited: HashSet::default(),
             arguments: HashMap::default(),
@@ -64,4 +67,51 @@ impl UnificationContext {
     pub(crate) fn generic_argument(&self, id: GenericArgumentId) -> Option<TypeId> {
         self.arguments.get(&id).copied()
     }
+
+    pub(crate) const fn variance_context(&self) -> Variance {
+        self.variance_context
+    }
+
+    pub fn with_variance<T>(&mut self, variance: Variance, f: impl FnOnce(&mut Self) -> T) -> T {
+        let old_variance = self.variance_context;
+
+        // Apply variance composition rules
+        self.variance_context = match (old_variance, variance) {
+            // When going from covariant to contravariant context or vice versa, flip to
+            // contravariant
+            (Variance::Covariant, Variance::Contravariant)
+            | (Variance::Contravariant, Variance::Covariant) => Variance::Contravariant,
+
+            // When either context is invariant, the result is invariant
+            (Variance::Invariant, _) | (_, Variance::Invariant) => Variance::Invariant,
+
+            // Otherwise preserve the context
+            _ => variance,
+        };
+
+        let result = f(self);
+        self.variance_context = old_variance;
+        result
+    }
+
+    // Helper methods
+    pub fn in_contravariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+        self.with_variance(Variance::Contravariant, closure)
+    }
+
+    pub fn in_covariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+        self.with_variance(Variance::Covariant, closure)
+    }
+
+    pub fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+        self.with_variance(Variance::Invariant, closure)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
+pub enum Variance {
+    #[default]
+    Covariant, // Same direction
+    Contravariant, // Opposite direction
+    Invariant,     // Exact match
 }

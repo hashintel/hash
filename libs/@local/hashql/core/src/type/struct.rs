@@ -4,7 +4,7 @@ use ecow::EcoVec;
 use pretty::RcDoc;
 
 use super::{
-    Type, TypeId, TypeKind,
+    Type, TypeId,
     generic_argument::GenericArguments,
     pretty_print::{PrettyPrint, RecursionLimit},
     unify::UnificationContext,
@@ -65,43 +65,70 @@ impl PrettyPrint for StructType {
     }
 }
 
+/// Unifies struct types, respecting variance without concern for backward compatibility.
+///
+/// In a covariant context:
+/// - rhs must have at least all the fields that lhs has (width subtyping).
+/// - Field types must respect covariance (rhs fields must be subtypes of left field types)
 pub(crate) fn unify_struct(
     context: &mut UnificationContext,
-    mut lhs: Type<StructType>,
-    mut rhs: Type<StructType>,
+    lhs: &Type<StructType>,
+    rhs: &Type<StructType>,
 ) {
+    // Enter generic argument scope for both structs
     lhs.kind.arguments.enter_scope(context);
     rhs.kind.arguments.enter_scope(context);
 
-    // Unification for structs works very similarly to in TypeScript, we basically do a `T & U`
-    let mut lhs_fields = EcoVec::with_capacity(lhs.kind.fields.len());
-    let mut rhs_fields = EcoVec::with_capacity(rhs.kind.fields.len());
-
+    // Maps for fast lookups of fields by key
     let rhs_by_key: HashMap<_, _> = rhs
         .kind
         .fields
-        .into_iter()
+        .iter()
         .map(|field| (field.key.value.clone(), field))
         .collect();
 
-    for lhs_field in lhs.kind.fields {
-        let Some(rhs_field) = rhs_by_key.get(&lhs_field.key.value) else {
-            continue;
-        };
+    // In a strictly variance-aware system:
+    // - rhs must have all fields of lhs (width subtyping)
+    // - Field types must respect the current variance context
 
-        unify_type(context, lhs_field.value, rhs_field.value);
-        lhs_fields.push(lhs_field.clone());
-        rhs_fields.push((*rhs_field).clone());
+    // Check if all lhs fields exist in rhs
+    let mut missing_fields = false;
+    for lhs_field in &lhs.kind.fields {
+        if let Some(rhs_field) = rhs_by_key.get(&lhs_field.key.value) {
+            // This field exists in both structs - unify the field types
+            // Fields are in covariant position within a struct
+            context.in_covariant(|ctx| {
+                unify_type(ctx, lhs_field.value, rhs_field.value);
+            });
+        } else {
+            // The covariance of lhs <: rhs is violated
+            let diagnostic = super::error::type_mismatch(
+                context.source,
+                &context.arena,
+                lhs,
+                rhs,
+                Some(&format!(
+                    "Missing required field '{}'. The struct being used is missing fields that \
+                     are required by the expected type.",
+                    lhs_field.key.value
+                )),
+            );
+
+            context.record_diagnostic(diagnostic);
+            missing_fields = true;
+        }
     }
 
-    lhs.kind.fields = lhs_fields;
-    rhs.kind.fields = rhs_fields;
+    if missing_fields {
+        context.mark_error(lhs.id);
+        context.mark_error(rhs.id);
+    }
 
     lhs.kind.arguments.exit_scope(context);
     rhs.kind.arguments.exit_scope(context);
 
-    context.arena.update(lhs.id, lhs.map(TypeKind::Struct));
-    context.arena.update(rhs.id, rhs.map(TypeKind::Struct));
+    // In a strictly variance-aware system, we do NOT modify the struct types
+    // Each struct maintains its original fields, preserving the subtyping relationship
 }
 
 #[cfg(test)]
@@ -165,7 +192,7 @@ mod tests {
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
 
-        unify_struct(&mut context, lhs, rhs);
+        unify_struct(&mut context, &lhs, &rhs);
 
         assert!(
             context.take_diagnostics().is_empty(),
@@ -252,7 +279,7 @@ mod tests {
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
 
-        unify_struct(&mut context, lhs, rhs);
+        unify_struct(&mut context, &lhs, &rhs);
 
         assert!(
             context.take_diagnostics().is_empty(),
@@ -317,7 +344,7 @@ mod tests {
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
 
-        unify_struct(&mut context, lhs, rhs);
+        unify_struct(&mut context, &lhs, &rhs);
 
         assert!(
             context.take_diagnostics().is_empty(),
@@ -380,7 +407,7 @@ mod tests {
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
 
-        unify_struct(&mut context, lhs, rhs);
+        unify_struct(&mut context, &lhs, &rhs);
 
         assert!(
             context.take_diagnostics().is_empty(),
@@ -450,7 +477,7 @@ mod tests {
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
 
-        unify_struct(&mut context, lhs, rhs);
+        unify_struct(&mut context, &lhs, &rhs);
 
         // Verify arg was properly removed from scope after unification
         assert!(context.generic_argument(t_id).is_none());

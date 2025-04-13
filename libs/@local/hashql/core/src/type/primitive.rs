@@ -36,18 +36,28 @@ impl PrettyPrint for PrimitiveType {
     }
 }
 
+/// Unifies primitive types, respecting variance.
+///
+/// In a covariant context, this checks if `rhs` is a subtype of `lhs`.
+/// For primitives, the main subtyping relationship is Integer <: Number
+/// (Integer is a subtype of Number).
 pub(crate) fn unify_primitive(
     context: &mut UnificationContext,
     lhs: Type<PrimitiveType>,
     rhs: Type<PrimitiveType>,
 ) {
+    // If primitives are identical, they're compatible in any variance context
     if lhs.kind == rhs.kind {
         return;
     }
 
     match (lhs.kind, rhs.kind) {
-        // Integer gets demoted to Number, if required
+        // Handle the Integer <: Number subtyping relationship
         (PrimitiveType::Number, PrimitiveType::Integer) => {
+            // In covariant context: Integer (rhs) is a subtype of Number (lhs).
+            // This is valid - Integer can be used where Number is expected
+            // We update the type for consistency in the type graph and to ensure
+            // that all subsequent operations have the precise type information
             context.arena.update(
                 rhs.id,
                 rhs.map(|_| TypeKind::Primitive(PrimitiveType::Number)),
@@ -55,14 +65,27 @@ pub(crate) fn unify_primitive(
         }
 
         (PrimitiveType::Integer, PrimitiveType::Number) => {
-            context.arena.update(
-                lhs.id,
-                lhs.map(|_| TypeKind::Primitive(PrimitiveType::Number)),
-            );
+            // In covariant context: Number (rhs) is NOT a subtype of Integer (lhs)
+            // This is an error - Number cannot be used where Integer is expected
+            context.record_diagnostic(type_mismatch(
+                context.source,
+                &context.arena,
+                &lhs,
+                &rhs,
+                Some(
+                    "Expected an Integer but found a Number. While all Integers are Numbers, not \
+                     all Numbers are Integers (e.g., decimals like 3.14).",
+                ),
+            ));
+
+            // Mark both types as errors
+            context.mark_error(lhs.id);
+            context.mark_error(rhs.id);
         }
 
         _ => {
-            // Create a helpful error message based on the specific type mismatch
+            // In covariant context: These primitive types have no subtyping relationship
+            // Provide helpful conversion suggestions based on the specific type mismatch
             let help_message = match (lhs.kind, rhs.kind) {
                 (PrimitiveType::Number | PrimitiveType::Integer, PrimitiveType::String) => Some(
                     "You can convert the number to a string using the \
@@ -95,6 +118,7 @@ pub(crate) fn unify_primitive(
                 _ => None,
             };
 
+            // Record a type mismatch diagnostic with helpful conversion suggestions
             context.record_diagnostic(type_mismatch(
                 context.source,
                 &context.arena,
@@ -103,7 +127,7 @@ pub(crate) fn unify_primitive(
                 help_message,
             ));
 
-            // Mark both as errors, as to not propagate errors further
+            // Mark both types as errors to prevent further error propagation
             context.mark_error(lhs.id);
             context.mark_error(rhs.id);
         }

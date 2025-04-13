@@ -76,16 +76,24 @@ impl PrettyPrint for IntrinsicType {
     }
 }
 
+/// Unifies intrinsic types, respecting variance without concern for backward compatibility.
+///
+/// In a strictly variance-aware system:
+/// - List elements are covariant (immutable collections)
+/// - Dict keys are invariant (for reliable lookups)
+/// - Dict values are covariant (immutable collections)
 pub(crate) fn unify_intrinsic(
     context: &mut UnificationContext,
     lhs: Type<IntrinsicType>,
     rhs: Type<IntrinsicType>,
 ) {
+    // Fast path for identical types
     if lhs.kind == rhs.kind {
         return;
     }
 
     match (lhs.kind, rhs.kind) {
+        // List<T> - elements are covariant in immutable lists
         (
             IntrinsicType::List(ListType {
                 element: element_lhs,
@@ -94,8 +102,16 @@ pub(crate) fn unify_intrinsic(
                 element: element_rhs,
             }),
         ) => {
-            unify_type(context, element_lhs, element_rhs);
+            // Element types are in covariant position
+            context.in_covariant(|ctx| {
+                unify_type(ctx, element_lhs, element_rhs);
+            });
+
+            // In a strictly variance-aware system, we do NOT modify the list types
+            // Each list maintains its original element type, preserving identity and subtyping
+            // relationships
         }
+        // Dict<K, V> - keys are invariant, values are covariant
         (
             IntrinsicType::Dict(DictType {
                 key: key_lhs,
@@ -106,20 +122,34 @@ pub(crate) fn unify_intrinsic(
                 value: value_rhs,
             }),
         ) => {
-            unify_type(context, key_lhs, key_rhs);
-            unify_type(context, value_lhs, value_rhs);
+            // Keys must be invariant for lookup reliability
+            context.in_invariant(|ctx| {
+                unify_type(ctx, key_lhs, key_rhs);
+            });
+
+            // Values are in covariant position
+            context.in_covariant(|ctx| {
+                unify_type(ctx, value_lhs, value_rhs);
+            });
+
+            // In a strictly variance-aware system, we do NOT modify the dict types
+            // Each dict maintains its original key and value types, preserving identity and
+            // subtyping relationships
         }
+        // Different intrinsic types - not unifiable
         _ => {
+            // Provide helpful conversion suggestions
             let help = match (&lhs.kind, &rhs.kind) {
                 (IntrinsicType::List(_), IntrinsicType::Dict(..)) => Some(
-                    "You can convert a list of key-value pairs to a dict using the \
-                     `::core::dict::from_entries/1` function.",
+                    "These types are different collection types. You can convert a list of \
+                     key-value pairs to a dictionary using the `::core::dict::from_entries/1` \
+                     function.",
                 ),
                 (IntrinsicType::Dict(..), IntrinsicType::List(_)) => Some(
-                    "You can convert a dict to a list of key-value pairs using the \
-                     `::core::dict::to_entries/1` function.",
+                    "These types are different collection types. You can convert a dictionary to \
+                     a list of key-value pairs using the `::core::dict::to_entries/1` function.",
                 ),
-                _ => None,
+                _ => Some("These collection types cannot be used interchangeably."),
             };
 
             context.record_diagnostic(type_mismatch(
@@ -130,7 +160,7 @@ pub(crate) fn unify_intrinsic(
                 help,
             ));
 
-            // Mark both as errors, as to not propagate errors further
+            // Mark both types as errors
             context.mark_error(lhs.id);
             context.mark_error(rhs.id);
         }

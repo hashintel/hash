@@ -118,7 +118,11 @@ impl PrettyPrint for Param {
     }
 }
 
+/// Unifies a type parameter on the left-hand side with a concrete type on the right-hand side.
+///
+/// The variance context determines how the parameter and the concrete type are compared.
 pub(crate) fn unify_param_lhs(context: &mut UnificationContext, lhs: &Type<Param>, rhs: TypeId) {
+    // First check if the generic argument is in scope
     let Some(argument) = context.generic_argument(lhs.kind.argument) else {
         let diagnostic =
             super::error::generic_argument_not_found(context.source, lhs, lhs.kind.argument);
@@ -127,10 +131,19 @@ pub(crate) fn unify_param_lhs(context: &mut UnificationContext, lhs: &Type<Param
         return;
     };
 
+    // Use the current variance context for unification
+    // This allows parameters to respect the variance of their containing context
     unify_type(context, argument, rhs);
+
+    // In a strictly variance-aware system, we do NOT modify the parameter type
+    // This preserves the identity of the parameter in the type graph
 }
 
+/// Unifies a concrete type on the left-hand side with a type parameter on the right-hand side.
+///
+/// The variance context determines how the concrete type and parameter are compared.
 pub(crate) fn unify_param_rhs(context: &mut UnificationContext, lhs: TypeId, rhs: &Type<Param>) {
+    // First check if the generic argument is in scope
     let Some(argument) = context.generic_argument(rhs.kind.argument) else {
         let diagnostic =
             super::error::generic_argument_not_found(context.source, rhs, rhs.kind.argument);
@@ -139,10 +152,19 @@ pub(crate) fn unify_param_rhs(context: &mut UnificationContext, lhs: TypeId, rhs
         return;
     };
 
+    // Use the current variance context for unification
+    // This allows parameters to respect the variance of their containing context
     unify_type(context, lhs, argument);
+
+    // In a strictly variance-aware system, we do NOT modify the parameter type
+    // This preserves the identity of the parameter in the type graph
 }
 
+/// Unifies two type parameters.
+///
+/// The variance context determines how the parameters are compared.
 pub(crate) fn unify_param(context: &mut UnificationContext, lhs: &Type<Param>, rhs: &Type<Param>) {
+    // First check if both generic arguments are in scope
     let lhs_argument = if let Some(lhs_argument) = context.generic_argument(lhs.kind.argument) {
         Some(lhs_argument)
     } else {
@@ -169,5 +191,10 @@ pub(crate) fn unify_param(context: &mut UnificationContext, lhs: &Type<Param>, r
         return;
     };
 
+    // Use the current variance context for unification
+    // This allows parameters to respect the variance of their containing context
     unify_type(context, lhs_argument, rhs_argument);
+
+    // In a strictly variance-aware system, we do NOT modify the parameter types
+    // This preserves the identity of the parameters in the type graph
 }

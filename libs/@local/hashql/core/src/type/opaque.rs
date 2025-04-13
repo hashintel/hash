@@ -34,11 +34,19 @@ impl PrettyPrint for OpaqueType {
     }
 }
 
+/// Unifies opaque types, respecting variance without concern for backward compatibility.
+///
+/// Opaque types implement nominal typing, meaning:
+/// - Types must have the same name to be compatible
+/// - Underlying types must be compatible according to variance rules
+/// - For generics, each type parameter follows its own variance rules
 pub(crate) fn unify_opaque(
     context: &mut UnificationContext,
     lhs: &Type<OpaqueType>,
     rhs: &Type<OpaqueType>,
 ) {
+    // Opaque types require the same name - this is core to nominal typing
+    // Names must match exactly, regardless of variance context
     if lhs.kind.name != rhs.kind.name {
         let diagnostic = super::error::opaque_type_name_mismatch(
             context.source,
@@ -54,13 +62,21 @@ pub(crate) fn unify_opaque(
         return;
     }
 
+    // Enter generic argument scope for both opaque types
     lhs.kind.arguments.enter_scope(context);
     rhs.kind.arguments.enter_scope(context);
 
+    // Unify the underlying types with the current variance context
+    // Typically opaque types are invariant over their wrapped type
+    // but we're respecting the enclosing context here for flexibility
     unify_type(context, lhs.kind.r#type, rhs.kind.r#type);
 
+    // Exit generic argument scope
     rhs.kind.arguments.exit_scope(context);
     lhs.kind.arguments.exit_scope(context);
+
+    // In a strictly variance-aware system, we do NOT modify the opaque types
+    // Each opaque type maintains its own identity and wrapped type
 }
 
 #[cfg(test)]
