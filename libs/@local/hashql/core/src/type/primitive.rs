@@ -22,7 +22,7 @@ pub enum PrimitiveType {
 
 impl PrimitiveType {
     #[must_use]
-    pub fn structurally_equivalent(self, other: Self) -> bool {
+    pub(crate) fn structurally_equivalent(self, other: Self) -> bool {
         self == other
     }
 

@@ -174,7 +174,7 @@ impl PrettyPrint for TypeKind {
             Self::Never => RcDoc::text("!").annotate(CYAN),
             Self::Unknown => RcDoc::text("?").annotate(CYAN),
             Self::Infer => RcDoc::text("_").annotate(GRAY),
-            Self::Link(id) => arena[*id].pretty(arena, limit),
+            &Self::Link(id) => arena[id].pretty(arena, limit),
             Self::Error => RcDoc::text("<<ERROR>>").annotate(RED),
         }
     }
@@ -192,10 +192,6 @@ impl Type<TypeKind> {
     /// Determines if two types are structurally equivalent - meaning they have the same shape and
     /// matching internal types.
     ///
-    /// Structural equivalence is a key concept in type systems where two types are considered equal
-    /// if they have the same structure, regardless of their names. This is in contrast to nominal
-    /// typing where types must have the same name to be equivalent.
-    ///
     /// For example:
     /// - Two structs with the same field names and types are structurally equivalent
     /// - Two closures with the same parameter types and return type are structurally equivalent
@@ -205,6 +201,7 @@ impl Type<TypeKind> {
     /// recursion.
     ///
     /// # Returns
+    ///
     /// `true` if the types are structurally equivalent, `false` otherwise
     #[must_use]
     pub fn structurally_equivalent(&self, other: &Self, arena: &Arena<Self>) -> bool {
