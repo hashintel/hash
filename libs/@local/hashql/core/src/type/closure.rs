@@ -5,10 +5,12 @@ use super::{
     Type, TypeId,
     error::function_parameter_count_mismatch,
     generic_argument::GenericArguments,
-    pretty_print::{PrettyPrint, RecursionLimit},
+    pretty_print::PrettyPrint,
+    recursion::{RecursionGuard, RecursionLimit},
     unify::{UnificationArena, UnificationContext},
     unify_type,
 };
+use crate::arena::Arena;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ClosureType {
@@ -16,6 +18,32 @@ pub struct ClosureType {
     pub return_type: TypeId,
 
     pub arguments: GenericArguments,
+}
+
+impl ClosureType {
+    pub(crate) fn structurally_equivalent(
+        &self,
+        other: &Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        self.params.len() == other.params.len()
+            && self
+                .params
+                .iter()
+                .zip(other.params.iter())
+                .all(|(&lhs, &rhs)| {
+                    arena[lhs].structurally_equivalent_impl(&arena[rhs], arena, guard)
+                })
+            && arena[self.return_type].structurally_equivalent_impl(
+                &arena[other.return_type],
+                arena,
+                guard,
+            )
+            && self
+                .arguments
+                .structurally_equivalent(&other.arguments, arena, guard)
+    }
 }
 
 impl PrettyPrint for ClosureType {

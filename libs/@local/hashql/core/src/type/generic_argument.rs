@@ -3,11 +3,13 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    pretty_print::{ORANGE, PrettyPrint, RecursionLimit},
+    pretty_print::{ORANGE, PrettyPrint},
+    recursion::{RecursionGuard, RecursionLimit},
     unify::{UnificationArena, UnificationContext},
     unify_type,
 };
 use crate::{
+    arena::Arena,
     newtype,
     symbol::{Ident, Symbol},
 };
@@ -25,6 +27,18 @@ pub struct GenericArgument {
     pub constraint: Option<TypeId>,
 
     pub r#type: TypeId,
+}
+
+impl GenericArgument {
+    fn structurally_equivalent(
+        &self,
+        other: &Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        self.name.value == other.name.value
+            && arena[self.r#type].structurally_equivalent_impl(&arena[other.r#type], arena, guard)
+    }
 }
 
 impl PrettyPrint for GenericArgument {
@@ -67,11 +81,31 @@ impl GenericArguments {
             context.exit_generic_argument_scope(argument.id);
         }
     }
+
+    pub(crate) fn structurally_equivalent(
+        &self,
+        other: &Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        // We do not need to sort the arguments, because the constructor
+        // guarantees that they are in lexicographical order.
+
+        self.0.len() == other.0.len()
+            && self
+                .0
+                .iter()
+                .zip(other.0.iter())
+                .all(|(lhs, rhs)| lhs.structurally_equivalent(rhs, arena, guard))
+    }
 }
 
 impl FromIterator<GenericArgument> for GenericArguments {
     fn from_iter<T: IntoIterator<Item = GenericArgument>>(iter: T) -> Self {
-        Self(EcoVec::from_iter(iter))
+        let mut vec = Vec::from_iter(iter);
+        vec.sort_by(|lhs, rhs| lhs.name.value.cmp(&rhs.name.value));
+
+        Self(EcoVec::from(vec))
     }
 }
 
@@ -109,6 +143,12 @@ pub struct Param {
     pub argument: GenericArgumentId,
 
     pub name: Symbol,
+}
+
+impl Param {
+    pub(crate) fn structurally_equivalent(&self, other: &Self) -> bool {
+        self.argument == other.argument && self.name == other.name
+    }
 }
 
 impl PrettyPrint for Param {

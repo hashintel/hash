@@ -7,6 +7,7 @@ pub mod intrinsic;
 pub mod opaque;
 pub mod pretty_print;
 pub mod primitive;
+pub(crate) mod recursion;
 pub mod r#struct;
 #[cfg(test)]
 pub(crate) mod test;
@@ -24,14 +25,15 @@ use self::{
     generic_argument::{Param, unify_param, unify_param_lhs, unify_param_rhs},
     intrinsic::{IntrinsicType, unify_intrinsic},
     opaque::{OpaqueType, unify_opaque},
-    pretty_print::{CYAN, GRAY, PrettyPrint, RED, RecursionLimit},
+    pretty_print::{CYAN, GRAY, PrettyPrint, RED},
     primitive::{PrimitiveType, unify_primitive},
+    recursion::{RecursionGuard, RecursionLimit},
     r#struct::{StructType, unify_struct},
     tuple::{TupleType, unify_tuple},
     unify::{UnificationArena, UnificationContext, Variance},
     r#union::{UnionType, unify_union, unify_union_lhs, unify_union_rhs},
 };
-use crate::{id::HasId, newtype, span::SpanId};
+use crate::{arena::Arena, id::HasId, newtype, span::SpanId};
 
 newtype!(
     pub struct TypeId(u32 is 0..=0xFFFF_FF00)
@@ -111,6 +113,46 @@ impl TypeKind {
             _ => None,
         }
     }
+
+    fn structurally_equivalent(
+        this: &Type<Self>,
+        other: &Type<Self>,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        match (&this.kind, &other.kind) {
+            (Self::Closure(lhs), Self::Closure(rhs)) => {
+                lhs.structurally_equivalent(rhs, arena, guard)
+            }
+            (&Self::Primitive(lhs), &Self::Primitive(rhs)) => lhs.structurally_equivalent(rhs),
+            (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
+                lhs.structurally_equivalent(rhs, arena, guard)
+            }
+            (Self::Struct(lhs), Self::Struct(rhs)) => {
+                lhs.structurally_equivalent(rhs, arena, guard)
+            }
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => lhs.structurally_equivalent(rhs, arena, guard),
+            (Self::Opaque(lhs), Self::Opaque(rhs)) => {
+                lhs.structurally_equivalent(rhs, arena, guard)
+            }
+            (Self::Union(lhs), Self::Union(rhs)) => lhs.structurally_equivalent(rhs, arena, guard),
+            (Self::Param(lhs), Self::Param(rhs)) => lhs.structurally_equivalent(rhs),
+
+            (&Self::Link(lhs), &Self::Link(rhs)) => {
+                arena[lhs].structurally_equivalent_impl(&arena[rhs], arena, guard)
+            }
+
+            (&Self::Link(lhs), _) => arena[lhs].structurally_equivalent_impl(other, arena, guard),
+            (_, &Self::Link(rhs)) => this.structurally_equivalent_impl(&arena[rhs], arena, guard),
+
+            (Self::Never, Self::Never)
+            | (Self::Unknown, Self::Unknown)
+            | (Self::Infer, Self::Infer)
+            | (Self::Error, Self::Error) => true,
+
+            _ => false,
+        }
+    }
 }
 
 impl PrettyPrint for TypeKind {
@@ -143,6 +185,43 @@ pub struct Type<K = TypeKind> {
     span: SpanId,
 
     kind: K,
+}
+
+impl Type<TypeKind> {
+    /// Determines if two types are structurally equivalent - meaning they have the same shape and
+    /// matching internal types.
+    ///
+    /// Structural equivalence is a key concept in type systems where two types are considered equal
+    /// if they have the same structure, regardless of their names. This is in contrast to nominal
+    /// typing where types must have the same name to be equivalent.
+    ///
+    /// For example:
+    /// - Two structs with the same field names and types are structurally equivalent
+    /// - Two closures with the same parameter types and return type are structurally equivalent
+    /// - Two generic types are structurally equivalent if their parameters and constraints match
+    ///
+    /// This function handles recursive types by using a recursion guard to prevent infinite
+    /// recursion.
+    ///
+    /// # Returns
+    /// `true` if the types are structurally equivalent, `false` otherwise
+    #[must_use]
+    pub fn structurally_equivalent(&self, other: &Self, arena: &Arena<Self>) -> bool {
+        self.structurally_equivalent_impl(other, arena, &mut RecursionGuard::new())
+    }
+
+    pub(crate) fn structurally_equivalent_impl(
+        &self,
+        other: &Self,
+        arena: &Arena<Self>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        guard
+            .with(self.id, other.id, |guard| {
+                TypeKind::structurally_equivalent(self, other, arena, guard)
+            })
+            .unwrap_or(true) // In case of recursion the result is true
+    }
 }
 
 impl<K> Type<K> {

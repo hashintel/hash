@@ -1,8 +1,9 @@
 use core::{mem, ops::Index};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use super::{
     Type, TypeId, TypeKind, error::TypeCheckDiagnostic, generic_argument::GenericArgumentId,
+    recursion::RecursionGuard,
 };
 use crate::{arena::Arena, span::SpanId};
 
@@ -117,6 +118,14 @@ impl UnificationArena {
             UnificationArenaInner::Transaction(arena, _) => arena.arena_mut_test_only(),
         }
     }
+
+    #[cfg(test)]
+    pub(crate) fn arena_test_only(&self) -> &Arena<Type> {
+        match &self.0 {
+            UnificationArenaInner::Root(arena) => arena,
+            UnificationArenaInner::Transaction(arena, _) => arena.arena_test_only(),
+        }
+    }
 }
 
 impl Index<TypeId> for UnificationArena {
@@ -140,7 +149,7 @@ pub struct UnificationContext {
     variance_context: Variance,
 
     pub(super) diagnostics: Vec<TypeCheckDiagnostic>,
-    visited: HashSet<(TypeId, TypeId), foldhash::fast::RandomState>,
+    visited: RecursionGuard,
 
     // The arguments currently in scope
     arguments: HashMap<GenericArgumentId, TypeId, foldhash::fast::RandomState>,
@@ -154,7 +163,7 @@ impl UnificationContext {
             arena: UnificationArena::new(arena),
             variance_context: Variance::default(),
             diagnostics: Vec::new(),
-            visited: HashSet::default(),
+            visited: RecursionGuard::new(),
             arguments: HashMap::default(),
         }
     }
@@ -164,11 +173,11 @@ impl UnificationContext {
     }
 
     pub fn visit(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        !self.visited.insert((lhs, rhs))
+        !self.visited.enter(lhs, rhs)
     }
 
     pub fn leave(&mut self, lhs: TypeId, rhs: TypeId) {
-        self.visited.remove(&(lhs, rhs));
+        self.visited.leave(lhs, rhs);
     }
 
     pub(crate) fn record_diagnostic(&mut self, diagnostic: TypeCheckDiagnostic) {

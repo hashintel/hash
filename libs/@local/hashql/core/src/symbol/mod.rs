@@ -46,7 +46,7 @@ use crate::span::SpanId;
 /// assert_eq!(variable_name.as_str(), "counter");
 /// assert_ne!(variable_name, function_name);
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Symbol(EcoString);
 
 impl Symbol {

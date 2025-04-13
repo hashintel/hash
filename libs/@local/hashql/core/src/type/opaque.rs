@@ -4,10 +4,12 @@ use pretty::RcDoc;
 use super::{
     Type, TypeId,
     generic_argument::GenericArguments,
-    pretty_print::{PrettyPrint, RecursionLimit},
+    pretty_print::PrettyPrint,
+    recursion::{RecursionGuard, RecursionLimit},
     unify::{UnificationArena, UnificationContext},
     unify_type,
 };
+use crate::arena::Arena;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OpaqueType {
@@ -16,6 +18,21 @@ pub struct OpaqueType {
     pub r#type: TypeId,
 
     pub arguments: GenericArguments,
+}
+
+impl OpaqueType {
+    pub(crate) fn structurally_equivalent(
+        &self,
+        other: &Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        // We do not check if the inner type is equivalent because opaque types are nominal
+        self.name == other.name
+            && self
+                .arguments
+                .structurally_equivalent(&other.arguments, arena, guard)
+    }
 }
 
 impl PrettyPrint for OpaqueType {

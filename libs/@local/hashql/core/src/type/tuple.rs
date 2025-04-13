@@ -5,14 +5,27 @@ use super::{
     Type, TypeId,
     error::tuple_length_mismatch,
     generic_argument::GenericArguments,
-    pretty_print::{PrettyPrint, RecursionLimit},
+    pretty_print::PrettyPrint,
+    recursion::{RecursionGuard, RecursionLimit},
     unify::{UnificationArena, UnificationContext},
     unify_type,
 };
+use crate::arena::Arena;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TupleField {
     pub value: TypeId,
+}
+
+impl TupleField {
+    fn structurally_equivalent(
+        self,
+        other: Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        arena[self.value].structurally_equivalent_impl(&arena[other.value], arena, guard)
+    }
 }
 
 impl PrettyPrint for TupleField {
@@ -30,6 +43,25 @@ pub struct TupleType {
     pub fields: EcoVec<TupleField>,
 
     pub arguments: GenericArguments,
+}
+
+impl TupleType {
+    pub(crate) fn structurally_equivalent(
+        &self,
+        other: &Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        self.fields.len() == other.fields.len()
+            && self
+                .fields
+                .iter()
+                .zip(other.fields.iter())
+                .all(|(&lhs, &rhs)| lhs.structurally_equivalent(rhs, arena, guard))
+            && self
+                .arguments
+                .structurally_equivalent(&other.arguments, arena, guard)
+    }
 }
 
 impl PrettyPrint for TupleType {

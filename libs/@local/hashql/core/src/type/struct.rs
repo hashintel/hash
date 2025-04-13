@@ -6,16 +6,29 @@ use pretty::RcDoc;
 use super::{
     Type, TypeId,
     generic_argument::GenericArguments,
-    pretty_print::{PrettyPrint, RecursionLimit},
+    pretty_print::PrettyPrint,
+    recursion::{RecursionGuard, RecursionLimit},
     unify::{UnificationArena, UnificationContext},
     unify_type,
 };
-use crate::symbol::Ident;
+use crate::{arena::Arena, symbol::Ident};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructField {
     pub key: Ident,
     pub value: TypeId,
+}
+
+impl StructField {
+    fn structurally_equivalent(
+        &self,
+        other: &Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        self.key.value == other.key.value
+            && arena[self.value].structurally_equivalent_impl(&arena[other.value], arena, guard)
+    }
 }
 
 impl PrettyPrint for StructField {
@@ -35,9 +48,40 @@ impl PrettyPrint for StructField {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructType {
     // Any extends is resolved in a previous pass
-    pub fields: EcoVec<StructField>,
+    fields: EcoVec<StructField>,
 
-    pub arguments: GenericArguments,
+    arguments: GenericArguments,
+}
+
+impl StructType {
+    pub fn new(fields: impl IntoIterator<Item = StructField>, arguments: GenericArguments) -> Self {
+        let mut fields: Vec<_> = fields.into_iter().collect();
+        fields.sort_by(|lhs, rhs| lhs.key.value.cmp(&rhs.key.value));
+
+        Self {
+            fields: fields.into(),
+            arguments,
+        }
+    }
+
+    pub(crate) fn structurally_equivalent(
+        &self,
+        other: &Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        // We do not need to sort the fields, because the constructor verifies that they are already
+        // sorted
+        self.fields.len() == other.fields.len()
+            && self
+                .fields
+                .iter()
+                .zip(other.fields.iter())
+                .all(|(lhs, rhs)| lhs.structurally_equivalent(rhs, arena, guard))
+            && self
+                .arguments
+                .structurally_equivalent(&other.arguments, arena, guard)
+    }
 }
 
 impl PrettyPrint for StructType {
@@ -160,10 +204,7 @@ mod tests {
 
         let lhs_id = instantiate(
             &mut context,
-            TypeKind::Struct(StructType {
-                fields: lhs_fields.into(),
-                arguments: GenericArguments::new(),
-            }),
+            TypeKind::Struct(StructType::new(lhs_fields, GenericArguments::new())),
         );
 
         let rhs_fields = [
@@ -179,10 +220,7 @@ mod tests {
 
         let rhs_id = instantiate(
             &mut context,
-            TypeKind::Struct(StructType {
-                fields: rhs_fields.into(),
-                arguments: GenericArguments::new(),
-            }),
+            TypeKind::Struct(StructType::new(rhs_fields, GenericArguments::new())),
         );
 
         let lhs = context.arena[lhs_id]
@@ -248,10 +286,7 @@ mod tests {
             },
         ];
 
-        let lhs_type = StructType {
-            fields: lhs_fields.into(),
-            arguments: GenericArguments::default(),
-        };
+        let lhs_type = StructType::new(lhs_fields, GenericArguments::default());
 
         let rhs_fields = [
             StructField {
@@ -268,10 +303,7 @@ mod tests {
             },
         ];
 
-        let rhs_type = StructType {
-            fields: rhs_fields.into(),
-            arguments: GenericArguments::default(),
-        };
+        let rhs_type = StructType::new(rhs_fields, GenericArguments::default());
 
         let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
         let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));
@@ -307,14 +339,8 @@ mod tests {
             value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer)),
         };
 
-        let lhs_type = StructType {
-            fields: [lhs_field].into(),
-            arguments: GenericArguments::default(),
-        };
-        let rhs_type = StructType {
-            fields: [rhs_field].into(),
-            arguments: GenericArguments::default(),
-        };
+        let lhs_type = StructType::new([lhs_field], GenericArguments::default());
+        let rhs_type = StructType::new([rhs_field], GenericArguments::default());
 
         let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
         let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));
@@ -370,14 +396,8 @@ mod tests {
             value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
         };
 
-        let lhs_type = StructType {
-            fields: vec![name_field].into(),
-            arguments: GenericArguments::default(),
-        };
-        let rhs_type = StructType {
-            fields: vec![age_field].into(),
-            arguments: GenericArguments::default(),
-        };
+        let lhs_type = StructType::new([name_field], GenericArguments::default());
+        let rhs_type = StructType::new([age_field], GenericArguments::default());
 
         let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
         let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));
@@ -418,10 +438,7 @@ mod tests {
             value: t_type,
         };
 
-        let lhs_type = StructType {
-            fields: vec![lhs_field].into(),
-            arguments: GenericArguments::from_iter([t_arg]),
-        };
+        let lhs_type = StructType::new([lhs_field], GenericArguments::from_iter([t_arg]));
 
         // rhs: { value: Number }
         let rhs_field = StructField {
@@ -429,10 +446,7 @@ mod tests {
             value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
         };
 
-        let rhs_type = StructType {
-            fields: vec![rhs_field].into(),
-            arguments: GenericArguments::new(),
-        };
+        let rhs_type = StructType::new([rhs_field], GenericArguments::new());
 
         let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
         let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));

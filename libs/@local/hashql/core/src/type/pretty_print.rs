@@ -3,7 +3,7 @@ use std::io;
 use anstyle::{AnsiColor, Color, Style};
 use pretty::{RcDoc, Render, RenderAnnotated};
 
-use super::unify::UnificationArena;
+use super::{recursion::RecursionLimit, unify::UnificationArena};
 
 pub(crate) const BLUE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Blue)));
 pub(crate) const CYAN: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Cyan)));
@@ -62,32 +62,6 @@ where
         match self.stack.last() {
             Some(annotation) => annotation.write_to(&mut self.inner),
             None => Ok(()),
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct RecursionLimit {
-    depth: usize,
-    limit: usize,
-}
-
-impl RecursionLimit {
-    pub(crate) fn pretty<'a, T>(self, node: &'a T, arena: &'a UnificationArena) -> RcDoc<'a, Style>
-    where
-        T: PrettyPrint,
-    {
-        if self.depth >= self.limit {
-            RcDoc::text("...")
-        } else {
-            node.pretty(arena, self.enter())
-        }
-    }
-
-    const fn enter(self) -> Self {
-        Self {
-            depth: self.depth + 1,
-            limit: self.limit,
         }
     }
 }

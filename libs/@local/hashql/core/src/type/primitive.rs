@@ -3,7 +3,8 @@ use pretty::RcDoc;
 use super::{
     Type,
     error::type_mismatch,
-    pretty_print::{BLUE, PrettyPrint, RecursionLimit},
+    pretty_print::{BLUE, PrettyPrint},
+    recursion::RecursionLimit,
     unify::{UnificationArena, UnificationContext},
 };
 
@@ -18,6 +19,11 @@ pub enum PrimitiveType {
 }
 
 impl PrimitiveType {
+    #[must_use]
+    pub fn structurally_equivalent(self, other: Self) -> bool {
+        self == other
+    }
+
     const fn as_str(self) -> &'static str {
         match self {
             Self::Number => "Number",

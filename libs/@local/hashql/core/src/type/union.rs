@@ -4,13 +4,31 @@ use pretty::RcDoc;
 use super::{
     Type, TypeId, TypeKind,
     error::union_variant_mismatch,
-    pretty_print::{PrettyPrint, RecursionLimit},
+    pretty_print::PrettyPrint,
+    recursion::{RecursionGuard, RecursionLimit},
     unify::{UnificationArena, UnificationContext},
 };
+use crate::arena::Arena;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnionType {
     pub variants: EcoVec<TypeId>,
+}
+
+impl UnionType {
+    pub(crate) fn structurally_equivalent(
+        &self,
+        other: &Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        // go through every variant in self and check if there is a variant matching in other
+        self.variants.iter().all(|&variant| {
+            other.variants.iter().any(|&other_variant| {
+                arena[variant].structurally_equivalent_impl(&arena[other_variant], arena, guard)
+            })
+        })
+    }
 }
 
 impl PrettyPrint for UnionType {

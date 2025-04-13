@@ -5,7 +5,14 @@ use crate::{
     arena::Arena,
     span::SpanId,
     symbol::{Ident, IdentKind, Symbol},
-    r#type::{primitive::PrimitiveType, unify_type},
+    r#type::{
+        generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+        opaque::OpaqueType,
+        primitive::PrimitiveType,
+        r#struct::{StructField, StructType},
+        unify_type,
+        union::UnionType,
+    },
 };
 
 pub(crate) fn setup() -> UnificationContext {
@@ -407,5 +414,298 @@ fn alternating_direction_cycle() {
     assert!(
         !context.take_diagnostics().is_empty(),
         "Alternating direction cycle not detected"
+    );
+}
+
+#[test]
+fn primitive_equivalence() {
+    let mut context = setup();
+    let type1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+    let type2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+
+    assert!(
+        context.arena[type1]
+            .structurally_equivalent(&context.arena[type2], context.arena.arena_test_only()),
+        "Identical primitive types should be structurally equivalent"
+    );
+
+    // Test different primitive types
+    let bool_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
+    assert!(
+        !context.arena[type1]
+            .structurally_equivalent(&context.arena[bool_type], context.arena.arena_test_only()),
+        "Different primitive types should not be structurally equivalent"
+    );
+}
+
+#[test]
+fn struct_equivalence() {
+    let mut context = setup();
+
+    // Create two identical struct types
+    let fields1 = [
+        StructField {
+            key: ident("name"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+        },
+        StructField {
+            key: ident("age"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+        },
+    ];
+
+    let fields2 = [
+        StructField {
+            key: ident("name"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+        },
+        StructField {
+            key: ident("age"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+        },
+    ];
+
+    let struct1 = instantiate(
+        &mut context,
+        TypeKind::Struct(StructType::new(fields1, GenericArguments::new())),
+    );
+
+    let struct2 = instantiate(
+        &mut context,
+        TypeKind::Struct(StructType::new(fields2, GenericArguments::new())),
+    );
+
+    assert!(
+        context.arena[struct1]
+            .structurally_equivalent(&context.arena[struct2], context.arena.arena_test_only()),
+        "Identical struct types should be structurally equivalent"
+    );
+
+    // Test different field names
+    let fields3 = [
+        StructField {
+            key: ident("firstName"), // Different field name
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+        },
+        StructField {
+            key: ident("age"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+        },
+    ];
+
+    let struct3 = instantiate(
+        &mut context,
+        TypeKind::Struct(StructType::new(fields3, GenericArguments::new())),
+    );
+
+    assert!(
+        !context.arena[struct1]
+            .structurally_equivalent(&context.arena[struct3], context.arena.arena_test_only()),
+        "Structs with different field names should not be structurally equivalent"
+    );
+}
+
+#[test]
+fn recursive_type_equivalence() {
+    let mut context = setup();
+
+    // Create two recursive types (e.g., linked list nodes)
+    let node1_value = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+    let node2_value = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+
+    let node1_id = context.arena.arena_mut_test_only().push_with(|id| Type {
+        id,
+        span: SpanId::SYNTHETIC,
+        kind: TypeKind::Struct(StructType::new(
+            vec![
+                StructField {
+                    key: ident("value"),
+                    value: node1_value,
+                },
+                StructField {
+                    key: ident("next"),
+                    value: id, // Self-reference
+                },
+            ],
+            GenericArguments::new(),
+        )),
+    });
+
+    let node2_id = context.arena.arena_mut_test_only().push_with(|id| Type {
+        id,
+        span: SpanId::SYNTHETIC,
+        kind: TypeKind::Struct(StructType::new(
+            vec![
+                StructField {
+                    key: ident("value"),
+                    value: node2_value,
+                },
+                StructField {
+                    key: ident("next"),
+                    value: id, // Self-reference
+                },
+            ],
+            GenericArguments::new(),
+        )),
+    });
+
+    assert!(
+        context.arena[node1_id]
+            .structurally_equivalent(&context.arena[node2_id], context.arena.arena_test_only()),
+        "Recursive types with same structure should be structurally equivalent"
+    );
+}
+
+#[test]
+fn union_type_equivalence() {
+    let mut context = setup();
+
+    // Create two union types: String | Number
+    let str1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+    let num1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+    let union1 = instantiate(
+        &mut context,
+        TypeKind::Union(UnionType {
+            variants: vec![str1, num1].into(),
+        }),
+    );
+
+    let str2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+    let num2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+    let union2 = instantiate(
+        &mut context,
+        TypeKind::Union(UnionType {
+            variants: vec![str2, num2].into(),
+        }),
+    );
+
+    assert!(
+        context.arena[union1]
+            .structurally_equivalent(&context.arena[union2], context.arena.arena_test_only()),
+        "Union types with same variants should be structurally equivalent"
+    );
+
+    // Test different variant order
+    let union3 = instantiate(
+        &mut context,
+        TypeKind::Union(UnionType {
+            variants: vec![num2, str2].into(), // Different order
+        }),
+    );
+
+    assert!(
+        context.arena[union1]
+            .structurally_equivalent(&context.arena[union3], context.arena.arena_test_only()),
+        "Union types with same variants in different order should be structurally equivalent"
+    );
+}
+
+#[test]
+fn test_opaque_type_equivalence() {
+    let mut context = setup();
+
+    // Create two opaque types with same name but different underlying types
+    let type1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+    let type2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+
+    let opaque1 = instantiate(
+        &mut context,
+        TypeKind::Opaque(OpaqueType {
+            name: "UserId".into(),
+            r#type: type1,
+            arguments: GenericArguments::default(),
+        }),
+    );
+
+    let opaque2 = instantiate(
+        &mut context,
+        TypeKind::Opaque(OpaqueType {
+            name: "UserId".into(),
+            r#type: type2, // Different underlying type
+            arguments: GenericArguments::default(),
+        }),
+    );
+
+    assert!(
+        context.arena[opaque1]
+            .structurally_equivalent(&context.arena[opaque2], context.arena.arena_test_only()),
+        "Opaque types with same name should be structurally equivalent regardless of underlying \
+         type"
+    );
+
+    // Test opaque types with different names but same underlying type
+    let opaque3 = instantiate(
+        &mut context,
+        TypeKind::Opaque(OpaqueType {
+            name: "PostId".into(), // Different name
+            r#type: type1,         // Same as opaque1
+            arguments: GenericArguments::default(),
+        }),
+    );
+
+    assert!(
+        !context.arena[opaque1]
+            .structurally_equivalent(&context.arena[opaque3], context.arena.arena_test_only()),
+        "Opaque types with different names should not be structurally equivalent even with same \
+         underlying type"
+    );
+
+    // Test opaque types with generic arguments
+    let t_id = GenericArgumentId::new(0);
+    let t_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+    let t_arg = GenericArgument {
+        id: t_id,
+        name: ident("T"),
+        constraint: None,
+        r#type: t_type,
+    };
+
+    let opaque4 = instantiate(
+        &mut context,
+        TypeKind::Opaque(OpaqueType {
+            name: "Box".into(),
+            r#type: t_type,
+            arguments: GenericArguments::from_iter([t_arg.clone()]),
+        }),
+    );
+
+    let opaque5 = instantiate(
+        &mut context,
+        TypeKind::Opaque(OpaqueType {
+            name: "Box".into(),
+            r#type: t_type,
+            arguments: GenericArguments::from_iter([t_arg]),
+        }),
+    );
+
+    assert!(
+        context.arena[opaque4]
+            .structurally_equivalent(&context.arena[opaque5], context.arena.arena_test_only()),
+        "Opaque types with same name and generic arguments should be structurally equivalent"
+    );
+
+    // Test opaque types with different generic arguments
+    let u_id = GenericArgumentId::new(1);
+    let u_arg = GenericArgument {
+        id: u_id,
+        name: ident("U"),
+        constraint: None,
+        r#type: t_type,
+    };
+
+    let opaque6 = instantiate(
+        &mut context,
+        TypeKind::Opaque(OpaqueType {
+            name: "Box".into(),
+            r#type: t_type,
+            arguments: GenericArguments::from_iter([u_arg]), // Different generic argument
+        }),
+    );
+
+    assert!(
+        !context.arena[opaque4]
+            .structurally_equivalent(&context.arena[opaque6], context.arena.arena_test_only()),
+        "Opaque types with same name but different generic arguments should not be structurally \
+         equivalent"
     );
 }

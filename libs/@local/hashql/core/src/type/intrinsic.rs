@@ -3,14 +3,27 @@ use pretty::RcDoc;
 use super::{
     Type, TypeId,
     error::type_mismatch,
-    pretty_print::{PrettyPrint, RecursionLimit},
+    pretty_print::PrettyPrint,
+    recursion::{RecursionGuard, RecursionLimit},
     unify::{UnificationArena, UnificationContext},
     unify_type,
 };
+use crate::arena::Arena;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ListType {
     element: TypeId,
+}
+
+impl ListType {
+    fn structurally_equivalent(
+        self,
+        other: Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        arena[self.element].structurally_equivalent_impl(&arena[other.element], arena, guard)
+    }
 }
 
 impl PrettyPrint for ListType {
@@ -28,8 +41,20 @@ impl PrettyPrint for ListType {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct DictType {
-    key: TypeId,
-    value: TypeId,
+    pub key: TypeId,
+    pub value: TypeId,
+}
+
+impl DictType {
+    fn structurally_equivalent(
+        self,
+        other: Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        arena[self.key].structurally_equivalent_impl(&arena[other.key], arena, guard)
+            && arena[self.value].structurally_equivalent_impl(&arena[other.value], arena, guard)
+    }
 }
 
 impl PrettyPrint for DictType {
@@ -60,6 +85,21 @@ impl PrettyPrint for DictType {
 pub enum IntrinsicType {
     List(ListType),
     Dict(DictType),
+}
+
+impl IntrinsicType {
+    pub(crate) fn structurally_equivalent(
+        &self,
+        other: &Self,
+        arena: &Arena<Type>,
+        guard: &mut RecursionGuard,
+    ) -> bool {
+        match (self, other) {
+            (&Self::List(lhs), &Self::List(rhs)) => lhs.structurally_equivalent(rhs, arena, guard),
+            (&Self::Dict(lhs), &Self::Dict(rhs)) => lhs.structurally_equivalent(rhs, arena, guard),
+            _ => false,
+        }
+    }
 }
 
 impl PrettyPrint for IntrinsicType {
