@@ -131,8 +131,8 @@ pub(crate) fn unify_intrinsic(
             ));
 
             // Mark both as errors, as to not propagate errors further
-            context.mark_error(lhs);
-            context.mark_error(rhs);
+            context.mark_error(lhs.id);
+            context.mark_error(rhs.id);
         }
     }
 }
@@ -165,9 +165,11 @@ mod tests {
         );
 
         let lhs = context.arena[lhs_id]
-            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+            .as_ref()
+            .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
         let rhs = context.arena[rhs_id]
-            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+            .as_ref()
+            .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
 
         unify_intrinsic(&mut context, lhs, rhs);
 
@@ -177,8 +179,8 @@ mod tests {
         );
 
         // Verify types are still the same after unification
-        let lhs = context.arena[lhs_id];
-        let rhs = context.arena[rhs_id];
+        let lhs = context.arena[lhs_id].as_ref();
+        let rhs = context.arena[rhs_id].as_ref();
         assert_eq!(lhs.kind, rhs.kind);
     }
 
@@ -203,9 +205,11 @@ mod tests {
         );
 
         let lhs = context.arena[lhs_id]
-            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+            .as_ref()
+            .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
         let rhs = context.arena[rhs_id]
-            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+            .as_ref()
+            .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
 
         unify_intrinsic(&mut context, lhs, rhs);
 
@@ -247,9 +251,11 @@ mod tests {
         );
 
         let lhs = context.arena[lhs_id]
-            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+            .as_ref()
+            .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
         let rhs = context.arena[rhs_id]
-            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+            .as_ref()
+            .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
 
         unify_intrinsic(&mut context, lhs, rhs);
 
@@ -258,8 +264,8 @@ mod tests {
             "Failed to unify identical Dict types"
         );
 
-        let lhs = context.arena[lhs_id];
-        let rhs = context.arena[rhs_id];
+        let lhs = context.arena[lhs_id].as_ref();
+        let rhs = context.arena[rhs_id].as_ref();
         assert_eq!(lhs.kind, rhs.kind);
     }
 
@@ -285,9 +291,11 @@ mod tests {
         );
 
         let lhs = context.arena[lhs_id]
-            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+            .as_ref()
+            .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
         let rhs = context.arena[rhs_id]
-            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+            .as_ref()
+            .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
 
         unify_intrinsic(&mut context, lhs, rhs);
 
@@ -371,9 +379,11 @@ mod tests {
             };
 
             let lhs = context.arena[lhs_id]
-                .map(|kind| kind.into_intrinsic().expect("should be intrinsic"));
+                .as_ref()
+                .map(|kind| kind.as_intrinsic().expect("should be intrinsic"));
             let rhs = context.arena[rhs_id]
-                .map(|kind| kind.into_intrinsic().expect("should be intrinsic"));
+                .as_ref()
+                .map(|kind| kind.as_intrinsic().expect("should be intrinsic"));
 
             unify_intrinsic(&mut context, lhs, rhs);
 
@@ -416,10 +426,12 @@ mod tests {
             })),
         );
 
-        let list =
-            context.arena[list_id].map(|kind| kind.into_intrinsic().expect("should be intrinsic"));
-        let dict =
-            context.arena[dict_id].map(|kind| kind.into_intrinsic().expect("should be intrinsic"));
+        let list = context.arena[list_id]
+            .as_ref()
+            .map(|kind| kind.as_intrinsic().expect("should be intrinsic"));
+        let dict = context.arena[dict_id]
+            .as_ref()
+            .map(|kind| kind.as_intrinsic().expect("should be intrinsic"));
 
         unify_intrinsic(&mut context, list, dict);
 

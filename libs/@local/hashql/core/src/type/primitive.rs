@@ -104,8 +104,8 @@ pub(crate) fn unify_primitive(
             ));
 
             // Mark both as errors, as to not propagate errors further
-            context.mark_error(lhs);
-            context.mark_error(rhs);
+            context.mark_error(lhs.id);
+            context.mark_error(rhs.id);
         }
     }
 }
@@ -136,9 +136,11 @@ mod tests {
             let rhs = instantiate(&mut context, TypeKind::Primitive(r#type));
 
             let lhs = context.arena[lhs]
-                .map(|kind| kind.into_primitive().expect("type should be a primitive"));
+                .clone()
+                .map(|kind| kind.as_primitive().expect("type should be a primitive"));
             let rhs = context.arena[rhs]
-                .map(|kind| kind.into_primitive().expect("type should be a primitive"));
+                .clone()
+                .map(|kind| kind.as_primitive().expect("type should be a primitive"));
 
             unify_primitive(&mut context, lhs, rhs);
 
@@ -148,8 +150,8 @@ mod tests {
             );
 
             // going back into the arena
-            let lhs = context.arena[lhs.id];
-            let rhs = context.arena[rhs.id];
+            let lhs = context.arena[lhs.id].clone();
+            let rhs = context.arena[rhs.id].clone();
 
             assert_eq!(lhs.kind, rhs.kind);
         }
@@ -164,9 +166,11 @@ mod tests {
         let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
 
         let int = context.arena[int_id]
-            .map(|kind| kind.into_primitive().expect("type should be a primitive"));
+            .as_ref()
+            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
         let num = context.arena[num_id]
-            .map(|kind| kind.into_primitive().expect("type should be a primitive"));
+            .as_ref()
+            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
 
         unify_primitive(&mut context, int, num);
 
@@ -188,9 +192,11 @@ mod tests {
         let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
 
         let int = context.arena[int_id]
-            .map(|kind| kind.into_primitive().expect("type should be a primitive"));
+            .as_ref()
+            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
         let num = context.arena[num_id]
-            .map(|kind| kind.into_primitive().expect("type should be a primitive"));
+            .as_ref()
+            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
 
         unify_primitive(&mut context, num, int);
 
@@ -249,9 +255,11 @@ mod tests {
             let rhs_id = instantiate(&mut context, TypeKind::Primitive(rhs_type));
 
             let lhs = context.arena[lhs_id]
-                .map(|kind| kind.into_primitive().expect("should be primitive"));
+                .as_ref()
+                .map(|kind| kind.as_primitive().expect("should be primitive"));
             let rhs = context.arena[rhs_id]
-                .map(|kind| kind.into_primitive().expect("should be primitive"));
+                .as_ref()
+                .map(|kind| kind.as_primitive().expect("should be primitive"));
 
             unify_primitive(&mut context, lhs, rhs);
 
@@ -282,10 +290,12 @@ mod tests {
         let str_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
         let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
 
-        let str =
-            context.arena[str_id].map(|kind| kind.into_primitive().expect("should be primitive"));
-        let num =
-            context.arena[num_id].map(|kind| kind.into_primitive().expect("should be primitive"));
+        let str = context.arena[str_id]
+            .as_ref()
+            .map(|kind| kind.as_primitive().expect("should be primitive"));
+        let num = context.arena[num_id]
+            .as_ref()
+            .map(|kind| kind.as_primitive().expect("should be primitive"));
 
         unify_primitive(&mut context, str, num);
 

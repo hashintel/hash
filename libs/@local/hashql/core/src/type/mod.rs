@@ -1,9 +1,11 @@
 // HashQL type system
 
 pub mod error;
+pub mod generic_argument;
 pub mod intrinsic;
 pub mod pretty_print;
 pub mod primitive;
+pub mod r#struct;
 #[cfg(test)]
 pub(crate) mod test;
 pub mod unify;
@@ -12,6 +14,7 @@ use self::{
     intrinsic::{IntrinsicType, unify_intrinsic},
     pretty_print::{PrettyPrint, RecursionLimit},
     primitive::{PrimitiveType, unify_primitive},
+    r#struct::StructType,
     unify::UnificationContext,
 };
 use crate::{arena::Arena, id::HasId, newtype, span::SpanId};
@@ -22,9 +25,6 @@ newtype!(
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ClosureType {}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct StructType {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TupleType {}
@@ -40,7 +40,7 @@ pub struct Param {}
 
 pub struct GenericArgument {}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind {
     Closure(ClosureType),
     Primitive(PrimitiveType),
@@ -58,17 +58,17 @@ pub enum TypeKind {
 
 impl TypeKind {
     #[must_use]
-    pub const fn into_primitive(self) -> Option<PrimitiveType> {
+    pub fn as_primitive(&self) -> Option<PrimitiveType> {
         match self {
-            Self::Primitive(r#type) => Some(r#type),
+            &Self::Primitive(r#type) => Some(r#type),
             _ => None,
         }
     }
 
     #[must_use]
-    pub const fn into_intrinsic(self) -> Option<IntrinsicType> {
+    pub fn as_intrinsic(&self) -> Option<IntrinsicType> {
         match self {
-            Self::Intrinsic(r#type) => Some(r#type),
+            &Self::Intrinsic(r#type) => Some(r#type),
             _ => None,
         }
     }
@@ -90,6 +90,14 @@ impl<K> Type<K> {
             kind: closure(self.kind),
         }
     }
+
+    pub fn as_ref(&self) -> Type<&K> {
+        Type {
+            id: self.id,
+            span: self.span,
+            kind: &self.kind,
+        }
+    }
 }
 
 impl<K> PrettyPrint for Type<K> {
@@ -107,23 +115,31 @@ impl HasId for Type {
 }
 
 pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: TypeId) {
-    let lhs = context.arena[lhs];
-    let rhs = context.arena[rhs];
+    let lhs = &context.arena[lhs];
+    let rhs = &context.arena[rhs];
 
-    match (lhs.kind, rhs.kind) {
-        (TypeKind::Primitive(lhs_kind), TypeKind::Primitive(rhs_kind)) => {
-            unify_primitive(context, lhs.map(|_| lhs_kind), rhs.map(|_| rhs_kind));
+    match (&lhs.kind, &rhs.kind) {
+        (&TypeKind::Primitive(lhs_kind), &TypeKind::Primitive(rhs_kind)) => {
+            unify_primitive(
+                context,
+                lhs.as_ref().map(|_| lhs_kind),
+                rhs.as_ref().map(|_| rhs_kind),
+            );
         }
-        (TypeKind::Intrinsic(lhs_kind), TypeKind::Intrinsic(rhs_kind)) => {
-            unify_intrinsic(context, lhs.map(|_| lhs_kind), rhs.map(|_| rhs_kind));
+        (&TypeKind::Intrinsic(lhs_kind), &TypeKind::Intrinsic(rhs_kind)) => {
+            unify_intrinsic(
+                context,
+                lhs.as_ref().map(|_| lhs_kind),
+                rhs.as_ref().map(|_| rhs_kind),
+            );
         }
         (TypeKind::Error, _) => {
             // do nothing, simply propagate the error up
-            context.mark_error(rhs);
+            context.mark_error(rhs.id);
         }
         (_, TypeKind::Error) => {
             // do nothing, simply propagate the error up
-            context.mark_error(lhs);
+            context.mark_error(lhs.id);
         }
         _ => {
             todo!()

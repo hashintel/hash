@@ -1,4 +1,4 @@
-use super::{Type, TypeKind, error::TypeCheckDiagnostic};
+use super::{Type, TypeId, TypeKind, error::TypeCheckDiagnostic};
 use crate::{arena::Arena, span::SpanId};
 
 pub struct UnificationContext {
@@ -8,8 +8,8 @@ pub struct UnificationContext {
 }
 
 impl UnificationContext {
-    pub(crate) fn mark_error<K>(&mut self, r#type: Type<K>) {
+    pub(crate) fn mark_error(&mut self, id: TypeId) {
         self.arena
-            .update(r#type.id, r#type.map(|_| TypeKind::Error));
+            .update_with(id, |r#type| r#type.kind = TypeKind::Error);
     }
 }

@@ -45,6 +45,13 @@ impl<T> Arena<T> {
         self.items[id.as_usize()] = item;
     }
 
+    pub fn update_with(&mut self, id: T::Id, item: impl FnOnce(&mut T))
+    where
+        T: HasId,
+    {
+        item(&mut self.items[id.as_usize()]);
+    }
+
     pub fn get(&self, id: T::Id) -> Option<&T>
     where
         T: HasId,
