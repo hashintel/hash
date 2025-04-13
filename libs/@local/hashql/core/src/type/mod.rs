@@ -4,6 +4,8 @@ pub mod error;
 pub mod intrinsic;
 pub mod pretty_print;
 pub mod primitive;
+#[cfg(test)]
+pub(crate) mod test;
 pub mod unify;
 
 use self::{
@@ -52,6 +54,16 @@ pub enum TypeKind {
     Unknown,
     Infer,
     Error,
+}
+
+impl TypeKind {
+    #[must_use]
+    pub const fn into_primitive(self) -> Option<PrimitiveType> {
+        match self {
+            Self::Primitive(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
