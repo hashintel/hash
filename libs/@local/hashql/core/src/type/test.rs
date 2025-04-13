@@ -291,3 +291,132 @@ fn link_to_self_detection() {
     // Either by propagating an error or breaking the cycle
     // But at minimum it shouldn't panic or overflow stack
 }
+
+#[test]
+fn direct_circular_reference() {
+    let mut context = setup();
+
+    // Create two types that refer to each other
+    let id1 = instantiate(&mut context, TypeKind::Infer);
+    let id2 = instantiate(&mut context, TypeKind::Infer);
+
+    // Make them refer to each other
+    context.arena.update(
+        id1,
+        Type {
+            id: id1,
+            span: SpanId::SYNTHETIC,
+            kind: TypeKind::Link(id2),
+        },
+    );
+
+    context.arena.update(
+        id2,
+        Type {
+            id: id2,
+            span: SpanId::SYNTHETIC,
+            kind: TypeKind::Link(id1),
+        },
+    );
+
+    // Try to unify with a concrete type
+    let concrete = instantiate(&mut context, TypeKind::Unknown);
+    unify_type(&mut context, id1, concrete);
+
+    // Check if this was detected as circular
+    assert!(
+        !context.take_diagnostics().is_empty(),
+        "Circular reference not detected"
+    );
+}
+
+#[test]
+fn indirect_circular_reference() {
+    let mut context = setup();
+
+    // Create a cycle: A → B → C → A
+    let id_a = instantiate(&mut context, TypeKind::Infer);
+    let id_b = instantiate(&mut context, TypeKind::Infer);
+    let id_c = instantiate(&mut context, TypeKind::Infer);
+
+    context.arena.update(
+        id_a,
+        Type {
+            id: id_a,
+            span: SpanId::SYNTHETIC,
+            kind: TypeKind::Link(id_b),
+        },
+    );
+
+    context.arena.update(
+        id_b,
+        Type {
+            id: id_b,
+            span: SpanId::SYNTHETIC,
+            kind: TypeKind::Link(id_c),
+        },
+    );
+
+    context.arena.update(
+        id_c,
+        Type {
+            id: id_c,
+            span: SpanId::SYNTHETIC,
+            kind: TypeKind::Link(id_a),
+        },
+    );
+
+    // Try to unify with a concrete type
+    let concrete = instantiate(&mut context, TypeKind::Unknown);
+    unify_type(&mut context, id_a, concrete);
+
+    // Check if this more complex cycle was detected
+    assert!(
+        !context.take_diagnostics().is_empty(),
+        "Indirect circular reference not detected"
+    );
+}
+
+#[test]
+fn alternating_direction_cycle() {
+    let mut context = setup();
+
+    // Create types that will form a cycle but with alternating directions
+    let id_a = instantiate(&mut context, TypeKind::Infer);
+    let id_b = instantiate(&mut context, TypeKind::Infer);
+    let id_c = instantiate(&mut context, TypeKind::Infer);
+
+    // Create initial links
+    context.arena.update(
+        id_a,
+        Type {
+            id: id_a,
+            span: SpanId::SYNTHETIC,
+            kind: TypeKind::Link(id_b),
+        },
+    );
+
+    // Unify B with C
+    unify_type(&mut context, id_b, id_c);
+
+    // Now make C link back to A, completing the cycle
+    context.arena.update(
+        id_c,
+        Type {
+            id: id_c,
+            span: SpanId::SYNTHETIC,
+            kind: TypeKind::Link(id_a),
+        },
+    );
+
+    // Try to resolve the whole chain
+    let concrete = instantiate(&mut context, TypeKind::Unknown);
+    unify_type(&mut context, id_a, concrete);
+
+    // Check if this directionally varied cycle was detected
+    // This is the test most likely to expose if the approach is too conservative
+    assert!(
+        !context.take_diagnostics().is_empty(),
+        "Alternating direction cycle not detected"
+    );
+}

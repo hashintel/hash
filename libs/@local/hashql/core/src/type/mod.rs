@@ -146,13 +146,19 @@ impl HasId for Type {
     }
 }
 
+#[expect(clippy::too_many_lines)]
 pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: TypeId) {
-    if context.visit(lhs) {
-        todo!("register error circular type")
-    }
+    if context.visit(lhs, rhs) {
+        // We've detected a circular reference in the type graph
+        let lhs_type = &context.arena[lhs];
+        let rhs_type = &context.arena[rhs];
 
-    if context.visit(rhs) {
-        todo!("register error circular type")
+        let diagnostic = error::circular_type_reference(context.source, lhs_type, rhs_type);
+
+        context.record_diagnostic(diagnostic);
+        context.mark_error(lhs);
+        context.mark_error(rhs);
+        return;
     }
 
     let lhs = &context.arena[lhs];
@@ -167,6 +173,53 @@ pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: Typ
 
     #[expect(clippy::match_same_arms, reason = "makes the intent clear")]
     match (&lhs.kind, &rhs.kind) {
+        (&TypeKind::Link(lhs_id), &TypeKind::Link(rhs_id)) => {
+            unify_type(context, lhs_id, rhs_id);
+        }
+        (&TypeKind::Link(lhs_id), _) => {
+            unify_type(context, lhs_id, rhs.id);
+        }
+        (_, &TypeKind::Link(rhs_id)) => {
+            unify_type(context, lhs.id, rhs_id);
+        }
+
+        (TypeKind::Infer, TypeKind::Infer) => {
+            let rhs_id = rhs.id;
+
+            // If both are inferred, quantum-entangle them, meaning lhs points to rhs
+            context
+                .arena
+                .update_with(lhs.id, |lhs| lhs.kind = TypeKind::Link(rhs_id));
+        }
+        (TypeKind::Infer, rhs) => {
+            let rhs = rhs.clone();
+
+            // Infer simply propagate the rhs type
+            context
+                .arena
+                .update_with(lhs.id, |lhs| lhs.kind = rhs.clone());
+        }
+        (lhs, TypeKind::Infer) => {
+            let lhs = lhs.clone();
+
+            // Infer simply propagate the lhs type
+            context
+                .arena
+                .update_with(rhs.id, |rhs| rhs.kind = lhs.clone());
+        }
+
+        (TypeKind::Error, TypeKind::Error) => {
+            // Both are compatible with each other
+        }
+        (TypeKind::Error, _) => {
+            // do nothing, simply propagate the error up
+            context.mark_error(rhs.id);
+        }
+        (_, TypeKind::Error) => {
+            // do nothing, simply propagate the error up
+            context.mark_error(lhs.id);
+        }
+
         (&TypeKind::Primitive(lhs_kind), &TypeKind::Primitive(rhs_kind)) => {
             unify_primitive(
                 context,
@@ -221,57 +274,10 @@ pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: Typ
             context.arena.update_with(rhs.id, |rhs| rhs.kind = lhs);
         }
 
-        (TypeKind::Infer, TypeKind::Infer) => {
-            let rhs_id = rhs.id;
-
-            // If both are inferred, quantum-entangle them, meaning lhs points to rhs
-            context
-                .arena
-                .update_with(lhs.id, |lhs| lhs.kind = TypeKind::Link(rhs_id));
-        }
-        (TypeKind::Infer, rhs) => {
-            let rhs = rhs.clone();
-
-            // Infer simply propagate the rhs type
-            context
-                .arena
-                .update_with(lhs.id, |lhs| lhs.kind = rhs.clone());
-        }
-        (lhs, TypeKind::Infer) => {
-            let lhs = lhs.clone();
-
-            // Infer simply propagate the lhs type
-            context
-                .arena
-                .update_with(rhs.id, |rhs| rhs.kind = lhs.clone());
-        }
-
-        (&TypeKind::Link(lhs_id), &TypeKind::Link(rhs_id)) => {
-            unify_type(context, lhs_id, rhs_id);
-        }
-        (&TypeKind::Link(lhs_id), _) => {
-            unify_type(context, lhs_id, rhs.id);
-        }
-        (_, &TypeKind::Link(rhs_id)) => {
-            unify_type(context, lhs.id, rhs_id);
-        }
-
-        (TypeKind::Error, TypeKind::Error) => {
-            // Both are compatible with each other
-        }
-        (TypeKind::Error, _) => {
-            // do nothing, simply propagate the error up
-            context.mark_error(rhs.id);
-        }
-        (_, TypeKind::Error) => {
-            // do nothing, simply propagate the error up
-            context.mark_error(lhs.id);
-        }
         _ => {
             todo!()
         }
     }
 
-    context.leave(lhs_id);
-    context.leave(rhs_id);
+    context.leave(lhs_id, rhs_id);
 }

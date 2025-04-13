@@ -19,9 +19,15 @@ const TYPE_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Type mismatch",
 };
 
+const CIRCULAR_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "circular-type",
+    name: "Circular type reference",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
+    CircularType,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -36,6 +42,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
             Self::TypeMismatch => Some(&TYPE_MISMATCH),
+            Self::CircularType => Some(&CIRCULAR_TYPE),
         }
     }
 }
@@ -82,6 +89,44 @@ where
 
     diagnostic.note = Some(Note::new(
         "Types in expressions must be compatible according to the language's type system",
+    ));
+
+    diagnostic
+}
+
+/// Creates a circular type reference diagnostic
+pub(crate) fn circular_type_reference<K>(
+    span: SpanId,
+    lhs: &Type<K>,
+    rhs: &Type<K>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic =
+        Diagnostic::new(TypeCheckDiagnosticCategory::CircularType, Severity::ERROR);
+
+    diagnostic.labels.push(
+        Label::new(span, "Circular type reference detected in this expression").with_order(3),
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(lhs.span, "This type depends on itself").with_order(1));
+
+    diagnostic
+        .labels
+        .push(Label::new(rhs.span, "... through this reference").with_order(2));
+
+    diagnostic.help = Some(Help::new(
+        "Recursive types are not allowed in this context. Break the dependency cycle by \
+         introducing an indirect reference or reorganizing your type definitions.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Circular type references cannot be resolved because they would create an infinitely \
+         nested type. Certain language constructs like recursive functions are supported, but \
+         direct recursion in type definitions is not.",
     ));
 
     diagnostic

@@ -10,7 +10,7 @@ pub struct UnificationContext {
     pub arena: Arena<Type>,
 
     diagnostics: Vec<TypeCheckDiagnostic>,
-    visited: HashSet<TypeId, foldhash::fast::RandomState>,
+    visited: HashSet<(TypeId, TypeId), foldhash::fast::RandomState>,
 
     // The arguments currently in scope
     arguments: HashMap<GenericArgumentId, TypeId, foldhash::fast::RandomState>,
@@ -36,12 +36,12 @@ impl UnificationContext {
         core::mem::take(&mut self.diagnostics)
     }
 
-    pub fn visit(&mut self, id: TypeId) -> bool {
-        !self.visited.insert(id)
+    pub fn visit(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        !self.visited.insert((lhs, rhs))
     }
 
-    pub fn leave(&mut self, id: TypeId) {
-        self.visited.remove(&id);
+    pub fn leave(&mut self, lhs: TypeId, rhs: TypeId) {
+        self.visited.remove(&(lhs, rhs));
     }
 
     pub(crate) fn record_diagnostic(&mut self, diagnostic: TypeCheckDiagnostic) {
