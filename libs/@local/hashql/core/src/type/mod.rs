@@ -10,9 +10,12 @@ pub mod r#struct;
 pub(crate) mod test;
 pub mod unify;
 
+use pretty::RcDoc;
+
 use self::{
+    error::expected_never,
     intrinsic::{IntrinsicType, unify_intrinsic},
-    pretty_print::{PrettyPrint, RecursionLimit},
+    pretty_print::{CYAN, GRAY, PrettyPrint, RED, RecursionLimit},
     primitive::{PrimitiveType, unify_primitive},
     r#struct::{StructType, unify_struct},
     unify::UnificationContext,
@@ -94,6 +97,11 @@ impl PrettyPrint for TypeKind {
             Self::Primitive(primitive) => primitive.pretty(arena, limit),
             Self::Intrinsic(intrinsic) => intrinsic.pretty(arena, limit),
             Self::Struct(r#struct) => r#struct.pretty(arena, limit),
+            Self::Link(id) => arena[*id].pretty(arena, limit),
+            Self::Infer => RcDoc::text("_").annotate(GRAY),
+            Self::Unknown => RcDoc::text("?").annotate(CYAN),
+            Self::Never => RcDoc::text("!").annotate(CYAN),
+            Self::Error => RcDoc::text("<<ERROR>>").annotate(RED),
             _ => todo!(),
         }
     }
@@ -248,16 +256,24 @@ pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: Typ
             // Both are never, so they are compatible
         }
         (TypeKind::Never, _) => {
-            // bottom type, anything added to never is never
+            let diagnostic = expected_never(lhs.span, &context.arena, rhs);
+
+            // Mark as error since it should have been Never type
             context
                 .arena
-                .update_with(rhs.id, |rhs| rhs.kind = TypeKind::Never);
+                .update_with(rhs.id, |rhs| rhs.kind = TypeKind::Error);
+
+            context.record_diagnostic(diagnostic);
         }
         (_, TypeKind::Never) => {
-            // bottom type, anything added to never is never
+            let diagnostic = expected_never(rhs.span, &context.arena, lhs);
+
+            // Mark as error since it should have been Never type
             context
                 .arena
-                .update_with(lhs.id, |lhs| lhs.kind = TypeKind::Never);
+                .update_with(lhs.id, |lhs| lhs.kind = TypeKind::Error);
+
+            context.record_diagnostic(diagnostic);
         }
 
         (TypeKind::Unknown, TypeKind::Unknown) => {
@@ -275,7 +291,11 @@ pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: Typ
         }
 
         _ => {
-            todo!()
+            todo!(
+                "{} with {}",
+                lhs.pretty_print(&context.arena, 80),
+                rhs.pretty_print(&context.arena, 80)
+            );
         }
     }
 

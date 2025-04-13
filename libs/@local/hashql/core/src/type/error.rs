@@ -24,10 +24,16 @@ const CIRCULAR_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Circular type reference",
 };
 
+const EXPECTED_NEVER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "expected-never",
+    name: "Expected uninhabited type",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
     CircularType,
+    ExpectedNever,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -43,6 +49,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
         match self {
             Self::TypeMismatch => Some(&TYPE_MISMATCH),
             Self::CircularType => Some(&CIRCULAR_TYPE),
+            Self::ExpectedNever => Some(&EXPECTED_NEVER),
         }
     }
 }
@@ -127,6 +134,49 @@ where
         "Circular type references cannot be resolved because they would create an infinitely \
          nested type. Certain language constructs like recursive functions are supported, but \
          direct recursion in type definitions is not.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a value has a non-Never type but a Never type is expected
+pub(crate) fn expected_never<K>(
+    span: SpanId,
+    arena: &Arena<Type>,
+    actual_type: &Type<K>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic =
+        Diagnostic::new(TypeCheckDiagnosticCategory::ExpectedNever, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "This expression should not return a value").with_order(2));
+
+    diagnostic.labels.push(
+        Label::new(
+            actual_type.span,
+            format!(
+                "But it returns a value of type `{}`",
+                actual_type.kind.pretty_print(arena, 80)
+            ),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "This code path expects an uninhabited type (Never), meaning it should not produce a \
+         value. This typically happens in code paths that should never be reached, or in branches \
+         that must terminate execution (e.g., by returning early, throwing an error, or entering \
+         an infinite loop).",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "The Never type represents computations that do not produce a value, such as infinite \
+         loops, unreachable code paths, or code that always throws an error. When a Never type is \
+         expected, your code must not return any value.",
     ));
 
     diagnostic

@@ -3,7 +3,7 @@ use crate::{
     arena::Arena,
     span::SpanId,
     symbol::{Ident, IdentKind, Symbol},
-    r#type::unify_type,
+    r#type::{primitive::PrimitiveType, unify_type},
 };
 
 pub(crate) fn setup() -> UnificationContext {
@@ -48,9 +48,9 @@ fn never_with_other_type() {
 
     unify_type(&mut context, never, other);
 
-    // Both should become Never as it's the bottom type
+    // Never stays the same, but the other type becomes Error since it should have been Never
     assert!(matches!(context.arena[never].kind, TypeKind::Never));
-    assert!(matches!(context.arena[other].kind, TypeKind::Never));
+    assert!(matches!(context.arena[other].kind, TypeKind::Error));
 }
 
 #[test]
@@ -75,8 +75,8 @@ fn unknown_with_other_type() {
 
     unify_type(&mut context, unknown, never);
 
-    // Unknown should become the other type as it's top type
-    assert!(matches!(context.arena[unknown].kind, TypeKind::Never));
+    // Unknown becomes Error when unified with Never, since it's expected to be Never
+    assert!(matches!(context.arena[unknown].kind, TypeKind::Error));
 }
 
 #[test]
@@ -128,7 +128,7 @@ fn link_resolves_to_target() {
     let mut context = setup();
 
     // Create a chain: link1 -> link2 -> never
-    let never = instantiate(&mut context, TypeKind::Never);
+    let never = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
     let link2 = instantiate(&mut context, TypeKind::Link(never));
     let link1 = instantiate(&mut context, TypeKind::Link(link2));
 
@@ -137,7 +137,10 @@ fn link_resolves_to_target() {
     unify_type(&mut context, link1, other);
 
     // Should follow links and resolve to Never
-    assert!(matches!(context.arena[other].kind, TypeKind::Never));
+    assert!(matches!(
+        context.arena[other].kind,
+        TypeKind::Primitive(PrimitiveType::Number)
+    ));
 }
 
 #[test]
@@ -151,14 +154,17 @@ fn complex_link_chain_resolution() {
     let link3 = instantiate(&mut context, TypeKind::Link(link2));
 
     // Create another chain
-    let other_concrete = instantiate(&mut context, TypeKind::Never);
+    let other_concrete = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
     let other_link = instantiate(&mut context, TypeKind::Link(other_concrete));
 
     // Unify the heads of both chains
     unify_type(&mut context, link3, other_link);
 
     // The full chain should resolve to Never
-    assert!(matches!(context.arena[concrete].kind, TypeKind::Never));
+    assert!(matches!(
+        context.arena[concrete].kind,
+        TypeKind::Primitive(PrimitiveType::Number)
+    ));
 
     // Links should still point in the same direction
     if let TypeKind::Link(target) = context.arena[link3].kind {
@@ -229,17 +235,17 @@ fn mixed_special_types_unification() {
     // Then unify the link with Never
     unify_type(&mut context, infer2, never);
 
-    // Finally unify with Unknown (should preserve Never as it's bottom type)
+    // Finally unify with Unknown (Unknown becomes Error as it needs to be Never)
     unify_type(&mut context, infer1, unknown);
 
-    // Check the final state - all should be Never
+    // Check the final state
     assert!(
         matches!(context.arena[infer1].kind, TypeKind::Never)
             || matches!(context.arena[infer1].kind, TypeKind::Link(_))
     );
     assert!(matches!(context.arena[infer2].kind, TypeKind::Never));
     assert!(matches!(context.arena[never].kind, TypeKind::Never));
-    assert!(matches!(context.arena[unknown].kind, TypeKind::Never));
+    assert!(matches!(context.arena[unknown].kind, TypeKind::Error));
 }
 
 #[test]
@@ -253,6 +259,7 @@ fn error_propagation_through_mixed_types() {
     let infer = instantiate(&mut context, TypeKind::Infer);
 
     // Create sequence: error -> never -> unknown -> infer
+    // Each step will mark the types as Error due to propagation
     unify_type(&mut context, error, never);
     unify_type(&mut context, never, unknown);
     unify_type(&mut context, unknown, infer);

@@ -9,6 +9,8 @@ use crate::arena::Arena;
 pub(crate) const BLUE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Blue)));
 pub(crate) const CYAN: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Cyan)));
 pub(crate) const ORANGE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)));
+pub(crate) const GRAY: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightBlack)));
+pub(crate) const RED: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightRed)));
 
 struct WriteColored<W> {
     stack: Vec<Style>,
