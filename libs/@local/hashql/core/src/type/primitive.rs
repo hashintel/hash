@@ -1,7 +1,7 @@
 use pretty::RcDoc;
 
 use super::{
-    Type, TypeKind,
+    Type,
     error::type_mismatch,
     pretty_print::{BLUE, PrettyPrint, RecursionLimit},
     unify::{UnificationArena, UnificationContext},

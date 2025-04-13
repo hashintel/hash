@@ -12,7 +12,7 @@ pub mod r#struct;
 pub(crate) mod test;
 pub mod tuple;
 pub mod unify;
-pub mod union_type;
+pub mod r#union;
 
 use core::mem;
 
@@ -29,7 +29,7 @@ use self::{
     r#struct::{StructType, unify_struct},
     tuple::{TupleType, unify_tuple},
     unify::{UnificationArena, UnificationContext, Variance},
-    union_type::{UnionType, unify_union, unify_union_lhs, unify_union_rhs},
+    r#union::{UnionType, unify_union, unify_union_lhs, unify_union_rhs},
 };
 use crate::{id::HasId, newtype, span::SpanId};
 
@@ -100,6 +100,14 @@ impl TypeKind {
     pub fn into_opaque(self) -> Option<OpaqueType> {
         match self {
             Self::Opaque(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
+
+    #[must_use]
+    pub fn into_union(self) -> Option<UnionType> {
+        match self {
+            Self::Union(r#type) => Some(r#type),
             _ => None,
         }
     }

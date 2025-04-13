@@ -201,3 +201,203 @@ pub(crate) fn unify_param(context: &mut UnificationContext, lhs: &Type<Param>, r
     // In a strictly variance-aware system, we do NOT modify the parameter types
     // This preserves the identity of the parameters in the type graph
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        GenericArgument, GenericArgumentId, GenericArguments, Param, unify_param, unify_param_lhs,
+        unify_param_rhs,
+    };
+    use crate::{
+        symbol::Symbol,
+        r#type::{
+            TypeKind,
+            primitive::PrimitiveType,
+            test::{ident, instantiate, setup},
+        },
+    };
+
+    fn create_param(
+        context: &mut crate::r#type::unify::UnificationContext,
+        argument_id: GenericArgumentId,
+        name: &str,
+    ) -> crate::r#type::Type<Param> {
+        let id = context
+            .arena
+            .arena_mut_test_only()
+            .push_with(|id| crate::r#type::Type {
+                id,
+                span: crate::span::SpanId::SYNTHETIC,
+                kind: TypeKind::Param(Param {
+                    argument: argument_id,
+                    name: Symbol::new(name),
+                }),
+            });
+
+        context.arena[id].clone().map(|kind| match kind {
+            TypeKind::Param(param) => param,
+            _ => panic!("should be param type"),
+        })
+    }
+
+    #[test]
+    fn param_with_concrete_type() {
+        let mut context = setup();
+
+        // Create a generic parameter T with Number type
+        let t_id = GenericArgumentId::new(0);
+        let t_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+
+        // Enter the generic argument into scope
+        context.enter_generic_argument_scope(t_id, t_type);
+
+        // Create a parameter reference T
+        let param = create_param(&mut context, t_id, "T");
+
+        // Create a concrete Integer type
+        let concrete = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+
+        // Unify parameter (lhs) with concrete type (rhs)
+        unify_param_lhs(&mut context, &param, concrete);
+
+        assert!(
+            context.take_diagnostics().is_empty(),
+            "Failed to unify parameter with compatible concrete type"
+        );
+
+        // Clean up scope
+        context.exit_generic_argument_scope(t_id);
+    }
+
+    #[test]
+    fn concrete_type_with_param() {
+        let mut context = setup();
+
+        // Create a generic parameter T with Integer type
+        let t_id = GenericArgumentId::new(0);
+        let t_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+
+        // Enter the generic argument into scope
+        context.enter_generic_argument_scope(t_id, t_type);
+
+        // Create a parameter reference T
+        let param = create_param(&mut context, t_id, "T");
+
+        // Create a concrete Number type
+        let concrete = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+
+        // Unify concrete type (lhs) with parameter (rhs)
+        unify_param_rhs(&mut context, concrete, &param);
+
+        assert!(
+            context.take_diagnostics().is_empty(),
+            "Failed to unify concrete type with compatible parameter"
+        );
+
+        // Clean up scope
+        context.exit_generic_argument_scope(t_id);
+    }
+
+    #[test]
+    fn param_with_param() {
+        let mut context = setup();
+
+        // Create two generic parameters T and U with Number and Integer types
+        let t_id = GenericArgumentId::new(0);
+        let u_id = GenericArgumentId::new(1);
+
+        let t_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let u_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+
+        // Enter both arguments into scope
+        context.enter_generic_argument_scope(t_id, t_type);
+        context.enter_generic_argument_scope(u_id, u_type);
+
+        // Create parameter references T and U
+        let param_t = create_param(&mut context, t_id, "T");
+        let param_u = create_param(&mut context, u_id, "U");
+
+        // Unify parameters T and U
+        unify_param(&mut context, &param_t, &param_u);
+
+        assert!(
+            context.take_diagnostics().is_empty(),
+            "Failed to unify compatible parameters"
+        );
+
+        // Clean up scope
+        context.exit_generic_argument_scope(u_id);
+        context.exit_generic_argument_scope(t_id);
+    }
+
+    #[test]
+    fn undefined_param_error() {
+        let mut context = setup();
+
+        // Create a parameter reference to an undefined generic argument
+        let undefined_id = GenericArgumentId::new(42);
+        let param = create_param(&mut context, undefined_id, "T");
+
+        // Create a concrete type
+        let concrete = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+
+        // Try to unify with undefined parameter
+        unify_param_lhs(&mut context, &param, concrete);
+
+        let diagnostics = context.take_diagnostics();
+        assert_eq!(
+            diagnostics.len(),
+            1,
+            "Should produce undefined parameter error"
+        );
+        assert!(
+            matches!(
+                diagnostics[0].category,
+                crate::r#type::error::TypeCheckDiagnosticCategory::GenericArgumentNotFound
+            ),
+            "Wrong error type for undefined parameter"
+        );
+    }
+
+    #[test]
+    fn generic_arguments_scope() {
+        let mut context = setup();
+
+        // Create a generic argument T
+        let t_id = GenericArgumentId::new(0);
+        let t_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let t_arg = GenericArgument {
+            id: t_id,
+            name: ident("T"),
+            constraint: None,
+            r#type: t_type,
+        };
+
+        // Create a GenericArguments collection
+        let args = GenericArguments::from_iter([t_arg]);
+
+        // Verify argument not in scope initially
+        assert!(
+            context.generic_argument(t_id).is_none(),
+            "Argument should not be in scope before entering"
+        );
+
+        // Enter scope
+        args.enter_scope(&mut context);
+
+        // Verify argument is in scope
+        assert!(
+            context.generic_argument(t_id).is_some(),
+            "Argument should be in scope after entering"
+        );
+
+        // Exit scope
+        args.exit_scope(&mut context);
+
+        // Verify argument no longer in scope
+        assert!(
+            context.generic_argument(t_id).is_none(),
+            "Argument should not be in scope after exiting"
+        );
+    }
+}
