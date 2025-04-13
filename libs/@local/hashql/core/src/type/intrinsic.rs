@@ -4,10 +4,9 @@ use super::{
     Type, TypeId,
     error::type_mismatch,
     pretty_print::{PrettyPrint, RecursionLimit},
-    unify::UnificationContext,
+    unify::{UnificationArena, UnificationContext},
     unify_type,
 };
-use crate::arena::Arena;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ListType {
@@ -17,7 +16,7 @@ pub struct ListType {
 impl PrettyPrint for ListType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text("List")
@@ -36,7 +35,7 @@ pub struct DictType {
 impl PrettyPrint for DictType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text("Dict")
@@ -66,7 +65,7 @@ pub enum IntrinsicType {
 impl PrettyPrint for IntrinsicType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> RcDoc<'a, anstyle::Style> {
         match self {

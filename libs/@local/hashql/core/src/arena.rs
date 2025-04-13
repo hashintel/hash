@@ -39,10 +39,12 @@ impl<T> Arena<T> {
         id
     }
 
-    pub fn update(&mut self, id: T::Id, item: T)
+    pub fn update(&mut self, item: T)
     where
         T: HasId,
     {
+        let id = item.id();
+
         self.items[id.as_usize()] = item;
     }
 

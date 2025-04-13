@@ -6,10 +6,9 @@ use super::{
     error::tuple_length_mismatch,
     generic_argument::GenericArguments,
     pretty_print::{PrettyPrint, RecursionLimit},
-    unify::UnificationContext,
+    unify::{UnificationArena, UnificationContext},
     unify_type,
 };
-use crate::arena::Arena;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TupleField {
@@ -19,7 +18,7 @@ pub struct TupleField {
 impl PrettyPrint for TupleField {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         limit.pretty(&arena[self.value], arena)
@@ -36,7 +35,7 @@ pub struct TupleType {
 impl PrettyPrint for TupleType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         let inner = if self.fields.is_empty() {

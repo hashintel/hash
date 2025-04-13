@@ -4,9 +4,8 @@ use super::{
     Type, TypeKind,
     error::type_mismatch,
     pretty_print::{BLUE, PrettyPrint, RecursionLimit},
-    unify::UnificationContext,
+    unify::{UnificationArena, UnificationContext},
 };
-use crate::arena::Arena;
 
 // TODO: in the future we should support refinements
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -31,7 +30,7 @@ impl PrimitiveType {
 }
 
 impl PrettyPrint for PrimitiveType {
-    fn pretty(&self, _: &Arena<Type>, _: RecursionLimit) -> pretty::RcDoc<anstyle::Style> {
+    fn pretty(&self, _: &UnificationArena, _: RecursionLimit) -> pretty::RcDoc<anstyle::Style> {
         RcDoc::text(self.as_str()).annotate(BLUE)
     }
 }
@@ -58,10 +57,7 @@ pub(crate) fn unify_primitive(
             // This is valid - Integer can be used where Number is expected
             // We update the type for consistency in the type graph and to ensure
             // that all subsequent operations have the precise type information
-            context.arena.update(
-                rhs.id,
-                rhs.map(|_| TypeKind::Primitive(PrimitiveType::Number)),
-            );
+            context.update_kind(rhs.id, TypeKind::Primitive(PrimitiveType::Number));
         }
 
         (PrimitiveType::Integer, PrimitiveType::Number) => {

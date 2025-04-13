@@ -7,10 +7,10 @@ use super::{
     Type, TypeId,
     generic_argument::GenericArguments,
     pretty_print::{PrettyPrint, RecursionLimit},
-    unify::UnificationContext,
+    unify::{UnificationArena, UnificationContext},
     unify_type,
 };
-use crate::{arena::Arena, symbol::Ident};
+use crate::symbol::Ident;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructField {
@@ -21,7 +21,7 @@ pub struct StructField {
 impl PrettyPrint for StructField {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text(self.key.value.as_str())
@@ -43,7 +43,7 @@ pub struct StructType {
 impl PrettyPrint for StructType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> RcDoc<'a, anstyle::Style> {
         let inner = if self.fields.is_empty() {

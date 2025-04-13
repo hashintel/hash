@@ -6,7 +6,7 @@ use super::{
     Type, TypeId,
     error::TypeCheckDiagnosticCategory,
     pretty_print::{PrettyPrint, RecursionLimit},
-    unify::UnificationContext,
+    unify::{UnificationArena, UnificationContext},
 };
 use crate::arena::Arena;
 
@@ -18,7 +18,7 @@ pub struct UnionType {
 impl PrettyPrint for UnionType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<super::Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::intersperse(

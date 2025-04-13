@@ -3,8 +3,7 @@ use std::io;
 use anstyle::{AnsiColor, Color, Style};
 use pretty::{RcDoc, Render, RenderAnnotated};
 
-use super::Type;
-use crate::arena::Arena;
+use super::unify::UnificationArena;
 
 pub(crate) const BLUE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Blue)));
 pub(crate) const CYAN: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Cyan)));
@@ -74,7 +73,7 @@ pub(crate) struct RecursionLimit {
 }
 
 impl RecursionLimit {
-    pub(crate) fn pretty<'a, T>(self, node: &'a T, arena: &'a Arena<Type>) -> RcDoc<'a, Style>
+    pub(crate) fn pretty<'a, T>(self, node: &'a T, arena: &'a UnificationArena) -> RcDoc<'a, Style>
     where
         T: PrettyPrint,
     {
@@ -94,9 +93,10 @@ impl RecursionLimit {
 }
 
 pub(crate) trait PrettyPrint {
-    fn pretty<'a>(&'a self, arena: &'a Arena<Type>, limit: RecursionLimit) -> RcDoc<'a, Style>;
+    fn pretty<'a>(&'a self, arena: &'a UnificationArena, limit: RecursionLimit)
+    -> RcDoc<'a, Style>;
 
-    fn pretty_print(&self, arena: &Arena<Type>, width: usize) -> String {
+    fn pretty_print(&self, arena: &UnificationArena, width: usize) -> String {
         let mut output = Vec::new();
         let mut writer = WriteColored::new(&mut output);
 

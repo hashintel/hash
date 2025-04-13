@@ -4,7 +4,7 @@ use pretty::RcDoc;
 use super::{
     Type, TypeId,
     pretty_print::{ORANGE, PrettyPrint, RecursionLimit},
-    unify::UnificationContext,
+    unify::{UnificationArena, UnificationContext},
     unify_type,
 };
 use crate::{
@@ -31,7 +31,7 @@ pub struct GenericArgument {
 impl PrettyPrint for GenericArgument {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         let mut doc = RcDoc::text(self.name.value.as_str()).annotate(ORANGE);
@@ -79,7 +79,7 @@ impl FromIterator<GenericArgument> for GenericArguments {
 impl PrettyPrint for GenericArguments {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> RcDoc<'a, anstyle::Style> {
         if self.0.is_empty() {
@@ -113,7 +113,11 @@ pub struct Param {
 }
 
 impl PrettyPrint for Param {
-    fn pretty<'a>(&'a self, _: &'a Arena<Type>, _: RecursionLimit) -> RcDoc<'a, anstyle::Style> {
+    fn pretty<'a>(
+        &'a self,
+        _: &'a UnificationArena,
+        _: RecursionLimit,
+    ) -> RcDoc<'a, anstyle::Style> {
         RcDoc::text(self.name.as_str())
     }
 }

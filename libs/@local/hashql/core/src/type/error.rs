@@ -9,8 +9,10 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-use super::{Type, generic_argument::GenericArgumentId, pretty_print::PrettyPrint};
-use crate::{arena::Arena, span::SpanId};
+use super::{
+    Type, generic_argument::GenericArgumentId, pretty_print::PrettyPrint, unify::UnificationArena,
+};
+use crate::span::SpanId;
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
 
@@ -78,7 +80,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
 /// Creates a type mismatch diagnostic with specific labels for the left and right types
 pub(crate) fn type_mismatch<K>(
     span: SpanId,
-    arena: &Arena<Type>,
+    arena: &UnificationArena,
 
     lhs: &Type<K>,
     rhs: &Type<K>,
@@ -163,7 +165,7 @@ where
 /// Creates a diagnostic for when a value has a non-Never type but a Never type is expected
 pub(crate) fn expected_never<K>(
     span: SpanId,
-    arena: &Arena<Type>,
+    arena: &UnificationArena,
     actual_type: &Type<K>,
 ) -> TypeCheckDiagnostic
 where

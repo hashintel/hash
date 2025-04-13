@@ -5,10 +5,9 @@ use super::{
     Type, TypeId,
     generic_argument::GenericArguments,
     pretty_print::{PrettyPrint, RecursionLimit},
-    unify::UnificationContext,
+    unify::{UnificationArena, UnificationContext},
     unify_type,
 };
-use crate::arena::Arena;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OpaqueType {
@@ -22,7 +21,7 @@ pub struct OpaqueType {
 impl PrettyPrint for OpaqueType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text(self.name.as_str())

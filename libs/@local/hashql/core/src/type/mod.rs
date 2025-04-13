@@ -26,7 +26,7 @@ use self::{
     primitive::{PrimitiveType, unify_primitive},
     r#struct::{StructType, unify_struct},
     tuple::{TupleType, unify_tuple},
-    unify::{UnificationContext, Variance},
+    unify::{UnificationArena, UnificationContext, Variance},
     union_type::UnionType,
 };
 use crate::{arena::Arena, id::HasId, newtype, span::SpanId};
@@ -101,7 +101,7 @@ impl TypeKind {
 impl PrettyPrint for TypeKind {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         match self {
@@ -153,7 +153,7 @@ where
 {
     fn pretty<'a>(
         &'a self,
-        arena: &'a Arena<Type>,
+        arena: &'a UnificationArena,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         self.kind.pretty(arena, limit)
@@ -322,9 +322,7 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
 
             // If both are inference variables, link them together so they resolve to the same type
             // This is variance-independent: inference variables are meant to be unified
-            context
-                .arena
-                .update_with(lhs.id, |lhs| lhs.kind = TypeKind::Link(rhs_id));
+            context.update_kind(lhs.id, TypeKind::Link(rhs_id));
         }
         (TypeKind::Infer, rhs) => {
             let rhs = rhs.clone();
@@ -332,9 +330,7 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
             // The lhs is an inference variable, rhs is a concrete type
             // Inference variables are an exception to the "no modifications" rule
             // They are specifically designed to be refined during type checking
-            context
-                .arena
-                .update_with(lhs.id, |lhs| lhs.kind = rhs.clone());
+            context.update_kind(lhs.id, rhs);
         }
         (lhs, TypeKind::Infer) => {
             let lhs = lhs.clone();
@@ -342,9 +338,7 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
             // The lhs is a concrete type, rhs is an inference variable
             // Inference variables are an exception to the "no modifications" rule
             // They are specifically designed to be refined during type checking
-            context
-                .arena
-                .update_with(rhs.id, |rhs| rhs.kind = lhs.clone());
+            context.update_kind(rhs.id, lhs);
         }
 
         // Error types represent invalid or erroneous types
@@ -451,7 +445,7 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
             // is beneficial for type inference and error reporting.
             // The compatibility check succeeds due to variance, but we also update for precision
             let rhs = rhs.clone();
-            context.arena.update_with(lhs.id, |lhs| lhs.kind = rhs);
+            context.update_kind(lhs_id, rhs);
         }
         (_, TypeKind::Unknown) => {
             // In covariant context: A concrete type (lhs) is not a subtype of Unknown (rhs)
