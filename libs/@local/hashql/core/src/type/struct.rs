@@ -236,7 +236,7 @@ mod tests {
 
         // Create two structs with overlapping fields:
         // lhs: (name: String, age: Number)
-        // rhs: (name: String, id: Number)
+        // rhs: (name: String, age: Number, id: Number)
         let lhs_fields = [
             StructField {
                 key: ident("name"),
@@ -257,6 +257,10 @@ mod tests {
             StructField {
                 key: ident("name"),
                 value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+            },
+            StructField {
+                key: ident("age"),
+                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
             },
             StructField {
                 key: ident("id"),
@@ -285,28 +289,6 @@ mod tests {
             context.take_diagnostics().is_empty(),
             "Failed to unify structs with overlapping fields"
         );
-
-        // Check that both structs only contain the common field (name)
-        let lhs = context.arena[lhs_id].clone();
-        let rhs = context.arena[rhs_id].clone();
-
-        if let TypeKind::Struct(lhs_struct) = lhs.kind {
-            assert_eq!(
-                lhs_struct.fields.len(),
-                1,
-                "LHS should only have common fields"
-            );
-            assert_eq!(lhs_struct.fields[0].key, ident("name"));
-        }
-
-        if let TypeKind::Struct(rhs_struct) = rhs.kind {
-            assert_eq!(
-                rhs_struct.fields.len(),
-                1,
-                "RHS should only have common fields"
-            );
-            assert_eq!(rhs_struct.fields[0].key, ident("name"));
-        }
     }
 
     #[test]
@@ -314,15 +296,15 @@ mod tests {
         let mut context = setup();
 
         // Create structs with a field that needs type promotion:
-        // lhs: { value: Integer }
-        // rhs: { value: Number }
+        // lhs: { value: Number }
+        // rhs: { value: Integer }
         let lhs_field = StructField {
             key: ident("value"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer)),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
         };
         let rhs_field = StructField {
             key: ident("value"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer)),
         };
 
         let lhs_type = StructType {
@@ -410,21 +392,9 @@ mod tests {
         unify_struct(&mut context, &lhs, &rhs);
 
         assert!(
-            context.take_diagnostics().is_empty(),
-            "Failed to unify disjoint structs"
+            !context.take_diagnostics().is_empty(),
+            "Disjoint structs are not covariant"
         );
-
-        // Check that both structs are now empty
-        let lhs = context.arena[lhs_id].clone();
-        let rhs = context.arena[rhs_id].clone();
-
-        if let TypeKind::Struct(lhs_struct) = lhs.kind {
-            assert!(lhs_struct.fields.is_empty(), "LHS should have no fields");
-        }
-
-        if let TypeKind::Struct(rhs_struct) = rhs.kind {
-            assert!(rhs_struct.fields.is_empty(), "RHS should have no fields");
-        }
     }
 
     #[test]

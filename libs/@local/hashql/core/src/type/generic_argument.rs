@@ -8,7 +8,6 @@ use super::{
     unify_type,
 };
 use crate::{
-    arena::Arena,
     newtype,
     symbol::{Ident, Symbol},
 };

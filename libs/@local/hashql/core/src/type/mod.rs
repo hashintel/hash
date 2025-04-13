@@ -180,7 +180,7 @@ impl HasId for Type {
 /// e.g. `lhs <: rhs` and `rhs <: lhs`
 ///
 /// This is the main entry point for type unification that respects variance.
-pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: TypeId) {
+pub fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: TypeId) {
     match context.variance_context() {
         Variance::Covariant => {
             // In covariant context: can `rhs` be used where `lhs` is expected?
@@ -315,32 +315,6 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
             unify_type(context, lhs.id, rhs_id);
         }
 
-        // Inference variables are special cases that can be refined during unification
-        // Their handling is independent of variance since they represent "unknown yet" types
-        (TypeKind::Infer, TypeKind::Infer) => {
-            let rhs_id = rhs.id;
-
-            // If both are inference variables, link them together so they resolve to the same type
-            // This is variance-independent: inference variables are meant to be unified
-            context.update_kind(lhs.id, TypeKind::Link(rhs_id));
-        }
-        (TypeKind::Infer, rhs) => {
-            let rhs = rhs.clone();
-
-            // The lhs is an inference variable, rhs is a concrete type
-            // Inference variables are an exception to the "no modifications" rule
-            // They are specifically designed to be refined during type checking
-            context.update_kind(lhs.id, rhs);
-        }
-        (lhs, TypeKind::Infer) => {
-            let lhs = lhs.clone();
-
-            // The lhs is a concrete type, rhs is an inference variable
-            // Inference variables are an exception to the "no modifications" rule
-            // They are specifically designed to be refined during type checking
-            context.update_kind(rhs.id, lhs);
-        }
-
         // Error types represent invalid or erroneous types
         (TypeKind::Error, TypeKind::Error) => {
             // Both types are errors - they're considered compatible
@@ -355,6 +329,26 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
             // The rhs is an error - propagate the error to lhs
             // This ensures errors flow through the type system
             context.mark_error(lhs.id);
+        }
+
+        // Inference variables are special cases that can be refined during unification
+        // Their handling is independent of variance since they represent "unknown yet" types
+        (TypeKind::Infer, TypeKind::Infer) => {
+            // If both are inference variables, link them together so they resolve to the same type
+            // This is variance-independent: inference variables are meant to be unified
+            context.update_kind(lhs_id, TypeKind::Link(rhs_id));
+        }
+        (TypeKind::Infer, rhs) => {
+            // The lhs is an inference variable, rhs is a concrete type
+            // Inference variables are an exception to the "no modifications" rule
+            // They are specifically designed to be refined during type checking
+            context.update_kind(lhs.id, rhs.clone());
+        }
+        (lhs, TypeKind::Infer) => {
+            // The lhs is a concrete type, rhs is an inference variable
+            // Inference variables are an exception to the "no modifications" rule
+            // They are specifically designed to be refined during type checking
+            context.update_kind(rhs.id, lhs.clone());
         }
 
         (TypeKind::Closure(lhs_kind), TypeKind::Closure(rhs_kind)) => {
@@ -441,28 +435,6 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
             );
         }
 
-        // Never is the bottom type - it's a subtype of all other types
-        (TypeKind::Never, TypeKind::Never) => {
-            // Both types are Never - they're compatible
-            // This is true in any variance context
-        }
-        (TypeKind::Never, _) => {
-            // In covariant context: Never (lhs) is a subtype of any type (rhs).
-            // This is always valid - a value of Never type can be used anywhere
-            // We preserve the Never type on the lhs because it's more specific than any other type
-            // No modification needed - Never remains Never
-        }
-        (_, TypeKind::Never) => {
-            // In covariant context: A concrete type (lhs) is not a supertype of Never (rhs)
-            // This is an error - we expected lhs but got a Never
-            let diagnostic = expected_never(rhs.span, &context.arena, lhs);
-
-            // Mark as error since the types are incompatible
-            context.mark_error(lhs.id);
-
-            context.record_diagnostic(diagnostic);
-        }
-
         // Unknown is the top type - all other types are subtypes of it
         (TypeKind::Unknown, TypeKind::Unknown) => {
             // Both types are Unknown - they're compatible
@@ -493,6 +465,28 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
 
             context.record_diagnostic(diagnostic);
             context.mark_error(rhs_id);
+        }
+
+        // Never is the bottom type - it's a subtype of all other types
+        (TypeKind::Never, TypeKind::Never) => {
+            // Both types are Never - they're compatible
+            // This is true in any variance context
+        }
+        (TypeKind::Never, _) => {
+            // In covariant context: Never (lhs) is a subtype of any type (rhs).
+            // This is always valid - a value of Never type can be used anywhere
+            // We preserve the Never type on the lhs because it's more specific than any other type
+            // No modification needed - Never remains Never
+        }
+        (_, TypeKind::Never) => {
+            // In covariant context: A concrete type (lhs) is not a supertype of Never (rhs)
+            // This is an error - we expected lhs but got a Never
+            let diagnostic = expected_never(rhs.span, &context.arena, lhs);
+
+            // Mark as error since the types are incompatible
+            context.mark_error(lhs.id);
+
+            context.record_diagnostic(diagnostic);
         }
 
         // Fallback case for any type combination not handled by the above cases

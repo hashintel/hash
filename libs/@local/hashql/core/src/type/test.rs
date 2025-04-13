@@ -1,3 +1,5 @@
+use core::assert_matches::assert_matches;
+
 use super::{Type, TypeId, TypeKind, unify::UnificationContext};
 use crate::{
     arena::Arena,
@@ -76,7 +78,7 @@ fn unknown_with_other_type() {
     unify_type(&mut context, unknown, never);
 
     // Unknown becomes Error when unified with Never, since it's expected to be Never
-    assert!(matches!(context.arena[unknown].kind, TypeKind::Error));
+    assert!(matches!(context.arena[unknown].kind, TypeKind::Never));
 }
 
 #[test]
@@ -106,7 +108,7 @@ fn infer_with_concrete_type() {
     unify_type(&mut context, infer, never);
 
     // Infer should become the concrete type
-    assert!(matches!(context.arena[infer].kind, TypeKind::Never));
+    assert_matches!(context.arena[infer].kind, TypeKind::Never);
 }
 
 #[test]
@@ -119,28 +121,32 @@ fn error_propagates() {
     unify_type(&mut context, error, other);
 
     // Error should propagate to both types
-    assert!(matches!(context.arena[error].kind, TypeKind::Error));
-    assert!(matches!(context.arena[other].kind, TypeKind::Error));
+    assert_matches!(context.arena[error].kind, TypeKind::Error);
+    assert_matches!(context.arena[other].kind, TypeKind::Error);
 }
 
 #[test]
 fn link_resolves_to_target() {
     let mut context = setup();
 
-    // Create a chain: link1 -> link2 -> never
-    let never = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-    let link2 = instantiate(&mut context, TypeKind::Link(never));
+    // Create a chain: link1 -> link2 -> unknown
+    let unknown = instantiate(&mut context, TypeKind::Unknown);
+    let link2 = instantiate(&mut context, TypeKind::Link(unknown));
     let link1 = instantiate(&mut context, TypeKind::Link(link2));
 
-    let other = instantiate(&mut context, TypeKind::Unknown);
+    let number = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
 
-    unify_type(&mut context, link1, other);
+    unify_type(&mut context, link1, number);
 
-    // Should follow links and resolve to Never
-    assert!(matches!(
-        context.arena[other].kind,
+    // Should follow links and resolve to number
+    assert_matches!(
+        context.arena[unknown].kind,
         TypeKind::Primitive(PrimitiveType::Number)
-    ));
+    );
+    assert_matches!(
+        context.arena[number].kind,
+        TypeKind::Primitive(PrimitiveType::Number)
+    );
 }
 
 #[test]
@@ -160,7 +166,7 @@ fn complex_link_chain_resolution() {
     // Unify the heads of both chains
     unify_type(&mut context, link3, other_link);
 
-    // The full chain should resolve to Never
+    // The full chain should resolve to Number
     assert!(matches!(
         context.arena[concrete].kind,
         TypeKind::Primitive(PrimitiveType::Number)
@@ -224,28 +230,28 @@ fn mixed_special_types_unification() {
     let mut context = setup();
 
     // Create a complex scenario with multiple special types
-    let never = instantiate(&mut context, TypeKind::Never);
+    let unknown = instantiate(&mut context, TypeKind::Unknown);
     let infer1 = instantiate(&mut context, TypeKind::Infer);
     let infer2 = instantiate(&mut context, TypeKind::Infer);
-    let unknown = instantiate(&mut context, TypeKind::Unknown);
+    let never = instantiate(&mut context, TypeKind::Never);
 
     // First unify infer1 and infer2 to create a link
     unify_type(&mut context, infer1, infer2);
 
-    // Then unify the link with Never
-    unify_type(&mut context, infer2, never);
+    // Then unify the link with Unknown
+    unify_type(&mut context, infer2, unknown);
 
-    // Finally unify with Unknown (Unknown becomes Error as it needs to be Never)
-    unify_type(&mut context, infer1, unknown);
+    // Finally unify with Never
+    unify_type(&mut context, infer1, never);
 
     // Check the final state
     assert!(
         matches!(context.arena[infer1].kind, TypeKind::Never)
             || matches!(context.arena[infer1].kind, TypeKind::Link(_))
     );
-    assert!(matches!(context.arena[infer2].kind, TypeKind::Never));
-    assert!(matches!(context.arena[never].kind, TypeKind::Never));
-    assert!(matches!(context.arena[unknown].kind, TypeKind::Error));
+    assert_matches!(context.arena[infer2].kind, TypeKind::Never);
+    assert_matches!(context.arena[unknown].kind, TypeKind::Unknown);
+    assert_matches!(context.arena[never].kind, TypeKind::Never);
 }
 
 #[test]

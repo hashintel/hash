@@ -86,6 +86,8 @@ pub(crate) fn unify_union(
     // In a strictly variance-aware system, we do NOT modify the union types.
     // Each union maintains its original variants, preserving their identity and subtyping
     // relationships
+
+    // TODO: flatten union type iff not "virtual"
 }
 
 pub(crate) fn unify_union_lhs(

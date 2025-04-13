@@ -217,9 +217,9 @@ mod tests {
     fn lists_with_unifiable_elements_unify() {
         let mut context = setup();
 
-        // Create List<Integer> and List<Number>
-        let element1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let element2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        // Create List<Number> and List<Integer>
+        let element1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let element2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
 
         let list1 = ListType { element: element1 };
         let list2 = ListType { element: element2 };
@@ -302,11 +302,11 @@ mod tests {
     fn dicts_with_unifiable_values_unify() {
         let mut context = setup();
 
-        // Create Dict<String, Integer> and Dict<String, Number>
+        // Create Dict<String, Number> and Dict<String, Integer>
         let key1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
         let key2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let value1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let value2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let value1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let value2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
 
         let dict1 = DictType {
             key: key1,
@@ -486,8 +486,8 @@ mod tests {
                 .as_ref()
                 .expect("help should be present")
                 .message(),
-            "You can convert a list of key-value pairs to a dict using the \
-             `::core::dict::from_entries/1` function."
+            "These types are different collection types. You can convert a list of key-value \
+             pairs to a dictionary using the `::core::dict::from_entries/1` function."
         );
     }
 }

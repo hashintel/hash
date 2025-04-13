@@ -14,6 +14,7 @@ pub enum Variance {
     Invariant,     // Exact match
 }
 
+#[derive(Debug)]
 enum UnificationArenaInner {
     Root(Arena<Type>),
     Transaction(
@@ -28,6 +29,7 @@ enum UnificationArenaInner {
 /// and then rollback or commit the changes. This is significant in the context of union type
 /// checking, as we need to traverse every type in the union to determine if it is compatible with
 /// another type.
+#[derive(Debug)]
 pub(crate) struct UnificationArena(UnificationArenaInner);
 
 impl UnificationArena {
@@ -67,7 +69,7 @@ impl UnificationArena {
     /// Begin a new transaction.
     fn begin_transaction(&mut self) {
         // Empty arena does not allocate, as it's just a `Vec` in disguise
-        let this = mem::replace(self, UnificationArena::new(Arena::new()));
+        let this = mem::replace(self, Self::new(Arena::new()));
 
         self.0 = UnificationArenaInner::Transaction(Box::new(this), HashMap::default());
     }
@@ -178,6 +180,7 @@ impl UnificationContext {
             .update_with(id, |r#type| r#type.kind = TypeKind::Error);
     }
 
+    #[track_caller]
     pub(crate) fn update_kind(&mut self, id: TypeId, kind: TypeKind) {
         assert_ne!(
             kind,
