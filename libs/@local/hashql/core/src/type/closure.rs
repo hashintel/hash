@@ -1,3 +1,5 @@
+use core::ops::Index;
+
 use ecow::EcoVec;
 use pretty::RcDoc;
 
@@ -7,7 +9,7 @@ use super::{
     generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
-    unify::{UnificationArena, UnificationContext},
+    unify::UnificationContext,
     unify_type,
 };
 use crate::arena::Arena;
@@ -49,7 +51,7 @@ impl ClosureType {
 impl PrettyPrint for ClosureType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         self.arguments

@@ -1,9 +1,10 @@
+use core::ops::Index;
 use std::io;
 
 use anstyle::{AnsiColor, Color, Style};
 use pretty::{RcDoc, Render, RenderAnnotated};
 
-use super::{recursion::RecursionLimit, unify::UnificationArena};
+use super::{Type, TypeId, recursion::RecursionLimit};
 
 pub(crate) const BLUE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Blue)));
 pub(crate) const CYAN: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Cyan)));
@@ -67,10 +68,13 @@ where
 }
 
 pub(crate) trait PrettyPrint {
-    fn pretty<'a>(&'a self, arena: &'a UnificationArena, limit: RecursionLimit)
-    -> RcDoc<'a, Style>;
+    fn pretty<'a>(
+        &'a self,
+        arena: &'a impl Index<TypeId, Output = Type>,
+        limit: RecursionLimit,
+    ) -> RcDoc<'a, Style>;
 
-    fn pretty_print(&self, arena: &UnificationArena, width: usize) -> String {
+    fn pretty_print(&self, arena: &impl Index<TypeId, Output = Type>, width: usize) -> String {
         let mut output = Vec::new();
         let mut writer = WriteColored::new(&mut output);
 

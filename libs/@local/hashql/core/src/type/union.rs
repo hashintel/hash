@@ -1,12 +1,15 @@
+use core::ops::Index;
+
 use ecow::EcoVec;
 use pretty::RcDoc;
 
 use super::{
     Type, TypeId, TypeKind,
-    error::union_variant_mismatch,
+    error::{TypeCheckDiagnostic, union_variant_mismatch},
+    intersection_type_impl,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
-    unify::{UnificationArena, UnificationContext},
+    unify::UnificationContext,
 };
 use crate::arena::Arena;
 
@@ -34,7 +37,7 @@ impl UnionType {
 impl PrettyPrint for UnionType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::intersperse(
@@ -132,13 +135,94 @@ pub(crate) fn unify_union_rhs(
     unify_union(context, &lhs, rhs);
 }
 
+/// Computes the intersection of two union types.
+///
+/// Applies the distribution rule: (A | B) ∩ (C | D) = (A ∩ C) | (A ∩ D) | (B ∩ C) | (B ∩ D)
+/// Only variants with non-empty intersections are kept.
+pub(crate) fn intersection_union(
+    arena: &mut Arena<Type>,
+    diagnostics: &mut Vec<TypeCheckDiagnostic>,
+    lhs: &UnionType,
+    rhs: &UnionType,
+) -> UnionType {
+    let mut variants = EcoVec::new();
+
+    // Distribute intersection: (A | B) ∩ (C | D) = (A ∩ C) | (A ∩ D) | (B ∩ C) | (B ∩ D)
+    for &lhs_variant in &lhs.variants {
+        for &rhs_variant in &rhs.variants {
+            let Some(type_id) =
+                intersection_type_impl(arena, diagnostics, lhs_variant, rhs_variant)
+            else {
+                // would result in `Never`
+                continue;
+            };
+
+            // Only add non-Never results (Never means empty intersection)
+            if matches!(arena[type_id].kind, TypeKind::Never) {
+                continue;
+            }
+
+            // ... and avoid duplicates
+            if variants
+                .iter()
+                .any(|&variant| arena[variant].structurally_equivalent(&arena[type_id], arena))
+            {
+                continue;
+            }
+
+            variants.push(type_id);
+        }
+    }
+
+    UnionType { variants }
+}
+
+/// Computes the intersection of a type with a union type.
+///
+/// Applies the distribution rule: T ∩ (A|B) = (T ∩ A)|(T ∩ B)
+pub(crate) fn intersection_with_union(
+    arena: &mut Arena<Type>,
+    diagnostics: &mut Vec<TypeCheckDiagnostic>,
+    other: TypeId,
+    union: &UnionType,
+) -> UnionType {
+    let mut variants = EcoVec::new();
+
+    // Distribute intersection: T ∩ (A|B) = (T ∩ A)|(T ∩ B)
+    for &variant in &union.variants {
+        let Some(type_id) = intersection_type_impl(arena, diagnostics, variant, other) else {
+            // would result in `Never`
+            continue;
+        };
+
+        // Only add non-Never results
+        if matches!(arena[type_id].kind, TypeKind::Never) {
+            continue;
+        }
+
+        // ... and duplicates
+        if variants
+            .iter()
+            .any(|&variant| arena[variant].structurally_equivalent(&arena[type_id], arena))
+        {
+            continue;
+        }
+
+        variants.push(type_id);
+    }
+
+    // Create a union with the intersected variants
+    UnionType { variants }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{UnionType, unify_union, unify_union_lhs, unify_union_rhs};
     use crate::r#type::{
-        TypeId, TypeKind,
+        TypeId, TypeKind, intersection_type,
         primitive::PrimitiveType,
         test::{instantiate, setup},
+        unify::UnificationContext,
     };
 
     fn create_union_type(
@@ -294,6 +378,106 @@ mod tests {
         assert!(
             context.take_diagnostics().is_empty(),
             "Failed to unify subtype with union containing supertype"
+        );
+    }
+
+    fn create_union(
+        context: &mut UnificationContext,
+        variants: impl IntoIterator<Item = TypeId>,
+    ) -> TypeId {
+        instantiate(
+            context,
+            TypeKind::Union(UnionType {
+                variants: variants.into_iter().collect(),
+            }),
+        )
+    }
+
+    #[test]
+    fn union_intersection_with_common_variant() {
+        let mut context = setup();
+
+        // Create first union: String | Number
+        let string1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let number = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let union1 = create_union(&mut context, [string1, number]);
+
+        // Create second union: String | Boolean
+        let string2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let boolean = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
+        let union2 = create_union(&mut context, [string2, boolean]);
+
+        let arena = context.arena.arena_mut_test_only();
+
+        // Intersection should be: String
+        let result = intersection_type(arena, &mut Vec::new(), union1, union2);
+
+        // Result should be just the String type
+        assert!(
+            matches!(
+                arena[result].kind,
+                TypeKind::Primitive(PrimitiveType::String)
+            ),
+            "Expected String primitive, got {:?}",
+            arena[result].kind
+        );
+    }
+
+    #[test]
+    fn union_intersection_with_no_common_variants() {
+        let mut context = setup();
+
+        // Create first union: Number | Boolean
+        let number = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let boolean1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
+        let union1 = create_union(&mut context, vec![number, boolean1]);
+
+        // Create second union: String | Integer
+        let string = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let integer = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Null));
+        let union2 = create_union(&mut context, vec![string, integer]);
+
+        let arena = context.arena.arena_mut_test_only();
+
+        // Intersection should be: Never (no compatible variants)
+        let result = intersection_type(arena, &mut Vec::new(), union1, union2);
+
+        // Result should be Never
+        assert!(
+            matches!(arena[result].kind, TypeKind::Never),
+            "Expected Never type, got {:?}",
+            arena[result].kind
+        );
+    }
+
+    #[test]
+    fn union_with_subtype_intersection() {
+        let mut context = setup();
+
+        // Create first union: Number | String
+        let number = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let string = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let union1 = create_union(&mut context, vec![number, string]);
+
+        // Create second union: Integer | Boolean
+        // (Integer is a subtype of Number)
+        let integer = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let boolean = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
+        let union2 = create_union(&mut context, vec![integer, boolean]);
+
+        let arena = context.arena.arena_mut_test_only();
+
+        // Intersection should be: Integer
+        let result = intersection_type(arena, &mut Vec::new(), union1, union2);
+
+        // Result should be Integer
+        assert!(
+            matches!(
+                arena[result].kind,
+                TypeKind::Primitive(PrimitiveType::Integer)
+            ),
+            "Expected Integer primitive, got {:?}",
+            arena[result].kind
         );
     }
 }

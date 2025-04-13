@@ -1,8 +1,9 @@
+use core::ops::Index;
 use std::collections::HashSet;
 
 use pretty::RcDoc;
 
-use super::{TypeId, pretty_print::PrettyPrint, unify::UnificationArena};
+use super::{Type, TypeId, pretty_print::PrettyPrint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct RecursionLimit {
@@ -14,7 +15,7 @@ impl RecursionLimit {
     pub(crate) fn pretty<'a, T>(
         self,
         node: &'a T,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
     ) -> RcDoc<'a, anstyle::Style>
     where
         T: PrettyPrint,

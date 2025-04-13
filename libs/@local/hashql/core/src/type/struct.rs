@@ -1,3 +1,4 @@
+use core::ops::Index;
 use std::collections::HashMap;
 
 use ecow::EcoVec;
@@ -5,10 +6,12 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
+    error::TypeCheckDiagnostic,
     generic_argument::GenericArguments,
+    intersection_type,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
-    unify::{UnificationArena, UnificationContext},
+    unify::UnificationContext,
     unify_type,
 };
 use crate::{arena::Arena, symbol::Ident};
@@ -34,7 +37,7 @@ impl StructField {
 impl PrettyPrint for StructField {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text(self.key.value.as_str())
@@ -64,6 +67,11 @@ impl StructType {
         }
     }
 
+    #[must_use]
+    pub fn fields(&self) -> &[StructField] {
+        &self.fields
+    }
+
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
@@ -87,7 +95,7 @@ impl StructType {
 impl PrettyPrint for StructType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> RcDoc<'a, anstyle::Style> {
         let inner = if self.fields.is_empty() {
@@ -173,6 +181,44 @@ pub(crate) fn unify_struct(
 
     // In a strictly variance-aware system, we do NOT modify the struct types
     // Each struct maintains its original fields, preserving the subtyping relationship
+}
+
+pub(crate) fn intersection_struct(
+    arena: &mut Arena<Type>,
+    diagnostics: &mut Vec<TypeCheckDiagnostic>,
+    lhs: &StructType,
+    rhs: &StructType,
+) -> StructType {
+    // Create a lookup table for the left struct fields
+    let lookup: HashMap<_, _> = lhs
+        .fields
+        .iter()
+        .enumerate()
+        .map(|(index, field)| (&field.key.value, index))
+        .collect();
+
+    // Start with the left struct fields, if rhs is empty, this is actually just a reference pointer
+    // increment
+    let mut result_fields = lhs.fields.clone();
+
+    // Process fields from the right struct
+    for field in &rhs.fields {
+        // Find the index of the field in the left struct, so that we can modify it in place
+        if let Some(&lhs_index) = lookup.get(&&field.key.value) {
+            let value =
+                intersection_type(arena, diagnostics, lhs.fields[lhs_index].value, field.value);
+
+            result_fields.make_mut()[lhs_index].value = value;
+        } else {
+            // ... in case the field is only in the right struct - add it to the result
+            result_fields.push(field.clone());
+        }
+    }
+
+    let mut merged_arguments = lhs.arguments.clone();
+    merged_arguments.merge(rhs.arguments.clone());
+
+    StructType::new(result_fields, merged_arguments)
 }
 
 #[cfg(test)]

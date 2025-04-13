@@ -1,3 +1,5 @@
+use core::ops::Index;
+
 use ecow::EcoVec;
 use pretty::RcDoc;
 
@@ -5,7 +7,7 @@ use super::{
     Type, TypeId,
     pretty_print::{ORANGE, PrettyPrint},
     recursion::{RecursionGuard, RecursionLimit},
-    unify::{UnificationArena, UnificationContext},
+    unify::UnificationContext,
     unify_type,
 };
 use crate::{
@@ -44,7 +46,7 @@ impl GenericArgument {
 impl PrettyPrint for GenericArgument {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         let mut doc = RcDoc::text(self.name.value.as_str()).annotate(ORANGE);
@@ -68,6 +70,15 @@ impl GenericArguments {
     #[must_use]
     pub const fn new() -> Self {
         Self(EcoVec::new())
+    }
+
+    pub fn merge(&mut self, other: Self) {
+        // We can merge without de-duplication, because every argument has a unique ID.
+        // What we need to do tho, is to re-sort them, so that the invariants are maintained.
+        self.0.extend(other.0);
+
+        let slice = self.0.make_mut();
+        slice.sort_by(|lhs, rhs| lhs.name.value.cmp(&rhs.name.value));
     }
 
     pub fn enter_scope(&self, context: &mut UnificationContext) {
@@ -112,7 +123,7 @@ impl FromIterator<GenericArgument> for GenericArguments {
 impl PrettyPrint for GenericArguments {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> RcDoc<'a, anstyle::Style> {
         if self.0.is_empty() {
@@ -154,7 +165,7 @@ impl Param {
 impl PrettyPrint for Param {
     fn pretty<'a>(
         &'a self,
-        _: &'a UnificationArena,
+        _: &'a impl Index<TypeId, Output = Type>,
         _: RecursionLimit,
     ) -> RcDoc<'a, anstyle::Style> {
         RcDoc::text(self.name.as_str())

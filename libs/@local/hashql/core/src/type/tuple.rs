@@ -1,3 +1,5 @@
+use core::ops::Index;
+
 use ecow::EcoVec;
 use pretty::RcDoc;
 
@@ -7,7 +9,7 @@ use super::{
     generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
-    unify::{UnificationArena, UnificationContext},
+    unify::UnificationContext,
     unify_type,
 };
 use crate::arena::Arena;
@@ -31,7 +33,7 @@ impl TupleField {
 impl PrettyPrint for TupleField {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         limit.pretty(&arena[self.value], arena)
@@ -67,7 +69,7 @@ impl TupleType {
 impl PrettyPrint for TupleType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         let inner = if self.fields.is_empty() {

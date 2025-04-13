@@ -7,6 +7,7 @@ use crate::{
     symbol::{Ident, IdentKind, Symbol},
     r#type::{
         generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+        intersection_type,
         opaque::OpaqueType,
         primitive::PrimitiveType,
         r#struct::{StructField, StructType},
@@ -601,7 +602,7 @@ fn union_type_equivalence() {
 }
 
 #[test]
-fn test_opaque_type_equivalence() {
+fn opaque_type_equivalence() {
     let mut context = setup();
 
     // Create two opaque types with same name but different underlying types
@@ -708,4 +709,160 @@ fn test_opaque_type_equivalence() {
         "Opaque types with same name but different generic arguments should not be structurally \
          equivalent"
     );
+}
+
+#[test]
+fn identical_types_intersection() {
+    let mut context = setup();
+
+    // Create a simple Number type
+    let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+
+    let arena = context.arena.arena_mut_test_only();
+
+    // Intersect with itself
+    let result = intersection_type(arena, &mut Vec::new(), num_id, num_id);
+
+    // Should be the same type
+    assert_eq!(result, num_id);
+    assert!(matches!(
+        arena[result].kind,
+        TypeKind::Primitive(PrimitiveType::Number)
+    ));
+}
+
+#[test]
+fn struct_intersection() {
+    let mut context = setup();
+
+    // Create a struct with a 'name' field
+    let name_field = StructField {
+        key: ident("name"),
+        value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+    };
+    let struct1_id = instantiate(
+        &mut context,
+        TypeKind::Struct(StructType::new([name_field], GenericArguments::new())),
+    );
+
+    // Create a struct with an 'age' field
+    let age_field = StructField {
+        key: ident("age"),
+        value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+    };
+    let struct2_id = instantiate(
+        &mut context,
+        TypeKind::Struct(StructType::new([age_field], GenericArguments::new())),
+    );
+
+    let arena = context.arena.arena_mut_test_only();
+
+    // Intersect the two structs
+    let result = intersection_type(arena, &mut Vec::new(), struct1_id, struct2_id);
+
+    // Result should be a struct with both fields
+    let TypeKind::Struct(result_struct) = &arena[result].kind else {
+        panic!("Expected struct type, got {:?}", arena[result].kind);
+    };
+
+    assert_eq!(result_struct.fields().len(), 2);
+
+    // Check for name field
+    let has_name = result_struct.fields().iter().any(|field| {
+        field.key.value.as_str() == "name"
+            && matches!(
+                arena[field.value].kind,
+                TypeKind::Primitive(PrimitiveType::String)
+            )
+    });
+    assert!(has_name, "Result should have 'name' field with String type");
+
+    // Check for age field
+    let has_age = result_struct.fields().iter().any(|field| {
+        field.key.value.as_str() == "age"
+            && matches!(
+                arena[field.value].kind,
+                TypeKind::Primitive(PrimitiveType::Number)
+            )
+    });
+    assert!(has_age, "Result should have 'age' field with Number type");
+}
+
+#[test]
+fn struct_intersection_with_common_field() {
+    let mut context = setup();
+
+    // Create a struct with fields 'name: String' and 'id: Number'
+    let struct1_fields = [
+        StructField {
+            key: ident("name"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+        },
+        StructField {
+            key: ident("id"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+        },
+    ];
+    let struct1_id = instantiate(
+        &mut context,
+        TypeKind::Struct(StructType::new(struct1_fields, GenericArguments::new())),
+    );
+
+    // Create a struct with fields 'name: String' and 'age: Number'
+    let struct2_fields = [
+        StructField {
+            key: ident("name"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+        },
+        StructField {
+            key: ident("age"),
+            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+        },
+    ];
+    let struct2_id = instantiate(
+        &mut context,
+        TypeKind::Struct(StructType::new(struct2_fields, GenericArguments::new())),
+    );
+
+    let arena = context.arena.arena_mut_test_only();
+
+    // Intersect the two structs
+    let result = intersection_type(arena, &mut Vec::new(), struct1_id, struct2_id);
+
+    // Result should be a struct with all three fields
+    let TypeKind::Struct(result_struct) = &arena[result].kind else {
+        panic!("Expected struct type, got {:?}", arena[result].kind);
+    };
+
+    assert_eq!(result_struct.fields().len(), 3);
+
+    // Check for name field (common in both)
+    let has_name = result_struct.fields().iter().any(|field| {
+        field.key.value.as_str() == "name"
+            && matches!(
+                arena[field.value].kind,
+                TypeKind::Primitive(PrimitiveType::String)
+            )
+    });
+    assert!(has_name, "Result should have 'name' field with String type");
+
+    // Check for age field (from struct2)
+    let has_age = result_struct.fields().iter().any(|field| {
+        field.key.value.as_str() == "age"
+            && matches!(
+                arena[field.value].kind,
+                TypeKind::Primitive(PrimitiveType::Number)
+            )
+    });
+    assert!(has_age, "Result should have 'age' field with Number type");
+
+    // Check for id field (from struct1)
+    let has_id = result_struct.fields().iter().any(|field| {
+        field.key.value.as_str() == "id"
+            && matches!(
+                arena[field.value].kind,
+                TypeKind::Primitive(PrimitiveType::Number)
+            )
+    });
+    assert!(has_id, "Result should have 'id' field with Number type");
 }

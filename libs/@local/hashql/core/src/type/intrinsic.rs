@@ -1,3 +1,5 @@
+use core::ops::Index;
+
 use pretty::RcDoc;
 
 use super::{
@@ -5,7 +7,7 @@ use super::{
     error::type_mismatch,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
-    unify::{UnificationArena, UnificationContext},
+    unify::UnificationContext,
     unify_type,
 };
 use crate::arena::Arena;
@@ -29,7 +31,7 @@ impl ListType {
 impl PrettyPrint for ListType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text("List")
@@ -60,7 +62,7 @@ impl DictType {
 impl PrettyPrint for DictType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text("Dict")
@@ -105,7 +107,7 @@ impl IntrinsicType {
 impl PrettyPrint for IntrinsicType {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> RcDoc<'a, anstyle::Style> {
         match self {

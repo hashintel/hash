@@ -1,11 +1,13 @@
+use core::ops::Index;
+
 use pretty::RcDoc;
 
 use super::{
-    Type,
+    Type, TypeId,
     error::type_mismatch,
     pretty_print::{BLUE, PrettyPrint},
     recursion::RecursionLimit,
-    unify::{UnificationArena, UnificationContext},
+    unify::UnificationContext,
 };
 
 // TODO: in the future we should support refinements
@@ -36,7 +38,11 @@ impl PrimitiveType {
 }
 
 impl PrettyPrint for PrimitiveType {
-    fn pretty(&self, _: &UnificationArena, _: RecursionLimit) -> pretty::RcDoc<anstyle::Style> {
+    fn pretty(
+        &self,
+        _: &impl Index<TypeId, Output = Type>,
+        _: RecursionLimit,
+    ) -> pretty::RcDoc<anstyle::Style> {
         RcDoc::text(self.as_str()).annotate(BLUE)
     }
 }
@@ -130,6 +136,22 @@ pub(crate) fn unify_primitive(
             context.mark_error(lhs.id);
             context.mark_error(rhs.id);
         }
+    }
+}
+
+pub(crate) fn intersection_primitive(
+    lhs: PrimitiveType,
+    rhs: PrimitiveType,
+) -> Option<PrimitiveType> {
+    if lhs == rhs {
+        return Some(lhs);
+    }
+
+    // subtyping relationship, `Integer <: Number`
+    match (lhs, rhs) {
+        (PrimitiveType::Integer, PrimitiveType::Number)
+        | (PrimitiveType::Number, PrimitiveType::Integer) => Some(PrimitiveType::Integer),
+        _ => None,
     }
 }
 

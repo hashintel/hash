@@ -15,22 +15,23 @@ pub mod tuple;
 pub mod unify;
 pub mod r#union;
 
-use core::mem;
+use core::{mem, ops::Index};
 
 use pretty::RcDoc;
 
 use self::{
     closure::{ClosureType, unify_closure},
-    error::expected_never,
+    error::{TypeCheckDiagnostic, expected_never, intersection_coerced_to_never},
     generic_argument::{Param, unify_param, unify_param_lhs, unify_param_rhs},
     intrinsic::{IntrinsicType, unify_intrinsic},
     opaque::{OpaqueType, unify_opaque},
     pretty_print::{CYAN, GRAY, PrettyPrint, RED},
-    primitive::{PrimitiveType, unify_primitive},
+    primitive::{PrimitiveType, intersection_primitive, unify_primitive},
     recursion::{RecursionGuard, RecursionLimit},
-    r#struct::{StructType, unify_struct},
+    r#struct::{StructType, intersection_struct, unify_struct},
     tuple::{TupleType, unify_tuple},
-    unify::{UnificationArena, UnificationContext, Variance},
+    unify::{UnificationContext, Variance},
+    union::{intersection_union, intersection_with_union},
     r#union::{UnionType, unify_union, unify_union_lhs, unify_union_rhs},
 };
 use crate::{arena::Arena, id::HasId, newtype, span::SpanId};
@@ -158,7 +159,7 @@ impl TypeKind {
 impl PrettyPrint for TypeKind {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         match self {
@@ -248,7 +249,7 @@ where
 {
     fn pretty<'a>(
         &'a self,
-        arena: &'a UnificationArena,
+        arena: &'a impl Index<TypeId, Output = Type>,
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         self.kind.pretty(arena, limit)
@@ -608,4 +609,179 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
     }
 
     context.leave(lhs_id, rhs_id);
+}
+
+/// Computes the intersection of two types
+///
+/// The intersection type contains all constraints from both types:
+/// - For structs: combines all fields, with common fields having their types intersected.
+/// - For primitives: follows subtyping relationships (e.g., Integer ∩ Number = Integer).
+/// - For unions: applies the distribution rule (A | B) ∩ (C | D) = (A ∩ C)|(A ∩ D)|(B ∩ C)|(B ∩ D).
+/// - For generic parameters (Param):
+///   - Same parameter (e.g., T ∩ T): Returns the parameter itself.
+///   - Different parameters (e.g., T ∩ U): Currently results in Never, in the future, if required
+///     this could represent a constrained type satisfying both.
+/// - For inference variables (Infer):
+///   - Infer ∩ T = T (inference variables are refined to the other type).
+///   - Infer ∩ Infer = Infer (two inference variables intersect to an inference variable).
+/// - Special cases:
+///   - T ∩ T = T (identical types)
+///   - Never ∩ T = Never (bottom type property)
+///   - Unknown ∩ T = T (top type property)
+///
+/// Note that intersections for the following types are not implemented as they're not deemed
+/// meaningful:
+/// - Closures
+/// - Opaque types (nominal types)
+/// - Intrinsics (which are just opaque internal types)
+///
+/// # Returns
+///
+/// The type ID of the intersection result.
+pub fn intersection_type(
+    arena: &mut Arena<Type>,
+    diagnostics: &mut Vec<TypeCheckDiagnostic>,
+    lhs: TypeId,
+    rhs: TypeId,
+) -> TypeId {
+    // TODO: H-4383 make intersection types a first class citizen
+
+    let Some(id) = intersection_type_impl(arena, diagnostics, lhs, rhs) else {
+        let lhs_type = arena[lhs].clone();
+        let rhs_type = arena[rhs].clone();
+
+        let reason = match (&lhs_type.kind, &rhs_type.kind) {
+            (TypeKind::Param(_), TypeKind::Param(_)) => {
+                "Different generic type parameters have an empty intersection."
+            }
+            (TypeKind::Primitive(_), TypeKind::Primitive(_)) => {
+                "These primitive types are incompatible and have no common values."
+            }
+            _ => "These types are incompatible and have no common values.",
+        };
+
+        diagnostics.push(intersection_coerced_to_never(
+            lhs_type.span,
+            arena,
+            &lhs_type,
+            &rhs_type,
+            reason,
+        ));
+
+        return arena.push(lhs_type.map(|_| TypeKind::Never));
+    };
+
+    id
+}
+
+// Optimized version of `intersection_type`, that does not allocate a new type for `Never`
+pub(crate) fn intersection_type_impl(
+    arena: &mut Arena<Type>,
+    diagnostics: &mut Vec<TypeCheckDiagnostic>,
+    lhs: TypeId,
+    rhs: TypeId,
+) -> Option<TypeId> {
+    // Fast path: if the types are identical, no changes needed
+    if lhs == rhs {
+        return Some(lhs);
+    }
+
+    let lhs_type = arena[lhs].clone();
+    let rhs_type = arena[rhs].clone();
+
+    if lhs_type.structurally_equivalent(&rhs_type, arena) {
+        return Some(lhs);
+    }
+
+    let new_kind = match (&lhs_type.kind, &rhs_type.kind) {
+        (&TypeKind::Link(lhs), &TypeKind::Link(rhs)) => {
+            return intersection_type_impl(arena, diagnostics, lhs, rhs);
+        }
+        (&TypeKind::Link(lhs), _) => {
+            return intersection_type_impl(arena, diagnostics, lhs, rhs);
+        }
+        (_, &TypeKind::Link(rhs)) => {
+            return intersection_type_impl(arena, diagnostics, lhs, rhs);
+        }
+
+        (TypeKind::Infer, rhs) => {
+            // Inference variable should be set to the other type
+            // This follows the same pattern as unification
+            rhs.clone()
+        }
+        (lhs, TypeKind::Infer) => {
+            // Inference variable should be set to the other type
+            // This follows the same pattern as unification
+            lhs.clone()
+        }
+
+        // Struct intersection: combine fields from both structs
+        (TypeKind::Struct(lhs_struct), TypeKind::Struct(rhs_struct)) => TypeKind::Struct(
+            intersection_struct(arena, diagnostics, lhs_struct, rhs_struct),
+        ),
+
+        // Primitive intersection, relevant for subtyping relationships
+        (&TypeKind::Primitive(lhs), &TypeKind::Primitive(rhs)) => {
+            TypeKind::Primitive(intersection_primitive(lhs, rhs)?)
+        }
+
+        // Union intersection: distribute intersection across variants
+        (TypeKind::Union(lhs_union), TypeKind::Union(rhs_union)) => {
+            let union = intersection_union(arena, diagnostics, lhs_union, rhs_union);
+
+            if union.variants.is_empty() {
+                return None;
+            } else if union.variants.len() == 1 {
+                // If there's only one variant, use its kind directly
+                arena[union.variants[0]].kind.clone()
+            } else {
+                TypeKind::Union(union)
+            }
+        }
+
+        // Intersection with a union: distribute the intersection
+        (TypeKind::Union(lhs_union), _) => {
+            let union = intersection_with_union(arena, diagnostics, rhs, lhs_union);
+
+            if union.variants.is_empty() {
+                return None;
+            } else if union.variants.len() == 1 {
+                // If there's only one variant, use its kind directly
+                arena[union.variants[0]].kind.clone()
+            } else {
+                TypeKind::Union(union)
+            }
+        }
+        (_, TypeKind::Union(rhs_union)) => {
+            let union = intersection_with_union(arena, diagnostics, lhs, rhs_union);
+
+            if union.variants.is_empty() {
+                return None;
+            } else if union.variants.len() == 1 {
+                // If there's only one variant, use its kind directly
+                arena[union.variants[0]].kind.clone()
+            } else {
+                TypeKind::Union(union)
+            }
+        }
+
+        // Special cases for Never and Unknown
+        (&TypeKind::Never, _) | (_, &TypeKind::Never) => {
+            // Intersection with Never is always Never
+            return None;
+        }
+        (&TypeKind::Unknown, _) => {
+            // Unknown ∩ T = T
+            rhs_type.kind.clone()
+        }
+        (_, &TypeKind::Unknown) => {
+            // T ∩ Unknown = T (no change needed)
+            lhs_type.kind.clone()
+        }
+
+        // Default case: types are incompatible, intersection is Never
+        _ => return None,
+    };
+
+    Some(arena.push(lhs_type.map(|_| new_kind)))
 }
