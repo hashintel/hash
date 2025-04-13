@@ -14,8 +14,8 @@ use crate::{arena::Arena, symbol::Ident};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructField {
-    key: Ident,
-    value: TypeId,
+    pub key: Ident,
+    pub value: TypeId,
 }
 
 impl PrettyPrint for StructField {
@@ -35,9 +35,9 @@ impl PrettyPrint for StructField {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructType {
     // Any extends is resolved in a previous pass
-    fields: EcoVec<StructField>,
+    pub fields: EcoVec<StructField>,
 
-    arguments: GenericArguments,
+    pub arguments: GenericArguments,
 }
 
 impl PrettyPrint for StructType {
@@ -118,22 +118,43 @@ mod tests {
         let mut context = setup();
 
         // Create a struct with two fields: name: String, age: Number
-        let name_field = StructField {
-            key: ident("name"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
-        };
-        let age_field = StructField {
-            key: ident("age"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
-        };
+        let lhs_fields = [
+            StructField {
+                key: ident("name"),
+                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+            },
+            StructField {
+                key: ident("age"),
+                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+            },
+        ];
 
-        let struct_type = StructType {
-            fields: vec![name_field, age_field].into(),
-            arguments: GenericArguments::new(),
-        };
+        let lhs_id = instantiate(
+            &mut context,
+            TypeKind::Struct(StructType {
+                fields: lhs_fields.into(),
+                arguments: GenericArguments::new(),
+            }),
+        );
 
-        let lhs_id = instantiate(&mut context, TypeKind::Struct(struct_type.clone()));
-        let rhs_id = instantiate(&mut context, TypeKind::Struct(struct_type));
+        let rhs_fields = [
+            StructField {
+                key: ident("name"),
+                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+            },
+            StructField {
+                key: ident("age"),
+                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+            },
+        ];
+
+        let rhs_id = instantiate(
+            &mut context,
+            TypeKind::Struct(StructType {
+                fields: rhs_fields.into(),
+                arguments: GenericArguments::new(),
+            }),
+        );
 
         let lhs = context.arena[lhs_id]
             .clone()
@@ -153,7 +174,31 @@ mod tests {
         let lhs = context.arena[lhs_id].clone();
         let rhs = context.arena[rhs_id].clone();
 
-        assert_eq!(lhs.kind, rhs.kind);
+        let TypeKind::Struct(lhs) = lhs.kind else {
+            panic!("type should be a struct");
+        };
+
+        let TypeKind::Struct(rhs) = rhs.kind else {
+            panic!("type should be a struct");
+        };
+
+        assert_eq!(lhs.fields.len(), rhs.fields.len());
+        assert_eq!(
+            lhs.fields
+                .iter()
+                .map(|field| (
+                    field.key.value.clone(),
+                    context.arena[field.value].kind.clone()
+                ))
+                .collect::<Vec<_>>(),
+            rhs.fields
+                .iter()
+                .map(|field| (
+                    field.key.value.clone(),
+                    context.arena[field.value].kind.clone()
+                ))
+                .collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -163,25 +208,35 @@ mod tests {
         // Create two structs with overlapping fields:
         // lhs: (name: String, age: Number)
         // rhs: (name: String, id: Number)
-        let name_field = StructField {
-            key: ident("name"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
-        };
-        let age_field = StructField {
-            key: ident("age"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
-        };
-        let id_field = StructField {
-            key: ident("id"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
-        };
+        let lhs_fields = [
+            StructField {
+                key: ident("name"),
+                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+            },
+            StructField {
+                key: ident("age"),
+                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+            },
+        ];
 
         let lhs_type = StructType {
-            fields: [name_field.clone(), age_field].into(),
+            fields: lhs_fields.into(),
             arguments: GenericArguments::default(),
         };
+
+        let rhs_fields = [
+            StructField {
+                key: ident("name"),
+                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+            },
+            StructField {
+                key: ident("id"),
+                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+            },
+        ];
+
         let rhs_type = StructType {
-            fields: [name_field, id_field].into(),
+            fields: rhs_fields.into(),
             arguments: GenericArguments::default(),
         };
 

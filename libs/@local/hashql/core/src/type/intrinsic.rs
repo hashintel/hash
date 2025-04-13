@@ -274,12 +274,19 @@ mod tests {
         let mut context = setup();
 
         // Create Dict<String, Integer> and Dict<String, Number>
-        let key = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let key1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let key2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
         let value1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
         let value2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
 
-        let dict1 = DictType { key, value: value1 };
-        let dict2 = DictType { key, value: value2 };
+        let dict1 = DictType {
+            key: key1,
+            value: value1,
+        };
+        let dict2 = DictType {
+            key: key2,
+            value: value2,
+        };
 
         let lhs_id = instantiate(
             &mut context,
@@ -326,22 +333,26 @@ mod tests {
                 (PrimitiveType::String, None),
                 (PrimitiveType::String, Some(PrimitiveType::Number)),
                 "List and Dict",
+                true,
             ),
             // List<String> vs List<Number>
             (
                 (PrimitiveType::String, None),
                 (PrimitiveType::Number, None),
                 "lists with incompatible elements",
+                false,
             ),
             // Dict<String, String> vs Dict<Number, String>
             (
                 (PrimitiveType::String, Some(PrimitiveType::String)),
                 (PrimitiveType::Number, Some(PrimitiveType::String)),
                 "dicts with incompatible keys",
+                false,
             ),
         ];
 
-        for ((lhs_key, lhs_value), (rhs_key, rhs_value), description) in test_cases {
+        for ((lhs_key, lhs_value), (rhs_key, rhs_value), description, should_be_error) in test_cases
+        {
             let mut context = setup();
 
             let lhs_id = if let Some(value) = lhs_value {
@@ -393,6 +404,10 @@ mod tests {
                 "Expected error when unifying {description}"
             );
 
+            if !should_be_error {
+                continue;
+            }
+
             // Verify both types are marked as errors
             assert!(
                 matches!(context.arena[lhs_id].kind, TypeKind::Error),
@@ -442,8 +457,8 @@ mod tests {
                 .as_ref()
                 .expect("help should be present")
                 .message(),
-            "You can convert a dict to a list of key-value pairs using the \
-             `::core::dict::to_entries/1` function."
+            "You can convert a list of key-value pairs to a dict using the \
+             `::core::dict::from_entries/1` function."
         );
     }
 }

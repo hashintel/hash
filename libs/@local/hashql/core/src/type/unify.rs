@@ -37,7 +37,7 @@ impl UnificationContext {
     }
 
     pub fn visit(&mut self, id: TypeId) -> bool {
-        self.visited.insert(id)
+        !self.visited.insert(id)
     }
 
     pub fn leave(&mut self, id: TypeId) {
