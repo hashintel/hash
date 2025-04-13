@@ -27,7 +27,7 @@ use self::{
     r#struct::{StructType, unify_struct},
     tuple::{TupleType, unify_tuple},
     unify::{UnificationArena, UnificationContext, Variance},
-    union_type::UnionType,
+    union_type::{UnionType, unify_union, unify_union_lhs, unify_union_rhs},
 };
 use crate::{arena::Arena, id::HasId, newtype, span::SpanId};
 
@@ -409,6 +409,28 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
         }
         (_, TypeKind::Param(rhs_kind)) => {
             unify_param_rhs(context, lhs_id, &rhs.as_ref().map(|_| rhs_kind.clone()));
+        }
+
+        (TypeKind::Union(lhs_kind), TypeKind::Union(rhs_kind)) => {
+            unify_union(
+                context,
+                &lhs.as_ref().map(|_| lhs_kind.clone()),
+                &rhs.as_ref().map(|_| rhs_kind.clone()),
+            );
+        }
+        (TypeKind::Union(lhs_kind), _) => {
+            unify_union_lhs(
+                context,
+                &lhs.as_ref().map(|_| lhs_kind.clone()),
+                &rhs.clone(),
+            );
+        }
+        (_, TypeKind::Union(rhs_kind)) => {
+            unify_union_rhs(
+                context,
+                &lhs.clone(),
+                &rhs.as_ref().map(|_| rhs_kind.clone()),
+            );
         }
 
         // Never is the bottom type - it's a subtype of all other types
