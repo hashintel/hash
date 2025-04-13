@@ -14,7 +14,7 @@ use self::{
     intrinsic::{IntrinsicType, unify_intrinsic},
     pretty_print::{PrettyPrint, RecursionLimit},
     primitive::{PrimitiveType, unify_primitive},
-    r#struct::StructType,
+    r#struct::{StructType, unify_struct},
     unify::UnificationContext,
 };
 use crate::{arena::Arena, id::HasId, newtype, span::SpanId};
@@ -82,6 +82,21 @@ impl TypeKind {
     }
 }
 
+impl PrettyPrint for TypeKind {
+    fn pretty<'a>(
+        &'a self,
+        arena: &'a Arena<Type>,
+        limit: RecursionLimit,
+    ) -> pretty::RcDoc<'a, anstyle::Style> {
+        match self {
+            Self::Primitive(primitive) => primitive.pretty(arena, limit),
+            Self::Intrinsic(intrinsic) => intrinsic.pretty(arena, limit),
+            Self::Struct(r#struct) => r#struct.pretty(arena, limit),
+            _ => todo!(),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Type<K = TypeKind> {
     id: TypeId,
@@ -108,9 +123,16 @@ impl<K> Type<K> {
     }
 }
 
-impl<K> PrettyPrint for Type<K> {
-    fn pretty(&self, _: &Arena<Type>, _: RecursionLimit) -> pretty::RcDoc<anstyle::Style> {
-        todo!()
+impl<K> PrettyPrint for Type<K>
+where
+    K: PrettyPrint,
+{
+    fn pretty<'a>(
+        &'a self,
+        arena: &'a Arena<Type>,
+        limit: RecursionLimit,
+    ) -> pretty::RcDoc<'a, anstyle::Style> {
+        self.kind.pretty(arena, limit)
     }
 }
 
@@ -139,6 +161,13 @@ pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: Typ
                 context,
                 lhs.as_ref().map(|_| lhs_kind),
                 rhs.as_ref().map(|_| rhs_kind),
+            );
+        }
+        (TypeKind::Struct(lhs_kind), TypeKind::Struct(rhs_kind)) => {
+            unify_struct(
+                context,
+                lhs.as_ref().map(|_| lhs_kind.clone()),
+                rhs.as_ref().map(|_| rhs_kind.clone()),
             );
         }
         (TypeKind::Error, _) => {
