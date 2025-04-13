@@ -57,6 +57,14 @@ pub enum TypeKind {
 
 impl TypeKind {
     #[must_use]
+    pub fn into_closure(self) -> Option<ClosureType> {
+        match self {
+            Self::Closure(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
+
+    #[must_use]
     pub const fn as_primitive(&self) -> Option<PrimitiveType> {
         match self {
             &Self::Primitive(r#type) => Some(r#type),
