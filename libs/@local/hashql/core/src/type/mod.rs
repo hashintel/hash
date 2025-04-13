@@ -64,6 +64,14 @@ impl TypeKind {
             _ => None,
         }
     }
+
+    #[must_use]
+    pub const fn into_intrinsic(self) -> Option<IntrinsicType> {
+        match self {
+            Self::Intrinsic(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

@@ -112,12 +112,12 @@ pub(crate) fn unify_intrinsic(
         _ => {
             let help = match (&lhs.kind, &rhs.kind) {
                 (IntrinsicType::List(_), IntrinsicType::Dict(..)) => Some(
-                    "Cannot convert a List to a Dict. Consider using a List of key-value pairs \
-                     instead",
+                    "You can convert a list of key-value pairs to a dict using the \
+                     `::core::dict::from_entries/1` function.",
                 ),
                 (IntrinsicType::Dict(..), IntrinsicType::List(_)) => Some(
-                    "Cannot convert a Dict to a List. Consider using Dict.values() or Dict.keys() \
-                     to get a List",
+                    "You can convert a dict to a list of key-value pairs using the \
+                     `::core::dict::to_entries/1` function.",
                 ),
                 _ => None,
             };
@@ -134,5 +134,304 @@ pub(crate) fn unify_intrinsic(
             context.mark_error(lhs);
             context.mark_error(rhs);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::IntrinsicType;
+    use crate::r#type::{
+        TypeKind,
+        intrinsic::{DictType, ListType, unify_intrinsic},
+        primitive::PrimitiveType,
+        test::{instantiate, setup},
+    };
+
+    #[test]
+    fn identical_lists_unify() {
+        let mut context = setup();
+
+        // Create a List<String>
+        let element = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let list_type = ListType { element };
+
+        let lhs_id = instantiate(
+            &mut context,
+            TypeKind::Intrinsic(IntrinsicType::List(list_type)),
+        );
+        let rhs_id = instantiate(
+            &mut context,
+            TypeKind::Intrinsic(IntrinsicType::List(list_type)),
+        );
+
+        let lhs = context.arena[lhs_id]
+            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+        let rhs = context.arena[rhs_id]
+            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+
+        unify_intrinsic(&mut context, lhs, rhs);
+
+        assert!(
+            context.diagnostics.is_empty(),
+            "Failed to unify identical List types"
+        );
+
+        // Verify types are still the same after unification
+        let lhs = context.arena[lhs_id];
+        let rhs = context.arena[rhs_id];
+        assert_eq!(lhs.kind, rhs.kind);
+    }
+
+    #[test]
+    fn lists_with_unifiable_elements_unify() {
+        let mut context = setup();
+
+        // Create List<Integer> and List<Number>
+        let element1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let element2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+
+        let list1 = ListType { element: element1 };
+        let list2 = ListType { element: element2 };
+
+        let lhs_id = instantiate(
+            &mut context,
+            TypeKind::Intrinsic(IntrinsicType::List(list1)),
+        );
+        let rhs_id = instantiate(
+            &mut context,
+            TypeKind::Intrinsic(IntrinsicType::List(list2)),
+        );
+
+        let lhs = context.arena[lhs_id]
+            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+        let rhs = context.arena[rhs_id]
+            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+
+        unify_intrinsic(&mut context, lhs, rhs);
+
+        assert!(
+            context.diagnostics.is_empty(),
+            "Failed to unify lists with unifiable elements"
+        );
+
+        // Verify the Integer was promoted to Number
+        if let TypeKind::Intrinsic(IntrinsicType::List(ListType { element })) =
+            context.arena[lhs_id].kind
+        {
+            assert!(
+                matches!(
+                    context.arena[element].kind,
+                    TypeKind::Primitive(PrimitiveType::Number)
+                ),
+                "List element was not promoted to Number"
+            );
+        }
+    }
+
+    #[test]
+    fn identical_dicts_unify() {
+        let mut context = setup();
+
+        // Create Dict<String, Number>
+        let key = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let value = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let dict_type = DictType { key, value };
+
+        let lhs_id = instantiate(
+            &mut context,
+            TypeKind::Intrinsic(IntrinsicType::Dict(dict_type)),
+        );
+        let rhs_id = instantiate(
+            &mut context,
+            TypeKind::Intrinsic(IntrinsicType::Dict(dict_type)),
+        );
+
+        let lhs = context.arena[lhs_id]
+            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+        let rhs = context.arena[rhs_id]
+            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+
+        unify_intrinsic(&mut context, lhs, rhs);
+
+        assert!(
+            context.diagnostics.is_empty(),
+            "Failed to unify identical Dict types"
+        );
+
+        let lhs = context.arena[lhs_id];
+        let rhs = context.arena[rhs_id];
+        assert_eq!(lhs.kind, rhs.kind);
+    }
+
+    #[test]
+    fn dicts_with_unifiable_values_unify() {
+        let mut context = setup();
+
+        // Create Dict<String, Integer> and Dict<String, Number>
+        let key = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let value1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let value2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+
+        let dict1 = DictType { key, value: value1 };
+        let dict2 = DictType { key, value: value2 };
+
+        let lhs_id = instantiate(
+            &mut context,
+            TypeKind::Intrinsic(IntrinsicType::Dict(dict1)),
+        );
+        let rhs_id = instantiate(
+            &mut context,
+            TypeKind::Intrinsic(IntrinsicType::Dict(dict2)),
+        );
+
+        let lhs = context.arena[lhs_id]
+            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+        let rhs = context.arena[rhs_id]
+            .map(|kind| kind.into_intrinsic().expect("type should be intrinsic"));
+
+        unify_intrinsic(&mut context, lhs, rhs);
+
+        assert!(
+            context.diagnostics.is_empty(),
+            "Failed to unify dicts with unifiable values"
+        );
+
+        // Verify the Integer was promoted to Number
+        if let TypeKind::Intrinsic(IntrinsicType::Dict(DictType { value, .. })) =
+            context.arena[lhs_id].kind
+        {
+            assert!(
+                matches!(
+                    context.arena[value].kind,
+                    TypeKind::Primitive(PrimitiveType::Number)
+                ),
+                "Dict value was not promoted to Number"
+            );
+        }
+    }
+
+    #[test]
+    fn incompatible_intrinsics() {
+        let test_cases = [
+            // List<T> vs Dict<K, V>
+            (
+                (PrimitiveType::String, None),
+                (PrimitiveType::String, Some(PrimitiveType::Number)),
+                "List and Dict",
+            ),
+            // List<String> vs List<Number>
+            (
+                (PrimitiveType::String, None),
+                (PrimitiveType::Number, None),
+                "lists with incompatible elements",
+            ),
+            // Dict<String, String> vs Dict<Number, String>
+            (
+                (PrimitiveType::String, Some(PrimitiveType::String)),
+                (PrimitiveType::Number, Some(PrimitiveType::String)),
+                "dicts with incompatible keys",
+            ),
+        ];
+
+        for ((lhs_key, lhs_value), (rhs_key, rhs_value), description) in test_cases {
+            let mut context = setup();
+
+            let lhs_id = if let Some(value) = lhs_value {
+                // Create Dict
+                let key = instantiate(&mut context, TypeKind::Primitive(lhs_key));
+                let value = instantiate(&mut context, TypeKind::Primitive(value));
+                instantiate(
+                    &mut context,
+                    TypeKind::Intrinsic(IntrinsicType::Dict(DictType { key, value })),
+                )
+            } else {
+                // Create List
+                let element = instantiate(&mut context, TypeKind::Primitive(lhs_key));
+                instantiate(
+                    &mut context,
+                    TypeKind::Intrinsic(IntrinsicType::List(ListType { element })),
+                )
+            };
+
+            let rhs_id = if let Some(value) = rhs_value {
+                // Create Dict
+                let key = instantiate(&mut context, TypeKind::Primitive(rhs_key));
+                let value = instantiate(&mut context, TypeKind::Primitive(value));
+                instantiate(
+                    &mut context,
+                    TypeKind::Intrinsic(IntrinsicType::Dict(DictType { key, value })),
+                )
+            } else {
+                // Create List
+                let element = instantiate(&mut context, TypeKind::Primitive(rhs_key));
+                instantiate(
+                    &mut context,
+                    TypeKind::Intrinsic(IntrinsicType::List(ListType { element })),
+                )
+            };
+
+            let lhs = context.arena[lhs_id]
+                .map(|kind| kind.into_intrinsic().expect("should be intrinsic"));
+            let rhs = context.arena[rhs_id]
+                .map(|kind| kind.into_intrinsic().expect("should be intrinsic"));
+
+            unify_intrinsic(&mut context, lhs, rhs);
+
+            assert_eq!(
+                context.diagnostics.len(),
+                1,
+                "Expected error when unifying {description}"
+            );
+
+            // Verify both types are marked as errors
+            assert!(
+                matches!(context.arena[lhs_id].kind, TypeKind::Error),
+                "Left type not marked as error for {description}"
+            );
+            assert!(
+                matches!(context.arena[rhs_id].kind, TypeKind::Error),
+                "Right type not marked as error for {description}"
+            );
+        }
+    }
+
+    #[test]
+    fn error_messages() {
+        let mut context = setup();
+
+        // Test List vs Dict error message
+        let list_elem = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let list_id = instantiate(
+            &mut context,
+            TypeKind::Intrinsic(IntrinsicType::List(ListType { element: list_elem })),
+        );
+
+        let dict_key = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let dict_val = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let dict_id = instantiate(
+            &mut context,
+            TypeKind::Intrinsic(IntrinsicType::Dict(DictType {
+                key: dict_key,
+                value: dict_val,
+            })),
+        );
+
+        let list =
+            context.arena[list_id].map(|kind| kind.into_intrinsic().expect("should be intrinsic"));
+        let dict =
+            context.arena[dict_id].map(|kind| kind.into_intrinsic().expect("should be intrinsic"));
+
+        unify_intrinsic(&mut context, list, dict);
+
+        let diagnostic = &context.diagnostics[0];
+        assert_eq!(
+            diagnostic
+                .help
+                .as_ref()
+                .expect("help should be present")
+                .message(),
+            "You can convert a dict to a list of key-value pairs using the \
+             `::core::dict::to_entries/1` function."
+        );
     }
 }
