@@ -9,7 +9,7 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-use super::{Type, pretty_print::PrettyPrint};
+use super::{Type, generic_argument, pretty_print::PrettyPrint};
 use crate::{arena::Arena, span::SpanId};
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
@@ -29,11 +29,29 @@ const EXPECTED_NEVER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Expected uninhabited type",
 };
 
+const TUPLE_LENGTH_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "tuple-length-mismatch",
+    name: "Tuple length mismatch",
+};
+
+const OPAQUE_TYPE_NAME_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "opaque-type-name-mismatch",
+    name: "Opaque type name mismatch",
+};
+
+const GENERIC_ARGUMENT_NOT_FOUND: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "generic-argument-not-found",
+    name: "Generic argument not found",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
     CircularType,
     ExpectedNever,
+    TupleLengthMismatch,
+    OpaqueTypeNameMismatch,
+    GenericArgumentNotFound,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -50,6 +68,9 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::TypeMismatch => Some(&TYPE_MISMATCH),
             Self::CircularType => Some(&CIRCULAR_TYPE),
             Self::ExpectedNever => Some(&EXPECTED_NEVER),
+            Self::TupleLengthMismatch => Some(&TUPLE_LENGTH_MISMATCH),
+            Self::OpaqueTypeNameMismatch => Some(&OPAQUE_TYPE_NAME_MISMATCH),
+            Self::GenericArgumentNotFound => Some(&GENERIC_ARGUMENT_NOT_FOUND),
         }
     }
 }
@@ -177,6 +198,148 @@ where
         "The Never type represents computations that do not produce a value, such as infinite \
          loops, unreachable code paths, or code that always throws an error. When a Never type is \
          expected, your code must not return any value.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when tuple types have a different number of fields
+pub(crate) fn tuple_length_mismatch<K>(
+    span: SpanId,
+    lhs: &Type<K>,
+    rhs: &Type<K>,
+    lhs_len: usize,
+    rhs_len: usize,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::TupleLengthMismatch,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Tuple length mismatch in this expression").with_order(3));
+
+    diagnostic.labels.push(
+        Label::new(
+            lhs.span,
+            format!(
+                "This is a tuple with {} element{}",
+                lhs_len,
+                if lhs_len == 1 { "" } else { "s" }
+            ),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            rhs.span,
+            format!(
+                "This is a tuple with {} element{}",
+                rhs_len,
+                if rhs_len == 1 { "" } else { "s" }
+            ),
+        )
+        .with_order(2),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Tuples can only be unified when they have the same number of elements. Make sure both \
+         tuples have the same length by adding or removing elements.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Tuple types are only compatible when they have the same number of elements, even if the \
+         element types would be compatible individually.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when opaque types have different names
+pub(crate) fn opaque_type_name_mismatch<K>(
+    span: SpanId,
+    lhs: &Type<K>,
+    rhs: &Type<K>,
+    lhs_name: &str,
+    rhs_name: &str,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::OpaqueTypeNameMismatch,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Incompatible opaque types in this expression").with_order(3));
+
+    diagnostic
+        .labels
+        .push(Label::new(lhs.span, format!("This is opaque type '{}'", lhs_name)).with_order(1));
+
+    diagnostic
+        .labels
+        .push(Label::new(rhs.span, format!("This is opaque type '{}'", rhs_name)).with_order(2));
+
+    diagnostic.help = Some(Help::new(
+        "Opaque types are nominally typed, which means they can only be unified with other \
+         instances of the same named type. Make sure both values have the same opaque type name.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Opaque types enforce strong type safety by not allowing different named types to be used \
+         interchangeably, even if their underlying representations would be compatible.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a generic argument is not found in the current scope
+pub(crate) fn generic_argument_not_found<K>(
+    span: SpanId,
+    param_type: &Type<K>,
+    argument_id: generic_argument::GenericArgumentId,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::GenericArgumentNotFound,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Generic argument not found in this context").with_order(2));
+
+    diagnostic.labels.push(
+        Label::new(
+            param_type.span,
+            format!(
+                "This parameter refers to an undefined generic argument ID {:?}",
+                argument_id
+            ),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "This error occurs when a type parameter references a generic argument that is not in \
+         scope. Make sure all generic arguments are properly defined and in scope before using \
+         them.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Generic arguments must be entered into scope before they can be referenced. This \
+         typically happens during instantiation of generic types or when entering function bodies \
+         with generic parameters.",
     ));
 
     diagnostic

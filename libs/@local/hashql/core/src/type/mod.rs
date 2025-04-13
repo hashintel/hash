@@ -3,11 +3,13 @@
 pub mod error;
 pub mod generic_argument;
 pub mod intrinsic;
+pub mod opaque;
 pub mod pretty_print;
 pub mod primitive;
 pub mod r#struct;
 #[cfg(test)]
 pub(crate) mod test;
+pub mod tuple;
 pub mod unify;
 
 use pretty::RcDoc;
@@ -15,9 +17,11 @@ use pretty::RcDoc;
 use self::{
     error::expected_never,
     intrinsic::{IntrinsicType, unify_intrinsic},
+    opaque::{OpaqueType, unify_opaque},
     pretty_print::{CYAN, GRAY, PrettyPrint, RED, RecursionLimit},
     primitive::{PrimitiveType, unify_primitive},
     r#struct::{StructType, unify_struct},
+    tuple::{TupleType, unify_tuple},
     unify::UnificationContext,
 };
 use crate::{arena::Arena, id::HasId, newtype, span::SpanId};
@@ -30,18 +34,10 @@ newtype!(
 pub struct ClosureType {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct TupleType {}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct OpaqueType {}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct UnionType {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Param {}
-
-pub struct GenericArgument {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind {
@@ -85,6 +81,22 @@ impl TypeKind {
             _ => None,
         }
     }
+
+    #[must_use]
+    pub fn into_tuple(self) -> Option<TupleType> {
+        match self {
+            Self::Tuple(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
+
+    #[must_use]
+    pub fn into_opaque(self) -> Option<OpaqueType> {
+        match self {
+            Self::Opaque(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
 }
 
 impl PrettyPrint for TypeKind {
@@ -97,6 +109,8 @@ impl PrettyPrint for TypeKind {
             Self::Primitive(primitive) => primitive.pretty(arena, limit),
             Self::Intrinsic(intrinsic) => intrinsic.pretty(arena, limit),
             Self::Struct(r#struct) => r#struct.pretty(arena, limit),
+            Self::Tuple(tuple) => tuple.pretty(arena, limit),
+            Self::Opaque(opaque) => opaque.pretty(arena, limit),
             Self::Link(id) => arena[*id].pretty(arena, limit),
             Self::Infer => RcDoc::text("_").annotate(GRAY),
             Self::Unknown => RcDoc::text("?").annotate(CYAN),
@@ -252,6 +266,22 @@ pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: Typ
             );
         }
 
+        (TypeKind::Tuple(lhs_kind), TypeKind::Tuple(rhs_kind)) => {
+            unify_tuple(
+                context,
+                &lhs.as_ref().map(|_| lhs_kind.clone()),
+                &rhs.as_ref().map(|_| rhs_kind.clone()),
+            );
+        }
+
+        (TypeKind::Opaque(lhs_kind), TypeKind::Opaque(rhs_kind)) => {
+            unify_opaque(
+                context,
+                &lhs.as_ref().map(|_| lhs_kind.clone()),
+                &rhs.as_ref().map(|_| rhs_kind.clone()),
+            );
+        }
+
         (TypeKind::Never, TypeKind::Never) => {
             // Both are never, so they are compatible
         }
@@ -291,11 +321,22 @@ pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: Typ
         }
 
         _ => {
-            todo!(
-                "{} with {}",
-                lhs.pretty_print(&context.arena, 80),
-                rhs.pretty_print(&context.arena, 80)
-            );
+            let help_message = match (&lhs.kind, &rhs.kind) {
+                (TypeKind::Opaque(_), _) | (_, TypeKind::Opaque(_)) => {
+                    // Special case for opaque types mixed with other types
+                    "Cannot mix nominal types (Opaque) with structural types. Opaque types only \
+                     unify with other opaque types of the same name."
+                }
+                _ => "These types are fundamentally incompatible and cannot be unified",
+            };
+
+            // Create a general type mismatch error
+            let diagnostic =
+                error::type_mismatch(context.source, &context.arena, lhs, rhs, Some(help_message));
+
+            context.record_diagnostic(diagnostic);
+            context.mark_error(lhs_id);
+            context.mark_error(rhs_id);
         }
     }
 

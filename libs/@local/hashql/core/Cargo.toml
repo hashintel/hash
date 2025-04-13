@@ -11,14 +11,14 @@ authors.workspace = true
 hashql-diagnostics = { workspace = true, public = true }
 
 # Public third-party dependencies
+ecow      = { workspace = true, public = true }
 text-size = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-anstyle.workspace  = true
-ecow               = { workspace = true }
-foldhash.workspace = true
+anstyle            = { workspace = true }
+foldhash           = { workspace = true }
 orx-concurrent-vec = { workspace = true }
 pretty             = "0.12.4"
 serde              = { workspace = true, optional = true, features = ["alloc", "derive"] }

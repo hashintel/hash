@@ -46,7 +46,7 @@ impl PrettyPrint for StructType {
         arena: &'a Arena<Type>,
         limit: RecursionLimit,
     ) -> RcDoc<'a, anstyle::Style> {
-        if self.fields.is_empty() {
+        let inner = if self.fields.is_empty() {
             RcDoc::text("(:)")
         } else {
             RcDoc::text("(")
@@ -59,7 +59,9 @@ impl PrettyPrint for StructType {
                     .group(),
                 )
                 .append(RcDoc::text(")"))
-        }
+        };
+
+        self.arguments.pretty(arena, limit).append(inner).group()
     }
 }
 

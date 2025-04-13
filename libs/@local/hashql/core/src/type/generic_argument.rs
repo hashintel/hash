@@ -5,8 +5,13 @@ use super::{
     Type, TypeId,
     pretty_print::{ORANGE, PrettyPrint, RecursionLimit},
     unify::UnificationContext,
+    unify_type,
 };
-use crate::{arena::Arena, newtype, symbol::Ident};
+use crate::{
+    arena::Arena,
+    newtype,
+    symbol::{Ident, Symbol},
+};
 
 newtype!(
     pub struct GenericArgumentId(u32 is 0..=0xFFFF_FF00)
@@ -98,4 +103,71 @@ impl Default for GenericArguments {
     fn default() -> Self {
         Self::new()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Param {
+    pub argument: GenericArgumentId,
+
+    pub name: Symbol,
+}
+
+impl PrettyPrint for Param {
+    fn pretty<'a>(&'a self, _: &'a Arena<Type>, _: RecursionLimit) -> RcDoc<'a, anstyle::Style> {
+        RcDoc::text(self.name.as_str())
+    }
+}
+
+pub(crate) fn unify_param_lhs(context: &mut UnificationContext, lhs: &Type<Param>, rhs: TypeId) {
+    let Some(argument) = context.generic_argument(lhs.kind.argument) else {
+        let diagnostic =
+            super::error::generic_argument_not_found(context.source, lhs, lhs.kind.argument);
+        context.record_diagnostic(diagnostic);
+        context.mark_error(lhs.id);
+        return;
+    };
+
+    unify_type(context, argument, rhs);
+}
+
+pub(crate) fn unify_param_rhs(context: &mut UnificationContext, lhs: TypeId, rhs: &Type<Param>) {
+    let Some(argument) = context.generic_argument(rhs.kind.argument) else {
+        let diagnostic =
+            super::error::generic_argument_not_found(context.source, rhs, rhs.kind.argument);
+        context.record_diagnostic(diagnostic);
+        context.mark_error(rhs.id);
+        return;
+    };
+
+    unify_type(context, lhs, argument);
+}
+
+pub(crate) fn unify_param(context: &mut UnificationContext, lhs: &Type<Param>, rhs: &Type<Param>) {
+    let lhs_argument = if let Some(lhs_argument) = context.generic_argument(lhs.kind.argument) {
+        Some(lhs_argument)
+    } else {
+        let diagnostic =
+            super::error::generic_argument_not_found(context.source, lhs, lhs.kind.argument);
+        context.record_diagnostic(diagnostic);
+        context.mark_error(lhs.id);
+
+        None
+    };
+
+    let rhs_argument = if let Some(rhs_argument) = context.generic_argument(rhs.kind.argument) {
+        Some(rhs_argument)
+    } else {
+        let diagnostic =
+            super::error::generic_argument_not_found(context.source, rhs, rhs.kind.argument);
+        context.record_diagnostic(diagnostic);
+        context.mark_error(rhs.id);
+
+        None
+    };
+
+    let Some((lhs_argument, rhs_argument)) = Option::zip(lhs_argument, rhs_argument) else {
+        return;
+    };
+
+    unify_type(context, lhs_argument, rhs_argument);
 }
