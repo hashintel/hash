@@ -92,7 +92,6 @@ pub(crate) fn unify_closure(
 ) {
     // Function parameter count is invariant
     if lhs.kind.params.len() != rhs.kind.params.len() {
-        // Create diagnostic for parameter count mismatch
         let diagnostic = function_parameter_count_mismatch(
             context.source,
             lhs,
