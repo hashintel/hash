@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::{
     Type, TypeId, TypeKind, error::TypeCheckDiagnostic, generic_argument::GenericArgumentId,
@@ -10,6 +10,7 @@ pub struct UnificationContext {
     pub arena: Arena<Type>,
 
     diagnostics: Vec<TypeCheckDiagnostic>,
+    visited: HashSet<TypeId, foldhash::fast::RandomState>,
 
     // The arguments currently in scope
     arguments: HashMap<GenericArgumentId, TypeId, foldhash::fast::RandomState>,
@@ -22,6 +23,7 @@ impl UnificationContext {
             source,
             arena,
             diagnostics: Vec::new(),
+            visited: HashSet::default(),
             arguments: HashMap::default(),
         }
     }
@@ -32,6 +34,14 @@ impl UnificationContext {
 
     pub fn take_diagnostics(&mut self) -> Vec<TypeCheckDiagnostic> {
         core::mem::take(&mut self.diagnostics)
+    }
+
+    pub fn visit(&mut self, id: TypeId) -> bool {
+        self.visited.insert(id)
+    }
+
+    pub fn leave(&mut self, id: TypeId) {
+        self.visited.remove(&id);
     }
 
     pub(crate) fn record_diagnostic(&mut self, diagnostic: TypeCheckDiagnostic) {

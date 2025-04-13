@@ -53,6 +53,8 @@ pub enum TypeKind {
     Never,
     Unknown,
     Infer,
+    // This type is linked / the same type as another, only happens on infer chains
+    Link(TypeId),
     Error,
 }
 
@@ -145,9 +147,25 @@ impl HasId for Type {
 }
 
 pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: TypeId) {
+    if context.visit(lhs) {
+        todo!("register error circular type")
+    }
+
+    if context.visit(rhs) {
+        todo!("register error circular type")
+    }
+
     let lhs = &context.arena[lhs];
     let rhs = &context.arena[rhs];
 
+    let lhs_id = lhs.id;
+    let rhs_id = rhs.id;
+
+    if lhs.id == rhs.id {
+        return;
+    }
+
+    #[expect(clippy::match_same_arms, reason = "makes the intent clear")]
     match (&lhs.kind, &rhs.kind) {
         (&TypeKind::Primitive(lhs_kind), &TypeKind::Primitive(rhs_kind)) => {
             unify_primitive(
@@ -156,6 +174,7 @@ pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: Typ
                 rhs.as_ref().map(|_| rhs_kind),
             );
         }
+
         (&TypeKind::Intrinsic(lhs_kind), &TypeKind::Intrinsic(rhs_kind)) => {
             unify_intrinsic(
                 context,
@@ -163,12 +182,82 @@ pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: Typ
                 rhs.as_ref().map(|_| rhs_kind),
             );
         }
+
         (TypeKind::Struct(lhs_kind), TypeKind::Struct(rhs_kind)) => {
             unify_struct(
                 context,
                 lhs.as_ref().map(|_| lhs_kind.clone()),
                 rhs.as_ref().map(|_| rhs_kind.clone()),
             );
+        }
+
+        (TypeKind::Never, TypeKind::Never) => {
+            // Both are never, so they are compatible
+        }
+        (TypeKind::Never, _) => {
+            // bottom type, anything added to never is never
+            context
+                .arena
+                .update_with(rhs.id, |rhs| rhs.kind = TypeKind::Never);
+        }
+        (_, TypeKind::Never) => {
+            // bottom type, anything added to never is never
+            context
+                .arena
+                .update_with(lhs.id, |lhs| lhs.kind = TypeKind::Never);
+        }
+
+        (TypeKind::Unknown, TypeKind::Unknown) => {
+            // Both are unknown, so they are compatible
+        }
+        (TypeKind::Unknown, rhs) => {
+            // unknown is the top type, therefore lhs turns into rhs
+            let rhs = rhs.clone();
+            context.arena.update_with(lhs.id, |lhs| lhs.kind = rhs);
+        }
+        (lhs, TypeKind::Unknown) => {
+            // unknown is the top type, therefore rhs turns into lhs
+            let lhs = lhs.clone();
+            context.arena.update_with(rhs.id, |rhs| rhs.kind = lhs);
+        }
+
+        (TypeKind::Infer, TypeKind::Infer) => {
+            let rhs_id = rhs.id;
+
+            // If both are inferred, quantum-entangle them, meaning lhs points to rhs
+            context
+                .arena
+                .update_with(lhs.id, |lhs| lhs.kind = TypeKind::Link(rhs_id));
+        }
+        (TypeKind::Infer, rhs) => {
+            let rhs = rhs.clone();
+
+            // Infer simply propagate the rhs type
+            context
+                .arena
+                .update_with(lhs.id, |lhs| lhs.kind = rhs.clone());
+        }
+        (lhs, TypeKind::Infer) => {
+            let lhs = lhs.clone();
+
+            // Infer simply propagate the lhs type
+            context
+                .arena
+                .update_with(rhs.id, |rhs| rhs.kind = lhs.clone());
+        }
+
+        (&TypeKind::Link(lhs_id), &TypeKind::Link(rhs_id)) => {
+            unify_type(context, lhs_id, rhs_id);
+        }
+        (&TypeKind::Link(lhs_id), _) => {
+            unify_type(context, lhs_id, rhs.id);
+        }
+        (_, &TypeKind::Link(rhs_id)) => {
+            unify_type(context, lhs.id, rhs_id);
+        }
+
+        (TypeKind::Error, TypeKind::Error) => {
+            // Both are compatible with each other
         }
         (TypeKind::Error, _) => {
             // do nothing, simply propagate the error up
@@ -182,4 +271,7 @@ pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: Typ
             todo!()
         }
     }
+
+    context.leave(lhs_id);
+    context.leave(rhs_id);
 }
