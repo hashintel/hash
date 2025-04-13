@@ -1,5 +1,6 @@
 // HashQL type system
 
+pub mod closure;
 pub mod error;
 pub mod generic_argument;
 pub mod intrinsic;
@@ -18,6 +19,7 @@ use core::mem;
 use pretty::RcDoc;
 
 use self::{
+    closure::{ClosureType, unify_closure},
     error::expected_never,
     generic_argument::{Param, unify_param, unify_param_lhs, unify_param_rhs},
     intrinsic::{IntrinsicType, unify_intrinsic},
@@ -29,14 +31,11 @@ use self::{
     unify::{UnificationArena, UnificationContext, Variance},
     union_type::{UnionType, unify_union, unify_union_lhs, unify_union_rhs},
 };
-use crate::{arena::Arena, id::HasId, newtype, span::SpanId};
+use crate::{id::HasId, newtype, span::SpanId};
 
 newtype!(
     pub struct TypeId(u32 is 0..=0xFFFF_FF00)
 );
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct ClosureType {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind {
@@ -105,18 +104,19 @@ impl PrettyPrint for TypeKind {
         limit: RecursionLimit,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         match self {
+            Self::Closure(closure) => closure.pretty(arena, limit),
             Self::Primitive(primitive) => primitive.pretty(arena, limit),
             Self::Intrinsic(intrinsic) => intrinsic.pretty(arena, limit),
             Self::Struct(r#struct) => r#struct.pretty(arena, limit),
             Self::Tuple(tuple) => tuple.pretty(arena, limit),
             Self::Opaque(opaque) => opaque.pretty(arena, limit),
+            Self::Union(union) => union.pretty(arena, limit),
             Self::Param(param) => param.pretty(arena, limit),
             Self::Never => RcDoc::text("!").annotate(CYAN),
             Self::Unknown => RcDoc::text("?").annotate(CYAN),
             Self::Infer => RcDoc::text("_").annotate(GRAY),
             Self::Link(id) => arena[*id].pretty(arena, limit),
             Self::Error => RcDoc::text("<<ERROR>>").annotate(RED),
-            _ => todo!(),
         }
     }
 }
@@ -355,6 +355,14 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
             // The rhs is an error - propagate the error to lhs
             // This ensures errors flow through the type system
             context.mark_error(lhs.id);
+        }
+
+        (TypeKind::Closure(lhs_kind), TypeKind::Closure(rhs_kind)) => {
+            unify_closure(
+                context,
+                &lhs.as_ref().map(|_| lhs_kind.clone()),
+                &rhs.as_ref().map(|_| rhs_kind.clone()),
+            );
         }
 
         (&TypeKind::Primitive(lhs_kind), &TypeKind::Primitive(rhs_kind)) => {

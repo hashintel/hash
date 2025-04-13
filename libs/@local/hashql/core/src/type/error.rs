@@ -46,6 +46,11 @@ const GENERIC_ARGUMENT_NOT_FOUND: TerminalDiagnosticCategory = TerminalDiagnosti
     name: "Generic argument not found",
 };
 
+const FUNCTION_PARAMETER_COUNT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "function-parameter-count-mismatch",
+    name: "Function parameter count mismatch",
+};
+
 const UNION_VARIANT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "union-variant-mismatch",
     name: "Union variant mismatch",
@@ -60,6 +65,7 @@ pub enum TypeCheckDiagnosticCategory {
     OpaqueTypeNameMismatch,
     GenericArgumentNotFound,
     UnionVariantMismatch,
+    FunctionParameterCountMismatch,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -80,6 +86,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::OpaqueTypeNameMismatch => Some(&OPAQUE_TYPE_NAME_MISMATCH),
             Self::GenericArgumentNotFound => Some(&GENERIC_ARGUMENT_NOT_FOUND),
             Self::UnionVariantMismatch => Some(&UNION_VARIANT_MISMATCH),
+            Self::FunctionParameterCountMismatch => Some(&FUNCTION_PARAMETER_COUNT_MISMATCH),
         }
     }
 }
@@ -410,6 +417,66 @@ where
         "Union types follow subtyping rules where (A | B) <: C if and only if A <: C and B <: C. \
          This means each variant in the provided union must be a subtype of at least one variant \
          in the expected union.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a function has the wrong number of parameters.
+///
+/// This is used when a function type has a different number of parameters than expected,
+/// which is an invariant property of function types.
+pub(crate) fn function_parameter_count_mismatch<K>(
+    span: SpanId,
+    lhs: &Type<K>,
+    rhs: &Type<K>,
+    lhs_param_count: usize,
+    rhs_param_count: usize,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::FunctionParameterCountMismatch,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Function has wrong number of parameters").with_order(3));
+
+    diagnostic.labels.push(
+        Label::new(
+            lhs.span,
+            format!(
+                "This function type expects {} parameter{}",
+                lhs_param_count,
+                if lhs_param_count == 1 { "" } else { "s" }
+            ),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            rhs.span,
+            format!(
+                "This function has {} parameter{}",
+                rhs_param_count,
+                if rhs_param_count == 1 { "" } else { "s" }
+            ),
+        )
+        .with_order(2),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Function types must have the same number of parameters to be compatible. Check that \
+         you're using the correct function type with the right number of parameters.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "In strongly typed languages, functions with different numbers of parameters are \
+         considered different types, even if the parameters they do have are compatible.",
     ));
 
     diagnostic
