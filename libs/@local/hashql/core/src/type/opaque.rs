@@ -34,7 +34,7 @@ impl PrettyPrint for OpaqueType {
     }
 }
 
-/// Unifies opaque types, respecting variance without concern for backward compatibility.
+/// Unifies opaque types
 ///
 /// Opaque types implement nominal typing, meaning:
 /// - Types must have the same name to be compatible

@@ -65,7 +65,7 @@ impl PrettyPrint for StructType {
     }
 }
 
-/// Unifies struct types, respecting variance without concern for backward compatibility.
+/// Unifies struct types
 ///
 /// In a covariant context:
 /// - rhs must have at least all the fields that lhs has (width subtyping).

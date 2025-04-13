@@ -36,7 +36,7 @@ impl PrettyPrint for PrimitiveType {
     }
 }
 
-/// Unifies primitive types, respecting variance.
+/// Unifies primitive types
 ///
 /// In a covariant context, this checks if `rhs` is a subtype of `lhs`.
 /// For primitives, the main subtyping relationship is Integer <: Number

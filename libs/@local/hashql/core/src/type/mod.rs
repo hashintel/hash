@@ -11,6 +11,7 @@ pub mod r#struct;
 pub(crate) mod test;
 pub mod tuple;
 pub mod unify;
+pub mod union_type;
 
 use core::mem;
 
@@ -18,6 +19,7 @@ use pretty::RcDoc;
 
 use self::{
     error::expected_never,
+    generic_argument::{Param, unify_param, unify_param_lhs, unify_param_rhs},
     intrinsic::{IntrinsicType, unify_intrinsic},
     opaque::{OpaqueType, unify_opaque},
     pretty_print::{CYAN, GRAY, PrettyPrint, RED, RecursionLimit},
@@ -25,6 +27,7 @@ use self::{
     r#struct::{StructType, unify_struct},
     tuple::{TupleType, unify_tuple},
     unify::{UnificationContext, Variance},
+    union_type::UnionType,
 };
 use crate::{arena::Arena, id::HasId, newtype, span::SpanId};
 
@@ -34,12 +37,6 @@ newtype!(
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ClosureType {}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct UnionType {}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Param {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind {
@@ -113,10 +110,11 @@ impl PrettyPrint for TypeKind {
             Self::Struct(r#struct) => r#struct.pretty(arena, limit),
             Self::Tuple(tuple) => tuple.pretty(arena, limit),
             Self::Opaque(opaque) => opaque.pretty(arena, limit),
-            Self::Link(id) => arena[*id].pretty(arena, limit),
-            Self::Infer => RcDoc::text("_").annotate(GRAY),
-            Self::Unknown => RcDoc::text("?").annotate(CYAN),
+            Self::Param(param) => param.pretty(arena, limit),
             Self::Never => RcDoc::text("!").annotate(CYAN),
+            Self::Unknown => RcDoc::text("?").annotate(CYAN),
+            Self::Infer => RcDoc::text("_").annotate(GRAY),
+            Self::Link(id) => arena[*id].pretty(arena, limit),
             Self::Error => RcDoc::text("<<ERROR>>").annotate(RED),
             _ => todo!(),
         }
@@ -173,9 +171,13 @@ impl HasId for Type {
 /// Unifies two types, respecting the current variance context.
 ///
 /// In a covariant context: Ensures that `rhs` is a subtype of `lhs` (can `rhs` be used where `lhs`
-/// is expected?) In a contravariant context: Ensures that `lhs` is a subtype of `rhs` (can `lhs` be
-/// used where `rhs` is expected?) In an invariant context: Ensures that `lhs` and `rhs` are
-/// equivalent types (not just compatible)
+/// is expected?) e.g. `rhs <: lhs`
+///
+/// In a contravariant context: Ensures that `lhs` is a subtype of `rhs` (can `lhs` be used where
+/// `rhs` is expected?) e.g. `lhs <: rhs`
+///
+/// In an invariant context: Ensures that `lhs` and `rhs` are equivalent types (not just compatible)
+/// e.g. `lhs <: rhs` and `rhs <: lhs`
 ///
 /// This is the main entry point for type unification that respects variance.
 pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: TypeId) {
@@ -199,11 +201,12 @@ pub(crate) fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: Typ
 /// Handles type unification in an invariant context, where types must be equivalent.
 ///
 /// Invariance means that types must be identical (or structurally equivalent), not just compatible
-/// in one direction. This function implements invariance by testing compatibility in both
-/// directions:
-/// - First checks if `rhs` is a subtype of `lhs` (covariant direction)
-/// - If that succeeds, then checks if `lhs` is a subtype of `rhs` (contravariant direction)
-/// - Only if both succeed are the types considered invariant compatible
+/// in one direction.
+///
+/// This function implements invariance by testing compatibility in both directions:
+/// - First checks if `rhs` is a subtype of `lhs` (covariant direction).
+/// - If that succeeds, then checks if `lhs` is a subtype of `rhs` (contravariant direction).
+/// - Only if both succeed are the types considered invariant compatible.
 ///
 /// This approach ensures proper invariance without cloning the entire arena.
 fn unify_type_invariant(context: &mut UnificationContext, lhs: TypeId, rhs: TypeId) {
@@ -294,7 +297,8 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
     }
 
     // The following match arms implement the covariant subtyping rules for different type
-    // combinations. In a covariant context, we're checking if `rhs` is a subtype of `lhs`.
+    // combinations. In a covariant context, we're checking if `rhs` is a subtype of `lhs`
+    // (`rhs <: lhs`).
     #[expect(clippy::match_same_arms, reason = "makes the intent clear")]
     match (&lhs.kind, &rhs.kind) {
         // Links are references to other types - follow them to their targets for unification
@@ -303,11 +307,11 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
             unify_type(context, lhs_id, rhs_id);
         }
         (&TypeKind::Link(lhs_id), _) => {
-            // LHS is a link - follow it and unify with RHS
+            // The lhs is a link - follow it and unify with rhs
             unify_type(context, lhs_id, rhs.id);
         }
         (_, &TypeKind::Link(rhs_id)) => {
-            // RHS is a link - follow it and unify with LHS
+            // The rhs is a link - follow it and unify with lhs
             unify_type(context, lhs.id, rhs_id);
         }
 
@@ -325,7 +329,7 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
         (TypeKind::Infer, rhs) => {
             let rhs = rhs.clone();
 
-            // LHS is an inference variable, RHS is a concrete type
+            // The lhs is an inference variable, rhs is a concrete type
             // Inference variables are an exception to the "no modifications" rule
             // They are specifically designed to be refined during type checking
             context
@@ -335,7 +339,7 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
         (lhs, TypeKind::Infer) => {
             let lhs = lhs.clone();
 
-            // LHS is a concrete type, RHS is an inference variable
+            // The lhs is a concrete type, rhs is an inference variable
             // Inference variables are an exception to the "no modifications" rule
             // They are specifically designed to be refined during type checking
             context
@@ -346,15 +350,15 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
         // Error types represent invalid or erroneous types
         (TypeKind::Error, TypeKind::Error) => {
             // Both types are errors - they're considered compatible
-            // This prevents cascading errors and improves error reporting
+            // This prevents cascading errors
         }
         (TypeKind::Error, _) => {
-            // LHS is an error - propagate the error to RHS
+            // The lhs is an error - propagate the error to rhs
             // This ensures errors flow through the type system
             context.mark_error(rhs.id);
         }
         (_, TypeKind::Error) => {
-            // RHS is an error - propagate the error to LHS
+            // The rhs is an error - propagate the error to lhs
             // This ensures errors flow through the type system
             context.mark_error(lhs.id);
         }
@@ -399,26 +403,38 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
             );
         }
 
+        (TypeKind::Param(lhs_kind), TypeKind::Param(rhs_kind)) => {
+            unify_param(
+                context,
+                &lhs.as_ref().map(|_| lhs_kind.clone()),
+                &rhs.as_ref().map(|_| rhs_kind.clone()),
+            );
+        }
+        (TypeKind::Param(lhs_kind), _) => {
+            unify_param_lhs(context, &lhs.as_ref().map(|_| lhs_kind.clone()), rhs_id);
+        }
+        (_, TypeKind::Param(rhs_kind)) => {
+            unify_param_rhs(context, lhs_id, &rhs.as_ref().map(|_| rhs_kind.clone()));
+        }
+
         // Never is the bottom type - it's a subtype of all other types
         (TypeKind::Never, TypeKind::Never) => {
             // Both types are Never - they're compatible
             // This is true in any variance context
         }
         (TypeKind::Never, _) => {
-            // In covariant context: Never (LHS) is a subtype of any type (RHS).
+            // In covariant context: Never (lhs) is a subtype of any type (rhs).
             // This is always valid - a value of Never type can be used anywhere
-            // We preserve the Never type on the LHS because it's more specific than any other type
+            // We preserve the Never type on the lhs because it's more specific than any other type
             // No modification needed - Never remains Never
         }
         (_, TypeKind::Never) => {
-            // In covariant context: A concrete type (LHS) is not a supertype of Never (RHS)
-            // This is an error - we expected LHS but got a Never
+            // In covariant context: A concrete type (lhs) is not a supertype of Never (rhs)
+            // This is an error - we expected lhs but got a Never
             let diagnostic = expected_never(rhs.span, &context.arena, lhs);
 
             // Mark as error since the types are incompatible
-            context
-                .arena
-                .update_with(lhs.id, |lhs| lhs.kind = TypeKind::Error);
+            context.mark_error(lhs.id);
 
             context.record_diagnostic(diagnostic);
         }
@@ -429,16 +445,16 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
             // This is true in any variance context
         }
         (TypeKind::Unknown, rhs) => {
-            // In covariant context: Unknown (LHS) is a supertype of any type (RHS)
-            // This is always valid - any value can be used where Unknown is expected
+            // In covariant context: Unknown (lhs) is a supertype of any type (rhs).
+            // This is always valid - any value can be used where Unknown is expected.
             // Even in a strictly variance-aware system, updating Unknown to a more precise type
-            // is beneficial for type inference and error reporting
+            // is beneficial for type inference and error reporting.
             // The compatibility check succeeds due to variance, but we also update for precision
             let rhs = rhs.clone();
             context.arena.update_with(lhs.id, |lhs| lhs.kind = rhs);
         }
         (_, TypeKind::Unknown) => {
-            // In covariant context: A concrete type (LHS) is not a subtype of Unknown (RHS)
+            // In covariant context: A concrete type (lhs) is not a subtype of Unknown (rhs)
             // This is an error - we expected a specific type but got an Unknown
             let diagnostic = error::type_mismatch(
                 context.source,

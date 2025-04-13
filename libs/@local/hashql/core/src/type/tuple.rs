@@ -62,7 +62,7 @@ impl PrettyPrint for TupleType {
     }
 }
 
-/// Unifies tuple types, respecting variance without concern for backward compatibility.
+/// Unifies tuple types
 ///
 /// In a covariant context:
 /// - Both tuples must have the same number of fields (tuples are invariant in length)

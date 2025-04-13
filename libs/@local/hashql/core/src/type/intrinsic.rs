@@ -76,7 +76,7 @@ impl PrettyPrint for IntrinsicType {
     }
 }
 
-/// Unifies intrinsic types, respecting variance without concern for backward compatibility.
+/// Unifies intrinsic types
 ///
 /// In a strictly variance-aware system:
 /// - List elements are covariant (immutable collections)
