@@ -140,7 +140,7 @@ mod tests {
             arguments: GenericArguments::default(),
         };
 
-        let id = context.arena.push_with(|id| Type {
+        let id = context.arena.arena_mut_test_only().push_with(|id| Type {
             id,
             span: SpanId::SYNTHETIC,
             kind: TypeKind::Tuple(tuple_type),

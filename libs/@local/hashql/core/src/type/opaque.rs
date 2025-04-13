@@ -96,7 +96,7 @@ mod tests {
         name: &str,
         underlying_type: TypeId,
     ) -> Type<OpaqueType> {
-        let id = context.arena.push_with(|id| Type {
+        let id = context.arena.arena_mut_test_only().push_with(|id| Type {
             id,
             span: SpanId::SYNTHETIC,
             kind: TypeKind::Opaque(OpaqueType {

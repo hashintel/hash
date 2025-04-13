@@ -107,6 +107,14 @@ impl UnificationArena {
             }
         }
     }
+
+    #[cfg(test)]
+    pub(crate) fn arena_mut_test_only(&mut self) -> &mut Arena<Type> {
+        match &mut self.0 {
+            UnificationArenaInner::Root(arena) => arena,
+            UnificationArenaInner::Transaction(arena, _) => arena.arena_mut_test_only(),
+        }
+    }
 }
 
 impl Index<TypeId> for UnificationArena {

@@ -11,7 +11,7 @@ pub(crate) fn setup() -> UnificationContext {
 }
 
 pub(crate) fn instantiate(context: &mut UnificationContext, kind: TypeKind) -> TypeId {
-    context.arena.push_with(|id| Type {
+    context.arena.arena_mut_test_only().push_with(|id| Type {
         id,
         span: SpanId::SYNTHETIC,
         kind,
@@ -279,14 +279,11 @@ fn link_to_self_detection() {
     let id = instantiate(&mut context, TypeKind::Infer);
 
     // Create a Link that would point to itself
-    context.arena.update(
+    context.arena.arena_mut_test_only().update(Type {
         id,
-        Type {
-            id,
-            span: SpanId::SYNTHETIC,
-            kind: TypeKind::Link(id),
-        },
-    );
+        span: SpanId::SYNTHETIC,
+        kind: TypeKind::Link(id),
+    });
 
     // Create a concrete type to unify with
     let concrete = instantiate(&mut context, TypeKind::Unknown);
@@ -308,23 +305,17 @@ fn direct_circular_reference() {
     let id2 = instantiate(&mut context, TypeKind::Infer);
 
     // Make them refer to each other
-    context.arena.update(
-        id1,
-        Type {
-            id: id1,
-            span: SpanId::SYNTHETIC,
-            kind: TypeKind::Link(id2),
-        },
-    );
+    context.arena.arena_mut_test_only().update(Type {
+        id: id1,
+        span: SpanId::SYNTHETIC,
+        kind: TypeKind::Link(id2),
+    });
 
-    context.arena.update(
-        id2,
-        Type {
-            id: id2,
-            span: SpanId::SYNTHETIC,
-            kind: TypeKind::Link(id1),
-        },
-    );
+    context.arena.arena_mut_test_only().update(Type {
+        id: id2,
+        span: SpanId::SYNTHETIC,
+        kind: TypeKind::Link(id1),
+    });
 
     // Try to unify with a concrete type
     let concrete = instantiate(&mut context, TypeKind::Unknown);
@@ -346,32 +337,23 @@ fn indirect_circular_reference() {
     let id_b = instantiate(&mut context, TypeKind::Infer);
     let id_c = instantiate(&mut context, TypeKind::Infer);
 
-    context.arena.update(
-        id_a,
-        Type {
-            id: id_a,
-            span: SpanId::SYNTHETIC,
-            kind: TypeKind::Link(id_b),
-        },
-    );
+    context.arena.arena_mut_test_only().update(Type {
+        id: id_a,
+        span: SpanId::SYNTHETIC,
+        kind: TypeKind::Link(id_b),
+    });
 
-    context.arena.update(
-        id_b,
-        Type {
-            id: id_b,
-            span: SpanId::SYNTHETIC,
-            kind: TypeKind::Link(id_c),
-        },
-    );
+    context.arena.arena_mut_test_only().update(Type {
+        id: id_b,
+        span: SpanId::SYNTHETIC,
+        kind: TypeKind::Link(id_c),
+    });
 
-    context.arena.update(
-        id_c,
-        Type {
-            id: id_c,
-            span: SpanId::SYNTHETIC,
-            kind: TypeKind::Link(id_a),
-        },
-    );
+    context.arena.arena_mut_test_only().update(Type {
+        id: id_c,
+        span: SpanId::SYNTHETIC,
+        kind: TypeKind::Link(id_a),
+    });
 
     // Try to unify with a concrete type
     let concrete = instantiate(&mut context, TypeKind::Unknown);
@@ -394,27 +376,21 @@ fn alternating_direction_cycle() {
     let id_c = instantiate(&mut context, TypeKind::Infer);
 
     // Create initial links
-    context.arena.update(
-        id_a,
-        Type {
-            id: id_a,
-            span: SpanId::SYNTHETIC,
-            kind: TypeKind::Link(id_b),
-        },
-    );
+    context.arena.arena_mut_test_only().update(Type {
+        id: id_a,
+        span: SpanId::SYNTHETIC,
+        kind: TypeKind::Link(id_b),
+    });
 
     // Unify B with C
     unify_type(&mut context, id_b, id_c);
 
     // Now make C link back to A, completing the cycle
-    context.arena.update(
-        id_c,
-        Type {
-            id: id_c,
-            span: SpanId::SYNTHETIC,
-            kind: TypeKind::Link(id_a),
-        },
-    );
+    context.arena.arena_mut_test_only().update(Type {
+        id: id_c,
+        span: SpanId::SYNTHETIC,
+        kind: TypeKind::Link(id_a),
+    });
 
     // Try to resolve the whole chain
     let concrete = instantiate(&mut context, TypeKind::Unknown);
