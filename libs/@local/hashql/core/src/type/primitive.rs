@@ -55,9 +55,6 @@ pub(crate) fn unify_primitive(
         (PrimitiveType::Number, PrimitiveType::Integer) => {
             // In covariant context: Integer (rhs) is a subtype of Number (lhs).
             // This is valid - Integer can be used where Number is expected
-            // We update the type for consistency in the type graph and to ensure
-            // that all subsequent operations have the precise type information
-            context.update_kind(rhs.id, TypeKind::Primitive(PrimitiveType::Number));
         }
 
         (PrimitiveType::Integer, PrimitiveType::Number) => {
@@ -202,7 +199,7 @@ mod tests {
         assert!(
             matches!(
                 context.arena[int_id].kind,
-                TypeKind::Primitive(PrimitiveType::Number)
+                TypeKind::Primitive(PrimitiveType::Integer)
             ),
             "Integer was not promoted to Number"
         );

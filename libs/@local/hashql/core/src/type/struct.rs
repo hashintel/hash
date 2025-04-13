@@ -348,8 +348,8 @@ mod tests {
         if let TypeKind::Struct(rhs_struct) = rhs.kind {
             let field_type = &context.arena[rhs_struct.fields[0].value].kind;
             assert!(
-                matches!(field_type, TypeKind::Primitive(PrimitiveType::Number)),
-                "RHS field type should be Number"
+                matches!(field_type, TypeKind::Primitive(PrimitiveType::Integer)),
+                "RHS field type should be an Integer"
             );
         }
     }
