@@ -130,6 +130,7 @@ impl Index<TypeId> for UnificationArena {
     }
 }
 
+#[expect(clippy::field_scoped_visibility_modifiers)]
 pub struct UnificationContext {
     pub source: SpanId,
     pub(super) arena: UnificationArena,
@@ -203,7 +204,7 @@ impl UnificationContext {
         self.variance_context
     }
 
-    pub fn with_variance<T>(
+    pub(crate) fn with_variance<T>(
         &mut self,
         variance: Variance,
         closure: impl FnOnce(&mut Self) -> T,
@@ -229,17 +230,30 @@ impl UnificationContext {
         result
     }
 
-    // Helper methods
-    pub fn in_contravariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+    pub(crate) fn in_contravariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
         self.with_variance(Variance::Contravariant, closure)
     }
 
-    pub fn in_covariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+    pub(crate) fn in_covariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
         self.with_variance(Variance::Covariant, closure)
     }
 
-    pub fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+    pub(crate) fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
         self.with_variance(Variance::Invariant, closure)
+    }
+
+    pub(crate) fn in_transaction(&mut self, closure: impl FnOnce(&mut Self) -> bool) {
+        self.arena.begin_transaction();
+        let length = self.diagnostics.len();
+
+        let result = closure(self);
+
+        if result {
+            self.arena.commit_transaction();
+        } else {
+            self.arena.rollback_transaction();
+            self.diagnostics.truncate(length);
+        }
     }
 }
 
@@ -314,7 +328,9 @@ mod test {
         let mut unif_arena = UnificationArena::new(arena);
 
         // Use update_with to change a type
-        unif_arena.update_with(id1, |t| t.kind = TypeKind::Primitive(PrimitiveType::String));
+        unif_arena.update_with(id1, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
+        });
 
         // Verify the change
         assert_matches!(
@@ -333,7 +349,9 @@ mod test {
         unif_arena.begin_transaction();
 
         // Make changes in the transaction
-        unif_arena.update_with(id1, |t| t.kind = TypeKind::Primitive(PrimitiveType::String));
+        unif_arena.update_with(id1, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
+        });
 
         // Verify changes are visible within the transaction
         assert_matches!(
@@ -369,7 +387,9 @@ mod test {
         unif_arena.begin_transaction();
 
         // Make changes in the transaction
-        unif_arena.update_with(id1, |t| t.kind = TypeKind::Primitive(PrimitiveType::String));
+        unif_arena.update_with(id1, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
+        });
 
         // Verify changes are visible
         assert_matches!(
@@ -396,11 +416,17 @@ mod test {
         unif_arena.begin_transaction();
 
         // Update the same type multiple times
-        unif_arena.update_with(id1, |t| t.kind = TypeKind::Primitive(PrimitiveType::String));
-        unif_arena.update_with(id1, |t| t.kind = TypeKind::Primitive(PrimitiveType::Number));
+        unif_arena.update_with(id1, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
+        });
+        unif_arena.update_with(id1, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::Number);
+        });
 
         // Update another type
-        unif_arena.update_with(id2, |t| t.kind = TypeKind::Primitive(PrimitiveType::String));
+        unif_arena.update_with(id2, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
+        });
 
         // Verify all updates are visible
         assert_matches!(
@@ -432,12 +458,18 @@ mod test {
 
         // Outer transaction
         unif_arena.begin_transaction();
-        unif_arena.update_with(id1, |t| t.kind = TypeKind::Primitive(PrimitiveType::String));
+        unif_arena.update_with(id1, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
+        });
 
         // Inner transaction
         unif_arena.begin_transaction();
-        unif_arena.update_with(id1, |t| t.kind = TypeKind::Primitive(PrimitiveType::Number));
-        unif_arena.update_with(id2, |t| t.kind = TypeKind::Primitive(PrimitiveType::String));
+        unif_arena.update_with(id1, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::Number);
+        });
+        unif_arena.update_with(id2, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
+        });
 
         // Verify inner transaction changes
         assert_matches!(
@@ -483,14 +515,20 @@ mod test {
         let mut unif_arena = UnificationArena::new(arena);
 
         // Start with direct update
-        unif_arena.update_with(id1, |t| t.kind = TypeKind::Primitive(PrimitiveType::String));
+        unif_arena.update_with(id1, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
+        });
 
         // Begin transaction
         unif_arena.begin_transaction();
 
         // Update both inside transaction
-        unif_arena.update_with(id1, |t| t.kind = TypeKind::Primitive(PrimitiveType::Number));
-        unif_arena.update_with(id2, |t| t.kind = TypeKind::Primitive(PrimitiveType::String));
+        unif_arena.update_with(id1, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::Number);
+        });
+        unif_arena.update_with(id2, |r#type| {
+            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
+        });
 
         // Verify transaction state
         assert!(matches!(

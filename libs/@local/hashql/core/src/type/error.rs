@@ -46,6 +46,11 @@ const GENERIC_ARGUMENT_NOT_FOUND: TerminalDiagnosticCategory = TerminalDiagnosti
     name: "Generic argument not found",
 };
 
+const UNION_VARIANT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "union-variant-mismatch",
+    name: "Union variant mismatch",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -54,6 +59,7 @@ pub enum TypeCheckDiagnosticCategory {
     TupleLengthMismatch,
     OpaqueTypeNameMismatch,
     GenericArgumentNotFound,
+    UnionVariantMismatch,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -73,6 +79,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::TupleLengthMismatch => Some(&TUPLE_LENGTH_MISMATCH),
             Self::OpaqueTypeNameMismatch => Some(&OPAQUE_TYPE_NAME_MISMATCH),
             Self::GenericArgumentNotFound => Some(&GENERIC_ARGUMENT_NOT_FOUND),
+            Self::UnionVariantMismatch => Some(&UNION_VARIANT_MISMATCH),
         }
     }
 }
@@ -344,6 +351,65 @@ where
         "Generic arguments must be entered into scope before they can be referenced. This \
          typically happens during instantiation of generic types or when entering function bodies \
          with generic parameters.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a union type variant doesn't match any variant in the expected
+/// union type
+pub(crate) fn union_variant_mismatch<K1, K2>(
+    span: SpanId,
+    arena: &UnificationArena,
+    variant_type: &Type<K1>,
+    expected_union_type: &Type<K2>,
+) -> TypeCheckDiagnostic
+where
+    K1: PrettyPrint,
+    K2: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::UnionVariantMismatch,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "This union type contains an incompatible variant").with_order(3));
+
+    diagnostic.labels.push(
+        Label::new(
+            variant_type.span,
+            format!(
+                "This variant of type `{}` is not compatible with any variant in the expected \
+                 union",
+                variant_type.kind.pretty_print(arena, 80)
+            ),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            expected_union_type.span,
+            format!(
+                "Expected a variant compatible with this union type `{}`",
+                expected_union_type.kind.pretty_print(arena, 80)
+            ),
+        )
+        .with_order(2),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "For a union type to be compatible with another, each of its variants must be compatible \
+         with at least one variant in the other union. Check that the problematic variant matches \
+         the expected type structure.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Union types follow subtyping rules where (A | B) <: C if and only if A <: C and B <: C. \
+         This means each variant in the provided union must be a subtype of at least one variant \
+         in the expected union.",
     ));
 
     diagnostic

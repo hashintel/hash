@@ -181,7 +181,38 @@ mod tests {
     fn integer_number_promotion() {
         let mut context = setup();
 
-        // Test Integer -> Number
+        // Test Number as expected type (lhs) with Integer as actual type (rhs)
+        // In covariant context, this should succeed (Integer is a subtype of Number)
+        let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let int_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+
+        let num = context.arena[num_id]
+            .as_ref()
+            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
+        let int = context.arena[int_id]
+            .as_ref()
+            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
+
+        unify_primitive(&mut context, num, int);
+
+        assert!(
+            context.take_diagnostics().is_empty(),
+            "Failed to accept Integer where Number was expected"
+        );
+        assert!(
+            matches!(
+                context.arena[int_id].kind,
+                TypeKind::Primitive(PrimitiveType::Number)
+            ),
+            "Integer was not promoted to Number"
+        );
+    }
+
+    #[test]
+    fn integer_number_mismatch() {
+        // Test Integer as expected type (lhs) with Number as actual type (rhs)
+        // In covariant context, this should fail (Number is not a subtype of Integer)
+        let mut context = setup();
         let int_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
         let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
 
@@ -194,42 +225,21 @@ mod tests {
 
         unify_primitive(&mut context, int, num);
 
-        assert!(
-            context.take_diagnostics().is_empty(),
-            "Failed to promote Integer to Number"
-        );
-        assert!(
-            matches!(
-                context.arena[int_id].kind,
-                TypeKind::Primitive(PrimitiveType::Number)
-            ),
-            "Integer was not promoted to Number"
+        // Should produce a diagnostic error
+        assert_eq!(
+            context.take_diagnostics().len(),
+            1,
+            "Expected error when using Number where Integer is required"
         );
 
-        // Test Number -> Integer (should promote Integer to Number)
-        let mut context = setup();
-        let int_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-
-        let int = context.arena[int_id]
-            .as_ref()
-            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
-        let num = context.arena[num_id]
-            .as_ref()
-            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
-
-        unify_primitive(&mut context, num, int);
-
+        // Both types should be marked as errors
         assert!(
-            context.take_diagnostics().is_empty(),
-            "Failed to handle Number with Integer"
+            matches!(context.arena[int_id].kind, TypeKind::Error),
+            "Integer type not marked as error"
         );
         assert!(
-            matches!(
-                context.arena[int_id].kind,
-                TypeKind::Primitive(PrimitiveType::Number)
-            ),
-            "Integer was not promoted to Number in reverse case"
+            matches!(context.arena[num_id].kind, TypeKind::Error),
+            "Number type not marked as error"
         );
     }
 
