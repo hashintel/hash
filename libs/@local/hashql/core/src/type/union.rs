@@ -235,7 +235,7 @@ mod tests {
         environment::Environment,
         intersection_type,
         primitive::PrimitiveType,
-        test::{instantiate, setup},
+        test::{instantiate, setup_unify},
     };
 
     fn create_union_type(
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn identical_unions_unify() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create two identical unions: String | Number
         let str1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn subtype_union_unifies() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // lhs: Number | String
         // rhs: Integer | String
@@ -303,7 +303,7 @@ mod tests {
 
     #[test]
     fn incompatible_union_fails() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // lhs: Number | String
         // rhs: Boolean | String
@@ -327,7 +327,7 @@ mod tests {
 
     #[test]
     fn single_type_to_union() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // lhs: Number | String
         // rhs: Number
@@ -349,7 +349,7 @@ mod tests {
 
     #[test]
     fn union_to_single_type() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // lhs: Number
         // rhs: Number | String
@@ -371,7 +371,7 @@ mod tests {
 
     #[test]
     fn subtype_single_to_union() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // lhs: Number | String
         // rhs: Integer
@@ -402,7 +402,7 @@ mod tests {
 
     #[test]
     fn union_intersection_with_common_variant() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create first union: String | Number
         let string1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn union_intersection_with_no_common_variants() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create first union: Number | Boolean
         let number = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
@@ -459,7 +459,7 @@ mod tests {
 
     #[test]
     fn union_with_subtype_intersection() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create first union: Number | String
         let number = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));

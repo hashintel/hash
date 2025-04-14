@@ -254,7 +254,7 @@ mod tests {
             TypeKind,
             environment::Environment,
             primitive::PrimitiveType,
-            test::{ident, instantiate, setup},
+            test::{ident, instantiate, setup_unify},
         },
     };
 
@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn param_with_concrete_type() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create a generic parameter T with Number type
         let t_id = GenericArgumentId::new(0);
@@ -309,7 +309,7 @@ mod tests {
 
     #[test]
     fn concrete_type_with_param() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create a generic parameter T with Integer type
         let t_id = GenericArgumentId::new(0);
@@ -338,7 +338,7 @@ mod tests {
 
     #[test]
     fn param_with_param() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create two generic parameters T and U with Number and Integer types
         let t_id = GenericArgumentId::new(0);
@@ -370,7 +370,7 @@ mod tests {
 
     #[test]
     fn undefined_param_error() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create a parameter reference to an undefined generic argument
         let undefined_id = GenericArgumentId::new(42);
@@ -399,7 +399,7 @@ mod tests {
 
     #[test]
     fn generic_arguments_scope() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create a generic argument T
         let t_id = GenericArgumentId::new(0);

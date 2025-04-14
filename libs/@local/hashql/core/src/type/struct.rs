@@ -215,12 +215,12 @@ mod tests {
         generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
         primitive::PrimitiveType,
         r#struct::unify_struct,
-        test::{ident, instantiate, setup},
+        test::{ident, instantiate, setup_unify},
     };
 
     #[test]
     fn identical_structs_unify() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create a struct with two fields: name: String, age: Number
         let lhs_fields = [
@@ -302,7 +302,7 @@ mod tests {
 
     #[test]
     fn overlapping_structs_unify() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create two structs with overlapping fields:
         // lhs: (name: String, age: Number)
@@ -357,7 +357,7 @@ mod tests {
 
     #[test]
     fn struct_field_types_unify() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create structs with a field that needs type promotion:
         // lhs: { value: Number }
@@ -414,7 +414,7 @@ mod tests {
 
     #[test]
     fn disjoint_structs_unify_to_empty() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create structs with no fields in common:
         // lhs: { name: String }
@@ -451,7 +451,7 @@ mod tests {
 
     #[test]
     fn generic_struct_args_scope() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create a generic argument T
         let t_id = GenericArgumentId::new(0);

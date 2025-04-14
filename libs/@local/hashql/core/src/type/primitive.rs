@@ -146,12 +146,12 @@ mod tests {
     use crate::r#type::{
         TypeKind,
         primitive::unify_primitive,
-        test::{instantiate, setup},
+        test::{instantiate, setup_unify},
     };
 
     #[test]
     fn identical_primitives_unify() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         let types = [
             PrimitiveType::Number,
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn integer_number_promotion() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Test Number as expected type (lhs) with Integer as actual type (rhs)
         // In covariant context, this should succeed (Integer is a subtype of Number)
@@ -222,7 +222,7 @@ mod tests {
     fn integer_number_mismatch() {
         // Test Integer as expected type (lhs) with Number as actual type (rhs)
         // In covariant context, this should fail (Number is not a subtype of Integer)
-        let mut context = setup();
+        let mut context = setup_unify();
         let int_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
         let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
 
@@ -279,7 +279,7 @@ mod tests {
         ];
 
         for (lhs_type, rhs_type, description) in test_cases {
-            let mut context = setup();
+            let mut context = setup_unify();
 
             let lhs_id = instantiate(&mut context, TypeKind::Primitive(lhs_type));
             let rhs_id = instantiate(&mut context, TypeKind::Primitive(rhs_type));
@@ -303,7 +303,7 @@ mod tests {
 
     #[test]
     fn error_messages() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Test String + Number error message
         let str_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));

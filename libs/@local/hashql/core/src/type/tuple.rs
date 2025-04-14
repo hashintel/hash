@@ -150,7 +150,7 @@ mod tests {
             error::TypeCheckDiagnosticCategory,
             generic_argument::GenericArguments,
             primitive::PrimitiveType,
-            test::{instantiate, setup},
+            test::{instantiate, setup_unify},
             tuple::unify_tuple,
         },
     };
@@ -179,7 +179,7 @@ mod tests {
 
     #[test]
     fn unify_same_length_tuples() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create two tuple types with the same structure
         let int1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn unify_different_length_tuples() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create two tuple types with different lengths
         let int1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn unify_tuples_with_incompatible_fields() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create two tuple types with same length but incompatible field types
         let boolean = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
@@ -254,7 +254,7 @@ mod tests {
 
     #[test]
     fn unify_nested_tuples() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create nested tuple types with compatible structures
         let int1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));

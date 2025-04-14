@@ -9,7 +9,7 @@ use super::{
     unify_type_impl,
 };
 use crate::{
-    arena::transation::{Checkpoint, TransactionalArena},
+    arena::transaction::{Checkpoint, TransactionalArena},
     span::SpanId,
 };
 
@@ -270,7 +270,7 @@ impl Deref for StructuralEquivalenceEnvironment<'_> {
 #[cfg(test)]
 mod test {
     use crate::{
-        arena::transation::TransactionalArena,
+        arena::transaction::TransactionalArena,
         span::SpanId,
         r#type::{
             Type, TypeId, TypeKind,

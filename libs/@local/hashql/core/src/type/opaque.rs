@@ -104,7 +104,7 @@ mod tests {
             environment::UnificationEnvironment,
             generic_argument::GenericArguments,
             primitive::PrimitiveType,
-            test::{instantiate, setup},
+            test::{instantiate, setup_unify},
         },
     };
 
@@ -131,7 +131,7 @@ mod tests {
 
     #[test]
     fn unify_same_name_opaque_types() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create two opaque types with the same name
         let int1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn unify_different_name_opaque_types() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create two opaque types with different names but same underlying type
         let int = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn unify_opaque_with_incompatible_underlying_types() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create two opaque types with same name but incompatible underlying types
         let int = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
@@ -195,7 +195,7 @@ mod tests {
 
     #[test]
     fn unify_nested_opaque_types() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create opaque types that wrap other opaque types
         let int = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));

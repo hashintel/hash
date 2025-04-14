@@ -138,7 +138,7 @@ mod tests {
         environment::Environment,
         generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
         primitive::PrimitiveType,
-        test::{ident, instantiate, setup},
+        test::{ident, instantiate, setup_unify},
     };
 
     fn create_closure_type(
@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn identical_closures_unify() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create two identical closures: (String) -> Number
         let param_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn parameter_contravariance() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Test contravariance of parameters:
         // lhs: (Integer) -> String    // More specific parameter
@@ -239,7 +239,7 @@ mod tests {
 
     #[test]
     fn parameter_contravariance_failure() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Test contravariance of parameters:
         // lhs: (Number) -> String     // More general parameter
@@ -281,7 +281,7 @@ mod tests {
 
     #[test]
     fn return_type_covariance_success() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Test covariance of return type
         // lhs: (String) -> Number  // More general return type
@@ -316,7 +316,7 @@ mod tests {
 
     #[test]
     fn return_type_covariance_failure() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Test covariance of return type
         // lhs: (String) -> Integer
@@ -352,7 +352,7 @@ mod tests {
 
     #[test]
     fn parameter_count_mismatch() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Test parameter count mismatch
         // lhs: (String) -> Number
@@ -397,7 +397,7 @@ mod tests {
 
     #[test]
     fn combined_variance_test_failure() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Tests both contravariance of parameters and covariance of return types:
         // lhs: (Number) -> Number     // More general parameter, more general return.
@@ -438,7 +438,7 @@ mod tests {
 
     #[test]
     fn combined_variance_test_success() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Tests both contravariance of parameters and covariance of return types
         // lhs: (Integer) -> Number     // More specific parameter, more general return
@@ -478,7 +478,7 @@ mod tests {
 
     #[test]
     fn generic_closure_unification() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create a generic type parameter T
         let t_id = GenericArgumentId::new(0);

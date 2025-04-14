@@ -1,2 +1,4 @@
 pub mod linear;
-pub mod transation;
+pub mod transaction;
+
+pub use self::{linear::LinearArena, transaction::TransactionalArena};

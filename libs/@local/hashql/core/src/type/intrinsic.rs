@@ -201,12 +201,12 @@ mod tests {
         TypeKind,
         intrinsic::{DictType, ListType, unify_intrinsic},
         primitive::PrimitiveType,
-        test::{instantiate, setup},
+        test::{instantiate, setup_unify},
     };
 
     #[test]
     fn identical_lists_unify() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create a List<String>
         let element = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn lists_with_unifiable_elements_unify() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create List<Number> and List<Integer>
         let element1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn identical_dicts_unify() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create Dict<String, Number>
         let key = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     fn dicts_with_unifiable_values_unify() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Create Dict<String, Number> and Dict<String, Integer>
         let key1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
@@ -406,7 +406,7 @@ mod tests {
         ];
 
         for ((lhs_key, lhs_value), (rhs_key, rhs_value), description) in test_cases {
-            let mut context = setup();
+            let mut context = setup_unify();
 
             let lhs_id = if let Some(value) = lhs_value {
                 // Create Dict
@@ -461,7 +461,7 @@ mod tests {
 
     #[test]
     fn error_messages() {
-        let mut context = setup();
+        let mut context = setup_unify();
 
         // Test List vs Dict error message
         let list_elem = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
