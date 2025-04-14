@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/struct.rs
 description: "Rejects duplicate #struct keys"
 expression: "{\"#struct\": {}, \"#struct\": {}}"
 ---
-[31m[parser::object::duplicate-key] Error:[0m Parser
+[31m[parser::object::duplicate-key] Error:[0m Duplicate key in object
    ╭─[ <unknown>:1:17 ]
    │
  1 │ {"#struct": {}, "#struct": {}}

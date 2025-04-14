@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/array/visit.rs
 description: Array with multiple leading commas should fail
 expression: "[,,1]"
 ---
-[31m[array::leading-comma] Error:[0m Array
+[31m[array::leading-comma] Error:[0m Unexpected leading comma in array
    ╭─[ <unknown>:1:3 ]
    │
  1 │ [,,1]

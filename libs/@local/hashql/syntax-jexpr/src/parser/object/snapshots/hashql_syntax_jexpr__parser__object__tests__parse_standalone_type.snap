@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/mod.rs
 description: "Rejects standalone #type without an associated expression"
 expression: "{\"#type\": \"Int\"}"
 ---
-[31m[parser::object::orphaned-type] Error:[0m Parser
+[31m[parser::object::orphaned-type] Error:[0m Orphaned #type field without parent construct
    ╭─[ <unknown>:1:2 ]
    │
  1 │ {"#type": "Int"}

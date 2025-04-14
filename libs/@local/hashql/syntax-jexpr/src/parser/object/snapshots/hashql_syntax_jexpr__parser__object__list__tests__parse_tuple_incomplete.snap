@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/list.rs
 description: Parses with a sudden EOF
 expression: "{\"#tuple\": "
 ---
-[31m[lexer::lexer::unexpected-eof] Error:[0m Lexer
+[31m[lexer::unexpected-eof] Error:[0m Unexpected end of file
    ╭─[ <unknown>:1:12 ]
    │
  1 │ {"#tuple":

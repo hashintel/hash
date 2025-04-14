@@ -3712,6 +3712,7 @@ name = "hashql-core"
 version = "0.0.0"
 dependencies = [
  "ecow",
+ "hashql-diagnostics",
  "orx-concurrent-vec",
  "serde",
  "simple-mermaid",
@@ -3725,15 +3726,14 @@ dependencies = [
  "anstyle",
  "anstyle-yansi",
  "ariadne",
+ "derive_more 2.0.1",
  "error-stack",
- "hashql-core",
  "jsonptr",
  "serde",
  "serde_json",
  "serde_with",
  "simple-mermaid",
  "text-size",
- "thiserror 2.0.12",
 ]
 
 [[package]]

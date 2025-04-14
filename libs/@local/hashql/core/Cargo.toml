@@ -8,8 +8,10 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+hashql-diagnostics = { workspace = true, public = true }
 
 # Public third-party dependencies
+text-size = { workspace = true, public = true }
 
 # Private workspace dependencies
 
@@ -18,7 +20,6 @@ ecow               = { workspace = true }
 orx-concurrent-vec = { workspace = true }
 serde              = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid     = { workspace = true }
-text-size          = { workspace = true }
 
 [features]
 serde = ["dep:serde", "text-size/serde"]

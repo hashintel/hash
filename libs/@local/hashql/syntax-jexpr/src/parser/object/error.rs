@@ -131,6 +131,15 @@ pub enum ObjectDiagnosticCategory {
     LiteralExpectedPrimitive,
 }
 
+impl ObjectDiagnosticCategory {
+    pub(crate) fn hoist(&self) -> &dyn DiagnosticCategory {
+        match self {
+            Self::Lexer(category) => category.subcategory().unwrap_or(category),
+            _ => self,
+        }
+    }
+}
+
 impl DiagnosticCategory for ObjectDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         match self {
@@ -148,7 +157,7 @@ impl DiagnosticCategory for ObjectDiagnosticCategory {
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            Self::Lexer(lexer) => Some(lexer),
+            Self::Lexer(lexer) => lexer.subcategory(),
             Self::LeadingComma => Some(&LEADING_COMMA),
             Self::TrailingComma => Some(&TRAILING_COMMA),
             Self::ConsecutiveComma => Some(&CONSECUTIVE_COMMA),

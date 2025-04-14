@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/mod.rs
 description: Rejects empty objects
 expression: "{}"
 ---
-[31m[parser::object::empty] Error:[0m Parser
+[31m[parser::object::empty] Error:[0m Empty object not allowed
    ╭─[ <unknown>:1:1 ]
    │
  1 │ {}

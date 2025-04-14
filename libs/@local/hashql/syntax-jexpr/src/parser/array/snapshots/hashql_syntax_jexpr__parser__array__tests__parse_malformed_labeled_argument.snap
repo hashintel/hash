@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
 description: Malformed labeled argument with multiple keys should fail
 expression: "[\"func\", {\":name\": {\"#literal\": \"value\"}, \"extra\": {\"#literal\": true}}]"
 ---
-[31m[parser::array::labeled-argument-missing-prefix] Error:[0m Parser
+[31m[parser::array::labeled-argument-missing-prefix] Error:[0m Missing `:` prefix in labeled argument
    ╭─[ <unknown>:1:43 ]
    │
  1 │ ["func", {":name": {"#literal": "value"}, "extra": {"#literal": true}}]

@@ -6,9 +6,8 @@ pub(crate) mod common;
 mod parse_syntax_dump;
 
 use hashql_ast::{heap::Heap, node::expr::Expr};
-use hashql_core::span::{SpanId, node::SpanNode};
-use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
-use hashql_syntax_jexpr::span::Span;
+use hashql_core::span::SpanId;
+use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory, span::AbsoluteDiagnosticSpan};
 
 use self::{
     ast_lowering_node_mangler::AstLoweringNameManglerSuite,
@@ -19,7 +18,8 @@ use self::{
 };
 
 pub(crate) type SuiteDiagnostic = Diagnostic<Box<dyn DiagnosticCategory>, SpanId>;
-pub(crate) type ResolvedSuiteDiagnostic = Diagnostic<Box<dyn DiagnosticCategory>, SpanNode<Span>>;
+pub(crate) type ResolvedSuiteDiagnostic =
+    Diagnostic<Box<dyn DiagnosticCategory>, AbsoluteDiagnosticSpan>;
 
 pub(crate) trait Suite: Send + Sync + 'static {
     fn name(&self) -> &'static str;

@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Unrecognized emoji character
 expression: "{\"ferris\": 🦀}"
 ---
-[31m[lexer::invalid-character] Error:[0m Lexer
+[31m[lexer::invalid-character] Error:[0m Invalid character
    ╭─[ <unknown>:1:12 ]
    │
  1 │ {"ferris": 🦀}

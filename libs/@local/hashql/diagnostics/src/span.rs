@@ -1,62 +1,60 @@
-use hashql_core::span::{SpanId, TextRange, TextSize, node::SpanNode};
+use core::fmt::Display;
 
-pub trait TransformSpan<S> {
-    fn transform(&mut self, span: &S) -> DiagnosticSpan;
-}
+use error_stack::Report;
+use text_size::{TextRange, TextSize};
 
-impl<F, S> TransformSpan<S> for F
-where
-    F: FnMut(&S) -> DiagnosticSpan,
-{
-    fn transform(&mut self, span: &S) -> DiagnosticSpan {
-        (self)(span)
-    }
-}
+use crate::error::ResolveError;
 
-impl TransformSpan<DiagnosticSpan> for () {
-    fn transform(&mut self, span: &DiagnosticSpan) -> DiagnosticSpan {
-        *span
-    }
+pub trait DiagnosticSpan<Context>: Display {
+    fn span(&self, context: &mut Context) -> Option<TextRange>;
+
+    fn ancestors(
+        &self,
+        context: &mut Context,
+    ) -> impl IntoIterator<Item = Self> + use<Self, Context>;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct DiagnosticSpan {
-    pub range: TextRange,
-    pub parent_id: Option<SpanId>,
-}
-
-impl hashql_core::span::Span for DiagnosticSpan {
-    fn parent_id(&self) -> Option<SpanId> {
-        self.parent_id
-    }
-}
-
-pub(crate) fn absolute_span<S>(
-    span: &SpanNode<S>,
-    transform: &mut impl TransformSpan<S>,
-) -> TextRange {
-    let parent_offset = span.parent.as_ref().map_or_else(
-        || TextSize::new(0),
-        |parent| absolute_span(parent, transform).start(),
-    );
-
-    let span = transform.transform(&span.value);
-    span.range + parent_offset
-}
-
 pub struct AbsoluteDiagnosticSpan {
     range: TextRange,
 }
 
 impl AbsoluteDiagnosticSpan {
-    pub fn new<S>(node: &SpanNode<S>, transform: &mut impl TransformSpan<S>) -> Self {
-        let range = absolute_span(node, transform);
+    /// Creates a new `AbsoluteDiagnosticSpan` from a diagnostic span and its context.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ResolveError::UnknownSpan` if either the span or any of its ancestors
+    /// cannot be resolved in the provided context.
+    pub fn new<S, C>(span: &S, context: &mut C) -> Result<Self, Report<ResolveError>>
+    where
+        S: DiagnosticSpan<C>,
+    {
+        let mut range = span
+            .span(context)
+            .ok_or_else(|| ResolveError::UnknownSpan {
+                span: span.to_string(),
+            })?;
 
+        for ancestor in span.ancestors(context) {
+            range += ancestor
+                .span(context)
+                .ok_or_else(|| ResolveError::UnknownSpan {
+                    span: span.to_string(),
+                })?
+                .start();
+        }
+
+        Ok(Self { range })
+    }
+
+    #[must_use]
+    pub const fn from_range(range: TextRange) -> Self {
         Self { range }
     }
 
     #[must_use]
-    pub const fn range(&self) -> TextRange {
+    pub const fn range(self) -> TextRange {
         self.range
     }
 

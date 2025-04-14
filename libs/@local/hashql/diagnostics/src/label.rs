@@ -1,11 +1,12 @@
+use alloc::borrow::Cow;
+
 use anstyle::Color;
 use ariadne::ColorGenerator;
 use error_stack::Report;
-use hashql_core::span::{Span, SpanId, node::SpanNode, storage::SpanStorage};
 
 use crate::{
     error::ResolveError,
-    span::{AbsoluteDiagnosticSpan, TransformSpan},
+    span::{AbsoluteDiagnosticSpan, DiagnosticSpan},
 };
 
 // See: https://docs.rs/serde_with/3.9.0/serde_with/guide/serde_as/index.html#gating-serde_as-on-features
@@ -14,7 +15,7 @@ use crate::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Label<S> {
     span: S,
-    message: Box<str>,
+    message: Cow<'static, str>,
 
     order: Option<i32>,
     priority: Option<i32>,
@@ -23,7 +24,7 @@ pub struct Label<S> {
 }
 
 impl<S> Label<S> {
-    pub fn new(span: S, message: impl Into<Box<str>>) -> Self {
+    pub fn new(span: S, message: impl Into<Cow<'static, str>>) -> Self {
         Self {
             span,
             message: message.into(),
@@ -37,7 +38,7 @@ impl<S> Label<S> {
         &self.span
     }
 
-    pub const fn message(&self) -> &str {
+    pub fn message(&self) -> &str {
         &self.message
     }
 
@@ -75,17 +76,15 @@ impl<S> Label<S> {
     }
 }
 
-impl Label<SpanId> {
-    pub(crate) fn resolve<S>(
+impl<S> Label<S> {
+    pub(crate) fn resolve<C>(
         self,
-        storage: &SpanStorage<S>,
-    ) -> Result<Label<SpanNode<S>>, Report<ResolveError>>
+        context: &mut C,
+    ) -> Result<Label<AbsoluteDiagnosticSpan>, Report<ResolveError>>
     where
-        S: Span + Clone,
+        S: DiagnosticSpan<C>,
     {
-        let span = storage
-            .resolve(self.span)
-            .ok_or_else(|| Report::new(ResolveError::UnknownSpan { id: self.span }))?;
+        let span = AbsoluteDiagnosticSpan::new(&self.span, context)?;
 
         Ok(Label {
             span,
@@ -97,22 +96,13 @@ impl Label<SpanId> {
     }
 }
 
-impl<S> Label<SpanNode<S>> {
-    pub(crate) fn absolute_span(
-        &self,
-        transform: &mut impl TransformSpan<S>,
-    ) -> AbsoluteDiagnosticSpan {
-        AbsoluteDiagnosticSpan::new(&self.span, transform)
-    }
-
+impl Label<AbsoluteDiagnosticSpan> {
     pub(crate) fn ariadne(
         &self,
         enable_color: bool,
         generator: &mut ColorGenerator,
-        transform: &mut impl TransformSpan<S>,
     ) -> ariadne::Label<AbsoluteDiagnosticSpan> {
-        let mut label =
-            ariadne::Label::new(self.absolute_span(transform)).with_message(&self.message);
+        let mut label = ariadne::Label::new(self.span).with_message(&self.message);
 
         let color = self
             .color
