@@ -1,8 +1,0 @@
-//@ run: pass
-//@ description: Test nested let expressions with proper scoping
-// biome-ignore format: readability
-["let", "a", "c",
-["let", "b", "d",
-["let", "a", "e",
-  ["+", "a", "b"]
-]]]

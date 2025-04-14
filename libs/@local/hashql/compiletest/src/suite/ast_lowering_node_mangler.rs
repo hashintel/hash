@@ -2,7 +2,7 @@ use hashql_ast::{
     format::SyntaxDump as _,
     heap::Heap,
     lowering::{
-        node_renumberer::NodeRenumberer, pre_expansion_name_resolver::PreExpansionNameResolver,
+        name_mangler::NameMangler, pre_expansion_name_resolver::PreExpansionNameResolver,
         special_form_expander::SpecialFormExpander,
     },
     node::expr::Expr,
@@ -11,11 +11,11 @@ use hashql_ast::{
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 
-pub(crate) struct AstLoweringNodeRenumbererSuite;
+pub(crate) struct AstLoweringNameManglerSuite;
 
-impl Suite for AstLoweringNodeRenumbererSuite {
+impl Suite for AstLoweringNameManglerSuite {
     fn name(&self) -> &'static str {
-        "ast/lowering/node-renumberer"
+        "ast/lowering/name-mangler"
     }
 
     fn run<'heap>(
@@ -34,7 +34,7 @@ impl Suite for AstLoweringNodeRenumbererSuite {
 
         process_diagnostics(diagnostics, expander.take_diagnostics())?;
 
-        let mut renumberer = NodeRenumberer::new();
+        let mut renumberer = NameMangler::new();
         renumberer.visit_expr(&mut expr);
 
         Ok(expr.syntax_dump_to_string())

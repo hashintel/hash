@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: propagate the mangled name into the body of the let expression
+["let", "a", { "#literal": 2 }, "a"]

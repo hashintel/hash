@@ -1,0 +1,74 @@
+Expr#4294967040@37
+  ExprKind (Call)
+    CallExpr#4294967040@37
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: true)
+            PathSegment#4294967040@2 (name: kernel)
+            PathSegment#4294967040@2 (name: special_form)
+            PathSegment#4294967040@2 (name: if)
+      Argument#4294967040@5
+        Expr#4294967040@5
+          ExprKind (Literal)
+            LiteralExpr#4294967040@4
+              LiteralKind (True)
+      Argument#4294967040@27
+        Expr#4294967040@27
+          ExprKind (Call)
+            CallExpr#4294967040@27
+              Expr#4294967040@9
+                ExprKind (Path)
+                  Path#4294967040@9 (rooted: true)
+                    PathSegment#4294967040@8 (name: kernel)
+                    PathSegment#4294967040@8 (name: special_form)
+                    PathSegment#4294967040@8 (name: let)
+              Argument#4294967040@13
+                Expr#4294967040@13
+                  ExprKind (Path)
+                    Path#4294967040@13 (rooted: false)
+                      PathSegment#4294967040@12 (name: x)
+              Argument#4294967040@17
+                Expr#4294967040@17
+                  ExprKind (Path)
+                    Path#4294967040@17 (rooted: false)
+                      PathSegment#4294967040@16 (name: outer)
+              Argument#4294967040@26
+                Expr#4294967040@26
+                  ExprKind (Call)
+                    CallExpr#4294967040@26
+                      Expr#4294967040@21
+                        ExprKind (Path)
+                          Path#4294967040@21 (rooted: false)
+                            PathSegment#4294967040@20 (name: outer)
+                      Argument#4294967040@23
+                        Expr#4294967040@23
+                          ExprKind (Literal)
+                            LiteralExpr#4294967040@22
+                              LiteralKind (Integer)
+                                IntegerLiteral (2)
+                      Argument#4294967040@25
+                        Expr#4294967040@25
+                          ExprKind (Literal)
+                            LiteralExpr#4294967040@24
+                              LiteralKind (Integer)
+                                IntegerLiteral (1)
+      Argument#4294967040@36
+        Expr#4294967040@36
+          ExprKind (Call)
+            CallExpr#4294967040@36
+              Expr#4294967040@31
+                ExprKind (Path)
+                  Path#4294967040@31 (rooted: false)
+                    PathSegment#4294967040@30 (name: x)
+              Argument#4294967040@33
+                Expr#4294967040@33
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@32
+                      LiteralKind (Integer)
+                        IntegerLiteral (2)
+              Argument#4294967040@35
+                Expr#4294967040@35
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@34
+                      LiteralKind (Integer)
+                        IntegerLiteral (1)

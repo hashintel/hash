@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Test bindings are restored after let expressions
+// biome-ignore format: readability
+["if", {"#literal": true},
+    ["let", "x", "outer",
+      ["x", {"#literal": 2}, { "#literal": 1 }]
+    ],
+    ["x", { "#literal": 2 }, { "#literal": 1 }]
+]
