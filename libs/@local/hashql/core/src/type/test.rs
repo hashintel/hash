@@ -20,8 +20,8 @@ pub(crate) fn setup() -> Environment {
     Environment::new(SpanId::SYNTHETIC, Arena::new())
 }
 
-pub(crate) fn instantiate(context: &mut Environment, kind: TypeKind) -> TypeId {
-    context.arena.arena_mut_test_only().push_with(|id| Type {
+pub(crate) fn instantiate(env: &mut Environment, kind: TypeKind) -> TypeId {
+    env.arena.arena_mut_test_only().push_with(|id| Type {
         id,
         span: SpanId::SYNTHETIC,
         kind,

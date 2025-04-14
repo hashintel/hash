@@ -83,7 +83,7 @@ impl PrettyPrint for UnionType {
 /// this would be valid because:
 /// - `Integer <: Number`, so the `Integer` variant in `rhs` is covered
 /// - `String <: String`, so the `String` variant in `rhs` is covered
-pub(crate) fn unify_union(context: &mut Environment, lhs: &Type<UnionType>, rhs: &Type<UnionType>) {
+pub(crate) fn unify_union(env: &mut Environment, lhs: &Type<UnionType>, rhs: &Type<UnionType>) {
     // For each variant in rhs (the provided type), check if it's a subtype of at least one lhs
     // variant
     for &rhs_variant in &rhs.kind.variants {
@@ -91,9 +91,9 @@ pub(crate) fn unify_union(context: &mut Environment, lhs: &Type<UnionType>, rhs:
         let mut compatible_variant_found = false;
 
         for &lhs_variant in &lhs.kind.variants {
-            let diagnostics = context.fatal_diagnostics();
+            let diagnostics = env.fatal_diagnostics();
 
-            context.in_transaction(|context| {
+            env.in_transaction(|context| {
                 // Try to unify this specific pair of variants
                 // In covariant context, we check if rhs_variant <: lhs_variant
                 context.in_covariant(|ctx| {
@@ -112,10 +112,10 @@ pub(crate) fn unify_union(context: &mut Environment, lhs: &Type<UnionType>, rhs:
 
         if !compatible_variant_found {
             let diagnostic =
-                union_variant_mismatch(rhs.span, &context.arena, &context.arena[rhs_variant], lhs);
+                union_variant_mismatch(rhs.span, &env.arena, &env.arena[rhs_variant], lhs);
 
-            context.record_diagnostic(diagnostic);
-            context.mark_error(rhs_variant);
+            env.record_diagnostic(diagnostic);
+            env.mark_error(rhs_variant);
         }
     }
 
@@ -127,28 +127,20 @@ pub(crate) fn unify_union(context: &mut Environment, lhs: &Type<UnionType>, rhs:
     // TODO: flatten union type iff not "virtual"
 }
 
-pub(crate) fn unify_union_lhs(
-    context: &mut Environment,
-    lhs: &Type<UnionType>,
-    rhs: &Type<TypeKind>,
-) {
+pub(crate) fn unify_union_lhs(env: &mut Environment, lhs: &Type<UnionType>, rhs: &Type<TypeKind>) {
     let rhs = rhs.as_ref().map(|_| UnionType {
         variants: EcoVec::from([rhs.id]),
     });
 
-    unify_union(context, lhs, &rhs);
+    unify_union(env, lhs, &rhs);
 }
 
-pub(crate) fn unify_union_rhs(
-    context: &mut Environment,
-    lhs: &Type<TypeKind>,
-    rhs: &Type<UnionType>,
-) {
+pub(crate) fn unify_union_rhs(env: &mut Environment, lhs: &Type<TypeKind>, rhs: &Type<UnionType>) {
     let lhs = lhs.as_ref().map(|_| UnionType {
         variants: EcoVec::from([lhs.id]),
     });
 
-    unify_union(context, &lhs, rhs);
+    unify_union(env, &lhs, rhs);
 }
 
 /// Computes the intersection of two union types.
@@ -398,12 +390,9 @@ mod tests {
         );
     }
 
-    fn create_union(
-        context: &mut Environment,
-        variants: impl IntoIterator<Item = TypeId>,
-    ) -> TypeId {
+    fn create_union(env: &mut Environment, variants: impl IntoIterator<Item = TypeId>) -> TypeId {
         instantiate(
-            context,
+            env,
             TypeKind::Union(UnionType {
                 variants: variants.into_iter().collect(),
             }),

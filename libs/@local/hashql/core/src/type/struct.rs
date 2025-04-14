@@ -122,14 +122,10 @@ impl PrettyPrint for StructType {
 /// In a covariant context:
 /// - rhs must have at least all the fields that lhs has (width subtyping).
 /// - Field types must respect covariance (rhs fields must be subtypes of left field types)
-pub(crate) fn unify_struct(
-    context: &mut Environment,
-    lhs: &Type<StructType>,
-    rhs: &Type<StructType>,
-) {
+pub(crate) fn unify_struct(env: &mut Environment, lhs: &Type<StructType>, rhs: &Type<StructType>) {
     // Enter generic argument scope for both structs
-    lhs.kind.arguments.enter_scope(context);
-    rhs.kind.arguments.enter_scope(context);
+    lhs.kind.arguments.enter_scope(env);
+    rhs.kind.arguments.enter_scope(env);
 
     // Maps for fast lookups of fields by key
     let rhs_by_key: HashMap<_, _> = rhs
@@ -149,13 +145,13 @@ pub(crate) fn unify_struct(
         if let Some(rhs_field) = rhs_by_key.get(&lhs_field.key.value) {
             // This field exists in both structs - unify the field types
             // Fields are in covariant position within a struct
-            context.in_covariant(|ctx| {
+            env.in_covariant(|ctx| {
                 unify_type(ctx, lhs_field.value, rhs_field.value);
             });
         } else {
             // The covariance of lhs <: rhs is violated
             let diagnostic = type_mismatch(
-                context,
+                env,
                 lhs,
                 rhs,
                 Some(&format!(
@@ -165,18 +161,18 @@ pub(crate) fn unify_struct(
                 )),
             );
 
-            context.record_diagnostic(diagnostic);
+            env.record_diagnostic(diagnostic);
             missing_fields = true;
         }
     }
 
     if missing_fields {
-        context.mark_error(lhs.id);
-        context.mark_error(rhs.id);
+        env.mark_error(lhs.id);
+        env.mark_error(rhs.id);
     }
 
-    lhs.kind.arguments.exit_scope(context);
-    rhs.kind.arguments.exit_scope(context);
+    lhs.kind.arguments.exit_scope(env);
+    rhs.kind.arguments.exit_scope(env);
 
     // In a strictly variance-aware system, we do NOT modify the struct types
     // Each struct maintains its original fields, preserving the subtyping relationship

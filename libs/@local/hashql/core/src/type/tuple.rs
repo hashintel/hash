@@ -100,39 +100,39 @@ impl PrettyPrint for TupleType {
 /// In a covariant context:
 /// - Both tuples must have the same number of fields (tuples are invariant in length)
 /// - Each corresponding field must be covariant
-pub(crate) fn unify_tuple(context: &mut Environment, lhs: &Type<TupleType>, rhs: &Type<TupleType>) {
+pub(crate) fn unify_tuple(env: &mut Environment, lhs: &Type<TupleType>, rhs: &Type<TupleType>) {
     // Tuples must have the same number of fields
     if lhs.kind.fields.len() != rhs.kind.fields.len() {
         let diagnostic = tuple_length_mismatch(
-            context.source,
+            env.source,
             lhs,
             rhs,
             lhs.kind.fields.len(),
             rhs.kind.fields.len(),
         );
 
-        context.record_diagnostic(diagnostic);
-        context.mark_error(lhs.id);
-        context.mark_error(rhs.id);
+        env.record_diagnostic(diagnostic);
+        env.mark_error(lhs.id);
+        env.mark_error(rhs.id);
         return;
     }
 
     // Enter generic argument scope for both tuples
-    lhs.kind.arguments.enter_scope(context);
-    rhs.kind.arguments.enter_scope(context);
+    lhs.kind.arguments.enter_scope(env);
+    rhs.kind.arguments.enter_scope(env);
 
     // Unify corresponding fields in each tuple
     // In most type systems, tuple fields are covariant
     for (lhs_field, rhs_field) in lhs.kind.fields.iter().zip(rhs.kind.fields.iter()) {
         // Use covariant context for field types
-        context.in_covariant(|ctx| {
+        env.in_covariant(|ctx| {
             unify_type(ctx, lhs_field.value, rhs_field.value);
         });
     }
 
     // Exit generic argument scope
-    lhs.kind.arguments.exit_scope(context);
-    rhs.kind.arguments.exit_scope(context);
+    lhs.kind.arguments.exit_scope(env);
+    rhs.kind.arguments.exit_scope(env);
 
     // In a strictly variance-aware system, we do NOT modify the tuple types
     // Each tuple maintains its original structure, preserving identity and subtyping relationships
@@ -156,7 +156,7 @@ mod tests {
         },
     };
 
-    fn create_tuple_type(context: &mut Environment, field_types: Vec<TypeId>) -> Type<TupleType> {
+    fn create_tuple_type(env: &mut Environment, field_types: Vec<TypeId>) -> Type<TupleType> {
         let fields = field_types
             .into_iter()
             .map(|type_id| TupleField { value: type_id })
@@ -167,13 +167,13 @@ mod tests {
             arguments: GenericArguments::default(),
         };
 
-        let id = context.arena.arena_mut_test_only().push_with(|id| Type {
+        let id = env.arena.arena_mut_test_only().push_with(|id| Type {
             id,
             span: SpanId::SYNTHETIC,
             kind: TypeKind::Tuple(tuple_type),
         });
 
-        context.arena[id]
+        env.arena[id]
             .clone()
             .map(|r#type| r#type.into_tuple().expect("should be tuple type"))
     }

@@ -53,7 +53,7 @@ impl PrettyPrint for PrimitiveType {
 /// For primitives, the main subtyping relationship is Integer <: Number
 /// (Integer is a subtype of Number).
 pub(crate) fn unify_primitive(
-    context: &mut Environment,
+    env: &mut Environment,
     lhs: Type<PrimitiveType>,
     rhs: Type<PrimitiveType>,
 ) {
@@ -72,8 +72,8 @@ pub(crate) fn unify_primitive(
         (PrimitiveType::Integer, PrimitiveType::Number) => {
             // In covariant context: Number (rhs) is NOT a subtype of Integer (lhs)
             // This is an error - Number cannot be used where Integer is expected
-            context.record_diagnostic(type_mismatch(
-                context,
+            env.record_diagnostic(type_mismatch(
+                env,
                 &lhs,
                 &rhs,
                 Some(
@@ -83,8 +83,8 @@ pub(crate) fn unify_primitive(
             ));
 
             // Mark both types as errors
-            context.mark_error(lhs.id);
-            context.mark_error(rhs.id);
+            env.mark_error(lhs.id);
+            env.mark_error(rhs.id);
         }
 
         _ => {
@@ -123,11 +123,11 @@ pub(crate) fn unify_primitive(
             };
 
             // Record a type mismatch diagnostic with helpful conversion suggestions
-            context.record_diagnostic(type_mismatch(context, &lhs, &rhs, help_message));
+            env.record_diagnostic(type_mismatch(env, &lhs, &rhs, help_message));
 
             // Mark both types as errors to prevent further error propagation
-            context.mark_error(lhs.id);
-            context.mark_error(rhs.id);
+            env.mark_error(lhs.id);
+            env.mark_error(rhs.id);
         }
     }
 }

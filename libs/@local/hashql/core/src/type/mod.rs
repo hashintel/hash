@@ -275,20 +275,20 @@ impl HasId for Type {
 /// e.g. `lhs <: rhs` and `rhs <: lhs`
 ///
 /// This is the main entry point for type unification that respects variance.
-pub fn unify_type(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
-    match context.variance_context() {
+pub fn unify_type(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
+    match env.variance {
         Variance::Covariant => {
             // In covariant context: can `rhs` be used where `lhs` is expected?
-            unify_type_covariant(context, lhs, rhs);
+            unify_type_covariant(env, lhs, rhs);
         }
         Variance::Contravariant => {
             // In contravariant context: can `lhs` be used where `rhs` is expected?
             // This is implemented by swapping the arguments to the covariant function
-            unify_type_covariant(context, rhs, lhs);
+            unify_type_covariant(env, rhs, lhs);
         }
         Variance::Invariant => {
             // In invariant context: `lhs` and `rhs` must be equivalent types
-            unify_type_invariant(context, lhs, rhs);
+            unify_type_invariant(env, lhs, rhs);
         }
     }
 }
@@ -304,41 +304,41 @@ pub fn unify_type(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
 /// - Only if both succeed are the types considered invariant compatible.
 ///
 /// This approach ensures proper invariance without cloning the entire arena.
-fn unify_type_invariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
+fn unify_type_invariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
     // Fast path for identical types
     if lhs == rhs {
         return;
     }
 
     // Keep track of diagnostics count to detect unification failures
-    let old_diagnostics_len = context.fatal_diagnostics();
+    let old_diagnostics_len = env.fatal_diagnostics();
 
     // First check covariant compatibility: can `rhs` be used where `lhs` is expected?
-    unify_type_covariant(context, lhs, rhs);
+    unify_type_covariant(env, lhs, rhs);
 
     // If the first unification failed, we're done - types aren't compatible at all
-    if context.fatal_diagnostics() > old_diagnostics_len {
+    if env.fatal_diagnostics() > old_diagnostics_len {
         return;
     }
 
     // Preserve any existing diagnostics
-    let diagnostics = context.take_diagnostics();
+    let diagnostics = env.take_diagnostics();
 
     // Now check contravariant compatibility: can `lhs` be used where `rhs` is expected?
-    unify_type_covariant(context, rhs, lhs);
+    unify_type_covariant(env, rhs, lhs);
 
     // Get any new diagnostics from the reverse direction check
-    let new_diagnostics = context.take_diagnostics();
-    context.replace_diagnostics(diagnostics);
+    let new_diagnostics = env.take_diagnostics();
+    env.replace_diagnostics(diagnostics);
 
     // If there were errors in the reverse direction, the types are compatible
     // in one direction but not both, meaning they're not invariant
     if !new_diagnostics.is_empty() {
-        let lhs_type = &context.arena[lhs];
-        let rhs_type = &context.arena[rhs];
+        let lhs_type = &env.arena[lhs];
+        let rhs_type = &env.arena[rhs];
 
         let diagnostic = error::type_mismatch(
-            context,
+            env,
             lhs_type,
             rhs_type,
             Some(
@@ -347,7 +347,7 @@ fn unify_type_invariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
             ),
         );
 
-        context.record_diagnostic(diagnostic);
+        env.record_diagnostic(diagnostic);
     }
 }
 
@@ -366,22 +366,22 @@ fn unify_type_invariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
 /// Each match arm in this function implements the covariant subtyping rule for a specific type
 /// combination.
 #[expect(clippy::too_many_lines)]
-fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
-    if context.visit(lhs, rhs) {
+fn unify_type_covariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
+    if env.visit(lhs, rhs) {
         // We've detected a circular reference in the type graph
-        let lhs_type = &context.arena[lhs];
-        let rhs_type = &context.arena[rhs];
+        let lhs_type = &env.arena[lhs];
+        let rhs_type = &env.arena[rhs];
 
-        let diagnostic = error::circular_type_reference(context.source, lhs_type, rhs_type);
+        let diagnostic = error::circular_type_reference(env.source, lhs_type, rhs_type);
 
-        context.record_diagnostic(diagnostic);
-        context.mark_error(lhs);
-        context.mark_error(rhs);
+        env.record_diagnostic(diagnostic);
+        env.mark_error(lhs);
+        env.mark_error(rhs);
         return;
     }
 
-    let lhs = &context.arena[lhs];
-    let rhs = &context.arena[rhs];
+    let lhs = &env.arena[lhs];
+    let rhs = &env.arena[rhs];
 
     let lhs_id = lhs.id;
     let rhs_id = rhs.id;
@@ -398,15 +398,15 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
         // Links are references to other types - follow them to their targets for unification
         (&TypeKind::Link(lhs_id), &TypeKind::Link(rhs_id)) => {
             // Both types are links - unify the target types
-            unify_type(context, lhs_id, rhs_id);
+            unify_type(env, lhs_id, rhs_id);
         }
         (&TypeKind::Link(lhs_id), _) => {
             // The lhs is a link - follow it and unify with rhs
-            unify_type(context, lhs_id, rhs.id);
+            unify_type(env, lhs_id, rhs.id);
         }
         (_, &TypeKind::Link(rhs_id)) => {
             // The rhs is a link - follow it and unify with lhs
-            unify_type(context, lhs.id, rhs_id);
+            unify_type(env, lhs.id, rhs_id);
         }
 
         // Error types represent invalid or erroneous types
@@ -417,12 +417,12 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
         (TypeKind::Error, _) => {
             // The lhs is an error - propagate the error to rhs
             // This ensures errors flow through the type system
-            context.mark_error(rhs.id);
+            env.mark_error(rhs.id);
         }
         (_, TypeKind::Error) => {
             // The rhs is an error - propagate the error to lhs
             // This ensures errors flow through the type system
-            context.mark_error(lhs.id);
+            env.mark_error(lhs.id);
         }
 
         // Inference variables are special cases that can be refined during unification
@@ -430,24 +430,24 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
         (TypeKind::Infer, TypeKind::Infer) => {
             // If both are inference variables, link them together so they resolve to the same type
             // This is variance-independent: inference variables are meant to be unified
-            context.update_kind(lhs_id, TypeKind::Link(rhs_id));
+            env.update_kind(lhs_id, TypeKind::Link(rhs_id));
         }
         (TypeKind::Infer, rhs) => {
             // The lhs is an inference variable, rhs is a concrete type
             // Inference variables are an exception to the "no modifications" rule
             // They are specifically designed to be refined during type checking
-            context.update_kind(lhs.id, rhs.clone());
+            env.update_kind(lhs.id, rhs.clone());
         }
         (lhs, TypeKind::Infer) => {
             // The lhs is a concrete type, rhs is an inference variable
             // Inference variables are an exception to the "no modifications" rule
             // They are specifically designed to be refined during type checking
-            context.update_kind(rhs.id, lhs.clone());
+            env.update_kind(rhs.id, lhs.clone());
         }
 
         (TypeKind::Closure(lhs_kind), TypeKind::Closure(rhs_kind)) => {
             unify_closure(
-                context,
+                env,
                 &lhs.as_ref().map(|_| lhs_kind.clone()),
                 &rhs.as_ref().map(|_| rhs_kind.clone()),
             );
@@ -455,7 +455,7 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
 
         (&TypeKind::Primitive(lhs_kind), &TypeKind::Primitive(rhs_kind)) => {
             unify_primitive(
-                context,
+                env,
                 lhs.as_ref().map(|_| lhs_kind),
                 rhs.as_ref().map(|_| rhs_kind),
             );
@@ -463,7 +463,7 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
 
         (&TypeKind::Intrinsic(lhs_kind), &TypeKind::Intrinsic(rhs_kind)) => {
             unify_intrinsic(
-                context,
+                env,
                 lhs.as_ref().map(|_| lhs_kind),
                 rhs.as_ref().map(|_| rhs_kind),
             );
@@ -471,7 +471,7 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
 
         (TypeKind::Struct(lhs_kind), TypeKind::Struct(rhs_kind)) => {
             unify_struct(
-                context,
+                env,
                 &lhs.as_ref().map(|_| lhs_kind.clone()),
                 &rhs.as_ref().map(|_| rhs_kind.clone()),
             );
@@ -479,7 +479,7 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
 
         (TypeKind::Tuple(lhs_kind), TypeKind::Tuple(rhs_kind)) => {
             unify_tuple(
-                context,
+                env,
                 &lhs.as_ref().map(|_| lhs_kind.clone()),
                 &rhs.as_ref().map(|_| rhs_kind.clone()),
             );
@@ -487,7 +487,7 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
 
         (TypeKind::Opaque(lhs_kind), TypeKind::Opaque(rhs_kind)) => {
             unify_opaque(
-                context,
+                env,
                 &lhs.as_ref().map(|_| lhs_kind.clone()),
                 &rhs.as_ref().map(|_| rhs_kind.clone()),
             );
@@ -495,38 +495,30 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
 
         (TypeKind::Param(lhs_kind), TypeKind::Param(rhs_kind)) => {
             unify_param(
-                context,
+                env,
                 &lhs.as_ref().map(|_| lhs_kind.clone()),
                 &rhs.as_ref().map(|_| rhs_kind.clone()),
             );
         }
         (TypeKind::Param(lhs_kind), _) => {
-            unify_param_lhs(context, &lhs.as_ref().map(|_| lhs_kind.clone()), rhs_id);
+            unify_param_lhs(env, &lhs.as_ref().map(|_| lhs_kind.clone()), rhs_id);
         }
         (_, TypeKind::Param(rhs_kind)) => {
-            unify_param_rhs(context, lhs_id, &rhs.as_ref().map(|_| rhs_kind.clone()));
+            unify_param_rhs(env, lhs_id, &rhs.as_ref().map(|_| rhs_kind.clone()));
         }
 
         (TypeKind::Union(lhs_kind), TypeKind::Union(rhs_kind)) => {
             unify_union(
-                context,
+                env,
                 &lhs.as_ref().map(|_| lhs_kind.clone()),
                 &rhs.as_ref().map(|_| rhs_kind.clone()),
             );
         }
         (TypeKind::Union(lhs_kind), _) => {
-            unify_union_lhs(
-                context,
-                &lhs.as_ref().map(|_| lhs_kind.clone()),
-                &rhs.clone(),
-            );
+            unify_union_lhs(env, &lhs.as_ref().map(|_| lhs_kind.clone()), &rhs.clone());
         }
         (_, TypeKind::Union(rhs_kind)) => {
-            unify_union_rhs(
-                context,
-                &lhs.clone(),
-                &rhs.as_ref().map(|_| rhs_kind.clone()),
-            );
+            unify_union_rhs(env, &lhs.clone(), &rhs.as_ref().map(|_| rhs_kind.clone()));
         }
 
         // Unknown is the top type - all other types are subtypes of it
@@ -541,13 +533,13 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
             // is beneficial for type inference and error reporting.
             // The compatibility check succeeds due to variance, but we also update for precision
             let rhs = rhs.clone();
-            context.update_kind(lhs_id, rhs);
+            env.update_kind(lhs_id, rhs);
         }
         (_, TypeKind::Unknown) => {
             // In covariant context: A concrete type (lhs) is not a subtype of Unknown (rhs)
             // This is an error - we expected a specific type but got an Unknown
             let diagnostic = error::type_mismatch(
-                context,
+                env,
                 lhs,
                 rhs,
                 Some(
@@ -556,8 +548,8 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
                 ),
             );
 
-            context.record_diagnostic(diagnostic);
-            context.mark_error(rhs_id);
+            env.record_diagnostic(diagnostic);
+            env.mark_error(rhs_id);
         }
 
         // Never is the bottom type - it's a subtype of all other types
@@ -574,12 +566,12 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
         (_, TypeKind::Never) => {
             // In covariant context: A concrete type (lhs) is not a supertype of Never (rhs)
             // This is an error - we expected lhs but got a Never
-            let diagnostic = expected_never(rhs.span, &context.arena, lhs);
+            let diagnostic = expected_never(rhs.span, &env.arena, lhs);
 
             // Mark as error since the types are incompatible
-            context.mark_error(lhs.id);
+            env.mark_error(lhs.id);
 
-            context.record_diagnostic(diagnostic);
+            env.record_diagnostic(diagnostic);
         }
 
         // Fallback case for any type combination not handled by the above cases
@@ -596,15 +588,15 @@ fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
                 _ => "These types are fundamentally incompatible and cannot be unified",
             };
 
-            let diagnostic = type_mismatch(context, lhs, rhs, Some(help_message));
+            let diagnostic = type_mismatch(env, lhs, rhs, Some(help_message));
 
-            context.record_diagnostic(diagnostic);
-            context.mark_error(lhs_id);
-            context.mark_error(rhs_id);
+            env.record_diagnostic(diagnostic);
+            env.mark_error(lhs_id);
+            env.mark_error(rhs_id);
         }
     }
 
-    context.leave(lhs_id, rhs_id);
+    env.leave(lhs_id, rhs_id);
 }
 
 /// Computes the intersection of two types

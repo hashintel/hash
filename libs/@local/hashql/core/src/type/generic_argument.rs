@@ -82,15 +82,15 @@ impl GenericArguments {
         slice.sort_by(|lhs, rhs| lhs.name.value.cmp(&rhs.name.value));
     }
 
-    pub fn enter_scope(&self, context: &mut Environment) {
+    pub fn enter_scope(&self, env: &mut Environment) {
         for argument in &self.0 {
-            context.enter_generic_argument_scope(argument.id, argument.r#type);
+            env.enter_generic_argument_scope(argument.id, argument.r#type);
         }
     }
 
-    pub fn exit_scope(&self, context: &mut Environment) {
+    pub fn exit_scope(&self, env: &mut Environment) {
         for argument in &self.0 {
-            context.exit_generic_argument_scope(argument.id);
+            env.exit_generic_argument_scope(argument.id);
         }
     }
 
@@ -176,18 +176,18 @@ impl PrettyPrint for Param {
 /// Unifies a type parameter on the left-hand side with a concrete type on the right-hand side.
 ///
 /// The variance context determines how the parameter and the concrete type are compared.
-pub(crate) fn unify_param_lhs(context: &mut Environment, lhs: &Type<Param>, rhs: TypeId) {
+pub(crate) fn unify_param_lhs(env: &mut Environment, lhs: &Type<Param>, rhs: TypeId) {
     // First check if the generic argument is in scope
-    let Some(argument) = context.generic_argument(lhs.kind.argument) else {
-        let diagnostic = generic_argument_not_found(context.source, lhs, lhs.kind.argument);
-        context.record_diagnostic(diagnostic);
-        context.mark_error(lhs.id);
+    let Some(argument) = env.generic_argument(lhs.kind.argument) else {
+        let diagnostic = generic_argument_not_found(env.source, lhs, lhs.kind.argument);
+        env.record_diagnostic(diagnostic);
+        env.mark_error(lhs.id);
         return;
     };
 
     // Use the current variance context for unification
     // This allows parameters to respect the variance of their containing context
-    unify_type(context, argument, rhs);
+    unify_type(env, argument, rhs);
 
     // In a strictly variance-aware system, we do NOT modify the parameter type
     // This preserves the identity of the parameter in the type graph
@@ -196,18 +196,18 @@ pub(crate) fn unify_param_lhs(context: &mut Environment, lhs: &Type<Param>, rhs:
 /// Unifies a concrete type on the left-hand side with a type parameter on the right-hand side.
 ///
 /// The variance context determines how the concrete type and parameter are compared.
-pub(crate) fn unify_param_rhs(context: &mut Environment, lhs: TypeId, rhs: &Type<Param>) {
+pub(crate) fn unify_param_rhs(env: &mut Environment, lhs: TypeId, rhs: &Type<Param>) {
     // First check if the generic argument is in scope
-    let Some(argument) = context.generic_argument(rhs.kind.argument) else {
-        let diagnostic = generic_argument_not_found(context.source, rhs, rhs.kind.argument);
-        context.record_diagnostic(diagnostic);
-        context.mark_error(rhs.id);
+    let Some(argument) = env.generic_argument(rhs.kind.argument) else {
+        let diagnostic = generic_argument_not_found(env.source, rhs, rhs.kind.argument);
+        env.record_diagnostic(diagnostic);
+        env.mark_error(rhs.id);
         return;
     };
 
     // Use the current variance context for unification
     // This allows parameters to respect the variance of their containing context
-    unify_type(context, lhs, argument);
+    unify_type(env, lhs, argument);
 
     // In a strictly variance-aware system, we do NOT modify the parameter type
     // This preserves the identity of the parameter in the type graph
@@ -216,24 +216,24 @@ pub(crate) fn unify_param_rhs(context: &mut Environment, lhs: TypeId, rhs: &Type
 /// Unifies two type parameters.
 ///
 /// The variance context determines how the parameters are compared.
-pub(crate) fn unify_param(context: &mut Environment, lhs: &Type<Param>, rhs: &Type<Param>) {
+pub(crate) fn unify_param(env: &mut Environment, lhs: &Type<Param>, rhs: &Type<Param>) {
     // First check if both generic arguments are in scope
-    let lhs_argument = context.generic_argument(lhs.kind.argument);
+    let lhs_argument = env.generic_argument(lhs.kind.argument);
 
     if lhs_argument.is_none() {
-        let diagnostic = generic_argument_not_found(context.source, lhs, lhs.kind.argument);
+        let diagnostic = generic_argument_not_found(env.source, lhs, lhs.kind.argument);
 
-        context.record_diagnostic(diagnostic);
-        context.mark_error(lhs.id);
+        env.record_diagnostic(diagnostic);
+        env.mark_error(lhs.id);
     }
 
-    let rhs_argument = context.generic_argument(rhs.kind.argument);
+    let rhs_argument = env.generic_argument(rhs.kind.argument);
 
     if rhs_argument.is_none() {
-        let diagnostic = generic_argument_not_found(context.source, rhs, rhs.kind.argument);
+        let diagnostic = generic_argument_not_found(env.source, rhs, rhs.kind.argument);
 
-        context.record_diagnostic(diagnostic);
-        context.mark_error(rhs.id);
+        env.record_diagnostic(diagnostic);
+        env.mark_error(rhs.id);
     }
 
     let Some((lhs_argument, rhs_argument)) = Option::zip(lhs_argument, rhs_argument) else {
@@ -242,7 +242,7 @@ pub(crate) fn unify_param(context: &mut Environment, lhs: &Type<Param>, rhs: &Ty
 
     // Use the current variance context for unification
     // This allows parameters to respect the variance of their containing context
-    unify_type(context, lhs_argument, rhs_argument);
+    unify_type(env, lhs_argument, rhs_argument);
 
     // In a strictly variance-aware system, we do NOT modify the parameter types
     // This preserves the identity of the parameters in the type graph

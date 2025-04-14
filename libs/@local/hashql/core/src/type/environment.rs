@@ -145,7 +145,7 @@ pub struct Environment {
     pub source: SpanId,
     pub arena: UnificationArena,
 
-    variance: Variance,
+    pub variance: Variance,
 
     diagnostics: Vec<TypeCheckDiagnostic>,
     fatal_diagnostics: usize,
@@ -223,10 +223,6 @@ impl Environment {
 
     pub(crate) fn generic_argument(&self, id: GenericArgumentId) -> Option<TypeId> {
         self.arguments.get(&id).copied()
-    }
-
-    pub(crate) const fn variance_context(&self) -> Variance {
-        self.variance
     }
 
     pub(crate) fn with_variance<T>(
@@ -597,30 +593,30 @@ mod test {
         let mut context = Environment::new(SpanId::SYNTHETIC, arena);
 
         // Default should be covariant
-        assert_eq!(context.variance_context(), Variance::Covariant);
+        assert_eq!(context.variance, Variance::Covariant);
 
         // Test contravariant scope
         context.in_contravariant(|ctx| {
-            assert_eq!(ctx.variance_context(), Variance::Contravariant);
+            assert_eq!(ctx.variance, Variance::Contravariant);
 
             // Test nested covariant in contravariant (should flip to contravariant)
             ctx.in_covariant(|inner_ctx| {
-                assert_eq!(inner_ctx.variance_context(), Variance::Contravariant);
+                assert_eq!(inner_ctx.variance, Variance::Contravariant);
             });
         });
 
         // Test invariant scope
         context.in_invariant(|ctx| {
-            assert_eq!(ctx.variance_context(), Variance::Invariant);
+            assert_eq!(ctx.variance, Variance::Invariant);
 
             // Test nested covariant in invariant (should remain invariant)
             ctx.in_covariant(|inner_ctx| {
-                assert_eq!(inner_ctx.variance_context(), Variance::Invariant);
+                assert_eq!(inner_ctx.variance, Variance::Invariant);
             });
         });
 
         // Test variance after all scopes (should restore to default)
-        assert_eq!(context.variance_context(), Variance::Covariant);
+        assert_eq!(context.variance, Variance::Covariant);
     }
 
     #[test]

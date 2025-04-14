@@ -86,34 +86,34 @@ impl PrettyPrint for ClosureType {
 /// - A function is a subtype of another if it accepts a wider range of inputs
 /// - And produces a narrower range of outputs
 pub(crate) fn unify_closure(
-    context: &mut Environment,
+    env: &mut Environment,
     lhs: &Type<ClosureType>,
     rhs: &Type<ClosureType>,
 ) {
     // Function parameter count is invariant
     if lhs.kind.params.len() != rhs.kind.params.len() {
         let diagnostic = function_parameter_count_mismatch(
-            context.source,
+            env.source,
             lhs,
             rhs,
             lhs.kind.params.len(),
             rhs.kind.params.len(),
         );
 
-        context.record_diagnostic(diagnostic);
+        env.record_diagnostic(diagnostic);
         return;
     }
 
     // Enter generic argument scope for both closures
-    lhs.kind.arguments.enter_scope(context);
-    rhs.kind.arguments.enter_scope(context);
+    lhs.kind.arguments.enter_scope(env);
+    rhs.kind.arguments.enter_scope(env);
 
     // Parameters are contravariant
     // For a closure A to be a subtype of closure B:
     //   B's parameters must be subtypes of A's parameters
     //   (A can accept a wider range of inputs than B requires)
     for (&lhs_param, &rhs_param) in lhs.kind.params.iter().zip(rhs.kind.params.iter()) {
-        context.in_contravariant(|ctx| {
+        env.in_contravariant(|ctx| {
             unify_type(ctx, lhs_param, rhs_param);
         });
     }
@@ -122,13 +122,13 @@ pub(crate) fn unify_closure(
     // For a closure A to be a subtype of closure B:
     //   A's return type must be a subtype of B's return type
     //   (A can return a more specific type than B requires)
-    context.in_covariant(|ctx| {
+    env.in_covariant(|ctx| {
         unify_type(ctx, lhs.kind.return_type, rhs.kind.return_type);
     });
 
     // Clean up generic argument scope
-    rhs.kind.arguments.exit_scope(context);
-    lhs.kind.arguments.exit_scope(context);
+    rhs.kind.arguments.exit_scope(env);
+    lhs.kind.arguments.exit_scope(env);
 
     // We don't unify the body of the closure - that's handled elsewhere during type checking
     // In a strictly variance-aware system, we do NOT modify the closure types
@@ -151,12 +151,12 @@ mod tests {
     };
 
     fn create_closure_type(
-        context: &mut Environment,
+        env: &mut Environment,
         params: Vec<TypeId>,
         return_type: TypeId,
         arguments: GenericArguments,
     ) -> crate::r#type::Type<ClosureType> {
-        let id = context
+        let id = env
             .arena_mut_test_only()
             .push_with(|id| crate::r#type::Type {
                 id,
@@ -168,7 +168,7 @@ mod tests {
                 }),
             });
 
-        context.arena[id]
+        env.arena[id]
             .clone()
             .map(|kind| kind.into_closure().expect("should be closure type"))
     }

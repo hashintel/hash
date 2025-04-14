@@ -58,40 +58,36 @@ impl PrettyPrint for OpaqueType {
 /// - Types must have the same name to be compatible
 /// - Underlying types must be compatible according to variance rules
 /// - For generics, each type parameter follows its own variance rules
-pub(crate) fn unify_opaque(
-    context: &mut Environment,
-    lhs: &Type<OpaqueType>,
-    rhs: &Type<OpaqueType>,
-) {
+pub(crate) fn unify_opaque(env: &mut Environment, lhs: &Type<OpaqueType>, rhs: &Type<OpaqueType>) {
     // Opaque types require the same name - this is core to nominal typing
     // Names must match exactly, regardless of variance context
     if lhs.kind.name != rhs.kind.name {
         let diagnostic = super::error::opaque_type_name_mismatch(
-            context.source,
+            env.source,
             lhs,
             rhs,
             &lhs.kind.name,
             &rhs.kind.name,
         );
 
-        context.record_diagnostic(diagnostic);
-        context.mark_error(lhs.id);
-        context.mark_error(rhs.id);
+        env.record_diagnostic(diagnostic);
+        env.mark_error(lhs.id);
+        env.mark_error(rhs.id);
         return;
     }
 
     // Enter generic argument scope for both opaque types
-    lhs.kind.arguments.enter_scope(context);
-    rhs.kind.arguments.enter_scope(context);
+    lhs.kind.arguments.enter_scope(env);
+    rhs.kind.arguments.enter_scope(env);
 
     // Unify the underlying types with the current variance context
     // Typically opaque types are invariant over their wrapped type
     // but we're respecting the enclosing context here for flexibility
-    unify_type(context, lhs.kind.r#type, rhs.kind.r#type);
+    unify_type(env, lhs.kind.r#type, rhs.kind.r#type);
 
     // Exit generic argument scope
-    rhs.kind.arguments.exit_scope(context);
-    lhs.kind.arguments.exit_scope(context);
+    rhs.kind.arguments.exit_scope(env);
+    lhs.kind.arguments.exit_scope(env);
 
     // In a strictly variance-aware system, we do NOT modify the opaque types
     // Each opaque type maintains its own identity and wrapped type
@@ -111,11 +107,11 @@ mod tests {
 
     // Helper to create an opaque type for testing
     fn create_opaque_type(
-        context: &mut Environment,
+        env: &mut Environment,
         name: &str,
         underlying_type: TypeId,
     ) -> Type<OpaqueType> {
-        let id = context.arena.arena_mut_test_only().push_with(|id| Type {
+        let id = env.arena.arena_mut_test_only().push_with(|id| Type {
             id,
             span: SpanId::SYNTHETIC,
             kind: TypeKind::Opaque(OpaqueType {
@@ -125,7 +121,7 @@ mod tests {
             }),
         });
 
-        context.arena[id]
+        env.arena[id]
             .clone()
             .map(|kind| kind.into_opaque().expect("should be opaque type"))
     }

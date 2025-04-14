@@ -124,7 +124,7 @@ impl PrettyPrint for IntrinsicType {
 /// - Dict keys are invariant (for reliable lookups)
 /// - Dict values are covariant (immutable collections)
 pub(crate) fn unify_intrinsic(
-    context: &mut Environment,
+    env: &mut Environment,
     lhs: Type<IntrinsicType>,
     rhs: Type<IntrinsicType>,
 ) {
@@ -144,7 +144,7 @@ pub(crate) fn unify_intrinsic(
             }),
         ) => {
             // Element types are in covariant position
-            context.in_covariant(|ctx| {
+            env.in_covariant(|ctx| {
                 unify_type(ctx, element_lhs, element_rhs);
             });
 
@@ -164,12 +164,12 @@ pub(crate) fn unify_intrinsic(
             }),
         ) => {
             // Keys must be invariant for lookup reliability
-            context.in_invariant(|ctx| {
+            env.in_invariant(|ctx| {
                 unify_type(ctx, key_lhs, key_rhs);
             });
 
             // Values are in covariant position
-            context.in_covariant(|ctx| {
+            env.in_covariant(|ctx| {
                 unify_type(ctx, value_lhs, value_rhs);
             });
 
@@ -193,11 +193,11 @@ pub(crate) fn unify_intrinsic(
                 _ => Some("These collection types cannot be used interchangeably."),
             };
 
-            context.record_diagnostic(type_mismatch(context, &lhs, &rhs, help));
+            env.record_diagnostic(type_mismatch(env, &lhs, &rhs, help));
 
             // Mark both types as errors
-            context.mark_error(lhs.id);
-            context.mark_error(rhs.id);
+            env.mark_error(lhs.id);
+            env.mark_error(rhs.id);
         }
     }
 }
