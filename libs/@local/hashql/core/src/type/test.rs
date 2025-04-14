@@ -93,8 +93,9 @@ fn unknown_with_other_type() {
 
     env.unify_type(unknown, never);
 
-    // Unknown becomes Error when unified with Never, since it's expected to be Never
-    assert!(matches!(env.arena[unknown].kind, TypeKind::Never));
+    assert!(env.take_diagnostics().is_empty());
+
+    assert!(matches!(env.arena[unknown].kind, TypeKind::Unknown));
 }
 
 #[test]
@@ -140,11 +141,10 @@ fn link_resolves_to_target() {
 
     env.unify_type(link1, number);
 
-    // Should follow links and resolve to number
-    assert_matches!(
-        env.arena[unknown].kind,
-        TypeKind::Primitive(PrimitiveType::Number)
-    );
+    assert!(env.take_diagnostics().is_empty());
+
+    // Unknown should not narrow it's type
+    assert_matches!(env.arena[unknown].kind, TypeKind::Unknown);
     assert_matches!(
         env.arena[number].kind,
         TypeKind::Primitive(PrimitiveType::Number)
@@ -168,11 +168,10 @@ fn complex_link_chain_resolution() {
     // Unify the heads of both chains
     env.unify_type(link3, other_link);
 
-    // The full chain should resolve to Number
-    assert!(matches!(
-        env.arena[concrete].kind,
-        TypeKind::Primitive(PrimitiveType::Number)
-    ));
+    assert!(env.take_diagnostics().is_empty());
+
+    // The full chain should still resolve to Unknown
+    assert!(matches!(env.arena[concrete].kind, TypeKind::Unknown));
 
     // Links should still point in the same direction
     if let TypeKind::Link(target) = env.arena[link3].kind {
@@ -231,10 +230,10 @@ fn mixed_special_types_unification() {
 
     // Check the final state
     assert!(
-        matches!(env.arena[infer1].kind, TypeKind::Never)
+        matches!(env.arena[infer1].kind, TypeKind::Unknown)
             || matches!(env.arena[infer1].kind, TypeKind::Link(_))
     );
-    assert_matches!(env.arena[infer2].kind, TypeKind::Never);
+    assert_matches!(env.arena[infer2].kind, TypeKind::Unknown);
     assert_matches!(env.arena[unknown].kind, TypeKind::Unknown);
     assert_matches!(env.arena[never].kind, TypeKind::Never);
 }

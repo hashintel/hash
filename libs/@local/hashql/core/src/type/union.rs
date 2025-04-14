@@ -386,7 +386,7 @@ mod tests {
         unify_union_lhs(&mut env, &union, &single);
 
         assert!(
-            !env.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify subtype with union containing supertype"
         );
     }

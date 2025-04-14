@@ -1,28 +1,44 @@
 use core::ops::Index;
 
 use crate::id::{HasId, Id as _};
-
-const INLINE_CAPACITY: usize = 128;
-
+/// A saved state of a `TransactionalArena` that can be restored at a later time.
+///
+/// Checkpoints allow for transactional operations by saving the state of the arena
+/// before making changes, and then restoring it if those changes need to be rolled back.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Checkpoint<T>(rpds::Vector<T>);
 
+/// A persistent arena that provides transactional semantics for storing and modifying objects.
+///
+/// `TransactionalArena` uses a persistent data structure internally which allows efficient
+/// creation of checkpoints and restoration to previous states. This makes it suitable for
+/// scenarios where you need to try a series of operations and potentially roll them back.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TransactionalArena<T> {
     items: rpds::Vector<T>,
 }
 
 impl<T> TransactionalArena<T> {
+    /// Creates a new, empty `TransactionalArena`.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             items: rpds::Vector::new(),
         }
     }
 
+    /// Returns the next available ID for an item in this arena.
     fn next_id(&self) -> usize {
         self.items.len()
     }
 
+    /// Adds an item to the arena using a builder function that receives the assigned ID.
+    ///
+    /// This is useful when the item's constructor needs to know its own ID.
+    ///
+    /// # Returns
+    ///
+    /// The ID assigned to the newly added item.
     pub fn push_with(&mut self, item: impl FnOnce(T::Id) -> T) -> T::Id
     where
         T: HasId,
@@ -33,6 +49,11 @@ impl<T> TransactionalArena<T> {
         id
     }
 
+    /// Adds an existing item to the arena.
+    ///
+    /// # Returns
+    ///
+    /// The ID assigned to the newly added item.
     pub fn push(&mut self, item: T) -> T::Id
     where
         T: HasId,
@@ -43,6 +64,11 @@ impl<T> TransactionalArena<T> {
         id
     }
 
+    /// Updates an item in the arena.
+    ///
+    /// # Panics
+    ///
+    /// If the item's ID is not found in the arena.
     pub fn update(&mut self, item: T)
     where
         T: HasId,
@@ -53,6 +79,11 @@ impl<T> TransactionalArena<T> {
         assert!(inserted, "Item with id {id} not found");
     }
 
+    /// Updates an item in the arena using the provided closure.
+    ///
+    /// # Panics
+    ///
+    /// If the item with the given ID is not found in the arena.
     pub fn update_with(&mut self, id: T::Id, closure: impl FnOnce(&mut T))
     where
         T: HasId + Clone,
@@ -64,6 +95,11 @@ impl<T> TransactionalArena<T> {
         closure(item);
     }
 
+    /// Retrieves a reference to an item from the arena by its ID.
+    ///
+    /// # Returns
+    ///
+    /// `Some(&T)` if the item exists, or `None` if no item with the given ID was found.
     pub fn get(&self, id: T::Id) -> Option<&T>
     where
         T: HasId,
@@ -71,6 +107,11 @@ impl<T> TransactionalArena<T> {
         self.items.get(id.as_usize())
     }
 
+    /// Retrieves a mutable reference to an item from the arena by its ID.
+    ///
+    /// # Returns
+    ///
+    /// `Some(&mut T)` if the item exists, or `None` if no item with the given ID was found.
     pub fn get_mut(&mut self, id: T::Id) -> Option<&mut T>
     where
         T: HasId + Clone,
@@ -78,10 +119,25 @@ impl<T> TransactionalArena<T> {
         self.items.get_mut(id.as_usize())
     }
 
+    /// Creates a checkpoint of the current state of the arena.
+    ///
+    /// This checkpoint can later be used to restore the arena to this exact state.
+    ///
+    /// # Returns
+    ///
+    /// A `Checkpoint<T>` representing the current state of the arena.
+    #[must_use]
     pub fn checkpoint(&self) -> Checkpoint<T> {
         Checkpoint(self.items.clone())
     }
 
+    /// Restores the arena to a previously created checkpoint.
+    ///
+    /// All changes made after the checkpoint was created will be lost.
+    ///
+    /// # Parameters
+    ///
+    /// * `checkpoint` - The checkpoint to restore to.
     pub fn restore(&mut self, checkpoint: Checkpoint<T>) {
         self.items = checkpoint.0;
     }
@@ -93,20 +149,26 @@ where
 {
     type Output = T;
 
-    fn index(&self, id: T::Id) -> &Self::Output {
+    fn index(&self, index: T::Id) -> &Self::Output {
         self.items
-            .get(id.as_usize())
+            .get(index.as_usize())
             .expect("Item with id {id} not found")
     }
 }
 
+impl<T> Default for TransactionalArena<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
-mod tests {
+mod test {
     use super::*;
     use crate::newtype;
 
     newtype!(
-        pub struct TestId(u32 is 0..=0xFFFF_FF00)
+        struct TestId(u32 is 0..=0xFFFF_FF00)
     );
 
     // A simple test struct that implements HasId
@@ -134,14 +196,14 @@ mod tests {
     fn push() {
         let mut arena = TransactionalArena::new();
         let item = TestItem {
-            id: TestId(0),
-            value: "test".to_string(),
+            id: TestId::new(0),
+            value: "test".to_owned(),
         };
 
         let id = arena.push(item);
-        assert_eq!(id, TestId(0));
+        assert_eq!(id, TestId::new(0));
 
-        let retrieved = arena.get(TestId(0)).expect("item should exist");
+        let retrieved = arena.get(TestId::new(0)).expect("item should exist");
         assert_eq!(retrieved.value, "test");
     }
 
@@ -151,10 +213,10 @@ mod tests {
 
         let id = arena.push_with(|id| TestItem {
             id,
-            value: format!("test_{}", id),
+            value: format!("test_{id}"),
         });
 
-        assert_eq!(id, TestId(0));
+        assert_eq!(id, TestId::new(0));
         let item = arena.get(id).expect("item should exist");
         assert_eq!(item.value, "test_0");
     }
@@ -165,12 +227,12 @@ mod tests {
 
         let id = arena.push_with(|id| TestItem {
             id,
-            value: "original".to_string(),
+            value: "original".to_owned(),
         });
 
         let updated_item = TestItem {
             id,
-            value: "updated".to_string(),
+            value: "updated".to_owned(),
         };
         arena.update(updated_item);
 
@@ -184,8 +246,8 @@ mod tests {
         let mut arena = TransactionalArena::new();
 
         let item = TestItem {
-            id: TestId(0),
-            value: "test".to_string(),
+            id: TestId::new(0),
+            value: "test".to_owned(),
         };
 
         arena.update(item); // Should panic
@@ -197,11 +259,11 @@ mod tests {
 
         let id = arena.push_with(|id| TestItem {
             id,
-            value: "original".to_string(),
+            value: "original".to_owned(),
         });
 
         arena.update_with(id, |item| {
-            item.value = "modified".to_string();
+            item.value = "modified".to_owned();
         });
 
         let retrieved = arena.get(id).expect("item should exist");
@@ -212,15 +274,15 @@ mod tests {
     #[should_panic(expected = "Item with id 0 not found")]
     fn update_with_nonexistent() {
         let mut arena = TransactionalArena::<TestItem>::new();
-        arena.update_with(TestId(0), |item| {
-            item.value = "test".to_string();
+        arena.update_with(TestId::new(0), |item| {
+            item.value = "test".to_owned();
         }); // Should panic
     }
 
     #[test]
     fn get_nonexistent() {
         let arena: TransactionalArena<TestItem> = TransactionalArena::new();
-        assert!(arena.get(TestId(0)).is_none());
+        assert!(arena.get(TestId::new(0)).is_none());
     }
 
     #[test]
@@ -230,7 +292,7 @@ mod tests {
         // Add initial item
         let id = arena.push_with(|id| TestItem {
             id,
-            value: "original".to_string(),
+            value: "original".to_owned(),
         });
 
         // Create checkpoint
@@ -238,7 +300,7 @@ mod tests {
 
         // Modify item
         arena.update_with(id, |item| {
-            item.value = "modified".to_string();
+            item.value = "modified".to_owned();
         });
 
         // Verify modification
@@ -257,12 +319,12 @@ mod tests {
 
         let id = arena.push_with(|id| TestItem {
             id,
-            value: "original".to_string(),
+            value: "original".to_owned(),
         });
 
         // Modify through get_mut
         if let Some(item) = arena.get_mut(id) {
-            item.value = "changed".to_string();
+            item.value = "changed".to_owned();
         }
 
         assert_eq!(arena.get(id).expect("item should exist").value, "changed");
@@ -275,17 +337,17 @@ mod tests {
         // Add multiple items
         let id1 = arena.push_with(|id| TestItem {
             id,
-            value: "first".to_string(),
+            value: "first".to_owned(),
         });
 
         let id2 = arena.push_with(|id| TestItem {
             id,
-            value: "second".to_string(),
+            value: "second".to_owned(),
         });
 
         let id3 = arena.push_with(|id| TestItem {
             id,
-            value: "third".to_string(),
+            value: "third".to_owned(),
         });
 
         // Verify all items
@@ -294,9 +356,9 @@ mod tests {
         assert_eq!(arena.get(id3).expect("item should exist").value, "third");
 
         // Verify IDs are sequential
-        assert_eq!(id1, TestId(0));
-        assert_eq!(id2, TestId(1));
-        assert_eq!(id3, TestId(2));
+        assert_eq!(id1, TestId::new(0));
+        assert_eq!(id2, TestId::new(1));
+        assert_eq!(id3, TestId::new(2));
     }
 
     #[test]
@@ -306,17 +368,17 @@ mod tests {
         // Add multiple items
         let id1 = arena.push_with(|id| TestItem {
             id,
-            value: "first".to_string(),
+            value: "first".to_owned(),
         });
 
         let id2 = arena.push_with(|id| TestItem {
             id,
-            value: "second".to_string(),
+            value: "second".to_owned(),
         });
 
         let id3 = arena.push_with(|id| TestItem {
             id,
-            value: "third".to_string(),
+            value: "third".to_owned(),
         });
 
         // Verify all items
@@ -332,7 +394,7 @@ mod tests {
         // Initial state
         let id = arena.push_with(|id| TestItem {
             id,
-            value: "initial".to_string(),
+            value: "initial".to_owned(),
         });
 
         // First checkpoint
@@ -340,7 +402,7 @@ mod tests {
 
         // First modification
         arena.update_with(id, |item| {
-            item.value = "first_mod".to_string();
+            item.value = "first_mod".to_owned();
         });
 
         // Second checkpoint
@@ -348,7 +410,7 @@ mod tests {
 
         // Second modification
         arena.update_with(id, |item| {
-            item.value = "second_mod".to_string();
+            item.value = "second_mod".to_owned();
         });
 
         // Third checkpoint
@@ -356,14 +418,14 @@ mod tests {
 
         // Third modification
         arena.update_with(id, |item| {
-            item.value = "third_mod".to_string();
+            item.value = "third_mod".to_owned();
         });
 
         // Verify current state
         assert_eq!(arena[id].value, "third_mod");
 
         // Restore to checkpoint3
-        arena.restore(checkpoint3.clone());
+        arena.restore(checkpoint3);
         assert_eq!(arena[id].value, "second_mod");
 
         // Restore to checkpoint2
@@ -380,7 +442,7 @@ mod tests {
 
         // Create alternative modification
         arena.update_with(id, |item| {
-            item.value = "alt_branch".to_string();
+            item.value = "alt_branch".to_owned();
         });
 
         // Verify alternative branch
@@ -398,12 +460,12 @@ mod tests {
         // Add initial items
         let id1 = arena.push_with(|id| TestItem {
             id,
-            value: "first_initial".to_string(),
+            value: "first_initial".to_owned(),
         });
 
         let id2 = arena.push_with(|id| TestItem {
             id,
-            value: "second_initial".to_string(),
+            value: "second_initial".to_owned(),
         });
 
         // First checkpoint
@@ -411,10 +473,10 @@ mod tests {
 
         // Modify both items
         arena.update_with(id1, |item| {
-            item.value = "first_mod".to_string();
+            item.value = "first_mod".to_owned();
         });
         arena.update_with(id2, |item| {
-            item.value = "second_mod".to_string();
+            item.value = "second_mod".to_owned();
         });
 
         // Second checkpoint
@@ -423,7 +485,7 @@ mod tests {
         // Add a new item
         let id3 = arena.push_with(|id| TestItem {
             id,
-            value: "third_item".to_string(),
+            value: "third_item".to_owned(),
         });
 
         // Verify current state
