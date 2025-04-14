@@ -103,6 +103,7 @@ mod tests {
             Type, TypeId, TypeKind,
             environment::UnificationEnvironment,
             generic_argument::GenericArguments,
+            opaque::unify_opaque,
             primitive::PrimitiveType,
             test::{instantiate, setup_unify},
         },
@@ -131,20 +132,20 @@ mod tests {
 
     #[test]
     fn unify_same_name_opaque_types() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create two opaque types with the same name
-        let int1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let int2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let int1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
+        let int2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
 
-        let user_id1 = create_opaque_type(&mut context, "UserId", int1);
-        let user_id2 = create_opaque_type(&mut context, "UserId", int2);
+        let user_id1 = create_opaque_type(&mut env, "UserId", int1);
+        let user_id2 = create_opaque_type(&mut env, "UserId", int2);
 
         // Should unify successfully
-        unify_opaque(&mut context, &user_id1, &user_id2);
+        unify_opaque(&mut env, &user_id1, &user_id2);
 
         // No errors should be reported
-        let diagnostics = context.take_diagnostics();
+        let diagnostics = env.take_diagnostics();
         assert!(
             diagnostics.is_empty(),
             "Expected no diagnostics, got: {diagnostics:?}"
@@ -153,19 +154,19 @@ mod tests {
 
     #[test]
     fn unify_different_name_opaque_types() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create two opaque types with different names but same underlying type
-        let int = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let int = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
 
-        let user_id = create_opaque_type(&mut context, "UserId", int);
-        let post_id = create_opaque_type(&mut context, "PostId", int);
+        let user_id = create_opaque_type(&mut env, "UserId", int);
+        let post_id = create_opaque_type(&mut env, "PostId", int);
 
         // Should report an error - different names shouldn't unify
-        unify_opaque(&mut context, &user_id, &post_id);
+        unify_opaque(&mut env, &user_id, &post_id);
 
         // Check error diagnostics
-        let diagnostics = context.take_diagnostics();
+        let diagnostics = env.take_diagnostics();
         assert_eq!(
             diagnostics.len(),
             1,
@@ -176,43 +177,43 @@ mod tests {
 
     #[test]
     fn unify_opaque_with_incompatible_underlying_types() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create two opaque types with same name but incompatible underlying types
-        let int = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let string = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let int = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
+        let string = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
 
-        let user_id1 = create_opaque_type(&mut context, "UserId", int);
-        let user_id2 = create_opaque_type(&mut context, "UserId", string);
+        let user_id1 = create_opaque_type(&mut env, "UserId", int);
+        let user_id2 = create_opaque_type(&mut env, "UserId", string);
 
         // Should try to unify the underlying types, which will report errors
-        unify_opaque(&mut context, &user_id1, &user_id2);
+        unify_opaque(&mut env, &user_id1, &user_id2);
 
         // Check for errors from the underlying type mismatch
-        let diagnostics = context.take_diagnostics();
+        let diagnostics = env.take_diagnostics();
         assert!(!diagnostics.is_empty(), "Expected at least one diagnostic");
     }
 
     #[test]
     fn unify_nested_opaque_types() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create opaque types that wrap other opaque types
-        let int = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let int = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
 
         // Create inner opaque types
-        let inner1 = create_opaque_type(&mut context, "Base", int);
-        let inner2 = create_opaque_type(&mut context, "Base", int);
+        let inner1 = create_opaque_type(&mut env, "Base", int);
+        let inner2 = create_opaque_type(&mut env, "Base", int);
 
         // Create outer opaque types wrapping the inner ones
-        let outer1 = create_opaque_type(&mut context, "Wrapper", inner1.id);
-        let outer2 = create_opaque_type(&mut context, "Wrapper", inner2.id);
+        let outer1 = create_opaque_type(&mut env, "Wrapper", inner1.id);
+        let outer2 = create_opaque_type(&mut env, "Wrapper", inner2.id);
 
         // Should unify successfully
-        unify_opaque(&mut context, &outer1, &outer2);
+        unify_opaque(&mut env, &outer1, &outer2);
 
         // No errors should be reported
-        let diagnostics = context.take_diagnostics();
+        let diagnostics = env.take_diagnostics();
         assert!(
             diagnostics.is_empty(),
             "Expected no diagnostics, got: {diagnostics:?}"

@@ -4,7 +4,7 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::Environment,
+    environment::UnificationEnvironment,
     error::type_mismatch,
     pretty_print::{BLUE, PrettyPrint},
     recursion::RecursionDepthBoundary,
@@ -53,7 +53,7 @@ impl PrettyPrint for PrimitiveType {
 /// For primitives, the main subtyping relationship is Integer <: Number
 /// (Integer is a subtype of Number).
 pub(crate) fn unify_primitive(
-    env: &mut Environment,
+    env: &mut UnificationEnvironment,
     lhs: Type<PrimitiveType>,
     rhs: Type<PrimitiveType>,
 ) {
@@ -72,7 +72,7 @@ pub(crate) fn unify_primitive(
         (PrimitiveType::Integer, PrimitiveType::Number) => {
             // In covariant context: Number (rhs) is NOT a subtype of Integer (lhs)
             // This is an error - Number cannot be used where Integer is expected
-            env.record_diagnostic(type_mismatch(
+            let diagnostic = type_mismatch(
                 env,
                 &lhs,
                 &rhs,
@@ -80,7 +80,9 @@ pub(crate) fn unify_primitive(
                     "Expected an Integer but found a Number. While all Integers are Numbers, not \
                      all Numbers are Integers (e.g., decimals like 3.14).",
                 ),
-            ));
+            );
+
+            env.record_diagnostic(diagnostic);
         }
 
         _ => {
@@ -119,7 +121,8 @@ pub(crate) fn unify_primitive(
             };
 
             // Record a type mismatch diagnostic with helpful conversion suggestions
-            env.record_diagnostic(type_mismatch(env, &lhs, &rhs, help_message));
+            let diagnostic = type_mismatch(env, &lhs, &rhs, help_message);
+            env.record_diagnostic(diagnostic);
         }
     }
 }
@@ -151,7 +154,7 @@ mod tests {
 
     #[test]
     fn identical_primitives_unify() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         let types = [
             PrimitiveType::Number,
@@ -162,26 +165,26 @@ mod tests {
         ];
 
         for r#type in types {
-            let lhs = instantiate(&mut context, TypeKind::Primitive(r#type));
-            let rhs = instantiate(&mut context, TypeKind::Primitive(r#type));
+            let lhs = instantiate(&mut env, TypeKind::Primitive(r#type));
+            let rhs = instantiate(&mut env, TypeKind::Primitive(r#type));
 
-            let lhs = context.arena[lhs]
+            let lhs = env.arena[lhs]
                 .clone()
                 .map(|kind| kind.as_primitive().expect("type should be a primitive"));
-            let rhs = context.arena[rhs]
+            let rhs = env.arena[rhs]
                 .clone()
                 .map(|kind| kind.as_primitive().expect("type should be a primitive"));
 
-            unify_primitive(&mut context, lhs, rhs);
+            unify_primitive(&mut env, lhs, rhs);
 
             assert!(
-                context.take_diagnostics().is_empty(),
+                env.take_diagnostics().is_empty(),
                 "Failed to unify identical {type:?} types"
             );
 
             // going back into the arena
-            let lhs = context.arena[lhs.id].clone();
-            let rhs = context.arena[rhs.id].clone();
+            let lhs = env.arena[lhs.id].clone();
+            let rhs = env.arena[rhs.id].clone();
 
             assert_eq!(lhs.kind, rhs.kind);
         }
@@ -189,29 +192,29 @@ mod tests {
 
     #[test]
     fn integer_number_promotion() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Test Number as expected type (lhs) with Integer as actual type (rhs)
         // In covariant context, this should succeed (Integer is a subtype of Number)
-        let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let int_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let num_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let int_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
 
-        let num = context.arena[num_id]
+        let num = env.arena[num_id]
             .as_ref()
             .map(|kind| kind.as_primitive().expect("type should be a primitive"));
-        let int = context.arena[int_id]
+        let int = env.arena[int_id]
             .as_ref()
             .map(|kind| kind.as_primitive().expect("type should be a primitive"));
 
-        unify_primitive(&mut context, num, int);
+        unify_primitive(&mut env, num, int);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to accept Integer where Number was expected"
         );
         assert!(
             matches!(
-                context.arena[int_id].kind,
+                env.arena[int_id].kind,
                 TypeKind::Primitive(PrimitiveType::Integer)
             ),
             "Integer was not promoted to Number"
@@ -222,22 +225,22 @@ mod tests {
     fn integer_number_mismatch() {
         // Test Integer as expected type (lhs) with Number as actual type (rhs)
         // In covariant context, this should fail (Number is not a subtype of Integer)
-        let mut context = setup_unify();
-        let int_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        setup_unify!(env);
+        let int_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
+        let num_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
 
-        let int = context.arena[int_id]
+        let int = env.arena[int_id]
             .as_ref()
             .map(|kind| kind.as_primitive().expect("type should be a primitive"));
-        let num = context.arena[num_id]
+        let num = env.arena[num_id]
             .as_ref()
             .map(|kind| kind.as_primitive().expect("type should be a primitive"));
 
-        unify_primitive(&mut context, int, num);
+        unify_primitive(&mut env, int, num);
 
         // Should produce a diagnostic error
         assert_eq!(
-            context.take_diagnostics().len(),
+            env.take_diagnostics().len(),
             1,
             "Expected error when using Number where Integer is required"
         );
@@ -279,22 +282,22 @@ mod tests {
         ];
 
         for (lhs_type, rhs_type, description) in test_cases {
-            let mut context = setup_unify();
+            setup_unify!(env);
 
-            let lhs_id = instantiate(&mut context, TypeKind::Primitive(lhs_type));
-            let rhs_id = instantiate(&mut context, TypeKind::Primitive(rhs_type));
+            let lhs_id = instantiate(&mut env, TypeKind::Primitive(lhs_type));
+            let rhs_id = instantiate(&mut env, TypeKind::Primitive(rhs_type));
 
-            let lhs = context.arena[lhs_id]
+            let lhs = env.arena[lhs_id]
                 .as_ref()
                 .map(|kind| kind.as_primitive().expect("should be primitive"));
-            let rhs = context.arena[rhs_id]
+            let rhs = env.arena[rhs_id]
                 .as_ref()
                 .map(|kind| kind.as_primitive().expect("should be primitive"));
 
-            unify_primitive(&mut context, lhs, rhs);
+            unify_primitive(&mut env, lhs, rhs);
 
             assert_eq!(
-                context.take_diagnostics().len(),
+                env.take_diagnostics().len(),
                 1,
                 "Expected error when unifying {description}"
             );
@@ -303,22 +306,22 @@ mod tests {
 
     #[test]
     fn error_messages() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Test String + Number error message
-        let str_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let str_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let num_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
 
-        let str = context.arena[str_id]
+        let str = env.arena[str_id]
             .as_ref()
             .map(|kind| kind.as_primitive().expect("should be primitive"));
-        let num = context.arena[num_id]
+        let num = env.arena[num_id]
             .as_ref()
             .map(|kind| kind.as_primitive().expect("should be primitive"));
 
-        unify_primitive(&mut context, str, num);
+        unify_primitive(&mut env, str, num);
 
-        let diagnostic = &context.take_diagnostics()[0];
+        let diagnostic = &env.take_diagnostics()[0];
         assert_eq!(
             diagnostic
                 .help

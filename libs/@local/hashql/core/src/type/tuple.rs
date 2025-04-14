@@ -179,22 +179,22 @@ mod tests {
 
     #[test]
     fn unify_same_length_tuples() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create two tuple types with the same structure
-        let int1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let int2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let str1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let str2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let int1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
+        let int2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
+        let str1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let str2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
 
-        let lhs_tuple = create_tuple_type(&mut context, vec![int1, str1]);
-        let rhs_tuple = create_tuple_type(&mut context, vec![int2, str2]);
+        let lhs_tuple = create_tuple_type(&mut env, vec![int1, str1]);
+        let rhs_tuple = create_tuple_type(&mut env, vec![int2, str2]);
 
         // Should unify successfully
-        unify_tuple(&mut context, &lhs_tuple, &rhs_tuple);
+        unify_tuple(&mut env, &lhs_tuple, &rhs_tuple);
 
         // No errors should be reported
-        let diagnostics = context.take_diagnostics();
+        let diagnostics = env.take_diagnostics();
         assert!(
             diagnostics.is_empty(),
             "Expected no diagnostics, got: {diagnostics:?}",
@@ -203,21 +203,21 @@ mod tests {
 
     #[test]
     fn unify_different_length_tuples() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create two tuple types with different lengths
-        let int1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let str1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let int2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let int1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
+        let str1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let int2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
 
-        let lhs_tuple = create_tuple_type(&mut context, vec![int1, str1]);
-        let rhs_tuple = create_tuple_type(&mut context, vec![int2]);
+        let lhs_tuple = create_tuple_type(&mut env, vec![int1, str1]);
+        let rhs_tuple = create_tuple_type(&mut env, vec![int2]);
 
         // Should report an error
-        unify_tuple(&mut context, &lhs_tuple, &rhs_tuple);
+        unify_tuple(&mut env, &lhs_tuple, &rhs_tuple);
 
         // Check error diagnostics
-        let diagnostics = context.take_diagnostics();
+        let diagnostics = env.take_diagnostics();
         assert_eq!(
             diagnostics.len(),
             1,
@@ -233,48 +233,48 @@ mod tests {
 
     #[test]
     fn unify_tuples_with_incompatible_fields() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create two tuple types with same length but incompatible field types
-        let boolean = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
-        let str1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let str2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let number = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let boolean = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Boolean));
+        let str1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let str2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let number = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
 
-        let lhs_tuple = create_tuple_type(&mut context, vec![boolean, str1]);
-        let rhs_tuple = create_tuple_type(&mut context, vec![number, str2]);
+        let lhs_tuple = create_tuple_type(&mut env, vec![boolean, str1]);
+        let rhs_tuple = create_tuple_type(&mut env, vec![number, str2]);
 
         // Should still try to unify the fields, which will report errors for the incompatible ones
-        unify_tuple(&mut context, &lhs_tuple, &rhs_tuple);
+        unify_tuple(&mut env, &lhs_tuple, &rhs_tuple);
 
         // Check for errors in the incompatible field
-        let diagnostics = context.take_diagnostics();
+        let diagnostics = env.take_diagnostics();
         assert!(!diagnostics.is_empty(), "Expected at least one diagnostic");
     }
 
     #[test]
     fn unify_nested_tuples() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create nested tuple types with compatible structures
-        let int1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let int2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let str1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let str2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let int1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
+        let int2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
+        let str1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let str2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
 
         // Create inner tuples
-        let inner_lhs = create_tuple_type(&mut context, vec![int1]);
-        let inner_rhs = create_tuple_type(&mut context, vec![int2]);
+        let inner_lhs = create_tuple_type(&mut env, vec![int1]);
+        let inner_rhs = create_tuple_type(&mut env, vec![int2]);
 
         // Use the inner tuple IDs in outer tuples
-        let lhs_tuple = create_tuple_type(&mut context, vec![inner_lhs.id, str1]);
-        let rhs_tuple = create_tuple_type(&mut context, vec![inner_rhs.id, str2]);
+        let lhs_tuple = create_tuple_type(&mut env, vec![inner_lhs.id, str1]);
+        let rhs_tuple = create_tuple_type(&mut env, vec![inner_rhs.id, str2]);
 
         // Should unify successfully
-        unify_tuple(&mut context, &lhs_tuple, &rhs_tuple);
+        unify_tuple(&mut env, &lhs_tuple, &rhs_tuple);
 
         // Check that there are no diagnostics
-        let diagnostics = context.take_diagnostics();
+        let diagnostics = env.take_diagnostics();
 
         assert!(
             diagnostics.is_empty(),

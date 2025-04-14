@@ -6,8 +6,8 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::{Environment, StructuralEquivalenceEnvironment, UnificationEnvironment},
-    error::{TypeCheckDiagnostic, type_mismatch},
+    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
+    error::type_mismatch,
     generic_argument::GenericArguments,
     intersection_type,
     pretty_print::PrettyPrint,
@@ -220,58 +220,58 @@ mod tests {
 
     #[test]
     fn identical_structs_unify() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create a struct with two fields: name: String, age: Number
         let lhs_fields = [
             StructField {
                 key: ident("name"),
-                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+                value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String)),
             },
             StructField {
                 key: ident("age"),
-                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+                value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
             },
         ];
 
         let lhs_id = instantiate(
-            &mut context,
+            &mut env,
             TypeKind::Struct(StructType::new(lhs_fields, GenericArguments::new())),
         );
 
         let rhs_fields = [
             StructField {
                 key: ident("name"),
-                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+                value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String)),
             },
             StructField {
                 key: ident("age"),
-                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+                value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
             },
         ];
 
         let rhs_id = instantiate(
-            &mut context,
+            &mut env,
             TypeKind::Struct(StructType::new(rhs_fields, GenericArguments::new())),
         );
 
-        let lhs = context.arena[lhs_id]
+        let lhs = env.arena[lhs_id]
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
-        let rhs = context.arena[rhs_id]
+        let rhs = env.arena[rhs_id]
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
 
-        unify_struct(&mut context, &lhs, &rhs);
+        unify_struct(&mut env, &lhs, &rhs);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify identical structs"
         );
 
         // Check both structs maintained their fields
-        let lhs = context.arena[lhs_id].clone();
-        let rhs = context.arena[rhs_id].clone();
+        let lhs = env.arena[lhs_id].clone();
+        let rhs = env.arena[rhs_id].clone();
 
         let TypeKind::Struct(lhs) = lhs.kind else {
             panic!("type should be a struct");
@@ -285,24 +285,18 @@ mod tests {
         assert_eq!(
             lhs.fields
                 .iter()
-                .map(|field| (
-                    field.key.value.clone(),
-                    context.arena[field.value].kind.clone()
-                ))
+                .map(|field| (field.key.value.clone(), env.arena[field.value].kind.clone()))
                 .collect::<Vec<_>>(),
             rhs.fields
                 .iter()
-                .map(|field| (
-                    field.key.value.clone(),
-                    context.arena[field.value].kind.clone()
-                ))
+                .map(|field| (field.key.value.clone(), env.arena[field.value].kind.clone()))
                 .collect::<Vec<_>>()
         );
     }
 
     #[test]
     fn overlapping_structs_unify() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create two structs with overlapping fields:
         // lhs: (name: String, age: Number)
@@ -310,11 +304,11 @@ mod tests {
         let lhs_fields = [
             StructField {
                 key: ident("name"),
-                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+                value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String)),
             },
             StructField {
                 key: ident("age"),
-                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+                value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
             },
         ];
 
@@ -323,80 +317,80 @@ mod tests {
         let rhs_fields = [
             StructField {
                 key: ident("name"),
-                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+                value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String)),
             },
             StructField {
                 key: ident("age"),
-                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+                value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
             },
             StructField {
                 key: ident("id"),
-                value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+                value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
             },
         ];
 
         let rhs_type = StructType::new(rhs_fields, GenericArguments::default());
 
-        let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
-        let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));
+        let lhs_id = instantiate(&mut env, TypeKind::Struct(lhs_type));
+        let rhs_id = instantiate(&mut env, TypeKind::Struct(rhs_type));
 
-        let lhs = context.arena[lhs_id]
+        let lhs = env.arena[lhs_id]
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
-        let rhs = context.arena[rhs_id]
+        let rhs = env.arena[rhs_id]
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
 
-        unify_struct(&mut context, &lhs, &rhs);
+        unify_struct(&mut env, &lhs, &rhs);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify structs with overlapping fields"
         );
     }
 
     #[test]
     fn struct_field_types_unify() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create structs with a field that needs type promotion:
         // lhs: { value: Number }
         // rhs: { value: Integer }
         let lhs_field = StructField {
             key: ident("value"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
         };
         let rhs_field = StructField {
             key: ident("value"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer)),
+            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer)),
         };
 
         let lhs_type = StructType::new([lhs_field], GenericArguments::default());
         let rhs_type = StructType::new([rhs_field], GenericArguments::default());
 
-        let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
-        let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));
+        let lhs_id = instantiate(&mut env, TypeKind::Struct(lhs_type));
+        let rhs_id = instantiate(&mut env, TypeKind::Struct(rhs_type));
 
-        let lhs = context.arena[lhs_id]
+        let lhs = env.arena[lhs_id]
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
-        let rhs = context.arena[rhs_id]
+        let rhs = env.arena[rhs_id]
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
 
-        unify_struct(&mut context, &lhs, &rhs);
+        unify_struct(&mut env, &lhs, &rhs);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify structs with unifiable field types"
         );
 
         // Check that Integer was promoted to Number in both structs
-        let lhs = context.arena[lhs_id].clone();
-        let rhs = context.arena[rhs_id].clone();
+        let lhs = env.arena[lhs_id].clone();
+        let rhs = env.arena[rhs_id].clone();
 
         if let TypeKind::Struct(lhs_struct) = lhs.kind {
-            let field_type = &context.arena[lhs_struct.fields[0].value].kind;
+            let field_type = &env.arena[lhs_struct.fields[0].value].kind;
             assert!(
                 matches!(field_type, TypeKind::Primitive(PrimitiveType::Number)),
                 "LHS field type should be promoted to Number"
@@ -404,7 +398,7 @@ mod tests {
         }
 
         if let TypeKind::Struct(rhs_struct) = rhs.kind {
-            let field_type = &context.arena[rhs_struct.fields[0].value].kind;
+            let field_type = &env.arena[rhs_struct.fields[0].value].kind;
             assert!(
                 matches!(field_type, TypeKind::Primitive(PrimitiveType::Integer)),
                 "RHS field type should be an Integer"
@@ -414,48 +408,48 @@ mod tests {
 
     #[test]
     fn disjoint_structs_unify_to_empty() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create structs with no fields in common:
         // lhs: { name: String }
         // rhs: { age: Number }
         let name_field = StructField {
             key: ident("name"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String)),
+            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String)),
         };
         let age_field = StructField {
             key: ident("age"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
         };
 
         let lhs_type = StructType::new([name_field], GenericArguments::default());
         let rhs_type = StructType::new([age_field], GenericArguments::default());
 
-        let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
-        let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));
+        let lhs_id = instantiate(&mut env, TypeKind::Struct(lhs_type));
+        let rhs_id = instantiate(&mut env, TypeKind::Struct(rhs_type));
 
-        let lhs = context.arena[lhs_id]
+        let lhs = env.arena[lhs_id]
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
-        let rhs = context.arena[rhs_id]
+        let rhs = env.arena[rhs_id]
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
 
-        unify_struct(&mut context, &lhs, &rhs);
+        unify_struct(&mut env, &lhs, &rhs);
 
         assert!(
-            !context.take_diagnostics().is_empty(),
+            !env.take_diagnostics().is_empty(),
             "Disjoint structs are not covariant"
         );
     }
 
     #[test]
     fn generic_struct_args_scope() {
-        let mut context = setup_unify();
+        setup_unify!(env);
 
         // Create a generic argument T
         let t_id = GenericArgumentId::new(0);
-        let t_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let t_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
         let t_arg = GenericArgument {
             id: t_id,
             name: ident("T"),
@@ -475,37 +469,37 @@ mod tests {
         // rhs: { value: Number }
         let rhs_field = StructField {
             key: ident("value"),
-            value: instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number)),
+            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
         };
 
         let rhs_type = StructType::new([rhs_field], GenericArguments::new());
 
-        let lhs_id = instantiate(&mut context, TypeKind::Struct(lhs_type));
-        let rhs_id = instantiate(&mut context, TypeKind::Struct(rhs_type));
+        let lhs_id = instantiate(&mut env, TypeKind::Struct(lhs_type));
+        let rhs_id = instantiate(&mut env, TypeKind::Struct(rhs_type));
 
         // Verify arg is not in scope before unification
-        assert!(context.generic_argument(t_id).is_none());
+        assert!(env.generic_argument(t_id).is_none());
 
-        let lhs = context.arena[lhs_id]
+        let lhs = env.arena[lhs_id]
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
-        let rhs = context.arena[rhs_id]
+        let rhs = env.arena[rhs_id]
             .clone()
             .map(|kind| kind.into_struct().expect("type should be a struct"));
 
-        unify_struct(&mut context, &lhs, &rhs);
+        unify_struct(&mut env, &lhs, &rhs);
 
         // Verify arg was properly removed from scope after unification
-        assert!(context.generic_argument(t_id).is_none());
+        assert!(env.generic_argument(t_id).is_none());
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify struct with generic argument"
         );
 
         // Check that both structs maintained their field
-        let lhs = context.arena[lhs_id].clone();
-        let rhs = context.arena[rhs_id].clone();
+        let lhs = env.arena[lhs_id].clone();
+        let rhs = env.arena[rhs_id].clone();
 
         if let TypeKind::Struct(lhs_struct) = lhs.kind {
             assert_eq!(lhs_struct.fields.len(), 1);

@@ -101,14 +101,6 @@ impl Environment {
             self.fatal_diagnostics = fatal;
         }
     }
-
-    pub(crate) fn in_transaction(&mut self, closure: impl FnOnce(&mut Self) -> bool) {
-        let (checkpoint, length, fatal) = self.begin_transaction();
-
-        let result = closure(self);
-
-        self.end_transaction(result, checkpoint, length, fatal);
-    }
 }
 
 pub struct UnificationEnvironment<'env> {
@@ -145,7 +137,7 @@ impl<'env> UnificationEnvironment<'env> {
     }
 
     pub(crate) fn structurally_equivalent(&self, lhs: TypeId, rhs: TypeId) -> bool {
-        let mut environment = StructuralEquivalenceEnvironment::new(&self.environment);
+        let mut environment = StructuralEquivalenceEnvironment::new(self.environment);
 
         environment.structurally_equivalent(lhs, rhs)
     }
@@ -219,6 +211,7 @@ pub struct StructuralEquivalenceEnvironment<'env> {
 }
 
 impl<'env> StructuralEquivalenceEnvironment<'env> {
+    #[must_use]
     pub fn new(environment: &'env Environment) -> Self {
         Self {
             environment,
@@ -274,7 +267,7 @@ mod test {
         span::SpanId,
         r#type::{
             Type, TypeId, TypeKind,
-            environment::{Environment, Variance},
+            environment::{Environment, UnificationEnvironment, Variance},
             error::type_mismatch,
             generic_argument::GenericArgumentId,
             primitive::PrimitiveType,
@@ -302,13 +295,14 @@ mod test {
     #[test]
     fn variance_context() {
         let (arena, _, _) = setup_arena();
-        let mut context = Environment::new(SpanId::SYNTHETIC, arena);
+        let mut environment = Environment::new(SpanId::SYNTHETIC, arena);
+        let mut env = UnificationEnvironment::new(&mut environment);
 
         // Default should be covariant
-        assert_eq!(context.variance, Variance::Covariant);
+        assert_eq!(env.variance, Variance::Covariant);
 
         // Test contravariant scope
-        context.in_contravariant(|ctx| {
+        env.in_contravariant(|ctx| {
             assert_eq!(ctx.variance, Variance::Contravariant);
 
             // Test nested covariant in contravariant (should flip to contravariant)
@@ -318,7 +312,7 @@ mod test {
         });
 
         // Test invariant scope
-        context.in_invariant(|ctx| {
+        env.in_invariant(|ctx| {
             assert_eq!(ctx.variance, Variance::Invariant);
 
             // Test nested covariant in invariant (should remain invariant)
@@ -328,7 +322,7 @@ mod test {
         });
 
         // Test variance after all scopes (should restore to default)
-        assert_eq!(context.variance, Variance::Covariant);
+        assert_eq!(env.variance, Variance::Covariant);
     }
 
     #[test]

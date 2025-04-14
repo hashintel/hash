@@ -369,13 +369,15 @@ fn unify_type_covariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: Type
             // The lhs is an inference variable, rhs is a concrete type
             // Inference variables are an exception to the "no modifications" rule
             // They are specifically designed to be refined during type checking
-            env.update_kind(lhs.id, rhs.clone());
+            let rhs = rhs.clone();
+            env.update_kind(lhs_id, rhs);
         }
         (lhs, TypeKind::Infer) => {
             // The lhs is a concrete type, rhs is an inference variable
             // Inference variables are an exception to the "no modifications" rule
             // They are specifically designed to be refined during type checking
-            env.update_kind(rhs.id, lhs.clone());
+            let lhs = lhs.clone();
+            env.update_kind(rhs_id, lhs);
         }
 
         (TypeKind::Closure(lhs_kind), TypeKind::Closure(rhs_kind)) => {
@@ -495,7 +497,7 @@ fn unify_type_covariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: Type
         (_, TypeKind::Never) => {
             // In covariant context: A concrete type (lhs) is not a supertype of Never (rhs)
             // This is an error - we expected lhs but got a Never
-            let diagnostic = expected_never(rhs.span, &env.arena, lhs);
+            let diagnostic = expected_never(env, lhs);
 
             env.record_diagnostic(diagnostic);
         }
@@ -519,8 +521,6 @@ fn unify_type_covariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: Type
             env.record_diagnostic(diagnostic);
         }
     }
-
-    env.leave(lhs_id, rhs_id);
 }
 
 /// Computes the intersection of two types

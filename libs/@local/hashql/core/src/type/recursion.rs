@@ -49,25 +49,6 @@ impl RecursionBoundary {
         }
     }
 
-    pub(crate) fn with<T>(
-        &self,
-        lhs: TypeId,
-        rhs: TypeId,
-        closure: impl FnOnce(Self) -> T,
-    ) -> Option<T> {
-        let contains = self.inner.contains(&(lhs, rhs));
-
-        if contains {
-            return None;
-        }
-
-        let result = closure(Self {
-            inner: self.inner.insert((lhs, rhs)),
-        });
-
-        Some(result)
-    }
-
     pub(crate) fn enter(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
         if self.inner.contains(&(lhs, rhs)) {
             false
