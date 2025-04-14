@@ -453,6 +453,16 @@ where
             return Err(Report::new(RoleAssignmentError::PermissionDenied));
         }
 
+        if transaction
+            .is_assigned(actor_to_assign_id, actor_group_id)
+            .await?
+        {
+            return Err(Report::new(RoleAssignmentError::AlreadyAssigned {
+                actor_id: actor_to_assign_id,
+                group_id: actor_group_id,
+            }));
+        }
+
         let role = transaction
             .get_role(actor_group_id, name)
             .await
@@ -515,6 +525,26 @@ where
         } else {
             Ok(status)
         }
+    }
+
+    async fn is_assigned(
+        &mut self,
+        actor_id: ActorId,
+        actor_group_id: ActorGroupId,
+    ) -> Result<bool, Report<RoleAssignmentError>> {
+        self.as_client()
+            .query_one(
+                "SELECT EXISTS (
+                    SELECT 1
+                    FROM actor_role
+                    JOIN role ON actor_role.role_id = role.id
+                    WHERE actor_role.actor_id = $1 AND role.actor_group_id = $2
+                )",
+                &[&actor_id, &actor_group_id],
+            )
+            .await
+            .change_context(RoleAssignmentError::StoreError)
+            .map(|row| row.get(0))
     }
 
     async fn unassign_role(

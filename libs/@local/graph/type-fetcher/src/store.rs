@@ -82,7 +82,7 @@ use type_system::{
     },
     principal::{
         actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId},
-        actor_group::{ActorGroupEntityUuid, TeamId, WebId},
+        actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
         role::RoleName,
     },
     provenance::{OriginProvenance, OriginType},
@@ -206,6 +206,14 @@ where
         self.store
             .assign_role(actor, actor_to_assign, actor_group_id, name)
             .await
+    }
+
+    async fn is_assigned(
+        &mut self,
+        actor_id: ActorId,
+        actor_group_id: ActorGroupId,
+    ) -> Result<bool, Report<RoleAssignmentError>> {
+        self.store.is_assigned(actor_id, actor_group_id).await
     }
 
     async fn unassign_role(

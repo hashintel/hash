@@ -141,6 +141,23 @@ pub trait LocalPrincipalStore {
         name: RoleName,
     ) -> Result<RoleAssignmentStatus, Report<RoleAssignmentError>>;
 
+    /// Checks if the actor is assigned to a role within the specified actor group.
+    ///
+    /// # Errors
+    ///
+    /// - [`ActorNotFound`] if the actor does not exist
+    /// - [`RoleNotFound`] if the role does not exist
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`ActorNotFound`]: RoleAssignmentError::ActorNotFound
+    /// [`RoleNotFound`]: RoleAssignmentError::RoleNotFound
+    /// [`StoreError`]: RoleAssignmentError::StoreError
+    async fn is_assigned(
+        &mut self,
+        actor_id: ActorId,
+        actor_group_id: ActorGroupId,
+    ) -> Result<bool, Report<RoleAssignmentError>>;
+
     /// Unassigns an actor from a role.
     ///
     /// # Errors
