@@ -1,6 +1,6 @@
 use core::assert_matches::assert_matches;
 
-use super::{Type, TypeId, TypeKind, environment::UnificationContext};
+use super::{Type, TypeId, TypeKind, environment::Environment};
 use crate::{
     arena::Arena,
     span::SpanId,
@@ -16,11 +16,11 @@ use crate::{
     },
 };
 
-pub(crate) fn setup() -> UnificationContext {
-    UnificationContext::new(SpanId::SYNTHETIC, Arena::new())
+pub(crate) fn setup() -> Environment {
+    Environment::new(SpanId::SYNTHETIC, Arena::new())
 }
 
-pub(crate) fn instantiate(context: &mut UnificationContext, kind: TypeKind) -> TypeId {
+pub(crate) fn instantiate(context: &mut Environment, kind: TypeKind) -> TypeId {
     context.arena.arena_mut_test_only().push_with(|id| Type {
         id,
         span: SpanId::SYNTHETIC,

@@ -5,7 +5,7 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::UnificationContext,
+    environment::Environment,
     generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
@@ -59,7 +59,7 @@ impl PrettyPrint for OpaqueType {
 /// - Underlying types must be compatible according to variance rules
 /// - For generics, each type parameter follows its own variance rules
 pub(crate) fn unify_opaque(
-    context: &mut UnificationContext,
+    context: &mut Environment,
     lhs: &Type<OpaqueType>,
     rhs: &Type<OpaqueType>,
 ) {
@@ -111,7 +111,7 @@ mod tests {
 
     // Helper to create an opaque type for testing
     fn create_opaque_type(
-        context: &mut UnificationContext,
+        context: &mut Environment,
         name: &str,
         underlying_type: TypeId,
     ) -> Type<OpaqueType> {

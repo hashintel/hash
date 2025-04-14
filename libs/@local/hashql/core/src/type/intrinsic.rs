@@ -4,7 +4,7 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::UnificationContext,
+    environment::Environment,
     error::type_mismatch,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
@@ -124,7 +124,7 @@ impl PrettyPrint for IntrinsicType {
 /// - Dict keys are invariant (for reliable lookups)
 /// - Dict values are covariant (immutable collections)
 pub(crate) fn unify_intrinsic(
-    context: &mut UnificationContext,
+    context: &mut Environment,
     lhs: Type<IntrinsicType>,
     rhs: Type<IntrinsicType>,
 ) {

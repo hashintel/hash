@@ -141,7 +141,7 @@ impl Index<TypeId> for UnificationArena {
     }
 }
 
-pub struct UnificationContext {
+pub struct Environment {
     pub source: SpanId,
     pub arena: UnificationArena,
 
@@ -156,7 +156,7 @@ pub struct UnificationContext {
     arguments: HashMap<GenericArgumentId, TypeId, foldhash::fast::RandomState>,
 }
 
-impl UnificationContext {
+impl Environment {
     #[must_use]
     pub fn new(source: SpanId, arena: Arena<Type>) -> Self {
         Self {
@@ -303,7 +303,7 @@ mod test {
         span::SpanId,
         r#type::{
             Type, TypeId, TypeKind,
-            environment::{UnificationArena, UnificationContext, Variance},
+            environment::{Environment, UnificationArena, Variance},
             error::type_mismatch,
             generic_argument::GenericArgumentId,
             primitive::PrimitiveType,
@@ -594,7 +594,7 @@ mod test {
     #[test]
     fn variance_context() {
         let (arena, _, _) = setup_arena();
-        let mut context = UnificationContext::new(SpanId::SYNTHETIC, arena);
+        let mut context = Environment::new(SpanId::SYNTHETIC, arena);
 
         // Default should be covariant
         assert_eq!(context.variance_context(), Variance::Covariant);
@@ -626,7 +626,7 @@ mod test {
     #[test]
     fn generic_argument_scope() {
         let (arena, id1, _) = setup_arena();
-        let mut context = UnificationContext::new(SpanId::SYNTHETIC, arena);
+        let mut context = Environment::new(SpanId::SYNTHETIC, arena);
 
         let arg_id = GenericArgumentId::new(42);
 
@@ -649,7 +649,7 @@ mod test {
     #[test]
     fn diagnostics() {
         let (arena, id1, id2) = setup_arena();
-        let mut context = UnificationContext::new(SpanId::SYNTHETIC, arena);
+        let mut context = Environment::new(SpanId::SYNTHETIC, arena);
 
         // Initially no diagnostics
         assert!(context.take_diagnostics().is_empty());

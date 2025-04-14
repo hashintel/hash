@@ -5,7 +5,7 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId, TypeKind,
-    environment::UnificationContext,
+    environment::Environment,
     error::{TypeCheckDiagnostic, union_variant_mismatch},
     intersection_type_impl,
     pretty_print::PrettyPrint,
@@ -83,11 +83,7 @@ impl PrettyPrint for UnionType {
 /// this would be valid because:
 /// - `Integer <: Number`, so the `Integer` variant in `rhs` is covered
 /// - `String <: String`, so the `String` variant in `rhs` is covered
-pub(crate) fn unify_union(
-    context: &mut UnificationContext,
-    lhs: &Type<UnionType>,
-    rhs: &Type<UnionType>,
-) {
+pub(crate) fn unify_union(context: &mut Environment, lhs: &Type<UnionType>, rhs: &Type<UnionType>) {
     // For each variant in rhs (the provided type), check if it's a subtype of at least one lhs
     // variant
     for &rhs_variant in &rhs.kind.variants {
@@ -132,7 +128,7 @@ pub(crate) fn unify_union(
 }
 
 pub(crate) fn unify_union_lhs(
-    context: &mut UnificationContext,
+    context: &mut Environment,
     lhs: &Type<UnionType>,
     rhs: &Type<TypeKind>,
 ) {
@@ -144,7 +140,7 @@ pub(crate) fn unify_union_lhs(
 }
 
 pub(crate) fn unify_union_rhs(
-    context: &mut UnificationContext,
+    context: &mut Environment,
     lhs: &Type<TypeKind>,
     rhs: &Type<UnionType>,
 ) {
@@ -240,14 +236,14 @@ mod tests {
     use super::{UnionType, unify_union, unify_union_lhs, unify_union_rhs};
     use crate::r#type::{
         TypeId, TypeKind,
-        environment::UnificationContext,
+        environment::Environment,
         intersection_type,
         primitive::PrimitiveType,
         test::{instantiate, setup},
     };
 
     fn create_union_type(
-        context: &mut crate::r#type::environment::UnificationContext,
+        context: &mut crate::r#type::environment::Environment,
         variants: Vec<TypeId>,
     ) -> crate::r#type::Type<UnionType> {
         let id = context
@@ -403,7 +399,7 @@ mod tests {
     }
 
     fn create_union(
-        context: &mut UnificationContext,
+        context: &mut Environment,
         variants: impl IntoIterator<Item = TypeId>,
     ) -> TypeId {
         instantiate(

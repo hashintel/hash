@@ -5,7 +5,7 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::UnificationContext,
+    environment::Environment,
     error::function_parameter_count_mismatch,
     generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
@@ -86,7 +86,7 @@ impl PrettyPrint for ClosureType {
 /// - A function is a subtype of another if it accepts a wider range of inputs
 /// - And produces a narrower range of outputs
 pub(crate) fn unify_closure(
-    context: &mut UnificationContext,
+    context: &mut Environment,
     lhs: &Type<ClosureType>,
     rhs: &Type<ClosureType>,
 ) {
@@ -144,13 +144,14 @@ mod tests {
     use super::{ClosureType, unify_closure};
     use crate::r#type::{
         TypeId, TypeKind,
+        environment::Environment,
         generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
         primitive::PrimitiveType,
         test::{ident, instantiate, setup},
     };
 
     fn create_closure_type(
-        context: &mut crate::r#type::environment::UnificationContext,
+        context: &mut Environment,
         params: Vec<TypeId>,
         return_type: TypeId,
         arguments: GenericArguments,

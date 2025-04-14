@@ -11,7 +11,7 @@ use hashql_diagnostics::{
 
 use super::{
     Type,
-    environment::{UnificationArena, UnificationContext},
+    environment::{Environment, UnificationArena},
     generic_argument::GenericArgumentId,
     pretty_print::PrettyPrint,
 };
@@ -103,7 +103,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
 
 /// Creates a type mismatch diagnostic with specific labels for the left and right types
 pub(crate) fn type_mismatch<K>(
-    context: &UnificationContext,
+    context: &Environment,
 
     lhs: &Type<K>,
     rhs: &Type<K>,

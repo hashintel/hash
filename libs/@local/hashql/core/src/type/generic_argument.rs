@@ -5,7 +5,7 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::UnificationContext,
+    environment::Environment,
     error::generic_argument_not_found,
     pretty_print::{ORANGE, PrettyPrint},
     recursion::{RecursionGuard, RecursionLimit},
@@ -82,13 +82,13 @@ impl GenericArguments {
         slice.sort_by(|lhs, rhs| lhs.name.value.cmp(&rhs.name.value));
     }
 
-    pub fn enter_scope(&self, context: &mut UnificationContext) {
+    pub fn enter_scope(&self, context: &mut Environment) {
         for argument in &self.0 {
             context.enter_generic_argument_scope(argument.id, argument.r#type);
         }
     }
 
-    pub fn exit_scope(&self, context: &mut UnificationContext) {
+    pub fn exit_scope(&self, context: &mut Environment) {
         for argument in &self.0 {
             context.exit_generic_argument_scope(argument.id);
         }
@@ -176,7 +176,7 @@ impl PrettyPrint for Param {
 /// Unifies a type parameter on the left-hand side with a concrete type on the right-hand side.
 ///
 /// The variance context determines how the parameter and the concrete type are compared.
-pub(crate) fn unify_param_lhs(context: &mut UnificationContext, lhs: &Type<Param>, rhs: TypeId) {
+pub(crate) fn unify_param_lhs(context: &mut Environment, lhs: &Type<Param>, rhs: TypeId) {
     // First check if the generic argument is in scope
     let Some(argument) = context.generic_argument(lhs.kind.argument) else {
         let diagnostic = generic_argument_not_found(context.source, lhs, lhs.kind.argument);
@@ -196,7 +196,7 @@ pub(crate) fn unify_param_lhs(context: &mut UnificationContext, lhs: &Type<Param
 /// Unifies a concrete type on the left-hand side with a type parameter on the right-hand side.
 ///
 /// The variance context determines how the concrete type and parameter are compared.
-pub(crate) fn unify_param_rhs(context: &mut UnificationContext, lhs: TypeId, rhs: &Type<Param>) {
+pub(crate) fn unify_param_rhs(context: &mut Environment, lhs: TypeId, rhs: &Type<Param>) {
     // First check if the generic argument is in scope
     let Some(argument) = context.generic_argument(rhs.kind.argument) else {
         let diagnostic = generic_argument_not_found(context.source, rhs, rhs.kind.argument);
@@ -216,7 +216,7 @@ pub(crate) fn unify_param_rhs(context: &mut UnificationContext, lhs: TypeId, rhs
 /// Unifies two type parameters.
 ///
 /// The variance context determines how the parameters are compared.
-pub(crate) fn unify_param(context: &mut UnificationContext, lhs: &Type<Param>, rhs: &Type<Param>) {
+pub(crate) fn unify_param(context: &mut Environment, lhs: &Type<Param>, rhs: &Type<Param>) {
     // First check if both generic arguments are in scope
     let lhs_argument = context.generic_argument(lhs.kind.argument);
 
@@ -264,7 +264,7 @@ mod tests {
     };
 
     fn create_param(
-        context: &mut crate::r#type::environment::UnificationContext,
+        context: &mut crate::r#type::environment::Environment,
         argument_id: GenericArgumentId,
         name: &str,
     ) -> crate::r#type::Type<Param> {

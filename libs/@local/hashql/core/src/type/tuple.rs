@@ -5,7 +5,7 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::UnificationContext,
+    environment::Environment,
     error::tuple_length_mismatch,
     generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
@@ -100,11 +100,7 @@ impl PrettyPrint for TupleType {
 /// In a covariant context:
 /// - Both tuples must have the same number of fields (tuples are invariant in length)
 /// - Each corresponding field must be covariant
-pub(crate) fn unify_tuple(
-    context: &mut UnificationContext,
-    lhs: &Type<TupleType>,
-    rhs: &Type<TupleType>,
-) {
+pub(crate) fn unify_tuple(context: &mut Environment, lhs: &Type<TupleType>, rhs: &Type<TupleType>) {
     // Tuples must have the same number of fields
     if lhs.kind.fields.len() != rhs.kind.fields.len() {
         let diagnostic = tuple_length_mismatch(
@@ -151,7 +147,7 @@ mod tests {
         span::SpanId,
         r#type::{
             Type, TypeId, TypeKind,
-            environment::UnificationContext,
+            environment::Environment,
             error::TypeCheckDiagnosticCategory,
             generic_argument::GenericArguments,
             primitive::PrimitiveType,
@@ -160,10 +156,7 @@ mod tests {
         },
     };
 
-    fn create_tuple_type(
-        context: &mut UnificationContext,
-        field_types: Vec<TypeId>,
-    ) -> Type<TupleType> {
+    fn create_tuple_type(context: &mut Environment, field_types: Vec<TypeId>) -> Type<TupleType> {
         let fields = field_types
             .into_iter()
             .map(|type_id| TupleField { value: type_id })

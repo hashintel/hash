@@ -21,7 +21,7 @@ use pretty::RcDoc;
 
 use self::{
     closure::{ClosureType, unify_closure},
-    environment::{UnificationContext, Variance},
+    environment::{Environment, Variance},
     error::{TypeCheckDiagnostic, expected_never, intersection_coerced_to_never, type_mismatch},
     generic_argument::{Param, unify_param, unify_param_lhs, unify_param_rhs},
     intrinsic::{IntrinsicType, unify_intrinsic},
@@ -275,7 +275,7 @@ impl HasId for Type {
 /// e.g. `lhs <: rhs` and `rhs <: lhs`
 ///
 /// This is the main entry point for type unification that respects variance.
-pub fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: TypeId) {
+pub fn unify_type(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
     match context.variance_context() {
         Variance::Covariant => {
             // In covariant context: can `rhs` be used where `lhs` is expected?
@@ -304,7 +304,7 @@ pub fn unify_type(context: &mut UnificationContext, lhs: TypeId, rhs: TypeId) {
 /// - Only if both succeed are the types considered invariant compatible.
 ///
 /// This approach ensures proper invariance without cloning the entire arena.
-fn unify_type_invariant(context: &mut UnificationContext, lhs: TypeId, rhs: TypeId) {
+fn unify_type_invariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
     // Fast path for identical types
     if lhs == rhs {
         return;
@@ -366,7 +366,7 @@ fn unify_type_invariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
 /// Each match arm in this function implements the covariant subtyping rule for a specific type
 /// combination.
 #[expect(clippy::too_many_lines)]
-fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: TypeId) {
+fn unify_type_covariant(context: &mut Environment, lhs: TypeId, rhs: TypeId) {
     if context.visit(lhs, rhs) {
         // We've detected a circular reference in the type graph
         let lhs_type = &context.arena[lhs];

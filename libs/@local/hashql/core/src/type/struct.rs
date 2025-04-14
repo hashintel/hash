@@ -6,7 +6,7 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::UnificationContext,
+    environment::Environment,
     error::{TypeCheckDiagnostic, type_mismatch},
     generic_argument::GenericArguments,
     intersection_type,
@@ -123,7 +123,7 @@ impl PrettyPrint for StructType {
 /// - rhs must have at least all the fields that lhs has (width subtyping).
 /// - Field types must respect covariance (rhs fields must be subtypes of left field types)
 pub(crate) fn unify_struct(
-    context: &mut UnificationContext,
+    context: &mut Environment,
     lhs: &Type<StructType>,
     rhs: &Type<StructType>,
 ) {

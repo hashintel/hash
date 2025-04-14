@@ -4,7 +4,7 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::UnificationContext,
+    environment::Environment,
     error::type_mismatch,
     pretty_print::{BLUE, PrettyPrint},
     recursion::RecursionLimit,
@@ -53,7 +53,7 @@ impl PrettyPrint for PrimitiveType {
 /// For primitives, the main subtyping relationship is Integer <: Number
 /// (Integer is a subtype of Number).
 pub(crate) fn unify_primitive(
-    context: &mut UnificationContext,
+    context: &mut Environment,
     lhs: Type<PrimitiveType>,
     rhs: Type<PrimitiveType>,
 ) {
