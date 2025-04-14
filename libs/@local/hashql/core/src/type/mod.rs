@@ -26,7 +26,7 @@ use self::{
     generic_argument::{Param, unify_param, unify_param_lhs, unify_param_rhs},
     intrinsic::{IntrinsicType, unify_intrinsic},
     opaque::{OpaqueType, unify_opaque},
-    pretty_print::{CYAN, GRAY, PrettyPrint, RED},
+    pretty_print::{CYAN, GRAY, PrettyPrint},
     primitive::{PrimitiveType, intersection_primitive, unify_primitive},
     recursion::{RecursionGuard, RecursionLimit},
     r#struct::{StructType, intersection_struct, unify_struct},
@@ -57,7 +57,6 @@ pub enum TypeKind {
     Infer,
     // This type is linked / the same type as another, only happens on infer chains
     Link(TypeId),
-    Error,
 }
 
 impl TypeKind {
@@ -150,8 +149,7 @@ impl TypeKind {
 
             (Self::Never, Self::Never)
             | (Self::Unknown, Self::Unknown)
-            | (Self::Infer, Self::Infer)
-            | (Self::Error, Self::Error) => true,
+            | (Self::Infer, Self::Infer) => true,
 
             _ => false,
         }
@@ -177,7 +175,6 @@ impl PrettyPrint for TypeKind {
             Self::Unknown => RcDoc::text("?").annotate(CYAN),
             Self::Infer => RcDoc::text("_").annotate(GRAY),
             &Self::Link(id) => arena[id].pretty(arena, limit),
-            Self::Error => RcDoc::text("<<ERROR>>").annotate(RED),
         }
     }
 }
@@ -375,8 +372,6 @@ fn unify_type_covariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
         let diagnostic = error::circular_type_reference(env.source, lhs_type, rhs_type);
 
         env.record_diagnostic(diagnostic);
-        env.mark_error(lhs);
-        env.mark_error(rhs);
         return;
     }
 
@@ -407,22 +402,6 @@ fn unify_type_covariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
         (_, &TypeKind::Link(rhs_id)) => {
             // The rhs is a link - follow it and unify with lhs
             unify_type(env, lhs.id, rhs_id);
-        }
-
-        // Error types represent invalid or erroneous types
-        (TypeKind::Error, TypeKind::Error) => {
-            // Both types are errors - they're considered compatible
-            // This prevents cascading errors
-        }
-        (TypeKind::Error, _) => {
-            // The lhs is an error - propagate the error to rhs
-            // This ensures errors flow through the type system
-            env.mark_error(rhs.id);
-        }
-        (_, TypeKind::Error) => {
-            // The rhs is an error - propagate the error to lhs
-            // This ensures errors flow through the type system
-            env.mark_error(lhs.id);
         }
 
         // Inference variables are special cases that can be refined during unification
@@ -549,7 +528,6 @@ fn unify_type_covariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
             );
 
             env.record_diagnostic(diagnostic);
-            env.mark_error(rhs_id);
         }
 
         // Never is the bottom type - it's a subtype of all other types
@@ -567,9 +545,6 @@ fn unify_type_covariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
             // In covariant context: A concrete type (lhs) is not a supertype of Never (rhs)
             // This is an error - we expected lhs but got a Never
             let diagnostic = expected_never(rhs.span, &env.arena, lhs);
-
-            // Mark as error since the types are incompatible
-            env.mark_error(lhs.id);
 
             env.record_diagnostic(diagnostic);
         }
@@ -591,8 +566,6 @@ fn unify_type_covariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
             let diagnostic = type_mismatch(env, lhs, rhs, Some(help_message));
 
             env.record_diagnostic(diagnostic);
-            env.mark_error(lhs_id);
-            env.mark_error(rhs_id);
         }
     }
 

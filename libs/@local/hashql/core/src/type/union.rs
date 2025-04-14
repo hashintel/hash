@@ -115,7 +115,6 @@ pub(crate) fn unify_union(env: &mut Environment, lhs: &Type<UnionType>, rhs: &Ty
                 union_variant_mismatch(rhs.span, &env.arena, &env.arena[rhs_variant], lhs);
 
             env.record_diagnostic(diagnostic);
-            env.mark_error(rhs_variant);
         }
     }
 

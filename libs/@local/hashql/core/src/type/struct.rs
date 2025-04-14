@@ -140,7 +140,6 @@ pub(crate) fn unify_struct(env: &mut Environment, lhs: &Type<StructType>, rhs: &
     // - Field types must respect the current variance context
 
     // Check if all lhs fields exist in rhs
-    let mut missing_fields = false;
     for lhs_field in &lhs.kind.fields {
         if let Some(rhs_field) = rhs_by_key.get(&lhs_field.key.value) {
             // This field exists in both structs - unify the field types
@@ -162,13 +161,7 @@ pub(crate) fn unify_struct(env: &mut Environment, lhs: &Type<StructType>, rhs: &
             );
 
             env.record_diagnostic(diagnostic);
-            missing_fields = true;
         }
-    }
-
-    if missing_fields {
-        env.mark_error(lhs.id);
-        env.mark_error(rhs.id);
     }
 
     lhs.kind.arguments.exit_scope(env);

@@ -194,10 +194,6 @@ pub(crate) fn unify_intrinsic(
             };
 
             env.record_diagnostic(type_mismatch(env, &lhs, &rhs, help));
-
-            // Mark both types as errors
-            env.mark_error(lhs.id);
-            env.mark_error(rhs.id);
         }
     }
 }
@@ -398,26 +394,22 @@ mod tests {
                 (PrimitiveType::String, None),
                 (PrimitiveType::String, Some(PrimitiveType::Number)),
                 "List and Dict",
-                true,
             ),
             // List<String> vs List<Number>
             (
                 (PrimitiveType::String, None),
                 (PrimitiveType::Number, None),
                 "lists with incompatible elements",
-                false,
             ),
             // Dict<String, String> vs Dict<Number, String>
             (
                 (PrimitiveType::String, Some(PrimitiveType::String)),
                 (PrimitiveType::Number, Some(PrimitiveType::String)),
                 "dicts with incompatible keys",
-                false,
             ),
         ];
 
-        for ((lhs_key, lhs_value), (rhs_key, rhs_value), description, should_be_error) in test_cases
-        {
+        for ((lhs_key, lhs_value), (rhs_key, rhs_value), description) in test_cases {
             let mut context = setup();
 
             let lhs_id = if let Some(value) = lhs_value {
@@ -467,20 +459,6 @@ mod tests {
                 context.take_diagnostics().len(),
                 1,
                 "Expected error when unifying {description}"
-            );
-
-            if !should_be_error {
-                continue;
-            }
-
-            // Verify both types are marked as errors
-            assert!(
-                matches!(context.arena[lhs_id].kind, TypeKind::Error),
-                "Left type not marked as error for {description}"
-            );
-            assert!(
-                matches!(context.arena[rhs_id].kind, TypeKind::Error),
-                "Right type not marked as error for {description}"
             );
         }
     }

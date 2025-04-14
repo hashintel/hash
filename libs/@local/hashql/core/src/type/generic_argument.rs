@@ -181,7 +181,7 @@ pub(crate) fn unify_param_lhs(env: &mut Environment, lhs: &Type<Param>, rhs: Typ
     let Some(argument) = env.generic_argument(lhs.kind.argument) else {
         let diagnostic = generic_argument_not_found(env.source, lhs, lhs.kind.argument);
         env.record_diagnostic(diagnostic);
-        env.mark_error(lhs.id);
+
         return;
     };
 
@@ -201,7 +201,7 @@ pub(crate) fn unify_param_rhs(env: &mut Environment, lhs: TypeId, rhs: &Type<Par
     let Some(argument) = env.generic_argument(rhs.kind.argument) else {
         let diagnostic = generic_argument_not_found(env.source, rhs, rhs.kind.argument);
         env.record_diagnostic(diagnostic);
-        env.mark_error(rhs.id);
+
         return;
     };
 
@@ -224,7 +224,6 @@ pub(crate) fn unify_param(env: &mut Environment, lhs: &Type<Param>, rhs: &Type<P
         let diagnostic = generic_argument_not_found(env.source, lhs, lhs.kind.argument);
 
         env.record_diagnostic(diagnostic);
-        env.mark_error(lhs.id);
     }
 
     let rhs_argument = env.generic_argument(rhs.kind.argument);
@@ -233,7 +232,6 @@ pub(crate) fn unify_param(env: &mut Environment, lhs: &Type<Param>, rhs: &Type<P
         let diagnostic = generic_argument_not_found(env.source, rhs, rhs.kind.argument);
 
         env.record_diagnostic(diagnostic);
-        env.mark_error(rhs.id);
     }
 
     let Some((lhs_argument, rhs_argument)) = Option::zip(lhs_argument, rhs_argument) else {

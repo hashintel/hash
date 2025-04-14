@@ -81,10 +81,6 @@ pub(crate) fn unify_primitive(
                      all Numbers are Integers (e.g., decimals like 3.14).",
                 ),
             ));
-
-            // Mark both types as errors
-            env.mark_error(lhs.id);
-            env.mark_error(rhs.id);
         }
 
         _ => {
@@ -124,10 +120,6 @@ pub(crate) fn unify_primitive(
 
             // Record a type mismatch diagnostic with helpful conversion suggestions
             env.record_diagnostic(type_mismatch(env, &lhs, &rhs, help_message));
-
-            // Mark both types as errors to prevent further error propagation
-            env.mark_error(lhs.id);
-            env.mark_error(rhs.id);
         }
     }
 }
@@ -249,16 +241,6 @@ mod tests {
             1,
             "Expected error when using Number where Integer is required"
         );
-
-        // Both types should be marked as errors
-        assert!(
-            matches!(context.arena[int_id].kind, TypeKind::Error),
-            "Integer type not marked as error"
-        );
-        assert!(
-            matches!(context.arena[num_id].kind, TypeKind::Error),
-            "Number type not marked as error"
-        );
     }
 
     #[test]
@@ -315,17 +297,6 @@ mod tests {
                 context.take_diagnostics().len(),
                 1,
                 "Expected error when unifying {description}"
-            );
-
-            // Verify both types are marked as errors
-            assert!(
-                matches!(context.arena[lhs_id].kind, TypeKind::Error),
-                "Left type not marked as error for {description}"
-            );
-
-            assert!(
-                matches!(context.arena[rhs_id].kind, TypeKind::Error),
-                "Right type not marked as error for {description}"
             );
         }
     }

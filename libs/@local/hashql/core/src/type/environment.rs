@@ -197,19 +197,8 @@ impl Environment {
         self.fatal_diagnostics
     }
 
-    pub(crate) fn mark_error(&mut self, id: TypeId) {
-        self.arena
-            .update_with(id, |r#type| r#type.kind = TypeKind::Error);
-    }
-
     #[track_caller]
     pub(crate) fn update_kind(&mut self, id: TypeId, kind: TypeKind) {
-        assert_ne!(
-            kind,
-            TypeKind::Error,
-            "Use `UnificationError::mark_error` to mark a type as an error"
-        );
-
         self.arena.update_with(id, |r#type| r#type.kind = kind);
     }
 
@@ -660,9 +649,5 @@ mod test {
 
         // Should be empty after taking
         assert!(context.take_diagnostics().is_empty());
-
-        // Test marking error
-        context.mark_error(id1);
-        assert!(matches!(context.arena[id1].kind, TypeKind::Error));
     }
 }

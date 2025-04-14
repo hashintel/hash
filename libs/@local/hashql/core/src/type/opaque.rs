@@ -71,8 +71,7 @@ pub(crate) fn unify_opaque(env: &mut Environment, lhs: &Type<OpaqueType>, rhs: &
         );
 
         env.record_diagnostic(diagnostic);
-        env.mark_error(lhs.id);
-        env.mark_error(rhs.id);
+
         return;
     }
 

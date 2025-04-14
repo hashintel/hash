@@ -58,9 +58,13 @@ fn never_with_other_type() {
 
     unify_type(&mut context, never, other);
 
-    // Never stays the same, but the other type becomes Error since it should have been Never
+    assert!(
+        !context.take_diagnostics().is_empty(),
+        "There should be an error during unification"
+    );
+
     assert!(matches!(context.arena[never].kind, TypeKind::Never));
-    assert!(matches!(context.arena[other].kind, TypeKind::Error));
+    assert!(matches!(context.arena[other].kind, TypeKind::Unknown));
 }
 
 #[test]
@@ -117,20 +121,6 @@ fn infer_with_concrete_type() {
 
     // Infer should become the concrete type
     assert_matches!(context.arena[infer].kind, TypeKind::Never);
-}
-
-#[test]
-fn error_propagates() {
-    let mut context = setup();
-
-    let error = instantiate(&mut context, TypeKind::Error);
-    let other = instantiate(&mut context, TypeKind::Never);
-
-    unify_type(&mut context, error, other);
-
-    // Error should propagate to both types
-    assert_matches!(context.arena[error].kind, TypeKind::Error);
-    assert_matches!(context.arena[other].kind, TypeKind::Error);
 }
 
 #[test]
@@ -217,23 +207,6 @@ fn never_and_infer_interaction() {
 }
 
 #[test]
-fn error_with_link_chain() {
-    let mut context = setup();
-
-    // Create a chain with an Error in the middle
-    let concrete = instantiate(&mut context, TypeKind::Unknown);
-    let error = instantiate(&mut context, TypeKind::Error);
-    let link1 = instantiate(&mut context, TypeKind::Link(error));
-    let link2 = instantiate(&mut context, TypeKind::Link(link1));
-
-    // Unify the head of the chain with a concrete type
-    unify_type(&mut context, link2, concrete);
-
-    // Error should propagate through the chain
-    assert!(matches!(context.arena[concrete].kind, TypeKind::Error));
-}
-
-#[test]
 fn mixed_special_types_unification() {
     let mut context = setup();
 
@@ -260,29 +233,6 @@ fn mixed_special_types_unification() {
     assert_matches!(context.arena[infer2].kind, TypeKind::Never);
     assert_matches!(context.arena[unknown].kind, TypeKind::Unknown);
     assert_matches!(context.arena[never].kind, TypeKind::Never);
-}
-
-#[test]
-fn error_propagation_through_mixed_types() {
-    let mut context = setup();
-
-    // Start with different special types
-    let error = instantiate(&mut context, TypeKind::Error);
-    let never = instantiate(&mut context, TypeKind::Never);
-    let unknown = instantiate(&mut context, TypeKind::Unknown);
-    let infer = instantiate(&mut context, TypeKind::Infer);
-
-    // Create sequence: error -> never -> unknown -> infer
-    // Each step will mark the types as Error due to propagation
-    unify_type(&mut context, error, never);
-    unify_type(&mut context, never, unknown);
-    unify_type(&mut context, unknown, infer);
-
-    // Error should propagate to all types
-    assert!(matches!(context.arena[error].kind, TypeKind::Error));
-    assert!(matches!(context.arena[never].kind, TypeKind::Error));
-    assert!(matches!(context.arena[unknown].kind, TypeKind::Error));
-    assert!(matches!(context.arena[infer].kind, TypeKind::Error));
 }
 
 #[test]

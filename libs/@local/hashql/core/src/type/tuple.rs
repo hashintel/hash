@@ -112,8 +112,7 @@ pub(crate) fn unify_tuple(env: &mut Environment, lhs: &Type<TupleType>, rhs: &Ty
         );
 
         env.record_diagnostic(diagnostic);
-        env.mark_error(lhs.id);
-        env.mark_error(rhs.id);
+
         return;
     }
 
