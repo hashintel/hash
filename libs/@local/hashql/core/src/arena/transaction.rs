@@ -150,9 +150,11 @@ where
     type Output = T;
 
     fn index(&self, index: T::Id) -> &Self::Output {
-        self.items
-            .get(index.as_usize())
-            .expect("Item with id {id} not found")
+        let Some(item) = self.items.get(index.as_usize()) else {
+            panic!("Item with id {index} not found")
+        };
+
+        item
     }
 }
 
