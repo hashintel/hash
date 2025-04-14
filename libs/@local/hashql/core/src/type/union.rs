@@ -65,7 +65,7 @@ impl PrettyPrint for UnionType {
 ///
 /// *Known limitation*: When unifying unions containing inference variables with other unions,
 /// type information can be lost. For example:
-/// ```
+/// ```text
 /// let x: _ | Integer = 3 in         // x is an Integer
 /// let y: Boolean | String = "test" in  // y is a String
 /// unify(x, y)  // Results in Boolean | Integer, losing the String information

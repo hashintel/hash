@@ -13,7 +13,7 @@ pub mod r#struct;
 pub(crate) mod test;
 pub mod tuple;
 pub mod unify;
-pub mod r#union;
+pub mod union;
 
 use core::{mem, ops::Index};
 
@@ -31,8 +31,10 @@ use self::{
     r#struct::{StructType, intersection_struct, unify_struct},
     tuple::{TupleType, unify_tuple},
     unify::{UnificationContext, Variance},
-    union::{intersection_union, intersection_with_union},
-    r#union::{UnionType, unify_union, unify_union_lhs, unify_union_rhs},
+    union::{
+        UnionType, intersection_union, intersection_with_union, unify_union, unify_union_lhs,
+        unify_union_rhs,
+    },
 };
 use crate::{arena::Arena, id::HasId, newtype, span::SpanId};
 
