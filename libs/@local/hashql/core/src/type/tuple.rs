@@ -5,14 +5,12 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::Environment,
+    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
     error::tuple_length_mismatch,
     generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
-    recursion::{RecursionGuard, RecursionLimit},
-    unify_type,
+    recursion::RecursionDepthBoundary,
 };
-use crate::arena::Arena;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TupleField {
@@ -23,10 +21,9 @@ impl TupleField {
     fn structurally_equivalent(
         self,
         other: Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
-        arena[self.value].structurally_equivalent_impl(&arena[other.value], arena, guard)
+        env.structurally_equivalent(self.value, other.value)
     }
 }
 
@@ -34,7 +31,7 @@ impl PrettyPrint for TupleField {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         limit.pretty(&arena[self.value], arena)
     }
@@ -51,18 +48,17 @@ impl TupleType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         self.fields.len() == other.fields.len()
             && self
                 .fields
                 .iter()
                 .zip(other.fields.iter())
-                .all(|(&lhs, &rhs)| lhs.structurally_equivalent(rhs, arena, guard))
+                .all(|(&lhs, &rhs)| lhs.structurally_equivalent(rhs, env))
             && self
                 .arguments
-                .structurally_equivalent(&other.arguments, arena, guard)
+                .structurally_equivalent(&other.arguments, env)
     }
 }
 
@@ -70,7 +66,7 @@ impl PrettyPrint for TupleType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         let inner = if self.fields.is_empty() {
             RcDoc::text("()")
@@ -100,7 +96,11 @@ impl PrettyPrint for TupleType {
 /// In a covariant context:
 /// - Both tuples must have the same number of fields (tuples are invariant in length)
 /// - Each corresponding field must be covariant
-pub(crate) fn unify_tuple(env: &mut Environment, lhs: &Type<TupleType>, rhs: &Type<TupleType>) {
+pub(crate) fn unify_tuple(
+    env: &mut UnificationEnvironment,
+    lhs: &Type<TupleType>,
+    rhs: &Type<TupleType>,
+) {
     // Tuples must have the same number of fields
     if lhs.kind.fields.len() != rhs.kind.fields.len() {
         let diagnostic = tuple_length_mismatch(
@@ -124,8 +124,8 @@ pub(crate) fn unify_tuple(env: &mut Environment, lhs: &Type<TupleType>, rhs: &Ty
     // In most type systems, tuple fields are covariant
     for (lhs_field, rhs_field) in lhs.kind.fields.iter().zip(rhs.kind.fields.iter()) {
         // Use covariant context for field types
-        env.in_covariant(|ctx| {
-            unify_type(ctx, lhs_field.value, rhs_field.value);
+        env.in_covariant(|env| {
+            env.unify_type(lhs_field.value, rhs_field.value);
         });
     }
 
@@ -166,7 +166,7 @@ mod tests {
             arguments: GenericArguments::default(),
         };
 
-        let id = env.arena.arena_mut_test_only().push_with(|id| Type {
+        let id = env.arena.push_with(|id| Type {
             id,
             span: SpanId::SYNTHETIC,
             kind: TypeKind::Tuple(tuple_type),

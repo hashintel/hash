@@ -5,13 +5,11 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::Environment,
+    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
     generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
-    recursion::{RecursionGuard, RecursionLimit},
-    unify_type,
+    recursion::RecursionDepthBoundary,
 };
-use crate::arena::Arena;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OpaqueType {
@@ -26,14 +24,13 @@ impl OpaqueType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         // We do not check if the inner type is equivalent because opaque types are nominal
         self.name == other.name
             && self
                 .arguments
-                .structurally_equivalent(&other.arguments, arena, guard)
+                .structurally_equivalent(&other.arguments, env)
     }
 }
 
@@ -41,7 +38,7 @@ impl PrettyPrint for OpaqueType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text(self.name.as_str())
             .append(self.arguments.pretty(arena, limit))
@@ -58,7 +55,11 @@ impl PrettyPrint for OpaqueType {
 /// - Types must have the same name to be compatible
 /// - Underlying types must be compatible according to variance rules
 /// - For generics, each type parameter follows its own variance rules
-pub(crate) fn unify_opaque(env: &mut Environment, lhs: &Type<OpaqueType>, rhs: &Type<OpaqueType>) {
+pub(crate) fn unify_opaque(
+    env: &mut UnificationEnvironment,
+    lhs: &Type<OpaqueType>,
+    rhs: &Type<OpaqueType>,
+) {
     // Opaque types require the same name - this is core to nominal typing
     // Names must match exactly, regardless of variance context
     if lhs.kind.name != rhs.kind.name {
@@ -82,7 +83,7 @@ pub(crate) fn unify_opaque(env: &mut Environment, lhs: &Type<OpaqueType>, rhs: &
     // Unify the underlying types with the current variance context
     // Typically opaque types are invariant over their wrapped type
     // but we're respecting the enclosing context here for flexibility
-    unify_type(env, lhs.kind.r#type, rhs.kind.r#type);
+    env.unify_type(lhs.kind.r#type, rhs.kind.r#type);
 
     // Exit generic argument scope
     rhs.kind.arguments.exit_scope(env);
@@ -94,23 +95,26 @@ pub(crate) fn unify_opaque(env: &mut Environment, lhs: &Type<OpaqueType>, rhs: &
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        super::{
-            TypeKind,
+
+    use super::OpaqueType;
+    use crate::{
+        span::SpanId,
+        r#type::{
+            Type, TypeId, TypeKind,
+            environment::UnificationEnvironment,
+            generic_argument::GenericArguments,
             primitive::PrimitiveType,
             test::{instantiate, setup},
         },
-        *,
     };
-    use crate::span::SpanId;
 
     // Helper to create an opaque type for testing
     fn create_opaque_type(
-        env: &mut Environment,
+        env: &mut UnificationEnvironment,
         name: &str,
         underlying_type: TypeId,
     ) -> Type<OpaqueType> {
-        let id = env.arena.arena_mut_test_only().push_with(|id| Type {
+        let id = env.arena.push_with(|id| Type {
             id,
             span: SpanId::SYNTHETIC,
             kind: TypeKind::Opaque(OpaqueType {

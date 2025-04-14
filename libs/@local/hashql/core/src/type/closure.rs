@@ -5,14 +5,12 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::Environment,
+    environment::{Environment, StructuralEquivalenceEnvironment, UnificationEnvironment},
     error::function_parameter_count_mismatch,
     generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
-    recursion::{RecursionGuard, RecursionLimit},
-    unify_type,
+    recursion::RecursionDepthBoundary,
 };
-use crate::arena::Arena;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ClosureType {
@@ -26,25 +24,18 @@ impl ClosureType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         self.params.len() == other.params.len()
             && self
                 .params
                 .iter()
                 .zip(other.params.iter())
-                .all(|(&lhs, &rhs)| {
-                    arena[lhs].structurally_equivalent_impl(&arena[rhs], arena, guard)
-                })
-            && arena[self.return_type].structurally_equivalent_impl(
-                &arena[other.return_type],
-                arena,
-                guard,
-            )
+                .all(|(&lhs, &rhs)| env.structurally_equivalent(lhs, rhs))
+            && env.structurally_equivalent(self.return_type, other.return_type)
             && self
                 .arguments
-                .structurally_equivalent(&other.arguments, arena, guard)
+                .structurally_equivalent(&other.arguments, env)
     }
 }
 
@@ -52,7 +43,7 @@ impl PrettyPrint for ClosureType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         self.arguments
             .pretty(arena, limit)
@@ -86,7 +77,7 @@ impl PrettyPrint for ClosureType {
 /// - A function is a subtype of another if it accepts a wider range of inputs
 /// - And produces a narrower range of outputs
 pub(crate) fn unify_closure(
-    env: &mut Environment,
+    env: &mut UnificationEnvironment,
     lhs: &Type<ClosureType>,
     rhs: &Type<ClosureType>,
 ) {
@@ -113,8 +104,8 @@ pub(crate) fn unify_closure(
     //   B's parameters must be subtypes of A's parameters
     //   (A can accept a wider range of inputs than B requires)
     for (&lhs_param, &rhs_param) in lhs.kind.params.iter().zip(rhs.kind.params.iter()) {
-        env.in_contravariant(|ctx| {
-            unify_type(ctx, lhs_param, rhs_param);
+        env.in_contravariant(|env| {
+            env.unify_type(lhs_param, rhs_param);
         });
     }
 
@@ -123,7 +114,7 @@ pub(crate) fn unify_closure(
     //   A's return type must be a subtype of B's return type
     //   (A can return a more specific type than B requires)
     env.in_covariant(|ctx| {
-        unify_type(ctx, lhs.kind.return_type, rhs.kind.return_type);
+        ctx.unify_type(lhs.kind.return_type, rhs.kind.return_type);
     });
 
     // Clean up generic argument scope
@@ -156,17 +147,15 @@ mod tests {
         return_type: TypeId,
         arguments: GenericArguments,
     ) -> crate::r#type::Type<ClosureType> {
-        let id = env
-            .arena_mut_test_only()
-            .push_with(|id| crate::r#type::Type {
-                id,
-                span: crate::span::SpanId::SYNTHETIC,
-                kind: TypeKind::Closure(ClosureType {
-                    params: params.into(),
-                    return_type,
-                    arguments,
-                }),
-            });
+        let id = env.arena.push_with(|id| crate::r#type::Type {
+            id,
+            span: crate::span::SpanId::SYNTHETIC,
+            kind: TypeKind::Closure(ClosureType {
+                params: params.into(),
+                return_type,
+                arguments,
+            }),
+        });
 
         env.arena[id]
             .clone()

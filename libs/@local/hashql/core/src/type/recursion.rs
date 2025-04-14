@@ -1,17 +1,17 @@
 use core::ops::Index;
-use std::collections::HashSet;
 
+use archery::RcK;
 use pretty::RcDoc;
 
 use super::{Type, TypeId, pretty_print::PrettyPrint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct RecursionLimit {
+pub(crate) struct RecursionDepthBoundary {
     pub depth: usize,
     pub limit: usize,
 }
 
-impl RecursionLimit {
+impl RecursionDepthBoundary {
     pub(crate) fn pretty<'a, T>(
         self,
         node: &'a T,
@@ -35,31 +35,54 @@ impl RecursionLimit {
     }
 }
 
-pub(crate) struct RecursionGuard {
-    inner: HashSet<(TypeId, TypeId), foldhash::fast::RandomState>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RecursionBoundary {
+    inner: rpds::HashTrieSet<(TypeId, TypeId), RcK, foldhash::fast::RandomState>,
 }
 
-impl RecursionGuard {
+impl RecursionBoundary {
     pub(crate) fn new() -> Self {
         Self {
-            inner: HashSet::default(),
+            inner: rpds::HashTrieSet::new_with_hasher_with_ptr_kind(
+                foldhash::fast::RandomState::default(),
+            ),
         }
     }
 
-    pub(crate) fn enter(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        self.inner.insert((lhs, rhs))
-    }
-
-    pub(crate) fn leave(&mut self, lhs: TypeId, rhs: TypeId) {
-        self.inner.remove(&(lhs, rhs));
-    }
-
     pub(crate) fn with<T>(
-        &mut self,
+        &self,
         lhs: TypeId,
         rhs: TypeId,
-        closure: impl FnOnce(&mut Self) -> T,
+        closure: impl FnOnce(Self) -> T,
     ) -> Option<T> {
-        self.enter(lhs, rhs).then(|| closure(self))
+        let contains = self.inner.contains(&(lhs, rhs));
+
+        if contains {
+            return None;
+        }
+
+        let result = closure(Self {
+            inner: self.inner.insert((lhs, rhs)),
+        });
+
+        Some(result)
+    }
+
+    pub(crate) fn enter(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        if self.inner.contains(&(lhs, rhs)) {
+            false
+        } else {
+            self.inner.insert_mut((lhs, rhs));
+            true
+        }
+    }
+
+    pub(crate) fn exit(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        if self.inner.contains(&(lhs, rhs)) {
+            self.inner.remove_mut(&(lhs, rhs));
+            true
+        } else {
+            false
+        }
     }
 }

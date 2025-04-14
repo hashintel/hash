@@ -11,7 +11,6 @@ use crate::{
         opaque::OpaqueType,
         primitive::PrimitiveType,
         r#struct::{StructField, StructType},
-        unify_type,
         union::UnionType,
     },
 };
@@ -21,7 +20,7 @@ pub(crate) fn setup() -> Environment {
 }
 
 pub(crate) fn instantiate(env: &mut Environment, kind: TypeKind) -> TypeId {
-    env.arena.arena_mut_test_only().push_with(|id| Type {
+    env.arena.push_with(|id| Type {
         id,
         span: SpanId::SYNTHETIC,
         kind,
@@ -43,7 +42,7 @@ fn unify_never_types() {
     let never1 = instantiate(&mut context, TypeKind::Never);
     let never2 = instantiate(&mut context, TypeKind::Never);
 
-    unify_type(&mut context, never1, never2);
+    unify_type_impl(&mut context, never1, never2);
 
     assert!(matches!(context.arena[never1].kind, TypeKind::Never));
     assert!(matches!(context.arena[never2].kind, TypeKind::Never));
@@ -56,7 +55,7 @@ fn never_with_other_type() {
     let never = instantiate(&mut context, TypeKind::Never);
     let other = instantiate(&mut context, TypeKind::Unknown);
 
-    unify_type(&mut context, never, other);
+    unify_type_impl(&mut context, never, other);
 
     assert!(
         !context.take_diagnostics().is_empty(),
@@ -74,7 +73,7 @@ fn unify_unknown_types() {
     let unknown1 = instantiate(&mut context, TypeKind::Unknown);
     let unknown2 = instantiate(&mut context, TypeKind::Unknown);
 
-    unify_type(&mut context, unknown1, unknown2);
+    unify_type_impl(&mut context, unknown1, unknown2);
 
     assert!(matches!(context.arena[unknown1].kind, TypeKind::Unknown));
     assert!(matches!(context.arena[unknown2].kind, TypeKind::Unknown));
@@ -87,7 +86,7 @@ fn unknown_with_other_type() {
     let unknown = instantiate(&mut context, TypeKind::Unknown);
     let never = instantiate(&mut context, TypeKind::Never);
 
-    unify_type(&mut context, unknown, never);
+    unify_type_impl(&mut context, unknown, never);
 
     // Unknown becomes Error when unified with Never, since it's expected to be Never
     assert!(matches!(context.arena[unknown].kind, TypeKind::Never));
@@ -100,7 +99,7 @@ fn unify_infer_types() {
     let infer1 = instantiate(&mut context, TypeKind::Infer);
     let infer2 = instantiate(&mut context, TypeKind::Infer);
 
-    unify_type(&mut context, infer1, infer2);
+    unify_type_impl(&mut context, infer1, infer2);
 
     // One should link to the other
     if let TypeKind::Link(target) = context.arena[infer1].kind {
@@ -117,7 +116,7 @@ fn infer_with_concrete_type() {
     let infer = instantiate(&mut context, TypeKind::Infer);
     let never = instantiate(&mut context, TypeKind::Never);
 
-    unify_type(&mut context, infer, never);
+    unify_type_impl(&mut context, infer, never);
 
     // Infer should become the concrete type
     assert_matches!(context.arena[infer].kind, TypeKind::Never);
@@ -134,7 +133,7 @@ fn link_resolves_to_target() {
 
     let number = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
 
-    unify_type(&mut context, link1, number);
+    unify_type_impl(&mut context, link1, number);
 
     // Should follow links and resolve to number
     assert_matches!(
@@ -162,7 +161,7 @@ fn complex_link_chain_resolution() {
     let other_link = instantiate(&mut context, TypeKind::Link(other_concrete));
 
     // Unify the heads of both chains
-    unify_type(&mut context, link3, other_link);
+    unify_type_impl(&mut context, link3, other_link);
 
     // The full chain should resolve to Number
     assert!(matches!(
@@ -186,7 +185,7 @@ fn unknown_and_infer_interaction() {
     let unknown = instantiate(&mut context, TypeKind::Unknown);
     let infer = instantiate(&mut context, TypeKind::Infer);
 
-    unify_type(&mut context, unknown, infer);
+    unify_type_impl(&mut context, unknown, infer);
 
     // Infer should become Unknown (top type)
     assert!(matches!(context.arena[infer].kind, TypeKind::Unknown));
@@ -200,7 +199,7 @@ fn never_and_infer_interaction() {
     let never = instantiate(&mut context, TypeKind::Never);
     let infer = instantiate(&mut context, TypeKind::Infer);
 
-    unify_type(&mut context, never, infer);
+    unify_type_impl(&mut context, never, infer);
 
     // Infer should become Never (bottom type)
     assert!(matches!(context.arena[infer].kind, TypeKind::Never));
@@ -217,13 +216,13 @@ fn mixed_special_types_unification() {
     let never = instantiate(&mut context, TypeKind::Never);
 
     // First unify infer1 and infer2 to create a link
-    unify_type(&mut context, infer1, infer2);
+    unify_type_impl(&mut context, infer1, infer2);
 
     // Then unify the link with Unknown
-    unify_type(&mut context, infer2, unknown);
+    unify_type_impl(&mut context, infer2, unknown);
 
     // Finally unify with Never
-    unify_type(&mut context, infer1, never);
+    unify_type_impl(&mut context, infer1, never);
 
     // Check the final state
     assert!(
@@ -243,7 +242,7 @@ fn link_to_self_detection() {
     let id = instantiate(&mut context, TypeKind::Infer);
 
     // Create a Link that would point to itself
-    context.arena.arena_mut_test_only().update(Type {
+    context.arena.update(Type {
         id,
         span: SpanId::SYNTHETIC,
         kind: TypeKind::Link(id),
@@ -253,7 +252,7 @@ fn link_to_self_detection() {
     let concrete = instantiate(&mut context, TypeKind::Unknown);
 
     // This should detect the circular link
-    unify_type(&mut context, id, concrete);
+    unify_type_impl(&mut context, id, concrete);
 
     // The system should handle this gracefully (not crash)
     // Either by propagating an error or breaking the cycle
@@ -269,13 +268,13 @@ fn direct_circular_reference() {
     let id2 = instantiate(&mut context, TypeKind::Infer);
 
     // Make them refer to each other
-    context.arena.arena_mut_test_only().update(Type {
+    context.arena.update(Type {
         id: id1,
         span: SpanId::SYNTHETIC,
         kind: TypeKind::Link(id2),
     });
 
-    context.arena.arena_mut_test_only().update(Type {
+    context.arena.update(Type {
         id: id2,
         span: SpanId::SYNTHETIC,
         kind: TypeKind::Link(id1),
@@ -283,7 +282,7 @@ fn direct_circular_reference() {
 
     // Try to unify with a concrete type
     let concrete = instantiate(&mut context, TypeKind::Unknown);
-    unify_type(&mut context, id1, concrete);
+    unify_type_impl(&mut context, id1, concrete);
 
     // Check if this was detected as circular
     assert!(
@@ -301,19 +300,19 @@ fn indirect_circular_reference() {
     let id_b = instantiate(&mut context, TypeKind::Infer);
     let id_c = instantiate(&mut context, TypeKind::Infer);
 
-    context.arena.arena_mut_test_only().update(Type {
+    context.arena.update(Type {
         id: id_a,
         span: SpanId::SYNTHETIC,
         kind: TypeKind::Link(id_b),
     });
 
-    context.arena.arena_mut_test_only().update(Type {
+    context.arena.update(Type {
         id: id_b,
         span: SpanId::SYNTHETIC,
         kind: TypeKind::Link(id_c),
     });
 
-    context.arena.arena_mut_test_only().update(Type {
+    context.arena.update(Type {
         id: id_c,
         span: SpanId::SYNTHETIC,
         kind: TypeKind::Link(id_a),
@@ -321,7 +320,7 @@ fn indirect_circular_reference() {
 
     // Try to unify with a concrete type
     let concrete = instantiate(&mut context, TypeKind::Unknown);
-    unify_type(&mut context, id_a, concrete);
+    unify_type_impl(&mut context, id_a, concrete);
 
     // Check if this more complex cycle was detected
     assert!(
@@ -340,17 +339,17 @@ fn alternating_direction_cycle() {
     let id_c = instantiate(&mut context, TypeKind::Infer);
 
     // Create initial links
-    context.arena.arena_mut_test_only().update(Type {
+    context.arena.update(Type {
         id: id_a,
         span: SpanId::SYNTHETIC,
         kind: TypeKind::Link(id_b),
     });
 
     // Unify B with C
-    unify_type(&mut context, id_b, id_c);
+    unify_type_impl(&mut context, id_b, id_c);
 
     // Now make C link back to A, completing the cycle
-    context.arena.arena_mut_test_only().update(Type {
+    context.arena.update(Type {
         id: id_c,
         span: SpanId::SYNTHETIC,
         kind: TypeKind::Link(id_a),
@@ -358,7 +357,7 @@ fn alternating_direction_cycle() {
 
     // Try to resolve the whole chain
     let concrete = instantiate(&mut context, TypeKind::Unknown);
-    unify_type(&mut context, id_a, concrete);
+    unify_type_impl(&mut context, id_a, concrete);
 
     // Check if this directionally varied cycle was detected
     // This is the test most likely to expose if the approach is too conservative
@@ -376,7 +375,7 @@ fn primitive_equivalence() {
 
     assert!(
         context.arena[type1]
-            .structurally_equivalent(&context.arena[type2], context.arena.arena_test_only()),
+            .structurally_equivalent(&context.arena[type2], context.arena_test_only()),
         "Identical primitive types should be structurally equivalent"
     );
 
@@ -384,7 +383,7 @@ fn primitive_equivalence() {
     let bool_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
     assert!(
         !context.arena[type1]
-            .structurally_equivalent(&context.arena[bool_type], context.arena.arena_test_only()),
+            .structurally_equivalent(&context.arena[bool_type], context.arena_test_only()),
         "Different primitive types should not be structurally equivalent"
     );
 }
@@ -428,7 +427,7 @@ fn struct_equivalence() {
 
     assert!(
         context.arena[struct1]
-            .structurally_equivalent(&context.arena[struct2], context.arena.arena_test_only()),
+            .structurally_equivalent(&context.arena[struct2], context.arena_test_only()),
         "Identical struct types should be structurally equivalent"
     );
 
@@ -451,7 +450,7 @@ fn struct_equivalence() {
 
     assert!(
         !context.arena[struct1]
-            .structurally_equivalent(&context.arena[struct3], context.arena.arena_test_only()),
+            .structurally_equivalent(&context.arena[struct3], context.arena_test_only()),
         "Structs with different field names should not be structurally equivalent"
     );
 }
@@ -464,7 +463,7 @@ fn recursive_type_equivalence() {
     let node1_value = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
     let node2_value = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
 
-    let node1_id = context.arena.arena_mut_test_only().push_with(|id| Type {
+    let node1_id = context.arena.push_with(|id| Type {
         id,
         span: SpanId::SYNTHETIC,
         kind: TypeKind::Struct(StructType::new(
@@ -482,7 +481,7 @@ fn recursive_type_equivalence() {
         )),
     });
 
-    let node2_id = context.arena.arena_mut_test_only().push_with(|id| Type {
+    let node2_id = context.arena.push_with(|id| Type {
         id,
         span: SpanId::SYNTHETIC,
         kind: TypeKind::Struct(StructType::new(
@@ -502,7 +501,7 @@ fn recursive_type_equivalence() {
 
     assert!(
         context.arena[node1_id]
-            .structurally_equivalent(&context.arena[node2_id], context.arena.arena_test_only()),
+            .structurally_equivalent(&context.arena[node2_id], context.arena_test_only()),
         "Recursive types with same structure should be structurally equivalent"
     );
 }
@@ -532,7 +531,7 @@ fn union_type_equivalence() {
 
     assert!(
         context.arena[union1]
-            .structurally_equivalent(&context.arena[union2], context.arena.arena_test_only()),
+            .structurally_equivalent(&context.arena[union2], context.arena_test_only()),
         "Union types with same variants should be structurally equivalent"
     );
 
@@ -546,7 +545,7 @@ fn union_type_equivalence() {
 
     assert!(
         context.arena[union1]
-            .structurally_equivalent(&context.arena[union3], context.arena.arena_test_only()),
+            .structurally_equivalent(&context.arena[union3], context.arena_test_only()),
         "Union types with same variants in different order should be structurally equivalent"
     );
 }
@@ -579,7 +578,7 @@ fn opaque_type_equivalence() {
 
     assert!(
         context.arena[opaque1]
-            .structurally_equivalent(&context.arena[opaque2], context.arena.arena_test_only()),
+            .structurally_equivalent(&context.arena[opaque2], context.arena_test_only()),
         "Opaque types with same name should be structurally equivalent regardless of underlying \
          type"
     );
@@ -596,7 +595,7 @@ fn opaque_type_equivalence() {
 
     assert!(
         !context.arena[opaque1]
-            .structurally_equivalent(&context.arena[opaque3], context.arena.arena_test_only()),
+            .structurally_equivalent(&context.arena[opaque3], context.arena_test_only()),
         "Opaque types with different names should not be structurally equivalent even with same \
          underlying type"
     );
@@ -631,7 +630,7 @@ fn opaque_type_equivalence() {
 
     assert!(
         context.arena[opaque4]
-            .structurally_equivalent(&context.arena[opaque5], context.arena.arena_test_only()),
+            .structurally_equivalent(&context.arena[opaque5], context.arena_test_only()),
         "Opaque types with same name and generic arguments should be structurally equivalent"
     );
 
@@ -655,7 +654,7 @@ fn opaque_type_equivalence() {
 
     assert!(
         !context.arena[opaque4]
-            .structurally_equivalent(&context.arena[opaque6], context.arena.arena_test_only()),
+            .structurally_equivalent(&context.arena[opaque6], context.arena_test_only()),
         "Opaque types with same name but different generic arguments should not be structurally \
          equivalent"
     );
@@ -668,7 +667,7 @@ fn identical_types_intersection() {
     // Create a simple Number type
     let num_id = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
 
-    let arena = context.arena.arena_mut_test_only();
+    let arena = context.arena;
 
     // Intersect with itself
     let result = intersection_type(arena, &mut Vec::new(), num_id, num_id);
@@ -705,7 +704,7 @@ fn struct_intersection() {
         TypeKind::Struct(StructType::new([age_field], GenericArguments::new())),
     );
 
-    let arena = context.arena.arena_mut_test_only();
+    let arena = context.arena;
 
     // Intersect the two structs
     let result = intersection_type(arena, &mut Vec::new(), struct1_id, struct2_id);
@@ -774,7 +773,7 @@ fn struct_intersection_with_common_field() {
         TypeKind::Struct(StructType::new(struct2_fields, GenericArguments::new())),
     );
 
-    let arena = context.arena.arena_mut_test_only();
+    let arena = context.arena;
 
     // Intersect the two structs
     let result = intersection_type(arena, &mut Vec::new(), struct1_id, struct2_id);

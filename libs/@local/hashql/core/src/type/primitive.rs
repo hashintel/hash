@@ -7,7 +7,7 @@ use super::{
     environment::Environment,
     error::type_mismatch,
     pretty_print::{BLUE, PrettyPrint},
-    recursion::RecursionLimit,
+    recursion::RecursionDepthBoundary,
 };
 
 // TODO: in the future we should support refinements
@@ -41,7 +41,7 @@ impl PrettyPrint for PrimitiveType {
     fn pretty(
         &self,
         _: &impl Index<TypeId, Output = Type>,
-        _: RecursionLimit,
+        _: RecursionDepthBoundary,
     ) -> pretty::RcDoc<anstyle::Style> {
         RcDoc::text(self.as_str()).annotate(BLUE)
     }

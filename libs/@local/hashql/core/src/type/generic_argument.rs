@@ -5,14 +5,12 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::Environment,
+    environment::{Environment, StructuralEquivalenceEnvironment, UnificationEnvironment},
     error::generic_argument_not_found,
     pretty_print::{ORANGE, PrettyPrint},
-    recursion::{RecursionGuard, RecursionLimit},
-    unify_type,
+    recursion::RecursionDepthBoundary,
 };
 use crate::{
-    arena::Arena,
     newtype,
     symbol::{Ident, Symbol},
 };
@@ -36,11 +34,10 @@ impl GenericArgument {
     fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         self.name.value == other.name.value
-            && arena[self.r#type].structurally_equivalent_impl(&arena[other.r#type], arena, guard)
+            && env.structurally_equivalent(self.r#type, other.r#type)
     }
 }
 
@@ -48,7 +45,7 @@ impl PrettyPrint for GenericArgument {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         let mut doc = RcDoc::text(self.name.value.as_str()).annotate(ORANGE);
 
@@ -97,8 +94,7 @@ impl GenericArguments {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         // We do not need to sort the arguments, because the constructor
         // guarantees that they are in lexicographical order.
@@ -108,7 +104,7 @@ impl GenericArguments {
                 .0
                 .iter()
                 .zip(other.0.iter())
-                .all(|(lhs, rhs)| lhs.structurally_equivalent(rhs, arena, guard))
+                .all(|(lhs, rhs)| lhs.structurally_equivalent(rhs, env))
     }
 }
 
@@ -125,7 +121,7 @@ impl PrettyPrint for GenericArguments {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> RcDoc<'a, anstyle::Style> {
         if self.0.is_empty() {
             RcDoc::nil()
@@ -167,7 +163,7 @@ impl PrettyPrint for Param {
     fn pretty<'a>(
         &'a self,
         _: &'a impl Index<TypeId, Output = Type>,
-        _: RecursionLimit,
+        _: RecursionDepthBoundary,
     ) -> RcDoc<'a, anstyle::Style> {
         RcDoc::text(self.name.as_str())
     }
@@ -176,7 +172,7 @@ impl PrettyPrint for Param {
 /// Unifies a type parameter on the left-hand side with a concrete type on the right-hand side.
 ///
 /// The variance context determines how the parameter and the concrete type are compared.
-pub(crate) fn unify_param_lhs(env: &mut Environment, lhs: &Type<Param>, rhs: TypeId) {
+pub(crate) fn unify_param_lhs(env: &mut UnificationEnvironment, lhs: &Type<Param>, rhs: TypeId) {
     // First check if the generic argument is in scope
     let Some(argument) = env.generic_argument(lhs.kind.argument) else {
         let diagnostic = generic_argument_not_found(env.source, lhs, lhs.kind.argument);
@@ -187,7 +183,7 @@ pub(crate) fn unify_param_lhs(env: &mut Environment, lhs: &Type<Param>, rhs: Typ
 
     // Use the current variance context for unification
     // This allows parameters to respect the variance of their containing context
-    unify_type(env, argument, rhs);
+    env.unify_type(argument, rhs);
 
     // In a strictly variance-aware system, we do NOT modify the parameter type
     // This preserves the identity of the parameter in the type graph
@@ -196,7 +192,7 @@ pub(crate) fn unify_param_lhs(env: &mut Environment, lhs: &Type<Param>, rhs: Typ
 /// Unifies a concrete type on the left-hand side with a type parameter on the right-hand side.
 ///
 /// The variance context determines how the concrete type and parameter are compared.
-pub(crate) fn unify_param_rhs(env: &mut Environment, lhs: TypeId, rhs: &Type<Param>) {
+pub(crate) fn unify_param_rhs(env: &mut UnificationEnvironment, lhs: TypeId, rhs: &Type<Param>) {
     // First check if the generic argument is in scope
     let Some(argument) = env.generic_argument(rhs.kind.argument) else {
         let diagnostic = generic_argument_not_found(env.source, rhs, rhs.kind.argument);
@@ -207,7 +203,7 @@ pub(crate) fn unify_param_rhs(env: &mut Environment, lhs: TypeId, rhs: &Type<Par
 
     // Use the current variance context for unification
     // This allows parameters to respect the variance of their containing context
-    unify_type(env, lhs, argument);
+    env.unify_type(lhs, argument);
 
     // In a strictly variance-aware system, we do NOT modify the parameter type
     // This preserves the identity of the parameter in the type graph
@@ -216,7 +212,7 @@ pub(crate) fn unify_param_rhs(env: &mut Environment, lhs: TypeId, rhs: &Type<Par
 /// Unifies two type parameters.
 ///
 /// The variance context determines how the parameters are compared.
-pub(crate) fn unify_param(env: &mut Environment, lhs: &Type<Param>, rhs: &Type<Param>) {
+pub(crate) fn unify_param(env: &mut UnificationEnvironment, lhs: &Type<Param>, rhs: &Type<Param>) {
     // First check if both generic arguments are in scope
     let lhs_argument = env.generic_argument(lhs.kind.argument);
 
@@ -240,7 +236,7 @@ pub(crate) fn unify_param(env: &mut Environment, lhs: &Type<Param>, rhs: &Type<P
 
     // Use the current variance context for unification
     // This allows parameters to respect the variance of their containing context
-    unify_type(env, lhs_argument, rhs_argument);
+    env.unify_type(lhs_argument, rhs_argument);
 
     // In a strictly variance-aware system, we do NOT modify the parameter types
     // This preserves the identity of the parameters in the type graph
@@ -256,28 +252,27 @@ mod tests {
         symbol::Symbol,
         r#type::{
             TypeKind,
+            environment::Environment,
             primitive::PrimitiveType,
             test::{ident, instantiate, setup},
         },
     };
 
     fn create_param(
-        context: &mut crate::r#type::environment::Environment,
+        env: &mut Environment,
         argument_id: GenericArgumentId,
         name: &str,
     ) -> crate::r#type::Type<Param> {
-        let id = context
-            .arena_mut_test_only()
-            .push_with(|id| crate::r#type::Type {
-                id,
-                span: crate::span::SpanId::SYNTHETIC,
-                kind: TypeKind::Param(Param {
-                    argument: argument_id,
-                    name: Symbol::new(name),
-                }),
-            });
+        let id = env.arena.push_with(|id| crate::r#type::Type {
+            id,
+            span: crate::span::SpanId::SYNTHETIC,
+            kind: TypeKind::Param(Param {
+                argument: argument_id,
+                name: Symbol::new(name),
+            }),
+        });
 
-        context.arena[id].clone().map(|kind| match kind {
+        env.arena[id].clone().map(|kind| match kind {
             TypeKind::Param(param) => param,
             _ => panic!("should be param type"),
         })

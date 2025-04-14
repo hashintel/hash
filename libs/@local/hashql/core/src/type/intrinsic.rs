@@ -4,13 +4,11 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::Environment,
+    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
     error::type_mismatch,
     pretty_print::PrettyPrint,
-    recursion::{RecursionGuard, RecursionLimit},
-    unify_type,
+    recursion::RecursionDepthBoundary,
 };
-use crate::arena::Arena;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ListType {
@@ -21,10 +19,9 @@ impl ListType {
     fn structurally_equivalent(
         self,
         other: Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
-        arena[self.element].structurally_equivalent_impl(&arena[other.element], arena, guard)
+        env.structurally_equivalent(self.element, other.element)
     }
 }
 
@@ -32,7 +29,7 @@ impl PrettyPrint for ListType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text("List")
             .append(RcDoc::text("<"))
@@ -51,11 +48,10 @@ impl DictType {
     fn structurally_equivalent(
         self,
         other: Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
-        arena[self.key].structurally_equivalent_impl(&arena[other.key], arena, guard)
-            && arena[self.value].structurally_equivalent_impl(&arena[other.value], arena, guard)
+        env.structurally_equivalent(self.key, other.key)
+            && env.structurally_equivalent(self.value, other.value)
     }
 }
 
@@ -63,7 +59,7 @@ impl PrettyPrint for DictType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text("Dict")
             .append(RcDoc::text("<"))
@@ -93,12 +89,11 @@ impl IntrinsicType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         match (self, other) {
-            (&Self::List(lhs), &Self::List(rhs)) => lhs.structurally_equivalent(rhs, arena, guard),
-            (&Self::Dict(lhs), &Self::Dict(rhs)) => lhs.structurally_equivalent(rhs, arena, guard),
+            (&Self::List(lhs), &Self::List(rhs)) => lhs.structurally_equivalent(rhs, env),
+            (&Self::Dict(lhs), &Self::Dict(rhs)) => lhs.structurally_equivalent(rhs, env),
             _ => false,
         }
     }
@@ -108,7 +103,7 @@ impl PrettyPrint for IntrinsicType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> RcDoc<'a, anstyle::Style> {
         match self {
             Self::List(list) => list.pretty(arena, limit),
@@ -124,7 +119,7 @@ impl PrettyPrint for IntrinsicType {
 /// - Dict keys are invariant (for reliable lookups)
 /// - Dict values are covariant (immutable collections)
 pub(crate) fn unify_intrinsic(
-    env: &mut Environment,
+    env: &mut UnificationEnvironment,
     lhs: Type<IntrinsicType>,
     rhs: Type<IntrinsicType>,
 ) {
@@ -144,8 +139,8 @@ pub(crate) fn unify_intrinsic(
             }),
         ) => {
             // Element types are in covariant position
-            env.in_covariant(|ctx| {
-                unify_type(ctx, element_lhs, element_rhs);
+            env.in_covariant(|env| {
+                env.unify_type(element_lhs, element_rhs);
             });
 
             // In a strictly variance-aware system, we do NOT modify the list types
@@ -164,13 +159,13 @@ pub(crate) fn unify_intrinsic(
             }),
         ) => {
             // Keys must be invariant for lookup reliability
-            env.in_invariant(|ctx| {
-                unify_type(ctx, key_lhs, key_rhs);
+            env.in_invariant(|env| {
+                env.unify_type(key_lhs, key_rhs);
             });
 
             // Values are in covariant position
-            env.in_covariant(|ctx| {
-                unify_type(ctx, value_lhs, value_rhs);
+            env.in_covariant(|env| {
+                env.unify_type(value_lhs, value_rhs);
             });
 
             // In a strictly variance-aware system, we do NOT modify the dict types
@@ -193,7 +188,8 @@ pub(crate) fn unify_intrinsic(
                 _ => Some("These collection types cannot be used interchangeably."),
             };
 
-            env.record_diagnostic(type_mismatch(env, &lhs, &rhs, help));
+            let diagnostic = type_mismatch(env, &lhs, &rhs, help);
+            env.record_diagnostic(diagnostic);
         }
     }
 }

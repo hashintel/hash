@@ -5,13 +5,12 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId, TypeKind,
-    environment::Environment,
-    error::{TypeCheckDiagnostic, union_variant_mismatch},
+    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
+    error::union_variant_mismatch,
     intersection_type_impl,
     pretty_print::PrettyPrint,
-    recursion::{RecursionGuard, RecursionLimit},
+    recursion::RecursionDepthBoundary,
 };
-use crate::arena::Arena;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnionType {
@@ -22,14 +21,14 @@ impl UnionType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         // go through every variant in self and check if there is a variant matching in other
         self.variants.iter().all(|&variant| {
-            other.variants.iter().any(|&other_variant| {
-                arena[variant].structurally_equivalent_impl(&arena[other_variant], arena, guard)
-            })
+            other
+                .variants
+                .iter()
+                .any(|&other_variant| env.structurally_equivalent(variant, other_variant))
         })
     }
 }
@@ -38,7 +37,7 @@ impl PrettyPrint for UnionType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::intersperse(
             self.variants
@@ -83,7 +82,11 @@ impl PrettyPrint for UnionType {
 /// this would be valid because:
 /// - `Integer <: Number`, so the `Integer` variant in `rhs` is covered
 /// - `String <: String`, so the `String` variant in `rhs` is covered
-pub(crate) fn unify_union(env: &mut Environment, lhs: &Type<UnionType>, rhs: &Type<UnionType>) {
+pub(crate) fn unify_union(
+    env: &mut UnificationEnvironment,
+    lhs: &Type<UnionType>,
+    rhs: &Type<UnionType>,
+) {
     // For each variant in rhs (the provided type), check if it's a subtype of at least one lhs
     // variant
     for &rhs_variant in &rhs.kind.variants {
@@ -93,14 +96,14 @@ pub(crate) fn unify_union(env: &mut Environment, lhs: &Type<UnionType>, rhs: &Ty
         for &lhs_variant in &lhs.kind.variants {
             let diagnostics = env.fatal_diagnostics();
 
-            env.in_transaction(|context| {
+            env.in_transaction(|env| {
                 // Try to unify this specific pair of variants
                 // In covariant context, we check if rhs_variant <: lhs_variant
-                context.in_covariant(|ctx| {
-                    super::unify_type(ctx, lhs_variant, rhs_variant);
+                env.in_covariant(|env| {
+                    env.unify_type(lhs_variant, rhs_variant);
                 });
 
-                if context.fatal_diagnostics() == diagnostics {
+                if env.fatal_diagnostics() == diagnostics {
                     compatible_variant_found = true;
 
                     true
@@ -111,9 +114,7 @@ pub(crate) fn unify_union(env: &mut Environment, lhs: &Type<UnionType>, rhs: &Ty
         }
 
         if !compatible_variant_found {
-            let diagnostic =
-                union_variant_mismatch(rhs.span, &env.arena, &env.arena[rhs_variant], lhs);
-
+            let diagnostic = union_variant_mismatch(env, &env.arena[rhs_variant], lhs);
             env.record_diagnostic(diagnostic);
         }
     }
@@ -126,7 +127,11 @@ pub(crate) fn unify_union(env: &mut Environment, lhs: &Type<UnionType>, rhs: &Ty
     // TODO: flatten union type iff not "virtual"
 }
 
-pub(crate) fn unify_union_lhs(env: &mut Environment, lhs: &Type<UnionType>, rhs: &Type<TypeKind>) {
+pub(crate) fn unify_union_lhs(
+    env: &mut UnificationEnvironment,
+    lhs: &Type<UnionType>,
+    rhs: &Type<TypeKind>,
+) {
     let rhs = rhs.as_ref().map(|_| UnionType {
         variants: EcoVec::from([rhs.id]),
     });
@@ -134,7 +139,11 @@ pub(crate) fn unify_union_lhs(env: &mut Environment, lhs: &Type<UnionType>, rhs:
     unify_union(env, lhs, &rhs);
 }
 
-pub(crate) fn unify_union_rhs(env: &mut Environment, lhs: &Type<TypeKind>, rhs: &Type<UnionType>) {
+pub(crate) fn unify_union_rhs(
+    env: &mut UnificationEnvironment,
+    lhs: &Type<TypeKind>,
+    rhs: &Type<UnionType>,
+) {
     let lhs = lhs.as_ref().map(|_| UnionType {
         variants: EcoVec::from([lhs.id]),
     });
@@ -147,8 +156,7 @@ pub(crate) fn unify_union_rhs(env: &mut Environment, lhs: &Type<TypeKind>, rhs: 
 /// Applies the distribution rule: (A | B) ∩ (C | D) = (A ∩ C) | (A ∩ D) | (B ∩ C) | (B ∩ D)
 /// Only variants with non-empty intersections are kept.
 pub(crate) fn intersection_union(
-    arena: &mut Arena<Type>,
-    diagnostics: &mut Vec<TypeCheckDiagnostic>,
+    env: &mut UnificationEnvironment,
     lhs: &UnionType,
     rhs: &UnionType,
 ) -> UnionType {
@@ -157,22 +165,20 @@ pub(crate) fn intersection_union(
     // Distribute intersection: (A | B) ∩ (C | D) = (A ∩ C) | (A ∩ D) | (B ∩ C) | (B ∩ D)
     for &lhs_variant in &lhs.variants {
         for &rhs_variant in &rhs.variants {
-            let Some(type_id) =
-                intersection_type_impl(arena, diagnostics, lhs_variant, rhs_variant)
-            else {
+            let Some(type_id) = intersection_type_impl(env, lhs_variant, rhs_variant) else {
                 // would result in `Never`
                 continue;
             };
 
             // Only add non-Never results (Never means empty intersection)
-            if matches!(arena[type_id].kind, TypeKind::Never) {
+            if matches!(env.arena[type_id].kind, TypeKind::Never) {
                 continue;
             }
 
             // ... and avoid duplicates
             if variants
                 .iter()
-                .any(|&variant| arena[variant].structurally_equivalent(&arena[type_id], arena))
+                .any(|&variant| env.structurally_equivalent(variant, type_id))
             {
                 continue;
             }
@@ -188,8 +194,7 @@ pub(crate) fn intersection_union(
 ///
 /// Applies the distribution rule: T ∩ (A|B) = (T ∩ A)|(T ∩ B)
 pub(crate) fn intersection_with_union(
-    arena: &mut Arena<Type>,
-    diagnostics: &mut Vec<TypeCheckDiagnostic>,
+    env: &mut UnificationEnvironment,
     other: TypeId,
     union: &UnionType,
 ) -> UnionType {
@@ -197,20 +202,20 @@ pub(crate) fn intersection_with_union(
 
     // Distribute intersection: T ∩ (A|B) = (T ∩ A)|(T ∩ B)
     for &variant in &union.variants {
-        let Some(type_id) = intersection_type_impl(arena, diagnostics, variant, other) else {
+        let Some(type_id) = intersection_type_impl(env, variant, other) else {
             // would result in `Never`
             continue;
         };
 
         // Only add non-Never results
-        if matches!(arena[type_id].kind, TypeKind::Never) {
+        if matches!(env.arena[type_id].kind, TypeKind::Never) {
             continue;
         }
 
         // ... and duplicates
         if variants
             .iter()
-            .any(|&variant| arena[variant].structurally_equivalent(&arena[type_id], arena))
+            .any(|&variant| env.structurally_equivalent(variant, type_id))
         {
             continue;
         }
@@ -237,16 +242,13 @@ mod tests {
         context: &mut crate::r#type::environment::Environment,
         variants: Vec<TypeId>,
     ) -> crate::r#type::Type<UnionType> {
-        let id = context
-            .arena
-            .arena_mut_test_only()
-            .push_with(|id| crate::r#type::Type {
-                id,
-                span: crate::span::SpanId::SYNTHETIC,
-                kind: TypeKind::Union(UnionType {
-                    variants: variants.into(),
-                }),
-            });
+        let id = context.arena.push_with(|id| crate::r#type::Type {
+            id,
+            span: crate::span::SpanId::SYNTHETIC,
+            kind: TypeKind::Union(UnionType {
+                variants: variants.into(),
+            }),
+        });
 
         context.arena[id]
             .clone()
@@ -412,7 +414,7 @@ mod tests {
         let boolean = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
         let union2 = create_union(&mut context, [string2, boolean]);
 
-        let arena = context.arena.arena_mut_test_only();
+        let arena = context.arena;
 
         // Intersection should be: String
         let result = intersection_type(arena, &mut Vec::new(), union1, union2);
@@ -442,7 +444,7 @@ mod tests {
         let integer = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Null));
         let union2 = create_union(&mut context, vec![string, integer]);
 
-        let arena = context.arena.arena_mut_test_only();
+        let arena = context.arena;
 
         // Intersection should be: Never (no compatible variants)
         let result = intersection_type(arena, &mut Vec::new(), union1, union2);
@@ -470,7 +472,7 @@ mod tests {
         let boolean = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
         let union2 = create_union(&mut context, vec![integer, boolean]);
 
-        let arena = context.arena.arena_mut_test_only();
+        let arena = context.arena;
 
         // Intersection should be: Integer
         let result = intersection_type(arena, &mut Vec::new(), union1, union2);

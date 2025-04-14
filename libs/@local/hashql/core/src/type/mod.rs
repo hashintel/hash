@@ -21,14 +21,14 @@ use pretty::RcDoc;
 
 use self::{
     closure::{ClosureType, unify_closure},
-    environment::{Environment, Variance},
-    error::{TypeCheckDiagnostic, expected_never, intersection_coerced_to_never, type_mismatch},
+    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment, Variance},
+    error::{expected_never, intersection_coerced_to_never, type_mismatch},
     generic_argument::{Param, unify_param, unify_param_lhs, unify_param_rhs},
     intrinsic::{IntrinsicType, unify_intrinsic},
     opaque::{OpaqueType, unify_opaque},
     pretty_print::{CYAN, GRAY, PrettyPrint},
     primitive::{PrimitiveType, intersection_primitive, unify_primitive},
-    recursion::{RecursionGuard, RecursionLimit},
+    recursion::RecursionDepthBoundary,
     r#struct::{StructType, intersection_struct, unify_struct},
     tuple::{TupleType, unify_tuple},
     union::{
@@ -36,7 +36,7 @@ use self::{
         unify_union_rhs,
     },
 };
-use crate::{arena::Arena, id::HasId, newtype, span::SpanId};
+use crate::{id::HasId, newtype, span::SpanId};
 
 newtype!(
     pub struct TypeId(u32 is 0..=0xFFFF_FF00)
@@ -119,33 +119,22 @@ impl TypeKind {
     fn structurally_equivalent(
         this: &Type<Self>,
         other: &Type<Self>,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         match (&this.kind, &other.kind) {
-            (Self::Closure(lhs), Self::Closure(rhs)) => {
-                lhs.structurally_equivalent(rhs, arena, guard)
-            }
+            (Self::Closure(lhs), Self::Closure(rhs)) => lhs.structurally_equivalent(rhs, env),
             (&Self::Primitive(lhs), &Self::Primitive(rhs)) => lhs.structurally_equivalent(rhs),
-            (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
-                lhs.structurally_equivalent(rhs, arena, guard)
-            }
-            (Self::Struct(lhs), Self::Struct(rhs)) => {
-                lhs.structurally_equivalent(rhs, arena, guard)
-            }
-            (Self::Tuple(lhs), Self::Tuple(rhs)) => lhs.structurally_equivalent(rhs, arena, guard),
-            (Self::Opaque(lhs), Self::Opaque(rhs)) => {
-                lhs.structurally_equivalent(rhs, arena, guard)
-            }
-            (Self::Union(lhs), Self::Union(rhs)) => lhs.structurally_equivalent(rhs, arena, guard),
+            (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => lhs.structurally_equivalent(rhs, env),
+            (Self::Struct(lhs), Self::Struct(rhs)) => lhs.structurally_equivalent(rhs, env),
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => lhs.structurally_equivalent(rhs, env),
+            (Self::Opaque(lhs), Self::Opaque(rhs)) => lhs.structurally_equivalent(rhs, env),
+            (Self::Union(lhs), Self::Union(rhs)) => lhs.structurally_equivalent(rhs, env),
             (Self::Param(lhs), Self::Param(rhs)) => lhs.structurally_equivalent(rhs),
 
-            (&Self::Link(lhs), &Self::Link(rhs)) => {
-                arena[lhs].structurally_equivalent_impl(&arena[rhs], arena, guard)
-            }
+            (&Self::Link(lhs), &Self::Link(rhs)) => env.structurally_equivalent(lhs, rhs),
 
-            (&Self::Link(lhs), _) => arena[lhs].structurally_equivalent_impl(other, arena, guard),
-            (_, &Self::Link(rhs)) => this.structurally_equivalent_impl(&arena[rhs], arena, guard),
+            (&Self::Link(lhs), _) => env.structurally_equivalent(lhs, other.id),
+            (_, &Self::Link(rhs)) => env.structurally_equivalent(this.id, rhs),
 
             (Self::Never, Self::Never)
             | (Self::Unknown, Self::Unknown)
@@ -160,7 +149,7 @@ impl PrettyPrint for TypeKind {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         match self {
             Self::Closure(closure) => closure.pretty(arena, limit),
@@ -188,36 +177,12 @@ pub struct Type<K = TypeKind> {
 }
 
 impl Type<TypeKind> {
-    /// Determines if two types are structurally equivalent - meaning they have the same shape and
-    /// matching internal types.
-    ///
-    /// For example:
-    /// - Two structs with the same field names and types are structurally equivalent
-    /// - Two closures with the same parameter types and return type are structurally equivalent
-    /// - Two generic types are structurally equivalent if their parameters and constraints match
-    ///
-    /// This function handles recursive types by using a recursion guard to prevent infinite
-    /// recursion.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the types are structurally equivalent, `false` otherwise
-    #[must_use]
-    pub fn structurally_equivalent(&self, other: &Self, arena: &Arena<Self>) -> bool {
-        self.structurally_equivalent_impl(other, arena, &mut RecursionGuard::new())
-    }
-
-    pub(crate) fn structurally_equivalent_impl(
+    fn structurally_equivalent_impl(
         &self,
         other: &Self,
-        arena: &Arena<Self>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
-        guard
-            .with(self.id, other.id, |guard| {
-                TypeKind::structurally_equivalent(self, other, arena, guard)
-            })
-            .unwrap_or(true) // In case of recursion the result is true
+        TypeKind::structurally_equivalent(self, other, env)
     }
 }
 
@@ -246,7 +211,7 @@ where
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         self.kind.pretty(arena, limit)
     }
@@ -272,7 +237,7 @@ impl HasId for Type {
 /// e.g. `lhs <: rhs` and `rhs <: lhs`
 ///
 /// This is the main entry point for type unification that respects variance.
-pub fn unify_type(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
+fn unify_type_impl(env: &mut UnificationEnvironment, lhs: TypeId, rhs: TypeId) {
     match env.variance {
         Variance::Covariant => {
             // In covariant context: can `rhs` be used where `lhs` is expected?
@@ -301,7 +266,7 @@ pub fn unify_type(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
 /// - Only if both succeed are the types considered invariant compatible.
 ///
 /// This approach ensures proper invariance without cloning the entire arena.
-fn unify_type_invariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
+fn unify_type_invariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: TypeId) {
     // Fast path for identical types
     if lhs == rhs {
         return;
@@ -363,18 +328,7 @@ fn unify_type_invariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
 /// Each match arm in this function implements the covariant subtyping rule for a specific type
 /// combination.
 #[expect(clippy::too_many_lines)]
-fn unify_type_covariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
-    if env.visit(lhs, rhs) {
-        // We've detected a circular reference in the type graph
-        let lhs_type = &env.arena[lhs];
-        let rhs_type = &env.arena[rhs];
-
-        let diagnostic = error::circular_type_reference(env.source, lhs_type, rhs_type);
-
-        env.record_diagnostic(diagnostic);
-        return;
-    }
-
+fn unify_type_covariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: TypeId) {
     let lhs = &env.arena[lhs];
     let rhs = &env.arena[rhs];
 
@@ -393,15 +347,15 @@ fn unify_type_covariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
         // Links are references to other types - follow them to their targets for unification
         (&TypeKind::Link(lhs_id), &TypeKind::Link(rhs_id)) => {
             // Both types are links - unify the target types
-            unify_type(env, lhs_id, rhs_id);
+            env.unify_type(lhs_id, rhs_id);
         }
         (&TypeKind::Link(lhs_id), _) => {
             // The lhs is a link - follow it and unify with rhs
-            unify_type(env, lhs_id, rhs.id);
+            env.unify_type(lhs_id, rhs.id);
         }
         (_, &TypeKind::Link(rhs_id)) => {
             // The rhs is a link - follow it and unify with lhs
-            unify_type(env, lhs.id, rhs_id);
+            env.unify_type(lhs.id, rhs_id);
         }
 
         // Inference variables are special cases that can be refined during unification
@@ -505,14 +459,11 @@ fn unify_type_covariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
             // Both types are Unknown - they're compatible
             // This is true in any variance context
         }
-        (TypeKind::Unknown, rhs) => {
+        (TypeKind::Unknown, _) => {
             // In covariant context: Unknown (lhs) is a supertype of any type (rhs).
             // This is always valid - any value can be used where Unknown is expected.
-            // Even in a strictly variance-aware system, updating Unknown to a more precise type
-            // is beneficial for type inference and error reporting.
-            // The compatibility check succeeds due to variance, but we also update for precision
-            let rhs = rhs.clone();
-            env.update_kind(lhs_id, rhs);
+            // We do not narrow the type because that would potentially create a false-positive type
+            // mismatch down the line.
         }
         (_, TypeKind::Unknown) => {
             // In covariant context: A concrete type (lhs) is not a subtype of Unknown (rhs)
@@ -599,17 +550,12 @@ fn unify_type_covariant(env: &mut Environment, lhs: TypeId, rhs: TypeId) {
 /// # Returns
 ///
 /// The type ID of the intersection result.
-pub fn intersection_type(
-    arena: &mut Arena<Type>,
-    diagnostics: &mut Vec<TypeCheckDiagnostic>,
-    lhs: TypeId,
-    rhs: TypeId,
-) -> TypeId {
+pub fn intersection_type(env: &mut UnificationEnvironment, lhs: TypeId, rhs: TypeId) -> TypeId {
     // TODO: H-4383 make intersection types a first class citizen
 
-    let Some(id) = intersection_type_impl(arena, diagnostics, lhs, rhs) else {
-        let lhs_type = arena[lhs].clone();
-        let rhs_type = arena[rhs].clone();
+    let Some(id) = intersection_type_impl(env, lhs, rhs) else {
+        let lhs_type = env.arena[lhs].clone();
+        let rhs_type = env.arena[rhs].clone();
 
         let reason = match (&lhs_type.kind, &rhs_type.kind) {
             (TypeKind::Param(_), TypeKind::Param(_)) => {
@@ -621,15 +567,10 @@ pub fn intersection_type(
             _ => "These types are incompatible and have no common values.",
         };
 
-        diagnostics.push(intersection_coerced_to_never(
-            lhs_type.span,
-            arena,
-            &lhs_type,
-            &rhs_type,
-            reason,
-        ));
+        let diagnostic = intersection_coerced_to_never(env, &lhs_type, &rhs_type, reason);
+        env.record_diagnostic(diagnostic);
 
-        return arena.push(lhs_type.map(|_| TypeKind::Never));
+        return env.arena.push(lhs_type.map(|_| TypeKind::Never));
     };
 
     id
@@ -637,8 +578,7 @@ pub fn intersection_type(
 
 // Optimized version of `intersection_type`, that does not allocate a new type for `Never`
 pub(crate) fn intersection_type_impl(
-    arena: &mut Arena<Type>,
-    diagnostics: &mut Vec<TypeCheckDiagnostic>,
+    env: &mut UnificationEnvironment,
     lhs: TypeId,
     rhs: TypeId,
 ) -> Option<TypeId> {
@@ -647,22 +587,22 @@ pub(crate) fn intersection_type_impl(
         return Some(lhs);
     }
 
-    let lhs_type = arena[lhs].clone();
-    let rhs_type = arena[rhs].clone();
-
-    if lhs_type.structurally_equivalent(&rhs_type, arena) {
+    if env.structurally_equivalent(lhs, rhs) {
         return Some(lhs);
     }
 
+    let lhs_type = env.arena[lhs].clone();
+    let rhs_type = env.arena[rhs].clone();
+
     let new_kind = match (&lhs_type.kind, &rhs_type.kind) {
         (&TypeKind::Link(lhs), &TypeKind::Link(rhs)) => {
-            return intersection_type_impl(arena, diagnostics, lhs, rhs);
+            return intersection_type_impl(env, lhs, rhs);
         }
         (&TypeKind::Link(lhs), _) => {
-            return intersection_type_impl(arena, diagnostics, lhs, rhs);
+            return intersection_type_impl(env, lhs, rhs);
         }
         (_, &TypeKind::Link(rhs)) => {
-            return intersection_type_impl(arena, diagnostics, lhs, rhs);
+            return intersection_type_impl(env, lhs, rhs);
         }
 
         (TypeKind::Infer, rhs) => {
@@ -677,9 +617,9 @@ pub(crate) fn intersection_type_impl(
         }
 
         // Struct intersection: combine fields from both structs
-        (TypeKind::Struct(lhs_struct), TypeKind::Struct(rhs_struct)) => TypeKind::Struct(
-            intersection_struct(arena, diagnostics, lhs_struct, rhs_struct),
-        ),
+        (TypeKind::Struct(lhs_struct), TypeKind::Struct(rhs_struct)) => {
+            TypeKind::Struct(intersection_struct(env, lhs_struct, rhs_struct))
+        }
 
         // Primitive intersection, relevant for subtyping relationships
         (&TypeKind::Primitive(lhs), &TypeKind::Primitive(rhs)) => {
@@ -688,13 +628,13 @@ pub(crate) fn intersection_type_impl(
 
         // Union intersection: distribute intersection across variants
         (TypeKind::Union(lhs_union), TypeKind::Union(rhs_union)) => {
-            let union = intersection_union(arena, diagnostics, lhs_union, rhs_union);
+            let union = intersection_union(env, lhs_union, rhs_union);
 
             if union.variants.is_empty() {
                 return None;
             } else if union.variants.len() == 1 {
                 // If there's only one variant, use its kind directly
-                arena[union.variants[0]].kind.clone()
+                env.arena[union.variants[0]].kind.clone()
             } else {
                 TypeKind::Union(union)
             }
@@ -702,25 +642,25 @@ pub(crate) fn intersection_type_impl(
 
         // Intersection with a union: distribute the intersection
         (TypeKind::Union(lhs_union), _) => {
-            let union = intersection_with_union(arena, diagnostics, rhs, lhs_union);
+            let union = intersection_with_union(env, rhs, lhs_union);
 
             if union.variants.is_empty() {
                 return None;
             } else if union.variants.len() == 1 {
                 // If there's only one variant, use its kind directly
-                arena[union.variants[0]].kind.clone()
+                env.arena[union.variants[0]].kind.clone()
             } else {
                 TypeKind::Union(union)
             }
         }
         (_, TypeKind::Union(rhs_union)) => {
-            let union = intersection_with_union(arena, diagnostics, lhs, rhs_union);
+            let union = intersection_with_union(env, lhs, rhs_union);
 
             if union.variants.is_empty() {
                 return None;
             } else if union.variants.len() == 1 {
                 // If there's only one variant, use its kind directly
-                arena[union.variants[0]].kind.clone()
+                env.arena[union.variants[0]].kind.clone()
             } else {
                 TypeKind::Union(union)
             }
@@ -744,5 +684,5 @@ pub(crate) fn intersection_type_impl(
         _ => return None,
     };
 
-    Some(arena.push(lhs_type.map(|_| new_kind)))
+    Some(env.arena.push(lhs_type.map(|_| new_kind)))
 }

@@ -3,13 +3,13 @@ use core::ops::Index;
 use crate::id::{HasId, Id as _};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Arena<T> {
+pub struct LinearArena<T> {
     // In theory we could chunks here instead, that'd require unsafe code, and therefore also
     // require to run miri.
     items: Vec<T>,
 }
 
-impl<T> Arena<T> {
+impl<T> LinearArena<T> {
     #[must_use]
     pub const fn new() -> Self {
         Self { items: Vec::new() }
@@ -70,7 +70,7 @@ impl<T> Arena<T> {
     }
 }
 
-impl<T> Index<T::Id> for Arena<T>
+impl<T> Index<T::Id> for LinearArena<T>
 where
     T: HasId,
 {
@@ -81,7 +81,7 @@ where
     }
 }
 
-impl<T> Default for Arena<T> {
+impl<T> Default for LinearArena<T> {
     fn default() -> Self {
         Self::new()
     }

@@ -1,11 +1,17 @@
-use core::{mem, ops::Index};
+use core::ops::{Deref, DerefMut};
 use std::collections::HashMap;
 
 use super::{
-    Type, TypeId, TypeKind, error::TypeCheckDiagnostic, generic_argument::GenericArgumentId,
-    recursion::RecursionGuard,
+    Type, TypeId, TypeKind,
+    error::{TypeCheckDiagnostic, circular_type_reference},
+    generic_argument::GenericArgumentId,
+    recursion::RecursionBoundary,
+    unify_type_impl,
 };
-use crate::{arena::Arena, span::SpanId};
+use crate::{
+    arena::transation::{Checkpoint, TransactionalArena},
+    span::SpanId,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub enum Variance {
@@ -15,142 +21,12 @@ pub enum Variance {
     Invariant,     // Exact match
 }
 
-#[derive(Debug)]
-enum UnificationArenaInner {
-    Root(Arena<Type>),
-    Transaction(
-        Box<UnificationArena>,
-        HashMap<TypeId, Type, foldhash::fast::RandomState>,
-    ),
-}
-
-/// Transactional unification arena.
-///
-/// Unlike a normal arena this one is transactional, meaning one can use it to perform unification
-/// and then rollback or commit the changes. This is significant in the context of union type
-/// checking, as we need to traverse every type in the union to determine if it is compatible with
-/// another type.
-#[derive(Debug)]
-pub(crate) struct UnificationArena(UnificationArenaInner);
-
-impl UnificationArena {
-    const fn new(arena: Arena<Type>) -> Self {
-        Self(UnificationArenaInner::Root(arena))
-    }
-
-    fn update(&mut self, r#type: Type) {
-        match &mut self.0 {
-            UnificationArenaInner::Root(arena) => arena.update(r#type),
-            UnificationArenaInner::Transaction(_, hash_map) => {
-                hash_map.insert(r#type.id, r#type);
-            }
-        }
-    }
-
-    fn update_with(&mut self, id: TypeId, closure: impl FnOnce(&mut Type)) {
-        match &mut self.0 {
-            UnificationArenaInner::Root(arena) => {
-                arena.update_with(id, closure);
-            }
-            UnificationArenaInner::Transaction(arena, hash_map) => {
-                // first get the value, if it's in the arena we first need to clone it, if it's in
-                // the hash map we can re-use the value
-                if let Some(entry) = hash_map.get_mut(&id) {
-                    closure(entry);
-                    return;
-                }
-
-                let mut r#type = arena[id].clone();
-                closure(&mut r#type);
-                hash_map.insert(id, r#type);
-            }
-        }
-    }
-
-    /// Begin a new transaction.
-    fn begin_transaction(&mut self) {
-        // Empty arena does not allocate, as it's just a `Vec` in disguise
-        let this = mem::replace(self, Self::new(Arena::new()));
-
-        self.0 = UnificationArenaInner::Transaction(Box::new(this), HashMap::default());
-    }
-
-    /// Commit the current transaction
-    ///
-    /// # Panics
-    ///
-    /// If there's no transaction to commit.
-    fn commit_transaction(&mut self) {
-        let this = mem::replace(&mut self.0, UnificationArenaInner::Root(Arena::new()));
-
-        match this {
-            UnificationArenaInner::Root(_) => panic!("No transaction to commit"),
-            UnificationArenaInner::Transaction(mut arena, overrides) => {
-                for (_, r#type) in overrides {
-                    arena.update(r#type);
-                }
-
-                *self = *arena;
-            }
-        }
-    }
-
-    /// Rollback the current transaction
-    ///
-    /// # Panics
-    ///
-    /// If there's no transaction to rollback.
-    fn rollback_transaction(&mut self) {
-        let this = mem::replace(&mut self.0, UnificationArenaInner::Root(Arena::new()));
-
-        match this {
-            UnificationArenaInner::Root(_) => panic!("No transaction to rollback"),
-            UnificationArenaInner::Transaction(arena, _) => {
-                *self = *arena;
-            }
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn arena_mut_test_only(&mut self) -> &mut Arena<Type> {
-        match &mut self.0 {
-            UnificationArenaInner::Root(arena) => arena,
-            UnificationArenaInner::Transaction(arena, _) => arena.arena_mut_test_only(),
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn arena_test_only(&self) -> &Arena<Type> {
-        match &self.0 {
-            UnificationArenaInner::Root(arena) => arena,
-            UnificationArenaInner::Transaction(arena, _) => arena.arena_test_only(),
-        }
-    }
-}
-
-impl Index<TypeId> for UnificationArena {
-    type Output = Type;
-
-    fn index(&self, index: TypeId) -> &Self::Output {
-        match &self.0 {
-            UnificationArenaInner::Root(arena) => &arena[index],
-            UnificationArenaInner::Transaction(arena, overrides) => {
-                overrides.get(&index).unwrap_or_else(|| &arena[index])
-            }
-        }
-    }
-}
-
 pub struct Environment {
     pub source: SpanId,
-    pub arena: UnificationArena,
-
-    pub variance: Variance,
+    pub arena: TransactionalArena<Type>,
 
     diagnostics: Vec<TypeCheckDiagnostic>,
     fatal_diagnostics: usize,
-
-    visited: RecursionGuard,
 
     // The arguments currently in scope
     arguments: HashMap<GenericArgumentId, TypeId, foldhash::fast::RandomState>,
@@ -158,14 +34,12 @@ pub struct Environment {
 
 impl Environment {
     #[must_use]
-    pub fn new(source: SpanId, arena: Arena<Type>) -> Self {
+    pub fn new(source: SpanId, arena: TransactionalArena<Type>) -> Self {
         Self {
             source,
-            arena: UnificationArena::new(arena),
-            variance: Variance::default(),
+            arena,
             diagnostics: Vec::new(),
             fatal_diagnostics: 0,
-            visited: RecursionGuard::new(),
             arguments: HashMap::default(),
         }
     }
@@ -176,14 +50,6 @@ impl Environment {
 
     pub(crate) fn replace_diagnostics(&mut self, diagnostics: Vec<TypeCheckDiagnostic>) {
         self.diagnostics = diagnostics;
-    }
-
-    pub fn visit(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        !self.visited.enter(lhs, rhs)
-    }
-
-    pub fn leave(&mut self, lhs: TypeId, rhs: TypeId) {
-        self.visited.leave(lhs, rhs);
     }
 
     pub(crate) fn record_diagnostic(&mut self, diagnostic: TypeCheckDiagnostic) {
@@ -212,6 +78,76 @@ impl Environment {
 
     pub(crate) fn generic_argument(&self, id: GenericArgumentId) -> Option<TypeId> {
         self.arguments.get(&id).copied()
+    }
+
+    fn begin_transaction(&self) -> (Checkpoint<Type>, usize, usize) {
+        let checkpoint = self.arena.checkpoint();
+        let length = self.diagnostics.len();
+        let fatal = self.fatal_diagnostics;
+
+        (checkpoint, length, fatal)
+    }
+
+    fn end_transaction(
+        &mut self,
+        success: bool,
+        checkpoint: Checkpoint<Type>,
+        length: usize,
+        fatal: usize,
+    ) {
+        if !success {
+            self.arena.restore(checkpoint);
+            self.diagnostics.truncate(length);
+            self.fatal_diagnostics = fatal;
+        }
+    }
+
+    pub(crate) fn in_transaction(&mut self, closure: impl FnOnce(&mut Self) -> bool) {
+        let (checkpoint, length, fatal) = self.begin_transaction();
+
+        let result = closure(self);
+
+        self.end_transaction(result, checkpoint, length, fatal);
+    }
+}
+
+pub struct UnificationEnvironment<'env> {
+    environment: &'env mut Environment,
+    boundary: RecursionBoundary,
+
+    pub variance: Variance,
+}
+
+impl<'env> UnificationEnvironment<'env> {
+    pub fn new(environment: &'env mut Environment) -> Self {
+        Self {
+            environment,
+            boundary: RecursionBoundary::new(),
+            variance: Variance::default(),
+        }
+    }
+
+    pub fn unify_type(&mut self, lhs: TypeId, rhs: TypeId) {
+        if !self.boundary.enter(lhs, rhs) {
+            // We've detected a circular reference in the type graph
+            let lhs_type = &self.environment.arena[lhs];
+            let rhs_type = &self.environment.arena[rhs];
+
+            let diagnostic = circular_type_reference(self.environment.source, lhs_type, rhs_type);
+
+            self.environment.record_diagnostic(diagnostic);
+            return;
+        }
+
+        unify_type_impl(self, lhs, rhs);
+
+        self.boundary.exit(lhs, rhs);
+    }
+
+    pub(crate) fn structurally_equivalent(&self, lhs: TypeId, rhs: TypeId) -> bool {
+        let mut environment = StructuralEquivalenceEnvironment::new(&self.environment);
+
+        environment.structurally_equivalent(lhs, rhs)
     }
 
     pub(crate) fn with_variance<T>(
@@ -253,49 +189,99 @@ impl Environment {
     }
 
     pub(crate) fn in_transaction(&mut self, closure: impl FnOnce(&mut Self) -> bool) {
-        self.arena.begin_transaction();
-        let length = self.diagnostics.len();
-        let fatal = self.fatal_diagnostics;
+        let (checkpoint, length, fatal) = self.begin_transaction();
 
         let result = closure(self);
 
-        if result {
-            self.arena.commit_transaction();
-        } else {
-            self.arena.rollback_transaction();
-            self.diagnostics.truncate(length);
-            self.fatal_diagnostics = fatal;
+        self.end_transaction(result, checkpoint, length, fatal);
+    }
+}
+
+// We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
+// As the unification environment is just a wrapper around the environment with an additional guard.
+impl Deref for UnificationEnvironment<'_> {
+    type Target = Environment;
+
+    fn deref(&self) -> &Self::Target {
+        self.environment
+    }
+}
+
+impl DerefMut for UnificationEnvironment<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.environment
+    }
+}
+
+pub struct StructuralEquivalenceEnvironment<'env> {
+    environment: &'env Environment,
+    boundary: RecursionBoundary,
+}
+
+impl<'env> StructuralEquivalenceEnvironment<'env> {
+    pub fn new(environment: &'env Environment) -> Self {
+        Self {
+            environment,
+            boundary: RecursionBoundary::new(),
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn arena_mut_test_only(&mut self) -> &mut Arena<Type> {
-        self.arena.arena_mut_test_only()
-    }
+    /// Determines if two types are structurally equivalent - meaning they have the same shape and
+    /// matching internal types.
+    ///
+    /// For example:
+    /// - Two structs with the same field names and types are structurally equivalent
+    /// - Two closures with the same parameter types and return type are structurally equivalent
+    /// - Two generic types are structurally equivalent if their parameters and constraints match
+    ///
+    /// This function handles recursive types by using a recursion guard to prevent infinite
+    /// recursion.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the types are structurally equivalent, `false` otherwise
+    pub fn structurally_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        let lhs_type = &self.environment.arena[lhs];
+        let rhs_type = &self.environment.arena[rhs];
 
-    #[cfg(test)]
-    pub(crate) fn arena_test_only(&self) -> &Arena<Type> {
-        self.arena.arena_test_only()
+        if !self.boundary.enter(lhs, rhs) {
+            // In case of recursion the result is true
+            return true;
+        }
+
+        let result = lhs_type.structurally_equivalent_impl(rhs_type, self);
+
+        self.boundary.exit(lhs, rhs);
+
+        result
+    }
+}
+
+// We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
+// As the unification environment is just a wrapper around the environment with an additional guard.
+impl Deref for StructuralEquivalenceEnvironment<'_> {
+    type Target = Environment;
+
+    fn deref(&self) -> &Self::Target {
+        self.environment
     }
 }
 
 #[cfg(test)]
 mod test {
-    use core::assert_matches::assert_matches;
-
     use crate::{
-        arena::Arena,
+        arena::transation::TransactionalArena,
         span::SpanId,
         r#type::{
             Type, TypeId, TypeKind,
-            environment::{Environment, UnificationArena, Variance},
+            environment::{Environment, Variance},
             error::type_mismatch,
             generic_argument::GenericArgumentId,
             primitive::PrimitiveType,
         },
     };
 
-    fn create_test_type(arena: &mut Arena<Type>, kind: TypeKind) -> TypeId {
+    fn create_test_type(arena: &mut TransactionalArena<Type>, kind: TypeKind) -> TypeId {
         arena.push_with(|id| Type {
             id,
             kind,
@@ -303,277 +289,14 @@ mod test {
         })
     }
 
-    fn setup_arena() -> (Arena<Type>, TypeId, TypeId) {
-        let mut arena = Arena::new();
+    fn setup_arena() -> (TransactionalArena<Type>, TypeId, TypeId) {
+        let mut arena = TransactionalArena::new();
 
         // Create a few test types
         let type1 = create_test_type(&mut arena, TypeKind::Primitive(PrimitiveType::Null));
         let type2 = create_test_type(&mut arena, TypeKind::Primitive(PrimitiveType::Boolean));
 
         (arena, type1, type2)
-    }
-
-    #[test]
-    fn basic_operations() {
-        let (arena, type1, type2) = setup_arena();
-
-        // Create unification arena
-        let mut unif_arena = UnificationArena::new(arena);
-
-        // Verify initial state
-        assert_matches!(
-            unif_arena[type1].kind,
-            TypeKind::Primitive(PrimitiveType::Null)
-        );
-        assert_matches!(
-            unif_arena[type2].kind,
-            TypeKind::Primitive(PrimitiveType::Boolean)
-        );
-
-        // Update a type
-        let mut type1 = unif_arena[type1].clone();
-        let type1_id = type1.id;
-        type1.kind = TypeKind::Primitive(PrimitiveType::Number);
-        unif_arena.update(type1);
-
-        // Verify update
-        assert_matches!(
-            unif_arena[type1_id].kind,
-            TypeKind::Primitive(PrimitiveType::Number)
-        );
-    }
-
-    #[test]
-    fn update_with() {
-        let (arena, id1, _) = setup_arena();
-
-        let mut unif_arena = UnificationArena::new(arena);
-
-        // Use update_with to change a type
-        unif_arena.update_with(id1, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
-        });
-
-        // Verify the change
-        assert_matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::String)
-        );
-    }
-
-    #[test]
-    fn simple_transaction() {
-        let (arena, id1, id2) = setup_arena();
-
-        let mut unif_arena = UnificationArena::new(arena);
-
-        // Start a transaction
-        unif_arena.begin_transaction();
-
-        // Make changes in the transaction
-        unif_arena.update_with(id1, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
-        });
-
-        // Verify changes are visible within the transaction
-        assert_matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::String)
-        );
-        assert_matches!(
-            unif_arena[id2].kind,
-            TypeKind::Primitive(PrimitiveType::Boolean)
-        );
-
-        // Commit the transaction
-        unif_arena.commit_transaction();
-
-        // Verify changes persisted after commit
-        assert_matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::String)
-        );
-        assert_matches!(
-            unif_arena[id2].kind,
-            TypeKind::Primitive(PrimitiveType::Boolean)
-        );
-    }
-
-    #[test]
-    fn transaction_rollback() {
-        let (arena, id1, _) = setup_arena();
-
-        let mut unif_arena = UnificationArena::new(arena);
-
-        // Start a transaction
-        unif_arena.begin_transaction();
-
-        // Make changes in the transaction
-        unif_arena.update_with(id1, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
-        });
-
-        // Verify changes are visible
-        assert_matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::String)
-        );
-
-        // Rollback the transaction
-        unif_arena.rollback_transaction();
-
-        // Verify original state is restored
-        assert_matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::Null)
-        );
-    }
-
-    #[test]
-    fn multiple_updates_in_transaction() {
-        let (arena, id1, id2) = setup_arena();
-
-        let mut unif_arena = UnificationArena::new(arena);
-
-        unif_arena.begin_transaction();
-
-        // Update the same type multiple times
-        unif_arena.update_with(id1, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
-        });
-        unif_arena.update_with(id1, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::Number);
-        });
-
-        // Update another type
-        unif_arena.update_with(id2, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
-        });
-
-        // Verify all updates are visible
-        assert_matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::Number)
-        );
-        assert_matches!(
-            unif_arena[id2].kind,
-            TypeKind::Primitive(PrimitiveType::String)
-        );
-
-        // Commit and verify persistence
-        unif_arena.commit_transaction();
-        assert_matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::Number)
-        );
-        assert_matches!(
-            unif_arena[id2].kind,
-            TypeKind::Primitive(PrimitiveType::String)
-        );
-    }
-
-    #[test]
-    fn nested_transactions() {
-        let (arena, id1, id2) = setup_arena();
-
-        let mut unif_arena = UnificationArena::new(arena);
-
-        // Outer transaction
-        unif_arena.begin_transaction();
-        unif_arena.update_with(id1, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
-        });
-
-        // Inner transaction
-        unif_arena.begin_transaction();
-        unif_arena.update_with(id1, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::Number);
-        });
-        unif_arena.update_with(id2, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
-        });
-
-        // Verify inner transaction changes
-        assert_matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::Number)
-        );
-        assert_matches!(
-            unif_arena[id2].kind,
-            TypeKind::Primitive(PrimitiveType::String)
-        );
-
-        // Rollback inner transaction
-        unif_arena.rollback_transaction();
-
-        // Verify outer transaction state
-        assert_matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::String)
-        );
-        assert_matches!(
-            unif_arena[id2].kind,
-            TypeKind::Primitive(PrimitiveType::Boolean)
-        );
-
-        // Commit outer transaction
-        unif_arena.commit_transaction();
-
-        // Verify final state
-        assert_matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::String)
-        );
-        assert_matches!(
-            unif_arena[id2].kind,
-            TypeKind::Primitive(PrimitiveType::Boolean)
-        );
-    }
-
-    #[test]
-    fn mixed_transaction_operations() {
-        let (arena, id1, id2) = setup_arena();
-
-        let mut unif_arena = UnificationArena::new(arena);
-
-        // Start with direct update
-        unif_arena.update_with(id1, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
-        });
-
-        // Begin transaction
-        unif_arena.begin_transaction();
-
-        // Update both inside transaction
-        unif_arena.update_with(id1, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::Number);
-        });
-        unif_arena.update_with(id2, |r#type| {
-            r#type.kind = TypeKind::Primitive(PrimitiveType::String);
-        });
-
-        // Verify transaction state
-        assert!(matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::Number)
-        ));
-        assert!(matches!(
-            unif_arena[id2].kind,
-            TypeKind::Primitive(PrimitiveType::String)
-        ));
-
-        // Commit transaction
-        unif_arena.commit_transaction();
-
-        // Verify committed state
-        assert!(matches!(
-            unif_arena[id1].kind,
-            TypeKind::Primitive(PrimitiveType::Number)
-        ));
-        assert!(matches!(
-            unif_arena[id2].kind,
-            TypeKind::Primitive(PrimitiveType::String)
-        ));
     }
 
     #[test]

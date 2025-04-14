@@ -6,15 +6,14 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    environment::Environment,
+    environment::{Environment, StructuralEquivalenceEnvironment, UnificationEnvironment},
     error::{TypeCheckDiagnostic, type_mismatch},
     generic_argument::GenericArguments,
     intersection_type,
     pretty_print::PrettyPrint,
-    recursion::{RecursionGuard, RecursionLimit},
-    unify_type,
+    recursion::RecursionDepthBoundary,
 };
-use crate::{arena::Arena, symbol::Ident};
+use crate::symbol::Ident;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructField {
@@ -26,11 +25,9 @@ impl StructField {
     fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
-        self.key.value == other.key.value
-            && arena[self.value].structurally_equivalent_impl(&arena[other.value], arena, guard)
+        self.key.value == other.key.value && env.structurally_equivalent(self.value, other.value)
     }
 }
 
@@ -38,7 +35,7 @@ impl PrettyPrint for StructField {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text(self.key.value.as_str())
             .append(RcDoc::text(":"))
@@ -75,8 +72,7 @@ impl StructType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         // We do not need to sort the fields, because the constructor verifies that they are already
         // sorted
@@ -85,10 +81,10 @@ impl StructType {
                 .fields
                 .iter()
                 .zip(other.fields.iter())
-                .all(|(lhs, rhs)| lhs.structurally_equivalent(rhs, arena, guard))
+                .all(|(lhs, rhs)| lhs.structurally_equivalent(rhs, env))
             && self
                 .arguments
-                .structurally_equivalent(&other.arguments, arena, guard)
+                .structurally_equivalent(&other.arguments, env)
     }
 }
 
@@ -96,7 +92,7 @@ impl PrettyPrint for StructType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> RcDoc<'a, anstyle::Style> {
         let inner = if self.fields.is_empty() {
             RcDoc::text("(:)")
@@ -122,7 +118,11 @@ impl PrettyPrint for StructType {
 /// In a covariant context:
 /// - rhs must have at least all the fields that lhs has (width subtyping).
 /// - Field types must respect covariance (rhs fields must be subtypes of left field types)
-pub(crate) fn unify_struct(env: &mut Environment, lhs: &Type<StructType>, rhs: &Type<StructType>) {
+pub(crate) fn unify_struct(
+    env: &mut UnificationEnvironment,
+    lhs: &Type<StructType>,
+    rhs: &Type<StructType>,
+) {
     // Enter generic argument scope for both structs
     lhs.kind.arguments.enter_scope(env);
     rhs.kind.arguments.enter_scope(env);
@@ -144,8 +144,8 @@ pub(crate) fn unify_struct(env: &mut Environment, lhs: &Type<StructType>, rhs: &
         if let Some(rhs_field) = rhs_by_key.get(&lhs_field.key.value) {
             // This field exists in both structs - unify the field types
             // Fields are in covariant position within a struct
-            env.in_covariant(|ctx| {
-                unify_type(ctx, lhs_field.value, rhs_field.value);
+            env.in_covariant(|env| {
+                env.unify_type(lhs_field.value, rhs_field.value);
             });
         } else {
             // The covariance of lhs <: rhs is violated
@@ -172,8 +172,7 @@ pub(crate) fn unify_struct(env: &mut Environment, lhs: &Type<StructType>, rhs: &
 }
 
 pub(crate) fn intersection_struct(
-    arena: &mut Arena<Type>,
-    diagnostics: &mut Vec<TypeCheckDiagnostic>,
+    env: &mut UnificationEnvironment,
     lhs: &StructType,
     rhs: &StructType,
 ) -> StructType {
@@ -193,8 +192,7 @@ pub(crate) fn intersection_struct(
     for field in &rhs.fields {
         // Find the index of the field in the left struct, so that we can modify it in place
         if let Some(&lhs_index) = lookup.get(&&field.key.value) {
-            let value =
-                intersection_type(arena, diagnostics, lhs.fields[lhs_index].value, field.value);
+            let value = intersection_type(env, lhs.fields[lhs_index].value, field.value);
 
             result_fields.make_mut()[lhs_index].value = value;
         } else {
