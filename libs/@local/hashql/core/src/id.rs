@@ -96,8 +96,13 @@ pub trait Id:
 
     /// Returns the next ID in sequence, if it exists.
     ///
-    /// Returns `None` if this ID is already at the maximum value.
-    fn next(self) -> Option<Self>;
+    /// # Panics
+    ///
+    /// Panics if this ID is already at the maximum value.
+    #[must_use]
+    fn next(self) -> Self {
+        Self::from_usize(self.as_usize() + 1)
+    }
 
     /// Returns the previous ID in sequence, if it exists.
     ///
@@ -187,14 +192,6 @@ macro_rules! newtype {
 
             fn as_usize(self) -> usize {
                 self.0 as usize
-            }
-
-            fn next(self) -> ::core::option::Option<Self> {
-                if self.0 == $max {
-                    None
-                } else {
-                    Some(Self(self.0 + 1))
-                }
             }
 
             fn prev(self) -> ::core::option::Option<Self> {

@@ -1,0 +1,63 @@
+Expr#0@31
+  ExprKind (If)
+    IfExpr#1@31
+      Expr#2@12
+        ExprKind (Call)
+          CallExpr#3@12
+            Expr#4@7
+              ExprKind (Path)
+                Path#5@7 (rooted: true)
+                  PathSegment#6@6 (name: math)
+                  PathSegment#7@6 (name: eq)
+            Argument#8@9
+              Expr#9@9
+                ExprKind (Literal)
+                  LiteralExpr#10@8
+                    LiteralKind (Integer)
+                      IntegerLiteral (1)
+            Argument#11@11
+              Expr#12@11
+                ExprKind (Literal)
+                  LiteralExpr#13@10
+                    LiteralKind (Integer)
+                      IntegerLiteral (1)
+      Expr#14@21
+        ExprKind (Call)
+          CallExpr#15@21
+            Expr#16@16
+              ExprKind (Path)
+                Path#17@16 (rooted: true)
+                  PathSegment#18@15 (name: math)
+                  PathSegment#19@15 (name: add)
+            Argument#20@18
+              Expr#21@18
+                ExprKind (Literal)
+                  LiteralExpr#22@17
+                    LiteralKind (Integer)
+                      IntegerLiteral (10)
+            Argument#23@20
+              Expr#24@20
+                ExprKind (Literal)
+                  LiteralExpr#25@19
+                    LiteralKind (Integer)
+                      IntegerLiteral (20)
+      Expr#26@30
+        ExprKind (Call)
+          CallExpr#27@30
+            Expr#28@25
+              ExprKind (Path)
+                Path#29@25 (rooted: true)
+                  PathSegment#30@24 (name: math)
+                  PathSegment#31@24 (name: mul)
+            Argument#32@27
+              Expr#33@27
+                ExprKind (Literal)
+                  LiteralExpr#34@26
+                    LiteralKind (Integer)
+                      IntegerLiteral (5)
+            Argument#35@29
+              Expr#36@29
+                ExprKind (Literal)
+                  LiteralExpr#37@28
+                    LiteralKind (Integer)
+                      IntegerLiteral (2)

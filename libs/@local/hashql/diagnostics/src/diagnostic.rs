@@ -56,6 +56,13 @@ impl<C, S> Diagnostic<C, S> {
             help: self.help,
         }
     }
+
+    pub fn boxed<'a>(self) -> Diagnostic<Box<dyn DiagnosticCategory + 'a>, S>
+    where
+        C: DiagnosticCategory + 'a,
+    {
+        self.map_category(|category| Box::new(category) as Box<dyn DiagnosticCategory>)
+    }
 }
 
 impl<C> Diagnostic<C, SpanId> {

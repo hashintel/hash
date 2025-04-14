@@ -1,16 +1,3 @@
-[31m[special-form-expander::qualified-binding-name] Error:[0m Special Form Expander
-   ╭─[ <unknown>:5:4 ]
-   │
- 5 │   "::x",
-   │    ─┬─  
-   │     ╰─── Replace this with a simple identifier
-   │ 
-   │ Help: let binding names must be simple identifiers without any path qualification. Qualified paths cannot be used as binding names.
-   │ 
-   │ Note: Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any namespace qualification, generic parameters, or path separators.
-───╯
-
-
 [31m[special-form-expander::invalid-type-expression] Error:[0m Special Form Expander
    ╭─[ <unknown>:7:3 ]
    │
@@ -27,4 +14,17 @@
    │       - Unions: (| String Int)
    │       - Intersections: (& String Int)
    │       - Generic types: Array<String>, Option<Int>
+───╯
+
+
+[31m[special-form-expander::qualified-binding-name] Error:[0m Special Form Expander
+   ╭─[ <unknown>:5:4 ]
+   │
+ 5 │   "::x",
+   │    ─┬─  
+   │     ╰─── Replace this with a simple identifier
+   │ 
+   │ Help: let binding names must be simple identifiers without any path qualification. Qualified paths cannot be used as binding names.
+   │ 
+   │ Note: Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any namespace qualification, generic parameters, or path separators.
 ───╯

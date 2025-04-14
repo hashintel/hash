@@ -391,7 +391,6 @@ impl<'heap> SpecialFormExpander<'heap> {
     /// The function first checks that exactly 2 arguments are provided,
     /// then attempts to convert the second argument into a valid type expression.
     fn lower_is(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        // There only exists `is/2`
         if call.arguments.len() != 2 {
             self.diagnostics.push(invalid_argument_length(
                 call.span,

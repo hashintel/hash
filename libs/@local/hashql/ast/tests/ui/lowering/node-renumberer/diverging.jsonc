@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: ensure renumbering works when diverging paths
+[
+  "if",
+  ["==", { "#literal": 1 }, { "#literal": 1 }],
+  ["+", { "#literal": 10 }, { "#literal": 20 }],
+  ["*", { "#literal": 5 }, { "#literal": 2 }]
+]

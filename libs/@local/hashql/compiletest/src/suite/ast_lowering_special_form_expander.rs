@@ -2,9 +2,8 @@ use hashql_ast::{
     format::SyntaxDump as _, heap::Heap, lowering::special_form_expander::SpecialFormExpander,
     node::expr::Expr, visit::Visitor as _,
 };
-use hashql_diagnostics::category::DiagnosticCategory;
 
-use super::{Suite, SuiteDiagnostic};
+use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 
 pub(crate) struct AstLoweringSpecialFormExpanderSuite;
 
@@ -23,17 +22,7 @@ impl Suite for AstLoweringSpecialFormExpanderSuite {
 
         expander.visit_expr(&mut expr);
 
-        let mut reported = expander.take_diagnostics();
-        if let Some(last) = reported.pop() {
-            diagnostics.extend(reported.into_iter().map(|diagnostic| {
-                diagnostic
-                    .map_category(|category| Box::new(category) as Box<dyn DiagnosticCategory>)
-            }));
-
-            return Err(
-                last.map_category(|category| Box::new(category) as Box<dyn DiagnosticCategory>)
-            );
-        }
+        process_diagnostics(diagnostics, expander.take_diagnostics())?;
 
         Ok(expr.syntax_dump_to_string())
     }
