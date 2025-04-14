@@ -59,6 +59,13 @@ impl PrettyPrint for UnionType {
 /// - For each variant in `rhs`, it must be a subtype of at least one variant in `lhs`
 /// - This is the correct union subtyping rule: (A | B) <: C if and only if A <: C and B <: C
 ///
+/// When inference variables (`Infer`) appear in union variants, they are unified with concrete
+/// types as encountered. This approach correctly handles type inference in unions because:
+/// 1. Inference variables in different unions are treated as separate unless explicitly linked
+/// 2. When an inference variable unifies with a concrete type, that information propagates through
+///    links
+/// 3. No known edge cases exist where this approach is overly restrictive
+///
 /// For example, if `lhs` is `Number | String` and `rhs` is `Integer | String`,
 /// this would be valid because:
 /// - `Integer <: Number`, so the `Integer` variant in `rhs` is covered
