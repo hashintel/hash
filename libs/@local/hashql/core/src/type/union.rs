@@ -60,11 +60,24 @@ impl PrettyPrint for UnionType {
 /// - This is the correct union subtyping rule: (A | B) <: C if and only if A <: C and B <: C
 ///
 /// When inference variables (`Infer`) appear in union variants, they are unified with concrete
-/// types as encountered. This approach correctly handles type inference in unions because:
-/// 1. Inference variables in different unions are treated as separate unless explicitly linked
-/// 2. When an inference variable unifies with a concrete type, that information propagates through
-///    links
-/// 3. No known edge cases exist where this approach is overly restrictive
+/// types as encountered. This approach works correctly for most common cases, but has
+/// known edge cases:
+///
+/// *Known limitation*: When unifying unions containing inference variables with other unions,
+/// type information can be lost. For example:
+/// ```
+/// let x: _ | Integer = 3 in         // x is an Integer
+/// let y: Boolean | String = "test" in  // y is a String
+/// unify(x, y)  // Results in Boolean | Integer, losing the String information
+/// ```
+///
+/// In this case, the inference variable in `x` unifies with Boolean from `y`,
+/// even though `y` is actually a String. This can lead to counterintuitive results.
+///
+/// Possible solutions we might implement in the future:
+/// 1. Disallow inference variables in unions (simple but restrictive)
+/// 2. Collect and track all inferred variants (powerful but complex)
+/// 3. Maintain current behavior but ensure proper documentation (current approach)
 ///
 /// For example, if `lhs` is `Number | String` and `rhs` is `Integer | String`,
 /// this would be valid because:
