@@ -10,7 +10,10 @@ use hashql_diagnostics::{
 };
 
 use super::{
-    Type, generic_argument::GenericArgumentId, pretty_print::PrettyPrint, unify::UnificationArena,
+    Type,
+    environment::{UnificationArena, UnificationContext},
+    generic_argument::GenericArgumentId,
+    pretty_print::PrettyPrint,
 };
 use crate::{arena::Arena, span::SpanId};
 
@@ -100,8 +103,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
 
 /// Creates a type mismatch diagnostic with specific labels for the left and right types
 pub(crate) fn type_mismatch<K>(
-    span: SpanId,
-    arena: &UnificationArena,
+    context: &UnificationContext,
 
     lhs: &Type<K>,
     rhs: &Type<K>,
@@ -116,12 +118,15 @@ where
 
     diagnostic
         .labels
-        .push(Label::new(span, "Type mismatch in this expression").with_order(3));
+        .push(Label::new(context.source, "Type mismatch in this expression").with_order(3));
 
     diagnostic.labels.push(
         Label::new(
             lhs.span,
-            format!("This is of type `{}`", lhs.kind.pretty_print(arena, 80)),
+            format!(
+                "This is of type `{}`",
+                lhs.kind.pretty_print(&context.arena, 80)
+            ),
         )
         .with_order(1),
     );
@@ -129,7 +134,10 @@ where
     diagnostic.labels.push(
         Label::new(
             rhs.span,
-            format!("This is of type `{}`", rhs.kind.pretty_print(arena, 80)),
+            format!(
+                "This is of type `{}`",
+                rhs.kind.pretty_print(&context.arena, 80)
+            ),
         )
         .with_order(2),
     );

@@ -5,10 +5,10 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
+    environment::UnificationContext,
     generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
-    unify::UnificationContext,
     unify_type,
 };
 use crate::arena::Arena;

@@ -5,11 +5,11 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId, TypeKind,
+    environment::UnificationContext,
     error::{TypeCheckDiagnostic, union_variant_mismatch},
     intersection_type_impl,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
-    unify::UnificationContext,
 };
 use crate::arena::Arena;
 
@@ -95,7 +95,7 @@ pub(crate) fn unify_union(
         let mut compatible_variant_found = false;
 
         for &lhs_variant in &lhs.kind.variants {
-            let diagnostics = context.diagnostics.len();
+            let diagnostics = context.fatal_diagnostics();
 
             context.in_transaction(|context| {
                 // Try to unify this specific pair of variants
@@ -104,7 +104,7 @@ pub(crate) fn unify_union(
                     super::unify_type(ctx, lhs_variant, rhs_variant);
                 });
 
-                if context.diagnostics.len() == diagnostics {
+                if context.fatal_diagnostics() == diagnostics {
                     compatible_variant_found = true;
 
                     true
@@ -239,14 +239,15 @@ pub(crate) fn intersection_with_union(
 mod tests {
     use super::{UnionType, unify_union, unify_union_lhs, unify_union_rhs};
     use crate::r#type::{
-        TypeId, TypeKind, intersection_type,
+        TypeId, TypeKind,
+        environment::UnificationContext,
+        intersection_type,
         primitive::PrimitiveType,
         test::{instantiate, setup},
-        unify::UnificationContext,
     };
 
     fn create_union_type(
-        context: &mut crate::r#type::unify::UnificationContext,
+        context: &mut crate::r#type::environment::UnificationContext,
         variants: Vec<TypeId>,
     ) -> crate::r#type::Type<UnionType> {
         let id = context

@@ -4,10 +4,10 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
+    environment::UnificationContext,
     error::type_mismatch,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
-    unify::UnificationContext,
     unify_type,
 };
 use crate::arena::Arena;
@@ -193,13 +193,7 @@ pub(crate) fn unify_intrinsic(
                 _ => Some("These collection types cannot be used interchangeably."),
             };
 
-            context.record_diagnostic(type_mismatch(
-                context.source,
-                &context.arena,
-                &lhs,
-                &rhs,
-                help,
-            ));
+            context.record_diagnostic(type_mismatch(context, &lhs, &rhs, help));
 
             // Mark both types as errors
             context.mark_error(lhs.id);

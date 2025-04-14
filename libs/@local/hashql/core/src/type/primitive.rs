@@ -4,10 +4,10 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
+    environment::UnificationContext,
     error::type_mismatch,
     pretty_print::{BLUE, PrettyPrint},
     recursion::RecursionLimit,
-    unify::UnificationContext,
 };
 
 // TODO: in the future we should support refinements
@@ -73,8 +73,7 @@ pub(crate) fn unify_primitive(
             // In covariant context: Number (rhs) is NOT a subtype of Integer (lhs)
             // This is an error - Number cannot be used where Integer is expected
             context.record_diagnostic(type_mismatch(
-                context.source,
-                &context.arena,
+                context,
                 &lhs,
                 &rhs,
                 Some(
@@ -124,13 +123,7 @@ pub(crate) fn unify_primitive(
             };
 
             // Record a type mismatch diagnostic with helpful conversion suggestions
-            context.record_diagnostic(type_mismatch(
-                context.source,
-                &context.arena,
-                &lhs,
-                &rhs,
-                help_message,
-            ));
+            context.record_diagnostic(type_mismatch(context, &lhs, &rhs, help_message));
 
             // Mark both types as errors to prevent further error propagation
             context.mark_error(lhs.id);

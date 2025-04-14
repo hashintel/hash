@@ -1,6 +1,6 @@
 use core::assert_matches::assert_matches;
 
-use super::{Type, TypeId, TypeKind, unify::UnificationContext};
+use super::{Type, TypeId, TypeKind, environment::UnificationContext};
 use crate::{
     arena::Arena,
     span::SpanId,

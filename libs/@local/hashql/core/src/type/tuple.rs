@@ -5,11 +5,11 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
+    environment::UnificationContext,
     error::tuple_length_mismatch,
     generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
-    unify::UnificationContext,
     unify_type,
 };
 use crate::arena::Arena;
@@ -151,12 +151,12 @@ mod tests {
         span::SpanId,
         r#type::{
             Type, TypeId, TypeKind,
+            environment::UnificationContext,
             error::TypeCheckDiagnosticCategory,
             generic_argument::GenericArguments,
             primitive::PrimitiveType,
             test::{instantiate, setup},
             tuple::unify_tuple,
-            unify::UnificationContext,
         },
     };
 

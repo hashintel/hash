@@ -6,12 +6,12 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
-    error::TypeCheckDiagnostic,
+    environment::UnificationContext,
+    error::{TypeCheckDiagnostic, type_mismatch},
     generic_argument::GenericArguments,
     intersection_type,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
-    unify::UnificationContext,
     unify_type,
 };
 use crate::{arena::Arena, symbol::Ident};
@@ -154,9 +154,8 @@ pub(crate) fn unify_struct(
             });
         } else {
             // The covariance of lhs <: rhs is violated
-            let diagnostic = super::error::type_mismatch(
-                context.source,
-                &context.arena,
+            let diagnostic = type_mismatch(
+                context,
                 lhs,
                 rhs,
                 Some(&format!(

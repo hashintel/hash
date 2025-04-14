@@ -1,6 +1,7 @@
 // HashQL type system
 
 pub mod closure;
+pub mod environment;
 pub mod error;
 pub mod generic_argument;
 pub mod intrinsic;
@@ -12,16 +13,16 @@ pub mod r#struct;
 #[cfg(test)]
 pub(crate) mod test;
 pub mod tuple;
-pub mod unify;
 pub mod union;
 
-use core::{mem, ops::Index};
+use core::ops::Index;
 
 use pretty::RcDoc;
 
 use self::{
     closure::{ClosureType, unify_closure},
-    error::{TypeCheckDiagnostic, expected_never, intersection_coerced_to_never},
+    environment::{UnificationContext, Variance},
+    error::{TypeCheckDiagnostic, expected_never, intersection_coerced_to_never, type_mismatch},
     generic_argument::{Param, unify_param, unify_param_lhs, unify_param_rhs},
     intrinsic::{IntrinsicType, unify_intrinsic},
     opaque::{OpaqueType, unify_opaque},
@@ -30,7 +31,6 @@ use self::{
     recursion::{RecursionGuard, RecursionLimit},
     r#struct::{StructType, intersection_struct, unify_struct},
     tuple::{TupleType, unify_tuple},
-    unify::{UnificationContext, Variance},
     union::{
         UnionType, intersection_union, intersection_with_union, unify_union, unify_union_lhs,
         unify_union_rhs,
@@ -311,25 +311,25 @@ fn unify_type_invariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
     }
 
     // Keep track of diagnostics count to detect unification failures
-    let old_diagnostics_len = context.diagnostics.len();
+    let old_diagnostics_len = context.fatal_diagnostics();
 
     // First check covariant compatibility: can `rhs` be used where `lhs` is expected?
     unify_type_covariant(context, lhs, rhs);
 
     // If the first unification failed, we're done - types aren't compatible at all
-    if context.diagnostics.len() > old_diagnostics_len {
+    if context.fatal_diagnostics() > old_diagnostics_len {
         return;
     }
 
     // Preserve any existing diagnostics
-    let diagnostics = mem::take(&mut context.diagnostics);
+    let diagnostics = context.take_diagnostics();
 
     // Now check contravariant compatibility: can `lhs` be used where `rhs` is expected?
     unify_type_covariant(context, rhs, lhs);
 
     // Get any new diagnostics from the reverse direction check
-    let new_diagnostics = mem::take(&mut context.diagnostics);
-    context.diagnostics = diagnostics; // Restore original diagnostics
+    let new_diagnostics = context.take_diagnostics();
+    context.replace_diagnostics(diagnostics);
 
     // If there were errors in the reverse direction, the types are compatible
     // in one direction but not both, meaning they're not invariant
@@ -338,8 +338,7 @@ fn unify_type_invariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
         let rhs_type = &context.arena[rhs];
 
         let diagnostic = error::type_mismatch(
-            context.source,
-            &context.arena,
+            context,
             lhs_type,
             rhs_type,
             Some(
@@ -548,8 +547,7 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
             // In covariant context: A concrete type (lhs) is not a subtype of Unknown (rhs)
             // This is an error - we expected a specific type but got an Unknown
             let diagnostic = error::type_mismatch(
-                context.source,
-                &context.arena,
+                context,
                 lhs,
                 rhs,
                 Some(
@@ -598,8 +596,7 @@ fn unify_type_covariant(context: &mut UnificationContext, lhs: TypeId, rhs: Type
                 _ => "These types are fundamentally incompatible and cannot be unified",
             };
 
-            let diagnostic =
-                error::type_mismatch(context.source, &context.arena, lhs, rhs, Some(help_message));
+            let diagnostic = type_mismatch(context, lhs, rhs, Some(help_message));
 
             context.record_diagnostic(diagnostic);
             context.mark_error(lhs_id);

@@ -141,14 +141,15 @@ impl Index<TypeId> for UnificationArena {
     }
 }
 
-#[expect(clippy::field_scoped_visibility_modifiers)]
 pub struct UnificationContext {
     pub source: SpanId,
-    pub(super) arena: UnificationArena,
+    pub arena: UnificationArena,
 
-    variance_context: Variance,
+    variance: Variance,
 
-    pub(super) diagnostics: Vec<TypeCheckDiagnostic>,
+    diagnostics: Vec<TypeCheckDiagnostic>,
+    fatal_diagnostics: usize,
+
     visited: RecursionGuard,
 
     // The arguments currently in scope
@@ -161,8 +162,9 @@ impl UnificationContext {
         Self {
             source,
             arena: UnificationArena::new(arena),
-            variance_context: Variance::default(),
+            variance: Variance::default(),
             diagnostics: Vec::new(),
+            fatal_diagnostics: 0,
             visited: RecursionGuard::new(),
             arguments: HashMap::default(),
         }
@@ -170,6 +172,10 @@ impl UnificationContext {
 
     pub fn take_diagnostics(&mut self) -> Vec<TypeCheckDiagnostic> {
         core::mem::take(&mut self.diagnostics)
+    }
+
+    pub(crate) fn replace_diagnostics(&mut self, diagnostics: Vec<TypeCheckDiagnostic>) {
+        self.diagnostics = diagnostics;
     }
 
     pub fn visit(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
@@ -181,7 +187,14 @@ impl UnificationContext {
     }
 
     pub(crate) fn record_diagnostic(&mut self, diagnostic: TypeCheckDiagnostic) {
+        if diagnostic.severity.is_fatal() {
+            self.fatal_diagnostics += 1;
+        }
         self.diagnostics.push(diagnostic);
+    }
+
+    pub(crate) const fn fatal_diagnostics(&self) -> usize {
+        self.fatal_diagnostics
     }
 
     pub(crate) fn mark_error(&mut self, id: TypeId) {
@@ -213,7 +226,7 @@ impl UnificationContext {
     }
 
     pub(crate) const fn variance_context(&self) -> Variance {
-        self.variance_context
+        self.variance
     }
 
     pub(crate) fn with_variance<T>(
@@ -221,10 +234,10 @@ impl UnificationContext {
         variance: Variance,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        let old_variance = self.variance_context;
+        let old_variance = self.variance;
 
         // Apply variance composition rules
-        self.variance_context = match (old_variance, variance) {
+        self.variance = match (old_variance, variance) {
             // When going from covariant to contravariant context or vice versa, flip to
             // contravariant
             (Variance::Covariant, Variance::Contravariant)
@@ -238,7 +251,7 @@ impl UnificationContext {
         };
 
         let result = closure(self);
-        self.variance_context = old_variance;
+        self.variance = old_variance;
         result
     }
 
@@ -257,6 +270,7 @@ impl UnificationContext {
     pub(crate) fn in_transaction(&mut self, closure: impl FnOnce(&mut Self) -> bool) {
         self.arena.begin_transaction();
         let length = self.diagnostics.len();
+        let fatal = self.fatal_diagnostics;
 
         let result = closure(self);
 
@@ -265,7 +279,18 @@ impl UnificationContext {
         } else {
             self.arena.rollback_transaction();
             self.diagnostics.truncate(length);
+            self.fatal_diagnostics = fatal;
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn arena_mut_test_only(&mut self) -> &mut Arena<Type> {
+        self.arena.arena_mut_test_only()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn arena_test_only(&self) -> &Arena<Type> {
+        self.arena.arena_test_only()
     }
 }
 
@@ -278,10 +303,10 @@ mod test {
         span::SpanId,
         r#type::{
             Type, TypeId, TypeKind,
+            environment::{UnificationArena, UnificationContext, Variance},
             error::type_mismatch,
             generic_argument::GenericArgumentId,
             primitive::PrimitiveType,
-            unify::{UnificationArena, UnificationContext, Variance},
         },
     };
 
@@ -630,13 +655,7 @@ mod test {
         assert!(context.take_diagnostics().is_empty());
 
         // Add a diagnostic
-        let diagnostic = type_mismatch(
-            SpanId::SYNTHETIC,
-            &context.arena,
-            &context.arena[id1],
-            &context.arena[id2],
-            None,
-        );
+        let diagnostic = type_mismatch(&context, &context.arena[id1], &context.arena[id2], None);
         context.record_diagnostic(diagnostic);
 
         // Take diagnostics should return the recorded diagnostic and clear

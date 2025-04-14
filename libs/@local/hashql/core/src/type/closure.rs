@@ -5,11 +5,11 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
+    environment::UnificationContext,
     error::function_parameter_count_mismatch,
     generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
     recursion::{RecursionGuard, RecursionLimit},
-    unify::UnificationContext,
     unify_type,
 };
 use crate::arena::Arena;
@@ -150,13 +150,12 @@ mod tests {
     };
 
     fn create_closure_type(
-        context: &mut crate::r#type::unify::UnificationContext,
+        context: &mut crate::r#type::environment::UnificationContext,
         params: Vec<TypeId>,
         return_type: TypeId,
         arguments: GenericArguments,
     ) -> crate::r#type::Type<ClosureType> {
         let id = context
-            .arena
             .arena_mut_test_only()
             .push_with(|id| crate::r#type::Type {
                 id,

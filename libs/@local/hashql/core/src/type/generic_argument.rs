@@ -5,9 +5,10 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
+    environment::UnificationContext,
+    error::generic_argument_not_found,
     pretty_print::{ORANGE, PrettyPrint},
     recursion::{RecursionGuard, RecursionLimit},
-    unify::UnificationContext,
     unify_type,
 };
 use crate::{
@@ -178,8 +179,7 @@ impl PrettyPrint for Param {
 pub(crate) fn unify_param_lhs(context: &mut UnificationContext, lhs: &Type<Param>, rhs: TypeId) {
     // First check if the generic argument is in scope
     let Some(argument) = context.generic_argument(lhs.kind.argument) else {
-        let diagnostic =
-            super::error::generic_argument_not_found(context.source, lhs, lhs.kind.argument);
+        let diagnostic = generic_argument_not_found(context.source, lhs, lhs.kind.argument);
         context.record_diagnostic(diagnostic);
         context.mark_error(lhs.id);
         return;
@@ -199,8 +199,7 @@ pub(crate) fn unify_param_lhs(context: &mut UnificationContext, lhs: &Type<Param
 pub(crate) fn unify_param_rhs(context: &mut UnificationContext, lhs: TypeId, rhs: &Type<Param>) {
     // First check if the generic argument is in scope
     let Some(argument) = context.generic_argument(rhs.kind.argument) else {
-        let diagnostic =
-            super::error::generic_argument_not_found(context.source, rhs, rhs.kind.argument);
+        let diagnostic = generic_argument_not_found(context.source, rhs, rhs.kind.argument);
         context.record_diagnostic(diagnostic);
         context.mark_error(rhs.id);
         return;
@@ -219,27 +218,23 @@ pub(crate) fn unify_param_rhs(context: &mut UnificationContext, lhs: TypeId, rhs
 /// The variance context determines how the parameters are compared.
 pub(crate) fn unify_param(context: &mut UnificationContext, lhs: &Type<Param>, rhs: &Type<Param>) {
     // First check if both generic arguments are in scope
-    let lhs_argument = if let Some(lhs_argument) = context.generic_argument(lhs.kind.argument) {
-        Some(lhs_argument)
-    } else {
-        let diagnostic =
-            super::error::generic_argument_not_found(context.source, lhs, lhs.kind.argument);
+    let lhs_argument = context.generic_argument(lhs.kind.argument);
+
+    if lhs_argument.is_none() {
+        let diagnostic = generic_argument_not_found(context.source, lhs, lhs.kind.argument);
+
         context.record_diagnostic(diagnostic);
         context.mark_error(lhs.id);
+    }
 
-        None
-    };
+    let rhs_argument = context.generic_argument(rhs.kind.argument);
 
-    let rhs_argument = if let Some(rhs_argument) = context.generic_argument(rhs.kind.argument) {
-        Some(rhs_argument)
-    } else {
-        let diagnostic =
-            super::error::generic_argument_not_found(context.source, rhs, rhs.kind.argument);
+    if rhs_argument.is_none() {
+        let diagnostic = generic_argument_not_found(context.source, rhs, rhs.kind.argument);
+
         context.record_diagnostic(diagnostic);
         context.mark_error(rhs.id);
-
-        None
-    };
+    }
 
     let Some((lhs_argument, rhs_argument)) = Option::zip(lhs_argument, rhs_argument) else {
         return;
@@ -269,12 +264,11 @@ mod tests {
     };
 
     fn create_param(
-        context: &mut crate::r#type::unify::UnificationContext,
+        context: &mut crate::r#type::environment::UnificationContext,
         argument_id: GenericArgumentId,
         name: &str,
     ) -> crate::r#type::Type<Param> {
         let id = context
-            .arena
             .arena_mut_test_only()
             .push_with(|id| crate::r#type::Type {
                 id,
