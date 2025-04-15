@@ -5,6 +5,18 @@ use type_system::{provenance::ActorId, web::WebId};
 use crate::policies::principal::{group::TeamId, role::RoleId};
 
 #[derive(Debug, derive_more::Display)]
+#[display("Could not get system account: {_variant}")]
+pub enum GetSystemAccountError {
+    #[display("Creating system account failed")]
+    CreateSystemAccountFailed,
+
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for GetSystemAccountError {}
+
+#[derive(Debug, derive_more::Display)]
 #[display("Could not create actor: {_variant}")]
 pub enum ActorCreationError {
     #[display("Web with ID `{web_id}` does not exist")]

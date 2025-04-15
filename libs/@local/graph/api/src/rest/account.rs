@@ -13,6 +13,7 @@ use error_stack::ResultExt as _;
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::ModifyRelationshipOperation,
+    policies::store::PrincipalStore,
     schema::{
         AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupPermission,
         AccountGroupRelationAndSubject, WebOwnerSubject,
@@ -30,7 +31,6 @@ use type_system::{
 };
 use utoipa::OpenApi;
 
-use super::api_resource::RoutedResource;
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, json::Json,
     status::report_to_response,
@@ -41,6 +41,7 @@ use crate::rest::{
     paths(
         create_account,
         create_account_group,
+        get_or_create_system_account,
 
         check_account_group_permission,
         add_account_group_member,
@@ -71,15 +72,17 @@ use crate::rest::{
 )]
 pub(crate) struct AccountResource;
 
-impl RoutedResource for AccountResource {
+impl AccountResource {
     /// Create routes for interacting with accounts.
-    fn routes<S, A>() -> Router
+    pub(crate) fn routes<S, A>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
+        for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new()
+            .route("/system_account", get(get_or_create_system_account::<S, A>))
             .route("/accounts", post(create_account::<S, A>))
             .nest(
                 "/account_groups",
@@ -101,6 +104,47 @@ impl RoutedResource for AccountResource {
                     ),
             )
     }
+}
+
+#[utoipa::path(
+    get,
+    path = "/system_account",
+    tag = "Account",
+    responses(
+        (status = 200, content_type = "application/json", description = "The schema of the created account", body = MachineId),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn get_or_create_system_account<S, A>(
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
+) -> Result<Json<MachineId>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .get_or_create_system_account()
+        .await
+        .map_err(report_to_response)
+        .map(Json)
 }
 
 #[utoipa::path(

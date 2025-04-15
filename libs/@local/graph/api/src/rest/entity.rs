@@ -90,9 +90,8 @@ use type_system::{
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger,
-    api_resource::RoutedResource, json::Json, status::report_to_response,
-    utoipa_typedef::subgraph::Subgraph,
+    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, json::Json,
+    status::report_to_response, utoipa_typedef::subgraph::Subgraph,
 };
 
 #[derive(OpenApi)]
@@ -234,9 +233,9 @@ use crate::rest::{
 )]
 pub(crate) struct EntityResource;
 
-impl RoutedResource for EntityResource {
+impl EntityResource {
     /// Create routes for interacting with entities.
-    fn routes<S, A>() -> Router
+    pub(crate) fn routes<S, A>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,

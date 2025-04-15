@@ -245,7 +245,6 @@ export const createUser: ImpureGraphFunction<
     shortname?: string;
     displayName?: string;
     isInstanceAdmin?: boolean;
-    userAccountId?: ActorEntityUuid;
   },
   Promise<User>
 > = async (ctx, authentication, params) => {
@@ -289,34 +288,29 @@ export const createUser: ImpureGraphFunction<
 
   const userShouldHavePermissionsOnWeb = shortname && displayName;
 
-  let userAccountId: ActorEntityUuid;
-  if (params.userAccountId) {
-    userAccountId = params.userAccountId;
-  } else {
-    userAccountId = await createAccount(ctx, authentication, {
-      accountType: "user",
-    });
+  const userAccountId = await createAccount(ctx, authentication, {
+    accountType: "user",
+  });
 
-    await createWeb(
-      ctx,
-      { actorId: systemAccountId },
-      {
-        webId: userAccountId as WebId,
-        owner: {
-          kind: "account",
-          /**
-           * Creating a web allows users to create further entities in it
-           * – we don't want them to do that until they've completed signup (have a shortname and display name)
-           * - the web is created with the system account as the owner and will be updated to the user account as the
-           *   owner once the user has completed signup
-           */
-          subjectId: userShouldHavePermissionsOnWeb
-            ? userAccountId
-            : systemAccountId,
-        },
+  await createWeb(
+    ctx,
+    { actorId: systemAccountId },
+    {
+      webId: userAccountId as WebId,
+      owner: {
+        kind: "account",
+        /**
+         * Creating a web allows users to create further entities in it
+         * – we don't want them to do that until they've completed signup (have a shortname and display name)
+         * - the web is created with the system account as the owner and will be updated to the user account as the
+         *   owner once the user has completed signup
+         */
+        subjectId: userShouldHavePermissionsOnWeb
+          ? userAccountId
+          : systemAccountId,
       },
-    );
-  }
+    },
+  );
 
   const userWebMachineActorId = await createWebMachineActor(
     ctx,

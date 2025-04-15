@@ -56,7 +56,6 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-use super::api_resource::RoutedResource;
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, RestApiStore,
     json::Json,
@@ -126,9 +125,9 @@ use crate::rest::{
 )]
 pub(crate) struct DataTypeResource;
 
-impl RoutedResource for DataTypeResource {
+impl DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<S, A>() -> Router
+    pub(crate) fn routes<S, A>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
