@@ -5,13 +5,12 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId, TypeKind,
-    error::{TypeCheckDiagnostic, union_variant_mismatch},
+    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
+    error::union_variant_mismatch,
     intersection_type_impl,
     pretty_print::PrettyPrint,
-    recursion::{RecursionGuard, RecursionLimit},
-    unify::UnificationContext,
+    recursion::RecursionDepthBoundary,
 };
-use crate::arena::Arena;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnionType {
@@ -22,14 +21,14 @@ impl UnionType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         // go through every variant in self and check if there is a variant matching in other
         self.variants.iter().all(|&variant| {
-            other.variants.iter().any(|&other_variant| {
-                arena[variant].structurally_equivalent_impl(&arena[other_variant], arena, guard)
-            })
+            other
+                .variants
+                .iter()
+                .any(|&other_variant| env.structurally_equivalent(variant, other_variant))
         })
     }
 }
@@ -38,7 +37,7 @@ impl PrettyPrint for UnionType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::intersperse(
             self.variants
@@ -84,7 +83,7 @@ impl PrettyPrint for UnionType {
 /// - `Integer <: Number`, so the `Integer` variant in `rhs` is covered
 /// - `String <: String`, so the `String` variant in `rhs` is covered
 pub(crate) fn unify_union(
-    context: &mut UnificationContext,
+    env: &mut UnificationEnvironment,
     lhs: &Type<UnionType>,
     rhs: &Type<UnionType>,
 ) {
@@ -95,16 +94,16 @@ pub(crate) fn unify_union(
         let mut compatible_variant_found = false;
 
         for &lhs_variant in &lhs.kind.variants {
-            let diagnostics = context.diagnostics.len();
+            let diagnostics = env.fatal_diagnostics();
 
-            context.in_transaction(|context| {
+            env.in_transaction(|env| {
                 // Try to unify this specific pair of variants
                 // In covariant context, we check if rhs_variant <: lhs_variant
-                context.in_covariant(|ctx| {
-                    super::unify_type(ctx, lhs_variant, rhs_variant);
+                env.in_covariant(|env| {
+                    env.unify_type(lhs_variant, rhs_variant);
                 });
 
-                if context.diagnostics.len() == diagnostics {
+                if env.fatal_diagnostics() == diagnostics {
                     compatible_variant_found = true;
 
                     true
@@ -115,11 +114,8 @@ pub(crate) fn unify_union(
         }
 
         if !compatible_variant_found {
-            let diagnostic =
-                union_variant_mismatch(rhs.span, &context.arena, &context.arena[rhs_variant], lhs);
-
-            context.record_diagnostic(diagnostic);
-            context.mark_error(rhs_variant);
+            let diagnostic = union_variant_mismatch(env, &env.arena[rhs_variant], lhs);
+            env.record_diagnostic(diagnostic);
         }
     }
 
@@ -132,7 +128,7 @@ pub(crate) fn unify_union(
 }
 
 pub(crate) fn unify_union_lhs(
-    context: &mut UnificationContext,
+    env: &mut UnificationEnvironment,
     lhs: &Type<UnionType>,
     rhs: &Type<TypeKind>,
 ) {
@@ -140,11 +136,11 @@ pub(crate) fn unify_union_lhs(
         variants: EcoVec::from([rhs.id]),
     });
 
-    unify_union(context, lhs, &rhs);
+    unify_union(env, lhs, &rhs);
 }
 
 pub(crate) fn unify_union_rhs(
-    context: &mut UnificationContext,
+    env: &mut UnificationEnvironment,
     lhs: &Type<TypeKind>,
     rhs: &Type<UnionType>,
 ) {
@@ -152,7 +148,7 @@ pub(crate) fn unify_union_rhs(
         variants: EcoVec::from([lhs.id]),
     });
 
-    unify_union(context, &lhs, rhs);
+    unify_union(env, &lhs, rhs);
 }
 
 /// Computes the intersection of two union types.
@@ -160,8 +156,7 @@ pub(crate) fn unify_union_rhs(
 /// Applies the distribution rule: (A | B) ∩ (C | D) = (A ∩ C) | (A ∩ D) | (B ∩ C) | (B ∩ D)
 /// Only variants with non-empty intersections are kept.
 pub(crate) fn intersection_union(
-    arena: &mut Arena<Type>,
-    diagnostics: &mut Vec<TypeCheckDiagnostic>,
+    env: &mut UnificationEnvironment,
     lhs: &UnionType,
     rhs: &UnionType,
 ) -> UnionType {
@@ -170,22 +165,20 @@ pub(crate) fn intersection_union(
     // Distribute intersection: (A | B) ∩ (C | D) = (A ∩ C) | (A ∩ D) | (B ∩ C) | (B ∩ D)
     for &lhs_variant in &lhs.variants {
         for &rhs_variant in &rhs.variants {
-            let Some(type_id) =
-                intersection_type_impl(arena, diagnostics, lhs_variant, rhs_variant)
-            else {
+            let Some(type_id) = intersection_type_impl(env, lhs_variant, rhs_variant) else {
                 // would result in `Never`
                 continue;
             };
 
             // Only add non-Never results (Never means empty intersection)
-            if matches!(arena[type_id].kind, TypeKind::Never) {
+            if matches!(env.arena[type_id].kind, TypeKind::Never) {
                 continue;
             }
 
             // ... and avoid duplicates
             if variants
                 .iter()
-                .any(|&variant| arena[variant].structurally_equivalent(&arena[type_id], arena))
+                .any(|&variant| env.structurally_equivalent(variant, type_id))
             {
                 continue;
             }
@@ -201,8 +194,7 @@ pub(crate) fn intersection_union(
 ///
 /// Applies the distribution rule: T ∩ (A|B) = (T ∩ A)|(T ∩ B)
 pub(crate) fn intersection_with_union(
-    arena: &mut Arena<Type>,
-    diagnostics: &mut Vec<TypeCheckDiagnostic>,
+    env: &mut UnificationEnvironment,
     other: TypeId,
     union: &UnionType,
 ) -> UnionType {
@@ -210,20 +202,20 @@ pub(crate) fn intersection_with_union(
 
     // Distribute intersection: T ∩ (A|B) = (T ∩ A)|(T ∩ B)
     for &variant in &union.variants {
-        let Some(type_id) = intersection_type_impl(arena, diagnostics, variant, other) else {
+        let Some(type_id) = intersection_type_impl(env, variant, other) else {
             // would result in `Never`
             continue;
         };
 
         // Only add non-Never results
-        if matches!(arena[type_id].kind, TypeKind::Never) {
+        if matches!(env.arena[type_id].kind, TypeKind::Never) {
             continue;
         }
 
         // ... and duplicates
         if variants
             .iter()
-            .any(|&variant| arena[variant].structurally_equivalent(&arena[type_id], arena))
+            .any(|&variant| env.structurally_equivalent(variant, type_id))
         {
             continue;
         }
@@ -239,265 +231,245 @@ pub(crate) fn intersection_with_union(
 mod tests {
     use super::{UnionType, unify_union, unify_union_lhs, unify_union_rhs};
     use crate::r#type::{
-        TypeId, TypeKind, intersection_type,
+        Type, TypeId, TypeKind,
+        environment::Environment,
+        intersection_type,
         primitive::PrimitiveType,
-        test::{instantiate, setup},
-        unify::UnificationContext,
+        test::{instantiate, setup_unify},
     };
 
     fn create_union_type(
-        context: &mut crate::r#type::unify::UnificationContext,
-        variants: Vec<TypeId>,
-    ) -> crate::r#type::Type<UnionType> {
-        let id = context
-            .arena
-            .arena_mut_test_only()
-            .push_with(|id| crate::r#type::Type {
-                id,
-                span: crate::span::SpanId::SYNTHETIC,
-                kind: TypeKind::Union(UnionType {
-                    variants: variants.into(),
-                }),
-            });
+        env: &mut Environment,
+        variants: impl IntoIterator<Item = TypeId>,
+    ) -> Type<UnionType> {
+        let id = env.arena.push_with(|id| Type {
+            id,
+            span: crate::span::SpanId::SYNTHETIC,
+            kind: TypeKind::Union(UnionType {
+                variants: variants.into_iter().collect(),
+            }),
+        });
 
-        context.arena[id]
+        env.arena[id]
             .clone()
             .map(|kind| kind.into_union().expect("should be union type"))
     }
 
     #[test]
     fn identical_unions_unify() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create two identical unions: String | Number
-        let str1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let num1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let str1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let num1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
 
-        let str2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let num2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let str2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let num2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
 
-        let lhs = create_union_type(&mut context, vec![str1, num1]);
-        let rhs = create_union_type(&mut context, vec![str2, num2]);
+        let lhs = create_union_type(&mut env, [str1, num1]);
+        let rhs = create_union_type(&mut env, [str2, num2]);
 
-        unify_union(&mut context, &lhs, &rhs);
+        unify_union(&mut env, &lhs, &rhs);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify identical unions"
         );
     }
 
     #[test]
     fn subtype_union_unifies() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // lhs: Number | String
         // rhs: Integer | String
         // This should succeed because Integer <: Number
-        let num = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let str1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let num = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let str1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
 
-        let int = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let str2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let int = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
+        let str2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
 
-        let lhs = create_union_type(&mut context, vec![num, str1]);
-        let rhs = create_union_type(&mut context, vec![int, str2]);
+        let lhs = create_union_type(&mut env, [num, str1]);
+        let rhs = create_union_type(&mut env, [int, str2]);
 
-        unify_union(&mut context, &lhs, &rhs);
+        unify_union(&mut env, &lhs, &rhs);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify union with subtype variants"
         );
     }
 
     #[test]
     fn incompatible_union_fails() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // lhs: Number | String
         // rhs: Boolean | String
         // This should fail because Boolean is not a subtype of Number or String
-        let num = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let str1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let num = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let str1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
 
-        let bool_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
-        let str2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let bool_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Boolean));
+        let str2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
 
-        let lhs = create_union_type(&mut context, vec![num, str1]);
-        let rhs = create_union_type(&mut context, vec![bool_type, str2]);
+        let lhs = create_union_type(&mut env, [num, str1]);
+        let rhs = create_union_type(&mut env, [bool_type, str2]);
 
-        unify_union(&mut context, &lhs, &rhs);
+        unify_union(&mut env, &lhs, &rhs);
 
         assert!(
-            !context.take_diagnostics().is_empty(),
+            !env.take_diagnostics().is_empty(),
             "Should fail to unify unions with incompatible variants"
         );
     }
 
     #[test]
     fn single_type_to_union() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // lhs: Number | String
         // rhs: Number
         // This should succeed because Number <: (Number | String)
-        let num1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let str1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let num2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let num1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let str1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let num2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
 
-        let union = create_union_type(&mut context, vec![num1, str1]);
-        let single = context.arena[num2].clone();
+        let union = create_union_type(&mut env, [num1, str1]);
+        let single = env.arena[num2].clone();
 
-        unify_union_lhs(&mut context, &union, &single);
+        unify_union_lhs(&mut env, &union, &single);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify single type with compatible union"
         );
     }
 
     #[test]
     fn union_to_single_type() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // lhs: Number
         // rhs: Number | String
         // This should fail because (Number | String) is not a subtype of Number
-        let num1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let num2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let str2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let num1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let num2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let str2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
 
-        let single = context.arena[num1].clone();
-        let union = create_union_type(&mut context, vec![num2, str2]);
+        let single = env.arena[num1].clone();
+        let union = create_union_type(&mut env, [num2, str2]);
 
-        unify_union_rhs(&mut context, &single, &union);
+        unify_union_rhs(&mut env, &single, &union);
 
         assert!(
-            !context.take_diagnostics().is_empty(),
+            !env.take_diagnostics().is_empty(),
             "Should fail to unify union with single type when union has extra variants"
         );
     }
 
     #[test]
     fn subtype_single_to_union() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // lhs: Number | String
         // rhs: Integer
         // This should succeed because Integer <: Number <: (Number | String)
-        let num = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let str1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let int = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let num = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let str1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let int = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
 
-        let union = create_union_type(&mut context, vec![num, str1]);
-        let single = context.arena[int].clone();
+        let union = create_union_type(&mut env, [num, str1]);
+        let single = env.arena[int].clone();
 
-        unify_union_lhs(&mut context, &union, &single);
+        unify_union_lhs(&mut env, &union, &single);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify subtype with union containing supertype"
         );
     }
 
-    fn create_union(
-        context: &mut UnificationContext,
-        variants: impl IntoIterator<Item = TypeId>,
-    ) -> TypeId {
-        instantiate(
-            context,
-            TypeKind::Union(UnionType {
-                variants: variants.into_iter().collect(),
-            }),
-        )
-    }
-
     #[test]
     fn union_intersection_with_common_variant() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create first union: String | Number
-        let string1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let number = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let union1 = create_union(&mut context, [string1, number]);
+        let string1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let number = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let union1 = create_union_type(&mut env, [string1, number]);
 
         // Create second union: String | Boolean
-        let string2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let boolean = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
-        let union2 = create_union(&mut context, [string2, boolean]);
-
-        let arena = context.arena.arena_mut_test_only();
+        let string2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let boolean = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Boolean));
+        let union2 = create_union_type(&mut env, [string2, boolean]);
 
         // Intersection should be: String
-        let result = intersection_type(arena, &mut Vec::new(), union1, union2);
+        let result = intersection_type(&mut env, union1.id, union2.id);
 
         // Result should be just the String type
         assert!(
             matches!(
-                arena[result].kind,
+                env.arena[result].kind,
                 TypeKind::Primitive(PrimitiveType::String)
             ),
             "Expected String primitive, got {:?}",
-            arena[result].kind
+            env.arena[result].kind
         );
     }
 
     #[test]
     fn union_intersection_with_no_common_variants() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create first union: Number | Boolean
-        let number = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let boolean1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
-        let union1 = create_union(&mut context, vec![number, boolean1]);
+        let number = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let boolean1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Boolean));
+        let union1 = create_union_type(&mut env, vec![number, boolean1]);
 
         // Create second union: String | Integer
-        let string = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let integer = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Null));
-        let union2 = create_union(&mut context, vec![string, integer]);
-
-        let arena = context.arena.arena_mut_test_only();
+        let string = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let integer = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Null));
+        let union2 = create_union_type(&mut env, vec![string, integer]);
 
         // Intersection should be: Never (no compatible variants)
-        let result = intersection_type(arena, &mut Vec::new(), union1, union2);
+        let result = intersection_type(&mut env, union1.id, union2.id);
 
         // Result should be Never
         assert!(
-            matches!(arena[result].kind, TypeKind::Never),
+            matches!(env.arena[result].kind, TypeKind::Never),
             "Expected Never type, got {:?}",
-            arena[result].kind
+            env.arena[result].kind
         );
     }
 
     #[test]
     fn union_with_subtype_intersection() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create first union: Number | String
-        let number = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let string = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let union1 = create_union(&mut context, vec![number, string]);
+        let number = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let string = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let union1 = create_union_type(&mut env, vec![number, string]);
 
         // Create second union: Integer | Boolean
         // (Integer is a subtype of Number)
-        let integer = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
-        let boolean = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Boolean));
-        let union2 = create_union(&mut context, vec![integer, boolean]);
-
-        let arena = context.arena.arena_mut_test_only();
+        let integer = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
+        let boolean = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Boolean));
+        let union2 = create_union_type(&mut env, vec![integer, boolean]);
 
         // Intersection should be: Integer
-        let result = intersection_type(arena, &mut Vec::new(), union1, union2);
+        let result = intersection_type(&mut env, union1.id, union2.id);
 
         // Result should be Integer
         assert!(
             matches!(
-                arena[result].kind,
+                env.arena[result].kind,
                 TypeKind::Primitive(PrimitiveType::Integer)
             ),
             "Expected Integer primitive, got {:?}",
-            arena[result].kind
+            env.arena[result].kind
         );
     }
 }

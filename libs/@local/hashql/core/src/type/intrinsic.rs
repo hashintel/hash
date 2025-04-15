@@ -4,13 +4,11 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
+    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
     error::type_mismatch,
     pretty_print::PrettyPrint,
-    recursion::{RecursionGuard, RecursionLimit},
-    unify::UnificationContext,
-    unify_type,
+    recursion::RecursionDepthBoundary,
 };
-use crate::arena::Arena;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ListType {
@@ -21,10 +19,9 @@ impl ListType {
     fn structurally_equivalent(
         self,
         other: Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
-        arena[self.element].structurally_equivalent_impl(&arena[other.element], arena, guard)
+        env.structurally_equivalent(self.element, other.element)
     }
 }
 
@@ -32,7 +29,7 @@ impl PrettyPrint for ListType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text("List")
             .append(RcDoc::text("<"))
@@ -51,11 +48,10 @@ impl DictType {
     fn structurally_equivalent(
         self,
         other: Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
-        arena[self.key].structurally_equivalent_impl(&arena[other.key], arena, guard)
-            && arena[self.value].structurally_equivalent_impl(&arena[other.value], arena, guard)
+        env.structurally_equivalent(self.key, other.key)
+            && env.structurally_equivalent(self.value, other.value)
     }
 }
 
@@ -63,7 +59,7 @@ impl PrettyPrint for DictType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         RcDoc::text("Dict")
             .append(RcDoc::text("<"))
@@ -93,12 +89,11 @@ impl IntrinsicType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         match (self, other) {
-            (&Self::List(lhs), &Self::List(rhs)) => lhs.structurally_equivalent(rhs, arena, guard),
-            (&Self::Dict(lhs), &Self::Dict(rhs)) => lhs.structurally_equivalent(rhs, arena, guard),
+            (&Self::List(lhs), &Self::List(rhs)) => lhs.structurally_equivalent(rhs, env),
+            (&Self::Dict(lhs), &Self::Dict(rhs)) => lhs.structurally_equivalent(rhs, env),
             _ => false,
         }
     }
@@ -108,7 +103,7 @@ impl PrettyPrint for IntrinsicType {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> RcDoc<'a, anstyle::Style> {
         match self {
             Self::List(list) => list.pretty(arena, limit),
@@ -124,7 +119,7 @@ impl PrettyPrint for IntrinsicType {
 /// - Dict keys are invariant (for reliable lookups)
 /// - Dict values are covariant (immutable collections)
 pub(crate) fn unify_intrinsic(
-    context: &mut UnificationContext,
+    env: &mut UnificationEnvironment,
     lhs: Type<IntrinsicType>,
     rhs: Type<IntrinsicType>,
 ) {
@@ -144,8 +139,8 @@ pub(crate) fn unify_intrinsic(
             }),
         ) => {
             // Element types are in covariant position
-            context.in_covariant(|ctx| {
-                unify_type(ctx, element_lhs, element_rhs);
+            env.in_covariant(|env| {
+                env.unify_type(element_lhs, element_rhs);
             });
 
             // In a strictly variance-aware system, we do NOT modify the list types
@@ -164,13 +159,13 @@ pub(crate) fn unify_intrinsic(
             }),
         ) => {
             // Keys must be invariant for lookup reliability
-            context.in_invariant(|ctx| {
-                unify_type(ctx, key_lhs, key_rhs);
+            env.in_invariant(|env| {
+                env.unify_type(key_lhs, key_rhs);
             });
 
             // Values are in covariant position
-            context.in_covariant(|ctx| {
-                unify_type(ctx, value_lhs, value_rhs);
+            env.in_covariant(|env| {
+                env.unify_type(value_lhs, value_rhs);
             });
 
             // In a strictly variance-aware system, we do NOT modify the dict types
@@ -193,111 +188,96 @@ pub(crate) fn unify_intrinsic(
                 _ => Some("These collection types cannot be used interchangeably."),
             };
 
-            context.record_diagnostic(type_mismatch(
-                context.source,
-                &context.arena,
-                &lhs,
-                &rhs,
-                help,
-            ));
-
-            // Mark both types as errors
-            context.mark_error(lhs.id);
-            context.mark_error(rhs.id);
+            let diagnostic = type_mismatch(env, &lhs, &rhs, help);
+            env.record_diagnostic(diagnostic);
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches::assert_matches;
+
     use super::IntrinsicType;
     use crate::r#type::{
         TypeKind,
         intrinsic::{DictType, ListType, unify_intrinsic},
         primitive::PrimitiveType,
-        test::{instantiate, setup},
+        test::{instantiate, setup_unify},
     };
 
     #[test]
     fn identical_lists_unify() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create a List<String>
-        let element = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let element = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
         let list_type = ListType { element };
 
         let lhs_id = instantiate(
-            &mut context,
+            &mut env,
             TypeKind::Intrinsic(IntrinsicType::List(list_type)),
         );
         let rhs_id = instantiate(
-            &mut context,
+            &mut env,
             TypeKind::Intrinsic(IntrinsicType::List(list_type)),
         );
 
-        let lhs = context.arena[lhs_id]
+        let lhs = env.arena[lhs_id]
             .as_ref()
             .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
-        let rhs = context.arena[rhs_id]
+        let rhs = env.arena[rhs_id]
             .as_ref()
             .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
 
-        unify_intrinsic(&mut context, lhs, rhs);
+        unify_intrinsic(&mut env, lhs, rhs);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify identical List types"
         );
 
         // Verify types are still the same after unification
-        let lhs = context.arena[lhs_id].as_ref();
-        let rhs = context.arena[rhs_id].as_ref();
+        let lhs = env.arena[lhs_id].as_ref();
+        let rhs = env.arena[rhs_id].as_ref();
         assert_eq!(lhs.kind, rhs.kind);
     }
 
     #[test]
     fn lists_with_unifiable_elements_unify() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create List<Number> and List<Integer>
-        let element1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let element2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let element1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let element2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
 
         let list1 = ListType { element: element1 };
         let list2 = ListType { element: element2 };
 
-        let lhs_id = instantiate(
-            &mut context,
-            TypeKind::Intrinsic(IntrinsicType::List(list1)),
-        );
-        let rhs_id = instantiate(
-            &mut context,
-            TypeKind::Intrinsic(IntrinsicType::List(list2)),
-        );
+        let lhs_id = instantiate(&mut env, TypeKind::Intrinsic(IntrinsicType::List(list1)));
+        let rhs_id = instantiate(&mut env, TypeKind::Intrinsic(IntrinsicType::List(list2)));
 
-        let lhs = context.arena[lhs_id]
+        let lhs = env.arena[lhs_id]
             .as_ref()
             .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
-        let rhs = context.arena[rhs_id]
+        let rhs = env.arena[rhs_id]
             .as_ref()
             .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
 
-        unify_intrinsic(&mut context, lhs, rhs);
+        unify_intrinsic(&mut env, lhs, rhs);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify lists with unifiable elements"
         );
 
         // Verify the Integer was promoted to Number
         if let TypeKind::Intrinsic(IntrinsicType::List(ListType { element })) =
-            context.arena[lhs_id].kind
+            env.arena[lhs_id].kind
         {
-            assert!(
-                matches!(
-                    context.arena[element].kind,
-                    TypeKind::Primitive(PrimitiveType::Number)
-                ),
+            assert_matches!(
+                env.arena[element].kind,
+                TypeKind::Primitive(PrimitiveType::Number),
                 "List element was not promoted to Number"
             );
         }
@@ -305,50 +285,50 @@ mod tests {
 
     #[test]
     fn identical_dicts_unify() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create Dict<String, Number>
-        let key = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let value = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let key = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let value = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
         let dict_type = DictType { key, value };
 
         let lhs_id = instantiate(
-            &mut context,
+            &mut env,
             TypeKind::Intrinsic(IntrinsicType::Dict(dict_type)),
         );
         let rhs_id = instantiate(
-            &mut context,
+            &mut env,
             TypeKind::Intrinsic(IntrinsicType::Dict(dict_type)),
         );
 
-        let lhs = context.arena[lhs_id]
+        let lhs = env.arena[lhs_id]
             .as_ref()
             .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
-        let rhs = context.arena[rhs_id]
+        let rhs = env.arena[rhs_id]
             .as_ref()
             .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
 
-        unify_intrinsic(&mut context, lhs, rhs);
+        unify_intrinsic(&mut env, lhs, rhs);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify identical Dict types"
         );
 
-        let lhs = context.arena[lhs_id].as_ref();
-        let rhs = context.arena[rhs_id].as_ref();
+        let lhs = env.arena[lhs_id].as_ref();
+        let rhs = env.arena[rhs_id].as_ref();
         assert_eq!(lhs.kind, rhs.kind);
     }
 
     #[test]
     fn dicts_with_unifiable_values_unify() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create Dict<String, Number> and Dict<String, Integer>
-        let key1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let key2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let value1 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let value2 = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let key1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let key2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let value1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let value2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
 
         let dict1 = DictType {
             key: key1,
@@ -359,38 +339,30 @@ mod tests {
             value: value2,
         };
 
-        let lhs_id = instantiate(
-            &mut context,
-            TypeKind::Intrinsic(IntrinsicType::Dict(dict1)),
-        );
-        let rhs_id = instantiate(
-            &mut context,
-            TypeKind::Intrinsic(IntrinsicType::Dict(dict2)),
-        );
+        let lhs_id = instantiate(&mut env, TypeKind::Intrinsic(IntrinsicType::Dict(dict1)));
+        let rhs_id = instantiate(&mut env, TypeKind::Intrinsic(IntrinsicType::Dict(dict2)));
 
-        let lhs = context.arena[lhs_id]
+        let lhs = env.arena[lhs_id]
             .as_ref()
             .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
-        let rhs = context.arena[rhs_id]
+        let rhs = env.arena[rhs_id]
             .as_ref()
             .map(|kind| kind.as_intrinsic().expect("type should be intrinsic"));
 
-        unify_intrinsic(&mut context, lhs, rhs);
+        unify_intrinsic(&mut env, lhs, rhs);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify dicts with unifiable values"
         );
 
         // Verify the Integer was promoted to Number
         if let TypeKind::Intrinsic(IntrinsicType::Dict(DictType { value, .. })) =
-            context.arena[lhs_id].kind
+            env.arena[lhs_id].kind
         {
-            assert!(
-                matches!(
-                    context.arena[value].kind,
-                    TypeKind::Primitive(PrimitiveType::Number)
-                ),
+            assert_matches!(
+                env.arena[value].kind,
+                TypeKind::Primitive(PrimitiveType::Number),
                 "Dict value was not promoted to Number"
             );
         }
@@ -404,124 +376,106 @@ mod tests {
                 (PrimitiveType::String, None),
                 (PrimitiveType::String, Some(PrimitiveType::Number)),
                 "List and Dict",
-                true,
             ),
             // List<String> vs List<Number>
             (
                 (PrimitiveType::String, None),
                 (PrimitiveType::Number, None),
                 "lists with incompatible elements",
-                false,
             ),
             // Dict<String, String> vs Dict<Number, String>
             (
                 (PrimitiveType::String, Some(PrimitiveType::String)),
                 (PrimitiveType::Number, Some(PrimitiveType::String)),
                 "dicts with incompatible keys",
-                false,
             ),
         ];
 
-        for ((lhs_key, lhs_value), (rhs_key, rhs_value), description, should_be_error) in test_cases
-        {
-            let mut context = setup();
+        for ((lhs_key, lhs_value), (rhs_key, rhs_value), description) in test_cases {
+            setup_unify!(env);
 
             let lhs_id = if let Some(value) = lhs_value {
                 // Create Dict
-                let key = instantiate(&mut context, TypeKind::Primitive(lhs_key));
-                let value = instantiate(&mut context, TypeKind::Primitive(value));
+                let key = instantiate(&mut env, TypeKind::Primitive(lhs_key));
+                let value = instantiate(&mut env, TypeKind::Primitive(value));
                 instantiate(
-                    &mut context,
+                    &mut env,
                     TypeKind::Intrinsic(IntrinsicType::Dict(DictType { key, value })),
                 )
             } else {
                 // Create List
-                let element = instantiate(&mut context, TypeKind::Primitive(lhs_key));
+                let element = instantiate(&mut env, TypeKind::Primitive(lhs_key));
                 instantiate(
-                    &mut context,
+                    &mut env,
                     TypeKind::Intrinsic(IntrinsicType::List(ListType { element })),
                 )
             };
 
             let rhs_id = if let Some(value) = rhs_value {
                 // Create Dict
-                let key = instantiate(&mut context, TypeKind::Primitive(rhs_key));
-                let value = instantiate(&mut context, TypeKind::Primitive(value));
+                let key = instantiate(&mut env, TypeKind::Primitive(rhs_key));
+                let value = instantiate(&mut env, TypeKind::Primitive(value));
                 instantiate(
-                    &mut context,
+                    &mut env,
                     TypeKind::Intrinsic(IntrinsicType::Dict(DictType { key, value })),
                 )
             } else {
                 // Create List
-                let element = instantiate(&mut context, TypeKind::Primitive(rhs_key));
+                let element = instantiate(&mut env, TypeKind::Primitive(rhs_key));
                 instantiate(
-                    &mut context,
+                    &mut env,
                     TypeKind::Intrinsic(IntrinsicType::List(ListType { element })),
                 )
             };
 
-            let lhs = context.arena[lhs_id]
+            let lhs = env.arena[lhs_id]
                 .as_ref()
                 .map(|kind| kind.as_intrinsic().expect("should be intrinsic"));
-            let rhs = context.arena[rhs_id]
+            let rhs = env.arena[rhs_id]
                 .as_ref()
                 .map(|kind| kind.as_intrinsic().expect("should be intrinsic"));
 
-            unify_intrinsic(&mut context, lhs, rhs);
+            unify_intrinsic(&mut env, lhs, rhs);
 
             assert_eq!(
-                context.take_diagnostics().len(),
+                env.take_diagnostics().len(),
                 1,
                 "Expected error when unifying {description}"
-            );
-
-            if !should_be_error {
-                continue;
-            }
-
-            // Verify both types are marked as errors
-            assert!(
-                matches!(context.arena[lhs_id].kind, TypeKind::Error),
-                "Left type not marked as error for {description}"
-            );
-            assert!(
-                matches!(context.arena[rhs_id].kind, TypeKind::Error),
-                "Right type not marked as error for {description}"
             );
         }
     }
 
     #[test]
     fn error_messages() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Test List vs Dict error message
-        let list_elem = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
+        let list_elem = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
         let list_id = instantiate(
-            &mut context,
+            &mut env,
             TypeKind::Intrinsic(IntrinsicType::List(ListType { element: list_elem })),
         );
 
-        let dict_key = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::String));
-        let dict_val = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let dict_key = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+        let dict_val = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
         let dict_id = instantiate(
-            &mut context,
+            &mut env,
             TypeKind::Intrinsic(IntrinsicType::Dict(DictType {
                 key: dict_key,
                 value: dict_val,
             })),
         );
 
-        let list = context.arena[list_id]
+        let list = env.arena[list_id]
             .as_ref()
             .map(|kind| kind.as_intrinsic().expect("should be intrinsic"));
-        let dict = context.arena[dict_id]
+        let dict = env.arena[dict_id]
             .as_ref()
             .map(|kind| kind.as_intrinsic().expect("should be intrinsic"));
 
-        unify_intrinsic(&mut context, list, dict);
+        unify_intrinsic(&mut env, list, dict);
 
-        let diagnostic = &context.take_diagnostics()[0];
+        let diagnostic = &env.take_diagnostics()[0];
         assert_eq!(
             diagnostic
                 .help
