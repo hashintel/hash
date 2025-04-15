@@ -34,7 +34,8 @@ impl<T> TransactionalArena<T> {
 
     /// Adds an item to the arena using a builder function that receives the assigned ID.
     ///
-    /// This is useful when the item's constructor needs to know its own ID.
+    /// The caller must ensure that `T` is properly initialized with the assigned ID, and that
+    /// `T::id` will return the same ID.
     ///
     /// # Returns
     ///
@@ -46,21 +47,6 @@ impl<T> TransactionalArena<T> {
         let id = T::Id::from_usize(self.next_id());
 
         self.items.push_back_mut(item(id));
-        id
-    }
-
-    /// Adds an existing item to the arena.
-    ///
-    /// # Returns
-    ///
-    /// The ID assigned to the newly added item.
-    pub fn push(&mut self, item: T) -> T::Id
-    where
-        T: HasId,
-    {
-        let id = T::Id::from_usize(self.next_id());
-
-        self.items.push_back_mut(item);
         id
     }
 
@@ -192,21 +178,6 @@ mod test {
     fn new_arena_is_empty() {
         let arena: TransactionalArena<TestItem> = TransactionalArena::new();
         assert_eq!(arena.next_id(), 0);
-    }
-
-    #[test]
-    fn push() {
-        let mut arena = TransactionalArena::new();
-        let item = TestItem {
-            id: TestId::new(0),
-            value: "test".to_owned(),
-        };
-
-        let id = arena.push(item);
-        assert_eq!(id, TestId::new(0));
-
-        let retrieved = arena.get(TestId::new(0)).expect("item should exist");
-        assert_eq!(retrieved.value, "test");
     }
 
     #[test]

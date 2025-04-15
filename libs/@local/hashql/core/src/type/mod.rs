@@ -570,7 +570,11 @@ pub fn intersection_type(env: &mut UnificationEnvironment, lhs: TypeId, rhs: Typ
         let diagnostic = intersection_coerced_to_never(env, &lhs_type, &rhs_type, reason);
         env.record_diagnostic(diagnostic);
 
-        return env.arena.push(lhs_type.map(|_| TypeKind::Never));
+        return env.arena.push_with(|id| Type {
+            id,
+            span: lhs_type.span,
+            kind: TypeKind::Never,
+        });
     };
 
     id
@@ -594,7 +598,7 @@ pub(crate) fn intersection_type_impl(
     let lhs_type = env.arena[lhs].clone();
     let rhs_type = env.arena[rhs].clone();
 
-    let new_kind = match (&lhs_type.kind, &rhs_type.kind) {
+    let kind = match (&lhs_type.kind, &rhs_type.kind) {
         (&TypeKind::Link(lhs), &TypeKind::Link(rhs)) => {
             return intersection_type_impl(env, lhs, rhs);
         }
@@ -684,5 +688,9 @@ pub(crate) fn intersection_type_impl(
         _ => return None,
     };
 
-    Some(env.arena.push(lhs_type.map(|_| new_kind)))
+    Some(env.arena.push_with(|id| Type {
+        id,
+        span: lhs_type.span,
+        kind,
+    }))
 }

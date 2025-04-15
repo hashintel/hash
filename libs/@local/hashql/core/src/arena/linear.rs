@@ -29,16 +29,6 @@ impl<T> LinearArena<T> {
         id
     }
 
-    pub fn push(&mut self, item: T) -> T::Id
-    where
-        T: HasId,
-    {
-        let id = T::Id::from_usize(self.next_id());
-
-        self.items.push(item);
-        id
-    }
-
     pub fn update(&mut self, item: T)
     where
         T: HasId,
