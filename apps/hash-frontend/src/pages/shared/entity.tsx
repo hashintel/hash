@@ -359,6 +359,11 @@ export const Entity = ({
   );
 
   const isReadOnly =
+    /**
+     * @todo H-3398 fix Glide grid editor overlays when body isn't fullscreened.
+     *       Editing popups won't work until this is fixed, so we set the editor to readonly in fullscreen mode.
+     */
+    !!document.fullscreenElement ||
     !!draftEntity?.metadata.archived ||
     !!proposedEntitySubgraph ||
     (!draftLocalEntity &&

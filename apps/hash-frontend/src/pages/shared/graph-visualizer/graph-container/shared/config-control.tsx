@@ -45,9 +45,10 @@ export type DynamicNodeSizing = {
    */
   countEdges: Direction;
   /**
-   * Whether to scale node sizes linearly or logarithmically based on their edge count within the range of edge counts.
+   * How to scale node sizes based on their edge count within the range of edge counts.
    * Logarithmic and geometric scaling is useful if there are outliers with high edge counts that dominate the range.
    * Geometric is less aggressive in compressing the range than logarithmic.
+   * Percentile ensures an even distribution of node sizes.
    */
   scale: Scale;
 };
@@ -69,6 +70,11 @@ export type DynamicEdgeSizing = {
    * i.e. after the user clicks on or hovers over a node.
    */
   nonHighlightedVisibleSizeThreshold: number;
+  /**
+   * How to scale edge sizes based on their weight within the range of weights.
+   * Linear means that an edge which aggregates together twice as many edges as another will be roughly twice as big.
+   * Geometric smooths out differences between edges, while still being easily distinguishable.
+   */
   scale: Exclude<Scale, "Logarithmic" | "Percentile">;
 };
 
