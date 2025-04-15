@@ -1,4 +1,4 @@
-import type { EntityId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
@@ -80,7 +80,7 @@ export const createOrgMembership: ImpureGraphFunction<
       },
       entityTypeIds: [systemLinkEntityTypes.isMemberOf.linkEntityTypeId],
       relationships: createOrgMembershipAuthorizationRelationships({
-        memberAccountId: userActorId,
+        memberAccountId: userActorId as ActorEntityUuid,
       }),
     });
   } catch (error) {

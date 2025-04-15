@@ -315,6 +315,7 @@ export const constructUser = (params: {
 
   const { email } = simplifyProperties(userEntity.properties);
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- permissions means this may be undefined. @todo types to account for property-level permissions
   const primaryEmailAddress = email?.[0] ?? "";
 
   // @todo implement email verification
