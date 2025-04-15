@@ -10,9 +10,9 @@ use hashql_diagnostics::{
 };
 
 use super::{
-    Type, generic_argument::GenericArgumentId, pretty_print::PrettyPrint, unify::UnificationArena,
+    Type, environment::Environment, generic_argument::GenericArgumentId, pretty_print::PrettyPrint,
 };
-use crate::{arena::Arena, span::SpanId};
+use crate::span::SpanId;
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
 
@@ -100,8 +100,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
 
 /// Creates a type mismatch diagnostic with specific labels for the left and right types
 pub(crate) fn type_mismatch<K>(
-    span: SpanId,
-    arena: &UnificationArena,
+    context: &Environment,
 
     lhs: &Type<K>,
     rhs: &Type<K>,
@@ -116,12 +115,15 @@ where
 
     diagnostic
         .labels
-        .push(Label::new(span, "Type mismatch in this expression").with_order(3));
+        .push(Label::new(context.source, "Type mismatch in this expression").with_order(3));
 
     diagnostic.labels.push(
         Label::new(
             lhs.span,
-            format!("This is of type `{}`", lhs.kind.pretty_print(arena, 80)),
+            format!(
+                "This is of type `{}`",
+                lhs.kind.pretty_print(&context.arena, 80)
+            ),
         )
         .with_order(1),
     );
@@ -129,7 +131,10 @@ where
     diagnostic.labels.push(
         Label::new(
             rhs.span,
-            format!("This is of type `{}`", rhs.kind.pretty_print(arena, 80)),
+            format!(
+                "This is of type `{}`",
+                rhs.kind.pretty_print(&context.arena, 80)
+            ),
         )
         .with_order(2),
     );
@@ -184,11 +189,7 @@ where
 }
 
 /// Creates a diagnostic for when a value has a non-Never type but a Never type is expected
-pub(crate) fn expected_never<K>(
-    span: SpanId,
-    arena: &UnificationArena,
-    actual_type: &Type<K>,
-) -> TypeCheckDiagnostic
+pub(crate) fn expected_never<K>(env: &Environment, actual_type: &Type<K>) -> TypeCheckDiagnostic
 where
     K: PrettyPrint,
 {
@@ -197,14 +198,14 @@ where
 
     diagnostic
         .labels
-        .push(Label::new(span, "This expression should not return a value").with_order(2));
+        .push(Label::new(env.source, "This expression should not return a value").with_order(2));
 
     diagnostic.labels.push(
         Label::new(
             actual_type.span,
             format!(
                 "But it returns a value of type `{}`",
-                actual_type.kind.pretty_print(arena, 80)
+                actual_type.kind.pretty_print(&env.arena, 80)
             ),
         )
         .with_order(1),
@@ -373,8 +374,7 @@ where
 /// Creates a diagnostic for when a union type variant doesn't match any variant in the expected
 /// union type
 pub(crate) fn union_variant_mismatch<K1, K2>(
-    span: SpanId,
-    arena: &UnificationArena,
+    env: &Environment,
     variant_type: &Type<K1>,
     expected_union_type: &Type<K2>,
 ) -> TypeCheckDiagnostic
@@ -387,9 +387,13 @@ where
         Severity::ERROR,
     );
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "This union type contains an incompatible variant").with_order(3));
+    diagnostic.labels.push(
+        Label::new(
+            env.source,
+            "This union type contains an incompatible variant",
+        )
+        .with_order(3),
+    );
 
     diagnostic.labels.push(
         Label::new(
@@ -397,7 +401,7 @@ where
             format!(
                 "This variant of type `{}` is not compatible with any variant in the expected \
                  union",
-                variant_type.kind.pretty_print(arena, 80)
+                variant_type.kind.pretty_print(&env.arena, 80)
             ),
         )
         .with_order(1),
@@ -408,7 +412,7 @@ where
             expected_union_type.span,
             format!(
                 "Expected a variant compatible with this union type `{}`",
-                expected_union_type.kind.pretty_print(arena, 80)
+                expected_union_type.kind.pretty_print(&env.arena, 80)
             ),
         )
         .with_order(2),
@@ -490,8 +494,7 @@ where
 }
 
 pub(crate) fn intersection_coerced_to_never<K1, K2>(
-    span: SpanId,
-    arena: &Arena<Type>,
+    env: &Environment,
     lhs: &Type<K1>,
     rhs: &Type<K2>,
     reason: &str,
@@ -507,7 +510,7 @@ where
 
     diagnostic.labels.push(
         Label::new(
-            span,
+            env.source,
             "This intersection operation results in an empty type (Never)",
         )
         .with_order(3),
@@ -516,7 +519,10 @@ where
     diagnostic.labels.push(
         Label::new(
             lhs.span,
-            format!("this is of type: `{}`", lhs.kind.pretty_print(arena, 80)),
+            format!(
+                "this is of type: `{}`",
+                lhs.kind.pretty_print(&env.arena, 80)
+            ),
         )
         .with_order(1),
     );
@@ -524,7 +530,10 @@ where
     diagnostic.labels.push(
         Label::new(
             rhs.span,
-            format!("this is of type: `{}`", rhs.kind.pretty_print(arena, 80)),
+            format!(
+                "this is of type: `{}`",
+                rhs.kind.pretty_print(&env.arena, 80)
+            ),
         )
         .with_order(2),
     );

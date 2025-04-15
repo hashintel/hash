@@ -11,7 +11,6 @@ pub mod property_type;
 pub mod status;
 pub mod web;
 
-mod api_resource;
 mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
@@ -98,7 +97,6 @@ use utoipa::{
 use uuid::Uuid;
 
 use self::{
-    api_resource::RoutedResource as _,
     middleware::span_trace_layer,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{
@@ -211,11 +209,11 @@ where
 
 fn api_documentation() -> Vec<openapi::OpenApi> {
     vec![
-        account::AccountResource::documentation(),
-        data_type::DataTypeResource::documentation(),
-        property_type::PropertyTypeResource::documentation(),
-        entity_type::EntityTypeResource::documentation(),
-        entity::EntityResource::documentation(),
+        account::AccountResource::openapi(),
+        data_type::DataTypeResource::openapi(),
+        property_type::PropertyTypeResource::openapi(),
+        entity_type::EntityTypeResource::openapi(),
+        entity::EntityResource::openapi(),
         web::WebResource::openapi(),
     ]
 }

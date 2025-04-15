@@ -9,7 +9,7 @@ import type {
 } from "../graphql/api-types.gen";
 import { countEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
-import { pollInterval } from "./poll-interval";
+import { usePollInterval } from "./use-poll-interval";
 
 export type DraftEntitiesCountContextValue = {
   count?: number;
@@ -34,6 +34,8 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
   PropsWithChildren
 > = ({ children }) => {
   const { authenticatedUser } = useAuthInfo();
+
+  const pollInterval = usePollInterval();
 
   const {
     data: draftEntitiesData,

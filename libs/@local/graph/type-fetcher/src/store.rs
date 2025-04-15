@@ -5,7 +5,10 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
-    policies::store::{CreateWebParameter, PrincipalStore, error::WebCreationError},
+    policies::store::{
+        CreateWebParameter, PrincipalStore,
+        error::{GetSystemAccountError, WebCreationError},
+    },
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
         EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeViewerSubject,
@@ -72,7 +75,7 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorEntityUuid, ActorId, ActorType, OriginProvenance, OriginType},
+    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId, OriginProvenance, OriginType},
     web::WebId,
 };
 
@@ -169,6 +172,12 @@ where
     S: PrincipalStore + Send,
     A: Send,
 {
+    async fn get_or_create_system_account(
+        &mut self,
+    ) -> Result<MachineId, Report<GetSystemAccountError>> {
+        self.store.get_or_create_system_account().await
+    }
+
     async fn create_web(
         &mut self,
         actor: ActorId,

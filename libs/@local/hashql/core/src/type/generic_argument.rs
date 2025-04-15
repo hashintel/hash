@@ -5,13 +5,12 @@ use pretty::RcDoc;
 
 use super::{
     Type, TypeId,
+    environment::{Environment, StructuralEquivalenceEnvironment, UnificationEnvironment},
+    error::generic_argument_not_found,
     pretty_print::{ORANGE, PrettyPrint},
-    recursion::{RecursionGuard, RecursionLimit},
-    unify::UnificationContext,
-    unify_type,
+    recursion::RecursionDepthBoundary,
 };
 use crate::{
-    arena::Arena,
     newtype,
     symbol::{Ident, Symbol},
 };
@@ -35,11 +34,10 @@ impl GenericArgument {
     fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         self.name.value == other.name.value
-            && arena[self.r#type].structurally_equivalent_impl(&arena[other.r#type], arena, guard)
+            && env.structurally_equivalent(self.r#type, other.r#type)
     }
 }
 
@@ -47,7 +45,7 @@ impl PrettyPrint for GenericArgument {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         let mut doc = RcDoc::text(self.name.value.as_str()).annotate(ORANGE);
 
@@ -81,23 +79,22 @@ impl GenericArguments {
         slice.sort_by(|lhs, rhs| lhs.name.value.cmp(&rhs.name.value));
     }
 
-    pub fn enter_scope(&self, context: &mut UnificationContext) {
+    pub fn enter_scope(&self, env: &mut Environment) {
         for argument in &self.0 {
-            context.enter_generic_argument_scope(argument.id, argument.r#type);
+            env.enter_generic_argument_scope(argument.id, argument.r#type);
         }
     }
 
-    pub fn exit_scope(&self, context: &mut UnificationContext) {
+    pub fn exit_scope(&self, env: &mut Environment) {
         for argument in &self.0 {
-            context.exit_generic_argument_scope(argument.id);
+            env.exit_generic_argument_scope(argument.id);
         }
     }
 
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        arena: &Arena<Type>,
-        guard: &mut RecursionGuard,
+        env: &mut StructuralEquivalenceEnvironment,
     ) -> bool {
         // We do not need to sort the arguments, because the constructor
         // guarantees that they are in lexicographical order.
@@ -107,7 +104,7 @@ impl GenericArguments {
                 .0
                 .iter()
                 .zip(other.0.iter())
-                .all(|(lhs, rhs)| lhs.structurally_equivalent(rhs, arena, guard))
+                .all(|(lhs, rhs)| lhs.structurally_equivalent(rhs, env))
     }
 }
 
@@ -124,7 +121,7 @@ impl PrettyPrint for GenericArguments {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> RcDoc<'a, anstyle::Style> {
         if self.0.is_empty() {
             RcDoc::nil()
@@ -166,7 +163,7 @@ impl PrettyPrint for Param {
     fn pretty<'a>(
         &'a self,
         _: &'a impl Index<TypeId, Output = Type>,
-        _: RecursionLimit,
+        _: RecursionDepthBoundary,
     ) -> RcDoc<'a, anstyle::Style> {
         RcDoc::text(self.name.as_str())
     }
@@ -175,19 +172,18 @@ impl PrettyPrint for Param {
 /// Unifies a type parameter on the left-hand side with a concrete type on the right-hand side.
 ///
 /// The variance context determines how the parameter and the concrete type are compared.
-pub(crate) fn unify_param_lhs(context: &mut UnificationContext, lhs: &Type<Param>, rhs: TypeId) {
+pub(crate) fn unify_param_lhs(env: &mut UnificationEnvironment, lhs: &Type<Param>, rhs: TypeId) {
     // First check if the generic argument is in scope
-    let Some(argument) = context.generic_argument(lhs.kind.argument) else {
-        let diagnostic =
-            super::error::generic_argument_not_found(context.source, lhs, lhs.kind.argument);
-        context.record_diagnostic(diagnostic);
-        context.mark_error(lhs.id);
+    let Some(argument) = env.generic_argument(lhs.kind.argument) else {
+        let diagnostic = generic_argument_not_found(env.source, lhs, lhs.kind.argument);
+        env.record_diagnostic(diagnostic);
+
         return;
     };
 
     // Use the current variance context for unification
     // This allows parameters to respect the variance of their containing context
-    unify_type(context, argument, rhs);
+    env.unify_type(argument, rhs);
 
     // In a strictly variance-aware system, we do NOT modify the parameter type
     // This preserves the identity of the parameter in the type graph
@@ -196,19 +192,18 @@ pub(crate) fn unify_param_lhs(context: &mut UnificationContext, lhs: &Type<Param
 /// Unifies a concrete type on the left-hand side with a type parameter on the right-hand side.
 ///
 /// The variance context determines how the concrete type and parameter are compared.
-pub(crate) fn unify_param_rhs(context: &mut UnificationContext, lhs: TypeId, rhs: &Type<Param>) {
+pub(crate) fn unify_param_rhs(env: &mut UnificationEnvironment, lhs: TypeId, rhs: &Type<Param>) {
     // First check if the generic argument is in scope
-    let Some(argument) = context.generic_argument(rhs.kind.argument) else {
-        let diagnostic =
-            super::error::generic_argument_not_found(context.source, rhs, rhs.kind.argument);
-        context.record_diagnostic(diagnostic);
-        context.mark_error(rhs.id);
+    let Some(argument) = env.generic_argument(rhs.kind.argument) else {
+        let diagnostic = generic_argument_not_found(env.source, rhs, rhs.kind.argument);
+        env.record_diagnostic(diagnostic);
+
         return;
     };
 
     // Use the current variance context for unification
     // This allows parameters to respect the variance of their containing context
-    unify_type(context, lhs, argument);
+    env.unify_type(lhs, argument);
 
     // In a strictly variance-aware system, we do NOT modify the parameter type
     // This preserves the identity of the parameter in the type graph
@@ -217,29 +212,23 @@ pub(crate) fn unify_param_rhs(context: &mut UnificationContext, lhs: TypeId, rhs
 /// Unifies two type parameters.
 ///
 /// The variance context determines how the parameters are compared.
-pub(crate) fn unify_param(context: &mut UnificationContext, lhs: &Type<Param>, rhs: &Type<Param>) {
+pub(crate) fn unify_param(env: &mut UnificationEnvironment, lhs: &Type<Param>, rhs: &Type<Param>) {
     // First check if both generic arguments are in scope
-    let lhs_argument = if let Some(lhs_argument) = context.generic_argument(lhs.kind.argument) {
-        Some(lhs_argument)
-    } else {
-        let diagnostic =
-            super::error::generic_argument_not_found(context.source, lhs, lhs.kind.argument);
-        context.record_diagnostic(diagnostic);
-        context.mark_error(lhs.id);
+    let lhs_argument = env.generic_argument(lhs.kind.argument);
 
-        None
-    };
+    if lhs_argument.is_none() {
+        let diagnostic = generic_argument_not_found(env.source, lhs, lhs.kind.argument);
 
-    let rhs_argument = if let Some(rhs_argument) = context.generic_argument(rhs.kind.argument) {
-        Some(rhs_argument)
-    } else {
-        let diagnostic =
-            super::error::generic_argument_not_found(context.source, rhs, rhs.kind.argument);
-        context.record_diagnostic(diagnostic);
-        context.mark_error(rhs.id);
+        env.record_diagnostic(diagnostic);
+    }
 
-        None
-    };
+    let rhs_argument = env.generic_argument(rhs.kind.argument);
+
+    if rhs_argument.is_none() {
+        let diagnostic = generic_argument_not_found(env.source, rhs, rhs.kind.argument);
+
+        env.record_diagnostic(diagnostic);
+    }
 
     let Some((lhs_argument, rhs_argument)) = Option::zip(lhs_argument, rhs_argument) else {
         return;
@@ -247,7 +236,7 @@ pub(crate) fn unify_param(context: &mut UnificationContext, lhs: &Type<Param>, r
 
     // Use the current variance context for unification
     // This allows parameters to respect the variance of their containing context
-    unify_type(context, lhs_argument, rhs_argument);
+    env.unify_type(lhs_argument, rhs_argument);
 
     // In a strictly variance-aware system, we do NOT modify the parameter types
     // This preserves the identity of the parameters in the type graph
@@ -255,6 +244,8 @@ pub(crate) fn unify_param(context: &mut UnificationContext, lhs: &Type<Param>, r
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches::assert_matches;
+
     use super::{
         GenericArgument, GenericArgumentId, GenericArguments, Param, unify_param, unify_param_lhs,
         unify_param_rhs,
@@ -263,29 +254,28 @@ mod tests {
         symbol::Symbol,
         r#type::{
             TypeKind,
+            environment::Environment,
+            error::TypeCheckDiagnosticCategory,
             primitive::PrimitiveType,
-            test::{ident, instantiate, setup},
+            test::{ident, instantiate, setup_unify},
         },
     };
 
     fn create_param(
-        context: &mut crate::r#type::unify::UnificationContext,
+        env: &mut Environment,
         argument_id: GenericArgumentId,
         name: &str,
     ) -> crate::r#type::Type<Param> {
-        let id = context
-            .arena
-            .arena_mut_test_only()
-            .push_with(|id| crate::r#type::Type {
-                id,
-                span: crate::span::SpanId::SYNTHETIC,
-                kind: TypeKind::Param(Param {
-                    argument: argument_id,
-                    name: Symbol::new(name),
-                }),
-            });
+        let id = env.arena.push_with(|id| crate::r#type::Type {
+            id,
+            span: crate::span::SpanId::SYNTHETIC,
+            kind: TypeKind::Param(Param {
+                argument: argument_id,
+                name: Symbol::new(name),
+            }),
+        });
 
-        context.arena[id].clone().map(|kind| match kind {
+        env.arena[id].clone().map(|kind| match kind {
             TypeKind::Param(param) => param,
             _ => panic!("should be param type"),
         })
@@ -293,130 +283,129 @@ mod tests {
 
     #[test]
     fn param_with_concrete_type() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create a generic parameter T with Number type
         let t_id = GenericArgumentId::new(0);
-        let t_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let t_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
 
         // Enter the generic argument into scope
-        context.enter_generic_argument_scope(t_id, t_type);
+        env.enter_generic_argument_scope(t_id, t_type);
 
         // Create a parameter reference T
-        let param = create_param(&mut context, t_id, "T");
+        let param = create_param(&mut env, t_id, "T");
 
         // Create a concrete Integer type
-        let concrete = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let concrete = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
 
         // Unify parameter (lhs) with concrete type (rhs)
-        unify_param_lhs(&mut context, &param, concrete);
+        unify_param_lhs(&mut env, &param, concrete);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify parameter with compatible concrete type"
         );
 
         // Clean up scope
-        context.exit_generic_argument_scope(t_id);
+        env.exit_generic_argument_scope(t_id);
     }
 
     #[test]
     fn concrete_type_with_param() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create a generic parameter T with Integer type
         let t_id = GenericArgumentId::new(0);
-        let t_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let t_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
 
         // Enter the generic argument into scope
-        context.enter_generic_argument_scope(t_id, t_type);
+        env.enter_generic_argument_scope(t_id, t_type);
 
         // Create a parameter reference T
-        let param = create_param(&mut context, t_id, "T");
+        let param = create_param(&mut env, t_id, "T");
 
         // Create a concrete Number type
-        let concrete = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let concrete = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
 
         // Unify concrete type (lhs) with parameter (rhs)
-        unify_param_rhs(&mut context, concrete, &param);
+        unify_param_rhs(&mut env, concrete, &param);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify concrete type with compatible parameter"
         );
 
         // Clean up scope
-        context.exit_generic_argument_scope(t_id);
+        env.exit_generic_argument_scope(t_id);
     }
 
     #[test]
     fn param_with_param() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create two generic parameters T and U with Number and Integer types
         let t_id = GenericArgumentId::new(0);
         let u_id = GenericArgumentId::new(1);
 
-        let t_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
-        let u_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Integer));
+        let t_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let u_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
 
         // Enter both arguments into scope
-        context.enter_generic_argument_scope(t_id, t_type);
-        context.enter_generic_argument_scope(u_id, u_type);
+        env.enter_generic_argument_scope(t_id, t_type);
+        env.enter_generic_argument_scope(u_id, u_type);
 
         // Create parameter references T and U
-        let param_t = create_param(&mut context, t_id, "T");
-        let param_u = create_param(&mut context, u_id, "U");
+        let param_t = create_param(&mut env, t_id, "T");
+        let param_u = create_param(&mut env, u_id, "U");
 
         // Unify parameters T and U
-        unify_param(&mut context, &param_t, &param_u);
+        unify_param(&mut env, &param_t, &param_u);
 
         assert!(
-            context.take_diagnostics().is_empty(),
+            env.take_diagnostics().is_empty(),
             "Failed to unify compatible parameters"
         );
 
         // Clean up scope
-        context.exit_generic_argument_scope(u_id);
-        context.exit_generic_argument_scope(t_id);
+        env.exit_generic_argument_scope(u_id);
+        env.exit_generic_argument_scope(t_id);
     }
 
     #[test]
     fn undefined_param_error() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create a parameter reference to an undefined generic argument
         let undefined_id = GenericArgumentId::new(42);
-        let param = create_param(&mut context, undefined_id, "T");
+        let param = create_param(&mut env, undefined_id, "T");
 
         // Create a concrete type
-        let concrete = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let concrete = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
 
         // Try to unify with undefined parameter
-        unify_param_lhs(&mut context, &param, concrete);
+        unify_param_lhs(&mut env, &param, concrete);
 
-        let diagnostics = context.take_diagnostics();
+        let diagnostics = env.take_diagnostics();
         assert_eq!(
             diagnostics.len(),
             1,
             "Should produce undefined parameter error"
         );
-        assert!(
-            matches!(
-                diagnostics[0].category,
-                crate::r#type::error::TypeCheckDiagnosticCategory::GenericArgumentNotFound
-            ),
+
+        assert_matches!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::GenericArgumentNotFound,
             "Wrong error type for undefined parameter"
         );
     }
 
     #[test]
     fn generic_arguments_scope() {
-        let mut context = setup();
+        setup_unify!(env);
 
         // Create a generic argument T
         let t_id = GenericArgumentId::new(0);
-        let t_type = instantiate(&mut context, TypeKind::Primitive(PrimitiveType::Number));
+        let t_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
         let t_arg = GenericArgument {
             id: t_id,
             name: ident("T"),
@@ -429,25 +418,25 @@ mod tests {
 
         // Verify argument not in scope initially
         assert!(
-            context.generic_argument(t_id).is_none(),
+            env.generic_argument(t_id).is_none(),
             "Argument should not be in scope before entering"
         );
 
         // Enter scope
-        args.enter_scope(&mut context);
+        args.enter_scope(&mut env);
 
         // Verify argument is in scope
         assert!(
-            context.generic_argument(t_id).is_some(),
+            env.generic_argument(t_id).is_some(),
             "Argument should be in scope after entering"
         );
 
         // Exit scope
-        args.exit_scope(&mut context);
+        args.exit_scope(&mut env);
 
         // Verify argument no longer in scope
         assert!(
-            context.generic_argument(t_id).is_none(),
+            env.generic_argument(t_id).is_none(),
             "Argument should not be in scope after exiting"
         );
     }

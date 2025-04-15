@@ -57,7 +57,6 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, RestApiStore,
-    api_resource::RoutedResource,
     json::Json,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{ListOrValue, MaybeListOfEntityType, subgraph::Subgraph},
@@ -120,9 +119,9 @@ use crate::rest::{
 )]
 pub(crate) struct EntityTypeResource;
 
-impl RoutedResource for EntityTypeResource {
+impl EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<S, A>() -> Router
+    pub(crate) fn routes<S, A>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,

@@ -18,9 +18,11 @@ text-size = { workspace = true, public = true }
 
 # Private third-party dependencies
 anstyle            = { workspace = true }
+archery            = { workspace = true }
 foldhash           = { workspace = true }
 orx-concurrent-vec = { workspace = true }
-pretty             = "0.12.4"
+pretty             = { workspace = true }
+rpds               = { workspace = true }
 serde              = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid     = { workspace = true }
 

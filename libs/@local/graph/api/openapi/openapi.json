@@ -3040,6 +3040,30 @@
         }
       }
     },
+    "/system_account": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Account"
+        ],
+        "operationId": "get_or_create_system_account",
+        "responses": {
+          "200": {
+            "description": "The schema of the created account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MachineId"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/webs": {
       "post": {
         "tags": [

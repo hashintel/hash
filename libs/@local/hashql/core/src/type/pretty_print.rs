@@ -4,13 +4,12 @@ use std::io;
 use anstyle::{AnsiColor, Color, Style};
 use pretty::{RcDoc, Render, RenderAnnotated};
 
-use super::{Type, TypeId, recursion::RecursionLimit};
+use super::{Type, TypeId, recursion::RecursionDepthBoundary};
 
 pub(crate) const BLUE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Blue)));
 pub(crate) const CYAN: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Cyan)));
 pub(crate) const ORANGE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)));
 pub(crate) const GRAY: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightBlack)));
-pub(crate) const RED: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightRed)));
 
 struct WriteColored<W> {
     stack: Vec<Style>,
@@ -71,7 +70,7 @@ pub(crate) trait PrettyPrint {
     fn pretty<'a>(
         &'a self,
         arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionLimit,
+        limit: RecursionDepthBoundary,
     ) -> RcDoc<'a, Style>;
 
     fn pretty_print(&self, arena: &impl Index<TypeId, Output = Type>, width: usize) -> String {
@@ -80,7 +79,7 @@ pub(crate) trait PrettyPrint {
 
         self.pretty(
             arena,
-            RecursionLimit {
+            RecursionDepthBoundary {
                 depth: 0,
                 limit: 32,
             },
