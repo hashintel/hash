@@ -37,12 +37,12 @@ import type {
 import { countEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
-import { pollInterval } from "../../shared/poll-interval";
 import { tableContentSx } from "../../shared/table-content";
 import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import { generateUseEntityTypeEntitiesFilter } from "../../shared/use-entity-type-entities";
 import { useMemoCompare } from "../../shared/use-memo-compare";
+import { usePollInterval } from "../../shared/use-poll-interval";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
@@ -232,6 +232,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   } | null>(null);
 
   const [view, setView] = useState<VisualizerView>(defaultView);
+
+  const pollInterval = usePollInterval();
 
   /**
    * We want to show the count of entities in external webs, and need to query this count separately:
