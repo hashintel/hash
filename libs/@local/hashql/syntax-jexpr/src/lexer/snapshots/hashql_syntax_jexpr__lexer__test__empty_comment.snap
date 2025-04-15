@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Empty comment should be skipped
+expression: "42\n//\n42"
+---
+42 42

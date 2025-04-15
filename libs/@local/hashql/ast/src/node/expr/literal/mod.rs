@@ -157,5 +157,5 @@ pub struct LiteralExpr<'heap> {
     pub span: SpanId,
 
     pub kind: LiteralKind,
-    pub r#type: heap::Box<'heap, Type<'heap>>,
+    pub r#type: Option<heap::Box<'heap, Type<'heap>>>,
 }

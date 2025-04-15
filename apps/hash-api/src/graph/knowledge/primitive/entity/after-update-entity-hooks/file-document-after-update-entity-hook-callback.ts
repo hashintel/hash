@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
   isStorageType,
   storageProviderLookup,
@@ -89,7 +89,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
 
       const workflowId = `${updatedEntity.metadata.recordId.editionId}-parse-text-from-file-workflow-id`;
 
-      const fileEntityOwnedById = extractOwnedByIdFromEntityId(
+      const fileEntityWebId = extractWebIdFromEntityId(
         updatedEntity.metadata.recordId.entityId,
       );
 
@@ -97,7 +97,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
         context,
         authentication,
         {
-          ownedById: fileEntityOwnedById,
+          webId: fileEntityWebId,
         },
       );
 

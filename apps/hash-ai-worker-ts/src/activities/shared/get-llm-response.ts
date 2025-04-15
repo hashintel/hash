@@ -1,9 +1,9 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   OriginProvenance,
-  OwnedById,
   ProvidedEntityEditionProvenance,
+  WebId,
 } from "@blockprotocol/type-system";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
@@ -43,9 +43,9 @@ export type UsageTrackingParams = {
    * @todo: consider abstracting this in a wrapper method, or via
    * generic params (via a `logUsage` method).
    */
-  userAccountId: ActorId;
+  userAccountId: ActorEntityUuid;
   customMetadata: FlowUsageRecordCustomMetadata | null;
-  webId: OwnedById;
+  webId: WebId;
   graphApiClient: GraphApi;
   incurredInEntities: { entityId: EntityId }[];
 };
@@ -214,7 +214,7 @@ export const getLlmResponse = async <T extends LlmParams>(
                 draft: false,
                 properties: { value: {} },
                 provenance,
-                ownedById: webId,
+                webId,
                 entityTypeIds: [
                   systemLinkEntityTypes.incurredIn.linkEntityTypeId,
                 ],

@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Array of objects
+expression: "[{\"id\": 1}, {\"id\": 2}]"
+---
+[ { "id" : 1 } , { "id" : 2 } ]

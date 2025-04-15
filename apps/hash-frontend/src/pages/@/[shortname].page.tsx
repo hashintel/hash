@@ -145,7 +145,7 @@ const ProfilePage: NextPageWithLayout = () => {
               ? [
                   {
                     equal: [
-                      { path: ["ownedById"] },
+                      { path: ["webId"] },
                       {
                         parameter:
                           profile.kind === "org"

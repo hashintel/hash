@@ -1,0 +1,33 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
+description: Parses a dict with type annotation
+expression: "{\"#dict\": {\n            \"key\": {\"#literal\": \"value\"}\n            }, \"#type\": \"Dict<String, String>\"}"
+---
+Expr#4294967040@17
+  ExprKind (Dict)
+    DictExpr#4294967040@4
+      DictEntry#4294967040@3
+        Expr#4294967040@0
+          ExprKind (Literal)
+            LiteralExpr#4294967040@0
+              LiteralKind (String)
+                StringLiteral (key)
+        Expr#4294967040@2
+          ExprKind (Literal)
+            LiteralExpr#4294967040@1
+              LiteralKind (String)
+                StringLiteral (value)
+      Type#4294967040@16
+        TypeKind (Path)
+          Path#4294967040@16 (rooted: false)
+            PathSegment#4294967040@15 (name: Dict)
+              GenericArgument#4294967040@10
+                Type#4294967040@9
+                  TypeKind (Path)
+                    Path#4294967040@9 (rooted: false)
+                      PathSegment#4294967040@8 (name: String)
+              GenericArgument#4294967040@14
+                Type#4294967040@13
+                  TypeKind (Path)
+                    Path#4294967040@13 (rooted: false)
+                      PathSegment#4294967040@12 (name: String)

@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/path.rs
+description: Mixed Unicode and ASCII in path
+expression: "std::标识符::Vec<T>"
+info:
+  kind: Ok
+---
+Path#4294967040@11 (rooted: false)
+  PathSegment#4294967040@2 (name: std)
+  PathSegment#4294967040@4 (name: 标识符)
+  PathSegment#4294967040@10 (name: Vec)
+    GenericArgument#4294967040@9
+      Type#4294967040@8
+        TypeKind (Path)
+          Path#4294967040@8 (rooted: false)
+            PathSegment#4294967040@7 (name: T)

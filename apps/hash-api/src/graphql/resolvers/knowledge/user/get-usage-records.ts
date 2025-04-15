@@ -1,6 +1,6 @@
 import {
-  type ActorId,
-  extractOwnedByIdFromEntityId,
+  type ActorEntityUuid,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
@@ -61,14 +61,14 @@ export const getUsageRecordsResolver: ResolverFn<
   for (const user of users) {
     const { shortname } = simplifyProperties(user.properties as UserProperties);
 
-    const userAccountId = extractOwnedByIdFromEntityId(
+    const userAccountId = extractWebIdFromEntityId(
       user.metadata.recordId.entityId,
     );
 
     const usageRecords = await getWebServiceUsage(
       { graphApi: dataSources.graphApi },
       {
-        userAccountId: userAccountId as ActorId,
+        userAccountId: userAccountId as ActorEntityUuid,
         webId: userAccountId,
       },
     );

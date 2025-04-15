@@ -65,7 +65,7 @@ const createColumnsForEntity = (
   format: SheetOutputFormat,
 ): ColumnsForEntity => {
   const { audience } = format;
-  const humanReadable = audience === "human";
+  const humanReadable = audience === "user";
 
   const columns: ColumnsForEntity["columns"] = {
     entityId: {
@@ -273,7 +273,7 @@ export const convertSubgraphToSheetRequests = ({
     };
   } = {};
 
-  const humanReadable = format.audience === "human";
+  const humanReadable = format.audience === "user";
 
   for (const entity of sortedEntities) {
     const entityType = getEntityTypeById(
@@ -670,10 +670,10 @@ export const convertSubgraphToSheetRequests = ({
           addSheet: {
             properties: {
               gridProperties: {
-                frozenRowCount: format.audience === "human" ? 2 : 0,
+                frozenRowCount: format.audience === "user" ? 2 : 0,
               },
               sheetId,
-              title: format.audience === "human" ? typeTitle : typeId,
+              title: format.audience === "user" ? typeTitle : typeId,
             },
           },
         },

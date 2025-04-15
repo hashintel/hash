@@ -30,7 +30,7 @@ export const fileTypedef = gql`
     """
     The owner for the created file entity.
     """
-    ownedById: OwnedById!
+    webId: WebId!
   }
 
   input FileEntityUpdateInput {

@@ -13,6 +13,7 @@ use error_stack::Report;
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
+    policies::store::PrincipalStore,
     schema::{
         WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
         WebEntityTypeViewerSubject, WebEntityViewerSubject, WebOwnerSubject, WebPermission,
@@ -26,10 +27,9 @@ use hash_graph_store::{
 };
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize;
-use type_system::web::OwnedById;
+use type_system::web::WebId;
 use utoipa::{OpenApi, ToSchema};
 
-use super::api_resource::RoutedResource;
 use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to_response};
 
 #[derive(OpenApi)]
@@ -62,12 +62,13 @@ use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to
 )]
 pub(crate) struct WebResource;
 
-impl RoutedResource for WebResource {
+impl WebResource {
     /// Create routes for interacting with accounts.
-    fn routes<S, A>() -> Router
+    pub(crate) fn routes<S, A>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
+        for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
     {
         Router::new().nest(
             "/webs",
@@ -96,7 +97,7 @@ impl RoutedResource for WebResource {
     request_body = InsertWebIdParams,
     tag = "Web",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, content_type = "application/json", description = "The web was created successfully"),
@@ -118,6 +119,7 @@ async fn create_web<S, A>(
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
     let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
@@ -131,6 +133,21 @@ where
             tracing::error!(error=?report, "Could not acquire store");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
+
+    // TODO: Uncomment this once we use the new principals
+    // store
+    //     .create_web(
+    //         ActorId::User(UserId::new(actor_id)),
+    //         CreateWebParameter {
+    //             id: Some(params.web_id.into_uuid()),
+    //         },
+    //     )
+    //     .await
+    //     .map_err(|report| {
+    //         tracing::error!(error=?report, "Could not create web id");
+
+    //         StatusCode::INTERNAL_SERVER_ERROR
+    //     })?;
 
     store
         .insert_web_id(actor_id, params)
@@ -149,7 +166,7 @@ where
     path = "/webs/{web_id}/permissions/{permission}",
     tag = "Web",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("web_id" = EntityId, Path, description = "The web ID to check if the actor has the permission"),
         ("permission" = WebPermission, Path, description = "The permission to check for"),
     ),
@@ -162,7 +179,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn check_web_permission<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((web_id, permission)): Path<(OwnedById, WebPermission)>,
+    Path((web_id, permission)): Path<(WebId, WebPermission)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<Json<PermissionResponse>, StatusCode>
 where
@@ -194,8 +211,8 @@ where
     path = "/webs/{web_id}/relationships",
     tag = "Web",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("web_id" = OwnedById, Path, description = "The web to read the relations for"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("web_id" = WebId, Path, description = "The web to read the relations for"),
     ),
     responses(
         (status = 200, description = "The relations of the web", body = [WebRelationAndSubject]),
@@ -206,7 +223,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn get_web_authorization_relationships<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path(owned_by_id): Path<OwnedById>,
+    Path(web_id): Path<WebId>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<Json<Vec<WebRelationAndSubject>>, Response>
 where
@@ -219,7 +236,7 @@ where
 
     Ok(Json(
         authorization_api
-            .get_web_relations(owned_by_id, Consistency::FullyConsistent)
+            .get_web_relations(web_id, Consistency::FullyConsistent)
             .await
             .map_err(report_to_response)?,
     ))
@@ -229,7 +246,7 @@ where
 #[serde(rename_all = "camelCase")]
 struct ModifyWebAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
-    resource: OwnedById,
+    resource: WebId,
     relation_and_subject: WebRelationAndSubject,
 }
 
@@ -239,7 +256,7 @@ struct ModifyWebAuthorizationRelationship {
     tag = "Web",
     request_body = [ModifyWebAuthorizationRelationship],
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, description = "The relationship was modified for the web"),

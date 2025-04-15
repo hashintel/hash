@@ -6,30 +6,30 @@ use std::collections::{
     hash_map::{Entry, HashMap},
 };
 
-use either::Either;
 use error_stack::{Report, bail, ensure};
-use type_system::web::OwnedById;
+use type_system::{
+    knowledge::{entity::id::EntityUuid, property::PropertyObjectWithMetadata},
+    ontology::VersionedUrl,
+    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId, UserId},
+    web::WebId,
+};
 use uuid::Uuid;
 
 use self::error::{
-    ActorCreationError, ContextCreationError, GetPoliciesError, PolicyStoreError,
-    RoleAssignmentError, TeamCreationError, TeamRoleCreationError, WebCreationError,
-    WebRoleCreationError, WebTeamCreationError, WebTeamRoleCreationError,
+    ActorCreationError, ContextCreationError, GetPoliciesError, GetSystemAccountError,
+    PolicyStoreError, RoleAssignmentError, TeamCreationError, TeamRoleCreationError,
+    WebCreationError, WebRoleCreationError,
 };
 use super::{
     ContextBuilder, Policy, PolicyId,
     principal::{
-        ActorId, PrincipalConstraint,
-        machine::{Machine, MachineId, MachinePrincipalConstraint},
-        role::RoleId,
-        team::{Team, TeamId, TeamPrincipalConstraint, TeamRole, TeamRoleId},
-        user::{User, UserId, UserPrincipalConstraint},
-        web::{
-            Web, WebPrincipalConstraint, WebRole, WebRoleId, WebTeam, WebTeamId, WebTeamRole,
-            WebTeamRoleId,
-        },
+        Actor, PrincipalConstraint,
+        actor::Machine,
+        group::{ActorGroup, ActorGroupId, Team, TeamId, Web},
+        role::{Role, RoleId, TeamRole, TeamRoleId, WebRole, WebRoleId},
     },
 };
+use crate::policies::principal::actor::User;
 
 #[derive(Debug, derive_more::Display)]
 #[display("Actor with ID `{actor}` already exists")]
@@ -49,15 +49,56 @@ impl Error for RoleInsertionError {}
 
 pub enum RoleCreationParameter {
     Web {
-        web_id: OwnedById,
+        web_id: WebId,
     },
     Team {
         team_id: TeamId,
+        parent: ActorGroupId,
     },
-    WebTeam {
-        web_id: OwnedById,
-        team_id: WebTeamId,
-    },
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct CreateUserParameter {
+    pub entity_type_id: VersionedUrl,
+    pub properties: PropertyObjectWithMetadata,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct CreateWebParameter {
+    pub id: Option<Uuid>,
+}
+
+#[trait_variant::make(PrincipalStore: Send)]
+pub trait LocalPrincipalStore {
+    /// Searches for the system account and returns its ID.
+    ///
+    /// If the system account does not exist, it is created. Calling this function
+    /// also implies basic permissions on the system account, so it can be used to
+    /// further configure the system.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: GetSystemAccountError::StoreError
+    async fn get_or_create_system_account(
+        &mut self,
+    ) -> Result<MachineId, Report<GetSystemAccountError>>;
+
+    /// Creates a new web and returns its ID.
+    ///
+    /// # Errors
+    ///
+    /// - [`AlreadyExists`] if the web already exists
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`AlreadyExists`]: WebCreationError::AlreadyExists
+    /// [`StoreError`]: WebCreationError::StoreError
+    async fn create_web(
+        &mut self,
+        actor: ActorId,
+        parameter: CreateWebParameter,
+    ) -> Result<WebId, Report<WebCreationError>>;
 }
 
 pub trait PolicyStore {
@@ -72,23 +113,37 @@ pub trait PolicyStore {
     /// [`WebNotFound`]: ActorCreationError::WebNotFound
     /// [`WebOccupied`]: ActorCreationError::WebOccupied
     /// [`StoreError`]: ActorCreationError::StoreError
-    fn create_user(&mut self, web_id: OwnedById) -> Result<UserId, Report<ActorCreationError>>;
+    fn create_user(&mut self, web_id: WebId) -> Result<UserId, Report<ActorCreationError>>;
 
-    /// Creates a new machine within the given web and returns its ID.
+    /// Creates a new machine and returns its ID.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: ActorCreationError::StoreError
+    fn create_machine(&mut self) -> Result<MachineId, Report<ActorCreationError>>;
+
+    /// Creates a new web and returns its ID.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: WebCreationError::StoreError
+    fn create_web(&mut self) -> Result<WebId, Report<WebCreationError>>;
+
+    /// Creates a new web role within the given web and returns its ID.
     ///
     /// # Errors
     ///
     /// - [`WebNotFound`] if the web does not exist
-    /// - [`WebOccupied`] if the web is already assigned
     /// - [`StoreError`] if the underlying store returns an error
     ///
-    /// [`WebNotFound`]: ActorCreationError::WebNotFound
-    /// [`WebOccupied`]: ActorCreationError::WebOccupied
-    /// [`StoreError`]: ActorCreationError::StoreError
-    fn create_machine(
-        &mut self,
-        web_id: OwnedById,
-    ) -> Result<MachineId, Report<ActorCreationError>>;
+    /// [`WebNotFound`]: WebRoleCreationError::WebNotFound
+    /// [`StoreError`]: WebRoleCreationError::StoreError
+    fn create_web_role(&mut self, web_id: WebId)
+    -> Result<WebRoleId, Report<WebRoleCreationError>>;
 
     /// Creates a new team and returns its ID.
     ///
@@ -97,7 +152,7 @@ pub trait PolicyStore {
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: TeamCreationError::StoreError
-    fn create_team(&mut self) -> Result<TeamId, Report<TeamCreationError>>;
+    fn create_team(&mut self, parent: ActorGroupId) -> Result<TeamId, Report<TeamCreationError>>;
 
     /// Creates a new team role within the given team and returns its ID.
     ///
@@ -112,60 +167,6 @@ pub trait PolicyStore {
         &mut self,
         team_id: TeamId,
     ) -> Result<TeamRoleId, Report<TeamRoleCreationError>>;
-
-    /// Creates a new web and returns its ID.
-    ///
-    /// # Errors
-    ///
-    /// - [`StoreError`] if the underlying store returns an error
-    ///
-    /// [`StoreError`]: WebCreationError::StoreError
-    fn create_web(&mut self) -> Result<OwnedById, Report<WebCreationError>>;
-
-    /// Creates a new web role within the given web and returns its ID.
-    ///
-    /// # Errors
-    ///
-    /// - [`WebNotFound`] if the web does not exist
-    /// - [`StoreError`] if the underlying store returns an error
-    ///
-    /// [`WebNotFound`]: WebRoleCreationError::WebNotFound
-    /// [`StoreError`]: WebRoleCreationError::StoreError
-    fn create_web_role(
-        &mut self,
-        web_id: OwnedById,
-    ) -> Result<WebRoleId, Report<WebRoleCreationError>>;
-
-    /// Creates a new web team within the given web and returns its ID.
-    ///
-    /// # Errors
-    ///
-    /// - [`WebNotFound`] if the web does not exist
-    /// - [`StoreError`] if the underlying store returns an error
-    ///
-    /// [`WebNotFound`]: WebTeamCreationError::WebNotFound
-    /// [`StoreError`]: WebTeamCreationError::StoreError
-    fn create_web_team(
-        &mut self,
-        web_id: OwnedById,
-    ) -> Result<WebTeamId, Report<WebTeamCreationError>>;
-
-    /// Creates a new web team role within the given web and team and returns its ID.
-    ///
-    /// # Errors
-    ///
-    /// - [`WebNotFound`] if the web does not exist
-    /// - [`TeamNotFound`] if the team does not exist
-    /// - [`StoreError`] if the underlying store returns an error
-    ///
-    /// [`WebNotFound`]: WebTeamRoleCreationError::WebNotFound
-    /// [`TeamNotFound`]: WebTeamRoleCreationError::TeamNotFound
-    /// [`StoreError`]: WebTeamRoleCreationError::StoreError
-    fn create_web_team_role(
-        &mut self,
-        web_id: OwnedById,
-        team_id: WebTeamId,
-    ) -> Result<WebTeamRoleId, Report<WebTeamRoleCreationError>>;
 
     /// Assigns a role to an actor.
     ///
@@ -198,7 +199,7 @@ pub trait PolicyStore {
     fn unassign_role(
         &mut self,
         actor_id: ActorId,
-        role_id: &RoleId,
+        role_id: RoleId,
     ) -> Result<(), Report<RoleAssignmentError>>;
 
     /// Extends the context by the actor and its assigned roles.
@@ -251,130 +252,48 @@ pub trait PolicyStore {
     ) -> Result<impl Iterator<Item = &Policy>, Report<GetPoliciesError>>;
 }
 
-#[derive(Debug)]
-enum Actor {
-    User(User),
-    Machine(Machine),
-}
-
-impl Actor {
-    fn roles(&self) -> impl Iterator<Item = &RoleId> {
-        match self {
-            Self::User(user) => user.roles.iter(),
-            Self::Machine(machine) => machine.roles.iter(),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum Role {
-    Web(WebRole),
-    Team(TeamRole),
-    WebTeam(WebTeamRole),
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum PrincipalIndex {
     Unspecified,
     Actor(ActorId),
+    ActorType(ActorType),
     Role(RoleId),
-    Web(OwnedById),
-    Team(TeamId),
-    WebTeam(WebTeamId),
-}
-
-impl From<&WebPrincipalConstraint> for PrincipalIndex {
-    fn from(constraint: &WebPrincipalConstraint) -> Self {
-        match constraint {
-            WebPrincipalConstraint::InWeb { id: Some(id) } => Self::Web(*id),
-            WebPrincipalConstraint::InRole {
-                role_id: Some(role_id),
-            } => Self::Role(RoleId::Web(*role_id)),
-            WebPrincipalConstraint::InTeam {
-                team_id: Some(team_id),
-            } => Self::WebTeam(*team_id),
-            WebPrincipalConstraint::InTeamRole {
-                team_role_id: Some(team_role_id),
-            } => Self::Role(RoleId::WebTeam(*team_role_id)),
-            WebPrincipalConstraint::InWeb { id: None }
-            | WebPrincipalConstraint::InRole { role_id: None }
-            | WebPrincipalConstraint::InTeam { team_id: None }
-            | WebPrincipalConstraint::InTeamRole { team_role_id: None } => Self::Unspecified,
-        }
-    }
-}
-
-impl From<&TeamPrincipalConstraint> for PrincipalIndex {
-    fn from(constraint: &TeamPrincipalConstraint) -> Self {
-        match constraint {
-            TeamPrincipalConstraint::InTeam { id: Some(id) } => Self::Team(*id),
-            TeamPrincipalConstraint::InRole {
-                role_id: Some(role_id),
-            } => Self::Role(RoleId::Team(*role_id)),
-            TeamPrincipalConstraint::InTeam { id: None }
-            | TeamPrincipalConstraint::InRole { role_id: None } => Self::Unspecified,
-        }
-    }
-}
-
-impl From<&UserPrincipalConstraint> for PrincipalIndex {
-    fn from(constraint: &UserPrincipalConstraint) -> Self {
-        match constraint {
-            UserPrincipalConstraint::Exact {
-                user_id: Some(user_id),
-            } => Self::Actor(ActorId::User(*user_id)),
-            UserPrincipalConstraint::Web(web) => Self::from(web),
-            UserPrincipalConstraint::Team(team) => Self::from(team),
-            UserPrincipalConstraint::Any {} | UserPrincipalConstraint::Exact { user_id: None } => {
-                Self::Unspecified
-            }
-        }
-    }
-}
-
-impl From<&MachinePrincipalConstraint> for PrincipalIndex {
-    fn from(constraint: &MachinePrincipalConstraint) -> Self {
-        match constraint {
-            MachinePrincipalConstraint::Exact {
-                machine_id: Some(machine_id),
-            } => Self::Actor(ActorId::Machine(*machine_id)),
-            MachinePrincipalConstraint::Web(web) => Self::from(web),
-            MachinePrincipalConstraint::Team(team) => Self::from(team),
-            MachinePrincipalConstraint::Any {}
-            | MachinePrincipalConstraint::Exact { machine_id: None } => Self::Unspecified,
-        }
-    }
+    Team(ActorGroupId),
 }
 
 impl From<&PrincipalConstraint> for PrincipalIndex {
     fn from(constraint: &PrincipalConstraint) -> Self {
         match constraint {
-            PrincipalConstraint::Public {} => Self::Unspecified,
-            PrincipalConstraint::User(user) => Self::from(user),
-            PrincipalConstraint::Machine(machine) => Self::from(machine),
-            PrincipalConstraint::Web(web) => Self::from(web),
-            PrincipalConstraint::Team(team) => Self::from(team),
+            PrincipalConstraint::Actor { actor } => Self::Actor(*actor),
+            PrincipalConstraint::ActorType { actor_type } => Self::ActorType(*actor_type),
+            PrincipalConstraint::ActorGroup {
+                actor_group: team,
+                actor_type: _,
+            } => Self::Team(*team),
+            PrincipalConstraint::Role {
+                role,
+                actor_type: _,
+            } => Self::Role(*role),
         }
     }
 }
 
 #[derive(Debug, Default)]
 pub struct MemoryPolicyStore {
-    webs: HashMap<OwnedById, Web>,
-    teams: HashMap<TeamId, Team>,
+    teams: HashMap<ActorGroupId, ActorGroup>,
     actors: HashMap<ActorId, Actor>,
     roles: HashMap<RoleId, Role>,
     policies: HashMap<PrincipalIndex, HashMap<PolicyId, Policy>>,
 }
 
 impl PolicyStore for MemoryPolicyStore {
-    fn create_user(&mut self, web_id: OwnedById) -> Result<UserId, Report<ActorCreationError>> {
+    fn create_user(&mut self, web_id: WebId) -> Result<UserId, Report<ActorCreationError>> {
         ensure!(
-            self.webs.contains_key(&web_id),
+            self.teams.contains_key(&ActorGroupId::Web(web_id)),
             ActorCreationError::WebNotFound { web_id }
         );
 
-        let user_id = UserId::new(web_id.into_uuid());
+        let user_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(web_id.into_uuid())));
         let Entry::Vacant(entry) = self.actors.entry(ActorId::User(user_id)) else {
             bail!(ActorCreationError::WebOccupied { web_id })
         };
@@ -387,148 +306,84 @@ impl PolicyStore for MemoryPolicyStore {
         Ok(user_id)
     }
 
-    fn create_machine(
-        &mut self,
-        web_id: OwnedById,
-    ) -> Result<MachineId, Report<ActorCreationError>> {
-        ensure!(
-            self.webs.contains_key(&web_id),
-            ActorCreationError::WebNotFound { web_id }
+    fn create_machine(&mut self) -> Result<MachineId, Report<ActorCreationError>> {
+        let machine_id = MachineId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+        self.actors.insert(
+            ActorId::Machine(machine_id),
+            Actor::Machine(Machine {
+                id: machine_id,
+                roles: HashSet::new(),
+            }),
         );
-
-        let machine_id = MachineId::new(Uuid::new_v4());
-        let Entry::Vacant(entry) = self.actors.entry(ActorId::Machine(machine_id)) else {
-            bail!(ActorCreationError::WebOccupied { web_id })
-        };
-
-        entry.insert(Actor::Machine(Machine {
-            id: machine_id,
-            roles: HashSet::new(),
-        }));
 
         Ok(machine_id)
     }
 
-    fn create_team(&mut self) -> Result<TeamId, Report<TeamCreationError>> {
-        loop {
-            let team_id = TeamId::new(Uuid::new_v4());
-            if let Entry::Vacant(entry) = self.teams.entry(team_id) {
-                entry.insert(Team {
-                    id: team_id,
-                    roles: HashSet::new(),
-                });
-                break Ok(team_id);
-            }
-        }
-    }
-
-    fn create_team_role(
-        &mut self,
-        team_id: TeamId,
-    ) -> Result<TeamRoleId, Report<TeamRoleCreationError>> {
-        let Some(team) = self.teams.get_mut(&team_id) else {
-            bail!(TeamRoleCreationError::TeamNotFound { team_id })
-        };
-
-        loop {
-            let role_id = TeamRoleId::new(Uuid::new_v4());
-            if team.roles.insert(role_id) {
-                self.roles.insert(
-                    RoleId::Team(role_id),
-                    Role::Team(TeamRole {
-                        id: role_id,
-                        team_id,
-                    }),
-                );
-                break Ok(role_id);
-            }
-        }
-    }
-
-    fn create_web(&mut self) -> Result<OwnedById, Report<WebCreationError>> {
-        let web_id = OwnedById::new(Uuid::new_v4());
-        self.webs.insert(
-            web_id,
-            Web {
+    fn create_web(&mut self) -> Result<WebId, Report<WebCreationError>> {
+        let web_id = WebId::new(Uuid::new_v4());
+        self.teams.insert(
+            ActorGroupId::Web(web_id),
+            ActorGroup::Web(Web {
                 id: web_id,
                 roles: HashSet::new(),
-                teams: HashMap::new(),
-            },
+            }),
         );
         Ok(web_id)
     }
 
     fn create_web_role(
         &mut self,
-        web_id: OwnedById,
+        web_id: WebId,
     ) -> Result<WebRoleId, Report<WebRoleCreationError>> {
-        let Some(web) = self.webs.get_mut(&web_id) else {
+        let Some(ActorGroup::Web(web)) = self.teams.get_mut(&ActorGroupId::Web(web_id)) else {
             bail!(WebRoleCreationError::WebNotFound { web_id })
         };
 
-        loop {
-            let role_id = WebRoleId::new(Uuid::new_v4());
-            if web.roles.insert(role_id) {
-                self.roles.insert(
-                    RoleId::Web(role_id),
-                    Role::Web(WebRole {
-                        id: role_id,
-                        web_id,
-                    }),
-                );
-                break Ok(role_id);
-            }
-        }
+        let role_id = WebRoleId::new(Uuid::new_v4());
+        web.roles.insert(role_id);
+        self.roles.insert(
+            RoleId::Web(role_id),
+            Role::Web(WebRole {
+                id: role_id,
+                web_id,
+            }),
+        );
+
+        Ok(role_id)
     }
 
-    fn create_web_team(
-        &mut self,
-        web_id: OwnedById,
-    ) -> Result<WebTeamId, Report<WebTeamCreationError>> {
-        let Some(web) = self.webs.get_mut(&web_id) else {
-            bail!(WebTeamCreationError::WebNotFound { web_id })
-        };
-
-        loop {
-            let team_id = WebTeamId::new(Uuid::new_v4());
-            if let Entry::Vacant(entry) = web.teams.entry(team_id) {
-                entry.insert(WebTeam {
-                    id: team_id,
-                    web_id,
-                    roles: HashSet::new(),
-                });
-                break Ok(team_id);
-            }
-        }
+    fn create_team(&mut self, parent: ActorGroupId) -> Result<TeamId, Report<TeamCreationError>> {
+        let team_id = TeamId::new(Uuid::new_v4());
+        self.teams.insert(
+            ActorGroupId::Team(team_id),
+            ActorGroup::Team(Team {
+                id: team_id,
+                parents: vec![parent],
+                roles: HashSet::new(),
+            }),
+        );
+        Ok(team_id)
     }
 
-    fn create_web_team_role(
+    fn create_team_role(
         &mut self,
-        web_id: OwnedById,
-        team_id: WebTeamId,
-    ) -> Result<WebTeamRoleId, Report<WebTeamRoleCreationError>> {
-        let Some(web) = self.webs.get_mut(&web_id) else {
-            bail!(WebTeamRoleCreationError::WebNotFound { web_id })
+        team_id: TeamId,
+    ) -> Result<TeamRoleId, Report<TeamRoleCreationError>> {
+        let Some(ActorGroup::Team(team)) = self.teams.get_mut(&ActorGroupId::Team(team_id)) else {
+            bail!(TeamRoleCreationError::TeamNotFound { team_id })
         };
 
-        let Some(team) = web.teams.get_mut(&team_id) else {
-            bail!(WebTeamRoleCreationError::TeamNotFound { team_id })
-        };
+        let role_id = TeamRoleId::new(Uuid::new_v4());
+        team.roles.insert(role_id);
+        self.roles.insert(
+            RoleId::Team(role_id),
+            Role::Team(TeamRole {
+                id: role_id,
+                team_id,
+            }),
+        );
 
-        loop {
-            let role_id = WebTeamRoleId::new(Uuid::new_v4());
-            if team.roles.insert(role_id) {
-                self.roles.insert(
-                    RoleId::WebTeam(role_id),
-                    Role::WebTeam(WebTeamRole {
-                        id: role_id,
-                        web_id,
-                        team_id,
-                    }),
-                );
-                break Ok(role_id);
-            }
-        }
+        Ok(role_id)
     }
 
     fn assign_role(
@@ -551,6 +406,9 @@ impl PolicyStore for MemoryPolicyStore {
             Actor::Machine(machine) => {
                 machine.roles.insert(role_id);
             }
+            Actor::Ai(ai) => {
+                ai.roles.insert(role_id);
+            }
         }
         Ok(())
     }
@@ -558,24 +416,25 @@ impl PolicyStore for MemoryPolicyStore {
     fn unassign_role(
         &mut self,
         actor_id: ActorId,
-        role_id: &RoleId,
+        role_id: RoleId,
     ) -> Result<(), Report<RoleAssignmentError>> {
         let Some(actor) = self.actors.get_mut(&actor_id) else {
             bail!(RoleAssignmentError::ActorNotFound { actor_id })
         };
         ensure!(
-            self.roles.contains_key(role_id),
-            RoleAssignmentError::RoleNotFound {
-                role_id: role_id.clone()
-            }
+            self.roles.contains_key(&role_id),
+            RoleAssignmentError::RoleNotFound { role_id }
         );
 
         match actor {
             Actor::User(user) => {
-                user.roles.remove(role_id);
+                user.roles.remove(&role_id);
             }
             Actor::Machine(machine) => {
-                machine.roles.remove(role_id);
+                machine.roles.remove(&role_id);
+            }
+            Actor::Ai(ai) => {
+                ai.roles.remove(&role_id);
             }
         }
         Ok(())
@@ -590,24 +449,19 @@ impl PolicyStore for MemoryPolicyStore {
             bail!(ContextCreationError::ActorNotFound { actor_id })
         };
 
-        match actor {
-            Actor::User(user) => {
-                context.add_user(user);
-            }
-            Actor::Machine(machine) => {
-                context.add_machine(machine);
-            }
-        }
-
+        context.add_actor(actor);
         for role in actor.roles() {
-            context.add_role(&self.roles[role]);
+            context.add_role(&self.roles[&role]);
         }
 
         Ok(())
     }
 
     fn store_policy(&mut self, policy: Policy) -> Result<(), Report<PolicyStoreError>> {
-        let principal = PrincipalIndex::from(&policy.principal);
+        let principal = policy
+            .principal
+            .as_ref()
+            .map_or(PrincipalIndex::Unspecified, PrincipalIndex::from);
         self.policies
             .entry(principal)
             .or_default()
@@ -628,36 +482,20 @@ impl PolicyStore for MemoryPolicyStore {
         Ok(
             [PrincipalIndex::Unspecified, PrincipalIndex::Actor(actor_id)]
                 .into_iter()
-                .chain(actor.roles().flat_map(|role_id| {
-                    match &self.roles[role_id] {
-                        Role::Team(TeamRole { id, team_id }) => Either::Left(
-                            [
-                                PrincipalIndex::Role(RoleId::Team(*id)),
-                                PrincipalIndex::Team(*team_id),
-                            ]
-                            .into_iter(),
-                        ),
-                        Role::Web(WebRole { id, web_id }) => Either::Left(
-                            [
+                .chain(
+                    actor
+                        .roles()
+                        .flat_map(|role_id| match &self.roles[&role_id] {
+                            Role::Web(WebRole { id, web_id }) => [
                                 PrincipalIndex::Role(RoleId::Web(*id)),
-                                PrincipalIndex::Web(*web_id),
-                            ]
-                            .into_iter(),
-                        ),
-                        Role::WebTeam(WebTeamRole {
-                            id,
-                            web_id,
-                            team_id,
-                        }) => Either::Right(
-                            [
-                                PrincipalIndex::Role(RoleId::WebTeam(*id)),
-                                PrincipalIndex::WebTeam(*team_id),
-                                PrincipalIndex::Web(*web_id),
-                            ]
-                            .into_iter(),
-                        ),
-                    }
-                }))
+                                PrincipalIndex::Team(ActorGroupId::Web(*web_id)),
+                            ],
+                            Role::Team(TeamRole { id, team_id }) => [
+                                PrincipalIndex::Role(RoleId::Team(*id)),
+                                PrincipalIndex::Team(ActorGroupId::Team(*team_id)),
+                            ],
+                        }),
+                )
                 .flat_map(|principal_index| {
                     self.policies
                         .get(&principal_index)

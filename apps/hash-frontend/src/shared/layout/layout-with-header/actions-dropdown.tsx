@@ -173,7 +173,7 @@ const ActionsDropdownInner: FunctionComponent = () => {
 };
 
 export const ActionsDropdown: FunctionComponent = () => {
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { activeWorkspaceWebId } = useContext(WorkspaceContext);
 
-  return activeWorkspaceOwnedById ? <ActionsDropdownInner /> : null;
+  return activeWorkspaceWebId ? <ActionsDropdownInner /> : null;
 };

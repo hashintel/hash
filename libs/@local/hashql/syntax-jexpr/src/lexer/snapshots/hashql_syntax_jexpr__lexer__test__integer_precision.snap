@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Maximum integer precision (2^53-1)
+expression: "9007199254740991"
+---
+9007199254740991

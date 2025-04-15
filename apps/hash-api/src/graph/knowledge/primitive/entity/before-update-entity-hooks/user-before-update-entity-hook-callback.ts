@@ -1,4 +1,4 @@
-import type { ActorId, OwnedById } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
 import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
@@ -22,7 +22,7 @@ import type { BeforeUpdateEntityHookCallback } from "../update-entity-hooks";
 
 const validateAccountShortname = async (
   context: ImpureGraphContext,
-  authentication: { actorId: ActorId },
+  authentication: { actorId: ActorEntityUuid },
   shortname: string,
 ) => {
   if (shortnameContainsInvalidCharacter({ shortname })) {
@@ -148,7 +148,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
               },
               resource: {
                 kind: "web",
-                resourceId: user.accountId as OwnedById,
+                resourceId: user.accountId as WebId,
               },
               relation: "owner",
             },
@@ -162,7 +162,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
               },
               resource: {
                 kind: "web",
-                resourceId: user.accountId as OwnedById,
+                resourceId: user.accountId as WebId,
               },
               relation: "owner",
             },

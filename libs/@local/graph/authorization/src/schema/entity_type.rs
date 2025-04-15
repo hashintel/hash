@@ -2,9 +2,10 @@ use core::error::Error;
 
 use serde::{Deserialize, Serialize};
 use type_system::{
+    knowledge::entity::id::EntityUuid,
     ontology::entity_type::EntityTypeUuid,
-    provenance::ActorId,
-    web::{ActorGroupId, OwnedById},
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, WebId},
 };
 use uuid::Uuid;
 
@@ -78,10 +79,10 @@ pub enum EntityTypeSetting {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum EntityTypeSubject {
-    Web(OwnedById),
+    Web(WebId),
     Setting(EntityTypeSetting),
     Public,
-    Account(ActorId),
+    Account(ActorEntityUuid),
     AccountGroup(ActorGroupId),
 }
 
@@ -121,7 +122,7 @@ impl Resource for EntityTypeSubject {
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
             (EntityTypeSubjectNamespace::Web, EntityTypeSubjectId::Uuid(uuid)) => {
-                Self::Web(OwnedById::new(uuid))
+                Self::Web(WebId::new(uuid))
             }
             (EntityTypeSubjectNamespace::Setting, EntityTypeSubjectId::Setting(setting)) => {
                 Self::Setting(setting)
@@ -131,7 +132,7 @@ impl Resource for EntityTypeSubject {
                 EntityTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (EntityTypeSubjectNamespace::Account, EntityTypeSubjectId::Uuid(id)) => {
-                Self::Account(ActorId::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (EntityTypeSubjectNamespace::AccountGroup, EntityTypeSubjectId::Uuid(id)) => {
                 Self::AccountGroup(ActorGroupId::new(id))
@@ -184,7 +185,7 @@ impl Resource for EntityTypeSubject {
 pub enum EntityTypeOwnerSubject {
     Web {
         #[serde(rename = "subjectId")]
-        id: OwnedById,
+        id: WebId,
     },
 }
 
@@ -204,7 +205,7 @@ pub enum EntityTypeSettingSubject {
 pub enum EntityTypeEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -228,7 +229,7 @@ pub enum EntityTypeInstantiatorSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]

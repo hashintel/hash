@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import { Avatar, FontAwesomeIcon } from "@hashintel/design-system";
 import {
@@ -30,11 +30,11 @@ export const WorkspaceSwitcher = () => {
   });
   const { authenticatedUser } = useAuthenticatedUser();
   const { logout } = useLogoutFlow();
-  const { activeWorkspaceOwnedById, updateActiveWorkspaceOwnedById } =
+  const { activeWorkspaceWebId, updateActiveWorkspaceWebId } =
     useActiveWorkspace();
 
   const activeWorkspace = useMemo<{ name: string; avatarSrc?: string }>(() => {
-    if (activeWorkspaceOwnedById === authenticatedUser.accountId) {
+    if (activeWorkspaceWebId === authenticatedUser.accountId) {
       return {
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty displayName
         name: authenticatedUser.displayName || authenticatedUser.shortname!,
@@ -48,7 +48,7 @@ export const WorkspaceSwitcher = () => {
       const { org: activeOrg } =
         authenticatedUser.memberOf.find(
           ({ org: { accountGroupId } }) =>
-            accountGroupId === activeWorkspaceOwnedById,
+            accountGroupId === activeWorkspaceWebId,
         ) ?? {};
 
       if (activeOrg) {
@@ -64,12 +64,12 @@ export const WorkspaceSwitcher = () => {
     }
 
     return { name: "User" };
-  }, [activeWorkspaceOwnedById, authenticatedUser]);
+  }, [activeWorkspaceWebId, authenticatedUser]);
 
   const workspaceList = useMemo(() => {
     return [
       {
-        ownedById: authenticatedUser.accountId as OwnedById,
+        webId: authenticatedUser.accountId as WebId,
         title: "My personal workspace",
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.displayName ?? "U",
@@ -81,7 +81,7 @@ export const WorkspaceSwitcher = () => {
       },
       ...authenticatedUser.memberOf.map(
         ({ org: { accountGroupId, name, memberships, hasAvatar } }) => ({
-          ownedById: accountGroupId as OwnedById,
+          webId: accountGroupId as WebId,
           title: name,
           subText: memberships.length ? `${memberships.length} members` : "", // memberships are loaded in the background
           avatarTitle: name,
@@ -144,12 +144,12 @@ export const WorkspaceSwitcher = () => {
         }}
         autoFocus={false}
       >
-        {workspaceList.map(({ title, subText, ownedById, avatarSrc }) => (
+        {workspaceList.map(({ title, subText, webId, avatarSrc }) => (
           <MenuItem
-            key={ownedById}
-            selected={ownedById === activeWorkspaceOwnedById}
+            key={webId}
+            selected={webId === activeWorkspaceWebId}
             onClick={() => {
-              updateActiveWorkspaceOwnedById(ownedById);
+              updateActiveWorkspaceWebId(webId);
               popupState.close();
             }}
           >
@@ -158,7 +158,7 @@ export const WorkspaceSwitcher = () => {
                 src={avatarSrc}
                 size={34}
                 title={
-                  ownedById === authenticatedUser.accountId
+                  webId === authenticatedUser.accountId
                     ? authenticatedUser.displayName
                     : title
                 }

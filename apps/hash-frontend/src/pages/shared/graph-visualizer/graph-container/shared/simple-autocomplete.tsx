@@ -1,11 +1,12 @@
 import { Autocomplete } from "@hashintel/design-system";
-import { Box, outlinedInputClasses, Tooltip } from "@mui/material";
+import { Box, outlinedInputClasses } from "@mui/material";
 import type { CSSProperties, ReactElement, ReactNode, RefObject } from "react";
 import { createContext, forwardRef, useContext, useMemo } from "react";
 import { VariableSizeList } from "react-window";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { useGraphContext } from "./graph-context";
+import { GraphVizTooltip } from "./graph-viz-tooltip";
 
 const Row = ({
   data,
@@ -181,7 +182,7 @@ export const SimpleAutocomplete = <
         });
 
         return (
-          <Tooltip
+          <GraphVizTooltip
             key={option.valueForSelector}
             title={listComponent ? label : ""}
           >
@@ -211,7 +212,7 @@ export const SimpleAutocomplete = <
                 </Box>
               ))}
             </MenuItem>
-          </Tooltip>
+          </GraphVizTooltip>
         );
       }}
       value={value}

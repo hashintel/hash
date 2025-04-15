@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: The resolver does not touch non-kernel functions
+["+", { "#literal": 1 }, { "#literal": 2 }]

@@ -1,5 +1,5 @@
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { Box, Skeleton } from "@mui/material";
@@ -65,7 +65,7 @@ export const CreateQuickNote: FunctionComponent<{
   }
 
   const { createBlockCollectionEntity } = useCreateBlockCollection({
-    ownedById: authenticatedUser.accountId as OwnedById,
+    webId: authenticatedUser.accountId as WebId,
   });
   const { getEntity } = useBlockProtocolGetEntity();
 

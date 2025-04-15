@@ -1,0 +1,17 @@
+//@ run: pass
+//@ description: value and type scopes do not influence each other
+[
+  "let",
+  "a",
+  { "#literal": 2 },
+  [
+    "type",
+    "a",
+    "Integer",
+    [
+      "is",
+      "a", // this should be `a:0` as it is in a value position
+      "a" // this should be `a:1` as it is in a type position
+    ]
+  ]
+]

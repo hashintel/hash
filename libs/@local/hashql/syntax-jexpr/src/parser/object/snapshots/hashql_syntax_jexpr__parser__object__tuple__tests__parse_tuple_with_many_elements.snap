@@ -1,0 +1,68 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/tuple.rs
+description: Parses a tuple with many elements
+expression: "{\"#tuple\": [\n            {\"#literal\": 1},\n            {\"#literal\": 2},\n            {\"#literal\": 3},\n            {\"#literal\": 4},\n            {\"#literal\": 5},\n            {\"#literal\": 6},\n            {\"#literal\": 7},\n            {\"#literal\": 8},\n            {\"#literal\": 9},\n            {\"#literal\": 10}\n        ]}"
+---
+Expr#4294967040@21
+  ExprKind (Tuple)
+    TupleExpr#4294967040@20
+      TupleElement#4294967040@1
+        Expr#4294967040@1
+          ExprKind (Literal)
+            LiteralExpr#4294967040@0
+              LiteralKind (Integer)
+                IntegerLiteral (1)
+      TupleElement#4294967040@3
+        Expr#4294967040@3
+          ExprKind (Literal)
+            LiteralExpr#4294967040@2
+              LiteralKind (Integer)
+                IntegerLiteral (2)
+      TupleElement#4294967040@5
+        Expr#4294967040@5
+          ExprKind (Literal)
+            LiteralExpr#4294967040@4
+              LiteralKind (Integer)
+                IntegerLiteral (3)
+      TupleElement#4294967040@7
+        Expr#4294967040@7
+          ExprKind (Literal)
+            LiteralExpr#4294967040@6
+              LiteralKind (Integer)
+                IntegerLiteral (4)
+      TupleElement#4294967040@9
+        Expr#4294967040@9
+          ExprKind (Literal)
+            LiteralExpr#4294967040@8
+              LiteralKind (Integer)
+                IntegerLiteral (5)
+      TupleElement#4294967040@11
+        Expr#4294967040@11
+          ExprKind (Literal)
+            LiteralExpr#4294967040@10
+              LiteralKind (Integer)
+                IntegerLiteral (6)
+      TupleElement#4294967040@13
+        Expr#4294967040@13
+          ExprKind (Literal)
+            LiteralExpr#4294967040@12
+              LiteralKind (Integer)
+                IntegerLiteral (7)
+      TupleElement#4294967040@15
+        Expr#4294967040@15
+          ExprKind (Literal)
+            LiteralExpr#4294967040@14
+              LiteralKind (Integer)
+                IntegerLiteral (8)
+      TupleElement#4294967040@17
+        Expr#4294967040@17
+          ExprKind (Literal)
+            LiteralExpr#4294967040@16
+              LiteralKind (Integer)
+                IntegerLiteral (9)
+      TupleElement#4294967040@19
+        Expr#4294967040@19
+          ExprKind (Literal)
+            LiteralExpr#4294967040@18
+              LiteralKind (Integer)
+                IntegerLiteral (10)

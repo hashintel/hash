@@ -18,7 +18,7 @@ import {
   Typography,
 } from "@mui/material";
 
-import { useUserOrOrgShortnameByOwnedById } from "../../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
+import { useUserOrOrgShortnameByWebId } from "../../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { Link } from "../../../../../../../shared/ui/link";
 import { Cell } from "../../../../../../settings/organizations/shared/cell";
 import { ValueChip } from "../../../../../value-chip";
@@ -33,13 +33,13 @@ const boxPadding = {
 const SourceRow = ({ source }: { source: SourceProvenance }) => {
   const { entityId, location, type } = source;
 
-  const [ownedById, entityUuid] = source.entityId
+  const [webId, entityUuid] = source.entityId
     ? splitEntityId(entityId as EntityId)
     : [null, null];
 
-  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
-    { ownedById },
-  );
+  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByWebId({
+    webId,
+  });
 
   const hashMirrorUrl =
     entityOwningShortname && entityUuid

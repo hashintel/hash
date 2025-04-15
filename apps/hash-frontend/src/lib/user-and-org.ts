@@ -9,16 +9,16 @@ import {
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
 import type {
+  ActorEntityUuid,
   ActorGroupId,
-  ActorId,
   BaseUrl,
   Entity,
   LinkEntity,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
@@ -50,7 +50,7 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entity: orgEntity,
-    accountGroupId: extractOwnedByIdFromEntityId(
+    accountGroupId: extractWebIdFromEntityId(
       orgEntity.metadata.recordId.entityId,
     ) as ActorGroupId,
     name: organizationName,
@@ -66,7 +66,7 @@ export const constructMinimalOrg = (params: {
 export type MinimalUser = {
   kind: "user";
   entity: Entity<UserEntity>;
-  accountId: ActorId;
+  accountId: ActorEntityUuid;
   accountSignupComplete: boolean;
   enabledFeatureFlags: FeatureFlag[];
   pinnedEntityTypeBaseUrls?: BaseUrl[];
@@ -100,9 +100,9 @@ export const constructMinimalUser = (params: {
     kind: "user",
     entity: userEntity,
     // Cast reason: The OwnedById of a User's baseId is an ActorId
-    accountId: extractOwnedByIdFromEntityId(
+    accountId: extractWebIdFromEntityId(
       userEntity.metadata.recordId.entityId,
-    ) as ActorId,
+    ) as ActorEntityUuid,
     accountSignupComplete,
     ...simpleProperties,
     enabledFeatureFlags,
@@ -315,7 +315,6 @@ export const constructUser = (params: {
 
   const { email } = simplifyProperties(userEntity.properties);
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- permissions means this may be undefined. @todo types to account for property-level permissions
   const primaryEmailAddress = email?.[0] ?? "";
 
   // @todo implement email verification
@@ -518,9 +517,7 @@ export const isOrg = (
   userOrOrg: MinimalUser | MinimalOrg,
 ): userOrOrg is MinimalOrg => "accountGroupId" in userOrOrg;
 
-export const extractOwnedById = (
-  userOrOrg: MinimalUser | MinimalOrg,
-): OwnedById =>
+export const extractWebId = (userOrOrg: MinimalUser | MinimalOrg): WebId =>
   isUser(userOrOrg)
-    ? (userOrOrg.accountId as OwnedById)
-    : (userOrOrg.accountGroupId as OwnedById);
+    ? (userOrOrg.accountId as WebId)
+    : (userOrOrg.accountGroupId as WebId);

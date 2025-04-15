@@ -98,21 +98,21 @@ pub enum DataTypeQueryPath<'p> {
     ///
     /// [`DataType`]: type_system::ontology::data_type::DataType
     TransactionTime,
-    /// The [`OwnedById`] of the [`DataTypeMetadata`] belonging to the [`DataType`].
+    /// The [`WebId`] of the [`DataTypeMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use hash_graph_store::data_type::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["ownedById"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::OwnedById);
+    /// let path = DataTypeQueryPath::deserialize(json!(["webId"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::WebId);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`DataType`]: type_system::ontology::data_type::DataType
-    /// [`OwnedById`]: type_system::web::OwnedById
+    /// [`WebId`]: type_system::web::WebId
     /// [`DataTypeMetadata`]: type_system::ontology::data_type::DataTypeMetadata
-    OwnedById,
+    WebId,
     /// Corresponds to [`DataType::title`].
     ///
     /// ```rust
@@ -336,7 +336,7 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
 impl QueryPath for DataTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById => ParameterType::Uuid,
+            Self::OntologyId | Self::WebId => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
@@ -365,7 +365,7 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::Version => fmt.write_str("version"),
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
-            Self::OwnedById => fmt.write_str("ownedById"),
+            Self::WebId => fmt.write_str("webId"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -404,7 +404,7 @@ pub enum DataTypeQueryToken {
     BaseUrl,
     Version,
     VersionedUrl,
-    OwnedById,
+    WebId,
     Title,
     Description,
     Type,
@@ -424,8 +424,8 @@ pub(crate) struct DataTypeQueryPathVisitor {
 
 impl DataTypeQueryPathVisitor {
     pub(crate) const EXPECTING: &'static str =
-        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `title`, `description`, \
-         `type`, `inheritsFrom`, `children`, `editionProvenance`, `embedding`";
+        "one of `baseUrl`, `version`, `versionedUrl`, `webId`, `title`, `description`, `type`, \
+         `inheritsFrom`, `children`, `editionProvenance`, `embedding`";
 
     #[must_use]
     pub(crate) const fn new(position: usize) -> Self {
@@ -451,7 +451,7 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
         self.position += 1;
 
         Ok(match token {
-            DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
+            DataTypeQueryToken::WebId => DataTypeQueryPath::WebId,
             DataTypeQueryToken::BaseUrl => DataTypeQueryPath::BaseUrl,
             DataTypeQueryToken::VersionedUrl => DataTypeQueryPath::VersionedUrl,
             DataTypeQueryToken::Version => DataTypeQueryPath::Version,
@@ -540,7 +540,7 @@ impl DataTypeQueryPath<'_> {
             Self::Version => DataTypeQueryPath::Version,
             Self::VersionedUrl => DataTypeQueryPath::VersionedUrl,
             Self::TransactionTime => DataTypeQueryPath::TransactionTime,
-            Self::OwnedById => DataTypeQueryPath::OwnedById,
+            Self::WebId => DataTypeQueryPath::WebId,
             Self::Title => DataTypeQueryPath::Title,
             Self::Description => DataTypeQueryPath::Description,
             Self::OntologyId => DataTypeQueryPath::OntologyId,
@@ -594,7 +594,7 @@ mod tests {
             deserialize(["versionedUrl"]),
             DataTypeQueryPath::VersionedUrl
         );
-        assert_eq!(deserialize(["ownedById"]), DataTypeQueryPath::OwnedById);
+        assert_eq!(deserialize(["webId"]), DataTypeQueryPath::WebId);
         assert_eq!(deserialize(["type"]), DataTypeQueryPath::Type);
         assert_eq!(deserialize(["title"]), DataTypeQueryPath::Title);
         assert_eq!(deserialize(["description"]), DataTypeQueryPath::Description);

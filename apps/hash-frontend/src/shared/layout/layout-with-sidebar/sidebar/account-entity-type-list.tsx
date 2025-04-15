@@ -23,12 +23,12 @@ import { SortActionsDropdown } from "./shared/sort-actions-dropdown";
 import { ViewAllLink } from "./shared/view-all-link";
 
 type AccountEntityTypeListProps = {
-  ownedById: string;
+  webId: string;
 };
 
 export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
-> = ({ ownedById }) => {
+> = ({ webId }) => {
   const preferences = useUserPreferences();
 
   const [expanded, setExpanded] = useState<boolean>(
@@ -69,12 +69,12 @@ export const AccountEntityTypeList: FunctionComponent<
       return latestEntityTypes.filter(
         (root) =>
           isOwnedOntologyElementMetadata(root.metadata) &&
-          root.metadata.ownedById === ownedById,
+          root.metadata.webId === webId,
       );
     }
 
     return null;
-  }, [latestEntityTypes, ownedById]);
+  }, [latestEntityTypes, webId]);
 
   // todo: handle search server side
   const filteredEntityTypes = useMemo(() => {

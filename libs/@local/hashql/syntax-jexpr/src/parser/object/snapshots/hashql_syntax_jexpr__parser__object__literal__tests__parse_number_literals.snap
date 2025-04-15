@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/literal.rs
+description: Parses an integer literal
+expression: "{\"#literal\": 42}"
+---
+Expr#4294967040@1
+  ExprKind (Literal)
+    LiteralExpr#4294967040@0
+      LiteralKind (Integer)
+        IntegerLiteral (42)

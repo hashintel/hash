@@ -97,7 +97,7 @@ const getFileEntity = async (
   params: { entityId: EntityId; key: string; includeDrafts?: boolean },
 ) => {
   const { entityId, key, includeDrafts = false } = params;
-  const [ownedById, entityUuid] = splitEntityId(entityId);
+  const [webId, entityUuid] = splitEntityId(entityId);
 
   const fileEntityRevisions = await getEntities(context, authentication, {
     filter: {
@@ -106,7 +106,7 @@ const getFileEntity = async (
           equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
         },
         {
-          equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+          equal: [{ path: ["webId"] }, { parameter: webId }],
         },
         {
           equal: [

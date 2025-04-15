@@ -1,4 +1,4 @@
-import type { EntityUuid, OwnedById } from "@blockprotocol/type-system";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entity";
 import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -81,7 +81,7 @@ export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
 
     const triggeredByUser = await getUserById(context, authentication, {
       entityId: entityIdFromComponents(
-        authentication.actorId as OwnedById,
+        authentication.actorId as WebId,
         authentication.actorId as string as EntityUuid,
       ),
     });
@@ -146,7 +146,7 @@ export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
               /** @todo: use authentication of machine user instead */
               { actorId: addedMentionedUser.accountId },
               {
-                ownedById: addedMentionedUser.accountId as OwnedById,
+                webId: addedMentionedUser.accountId as WebId,
                 occurredInEntity,
                 occurredInBlock,
                 occurredInComment,

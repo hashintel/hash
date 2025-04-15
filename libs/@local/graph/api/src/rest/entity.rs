@@ -83,17 +83,15 @@ use type_system::{
     },
     ontology::VersionedUrl,
     provenance::{
-        ActorType, CreatedById, EditionCreatedById, Location, OriginProvenance, SourceProvenance,
-        SourceType,
+        ActorEntityUuid, ActorType, Location, OriginProvenance, SourceProvenance, SourceType,
     },
-    web::OwnedById,
+    web::WebId,
 };
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger,
-    api_resource::RoutedResource, json::Json, status::report_to_response,
-    utoipa_typedef::subgraph::Subgraph,
+    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, json::Json,
+    status::report_to_response, utoipa_typedef::subgraph::Subgraph,
 };
 
 #[derive(OpenApi)]
@@ -235,9 +233,9 @@ use crate::rest::{
 )]
 pub(crate) struct EntityResource;
 
-impl RoutedResource for EntityResource {
+impl EntityResource {
     /// Create routes for interacting with entities.
-    fn routes<S, A>() -> Router
+    pub(crate) fn routes<S, A>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
@@ -293,7 +291,7 @@ impl RoutedResource for EntityResource {
     request_body = CreateEntityRequest,
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The created entity", body = Entity),
@@ -345,7 +343,7 @@ where
     request_body = [CreateEntityRequest],
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The created entities", body = [Entity]),
@@ -394,7 +392,7 @@ where
     request_body = ValidateEntityParams,
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The validation report", body = HashMap<usize, EntityValidationReport>),
@@ -454,7 +452,7 @@ where
     path = "/entities/{entity_id}/permissions/{permission}",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The entity ID to check if the actor has the permission"),
         ("permission" = EntityPermission, Path, description = "The permission to check for"),
     ),
@@ -532,7 +530,7 @@ fn generate_sorting_paths(
                             nulls: None,
                         },
                         EntityQuerySortingRecord {
-                            path: EntityQueryPath::OwnedById,
+                            path: EntityQueryPath::WebId,
                             ordering: Ordering::Ascending,
                             nulls: None,
                         },
@@ -544,7 +542,7 @@ fn generate_sorting_paths(
             |mut paths| {
                 let mut has_temporal_axis = false;
                 let mut has_uuid = false;
-                let mut has_owned_by_id = false;
+                let mut has_web_id = false;
 
                 for path in &paths {
                     if path.path == EntityQueryPath::TransactionTime
@@ -555,8 +553,8 @@ fn generate_sorting_paths(
                     if path.path == EntityQueryPath::Uuid {
                         has_uuid = true;
                     }
-                    if path.path == EntityQueryPath::OwnedById {
-                        has_owned_by_id = true;
+                    if path.path == EntityQueryPath::WebId {
+                        has_web_id = true;
                     }
                 }
 
@@ -574,9 +572,9 @@ fn generate_sorting_paths(
                         nulls: None,
                     });
                 }
-                if !has_owned_by_id {
+                if !has_web_id {
                     paths.push(EntityQuerySortingRecord {
-                        path: EntityQueryPath::OwnedById,
+                        path: EntityQueryPath::WebId,
                         ordering: Ordering::Ascending,
                         nulls: None,
                     });
@@ -660,7 +658,7 @@ impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<
     request_body = GetEntitiesRequest,
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
@@ -817,13 +815,13 @@ struct GetEntitySubgraphResponse<'r> {
     definitions: Option<EntityTypeResolveDefinitions>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    web_ids: Option<HashMap<OwnedById, usize>>,
+    web_ids: Option<HashMap<WebId, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    created_by_ids: Option<HashMap<CreatedById, usize>>,
+    created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
+    edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     type_ids: Option<HashMap<VersionedUrl, usize>>,
@@ -838,7 +836,7 @@ struct GetEntitySubgraphResponse<'r> {
     request_body = GetEntitySubgraphRequest,
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
@@ -925,7 +923,7 @@ where
     request_body = CountEntitiesParams,
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
 
     ),
     responses(
@@ -989,7 +987,7 @@ where
     path = "/entities",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The updated entity", body = Entity),
@@ -1047,7 +1045,7 @@ where
     path = "/entities/embeddings",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, content_type = "application/json", description = "The embeddings were created"),
@@ -1099,7 +1097,7 @@ where
     path = "/entities/diff",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The difference between the two entities", body = DiffEntityResult),
@@ -1163,7 +1161,7 @@ where
     path = "/entities/{entity_id}/relationships",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to read the relations for"),
     ),
     responses(
@@ -1220,7 +1218,7 @@ struct ModifyEntityAuthorizationRelationship {
     tag = "Entity",
     request_body = [ModifyEntityAuthorizationRelationship],
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, description = "The relationship was modified for the entity"),
@@ -1298,9 +1296,9 @@ where
     path = "/entities/{entity_id}/administrators/{administrator}",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to add the administrator to"),
-        ("administrator" = OwnedById, Path, description = "The administrator to add to the entity"),
+        ("administrator" = WebId, Path, description = "The administrator to add to the entity"),
     ),
     responses(
         (status = 204, description = "The administrator was added to the entity"),
@@ -1314,7 +1312,7 @@ where
 )]
 async fn add_entity_administrator<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
+    Path((entity_id, web_id)): Path<(EntityId, WebId)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -1356,7 +1354,7 @@ where
             tracing::error!(error=?report, "Could not acquire store");
             StatusCode::INTERNAL_SERVER_ERROR
         })?
-        .identify_owned_by_id(owned_by_id)
+        .identify_web_id(web_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not identify account or account group");
@@ -1394,9 +1392,9 @@ where
     path = "/entities/{entity_id}/administrators/{administrator}",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to remove the administrator from"),
-        ("administrator" = OwnedById, Path, description = "The administrator to remove from the entity"),
+        ("administrator" = WebId, Path, description = "The administrator to remove from the entity"),
     ),
     responses(
         (status = 204, description = "The administrator was removed from the entity"),
@@ -1410,7 +1408,7 @@ where
 )]
 async fn remove_entity_administrator<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
+    Path((entity_id, web_id)): Path<(EntityId, WebId)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -1452,7 +1450,7 @@ where
             tracing::error!(error=?report, "Could not acquire store");
             StatusCode::INTERNAL_SERVER_ERROR
         })?
-        .identify_owned_by_id(owned_by_id)
+        .identify_web_id(web_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not identify account or account group");
@@ -1490,9 +1488,9 @@ where
     path = "/entities/{entity_id}/editors/{editor}",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to add the editor to"),
-        ("editor" = OwnedById, Path, description = "The editor to add to the entity"),
+        ("editor" = WebId, Path, description = "The editor to add to the entity"),
     ),
     responses(
         (status = 204, description = "The editor was added to the entity"),
@@ -1506,7 +1504,7 @@ where
 )]
 async fn add_entity_editor<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, editor)): Path<(EntityId, OwnedById)>,
+    Path((entity_id, editor)): Path<(EntityId, WebId)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -1545,7 +1543,7 @@ where
             tracing::error!(error=?report, "Could not acquire store");
             StatusCode::INTERNAL_SERVER_ERROR
         })?
-        .identify_owned_by_id(editor)
+        .identify_web_id(editor)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not identify account or account group");
@@ -1580,9 +1578,9 @@ where
     path = "/entities/{entity_id}/editors/{editor}",
     tag = "Entity",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to remove the editor from"),
-        ("editor" = OwnedById, Path, description = "The editor to remove from the entity"),
+        ("editor" = WebId, Path, description = "The editor to remove from the entity"),
     ),
     responses(
         (status = 204, description = "The editor was removed from the entity"),
@@ -1596,7 +1594,7 @@ where
 )]
 async fn remove_entity_editor<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, editor)): Path<(EntityId, OwnedById)>,
+    Path((entity_id, editor)): Path<(EntityId, WebId)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -1638,7 +1636,7 @@ where
             tracing::error!(error=?report, "Could not acquire store");
             StatusCode::INTERNAL_SERVER_ERROR
         })?
-        .identify_owned_by_id(editor)
+        .identify_web_id(editor)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not identify account or account group");

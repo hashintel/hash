@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Invalid character in expression
+expression: foo$bar
+info:
+  kind: Err
+---
+foo$bar
+   ^

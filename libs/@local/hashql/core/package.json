@@ -8,5 +8,8 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets --no-tests warn && cargo test --all-features --doc"
+  },
+  "dependencies": {
+    "@rust/hashql-diagnostics": "0.0.0-private"
   }
 }

@@ -1,12 +1,12 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   splitEntityId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -20,10 +20,10 @@ import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph
 
 export const getEntitiesByLinearId = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   linearId: string;
   entityTypeId?: VersionedUrl;
-  webOwnedById?: OwnedById;
+  webWebId?: WebId;
   includeDrafts?: boolean;
 }): Promise<HashEntity[]> =>
   params.graphApiClient
@@ -46,13 +46,13 @@ export const getEntitiesByLinearId = async (params: {
               { parameter: params.linearId },
             ],
           },
-          params.webOwnedById
+          params.webWebId
             ? {
                 equal: [
                   {
-                    path: ["ownedById"],
+                    path: ["webId"],
                   },
-                  { parameter: params.webOwnedById },
+                  { parameter: params.webWebId },
                 ],
               }
             : [],
@@ -69,7 +69,7 @@ export const getEntitiesByLinearId = async (params: {
 
 export const getEntityOutgoingLinks = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {
@@ -90,9 +90,9 @@ export const getEntityOutgoingLinks = async (params: {
           },
           {
             equal: [
-              { path: ["leftEntity", "ownedById"] },
+              { path: ["leftEntity", "webId"] },
               {
-                parameter: extractOwnedByIdFromEntityId(entityId),
+                parameter: extractWebIdFromEntityId(entityId),
               },
             ],
           },
@@ -125,13 +125,13 @@ export const getEntityOutgoingLinks = async (params: {
 
 export const getLatestEntityById = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
-  const [ownedById, entityUuid] = splitEntityId(entityId);
+  const [webId, entityUuid] = splitEntityId(entityId);
 
   const { data: response } = await graphApiClient.getEntities(
     authentication.actorId,
@@ -142,7 +142,7 @@ export const getLatestEntityById = async (params: {
             equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
           },
           {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            equal: [{ path: ["webId"] }, { parameter: webId }],
           },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],

@@ -8,9 +8,9 @@ import type {
   EntityType,
   EntityTypeWithMetadata,
   OntologyTypeVersion,
-  OwnedById,
   PropertyTypeWithMetadata,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import type { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
@@ -44,7 +44,7 @@ import {
 export const useEntityTypeValue = (
   entityTypeBaseUrl: BaseUrl | null,
   requestedVersion: OntologyTypeVersion | null,
-  ownedById: OwnedById | null,
+  webId: WebId | null,
   onCompleted?: (entityType: EntityTypeWithMetadata) => void,
 ) => {
   const router = useRouter();
@@ -232,13 +232,13 @@ export const useEntityTypeValue = (
 
   const publishDraft = useCallback(
     async (draftEntityType: EntityType) => {
-      if (!ownedById) {
-        throw new Error("Cannot publish draft without ownedById");
+      if (!webId) {
+        throw new Error("Cannot publish draft without webId");
       }
 
       const res = await createEntityType({
         variables: {
-          ownedById,
+          webId,
           entityType: draftEntityType,
         },
       });
@@ -253,7 +253,7 @@ export const useEntityTypeValue = (
 
       await router.replace(newUrl, newUrl, { shallow: true });
     },
-    [createEntityType, ownedById, refetch, router],
+    [createEntityType, webId, refetch, router],
   );
 
   return [

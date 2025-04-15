@@ -1,0 +1,17 @@
+[31m[special-form-expander::special-form-argument-length] Error:[0m Incorrect number of arguments for special form
+   ╭─[ <unknown>:7:4 ]
+   │
+ 3 │ ╭─▶ [
+   ┆ ┆   
+ 7 │ │     "z"
+   │ │      ┬  
+   │ │      ╰── Remove this argument
+   ┆ ┆   
+ 9 │ ├─▶ ]
+   │ │       
+   │ ╰─────── In this `access` special form call
+   │     
+   │     Help: The access/2 form should look like: (. object field)
+   │     
+   │     Note: The access function has 1 variant: access/2
+───╯

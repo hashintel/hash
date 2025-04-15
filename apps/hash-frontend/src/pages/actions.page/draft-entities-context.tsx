@@ -16,7 +16,7 @@ import type {
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context";
-import { pollInterval } from "../../shared/poll-interval";
+import { usePollInterval } from "../../shared/use-poll-interval";
 import { useAuthInfo } from "../shared/auth-info-context";
 
 export type DraftEntitiesContextValue = {
@@ -54,6 +54,8 @@ export const DraftEntitiesContextProvider: FunctionComponent<
   const { authenticatedUser } = useAuthInfo();
 
   const { refetch: refetchDraftEntitiesCount } = useDraftEntitiesCount();
+
+  const pollInterval = usePollInterval();
 
   const {
     data: draftEntitiesData,

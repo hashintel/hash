@@ -1,0 +1,11 @@
+[31m[special-form-expander::unknown-special-form] Error:[0m Unknown special form
+   ╭─[ <unknown>:4:4 ]
+   │
+ 4 │   "::kernel::special_form",
+   │    ───────────┬──────────  
+   │               ╰──────────── Fix this path to have exactly 3 segments
+   │ 
+   │ Help: Special form paths must follow the pattern '::kernel::special_form::<name>' with exactly 3 segments
+   │ 
+   │ Note: Found path with 2 segments, but special form paths must have exactly 3 segments
+───╯

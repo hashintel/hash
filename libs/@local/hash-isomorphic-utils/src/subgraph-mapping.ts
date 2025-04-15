@@ -7,21 +7,21 @@ import type {
 } from "@blockprotocol/graph";
 import { isEntityVertex } from "@blockprotocol/graph";
 import type {
-  ActorId,
+  ActorEntityUuid,
   BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
   DataTypeWithMetadata,
   EntityId,
   EntityTypeWithMetadata,
-  OwnedById,
   PropertyObject,
   PropertyTypeWithMetadata,
   TypeIdsAndPropertiesForEntity,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   isEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -59,7 +59,7 @@ export const mapGraphApiEntityToEntity = <
   T extends TypeIdsAndPropertiesForEntity,
 >(
   entity: GraphApiEntity,
-  userAccountId: ActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ) =>
   new HashEntity<T>({
@@ -75,13 +75,12 @@ export const mapGraphApiEntityToEntity = <
         ? entity.properties
         : Object.entries(entity.properties).reduce<PropertyObject>(
             (acc, [key, value]) => {
-              const ownedById = extractOwnedByIdFromEntityId(
+              const webId = extractWebIdFromEntityId(
                 entity.metadata.recordId.entityId as EntityId,
               );
 
               const requesterOwnsEntity =
-                userAccountId &&
-                (userAccountId as string as OwnedById) === ownedById;
+                userAccountId && (userAccountId as string as WebId) === webId;
 
               if (
                 !restrictedPropertyBaseUrls.includes(key) ||
@@ -97,7 +96,7 @@ export const mapGraphApiEntityToEntity = <
 
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,
-  userAccountId: ActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ) => {
   return {
@@ -130,7 +129,7 @@ const deserializeKnowledgeGraphVertex = (
 
 export const mapGraphApiVerticesToVertices = (
   vertices: VerticesGraphApi,
-  userAccountId: ActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ) =>
   Object.fromEntries(
@@ -195,7 +194,7 @@ export const mapGraphApiSubgraphToSubgraph = <
   RootType extends SubgraphRootType,
 >(
   subgraph: GraphApiSubgraph,
-  userAccountId: ActorId | null,
+  userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
 ): Subgraph<RootType> => {
   return {

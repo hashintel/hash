@@ -66,14 +66,14 @@ export const CreateButtons: FunctionComponent<{
   entityType?: EntityTypeWithMetadata;
 }> = ({ entityType }) => {
   const router = useRouter();
-  const { activeWorkspaceOwnedById, activeWorkspace } = useActiveWorkspace();
+  const { activeWorkspaceWebId, activeWorkspace } = useActiveWorkspace();
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
-  const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
+  const { lastRootPageIndex } = useAccountPages(activeWorkspaceWebId);
   const [createUntitledPage] = useCreatePage({
     shortname: activeWorkspace?.shortname,
-    ownedById: activeWorkspaceOwnedById,
+    webId: activeWorkspaceWebId,
   });
 
   const { isFile, isLink } = useMemo(

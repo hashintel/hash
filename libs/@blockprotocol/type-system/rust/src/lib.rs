@@ -74,19 +74,20 @@
 //!
 //! use time::OffsetDateTime;
 //! use type_system::{
+//!     knowledge::entity::id::EntityUuid,
 //!     ontology::provenance::{
 //!         OntologyEditionProvenance, OntologyOwnership, OntologyProvenance,
 //!         ProvidedOntologyEditionProvenance,
 //!     },
-//!     provenance::{ActorId, ActorType, EditionCreatedById, OriginProvenance, OriginType},
-//!     web::OwnedById,
+//!     provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
+//!     web::WebId,
 //! };
 //! use uuid::Uuid;
 //!
 //! // Create ownership information for a locally owned type
 //! let web_id = Uuid::from_str("01234567-89ab-cdef-0123-456789abcdef").unwrap();
-//! let owned_by_id = OwnedById::new(web_id);
-//! let ownership = OntologyOwnership::Local { owned_by_id };
+//! let web_id = WebId::new(web_id);
+//! let ownership = OntologyOwnership::Local { web_id };
 //!
 //! // Alternative: For a type fetched from elsewhere
 //! let remote_ownership = OntologyOwnership::Remote {
@@ -94,13 +95,15 @@
 //! };
 //!
 //! // Create provenance information
-//! let actor_id = ActorId::new(Uuid::from_u128(0x12345678_90AB_CDEF_1234_567890ABCDEF));
+//! let actor_id = ActorEntityUuid::new(EntityUuid::new(Uuid::from_u128(
+//!     0x12345678_90AB_CDEF_1234_567890ABCDEF,
+//! )));
 //! let edition_provenance = OntologyEditionProvenance {
-//!     created_by_id: EditionCreatedById::new(actor_id),
+//!     created_by_id: actor_id,
 //!     archived_by_id: None,
 //!     user_defined: {
 //!         // User-defined provenance information
-//!         let actor_type = ActorType::Human;
+//!         let actor_type = ActorType::User;
 //!         let origin = OriginProvenance {
 //!             ty: OriginType::WebApp,
 //!             id: None,

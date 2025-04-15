@@ -31,14 +31,13 @@ export const InferEntitiesAction = ({
 }) => {
   const [manualInferenceConfig, setManualInferenceConfig] = useStorageSync(
     "manualInferenceConfig",
-    createDefaultSettings({ userWebOwnedById: user.webOwnedById })
+    createDefaultSettings({ userWebWebId: user.webWebId })
       .manualInferenceConfig,
   );
 
   const [showAdditionalConfig, setShowAdditionalConfig] = useState(false);
 
-  const { createAs, model, ownedById, targetEntityTypeIds } =
-    manualInferenceConfig;
+  const { createAs, model, webId, targetEntityTypeIds } = manualInferenceConfig;
 
   const { flowRuns } = useFlowRuns();
 
@@ -71,7 +70,7 @@ export const InferEntitiesAction = ({
         createAs,
         entityTypeIds: targetEntityTypeIds,
         model,
-        ownedById,
+        webId,
         sourceWebPage,
         type: "infer-entities",
       });
@@ -153,11 +152,11 @@ export const InferEntitiesAction = ({
                   createAs: newCreateAs,
                 })
               }
-              ownedById={ownedById}
-              setOwnedById={(newOwnedById) =>
+              webId={webId}
+              setWebId={(newWebId) =>
                 setManualInferenceConfig({
                   ...manualInferenceConfig,
-                  ownedById: newOwnedById,
+                  webId: newWebId,
                 })
               }
               user={user}

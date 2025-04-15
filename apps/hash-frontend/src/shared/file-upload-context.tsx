@@ -2,9 +2,9 @@ import { useMutation } from "@apollo/client";
 import type {
   BaseUrl,
   EntityId,
-  OwnedById,
   PropertyObject,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   HashEntity,
@@ -80,7 +80,7 @@ type FileUploadRequestData = {
   linkedEntityData?: FileLinkData;
   // whether or not to make the created file entity and any link entities public
   makePublic: boolean;
-  ownedById: OwnedById;
+  webId: WebId;
   // Pass if retrying an earlier request
   requestId?: string;
   // A function which will be called when the upload is complete
@@ -228,7 +228,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       fileData,
       linkedEntityData,
       makePublic,
-      ownedById,
+      webId,
       requestId,
       upload,
     }: Omit<FileUploadRequestData, "onComplete" | "returnBeforeCompletion"> & {
@@ -261,7 +261,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
                 ? { fileEntityUpdateInput: fileData.fileEntityUpdateInput }
                 : {
                     fileEntityCreationInput: {
-                      ownedById,
+                      webId,
                       ...fileData.fileEntityCreationInput,
                     },
                   }),
@@ -323,7 +323,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
                   ? { fileEntityUpdateInput: fileData.fileEntityUpdateInput }
                   : {
                       fileEntityCreationInput: {
-                        ownedById,
+                        webId,
                         ...fileData.fileEntityCreationInput,
                       },
                     }),
@@ -581,7 +581,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       linkedEntityData,
       makePublic,
       onComplete,
-      ownedById,
+      webId,
       requestId,
       returnBeforeCompletion,
     }) => {
@@ -605,7 +605,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           linkedEntityData,
           makePublic,
           onComplete,
-          ownedById,
+          webId,
           requestId: newRequestId!,
           returnBeforeCompletion,
           status: "creating-file-entity",
@@ -621,7 +621,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           fileData,
           linkedEntityData,
           makePublic,
-          ownedById,
+          webId,
           requestId,
           upload,
         });
@@ -633,7 +633,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         fileData,
         linkedEntityData,
         makePublic,
-        ownedById,
+        webId,
         requestId,
         upload,
       });

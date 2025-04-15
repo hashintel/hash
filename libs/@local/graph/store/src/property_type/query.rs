@@ -71,21 +71,21 @@ pub enum PropertyTypeQueryPath<'p> {
     ///
     /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     TransactionTime,
-    /// The [`OwnedById`] of the [`PropertyTypeMetadata`] belonging to the [`PropertyType`].
+    /// The [`WebId`] of the [`PropertyTypeMetadata`] belonging to the [`PropertyType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["ownedById"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::OwnedById);
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["webId"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::WebId);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-    /// [`OwnedById`]: type_system::web::OwnedById
+    /// [`WebId`]: type_system::web::WebId
     /// [`PropertyTypeMetadata`]: type_system::ontology::property_type::PropertyTypeMetadata
-    OwnedById,
+    WebId,
     /// Corresponds to [`PropertyType::title()`].
     ///
     /// [`PropertyType::title()`]: type_system::ontology::property_type::PropertyType::title
@@ -255,7 +255,7 @@ impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
 impl QueryPath for PropertyTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById => ParameterType::Uuid,
+            Self::OntologyId | Self::WebId => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
@@ -279,7 +279,7 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
             Self::Version => fmt.write_str("version"),
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
-            Self::OwnedById => fmt.write_str("ownedById"),
+            Self::WebId => fmt.write_str("webId"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -328,7 +328,7 @@ pub enum PropertyTypeQueryToken {
     BaseUrl,
     Version,
     VersionedUrl,
-    OwnedById,
+    WebId,
     Title,
     Description,
     EditionProvenance,
@@ -347,7 +347,7 @@ pub(crate) struct PropertyTypeQueryPathVisitor {
 
 impl PropertyTypeQueryPathVisitor {
     pub(crate) const EXPECTING: &'static str =
-        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `title`, `description`, \
+        "one of `baseUrl`, `version`, `versionedUrl`, `webId`, `title`, `description`, \
          `editionProvenance`, `dataTypes`, `propertyTypes`, `embedding`";
 
     #[must_use]
@@ -373,7 +373,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
         self.position += 1;
 
         Ok(match token {
-            PropertyTypeQueryToken::OwnedById => PropertyTypeQueryPath::OwnedById,
+            PropertyTypeQueryToken::WebId => PropertyTypeQueryPath::WebId,
             PropertyTypeQueryToken::BaseUrl => PropertyTypeQueryPath::BaseUrl,
             PropertyTypeQueryToken::VersionedUrl => PropertyTypeQueryPath::VersionedUrl,
             PropertyTypeQueryToken::Version => PropertyTypeQueryPath::Version,
@@ -450,7 +450,7 @@ impl PropertyTypeQueryPath<'_> {
             Self::Version => PropertyTypeQueryPath::Version,
             Self::VersionedUrl => PropertyTypeQueryPath::VersionedUrl,
             Self::TransactionTime => PropertyTypeQueryPath::TransactionTime,
-            Self::OwnedById => PropertyTypeQueryPath::OwnedById,
+            Self::WebId => PropertyTypeQueryPath::WebId,
             Self::Title => PropertyTypeQueryPath::Title,
             Self::Description => PropertyTypeQueryPath::Description,
             Self::Embedding => PropertyTypeQueryPath::Embedding,
@@ -508,7 +508,7 @@ mod tests {
             deserialize(["versionedUrl"]),
             PropertyTypeQueryPath::VersionedUrl
         );
-        assert_eq!(deserialize(["ownedById"]), PropertyTypeQueryPath::OwnedById);
+        assert_eq!(deserialize(["webId"]), PropertyTypeQueryPath::WebId);
         assert_eq!(deserialize(["title"]), PropertyTypeQueryPath::Title);
         assert_eq!(
             deserialize(["description"]),

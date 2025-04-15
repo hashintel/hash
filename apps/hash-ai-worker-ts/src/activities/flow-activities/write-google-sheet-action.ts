@@ -365,7 +365,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
   const webBotActorId = await getWebMachineActorId(
     { graphApi: graphApiClient },
     { actorId: userAccountId },
-    { ownedById: webId },
+    { webId },
   );
 
   const provenance: ProvidedEntityEditionProvenance = {
@@ -383,7 +383,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     filter: {
       all: [
         {
-          equal: [{ path: ["ownedById"] }, { parameter: webId }],
+          equal: [{ path: ["webId"] }, { parameter: webId }],
         },
         {
           equal: [
@@ -434,7 +434,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         entityTypeIds: [googleEntityTypes.googleSheetsFile.entityTypeId],
         properties: fileProperties,
         draft: false,
-        ownedById: webId,
+        webId,
         relationships: authRelationships,
         provenance,
       },
@@ -448,7 +448,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         entityTypeIds: [
           systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId,
         ],
-        ownedById: webId,
+        webId,
         linkData: {
           leftEntityId: entityToReturn.metadata.recordId.entityId,
           rightEntityId: googleAccount.metadata.recordId.entityId,

@@ -3,7 +3,7 @@ export const createEntityMutation = /* GraphQL */ `
     $draft: Boolean!
     $entityTypeIds: [VersionedUrl!]!
     $linkedEntities: [LinkedEntityDefinition!]
-    $ownedById: OwnedById!
+    $webId: WebId!
     $properties: PropertyObjectWithMetadata!
     $linkData: LinkData
   ) {
@@ -11,7 +11,7 @@ export const createEntityMutation = /* GraphQL */ `
       draft: $draft
       entityTypeIds: $entityTypeIds
       linkedEntities: $linkedEntities
-      ownedById: $ownedById
+      webId: $webId
       properties: $properties
       linkData: $linkData
     )

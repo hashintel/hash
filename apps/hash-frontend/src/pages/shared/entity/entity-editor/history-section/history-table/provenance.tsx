@@ -1,9 +1,5 @@
 import type { Subgraph } from "@blockprotocol/graph";
-import type {
-  ActorId,
-  EntityId,
-  OriginProvenance,
-} from "@blockprotocol/type-system";
+import type { EntityId, OriginProvenance } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
   ArrowUpRightRegularIcon,
@@ -72,7 +68,7 @@ export const Provenance = ({
   } = event;
 
   const { actors, loading } = useActors({
-    accountIds: [edition.createdById as ActorId],
+    accountIds: [edition.createdById],
   });
 
   const [showSourcesSlideover, setShowSourcesSlideover] = useState(false);

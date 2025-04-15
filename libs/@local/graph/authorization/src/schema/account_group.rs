@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-use type_system::{provenance::ActorId, web::ActorGroupId};
+use type_system::{
+    knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid, web::ActorGroupId,
+};
 use uuid::Uuid;
 
 use crate::zanzibar::{
@@ -55,7 +57,7 @@ impl Permission<ActorGroupId> for AccountGroupPermission {}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum AccountGroupSubject {
-    Account(ActorId),
+    Account(ActorEntityUuid),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,7 +80,7 @@ impl Resource for AccountGroupSubject {
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, !> {
         Ok(match (kind, id) {
             (AccountGroupSubjectNamespace::Account, AccountGroupSubjectId::Uuid(id)) => {
-                Self::Account(ActorId::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
         })
     }
@@ -103,7 +105,7 @@ impl Resource for AccountGroupSubject {
 pub enum AccountGroupAdministratorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
 }
 
@@ -113,7 +115,7 @@ pub enum AccountGroupAdministratorSubject {
 pub enum AccountGroupMemberSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
 }
 

@@ -1,0 +1,22 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/list.rs
+description: Parses a deeply nested list structure
+expression: "{\"#list\": [\n            {\"#list\": [\n                {\"#list\": [{\"#literal\": \"deep\"}]}\n            ]}\n        ]}"
+---
+Expr#4294967040@7
+  ExprKind (List)
+    ListExpr#4294967040@6
+      ListElement#4294967040@5
+        Expr#4294967040@5
+          ExprKind (List)
+            ListExpr#4294967040@4
+              ListElement#4294967040@3
+                Expr#4294967040@3
+                  ExprKind (List)
+                    ListExpr#4294967040@2
+                      ListElement#4294967040@1
+                        Expr#4294967040@1
+                          ExprKind (Literal)
+                            LiteralExpr#4294967040@0
+                              LiteralKind (String)
+                                StringLiteral (deep)

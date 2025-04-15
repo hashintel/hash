@@ -8,37 +8,37 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[<a href="../harpc_tower/index.html">harpc-tower</a>]
-    1[<a href="../harpc_types/index.html">harpc-types</a>]
-    2[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    3[<a href="../hash_codec/index.html">hash-codec</a>]
-    4[<a href="../hash_graph/index.html">hash-graph</a>]
-    5[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
-    6[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
-    7[<a href="../error_stack/index.html">error-stack</a>]
-    8[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    9[harpc-client]
-    class 9 root
-    10[<a href="../harpc_codec/index.html">harpc-codec</a>]
-    11[<a href="../harpc_net/index.html">harpc-net</a>]
-    12[<a href="../harpc_server/index.html">harpc-server</a>]
-    13[<a href="../harpc_system/index.html">harpc-system</a>]
-    6 --> 5
-    5 --> 12
-    9 --> 13
-    10 --> 7
-    10 --> 1
-    11 --> 10
-    11 --> 3
-    11 -.-> 10
-    12 -.-> 9
-    13 --> 0
-    0 --> 11
-    0 -.-> 11
-    2 --> 7
+    0[<a href="../hash_graph">hash-graph</a>]
+    1[<a href="../hash_codec">hash-codec</a>]
+    2[<a href="../hash_graph_api">hash-graph-api</a>]
+    3[<a href="../hash_graph_test_server">hash-graph-test-server</a>]
+    4[harpc-client]
+    class 4 root
+    5[<a href="../harpc_codec">harpc-codec</a>]
+    6[<a href="../harpc_net">harpc-net</a>]
+    7[<a href="../harpc_server">harpc-server</a>]
+    8[<a href="../harpc_system">harpc-system</a>]
+    9[<a href="../harpc_tower">harpc-tower</a>]
+    10[<a href="../harpc_types">harpc-types</a>]
+    11[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
+    12[<a href="../error_stack">error-stack</a>]
+    13[<a href="../hash_graph_benches">hash-graph-benches</a>]
+    0 --> 3
+    1 --> 11
     2 --> 1
-    2 -.-> 1
+    2 --> 7
     3 --> 2
-    5 --> 3
-    4 --> 6
-    8 -.-> 5
+    4 --> 8
+    5 --> 10
+    5 --> 12
+    6 --> 1
+    6 -.-> 5
+    6 --> 5
+    7 -.-> 4
+    8 --> 9
+    9 -.-> 6
+    9 --> 6
+    11 -.-> 10
+    11 --> 10
+    11 --> 12
+    13 -.-> 2

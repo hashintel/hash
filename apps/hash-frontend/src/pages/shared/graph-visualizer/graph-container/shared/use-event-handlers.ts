@@ -17,17 +17,10 @@ export type RegisterEventsArgs = {
   graphState: GraphState;
   onEdgeClick?: (params: {
     edgeData: GraphVizEdge;
-    screenContainerRef?: RefObject<HTMLDivElement | null>;
   }) => void;
   onRender?: () => void;
   onNodeSecondClick?: (params: {
     nodeId: string;
-    /**
-     * In full-screen mode, only part of the DOM is displayed.
-     * This means that MUI components (and any others) that attach to the body will not be visible.
-     * If this is provided, components should attach any popups/modals to this ref's current element instead.
-     */
-    screenContainerRef?: RefObject<HTMLDivElement | null>;
   }) => void;
   setConfigPanelOpen: (open: boolean) => void;
   setFilterPanelOpen: (open: boolean) => void;
@@ -146,7 +139,6 @@ export const useEventHandlers = ({
 
           onEdgeClick({
             edgeData,
-            screenContainerRef: isFullScreen ? graphContainerRef : undefined,
           });
         }
       },
@@ -161,7 +153,6 @@ export const useEventHandlers = ({
            */
           onNodeSecondClick?.({
             nodeId: event.node,
-            screenContainerRef: isFullScreen ? graphContainerRef : undefined,
           });
           return;
         }

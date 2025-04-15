@@ -505,7 +505,7 @@ const main = async () => {
   // @todo figure out sharing of context between REST and GraphQL without repeating this
   app.use((req, _res, next) => {
     const provenance: ProvidedEntityEditionProvenance = {
-      actorType: "human",
+      actorType: "user",
       origin: {
         type: getHashClientTypeFromRequest(req) ?? "api",
         userAgent: req.headers["user-agent"],

@@ -10,7 +10,7 @@ import type {
   SubgraphTemporalAxes,
 } from "@blockprotocol/graph";
 import type {
-  ActorId,
+  ActorEntityUuid,
   BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
@@ -19,7 +19,6 @@ import type {
   EntityMetadata,
   EntityUuid,
   LinkData,
-  OwnedById,
   Property,
   PropertyArrayWithMetadata,
   PropertyMetadata,
@@ -36,6 +35,7 @@ import type {
   Timestamp,
   TypeIdsAndPropertiesForEntity,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   isArrayMetadata,
@@ -102,10 +102,10 @@ export type SerializedSubgraph<
  * Types used in getEntitySubgraph response to indicate the count of these in the whole result set,
  * useful for filtering only a limited number of entities are returned in a single response.
  */
-export type CreatedByIdsMap = Record<ActorId, number>;
+export type CreatedByIdsMap = Record<ActorEntityUuid, number>;
 export type TypeIdsMap = Record<VersionedUrl, number>;
 export type TypeTitlesMap = Record<VersionedUrl, string>;
-export type WebIdsMap = Record<OwnedById, number>;
+export type WebIdsMap = Record<WebId, number>;
 
 export type CreateEntityParameters<
   T extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
@@ -113,7 +113,7 @@ export type CreateEntityParameters<
   GraphApiCreateEntityRequest,
   "decisionTime" | "entityTypeIds" | "draft" | "properties" | "provenance"
 > & {
-  ownedById: OwnedById;
+  webId: WebId;
   properties: T["propertiesWithMetadata"];
   linkData?: LinkData;
   entityTypeIds: T["entityTypeIds"];

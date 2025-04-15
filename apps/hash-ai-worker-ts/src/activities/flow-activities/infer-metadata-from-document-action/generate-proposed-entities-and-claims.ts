@@ -1,11 +1,11 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   EntityUuid,
-  OwnedById,
   PropertyObjectMetadata,
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
+  WebId,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
@@ -40,21 +40,21 @@ const createClaim = async ({
   creatorActorId,
   draft,
   objectText,
-  ownedById,
+  webId,
   propertyProvenance,
   provenance,
   subjectText,
   userActorId,
 }: {
   claimText: string;
-  creatorActorId: ActorId;
+  creatorActorId: ActorEntityUuid;
   draft: boolean;
   objectText: string;
-  ownedById: OwnedById;
+  webId: WebId;
   propertyProvenance: PropertyProvenance;
   provenance: ProvidedEntityEditionProvenance;
   subjectText: string;
-  userActorId: ActorId;
+  userActorId: ActorEntityUuid;
 }) => {
   return await HashEntity.create<ClaimEntity>(
     graphApiClient,
@@ -63,7 +63,7 @@ const createClaim = async ({
       draft,
       entityUuid: generateUuid() as EntityUuid,
       entityTypeIds: ["https://hash.ai/@h/types/entity-type/claim/v/1"],
-      ownedById,
+      webId,
       provenance,
       relationships: createDefaultAuthorizationRelationships({
         actorId: userActorId,
@@ -110,7 +110,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   provenance,
   propertyProvenance,
 }: {
-  aiAssistantAccountId: ActorId;
+  aiAssistantAccountId: ActorEntityUuid;
   documentMetadata: Pick<DocumentData, "authors">;
   documentEntityId: EntityId;
   documentTitle: string;
@@ -186,7 +186,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       creatorActorId: aiAssistantAccountId,
       draft: createEntitiesAsDraft,
       objectText: documentTitle,
-      ownedById: webId,
+      webId,
       propertyProvenance,
       provenance,
       subjectText: authorName,
@@ -202,7 +202,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       {
         draft: createEntitiesAsDraft,
         entityTypeIds: [systemLinkEntityTypes.hasObject.linkEntityTypeId],
-        ownedById: webId,
+        webId,
         provenance,
         linkData: {
           leftEntityId: authorToDocClaim.entityId,
@@ -302,7 +302,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
         creatorActorId: aiAssistantAccountId,
         draft: createEntitiesAsDraft,
         objectText: affiliateName,
-        ownedById: webId,
+        webId,
         propertyProvenance,
         provenance,
         subjectText: authorName,

@@ -1,8 +1,8 @@
 import type {
-  EditionCreatedById,
+  ActorEntityUuid,
   EntityTypeWithMetadata,
   OntologyTypeVersion,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   componentsFromVersionedUrl,
@@ -89,14 +89,14 @@ const Page: NextPageWithLayout = () => {
           },
           provenance: {
             edition: {
-              createdById: "irrelevant-here" as EditionCreatedById,
-              actorType: "human",
+              createdById: "irrelevant-here" as ActorEntityUuid,
+              actorType: "user",
               origin: {
                 type: "web-app",
               },
             },
           },
-          ownedById: "irrelevant-here" as OwnedById,
+          webId: "irrelevant-here" as WebId,
         },
         schema: entityTypeSchema,
       } satisfies EntityTypeWithMetadata;
@@ -121,7 +121,7 @@ const Page: NextPageWithLayout = () => {
     <>
       <EntityType
         isInSlide={false}
-        ownedById={routeNamespace.ownedById}
+        webId={routeNamespace.webId}
         draftEntityType={draftEntityType}
         entityTypeBaseUrl={entityTypeBaseUrl}
         key={`${entityTypeBaseUrl}-${requestedVersion}`}

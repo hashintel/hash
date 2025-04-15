@@ -1,13 +1,13 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   EntityUuid,
-  OwnedById,
   PropertyObject,
   PropertyObjectMetadata,
   ProvidedEntityEditionProvenance,
   Url,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
@@ -85,7 +85,7 @@ export type FlowInputs = [
     dataSources: FlowDataSources;
     flowDefinition: FlowDefinition;
     flowTrigger: FlowTrigger;
-    webId: OwnedById;
+    webId: WebId;
   },
 ];
 
@@ -640,7 +640,7 @@ export type ExternalInputResponseSignal<
   RequestType extends ExternalInputRequestType = ExternalInputRequestType,
 > = {
   [Type in RequestType]: {
-    resolvedBy: ActorId;
+    resolvedBy: ActorEntityUuid;
     requestId: string;
     type: Type;
     data: ExternalInputResponseByType[Type];
@@ -660,7 +660,7 @@ export type ExternalInputRequest<
   /** The time at which the request was resolved */
   resolvedAt?: string;
   /** The user that responded to the request (or the user whose device responded to the request) */
-  resolvedBy?: ActorId;
+  resolvedBy?: ActorEntityUuid;
   /** The time at which the request was made */
   raisedAt: string;
 };

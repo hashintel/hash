@@ -2,8 +2,9 @@ use core::error::Error;
 
 use serde::{Deserialize, Serialize};
 use type_system::{
-    provenance::ActorId,
-    web::{ActorGroupId, OwnedById},
+    knowledge::entity::id::EntityUuid,
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, WebId},
 };
 use uuid::Uuid;
 
@@ -24,7 +25,7 @@ pub enum WebNamespace {
     Web,
 }
 
-impl Resource for OwnedById {
+impl Resource for WebId {
     type Id = Self;
     type Kind = WebNamespace;
 
@@ -58,7 +59,7 @@ pub enum WebResourceRelation {
     DataTypeViewer,
 }
 
-impl Relation<OwnedById> for WebResourceRelation {}
+impl Relation<WebId> for WebResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -74,13 +75,13 @@ pub enum WebPermission {
     CreatePropertyType,
     CreateDataType,
 }
-impl Permission<OwnedById> for WebPermission {}
+impl Permission<WebId> for WebPermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum WebSubject {
     Public,
-    Account(ActorId),
+    Account(ActorEntityUuid),
     AccountGroup(ActorGroupId),
 }
 
@@ -118,7 +119,7 @@ impl Resource for WebSubject {
                 Self::Public
             }
             (WebSubjectNamespace::Account, WebSubjectId::Uuid(id)) => {
-                Self::Account(ActorId::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (WebSubjectNamespace::AccountGroup, WebSubjectId::Uuid(id)) => {
                 Self::AccountGroup(ActorGroupId::new(id))
@@ -157,7 +158,7 @@ impl Resource for WebSubject {
 pub enum WebOwnerSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -171,7 +172,7 @@ pub enum WebOwnerSubject {
 pub enum WebEntityCreatorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -187,7 +188,7 @@ pub enum WebEntityCreatorSubject {
 pub enum WebEntityEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -204,7 +205,7 @@ pub enum WebEntityViewerSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
@@ -276,9 +277,9 @@ pub enum WebRelationAndSubject {
     },
 }
 
-impl Relationship for (OwnedById, WebRelationAndSubject) {
+impl Relationship for (WebId, WebRelationAndSubject) {
     type Relation = WebResourceRelation;
-    type Resource = OwnedById;
+    type Resource = WebId;
     type Subject = WebSubject;
     type SubjectSet = WebSubjectSet;
 

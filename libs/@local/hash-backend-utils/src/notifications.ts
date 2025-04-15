@@ -1,9 +1,9 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
-  OwnedById,
   ProvidedEntityEditionProvenance,
   Timestamp,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
@@ -22,7 +22,7 @@ import { getWebMachineActorId } from "./machine-actors.js";
 export const createNotificationEntityPermissions = ({
   machineActorId,
 }: {
-  machineActorId: ActorId;
+  machineActorId: ActorEntityUuid;
 }): {
   linkEntityRelationships: EntityRelationAndSubjectBranded[];
   notificationEntityRelationships: EntityRelationAndSubjectBranded[];
@@ -74,7 +74,7 @@ export const createGraphChangeNotification = async (
     changedEntityId: EntityId;
     changedEntityEditionId: Timestamp;
     operation: "create" | "update";
-    notifiedUserAccountId: ActorId;
+    notifiedUserAccountId: ActorEntityUuid;
   },
 ) => {
   const { graphApi } = context;
@@ -91,7 +91,7 @@ export const createGraphChangeNotification = async (
   const webMachineActorId = await getWebMachineActorId(
     context,
     userAuthentication,
-    { ownedById: notifiedUserAccountId as OwnedById },
+    { webId: notifiedUserAccountId as WebId },
   );
 
   const { linkEntityRelationships, notificationEntityRelationships } =
@@ -115,7 +115,7 @@ export const createGraphChangeNotification = async (
     {
       draft: false,
       entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
-      ownedById: notifiedUserAccountId as OwnedById,
+      webId: notifiedUserAccountId as WebId,
       properties: {
         value: {
           "https://hash.ai/@h/types/property-type/graph-change-type/": {
@@ -145,7 +145,7 @@ export const createGraphChangeNotification = async (
     {
       draft: false,
       entityTypeIds: [systemLinkEntityTypes.occurredInEntity.linkEntityTypeId],
-      ownedById: notifiedUserAccountId as OwnedById,
+      webId: notifiedUserAccountId as WebId,
       linkData: {
         leftEntityId: notificationEntity.metadata.recordId.entityId,
         rightEntityId: changedEntityId,

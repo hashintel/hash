@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: URL without trailing slash (invalid)
+expression: "`https://example.com`"
+info:
+  kind: Err
+---
+`https://example.com`
+ ^
+invalid identifier
+expected http(s) url with trailing `/`

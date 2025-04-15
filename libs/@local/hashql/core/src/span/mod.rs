@@ -1,8 +1,12 @@
 pub mod entry;
-pub mod node;
 pub mod storage;
 
+use core::fmt::{self, Display};
+
+use hashql_diagnostics::span::DiagnosticSpan;
 pub use text_size::{TextRange, TextSize};
+
+use self::storage::SpanStorage;
 
 /// Represents a unique identifier for a span in some source.
 ///
@@ -53,12 +57,36 @@ pub use text_size::{TextRange, TextSize};
 pub struct SpanId(u32);
 
 impl SpanId {
+    /// A special span ID for compiler-generated nodes that don't correspond to actual source code.
+    ///
+    /// This constant represents spans that were synthetically created during compilation rather
+    /// than representing a location in the original source text. These spans might be used for
+    /// compiler-generated constructs, inferred types, or other elements that don't have a direct
+    /// mapping to the source.
+    ///
+    /// Diagnostic renderers (like `hashql_diagnostics`) have freedom in how they choose to
+    /// represent synthetic spans. For example, they might:
+    /// - Omit the location completely in output
+    /// - Display them with a special indicator or style
+    /// - Replace them with the closest relevant source location
+    /// - Show them as occurring at an implicit location, such as the start of a file
+    ///
+    /// The interpretation and visualization of synthetic spans is left to the implementation
+    /// of the consuming renderer.
+    pub const SYNTHETIC: Self = Self(u32::MAX);
+
     pub(crate) const fn new(id: u32) -> Self {
         Self(id)
     }
 
     pub(crate) const fn value(self) -> u32 {
         self.0
+    }
+}
+
+impl Display for SpanId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, fmt)
     }
 }
 
@@ -71,6 +99,25 @@ impl SpanId {
 /// frontends, this data is always optional, as some spans, for example for malformed code, may not
 /// have any additional data.
 pub trait Span {
+    /// The relative range of the span within its parent span.
+    fn range(&self) -> TextRange;
+
     /// Optional parent span, if any.
     fn parent_id(&self) -> Option<SpanId>;
+}
+
+impl<S> DiagnosticSpan<&SpanStorage<S>> for SpanId
+where
+    S: Span,
+{
+    fn span(&self, context: &mut &SpanStorage<S>) -> Option<TextRange> {
+        let entry = context.get(*self)?;
+
+        Some(entry.map(Span::range))
+    }
+
+    #[expect(refining_impl_trait_reachable, reason = "false positive")]
+    fn ancestors(&self, context: &mut &SpanStorage<S>) -> impl IntoIterator<Item = Self> + use<S> {
+        context.ancestors(*self)
+    }
 }

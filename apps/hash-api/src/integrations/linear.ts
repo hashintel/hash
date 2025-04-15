@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import type { Organization, Team } from "@linear/sdk";
 import { LinearClient } from "@linear/sdk";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
@@ -45,7 +45,7 @@ export class Linear {
 
   public async triggerWorkspaceSync(params: {
     authentication: AuthenticationContext;
-    workspaceOwnedById: OwnedById;
+    workspaceWebId: WebId;
     teamIds: string[];
   }): Promise<void> {
     // TODO: Implement error handling

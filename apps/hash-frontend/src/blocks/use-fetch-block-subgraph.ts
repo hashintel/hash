@@ -6,8 +6,7 @@ import type {
   Subgraph,
 } from "@blockprotocol/graph";
 import type {
-  CreatedById,
-  EditionCreatedById,
+  ActorEntityUuid,
   EntityEditionId,
   EntityId,
   PropertyObject,
@@ -104,13 +103,13 @@ export const useFetchBlockSubgraph = (): ((
             archived: false,
             provenance: {
               edition: {
-                createdById: "placeholder-account" as EditionCreatedById,
-                actorType: "human",
+                createdById: "placeholder-account" as ActorEntityUuid,
+                actorType: "user",
                 origin: {
                   type: "web-app",
                 },
               },
-              createdById: "placeholder-account" as CreatedById,
+              createdById: "placeholder-account" as ActorEntityUuid,
               createdAtTransactionTime: now,
               createdAtDecisionTime: now,
             },

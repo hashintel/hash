@@ -1,13 +1,13 @@
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
+  ActorEntityUuid,
   ActorGroupId,
-  ActorId,
   ClosedTemporalBound,
   EntityUuid,
-  OwnedById,
   ProvidedEntityEditionProvenance,
   TemporalInterval,
+  WebId,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -48,12 +48,12 @@ export const getWebServiceUsage = async (
     userAccountId,
     webId,
   }: {
-    userAccountId: ActorId;
+    userAccountId: ActorEntityUuid;
     decisionTimeInterval?: TemporalInterval<
       ClosedTemporalBound,
       ClosedTemporalBound
     >;
-    webId: OwnedById;
+    webId: WebId;
   },
 ): Promise<AggregatedUsageRecord[]> => {
   const serviceUsageRecordSubgraph = await backOff(
@@ -69,7 +69,7 @@ export const getWebServiceUsage = async (
               {
                 equal: [
                   {
-                    path: ["ownedById"],
+                    path: ["webId"],
                   },
                   { parameter: webId },
                 ],
@@ -134,11 +134,11 @@ export const createUsageRecord = async (
     /**
      * Grant view access on the usage record to these additional accounts
      */
-    additionalViewers?: ActorId[];
+    additionalViewers?: ActorEntityUuid[];
     /**
      * The web the usage will be assigned to (user or org)
      */
-    assignUsageToWebId: OwnedById;
+    assignUsageToWebId: WebId;
     /**
      * Additional arbitrary metadata to store on the usage record.
      */
@@ -151,7 +151,7 @@ export const createUsageRecord = async (
      * The user that is incurring the usage (e.g. the user that triggered the flow)
      * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
      */
-    userAccountId: ActorId;
+    userAccountId: ActorEntityUuid;
   },
 ) => {
   const properties: UsageRecord["propertiesWithMetadata"] = {
@@ -311,7 +311,7 @@ export const createUsageRecord = async (
     [UsageRecord, RecordsUsageOf]
   >(context.graphApi, authentication, [
     {
-      ownedById: assignUsageToWebId,
+      webId: assignUsageToWebId,
       draft: false,
       entityUuid: usageRecordEntityUuid,
       properties,
@@ -320,7 +320,7 @@ export const createUsageRecord = async (
       relationships: entityRelationships,
     },
     {
-      ownedById: assignUsageToWebId,
+      webId: assignUsageToWebId,
       draft: false,
       properties: { value: {} },
       provenance,

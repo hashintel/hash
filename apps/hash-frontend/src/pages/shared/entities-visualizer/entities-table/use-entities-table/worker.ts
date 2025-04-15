@@ -1,8 +1,8 @@
 import { getEntityRevision } from "@blockprotocol/graph/stdlib";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import {
-  extractOwnedByIdFromEntityId,
   extractVersion,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import {
@@ -106,7 +106,7 @@ const generateTableData = async (
     hideColumns,
     hideArchivedColumn,
     hidePropertiesColumns,
-    webNameByOwnedById,
+    webNameByWebId,
   } = params;
 
   if (await isCancelled(requestId)) {
@@ -183,8 +183,8 @@ const generateTableData = async (
     }
 
     const entityNamespace =
-      webNameByOwnedById[
-        extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+      webNameByWebId[
+        extractWebIdFromEntityId(entity.metadata.recordId.entityId)
       ] ?? "loading";
 
     const entityId = entity.metadata.recordId.entityId;

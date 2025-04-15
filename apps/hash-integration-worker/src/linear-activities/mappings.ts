@@ -1,5 +1,5 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   Property,
   PropertyObject,
@@ -65,7 +65,7 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
   T extends SupportedLinearTypeNames,
 >(params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   linearType: T;
   linearData: SupportedLinearTypes[T];
 }): Promise<{
@@ -128,7 +128,7 @@ export const mapHashEntityToLinearUpdateInput = async <
   T extends SupportedLinearTypeNames,
 >(params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   linearType: T;
   entity: HashEntity;
 }): Promise<SupportedLinearUpdateInput[T]> => {

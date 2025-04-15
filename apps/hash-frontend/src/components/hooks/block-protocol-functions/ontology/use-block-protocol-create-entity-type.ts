@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { useCallback } from "react";
 
 import type {
@@ -10,7 +10,7 @@ import { createEntityTypeMutation } from "../../../../graphql/queries/ontology/e
 import type { CreateEntityTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreateEntityType = (
-  ownedById: OwnedById | null,
+  webId: WebId | null,
   readonly?: boolean,
 ): {
   createEntityType: CreateEntityTypeMessageCallback;
@@ -33,9 +33,9 @@ export const useBlockProtocolCreateEntityType = (
         };
       }
 
-      if (!ownedById) {
+      if (!webId) {
         throw new Error(
-          "Hook was constructed without `ownedById` while not in readonly mode. Data must be created under an account.",
+          "Hook was constructed without `webId` while not in readonly mode. Data must be created under an account.",
         );
       }
 
@@ -53,7 +53,7 @@ export const useBlockProtocolCreateEntityType = (
       const { entityType } = data;
       const { data: responseData } = await createFn({
         variables: {
-          ownedById,
+          webId,
           entityType,
         },
       });
@@ -73,7 +73,7 @@ export const useBlockProtocolCreateEntityType = (
         data: responseData.createEntityType,
       };
     },
-    [ownedById, createFn, readonly],
+    [webId, createFn, readonly],
   );
 
   return {

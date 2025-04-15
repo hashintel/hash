@@ -18,12 +18,12 @@ use crate::snapshot::{
     owner::{AccountGroupRow, AccountRow, AccountRowBatch, Owner},
 };
 
-/// A sink to insert [`ActorId`]s and [`ActorGroupId`]s.
+/// A sink to insert [`ActorEntityUuid`]s and [`ActorGroupId`]s.
 ///
 /// An `AccountSender` with the corresponding [`OwnerReceiver`] are created using the [`channel`]
 /// function.
 ///
-/// [`ActorId`]: type_system::provenance::ActorId
+/// [`ActorEntityUuid`]: type_system::provenance::ActorEntityUuid
 /// [`ActorGroupId`]: type_system::web::ActorGroupId
 #[derive(Debug, Clone)]
 #[expect(clippy::struct_field_names)]

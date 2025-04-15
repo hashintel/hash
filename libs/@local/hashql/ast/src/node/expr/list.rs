@@ -44,6 +44,6 @@ pub struct ListExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub elements: heap::Box<'heap, [ListElement<'heap>]>,
-    pub r#type: heap::Box<'heap, Type<'heap>>,
+    pub elements: heap::Vec<'heap, ListElement<'heap>>,
+    pub r#type: Option<heap::Box<'heap, Type<'heap>>>,
 }

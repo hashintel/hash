@@ -1,0 +1,28 @@
+Expr#4294967040@31
+  ExprKind (Let)
+    LetExpr#4294967040@31 (name: x)
+      Expr#4294967040@17
+        ExprKind (Literal)
+          LiteralExpr#4294967040@16
+            LiteralKind (True)
+      Type#4294967040@15
+        TypeKind (Path)
+          Path#4294967040@15 (rooted: false)
+            PathSegment#4294967040@14 (name: Boolean)
+      Expr#4294967040@30
+        ExprKind (Call)
+          CallExpr#4294967040@30
+            Expr#4294967040@21
+              ExprKind (Path)
+                Path#4294967040@21 (rooted: false)
+                  PathSegment#4294967040@20 (name: +)
+            Argument#4294967040@25
+              Expr#4294967040@25
+                ExprKind (Path)
+                  Path#4294967040@25 (rooted: false)
+                    PathSegment#4294967040@24 (name: x)
+            Argument#4294967040@29
+              Expr#4294967040@29
+                ExprKind (Path)
+                  Path#4294967040@29 (rooted: false)
+                    PathSegment#4294967040@28 (name: x)

@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
+description: Parses an empty dict using object format
+expression: "{\"#dict\": "
+---
+[31m[lexer::lexer::unexpected-eof] Error:[0m Lexer
+   ╭─[ <unknown>:1:11 ]
+   │
+ 1 │ {"#dict":
+   │           │ 
+   │           ╰─ Unexpected end of file, expected `{` or `[`
+   │ 
+   │ Help: The file ended where an opening bracket was expected. Complete the expression structure.
+───╯

@@ -1,7 +1,7 @@
 import type {
+  ActorEntityUuid,
   DataTypeWithMetadata,
-  EditionCreatedById,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   componentsFromVersionedUrl,
@@ -90,14 +90,14 @@ const Page: NextPageWithLayout = () => {
           },
           provenance: {
             edition: {
-              createdById: "irrelevant-here" as EditionCreatedById,
-              actorType: "human",
+              createdById: "irrelevant-here" as ActorEntityUuid,
+              actorType: "user",
               origin: {
                 type: "web-app",
               },
             },
           },
-          ownedById: "irrelevant-here" as OwnedById,
+          webId: "irrelevant-here" as WebId,
         },
         schema: dataTypeSchema,
       } satisfies DataTypeWithMetadata;
@@ -121,7 +121,7 @@ const Page: NextPageWithLayout = () => {
   return (
     <>
       <DataType
-        ownedById={routeNamespace.ownedById}
+        webId={routeNamespace.webId}
         draftNewDataType={draftDataType}
         dataTypeBaseUrl={dataTypeBaseUrl}
         key={`${dataTypeBaseUrl}-${requestedVersion}`}

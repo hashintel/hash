@@ -5,8 +5,8 @@ import type {
   BaseUrl,
   EntityType,
   EntityTypeWithMetadata,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   componentsFromVersionedUrl,
@@ -113,11 +113,11 @@ export const useGetEntityTypeDependents = (): {
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const userWebs = useMemo<OwnedById[]>(() => {
+  const userWebs = useMemo<WebId[]>(() => {
     return [
-      authenticatedUser.accountId as OwnedById,
+      authenticatedUser.accountId as WebId,
       ...authenticatedUser.memberOf.map(
-        ({ org }) => org.accountGroupId as OwnedById,
+        ({ org }) => org.accountGroupId as WebId,
       ),
     ];
   }, [authenticatedUser]);
@@ -215,7 +215,7 @@ export const useGetEntityTypeDependents = (): {
               continue;
             }
 
-            if (!userWebs.includes(dependent.metadata.ownedById)) {
+            if (!userWebs.includes(dependent.metadata.webId)) {
               dependentsByBaseUrl[dependentBaseUrl] = {
                 entityType: dependent.schema,
                 noFurtherTraversalBecause: "external-web",

@@ -60,8 +60,8 @@ use type_system::{
         entity_type::{EntityTypeUuid, EntityTypeWithMetadata},
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
-    provenance::ActorId,
-    web::{ActorGroupId, OwnedById},
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, WebId},
 };
 
 use crate::{
@@ -71,7 +71,7 @@ use crate::{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
-    pub id: ActorId,
+    pub id: ActorEntityUuid,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -82,7 +82,7 @@ pub struct AccountGroup {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Web {
-    pub id: OwnedById,
+    pub id: WebId,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub relations: Vec<WebRelationAndSubject>,
 }
@@ -354,11 +354,11 @@ impl PostgresStorePool {
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
             .and_then(move |row| async move {
-                let id = OwnedById::new(row.get(0));
+                let id = WebId::new(row.get(0));
                 Ok(Web {
                     id,
                     relations: authorization_api
-                        .read_relations::<(OwnedById, WebRelationAndSubject)>(
+                        .read_relations::<(WebId, WebRelationAndSubject)>(
                             RelationshipFilter::from_resource(id),
                             Consistency::FullyConsistent,
                         )
@@ -522,7 +522,7 @@ impl PostgresStorePool {
             .map_ok(|row| {
                 SnapshotEntry::EntityEmbedding(EntityEmbeddingRecord {
                     entity_id: EntityId {
-                        owned_by_id: row.get(0),
+                        web_id: row.get(0),
                         entity_uuid: row.get(1),
                         draft_id: row.get(2),
                     },

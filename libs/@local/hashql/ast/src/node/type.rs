@@ -41,7 +41,7 @@ pub struct StructType<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub fields: heap::Box<'heap, [StructField<'heap>]>,
+    pub fields: heap::Vec<'heap, StructField<'heap>>,
 }
 
 /// A field in a tuple type.
@@ -84,7 +84,7 @@ pub struct TupleType<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub fields: heap::Box<'heap, [TupleField<'heap>]>,
+    pub fields: heap::Vec<'heap, TupleField<'heap>>,
 }
 
 /// A union type definition.
@@ -114,7 +114,7 @@ pub struct UnionType<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub types: heap::Box<'heap, [Type<'heap>]>,
+    pub types: heap::Vec<'heap, Type<'heap>>,
 }
 
 /// An intersection type definition.
@@ -134,7 +134,7 @@ pub struct IntersectionType<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub types: heap::Box<'heap, [Type<'heap>]>,
+    pub types: heap::Vec<'heap, Type<'heap>>,
 }
 
 /// The different kinds of types in the HashQL type system.
@@ -143,14 +143,14 @@ pub struct IntersectionType<'heap> {
 /// from simple path references to complex composite types.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {
-    /// The unknown type (`?`).
+    /// The unknown type (`kernel::types::?`).
     ///
     /// Represents a type that is genuinely unknown or cannot be determined.
     /// This is different from an inferred type, as it indicates the absence
     /// of type information.
     Unknown,
 
-    /// The never type (`!`).
+    /// The never type (`kernel::types::!`).
     ///
     /// Represents the type of expressions that never produce a value,
     /// such as expressions that always throw an error or infinite loops.

@@ -1,8 +1,8 @@
 import type { PropertyTypeRootType } from "@blockprotocol/graph";
 import type {
   OntologyTemporalMetadata,
-  OwnedById,
   PropertyTypeWithMetadata,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import {
@@ -45,13 +45,13 @@ export const createPropertyTypeResolver: ResolverFn<
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const { ownedById, propertyType } = params;
+  const { webId, propertyType } = params;
 
   const createdPropertyType = await createPropertyType(
     context,
     authentication,
     {
-      ownedById: (ownedById ?? user.accountId) as OwnedById,
+      webId: (webId ?? user.accountId) as WebId,
       schema: propertyType,
       relationships: defaultPropertyTypeAuthorizationRelationships,
     },

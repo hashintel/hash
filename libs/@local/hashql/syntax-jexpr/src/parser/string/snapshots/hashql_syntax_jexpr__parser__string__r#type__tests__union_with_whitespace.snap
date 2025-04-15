@@ -1,0 +1,18 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Union with whitespace
+expression: " Int | String "
+info:
+  kind: Ok
+---
+Type#4294967040@7
+  TypeKind (Union)
+    UnionType#4294967040@7
+      Type#4294967040@3
+        TypeKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: Int)
+      Type#4294967040@6
+        TypeKind (Path)
+          Path#4294967040@6 (rooted: false)
+            PathSegment#4294967040@5 (name: String)

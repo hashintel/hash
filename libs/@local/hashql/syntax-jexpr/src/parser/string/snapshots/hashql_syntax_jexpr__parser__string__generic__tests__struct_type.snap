@@ -1,0 +1,21 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Struct type as generic argument
+expression: "(key: K, value: V)"
+info:
+  kind: Ok
+---
+GenericArgument#4294967040@12
+  Type#4294967040@11
+    TypeKind (Struct)
+      StructType#4294967040@11
+        StructField#4294967040@5 (name: key)
+          Type#4294967040@4
+            TypeKind (Path)
+              Path#4294967040@4 (rooted: false)
+                PathSegment#4294967040@3 (name: K)
+        StructField#4294967040@10 (name: value)
+          Type#4294967040@9
+            TypeKind (Path)
+              Path#4294967040@9 (rooted: false)
+                PathSegment#4294967040@8 (name: V)

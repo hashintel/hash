@@ -15,7 +15,7 @@ pub struct ClosureParam<'heap> {
     pub span: SpanId,
 
     pub name: Ident,
-    pub r#type: heap::Box<'heap, Type<'heap>>,
+    pub bound: heap::Box<'heap, Type<'heap>>,
 }
 
 /// The signature of a closure.
@@ -24,13 +24,13 @@ pub struct ClosureParam<'heap> {
 /// input parameters, and return type. The signature provides all type information
 /// necessary for type checking and validation of the closure.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ClosureSig<'heap> {
+pub struct ClosureSignature<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
     pub generics: Generics<'heap>,
 
-    pub inputs: heap::Box<'heap, [ClosureParam<'heap>]>,
+    pub inputs: heap::Vec<'heap, ClosureParam<'heap>>,
     pub output: heap::Box<'heap, Type<'heap>>,
 }
 
@@ -64,6 +64,6 @@ pub struct ClosureExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub sig: heap::Box<'heap, ClosureSig<'heap>>,
+    pub signature: heap::Box<'heap, ClosureSignature<'heap>>,
     pub body: heap::Box<'heap, Expr<'heap>>,
 }

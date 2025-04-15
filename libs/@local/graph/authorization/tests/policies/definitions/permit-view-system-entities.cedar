@@ -1,12 +1,12 @@
 permit (
   principal,
-  action == HASH::Action::"view",
+  action in [HASH::Action::"view"],
   resource is HASH::Entity in HASH::Web::"{system_web_id}"
 );
 
 permit (
   principal,
-  action == HASH::Action::"view",
+  action in [HASH::Action::"view"],
   resource is HASH::Entity
 )
 when

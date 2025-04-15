@@ -1,7 +1,4 @@
-import type {
-  EntityTypeWithMetadata,
-  OwnedById,
-} from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -39,7 +36,7 @@ export type LocalInputValue =
   | EntityTypeWithMetadata
   | FormattedText
   | GoogleSheet
-  | OwnedById
+  | WebId
   | string
   | number
   | boolean;

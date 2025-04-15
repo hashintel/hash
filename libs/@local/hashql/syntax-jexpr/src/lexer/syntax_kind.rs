@@ -17,21 +17,70 @@ pub(crate) enum SyntaxKind {
     RBracket,
 }
 
+// Using not a constant, but a function here makes it so that any addition of a variant results in a
+// compile error
+const VARIANT_COUNT: usize = core::mem::variant_count::<SyntaxKind>();
+pub(crate) type Flag = u16;
+
+const VARIANTS: [SyntaxKind; VARIANT_COUNT] = [
+    SyntaxKind::String,
+    SyntaxKind::Number,
+    SyntaxKind::True,
+    SyntaxKind::False,
+    SyntaxKind::Null,
+    SyntaxKind::Comma,
+    SyntaxKind::Colon,
+    SyntaxKind::LBrace,
+    SyntaxKind::RBrace,
+    SyntaxKind::LBracket,
+    SyntaxKind::RBracket,
+];
+
+// In theory the array generated here is the same as the one above - the only difference is that we
+// compile time assert the correct order.
+#[expect(clippy::cast_possible_truncation)]
+const VARIANT_LOOKUP: [SyntaxKind; VARIANT_COUNT] = {
+    let mut lookup = [SyntaxKind::String; VARIANT_COUNT];
+
+    let mut index = 0;
+    while index < VARIANT_COUNT {
+        let kind = VARIANTS[index];
+
+        // Ensure that every variant value is unique and in ascending order
+        assert!(
+            kind.into_exponent() == index as u32,
+            "variant values must be unique and in ascending order"
+        );
+
+        // Ensure that every variant fits into the exponent representation
+        assert!(
+            kind.into_exponent() <= Flag::BITS,
+            "variant exponent must fit into a `Flag`"
+        );
+
+        lookup[index] = kind;
+        index += 1;
+    }
+
+    lookup
+};
+
 impl SyntaxKind {
-    pub(crate) const fn into_u128(self) -> u128 {
-        match self {
-            Self::String => 1 << 0,
-            Self::Number => 1 << 1,
-            Self::True => 1 << 2,
-            Self::False => 1 << 3,
-            Self::Null => 1 << 4,
-            Self::Comma => 1 << 5,
-            Self::Colon => 1 << 6,
-            Self::LBrace => 1 << 7,
-            Self::RBrace => 1 << 8,
-            Self::LBracket => 1 << 9,
-            Self::RBracket => 1 << 10,
-        }
+    pub(crate) const VARIANTS: &[Self] = &VARIANT_LOOKUP;
+
+    pub(crate) const fn into_exponent(self) -> u32 {
+        self as u32
+    }
+
+    pub(crate) const fn into_flag(self) -> Flag {
+        1 << self.into_exponent()
+    }
+
+    #[expect(clippy::cast_possible_truncation)]
+    pub(crate) const fn from_exponent(value: u32) -> Self {
+        assert!((value < VARIANT_COUNT as u32), "invalid index");
+
+        Self::VARIANTS[value as usize]
     }
 }
 

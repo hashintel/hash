@@ -1,0 +1,17 @@
+[31m[special-form-expander::special-form-argument-length] Error:[0m Incorrect number of arguments for special form
+    ╭─[ <unknown>:8:4 ]
+    │
+  3 │ ╭─▶ [
+    ┆ ┆   
+  8 │ │     "y"
+    │ │      ┬  
+    │ │      ╰── Remove this argument
+    ┆ ┆   
+ 10 │ ├─▶ ]
+    │ │       
+    │ ╰─────── In this `use` special form call
+    │     
+    │     Help: The use/3 form should look like: (use module imports body)
+    │     
+    │     Note: The use function has 1 variant: use/3
+────╯

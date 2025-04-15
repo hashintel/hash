@@ -1,0 +1,63 @@
+Expr#0@50
+  ExprKind (Let)
+    LetExpr#1@50 (name: x)
+      Expr#2@16
+        ExprKind (Call)
+          CallExpr#3@16
+            Expr#4@11
+              ExprKind (Path)
+                Path#5@11 (rooted: true)
+                  PathSegment#6@10 (name: math)
+                  PathSegment#7@10 (name: add)
+            Argument#8@13
+              Expr#9@13
+                ExprKind (Literal)
+                  LiteralExpr#10@12
+                    LiteralKind (Integer)
+                      IntegerLiteral (1)
+            Argument#11@15
+              Expr#12@15
+                ExprKind (Literal)
+                  LiteralExpr#13@14
+                    LiteralKind (Integer)
+                      IntegerLiteral (2)
+      Expr#14@49
+        ExprKind (Let)
+          LetExpr#15@49 (name: y)
+            Expr#16@35
+              ExprKind (Call)
+                CallExpr#17@35
+                  Expr#18@28
+                    ExprKind (Path)
+                      Path#19@28 (rooted: true)
+                        PathSegment#20@27 (name: math)
+                        PathSegment#21@27 (name: mul)
+                  Argument#22@32
+                    Expr#23@32
+                      ExprKind (Path)
+                        Path#24@32 (rooted: false)
+                          PathSegment#25@31 (name: x)
+                  Argument#26@34
+                    Expr#27@34
+                      ExprKind (Literal)
+                        LiteralExpr#28@33
+                          LiteralKind (Integer)
+                            IntegerLiteral (3)
+            Expr#29@48
+              ExprKind (Call)
+                CallExpr#30@48
+                  Expr#31@39
+                    ExprKind (Path)
+                      Path#32@39 (rooted: true)
+                        PathSegment#33@38 (name: math)
+                        PathSegment#34@38 (name: add)
+                  Argument#35@43
+                    Expr#36@43
+                      ExprKind (Path)
+                        Path#37@43 (rooted: false)
+                          PathSegment#38@42 (name: x)
+                  Argument#39@47
+                    Expr#40@47
+                      ExprKind (Path)
+                        Path#41@47 (rooted: false)
+                          PathSegment#42@46 (name: y)

@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,
@@ -15,15 +15,13 @@ import { useAuthInfo } from "./auth-info-context";
 
 export type WorkspaceContextValue = {
   activeWorkspace?: MinimalUser | Org;
-  activeWorkspaceOwnedById?: OwnedById;
-  updateActiveWorkspaceOwnedById: (
-    updatedActiveWorkspaceAccountId: OwnedById,
-  ) => void;
+  activeWorkspaceWebId?: WebId;
+  updateActiveWorkspaceWebId: (updatedActiveWorkspaceAccountId: WebId) => void;
   refetchActiveWorkspace: () => Promise<void>;
 };
 
 const defaultWorkspaceContextValue: WorkspaceContextValue = {
-  updateActiveWorkspaceOwnedById: (_updateActiveWorkspaceOwnedById: string) =>
+  updateActiveWorkspaceWebId: (_updateActiveWorkspaceWebId: string) =>
     undefined,
   refetchActiveWorkspace: () => Promise.resolve(),
 };
@@ -41,77 +39,69 @@ export const WorkspaceContextProvider: FunctionComponent<{
 }> = ({ children }) => {
   const { authenticatedUser, refetch } = useAuthInfo();
 
-  const [activeWorkspaceOwnedById, setActiveWorkspaceOwnedById] =
-    useState<OwnedById>();
+  const [activeWorkspaceWebId, setActiveWorkspaceWebId] = useState<WebId>();
 
-  const updateActiveWorkspaceOwnedById = useCallback(
-    (updatedActiveWorkspaceOwnedById: OwnedById) => {
+  const updateActiveWorkspaceWebId = useCallback(
+    (updatedActiveWorkspaceWebId: WebId) => {
       localStorage.setItem(
-        localStorageKeys.workspaceOwnedById,
-        updatedActiveWorkspaceOwnedById,
+        localStorageKeys.workspaceWebId,
+        updatedActiveWorkspaceWebId,
       );
-      setActiveWorkspaceOwnedById(updatedActiveWorkspaceOwnedById);
+      setActiveWorkspaceWebId(updatedActiveWorkspaceWebId);
     },
     [],
   );
 
   useEffect(() => {
-    if (!activeWorkspaceOwnedById) {
+    if (!activeWorkspaceWebId) {
       /**
-       * Initialize the `activeWorkspaceOwnedById` with what has been persisted
+       * Initialize the `activeWorkspaceWebId` with what has been persisted
        * in `localStorage` (if anything)
        */
       const localStorageInitialValue = localStorage.getItem(
-        localStorageKeys.workspaceOwnedById,
+        localStorageKeys.workspaceWebId,
       );
 
       if (localStorageInitialValue) {
-        setActiveWorkspaceOwnedById(localStorageInitialValue as OwnedById);
+        setActiveWorkspaceWebId(localStorageInitialValue as WebId);
       } else if (authenticatedUser) {
         /**
-         * Initialize the `activeWorkspaceOwnedById` to the account ID of the
+         * Initialize the `activeWorkspaceWebId` to the account ID of the
          * currently authenticated user
          */
-        updateActiveWorkspaceOwnedById(
-          authenticatedUser.accountId as OwnedById,
-        );
+        updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
       }
     }
-  }, [
-    activeWorkspaceOwnedById,
-    updateActiveWorkspaceOwnedById,
-    authenticatedUser,
-  ]);
+  }, [activeWorkspaceWebId, updateActiveWorkspaceWebId, authenticatedUser]);
 
   const workspaceContextValue = useMemo<WorkspaceContextValue>(() => {
     const activeWorkspace =
-      authenticatedUser &&
-      authenticatedUser.accountId === activeWorkspaceOwnedById
+      authenticatedUser && authenticatedUser.accountId === activeWorkspaceWebId
         ? authenticatedUser
         : authenticatedUser?.memberOf.find(
             ({ org: { accountGroupId } }) =>
-              accountGroupId === activeWorkspaceOwnedById,
+              accountGroupId === activeWorkspaceWebId,
           )?.org;
 
     /**
-     * If there is an `activeWorkspaceOwnedById` and an `authenticatedUser`, but
-     * `activeWorkspace` is not defined, reset `activeWorkspaceOwnedById` to the
+     * If there is an `activeWorkspaceWebId` and an `authenticatedUser`, but
+     * `activeWorkspace` is not defined, reset `activeWorkspaceWebId` to the
      * authenticated user's account ID
      */
-    if (activeWorkspaceOwnedById && authenticatedUser && !activeWorkspace) {
-      updateActiveWorkspaceOwnedById(authenticatedUser.accountId as OwnedById);
+    if (activeWorkspaceWebId && authenticatedUser && !activeWorkspace) {
+      updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
     }
 
     return {
       activeWorkspace,
-      activeWorkspaceOwnedById,
-      updateActiveWorkspaceOwnedById,
+      activeWorkspaceWebId,
+      updateActiveWorkspaceWebId,
       refetchActiveWorkspace: () => refetch().then(() => undefined),
     };
   }, [
     authenticatedUser,
-    activeWorkspaceOwnedById,
-    updateActiveWorkspaceOwnedById,
+    activeWorkspaceWebId,
+    updateActiveWorkspaceWebId,
     refetch,
   ]);
 

@@ -1,0 +1,17 @@
+[31m[special-form-expander::special-form-argument-length] Error:[0m Incorrect number of arguments for special form
+    ╭─[ <unknown>:8:3 ]
+    │
+  3 │ ╭─▶ [
+    ┆ ┆   
+  8 │ │     { "#literal": true }
+    │ │     ──────────┬─────────  
+    │ │               ╰─────────── Remove this argument
+    ┆ ┆   
+ 10 │ ├─▶ ]
+    │ │       
+    │ ╰─────── In this `newtype` special form call
+    │     
+    │     Help: The newtype/3 form should look like: (newtype name type-expr body)
+    │     
+    │     Note: The newtype function has 1 variant: newtype/3
+────╯

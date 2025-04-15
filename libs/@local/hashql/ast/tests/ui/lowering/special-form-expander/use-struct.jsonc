@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: struct pattern should compile to AST node
+[
+  "::kernel::special_form::use",
+  "::math",
+  { "#struct": { "x": "y", "z": "_" } },
+  "x"
+]

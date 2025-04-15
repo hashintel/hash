@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
+description: Parses a function call with mixed positional and labeled arguments
+expression: "[\"format\", {\"#literal\": \"template\"}, {\":value\": {\"#literal\": 42}}]"
+---
+Expr#4294967040@11
+  ExprKind (Call)
+    CallExpr#4294967040@11
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: format)
+      Argument#4294967040@5
+        Expr#4294967040@5
+          ExprKind (Literal)
+            LiteralExpr#4294967040@4
+              LiteralKind (String)
+                StringLiteral (template)
+      LabeledArgument#4294967040@10 (label: value)
+        Argument#4294967040@9
+          Expr#4294967040@9
+            ExprKind (Literal)
+              LiteralExpr#4294967040@8
+                LiteralKind (Integer)
+                  IntegerLiteral (42)

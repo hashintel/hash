@@ -1,0 +1,24 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Generic path with field access
+expression: "Result<T, E>.value"
+info:
+  kind: Ok
+---
+Expr#4294967040@13
+  ExprKind (Field)
+    FieldExpr#4294967040@13 (field: value)
+      Expr#4294967040@11
+        ExprKind (Path)
+          Path#4294967040@11 (rooted: false)
+            PathSegment#4294967040@10 (name: Result)
+              GenericArgument#4294967040@5
+                Type#4294967040@4
+                  TypeKind (Path)
+                    Path#4294967040@4 (rooted: false)
+                      PathSegment#4294967040@3 (name: T)
+              GenericArgument#4294967040@9
+                Type#4294967040@8
+                  TypeKind (Path)
+                    Path#4294967040@8 (rooted: false)
+                      PathSegment#4294967040@7 (name: E)

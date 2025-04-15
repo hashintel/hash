@@ -109,7 +109,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
               createAs: automaticInferenceConfig.createAs,
               entityTypeIds: entityTypeIdsToInfer,
               model: automaticInferenceConfig.model,
-              ownedById: automaticInferenceConfig.ownedById,
+              webId: automaticInferenceConfig.webId,
               sourceWebPage: webPage,
               type: "infer-entities",
             },

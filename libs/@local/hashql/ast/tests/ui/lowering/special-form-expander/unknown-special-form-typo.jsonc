@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Given a unknown special form, suggest a correct one
+["::kernel::special_form::nuwtype"]
+//~^ERROR Did you mean to use 'newtype' instead?

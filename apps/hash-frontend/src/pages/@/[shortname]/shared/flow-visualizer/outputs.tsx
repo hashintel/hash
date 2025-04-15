@@ -274,9 +274,9 @@ const mockEntityFromProposedEntity = (
       provenance: {
         createdAtDecisionTime: editionId,
         createdAtTransactionTime: editionId,
-        createdById: "ownedById",
+        createdById: "webId",
         edition: {
-          createdById: "ownedById",
+          createdById: "webId",
           actorType: "machine",
           origin: {
             type: "flow",

@@ -64,11 +64,11 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
         metadata: OntologyTypeMetadata,
     ) -> Result<(), Self::Error> {
         match metadata.ownership {
-            OntologyOwnership::Local { owned_by_id } => {
+            OntologyOwnership::Local { web_id } => {
                 self.owned_metadata
                     .start_send(OntologyOwnedMetadataRow {
                         ontology_id: metadata.ontology_id,
-                        web_id: owned_by_id,
+                        web_id,
                     })
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send owned metadata")?;

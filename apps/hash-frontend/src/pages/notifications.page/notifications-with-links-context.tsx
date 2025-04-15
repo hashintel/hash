@@ -47,7 +47,7 @@ import type {
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../../lib/user-and-org";
 import { constructMinimalUser } from "../../lib/user-and-org";
-import { pollInterval } from "../../shared/poll-interval";
+import { usePollInterval } from "../../shared/use-poll-interval";
 import { useAuthInfo } from "../shared/auth-info-context";
 
 export type PageMentionNotification = {
@@ -124,6 +124,7 @@ const isLinkAndRightEntityWithLinkType =
 export const useNotificationsWithLinksContextValue =
   (): NotificationsWithLinksContextValue => {
     const { authenticatedUser } = useAuthInfo();
+    const pollInterval = usePollInterval();
 
     const { data: notificationsWithOutgoingLinksData, refetch } = useQuery<
       GetEntitySubgraphQuery,
@@ -136,7 +137,7 @@ export const useNotificationsWithLinksContextValue =
             all: [
               {
                 equal: [
-                  { path: ["ownedById"] },
+                  { path: ["webId"] },
                   { parameter: authenticatedUser?.accountId },
                 ],
               },

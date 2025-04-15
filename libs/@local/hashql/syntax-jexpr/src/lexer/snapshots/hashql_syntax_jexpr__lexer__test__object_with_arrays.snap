@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Object containing arrays
+expression: "{\"numbers\": [1, 2, 3], \"strings\": [\"a\", \"b\", \"c\"]}"
+---
+{ "numbers" : [ 1 , 2 , 3 ] , "strings" : [ "a" , "b" , "c" ] }

@@ -113,7 +113,7 @@ export const getMentionNotificationFromEntity: PureGraphFunction<
 };
 
 export const createMentionNotification: ImpureGraphFunction<
-  Pick<CreateEntityParameters, "ownedById"> & {
+  Pick<CreateEntityParameters, "webId"> & {
     triggeredByUser: User;
     occurredInEntity: Page;
     occurredInBlock: Block;
@@ -128,13 +128,13 @@ export const createMentionNotification: ImpureGraphFunction<
     occurredInEntity,
     occurredInBlock,
     occurredInComment,
-    ownedById,
+    webId,
   } = params;
 
   const webMachineActorId = await getWebMachineActorId(
     context,
     userAuthentication,
-    { ownedById },
+    { webId },
   );
   const botAuthentication = { actorId: webMachineActorId };
 
@@ -147,7 +147,7 @@ export const createMentionNotification: ImpureGraphFunction<
     context,
     botAuthentication,
     {
-      ownedById,
+      webId,
       properties: { value: {} },
       entityTypeIds: [systemEntityTypes.mentionNotification.entityTypeId],
       relationships: notificationEntityRelationships,
@@ -164,7 +164,7 @@ export const createMentionNotification: ImpureGraphFunction<
        * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
        */
       createLinkEntity<TriggeredByUser>(context, userAuthentication, {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
@@ -174,7 +174,7 @@ export const createMentionNotification: ImpureGraphFunction<
         relationships: linkEntityRelationships,
       }),
       createLinkEntity<OccurredInEntity>(context, userAuthentication, {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
@@ -186,7 +186,7 @@ export const createMentionNotification: ImpureGraphFunction<
         relationships: linkEntityRelationships,
       }),
       createLinkEntity<OccurredInBlock>(context, userAuthentication, {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
@@ -197,7 +197,7 @@ export const createMentionNotification: ImpureGraphFunction<
       }),
       occurredInComment
         ? createLinkEntity<OccurredInComment>(context, userAuthentication, {
-            ownedById,
+            webId,
             properties: { value: {} },
             linkData: {
               leftEntityId: entity.metadata.recordId.entityId,
@@ -211,7 +211,7 @@ export const createMentionNotification: ImpureGraphFunction<
           })
         : [],
       createLinkEntity<OccurredInText>(context, userAuthentication, {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
@@ -259,10 +259,7 @@ export const getMentionNotification: ImpureGraphFunction<
             { ignoreParents: true },
           ),
           {
-            equal: [
-              { path: ["ownedById"] },
-              { parameter: recipient.accountId },
-            ],
+            equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
           },
           pageOrNotificationNotArchivedFilter,
         ],
@@ -384,7 +381,7 @@ export const getCommentNotificationFromEntity: PureGraphFunction<
 };
 
 export const createCommentNotification: ImpureGraphFunction<
-  Pick<CreateEntityParameters, "ownedById"> & {
+  Pick<CreateEntityParameters, "webId"> & {
     triggeredByUser: User;
     triggeredByComment: Comment;
     occurredInEntity: Page;
@@ -399,13 +396,13 @@ export const createCommentNotification: ImpureGraphFunction<
     occurredInEntity,
     occurredInBlock,
     repliedToComment,
-    ownedById,
+    webId,
   } = params;
 
   const webMachineActorId = await getWebMachineActorId(
     context,
     userAuthentication,
-    { ownedById },
+    { webId },
   );
   const authentication = { actorId: webMachineActorId };
 
@@ -418,7 +415,7 @@ export const createCommentNotification: ImpureGraphFunction<
     context,
     authentication,
     {
-      ownedById,
+      webId,
       properties: { value: {} },
       entityTypeIds: [systemEntityTypes.commentNotification.entityTypeId],
       relationships: notificationEntityRelationships,
@@ -467,7 +464,7 @@ export const createCommentNotification: ImpureGraphFunction<
        * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
        */
       createLinkEntity(context, userAuthentication, {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           leftEntityId,
@@ -517,10 +514,7 @@ export const getCommentNotification: ImpureGraphFunction<
             { ignoreParents: true },
           ),
           {
-            equal: [
-              { path: ["ownedById"] },
-              { parameter: recipient.accountId },
-            ],
+            equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
           },
           /** @todo: enforce the type of these links somehow */
           {

@@ -4,7 +4,7 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   extractVersion,
@@ -60,7 +60,7 @@ import { TopContextBar } from "./top-context-bar";
 
 type DataTypeProps = {
   isInSlide?: boolean;
-  ownedById?: OwnedById | null;
+  webId?: WebId | null;
   draftNewDataType?: DataTypeWithMetadata | null;
   dataTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
@@ -69,7 +69,7 @@ type DataTypeProps = {
 
 export const DataType = ({
   isInSlide: inSlide,
-  ownedById,
+  webId,
   draftNewDataType,
   dataTypeBaseUrl,
   requestedVersion,
@@ -236,15 +236,15 @@ export const DataType = ({
       getDataTypeFromFormData(data);
 
     if (isDraft) {
-      if (!ownedById) {
-        throw new Error("Cannot publish draft without ownedById");
+      if (!webId) {
+        throw new Error("Cannot publish draft without webId");
       }
 
       const response = await createDataType({
         variables: {
           dataType: inputDataType,
           conversions,
-          ownedById,
+          webId,
         },
       });
 

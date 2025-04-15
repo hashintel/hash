@@ -96,13 +96,25 @@ pub trait Id:
 
     /// Returns the next ID in sequence, if it exists.
     ///
-    /// Returns `None` if this ID is already at the maximum value.
-    fn next(self) -> Option<Self>;
+    /// # Panics
+    ///
+    /// Panics if this ID is already at the maximum value.
+    #[must_use]
+    fn next(self) -> Self {
+        Self::from_usize(self.as_usize() + 1)
+    }
 
     /// Returns the previous ID in sequence, if it exists.
     ///
     /// Returns `None` if this ID is already at the minimum value.
     fn prev(self) -> Option<Self>;
+}
+
+/// Marker trait for types that have an associated ID.
+pub trait HasId {
+    type Id: Id;
+
+    fn id(&self) -> Self::Id;
 }
 
 /// Creates a new ID type with a specified valid range.
@@ -135,6 +147,7 @@ macro_rules! newtype {
             ///
             /// # Panics
             /// When value is outside the valid range of $min..$max.
+            #[must_use]
             $vis const fn new(value: u32) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, u32, $min, $max),
@@ -159,6 +172,7 @@ macro_rules! newtype {
                 Self(value)
             }
 
+            #[expect(clippy::cast_possible_truncation)]
             fn from_u64(value: u64) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, u64, $min, $max),
@@ -168,6 +182,7 @@ macro_rules! newtype {
                 Self(value as u32)
             }
 
+            #[expect(clippy::cast_possible_truncation)]
             fn from_usize(value: usize) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, usize, $min, $max),
@@ -182,19 +197,11 @@ macro_rules! newtype {
             }
 
             fn as_u64(self) -> u64 {
-                self.0 as u64
+                u64::from(self.0)
             }
 
             fn as_usize(self) -> usize {
                 self.0 as usize
-            }
-
-            fn next(self) -> ::core::option::Option<Self> {
-                if self.0 == $max {
-                    None
-                } else {
-                    Some(Self(self.0 + 1))
-                }
             }
 
             fn prev(self) -> ::core::option::Option<Self> {
@@ -220,7 +227,7 @@ macro_rules! newtype {
                     Ok(Self(value))
                 } else {
                     Err($crate::id::IdError::OutOfRange {
-                        value: value as u64,
+                        value: u64::from(value),
                         min: $min,
                         max: $max,
                     })
@@ -231,6 +238,7 @@ macro_rules! newtype {
         impl ::core::convert::TryFrom<u64> for $name {
             type Error = $crate::id::IdError;
 
+            #[expect(clippy::cast_possible_truncation)]
             fn try_from(value: u64) -> ::core::result::Result<Self, Self::Error> {
                 if $crate::id::newtype!(@internal in_bounds; value, u64, $min, $max) {
                     Ok(Self(value as u32))
@@ -247,6 +255,7 @@ macro_rules! newtype {
         impl ::core::convert::TryFrom<usize> for $name {
             type Error = $crate::id::IdError;
 
+            #[expect(clippy::cast_possible_truncation)]
             fn try_from(value: usize) -> ::core::result::Result<Self, Self::Error> {
                 if $crate::id::newtype!(@internal in_bounds; value, usize, $min, $max) {
                     Ok(Self(value as u32))

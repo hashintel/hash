@@ -1,6 +1,6 @@
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { ActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { Typography } from "@mui/material";
@@ -22,7 +22,7 @@ const AdminUserPage: NextPageWithLayout = () => {
   const router = useRouter();
 
   const userEntityUuid = router.query["user-entity-uuid"] as
-    | ActorId
+    | ActorEntityUuid
     | undefined;
 
   const { userOrOrg, refetch, loading } = useUserOrOrg({

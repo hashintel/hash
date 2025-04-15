@@ -87,8 +87,10 @@ hash-status.path                    = "libs/@local/status/rust"
 hash-temporal-client.path           = "libs/@local/temporal-client"
 hash-tracing.path                   = "libs/@local/tracing"
 hashql-ast.path                     = "libs/@local/hashql/ast"
+hashql-compiletest.path             = "libs/@local/hashql/compiletest"
 hashql-core.path                    = "libs/@local/hashql/core"
 hashql-diagnostics.path             = "libs/@local/hashql/diagnostics"
+hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
@@ -97,6 +99,7 @@ ansi-to-html             = { version = "=0.2.2", default-features = false }
 anstyle                  = { version = "=1.0.10", default-features = false }
 anstyle-yansi            = { version = "=2.0.2", default-features = false }
 approx                   = { version = "=0.5.1", default-features = false }
+archery                  = { version = "=1.2.1", default-features = false }
 ariadne                  = { version = "=0.5.1", default-features = false }
 async-scoped             = { version = "=0.9.0", default-features = false }
 async-trait              = { version = "=0.1.88", default-features = false }
@@ -112,8 +115,8 @@ bytes-utils              = { version = "=0.1.4", default-features = false }
 cargo_metadata           = { version = "=0.19.2", default-features = false }
 cedar-policy-core        = { version = "=4.3.3", default-features = false }
 cedar-policy-validator   = { version = "=4.3.3", default-features = false }
-clap                     = { version = "=4.5.34", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
-clap_builder             = { version = "=4.5.34", default-features = false, features = ["std"] }
+clap                     = { version = "=4.5.36", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
+clap_builder             = { version = "=4.5.36", default-features = false, features = ["std"] }
 clap_complete            = { version = "=4.5.47", default-features = false }
 convert_case             = { version = "=0.8.0", default-features = false }
 criterion                = { version = "=0.5.1" }
@@ -125,9 +128,10 @@ deadpool-postgres        = { version = "=0.14.1", default-features = false }
 derive-where             = { version = "=1.2.7", default-features = false, features = ["nightly"] }
 derive_more              = { version = "=2.0.1", default-features = false }
 dotenv-flow              = { version = "=0.16.2", default-features = false }
-ecow                     = { version = "=0.2.3", default-features = false }
+ecow                     = { version = "=0.2.4", default-features = false }
 either                   = { version = "=1.15.0", default-features = false }
 email_address            = { version = "=0.2.9", default-features = false }
+enum-iterator            = { version = "=2.1.0", default-features = false }
 enumflags2               = { version = "=0.7.11", default-features = false }
 erased-serde             = { version = "=0.4.6", default-features = false }
 expect-test              = { version = "=1.5.1", default-features = false }
@@ -167,7 +171,7 @@ libp2p-swarm             = { version = "=0.46.0", default-features = false }
 libp2p-yamux             = { version = "=0.47.0", default-features = false }
 logos                    = { version = "=0.15.0", default-features = false }
 memchr                   = { version = "=2.7.4", default-features = false }
-mimalloc                 = { version = "=0.1.44", default-features = false }
+mimalloc                 = { version = "=0.1.46", default-features = false }
 mime                     = { version = "=0.3.17", default-features = false }
 multiaddr                = { version = "=0.18.2", default-features = false }
 multistream-select       = { version = "=0.13.0", default-features = false }
@@ -175,18 +179,19 @@ napi                     = { version = "=2.16.17", default-features = false }
 napi-build               = { version = "=2.1.6", default-features = false }
 napi-derive              = { version = "=2.16.13", default-features = false }
 num-traits               = { version = "=0.2.19", default-features = false }
-opentelemetry            = { version = "=0.29.0", default-features = false }
+opentelemetry            = { version = "=0.29.1", default-features = false }
 opentelemetry-otlp       = { version = "=0.29.0", default-features = false }
 opentelemetry_sdk        = { version = "=0.29.0", default-features = false }
 orx-concurrent-vec       = { version = "=3.5.0", default-features = false }
 owo-colors               = { version = "=4.2.0", default-features = false }
 paste                    = { version = "=1.0.15", default-features = false }
 pdfium-render            = { version = "=0.8.26" }
-petgraph                 = { version = "=0.7.1", default-features = false }
+petgraph                 = { version = "=0.8.1", default-features = false }
 pin-project              = { version = "=1.1.10", default-features = false }
 pin-project-lite         = { version = "=0.2.16", default-features = false }
 postgres-protocol        = { version = "=0.6.8", default-features = false }
 postgres-types           = { version = "=0.2.9", default-features = false }
+pretty                   = { version = "=0.12.4", default-features = false }
 pretty_assertions        = { version = "=1.4.1", default-features = false, features = ["alloc"] }
 proc-macro-error2        = { version = "=2.0.1", default-features = false }
 proc-macro2              = { version = "=1.0.94", default-features = false }
@@ -197,11 +202,12 @@ rand                     = { version = "=0.9.0", default-features = false }
 refinery                 = { version = "=0.8.16", default-features = false }
 regex                    = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 reqwest                  = { version = "=0.12.15", default-features = false, features = ["rustls-tls"] }
+rpds                     = { version = "=1.1.1", default-features = false }
 rustc_version            = { version = "=0.4.1", default-features = false }
 scc                      = { version = "=2.3.3", default-features = false }
 semver                   = { version = "=1.0.26", default-features = false }
-sentry                   = { version = "=0.36.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
-sentry-types             = { version = "=0.36.0", default-features = false }
+sentry                   = { version = "=0.37.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
+sentry-types             = { version = "=0.37.0", default-features = false }
 seq-macro                = { version = "=0.3.6", default-features = false }
 serde                    = { version = "=1.0.219", default-features = false }
 serde_json               = { version = "=1.0.140" }
@@ -224,7 +230,7 @@ test-strategy            = { version = "=0.4.1", default-features = false }
 text-size                = { version = "=1.1.1", default-features = false }
 thiserror                = { version = "=2.0.12", default-features = false }
 time                     = { version = "=0.3.41", default-features = false }
-tokio                    = { version = "=1.44.1", default-features = false }
+tokio                    = { version = "=1.44.2", default-features = false }
 tokio-postgres           = { version = "=0.7.13", default-features = false }
 tokio-stream             = { version = "=0.1.17", default-features = false }
 tokio-test               = { version = "=0.4.4", default-features = false }
@@ -249,7 +255,7 @@ url                      = { version = "=2.5.4", default-features = false }
 utoipa                   = { version = "=4.2.3", default-features = false }
 uuid                     = { version = "=1.16.0", default-features = false }
 walkdir                  = { version = "=2.5.0", default-features = false }
-winnow                   = { version = "=0.7.4", default-features = false }
+winnow                   = { version = "=0.7.6", default-features = false }
 
 [profile.dev]
 codegen-backend = "cranelift"

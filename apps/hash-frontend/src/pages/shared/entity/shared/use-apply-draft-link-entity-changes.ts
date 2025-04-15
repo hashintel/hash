@@ -2,7 +2,7 @@ import { useMutation } from "@apollo/client";
 import {
   type Entity,
   extractDraftIdFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 
 import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
@@ -41,7 +41,7 @@ export const useApplyDraftLinkEntityChanges = () => {
           variables: {
             entityTypeIds: linkEntity.metadata.entityTypeIds,
             // The link should be in the same web as the source entity.
-            ownedById: extractOwnedByIdFromEntityId(leftEntityId),
+            webId: extractWebIdFromEntityId(leftEntityId),
             properties: { value: {} },
             linkData: {
               leftEntityId,

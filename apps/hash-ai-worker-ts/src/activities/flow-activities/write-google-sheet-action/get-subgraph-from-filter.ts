@@ -1,5 +1,5 @@
 import type { EntityRootType } from "@blockprotocol/graph";
-import type { ActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { Filter, GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
@@ -14,7 +14,7 @@ export const getSubgraphFromFilter = async ({
   graphApiClient,
   traversalDepth,
 }: {
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   filter: Filter;
   graphApiClient: GraphApi;
   traversalDepth: number;

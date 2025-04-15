@@ -1,5 +1,4 @@
-use hashql_diagnostics::span::DiagnosticSpan;
-use hashql_span::{SpanId, TextRange};
+use hashql_core::span::{SpanId, TextRange};
 use jsonptr::PointerBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -20,17 +19,12 @@ impl Span {
     }
 }
 
-impl hashql_span::Span for Span {
+impl hashql_core::span::Span for Span {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+
     fn parent_id(&self) -> Option<SpanId> {
         self.parent_id
-    }
-}
-
-impl From<&Span> for DiagnosticSpan {
-    fn from(value: &Span) -> Self {
-        Self {
-            range: value.range,
-            parent_id: value.parent_id,
-        }
     }
 }

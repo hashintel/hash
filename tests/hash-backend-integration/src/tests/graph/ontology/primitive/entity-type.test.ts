@@ -21,8 +21,8 @@ import type {
   ClosedEntityType,
   ClosedMultiEntityType,
   EntityTypeWithMetadata,
-  OwnedById,
   PropertyTypeWithMetadata,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   atLeastOne,
@@ -94,7 +94,7 @@ beforeAll(async () => {
 
   await Promise.all([
     createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Worker",
         description: "A worker",
@@ -113,7 +113,7 @@ beforeAll(async () => {
       workerEntityType = val;
     }),
     createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Address",
         description: "An address",
@@ -132,7 +132,7 @@ beforeAll(async () => {
       addressEntityType = val;
     }),
     createPropertyType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Favorite Book",
         description: "Favorite book of the user",
@@ -150,7 +150,7 @@ beforeAll(async () => {
       favoriteBookPropertyType = val;
     }),
     createPropertyType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Name",
         description: "The name of the user",
@@ -168,7 +168,7 @@ beforeAll(async () => {
       namePropertyType = val;
     }),
     createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Knows",
         description: "Knows of someone",
@@ -189,7 +189,7 @@ beforeAll(async () => {
       knowsLinkEntityType = val;
     }),
     createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Previous Address",
         description: "A previous address of something.",
@@ -256,7 +256,7 @@ describe("Entity type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     createdEntityType = await createEntityType(graphContext, authentication, {
-      ownedById: testOrg.accountGroupId as OwnedById,
+      webId: testOrg.accountGroupId as WebId,
       schema: entityTypeSchema,
       relationships: [
         {

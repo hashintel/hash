@@ -4,7 +4,7 @@
  */
 import type { JsonObject } from "@blockprotocol/core";
 import type {
-  EditionCreatedById,
+  ActorEntityUuid,
   EntityEditionId,
 } from "@blockprotocol/type-system";
 
@@ -14,7 +14,7 @@ type EntityEditionRecord = {
   archived: boolean;
   entityEditionId: EntityEditionId;
   properties: JsonObject;
-  editionCreatedById?: EditionCreatedById; // the UUID of the user who created this edition
+  editionCreatedById?: ActorEntityUuid; // the UUID of the user who created this edition
 };
 
 export const entityEditionTableName = "entity_editions";
@@ -36,7 +36,7 @@ export const entityEditionRecordFromRealtimeMessage = (
     entityEditionId: obj.entity_edition_id as EntityEditionId,
     properties: JSON.parse(obj.properties as string) as JsonObject,
     editionCreatedById: obj.edition_created_by_id as
-      | EditionCreatedById
+      | ActorEntityUuid
       | undefined,
   };
 };

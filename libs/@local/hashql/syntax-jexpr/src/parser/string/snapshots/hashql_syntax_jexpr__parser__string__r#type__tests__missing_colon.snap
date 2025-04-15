@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Missing field type
+expression: "(name: String, age Int)"
+info:
+  kind: Err
+---
+(name: String, age Int)
+                   ^
+invalid type
+expected `:`

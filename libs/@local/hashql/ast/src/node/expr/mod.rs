@@ -43,6 +43,7 @@ pub mod field;
 pub mod r#if;
 pub mod index;
 pub mod input;
+pub mod is;
 pub mod r#let;
 pub mod list;
 pub mod literal;
@@ -56,8 +57,9 @@ use hashql_core::span::SpanId;
 
 pub use self::{
     call::CallExpr, closure::ClosureExpr, dict::DictExpr, field::FieldExpr, r#if::IfExpr,
-    index::IndexExpr, input::InputExpr, r#let::LetExpr, list::ListExpr, literal::LiteralExpr,
-    newtype::NewTypeExpr, r#struct::StructExpr, tuple::TupleExpr, r#type::TypeExpr, r#use::UseExpr,
+    index::IndexExpr, input::InputExpr, is::IsExpr, r#let::LetExpr, list::ListExpr,
+    literal::LiteralExpr, newtype::NewTypeExpr, r#struct::StructExpr, tuple::TupleExpr,
+    r#type::TypeExpr, r#use::UseExpr,
 };
 use super::{id::NodeId, path::Path};
 
@@ -379,10 +381,10 @@ pub enum ExprKind<'heap> {
     /// ## J-Expr
     ///
     /// ```json
-    /// ["fn", [], {"#struct": {"x": "Int", "->": "Int"}}, ["*", "x", 2]]
+    /// ["fn", [], {"#struct": {"x": "Int"}}, "Int", ["*", "x", 2]]
     ///
-    /// ["fn", {"#tuple": ["T"]}, {"#struct": {"x": "T", "y": "T", "->": "T"}, ["*", "x", "y"]}]
-    /// ["fn", {"#struct": {"T": "Int"}}, {"#struct": {"x": "T", "y": "T", "->": "_"}}, ["*", "x", "y"]]
+    /// ["fn", {"#tuple": ["T"]}, {"#struct": {"x": "T", "y": "T"}}, "T", ["*", "x", "y"]]
+    /// ["fn", {"#struct": {"T": "Int"}}, {"#struct": {"x": "T", "y": "T"}}, "_", ["*", "x", "y"]]
     /// ```
     ///
     /// ## Documentation Format
@@ -461,7 +463,75 @@ pub enum ExprKind<'heap> {
     /// matrix[i][j]
     /// ```
     Index(IndexExpr<'heap>),
-    // potentially relevant in the future: Ignore (for destructuring assignment, e.g. `_`)
+
+    /// A type assertion expression (special form).
+    ///
+    /// Checks at compile time whether a value conforms to a specified type.
+    /// This is useful for type narrowing and ensuring type safety in patterns
+    /// where the compiler needs additional type information.
+    ///
+    /// # Examples
+    ///
+    /// ## J-Expr
+    ///
+    /// ```json
+    /// ["is", "value", "String"]
+    /// ["is", ["get", "data", "field"], {"#type": {"name": "String", "age": "Int"}}]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// value is String
+    /// get(data, field) is {name: String, age: Int}
+    /// ```
+    Is(IsExpr<'heap>),
+
+    /// The underscore expression, used as a placeholder in various contexts.
+    ///
+    /// In HashQL, the underscore serves as a context-dependent placeholder that can indicate
+    /// type inference, function generic bounds, or same-name imports.
+    ///
+    /// # Examples
+    ///
+    /// ## J-Expr
+    ///
+    /// ```json
+    /// // Type inference in function return type
+    /// ["fn", {"#tuple": []}, {"#struct": {"name": "String"}}, "_", ["body"]]
+    ///
+    /// // No bounds for a generic
+    /// ["fn", {"#struct": {"A": "_"}}, {"#struct": {"name": "A"}}, "Integer", ["body"]]
+    ///
+    /// // Same-name import in struct pattern
+    /// ["use", "module", {"#struct": {"name": "_"}}, "body"]
+    ///
+    /// // Same-name import in tuple pattern
+    /// ["use", "module", {"#tuple": ["name"]}, "body"]
+    /// ```
+    ///
+    /// ## Documentation Format
+    ///
+    /// ```text
+    /// fn(): _ => body
+    /// use module::{name: _} in body
+    /// use module::{name} in body
+    /// ```
+    Underscore,
+
+    /// A placeholder expression used exclusively during AST transformation phases.
+    ///
+    /// The `Dummy` variant serves as a temporary placeholder during the lowering process when an
+    /// expression's `ExprKind` needs to be extracted or replaced. It allows the lowering pass to
+    /// safely move out the contents of an expression without immediately providing a replacement.
+    ///
+    /// # Implementation Note
+    ///
+    /// This variant should never appear in a fully processed AST, as it's intended only as an
+    /// intermediate state during transformation. Any `Dummy` nodes still present after lowering
+    /// indicates an error in the transformation process, and will produce a compilation error on
+    /// lowering into the HIR.
+    Dummy,
 }
 
 /// An expression node in the HashQL Abstract Syntax Tree.

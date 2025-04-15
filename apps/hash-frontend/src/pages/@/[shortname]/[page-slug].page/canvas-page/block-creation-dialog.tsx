@@ -31,7 +31,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
   const { routeNamespace } = useRouteNamespace();
 
-  const { ownedById } = routeNamespace ?? {};
+  const { webId } = routeNamespace ?? {};
 
   const { pageEntityId } = usePageContext();
 
@@ -52,9 +52,9 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
       const x = app.viewportPageCenter.x - width / 2;
       const y = app.viewportPageCenter.y - height / 2;
 
-      if (!ownedById) {
+      if (!webId) {
         throw new Error(
-          "No ownedById available – possibly routeNamespace is not yet loaded",
+          "No webId available – possibly routeNamespace is not yet loaded",
         );
       }
 
@@ -69,7 +69,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
                   entityTypeIds: blockEntityTypeIds,
                   entityProperties: { value: {} },
                 },
-                ownedById,
+                webId,
                 position: {
                   // These defaults will be overridden when the user draws the shape on the canvas
                   canvasPosition: {
@@ -163,7 +163,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         );
       });
     },
-    [ownedById, app, onClose, pageEntityId, updateBlockCollectionContentsFn],
+    [webId, app, onClose, pageEntityId, updateBlockCollectionContentsFn],
   );
 
   return creatingEntity ? (

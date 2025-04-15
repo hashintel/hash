@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Symbol with internal whitespace in backticks
+expression: "`+ +`"
+info:
+  kind: Err
+---
+`+ +`
+  ^
+invalid identifier
+expected '`'

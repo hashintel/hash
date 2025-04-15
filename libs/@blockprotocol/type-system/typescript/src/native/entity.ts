@@ -4,7 +4,6 @@ import type {
   EntityMetadata as RustEntityMetadata,
   EntityUuid,
   LinkData,
-  OwnedById,
   PropertyArrayMetadata,
   PropertyArrayWithMetadata,
   PropertyMetadata,
@@ -16,6 +15,7 @@ import type {
   PropertyValueWithMetadata,
   PropertyWithMetadata,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system-rs";
 import { validate as validateUuid } from "uuid";
 
@@ -83,11 +83,11 @@ export const isEntityId = (entityId: string): entityId is EntityId => {
 };
 
 export const entityIdFromComponents = (
-  ownedById: OwnedById,
+  webId: WebId,
   entityUuid: EntityUuid,
   draftId?: DraftId,
 ): EntityId => {
-  const base = `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}`;
+  const base = `${webId}${ENTITY_ID_DELIMITER}${entityUuid}`;
 
   if (!draftId) {
     return base as EntityId;
@@ -98,17 +98,17 @@ export const entityIdFromComponents = (
 
 export const splitEntityId = (
   entityId: EntityId,
-): [OwnedById, EntityUuid, DraftId?] => {
-  const [ownedById, entityUuid, draftId] = entityId.split(ENTITY_ID_DELIMITER);
-  return [ownedById as OwnedById, entityUuid as EntityUuid, draftId as DraftId];
+): [WebId, EntityUuid, DraftId?] => {
+  const [webId, entityUuid, draftId] = entityId.split(ENTITY_ID_DELIMITER);
+  return [webId as WebId, entityUuid as EntityUuid, draftId as DraftId];
 };
 
 export const stripDraftIdFromEntityId = (entityId: EntityId) => {
-  const [ownedById, entityUuid] = splitEntityId(entityId);
-  return entityIdFromComponents(ownedById, entityUuid);
+  const [webId, entityUuid] = splitEntityId(entityId);
+  return entityIdFromComponents(webId, entityUuid);
 };
 
-export const extractOwnedByIdFromEntityId = (entityId: EntityId): OwnedById => {
+export const extractWebIdFromEntityId = (entityId: EntityId): WebId => {
   return splitEntityId(entityId)[0];
 };
 

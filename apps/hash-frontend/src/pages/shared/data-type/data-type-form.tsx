@@ -214,7 +214,7 @@ export const getFormDataFromDataType = (dataTypeWithMetadata: {
   }
 
   const { conversions } =
-    "ownedById" in dataTypeWithMetadata.metadata
+    "webId" in dataTypeWithMetadata.metadata
       ? dataTypeWithMetadata.metadata
       : { conversions: null };
 

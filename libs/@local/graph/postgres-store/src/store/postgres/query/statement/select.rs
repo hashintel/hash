@@ -985,7 +985,7 @@ mod tests {
                 Some(FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                        path: Box::new(EntityQueryPath::OwnedById),
+                        path: Box::new(EntityQueryPath::WebId),
                         direction: EdgeDirection::Outgoing,
                     },
                 }),
@@ -1011,7 +1011,7 @@ mod tests {
                 Some(FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                        path: Box::new(EntityQueryPath::OwnedById),
+                        path: Box::new(EntityQueryPath::WebId),
                         direction: EdgeDirection::Outgoing,
                     },
                 }),
@@ -1206,7 +1206,7 @@ mod tests {
         use type_system::{
             knowledge::entity::id::{EntityId, EntityUuid},
             ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-            web::OwnedById,
+            web::WebId,
         };
 
         use super::*;
@@ -1246,7 +1246,7 @@ mod tests {
         #[test]
         fn for_entity_by_entity_id() {
             let entity_id = EntityId {
-                owned_by_id: OwnedById::new(Uuid::new_v4()),
+                web_id: WebId::new(Uuid::new_v4()),
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
                 draft_id: None,
             };
@@ -1272,7 +1272,7 @@ mod tests {
                 &[
                     &pinned_timestamp,
                     &temporal_axes.variable_interval(),
-                    &entity_id.owned_by_id.as_uuid(),
+                    &entity_id.web_id.as_uuid(),
                     &entity_id.entity_uuid.as_uuid(),
                 ],
             );

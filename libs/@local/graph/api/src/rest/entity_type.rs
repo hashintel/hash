@@ -50,14 +50,13 @@ use type_system::{
         json_schema::{DomainValidator, ValidateOntologyType as _},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::EditionCreatedById,
-    web::OwnedById,
+    provenance::ActorEntityUuid,
+    web::WebId,
 };
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, RestApiStore,
-    api_resource::RoutedResource,
     json::Json,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{ListOrValue, MaybeListOfEntityType, subgraph::Subgraph},
@@ -120,9 +119,9 @@ use crate::rest::{
 )]
 pub(crate) struct EntityTypeResource;
 
-impl RoutedResource for EntityTypeResource {
+impl EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<S, A>() -> Router
+    pub(crate) fn routes<S, A>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
@@ -173,7 +172,7 @@ impl RoutedResource for EntityTypeResource {
 struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
-    owned_by_id: OwnedById,
+    web_id: WebId,
     relationships: Vec<EntityTypeRelationAndSubject>,
     provenance: ProvidedOntologyEditionProvenance,
 }
@@ -192,7 +191,7 @@ struct ModifyEntityTypeAuthorizationRelationship {
     tag = "EntityType",
     request_body = [ModifyEntityTypeAuthorizationRelationship],
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, description = "The relationship was modified for the entity"),
@@ -265,7 +264,7 @@ where
     path = "/entity-types/{entity_type_id}/relationships",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_type_id" = VersionedUrl, Path, description = "The Entity type to read the relations for"),
     ),
     responses(
@@ -318,7 +317,7 @@ where
     path = "/entity-types/{entity_type_id}/permissions/{permission}",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_type_id" = VersionedUrl, Path, description = "The entity type ID to check if the actor has the permission"),
         ("permission" = EntityTypePermission, Path, description = "The permission to check for"),
     ),
@@ -375,7 +374,7 @@ where
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = MaybeListOfEntityTypeMetadata),
@@ -446,7 +445,7 @@ where
 
     let Json(CreateEntityTypeRequest {
         schema,
-        owned_by_id,
+        web_id,
         relationships,
         provenance,
     }) = body;
@@ -480,7 +479,7 @@ where
 
                 Ok(CreateEntityTypeParams {
                     schema,
-                    ownership: OntologyOwnership::Local { owned_by_id },
+                    ownership: OntologyOwnership::Local { web_id },
                     relationships: relationships.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: provenance.clone(),
@@ -575,7 +574,7 @@ enum LoadExternalEntityTypeRequest {
     request_body = LoadExternalEntityTypeRequest,
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = EntityTypeMetadata),
@@ -701,7 +700,7 @@ where
     request_body = GetEntityTypesParams,
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (
@@ -769,7 +768,7 @@ where
     request_body = GetClosedMultiEntityTypesParams,
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (
@@ -843,10 +842,10 @@ struct GetEntityTypeSubgraphResponse {
     count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    web_ids: Option<HashMap<OwnedById, usize>>,
+    web_ids: Option<HashMap<WebId, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
+    edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
 }
 
 #[utoipa::path(
@@ -855,7 +854,7 @@ struct GetEntityTypeSubgraphResponse {
     request_body = GetEntityTypeSubgraphParams,
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (
@@ -937,7 +936,7 @@ struct UpdateEntityTypeRequest {
     path = "/entity-types",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = EntityTypeMetadata),
@@ -1003,7 +1002,7 @@ where
     path = "/entity-types/bulk",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity types", body = [EntityTypeMetadata]),
@@ -1073,7 +1072,7 @@ where
     path = "/entity-types/embeddings",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, content_type = "application/json", description = "The embeddings were created"),
@@ -1125,7 +1124,7 @@ where
     path = "/entity-types/archive",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = OntologyTemporalMetadata),
@@ -1188,7 +1187,7 @@ where
     path = "/entity-types/unarchive",
     tag = "EntityType",
     params(
-        ("X-Authenticated-User-Actor-Id" = ActorId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The temporal metadata of the updated entity type", body = OntologyTemporalMetadata),

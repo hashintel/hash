@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: test that arguments are mangled correctly
+["fn", { "#tuple": [] }, { "#struct": { "a": "T" } }, "_", ["is", "a", "T"]]

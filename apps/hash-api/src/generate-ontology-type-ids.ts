@@ -89,7 +89,7 @@ const getLatestTypesInOrganizationQuery = (params: { organization: Org }) => ({
       {
         equal: [
           {
-            path: ["ownedById"],
+            path: ["webId"],
           },
           { parameter: params.organization.accountGroupId },
         ],

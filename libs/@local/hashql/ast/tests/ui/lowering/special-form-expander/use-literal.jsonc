@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: importing a literal should fail
+[
+  "::kernel::special_form::use",
+  "::math",
+  { "#literal": 1 },
+  //~^ ERROR Replace with a valid import expression
+  "x"
+]

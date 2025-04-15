@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Whitespace only (invalid)
+expression: "   "
+info:
+  kind: Err
+---
+   
+^
+invalid identifier

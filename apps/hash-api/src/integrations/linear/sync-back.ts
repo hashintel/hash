@@ -1,7 +1,7 @@
 import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
 import {
   entityIdFromComponents,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
@@ -100,7 +100,7 @@ export const processEntityChange = async (
     );
   }
 
-  const owningAccountUuId = extractOwnedByIdFromEntityId(
+  const owningAccountUuId = extractWebIdFromEntityId(
     linearEntityToUpdate.metadata.recordId.entityId,
   );
 

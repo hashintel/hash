@@ -5,7 +5,7 @@ import type {
   SubgraphRootType,
 } from "@blockprotocol/graph";
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   Timestamp,
   VersionedUrl,
@@ -218,7 +218,7 @@ export const generateEntityIdFilter = ({
   entityId: EntityId;
   includeArchived: boolean;
 }): Filter => {
-  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
+  const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
   const conditions: Filter[] = [
     {
@@ -231,9 +231,9 @@ export const generateEntityIdFilter = ({
     },
     {
       equal: [
-        { path: ["ownedById"] },
+        { path: ["webId"] },
         {
-          parameter: ownedById,
+          parameter: webId,
         },
       ],
     },
@@ -293,7 +293,7 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
 ) => deserializeSubgraph<RootType>(subgraph);
 
 export const createDefaultAuthorizationRelationships = (params: {
-  actorId: ActorId;
+  actorId: ActorEntityUuid;
 }): EntityRelationAndSubjectBranded[] => [
   {
     relation: "administrator",
@@ -328,7 +328,7 @@ export const createDefaultAuthorizationRelationships = (params: {
 export const createOrgMembershipAuthorizationRelationships = ({
   memberAccountId,
 }: {
-  memberAccountId: ActorId;
+  memberAccountId: ActorEntityUuid;
 }): EntityRelationAndSubjectBranded[] => [
   {
     relation: "setting",

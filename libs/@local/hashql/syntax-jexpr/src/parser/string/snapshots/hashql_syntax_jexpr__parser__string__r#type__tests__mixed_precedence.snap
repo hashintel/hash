@@ -1,0 +1,29 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Mixed precedence with parentheses
+expression: Int & (String | Boolean) & Char
+info:
+  kind: Ok
+---
+Type#4294967040@15
+  TypeKind (Intersection)
+    IntersectionType#4294967040@15
+      Type#4294967040@3
+        TypeKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: Int)
+      Type#4294967040@11
+        TypeKind (Union)
+          UnionType#4294967040@11
+            Type#4294967040@7
+              TypeKind (Path)
+                Path#4294967040@7 (rooted: false)
+                  PathSegment#4294967040@6 (name: String)
+            Type#4294967040@10
+              TypeKind (Path)
+                Path#4294967040@10 (rooted: false)
+                  PathSegment#4294967040@9 (name: Boolean)
+      Type#4294967040@14
+        TypeKind (Path)
+          Path#4294967040@14 (rooted: false)
+            PathSegment#4294967040@13 (name: Char)

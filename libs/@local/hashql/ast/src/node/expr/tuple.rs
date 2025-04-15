@@ -50,6 +50,6 @@ pub struct TupleExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub elements: heap::Box<'heap, [TupleElement<'heap>]>,
-    pub r#type: heap::Box<'heap, Type<'heap>>,
+    pub elements: heap::Vec<'heap, TupleElement<'heap>>,
+    pub r#type: Option<heap::Box<'heap, Type<'heap>>>,
 }

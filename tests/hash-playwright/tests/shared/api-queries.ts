@@ -3,8 +3,8 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   Entity,
   LinkData,
-  OwnedById,
   TypeIdsAndPropertiesForEntity,
+  WebId,
 } from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
@@ -65,7 +65,7 @@ export const createEntity = async <T extends TypeIdsAndPropertiesForEntity>(
     properties: T["propertiesWithMetadata"];
     linkData?: LinkData;
     linkedEntities?: LinkedEntityDefinition[];
-    ownedById: OwnedById;
+    webId: WebId;
   },
 ): Promise<Entity<T>> => {
   return callGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
@@ -78,7 +78,7 @@ export const createEntity = async <T extends TypeIdsAndPropertiesForEntity>(
         properties: params.properties,
         linkData: params.linkData,
         linkedEntities: params.linkedEntities,
-        ownedById: params.ownedById,
+        webId: params.webId,
       },
     },
   ).then(({ data }) => {

@@ -5,7 +5,11 @@ import type {
   QueryTemporalAxesUnresolved,
 } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { ActorGroupId, ActorId, Entity } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  ActorGroupId,
+  Entity,
+} from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -35,7 +39,7 @@ export const useUserOrOrg = (
     temporalAxes?: QueryTemporalAxesUnresolved;
   } & (
     | { shortname?: string }
-    | { accountOrAccountGroupId?: ActorId | ActorGroupId }
+    | { accountOrAccountGroupId?: ActorEntityUuid | ActorGroupId }
   ),
 ) => {
   const { data, loading, refetch } = useQuery<

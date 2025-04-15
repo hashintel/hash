@@ -144,16 +144,16 @@ export const getCommentText: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createComment: ImpureGraphFunction<
-  Pick<CreateEntityParameters, "ownedById"> & {
+  Pick<CreateEntityParameters, "webId"> & {
     author: User;
     parentEntityId: EntityId;
     textualContent: TextToken[];
   },
   Promise<Comment>
 > = async (ctx, authentication, params): Promise<Comment> => {
-  const { ownedById, textualContent, parentEntityId, author } = params;
+  const { webId, textualContent, parentEntityId, author } = params;
 
-  // the author has full access, regardless of which web the comment belongs to (ownedById)
+  // the author has full access, regardless of which web the comment belongs to (webId)
   const relationships: EntityRelationAndSubjectBranded[] = [
     {
       relation: "administrator",
@@ -179,7 +179,7 @@ export const createComment: ImpureGraphFunction<
   ];
 
   const textEntity = await createEntity<TextEntity>(ctx, authentication, {
-    ownedById,
+    webId,
     properties: {
       value: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
@@ -199,12 +199,12 @@ export const createComment: ImpureGraphFunction<
   });
 
   const commentEntity = await createEntity<CommentEntity>(ctx, authentication, {
-    ownedById,
+    webId,
     properties: { value: {} },
     entityTypeIds: [systemEntityTypes.comment.entityTypeId],
     outgoingLinks: [
       {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           rightEntityId: parentEntityId,
@@ -213,7 +213,7 @@ export const createComment: ImpureGraphFunction<
         relationships,
       },
       {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           rightEntityId: author.entity.metadata.recordId.entityId,
@@ -227,7 +227,7 @@ export const createComment: ImpureGraphFunction<
        * `parent` nad `author` link entities.
        */
       {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           rightEntityId: textEntity.metadata.recordId.entityId,

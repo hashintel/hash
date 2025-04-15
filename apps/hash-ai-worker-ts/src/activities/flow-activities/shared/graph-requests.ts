@@ -1,7 +1,7 @@
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
@@ -31,13 +31,13 @@ import type { ExistingEntityForMatching } from "../../shared/match-existing-enti
 
 export const getLatestEntityById = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
-  const [ownedById, entityUuid] = splitEntityId(entityId);
+  const [webId, entityUuid] = splitEntityId(entityId);
 
   const response = await graphApiClient.getEntitySubgraph(
     authentication.actorId,
@@ -48,7 +48,7 @@ export const getLatestEntityById = async (params: {
             equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
           },
           {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            equal: [{ path: ["webId"] }, { parameter: webId }],
           },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],

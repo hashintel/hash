@@ -1,4 +1,4 @@
-import type { ActorId } from "@blockprotocol/type-system-rs";
+import type { ActorEntityUuid } from "@blockprotocol/type-system-rs";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -33,8 +33,8 @@ export const getGraphApiClient = (): GraphApi => {
   return __graphApi;
 };
 
-let __systemAccountId: ActorId | undefined;
-export const getSystemAccountId = async (): Promise<ActorId> => {
+let __systemAccountId: ActorEntityUuid | undefined;
+export const getSystemAccountId = async (): Promise<ActorEntityUuid> => {
   if (!__systemAccountId) {
     __systemAccountId = await getGraphApiClient()
       .getEntityTypes(publicUserAccountId, {
@@ -54,7 +54,8 @@ export const getSystemAccountId = async (): Promise<ActorId> => {
             "Critical: No organization entity type found in the graph. Did you forgot to migrate the Node API?",
           );
         }
-        return entityType.metadata.provenance.edition.createdById as ActorId;
+        return entityType.metadata.provenance.edition
+          .createdById as ActorEntityUuid;
       });
   }
 

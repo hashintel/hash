@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 
 import type { ImpureGraphContext } from "../graph/context-types";
@@ -57,7 +57,7 @@ const seedOrg = async (params: {
   await seedPages(
     authentication,
     pageTitles,
-    sharedOrg.accountGroupId as OwnedById,
+    sharedOrg.accountGroupId as WebId,
     params,
   );
 
@@ -123,7 +123,7 @@ export const seedOrgsAndUsers = async (params: {
       await seedPages(
         { actorId: user.accountId },
         pageTitles,
-        user.accountId as OwnedById,
+        user.accountId as WebId,
         params,
       );
       logger.info(

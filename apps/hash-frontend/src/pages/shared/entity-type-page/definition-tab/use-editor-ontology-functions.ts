@@ -4,9 +4,9 @@ import {
 } from "@blockprotocol/graph/stdlib";
 import type {
   EntityTypeWithMetadata,
-  OwnedById,
   PropertyTypeWithMetadata,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type {
   EditorOntologyFunctions,
@@ -27,7 +27,7 @@ import { useAuthInfo } from "../../auth-info-context";
 import { useGenerateTypeUrlsForUser } from "../../use-generate-type-urls-for-user";
 
 export const useEditorOntologyFunctions = (
-  ownedById: OwnedById | null,
+  webId: WebId | null,
   typesWithMetadata: Record<
     VersionedUrl,
     EntityTypeWithMetadata | PropertyTypeWithMetadata
@@ -36,11 +36,11 @@ export const useEditorOntologyFunctions = (
   const { authenticatedUser } = useAuthInfo();
 
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { createEntityType } = useBlockProtocolCreateEntityType(ownedById);
+  const { createEntityType } = useBlockProtocolCreateEntityType(webId);
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
   const { getPropertyType } = useBlockProtocolGetPropertyType();
-  const { createPropertyType } = useBlockProtocolCreatePropertyType(ownedById);
+  const { createPropertyType } = useBlockProtocolCreatePropertyType(webId);
   const { updatePropertyType } = useBlockProtocolUpdatePropertyType();
 
   const refetchEntityTypes = useFetchEntityTypes();
@@ -155,8 +155,8 @@ export const useEditorOntologyFunctions = (
       const resourceMetadata = typesWithMetadata[resource.$id]?.metadata;
       const resourceAccountId =
         resourceMetadata &&
-        "ownedById" in resourceMetadata &&
-        resourceMetadata.ownedById;
+        "webId" in resourceMetadata &&
+        resourceMetadata.webId;
 
       return resourceAccountId &&
         canUserEditType(resourceAccountId, authenticatedUser)

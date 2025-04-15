@@ -19,12 +19,12 @@ use tokio::runtime::Runtime;
 use type_system::{
     knowledge::{
         Entity,
-        entity::provenance::ProvidedEntityEditionProvenance,
+        entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata},
     },
     ontology::entity_type::EntityType,
-    provenance::{ActorId, ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -37,7 +37,7 @@ const DB_NAME: &str = "entity_scale";
     reason = "transaction is committed which consumes the object"
 )]
 async fn seed_db<A: AuthorizationApi>(
-    account_id: ActorId,
+    account_id: ActorEntityUuid,
     store_wrapper: &mut StoreWrapper<A>,
     total: usize,
 ) -> Vec<Entity> {
@@ -51,14 +51,20 @@ async fn seed_db<A: AuthorizationApi>(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id, InsertAccountIdParams { account_id })
+        .insert_account_id(
+            account_id,
+            InsertAccountIdParams {
+                account_id,
+                account_type: ActorType::Machine,
+            },
+        )
         .await
         .expect("could not insert account id");
     transaction
         .insert_web_id(
             account_id,
             InsertWebIdParams {
-                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                web_id: WebId::new(account_id.into_uuid()),
                 owner: WebOwnerSubject::Account { id: account_id },
             },
         )
@@ -105,7 +111,7 @@ async fn seed_db<A: AuthorizationApi>(
             account_id,
             repeat_n(
                 CreateEntityParams {
-                    owned_by_id: OwnedById::new(account_id.into_uuid()),
+                    web_id: WebId::new(account_id.into_uuid()),
                     entity_uuid: None,
                     decision_time: None,
                     entity_type_ids: HashSet::from([entity_type_id]),
@@ -116,7 +122,7 @@ async fn seed_db<A: AuthorizationApi>(
                     draft: false,
                     relationships: [],
                     provenance: ProvidedEntityEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -147,7 +153,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
-    actor_id: ActorId,
+    actor_id: ActorEntityUuid,
     entity_metadata_list: &[Entity],
 ) {
     bencher.to_async(runtime).iter_batched(
@@ -202,8 +208,9 @@ fn bench_scaling_read_entity(crit: &mut Criterion) {
     let mut group = crit.benchmark_group(group_id);
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id =
-        ActorId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"));
+    let account_id = ActorEntityUuid::new(EntityUuid::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    ));
 
     for size in [1, 10, 100, 1_000, 10_000] {
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id, NoAuthorization);

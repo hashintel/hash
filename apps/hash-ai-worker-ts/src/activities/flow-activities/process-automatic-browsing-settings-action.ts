@@ -31,7 +31,7 @@ export const processAutomaticBrowsingSettingsAction: FlowActionActivity =
         all: [
           {
             equal: [
-              { path: ["ownedById"] },
+              { path: ["webId"] },
               { parameter: userAuthentication.actorId },
             ],
           },

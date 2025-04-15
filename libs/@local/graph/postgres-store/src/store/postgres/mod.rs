@@ -11,9 +11,18 @@ use core::{fmt::Debug, hash::Hash};
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
+use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
+    policies::{
+        Authorized, PartialResourceId, PolicySet, Request, RequestContext,
+        action::ActionName,
+        store::{
+            CreateWebParameter, PrincipalStore,
+            error::{GetSystemAccountError, WebCreationError},
+        },
+    },
     schema::{
         AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
         WebEntityCreatorSubject, WebEntityEditorSubject, WebEntityTypeViewerSubject,
@@ -29,13 +38,15 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     query::ConflictBehavior,
 };
-use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
+use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, Timestamp, TransactionTime};
+use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
-use postgres_types::Json;
+use postgres_types::{Json, ToSql};
 use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     Valid,
+    knowledge::entity::id::EntityUuid,
     ontology::{
         OntologyTemporalMetadata,
         data_type::{
@@ -50,9 +61,10 @@ use type_system::{
         property_type::{PropertyType, schema::PropertyTypeReference},
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::{ActorId, EditionArchivedById},
-    web::{ActorGroupId, OwnedById},
+    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId},
+    web::{ActorGroupId, WebId},
 };
+use uuid::Uuid;
 
 pub use self::{
     pool::{AsClient, PostgresStorePool},
@@ -82,6 +94,169 @@ pub struct PostgresStore<C, A> {
     pub authorization_api: A,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub settings: PostgresStoreSettings,
+}
+
+impl<C, A> PostgresStore<C, A>
+where
+    C: AsClient,
+    A: Send + Sync,
+{
+    async fn search_existing_system_account(
+        &self,
+    ) -> Result<Option<MachineId>, Report<GetSystemAccountError>> {
+        let machine = self
+            .as_client()
+            .query_opt(
+                "
+                SELECT base_url, version, lower(transaction_time), CAST(provenance->>'createdById' AS UUID)
+                FROM ontology_temporal_metadata
+                JOIN ontology_ids ON ontology_temporal_metadata.ontology_id = ontology_ids.ontology_id
+                ORDER BY transaction_time ASC
+                LIMIT 1;
+                ",
+                &[],
+            )
+            .await
+            .change_context(GetSystemAccountError::StoreError)?
+            .map(|row| {
+                let ontology_type_id = VersionedUrl {
+                    base_url: row.get(0),
+                    version: row.get(1),
+                };
+                let transaction_time: Timestamp<TransactionTime> = row.get(2);
+                let system_account = MachineId::new(row.get(3));
+                tracing::info!(
+                    %system_account,
+                    "Found system account using ontology type `{ontology_type_id}` created at {transaction_time}"
+                );
+                system_account
+            });
+        if let Some(machine) = machine {
+            return Ok(Some(machine));
+        }
+
+        // We have not identified the machine, yet. We can check if there are more than one machine.
+        // If there is only one machine, it is the system account because it is the only machine
+        // which could create new machines.
+        let machines = self
+            .as_client()
+            .query_raw(
+                "SELECT account_id FROM accounts LIMIT 2",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(GetSystemAccountError::StoreError)?
+            .map_ok(|row| MachineId::new(row.get(0)))
+            .try_collect::<Vec<_>>()
+            .await
+            .change_context(GetSystemAccountError::StoreError)?;
+
+        if machines.len() == 1 {
+            tracing::info!(
+                system_account = %machines[0],
+                "Found system account due to only one machine"
+            );
+            return Ok(Some(machines[0]));
+        }
+
+        Ok(None)
+    }
+}
+impl<C, A> PrincipalStore for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi + Send + Sync,
+{
+    async fn get_or_create_system_account(
+        &mut self,
+    ) -> Result<MachineId, Report<GetSystemAccountError>> {
+        let machine_id = if let Some(machine) = self.search_existing_system_account().await? {
+            machine
+        } else {
+            // TODO: Create an actual machine once we have proper machine management in the
+            // database.
+            // self.create_machine(None)
+            //     .await
+            //     .change_context(GetSystemAccountError::CreateSystemAccountFailed)?
+
+            // Use the public NIL UUID as actor here as we don't have a valid one, yet.
+            let machine_id = ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4()));
+            self.insert_account_id(
+                ActorEntityUuid::new(EntityUuid::new(Uuid::nil())),
+                InsertAccountIdParams {
+                    account_type: ActorType::Machine,
+                    account_id: machine_id,
+                },
+            )
+            .await
+            .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
+
+            tracing::info!(
+                system_account = %machine_id,
+                "Created new system account"
+            );
+
+            MachineId::new(machine_id)
+        };
+
+        Ok(machine_id)
+    }
+
+    async fn create_web(
+        &mut self,
+        actor: ActorId,
+        parameter: CreateWebParameter,
+    ) -> Result<WebId, Report<WebCreationError>> {
+        let context = self
+            .build_principal_context(actor)
+            .await
+            .change_context(WebCreationError::StoreError)?;
+        let policies = self
+            .get_policies_for_actor(actor)
+            .await
+            .change_context(WebCreationError::StoreError)?;
+
+        let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
+
+        let policy_set = PolicySet::default()
+            .with_policies(policies.values())
+            .change_context(WebCreationError::StoreError)?;
+        match policy_set
+            .evaluate(
+                &Request {
+                    actor,
+                    action: ActionName::CreateWeb,
+                    resource: Some(&PartialResourceId::Web(Some(web_id))),
+                    context: RequestContext::default(),
+                },
+                &context,
+            )
+            .change_context(WebCreationError::StoreError)?
+        {
+            Authorized::Always => {}
+            Authorized::Never => {
+                return Err(Report::new(WebCreationError::NotAuthorized))
+                    .attach_printable(StatusCode::PermissionDenied);
+            }
+            Authorized::Partial(_) => {
+                unimplemented!("Web creation is not supported for partial authorization");
+            }
+        }
+
+        if let Err(error) = self
+            .as_mut_client()
+            .execute("INSERT INTO web (id) VALUES ($1)", &[web_id.as_uuid()])
+            .await
+        {
+            return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
+                Err(error).change_context(WebCreationError::AlreadyExists { web_id })
+            } else {
+                Err(error).change_context(WebCreationError::StoreError)
+            };
+        }
+
+        Ok(web_id)
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -316,7 +491,7 @@ where
     async fn archive_ontology_type(
         &self,
         id: &VersionedUrl,
-        archived_by_id: EditionArchivedById,
+        archived_by_id: ActorEntityUuid,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let query = "
           UPDATE ontology_temporal_metadata
@@ -416,7 +591,7 @@ where
     async fn create_ontology_owned_metadata(
         &self,
         ontology_id: OntologyTypeUuid,
-        web_id: OwnedById,
+        web_id: WebId,
     ) -> Result<(), Report<InsertionError>> {
         let query = "
                 INSERT INTO ontology_owned_metadata (
@@ -453,10 +628,7 @@ where
         Ok(())
     }
 
-    /// Inserts a [`DataType`] identified by [`OntologyTypeUuid`], and associated with an
-    /// [`OwnedById`], and [`EditionCreatedById`] into the database.
-    ///
-    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
+    /// Inserts a [`DataType`] identified by [`OntologyTypeUuid`].
     ///
     /// # Errors
     ///
@@ -553,10 +725,7 @@ where
         Ok(())
     }
 
-    /// Inserts a [`PropertyType`] identified by [`OntologyTypeUuid`], and associated with an
-    /// [`OwnedById`], and [`EditionCreatedById`] into the database.
-    ///
-    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
+    /// Inserts a [`PropertyType`] identified by [`OntologyTypeUuid`].
     ///
     /// # Errors
     ///
@@ -585,10 +754,7 @@ where
             .map(|row| row.get(0)))
     }
 
-    /// Inserts a [`EntityType`] identified by [`OntologyTypeUuid`], and associated with an
-    /// [`OwnedById`], [`EditionCreatedById`], and the optional label property, into the database.
-    ///
-    /// [`EditionCreatedById`]: type_system::provenance::EditionCreatedById
+    /// Inserts a [`EntityType`] identified by [`OntologyTypeUuid`].
     ///
     /// # Errors
     ///
@@ -883,7 +1049,7 @@ where
         provenance: &OntologyProvenance,
     ) -> Result<Option<(OntologyTypeUuid, OntologyTemporalMetadata)>, Report<InsertionError>> {
         match ownership {
-            OntologyOwnership::Local { owned_by_id } => {
+            OntologyOwnership::Local { web_id } => {
                 self.create_base_url(&ontology_id.base_url, on_conflict, OntologyLocation::Owned)
                     .await?;
                 let ontology_id = self.create_ontology_id(ontology_id, on_conflict).await?;
@@ -891,7 +1057,7 @@ where
                     let transaction_time = self
                         .create_ontology_temporal_metadata(ontology_id, &provenance.edition)
                         .await?;
-                    self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
+                    self.create_ontology_owned_metadata(ontology_id, *web_id)
                         .await?;
                     Ok(Some((
                         ontology_id,
@@ -939,7 +1105,7 @@ where
         &self,
         url: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
-    ) -> Result<(OntologyTypeUuid, OwnedById, OntologyTemporalMetadata), Report<UpdateError>> {
+    ) -> Result<(OntologyTypeUuid, WebId, OntologyTemporalMetadata), Report<UpdateError>> {
         let previous_version = OntologyTypeVersion::new(
             url.version
                 .inner()
@@ -949,7 +1115,7 @@ where
                     "The version of the data type is already at the lowest possible value",
                 )?,
         );
-        let Some(owned_by_id) = self
+        let Some(web_id) = self
             .as_client()
             .query_opt(
                 "
@@ -1003,13 +1169,13 @@ where
             .create_ontology_temporal_metadata(ontology_id, provenance)
             .await
             .change_context(UpdateError)?;
-        self.create_ontology_owned_metadata(ontology_id, owned_by_id)
+        self.create_ontology_owned_metadata(ontology_id, web_id)
             .await
             .change_context(UpdateError)?;
 
         Ok((
             ontology_id,
-            owned_by_id,
+            web_id,
             OntologyTemporalMetadata { transaction_time },
         ))
     }
@@ -1033,7 +1199,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: InsertAccountIdParams,
     ) -> Result<(), Report<AccountInsertionError>> {
         self.as_client()
@@ -1050,7 +1216,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_group_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: InsertAccountGroupIdParams,
     ) -> Result<(), Report<AccountGroupInsertionError>> {
         let transaction = self
@@ -1113,20 +1279,17 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_web_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: InsertWebIdParams,
     ) -> Result<(), Report<WebInsertionError>> {
         let transaction = self.transaction().await.change_context(WebInsertionError)?;
 
         transaction
             .as_client()
-            .query(
-                "INSERT INTO webs (web_id) VALUES ($1);",
-                &[&params.owned_by_id],
-            )
+            .query("INSERT INTO webs (web_id) VALUES ($1);", &[&params.web_id])
             .await
             .change_context(WebInsertionError)
-            .attach_printable(params.owned_by_id)?;
+            .attach_printable(params.web_id)?;
 
         let mut relationships = vec![
             WebRelationAndSubject::Owner {
@@ -1175,7 +1338,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                     .map(|relation_and_subject| {
                         (
                             ModifyRelationshipOperation::Create,
-                            params.owned_by_id,
+                            params.web_id,
                             relation_and_subject,
                         )
                     }),
@@ -1191,7 +1354,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
                     (
                         ModifyRelationshipOperation::Delete,
-                        params.owned_by_id,
+                        params.web_id,
                         relation_and_subject,
                     )
                 }))
@@ -1208,9 +1371,9 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn identify_owned_by_id(
+    async fn identify_web_id(
         &self,
-        owned_by_id: OwnedById,
+        web_id: WebId,
     ) -> Result<WebOwnerSubject, Report<QueryWebError>> {
         let row = self
             .as_client()
@@ -1226,7 +1389,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                         WHERE account_group_id = $1
                     );
                 ",
-                &[&owned_by_id],
+                &[&web_id],
             )
             .await
             .change_context(QueryWebError)?;
@@ -1234,16 +1397,16 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         match (row.get(0), row.get(1)) {
             (false, false) => Err(Report::new(QueryWebError)
                 .attach_printable("Record does not exist")
-                .attach_printable(owned_by_id)),
+                .attach_printable(web_id)),
             (true, false) => Ok(WebOwnerSubject::Account {
-                id: ActorId::new(owned_by_id.into_uuid()),
+                id: ActorEntityUuid::new(EntityUuid::new(web_id.into_uuid())),
             }),
             (false, true) => Ok(WebOwnerSubject::AccountGroup {
-                id: ActorGroupId::new(owned_by_id.into_uuid()),
+                id: ActorGroupId::new(web_id.into_uuid()),
             }),
             (true, true) => Err(Report::new(QueryWebError)
                 .attach_printable("Record exists in both accounts and account_groups")
-                .attach_printable(owned_by_id)),
+                .attach_printable(web_id)),
         }
     }
 }
@@ -1256,7 +1419,7 @@ where
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_accounts(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
     ) -> Result<(), Report<DeletionError>> {
         self.as_client()
             .client()

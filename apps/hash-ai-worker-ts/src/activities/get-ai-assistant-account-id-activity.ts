@@ -1,4 +1,4 @@
-import type { ActorId, OwnedById } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
 import {
   getMachineActorId,
   getWebMachineActorId,
@@ -6,14 +6,14 @@ import {
 import type { GraphApi } from "@local/hash-graph-client";
 
 export const getAiAssistantAccountIdActivity = async (params: {
-  authentication: { actorId: ActorId };
-  grantCreatePermissionForWeb?: OwnedById;
+  authentication: { actorId: ActorEntityUuid };
+  grantCreatePermissionForWeb?: WebId;
   graphApiClient: GraphApi;
-}): Promise<ActorId | null> => {
+}): Promise<ActorEntityUuid | null> => {
   const { authentication, graphApiClient, grantCreatePermissionForWeb } =
     params;
 
-  let aiAssistantAccountId: ActorId;
+  let aiAssistantAccountId: ActorEntityUuid;
 
   try {
     aiAssistantAccountId = await getMachineActorId(
@@ -40,7 +40,7 @@ export const getAiAssistantAccountIdActivity = async (params: {
         { graphApi: graphApiClient },
         authentication,
         {
-          ownedById: grantCreatePermissionForWeb,
+          webId: grantCreatePermissionForWeb,
         },
       );
 

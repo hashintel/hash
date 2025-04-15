@@ -1,7 +1,5 @@
-use hashql_core::{span::SpanId, symbol::Symbol};
+use hashql_core::symbol::Symbol;
 use lexical::{FromLexicalWithOptions as _, ParseFloatOptions, ParseFloatOptionsBuilder, format};
-
-use crate::node::id::NodeId;
 
 pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new().build() {
     Ok(options) => options,
@@ -37,9 +35,6 @@ pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new(
 /// [JSON specification (RFC 8259)]: https://datatracker.ietf.org/doc/html/rfc8259#section-6
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FloatLiteral {
-    pub id: NodeId,
-    pub span: SpanId,
-
     pub value: Symbol,
 }
 
@@ -91,34 +86,16 @@ impl FloatLiteral {
 
 #[cfg(test)]
 mod tests {
-
-    use hashql_core::span::{Span, storage::SpanStorage};
-
     use super::*;
-
-    struct DummySpan;
-
-    impl Span for DummySpan {
-        fn parent_id(&self) -> Option<SpanId> {
-            None
-        }
-    }
 
     fn symbol(value: &str) -> Symbol {
         Symbol::new(value)
-    }
-
-    fn span_id() -> SpanId {
-        let storage = SpanStorage::new();
-        storage.insert(DummySpan)
     }
 
     #[test]
     #[expect(clippy::float_cmp)]
     fn valid_json_f32() {
         let literal = FloatLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("123.456"),
         };
 
@@ -129,8 +106,6 @@ mod tests {
     #[expect(clippy::float_cmp)]
     fn valid_json_f64() {
         let literal = FloatLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("123.456789012345"),
         };
 
@@ -141,8 +116,6 @@ mod tests {
     #[expect(clippy::float_cmp)]
     fn scientific_notation() {
         let literal = FloatLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("1.23e4"),
         };
 
@@ -153,8 +126,6 @@ mod tests {
     #[test]
     fn negative_scientific_notation() {
         let literal = FloatLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("-1.23e-2"),
         };
 
@@ -166,8 +137,6 @@ mod tests {
     #[should_panic(expected = "float literal should be formatted according to JSON specification")]
     fn invalid_float() {
         let literal = FloatLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("not-a-number"),
         };
 

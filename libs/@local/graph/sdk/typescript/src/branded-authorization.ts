@@ -1,9 +1,9 @@
 import type {
+  ActorEntityUuid,
   ActorGroupId,
-  ActorId,
   EntityId,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type {
   DataTypeRelationAndSubject as DataTypeRelationAndSubjectGraph,
@@ -15,7 +15,7 @@ import type {
 } from "@local/hash-graph-client";
 
 type ReplaceAccount<T extends { kind: "account" }> = {
-  [P in keyof T]: P extends "subjectId" ? ActorId : T[P];
+  [P in keyof T]: P extends "subjectId" ? ActorEntityUuid : T[P];
 };
 type ReplaceAccountGroup<T extends { kind: "accountGroup" }> = {
   [P in keyof T]: P extends "subjectId" ? ActorGroupId : T[P];
@@ -40,7 +40,7 @@ export type WebRelationAndSubjectBranded =
 export type WebAuthorizationRelationship = {
   resource: {
     kind: "web";
-    resourceId: OwnedById;
+    resourceId: WebId;
   };
 } & WebRelationAndSubjectBranded;
 

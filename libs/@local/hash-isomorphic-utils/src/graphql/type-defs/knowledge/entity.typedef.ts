@@ -240,7 +240,7 @@ export const entityTypedef = gql`
       """
       The owner of the created entity. Defaults to the user calling the mutation.
       """
-      ownedById: OwnedById
+      webId: WebId
       """
       The type(s) of the new entity.
       """

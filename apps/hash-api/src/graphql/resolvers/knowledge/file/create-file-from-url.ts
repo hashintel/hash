@@ -1,5 +1,5 @@
 import type { Entity } from "@blockprotocol/type-system";
-import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
@@ -42,7 +42,7 @@ export const createFileFromUrl: ResolverFn<
     entity,
     temporalClient: temporal,
     userAccountId: authentication.actorId,
-    webId: extractOwnedByIdFromEntityId(entity.entityId),
+    webId: extractWebIdFromEntityId(entity.entityId),
   });
 
   return entity;

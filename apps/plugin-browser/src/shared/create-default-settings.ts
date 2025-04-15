@@ -1,12 +1,12 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 
 import { defaultProductionRules } from "../pages/popup/popup-contents/action-center/default-production-rules";
 import type { PersistedUserSettings } from "./storage";
 
 export const createDefaultSettings = ({
-  userWebOwnedById,
+  userWebWebId,
 }: {
-  userWebOwnedById: OwnedById;
+  userWebWebId: WebId;
 }): PersistedUserSettings => {
   const automaticInferenceConfig: PersistedUserSettings["automaticInferenceConfig"] =
     {
@@ -14,7 +14,7 @@ export const createDefaultSettings = ({
       displayGroupedBy: "type",
       enabled: false,
       model: "gpt-4-turbo",
-      ownedById: userWebOwnedById,
+      webId: userWebWebId,
       rules:
         FRONTEND_ORIGIN === "https://app.hash.ai" ? defaultProductionRules : [],
     };
@@ -23,7 +23,7 @@ export const createDefaultSettings = ({
     {
       createAs: "draft",
       model: "gpt-4-turbo",
-      ownedById: userWebOwnedById,
+      webId: userWebWebId,
       targetEntityTypeIds: [],
     };
 

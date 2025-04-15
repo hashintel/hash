@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Qualified path
+expression: "std::collections::HashMap"
+info:
+  kind: Ok
+---
+Expr#4294967040@7
+  ExprKind (Path)
+    Path#4294967040@7 (rooted: false)
+      PathSegment#4294967040@2 (name: std)
+      PathSegment#4294967040@4 (name: collections)
+      PathSegment#4294967040@6 (name: HashMap)

@@ -8,12 +8,16 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[<a href="../hashql_diagnostics/index.html">hashql-diagnostics</a>]
-    1[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    2[<a href="../hashql_ast/index.html">hashql-ast</a>]
-    3[hashql-core]
-    class 3 root
-    0 --> 3
-    1 --> 2
+    0[<a href="../hashql_ast">hashql-ast</a>]
+    1[<a href="../hashql_compiletest">hashql-compiletest</a>]
+    2[hashql-core]
+    class 2 root
+    3[<a href="../hashql_diagnostics">hashql-diagnostics</a>]
+    4[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
+    5[<a href="../error_stack">error-stack</a>]
+    0 -.-> 1
+    1 --> 4
     2 --> 3
-    1 --> 0
+    3 --> 5
+    4 --> 0
+    4 --> 2

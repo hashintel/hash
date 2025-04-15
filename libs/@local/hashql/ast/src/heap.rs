@@ -108,6 +108,16 @@ impl Heap {
         )
     }
 
+    /// Moves a vector allocated on the heap into this heap.
+    ///
+    /// The vector is moved into this heap, and the original vector is dropped.
+    pub fn transfer_vec<T>(&self, vec: alloc::vec::Vec<T>) -> Vec<T> {
+        let mut target = Vec::with_capacity_in(vec.len(), self);
+        target.extend(vec);
+
+        target
+    }
+
     /// Creates a new hash map allocated on this heap.
     ///
     /// The capacity is an optional initial capacity for the hash map, a value of [`None`] indicates

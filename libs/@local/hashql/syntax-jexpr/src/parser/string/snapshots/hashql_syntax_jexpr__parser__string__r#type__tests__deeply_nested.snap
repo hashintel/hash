@@ -1,0 +1,32 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Deeply nested expression
+expression: (((Int | String) & Boolean) | Char)
+info:
+  kind: Ok
+---
+Type#4294967040@16
+  TypeKind (Union)
+    UnionType#4294967040@16
+      Type#4294967040@12
+        TypeKind (Intersection)
+          IntersectionType#4294967040@12
+            Type#4294967040@8
+              TypeKind (Union)
+                UnionType#4294967040@8
+                  Type#4294967040@4
+                    TypeKind (Path)
+                      Path#4294967040@4 (rooted: false)
+                        PathSegment#4294967040@3 (name: Int)
+                  Type#4294967040@7
+                    TypeKind (Path)
+                      Path#4294967040@7 (rooted: false)
+                        PathSegment#4294967040@6 (name: String)
+            Type#4294967040@11
+              TypeKind (Path)
+                Path#4294967040@11 (rooted: false)
+                  PathSegment#4294967040@10 (name: Boolean)
+      Type#4294967040@15
+        TypeKind (Path)
+          Path#4294967040@15 (rooted: false)
+            PathSegment#4294967040@14 (name: Char)

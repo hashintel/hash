@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Multi-line comment with decorative asterisks
+expression: "/* * * *\n * comment *\n * * */42"
+---
+42

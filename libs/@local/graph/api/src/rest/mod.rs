@@ -11,7 +11,6 @@ pub mod property_type;
 pub mod status;
 pub mod web;
 
-mod api_resource;
 mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
@@ -31,6 +30,7 @@ use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
 use hash_graph_authorization::{
     AuthorizationApiPool,
+    policies::store::PrincipalStore,
     schema::{
         AccountGroupPermission, DataTypePermission, EntityPermission, EntityTypePermission,
         PropertyTypePermission,
@@ -72,7 +72,7 @@ use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
-    knowledge::entity::EntityId,
+    knowledge::entity::{EntityId, id::EntityUuid},
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
         data_type::DataTypeMetadata,
@@ -84,8 +84,8 @@ use type_system::{
             OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
         },
     },
-    provenance::{ActorId, CreatedById, EditionArchivedById, EditionCreatedById},
-    web::{ActorGroupId, OwnedById},
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, WebId},
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,
@@ -97,7 +97,6 @@ use utoipa::{
 use uuid::Uuid;
 
 use self::{
-    api_resource::RoutedResource as _,
     middleware::span_trace_layer,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{
@@ -111,7 +110,7 @@ use self::{
     },
 };
 
-pub struct AuthenticatedUserHeader(pub ActorId);
+pub struct AuthenticatedUserHeader(pub ActorEntityUuid);
 
 #[async_trait]
 impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
@@ -124,7 +123,7 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
             let uuid = Uuid::from_str(header_string)
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
-            Ok(Self(ActorId::new(uuid)))
+            Ok(Self(ActorEntityUuid::new(EntityUuid::new(uuid))))
         } else {
             Err((
                 StatusCode::BAD_REQUEST,
@@ -144,7 +143,7 @@ pub trait RestApiStore:
 {
     fn load_external_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> impl Future<Output = Result<OntologyTypeMetadata, Response>> + Send;
@@ -162,7 +161,7 @@ where
 {
     async fn load_external_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, Response> {
@@ -196,7 +195,7 @@ fn api_resources<S, A>() -> Vec<Router>
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
+    for<'pool, 'api> S::Store<'pool, A::Api<'api>>: RestApiStore + PrincipalStore,
 {
     vec![
         account::AccountResource::routes::<S, A>(),
@@ -210,12 +209,12 @@ where
 
 fn api_documentation() -> Vec<openapi::OpenApi> {
     vec![
-        account::AccountResource::documentation(),
-        data_type::DataTypeResource::documentation(),
-        property_type::PropertyTypeResource::documentation(),
-        entity_type::EntityTypeResource::documentation(),
-        entity::EntityResource::documentation(),
-        web::WebResource::documentation(),
+        account::AccountResource::openapi(),
+        data_type::DataTypeResource::openapi(),
+        property_type::PropertyTypeResource::openapi(),
+        entity_type::EntityTypeResource::openapi(),
+        entity::EntityResource::openapi(),
+        web::WebResource::openapi(),
     ]
 }
 
@@ -241,7 +240,7 @@ impl QueryLogger {
     }
 
     #[expect(clippy::missing_panics_doc)]
-    pub fn capture(&mut self, actor: ActorId, query: OpenApiQuery<'_>) {
+    pub fn capture(&mut self, actor: ActorEntityUuid, query: OpenApiQuery<'_>) {
         let mut record = serde_json::to_value(query)
             .change_context(QueryLoggingError)
             .expect("query should be serializable");
@@ -365,7 +364,7 @@ pub fn rest_api_router<S, A>(dependencies: RestRouterDependencies<S, A>) -> Rout
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: RestApiStore + PrincipalStore,
 {
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S, A>()
@@ -432,10 +431,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
 
             BaseUrl,
             VersionedUrl,
-            OwnedById,
-            CreatedById,
-            EditionCreatedById,
-            EditionArchivedById,
+            WebId,
             OntologyProvenance,
             OntologyEditionProvenance,
             ProvidedOntologyEditionProvenance,

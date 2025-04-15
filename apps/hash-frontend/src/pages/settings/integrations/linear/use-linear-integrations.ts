@@ -37,7 +37,7 @@ export const useLinearIntegrations = () => {
             multiFilter: {
               filters: [
                 {
-                  field: ["ownedById"],
+                  field: ["webId"],
                   operator: "EQUALS",
                   value: authenticatedUser.accountId,
                 },

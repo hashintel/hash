@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Number with negative exponent
+expression: "1.0e-10"
+---
+1.0e-10

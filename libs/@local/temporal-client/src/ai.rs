@@ -9,7 +9,7 @@ use temporal_sdk_core_protos::{
 use type_system::{
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    provenance::ActorId,
+    provenance::ActorEntityUuid,
 };
 use uuid::Uuid;
 
@@ -18,7 +18,7 @@ use crate::{TemporalClient, WorkflowError};
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AuthenticationContext {
-    actor_id: ActorId,
+    actor_id: ActorEntityUuid,
 }
 
 impl TemporalClient {
@@ -57,7 +57,7 @@ impl TemporalClient {
     /// Returns an error if the workflow fails to start.
     pub async fn start_update_data_type_embeddings_workflow(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         data_types: &[DataTypeWithMetadata],
     ) -> Result<String, Report<WorkflowError>> {
         #[derive(Serialize)]
@@ -86,7 +86,7 @@ impl TemporalClient {
     /// Returns an error if the workflow fails to start.
     pub async fn start_update_property_type_embeddings_workflow(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         property_types: &[PropertyTypeWithMetadata],
     ) -> Result<String, Report<WorkflowError>> {
         #[derive(Serialize)]
@@ -115,7 +115,7 @@ impl TemporalClient {
     /// Returns an error if the workflow fails to start.
     pub async fn start_update_entity_type_embeddings_workflow(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         entity_types: &[EntityTypeWithMetadata],
     ) -> Result<String, Report<WorkflowError>> {
         #[derive(Serialize)]
@@ -144,7 +144,7 @@ impl TemporalClient {
     /// Returns an error if the workflow fails to start.
     pub async fn start_update_entity_embeddings_workflow(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         entities: &[Entity],
     ) -> Result<Vec<String>, Report<WorkflowError>> {
         #[derive(Serialize)]

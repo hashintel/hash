@@ -45,7 +45,7 @@ use type_system::{
         },
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::{ActorId, EditionArchivedById, EditionCreatedById},
+    provenance::ActorEntityUuid,
 };
 
 use crate::store::{
@@ -67,7 +67,7 @@ where
     #[tracing::instrument(level = "debug", skip(property_types, authorization_api, zookie))]
     pub(crate) async fn filter_property_types_by_permission<I, T>(
         property_types: impl IntoIterator<Item = (I, T)> + Send,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         authorization_api: &A,
         zookie: &Zookie<'static>,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
@@ -105,7 +105,7 @@ where
 
     async fn get_property_types_impl(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetPropertyTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<(GetPropertyTypesResponse, Zookie<'static>), Report<QueryError>> {
@@ -209,7 +209,7 @@ where
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
@@ -363,7 +363,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn create_property_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>
     where
@@ -383,7 +383,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id),
+                    created_by_id: actor_id,
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -391,13 +391,13 @@ where
 
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
             let property_type_id = PropertyTypeUuid::from_url(&parameters.schema.id);
-            if let OntologyOwnership::Local { owned_by_id } = &parameters.ownership {
+            if let OntologyOwnership::Local { web_id } = &parameters.ownership {
                 transaction
                     .authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreatePropertyType,
-                        *owned_by_id,
+                        *web_id,
                         Consistency::FullyConsistent,
                     )
                     .await
@@ -408,7 +408,7 @@ where
                 relationships.insert((
                     property_type_id,
                     PropertyTypeRelationAndSubject::Owner {
-                        subject: PropertyTypeOwnerSubject::Web { id: *owned_by_id },
+                        subject: PropertyTypeOwnerSubject::Web { id: *web_id },
                         level: 0,
                     },
                 ));
@@ -525,7 +525,7 @@ where
     //       types anyway.
     async fn count_property_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         mut params: CountPropertyTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         params
@@ -551,7 +551,7 @@ where
 
     async fn get_property_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         mut params: GetPropertyTypesParams<'_>,
     ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
         params
@@ -573,7 +573,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_property_type_subgraph(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         mut params: GetPropertyTypeSubgraphParams<'_>,
     ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
         params
@@ -668,7 +668,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_property_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
@@ -688,7 +688,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: EditionCreatedById::new(actor_id),
+                    created_by_id: actor_id,
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -726,13 +726,13 @@ where
                 .assert_permission()
                 .change_context(UpdateError)?;
 
-            let (ontology_id, owned_by_id, temporal_versioning) = transaction
+            let (ontology_id, web_id, temporal_versioning) = transaction
                 .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
                 .await?;
 
             relationships.extend(
                 iter::once(PropertyTypeRelationAndSubject::Owner {
-                    subject: PropertyTypeOwnerSubject::Web { id: owned_by_id },
+                    subject: PropertyTypeOwnerSubject::Web { id: web_id },
                     level: 0,
                 })
                 .chain(parameters.relationships)
@@ -750,7 +750,7 @@ where
                 .change_context(UpdateError)?;
             let metadata = PropertyTypeMetadata {
                 record_id,
-                ownership: OntologyOwnership::Local { owned_by_id },
+                ownership: OntologyOwnership::Local { web_id },
                 temporal_versioning,
                 provenance,
             };
@@ -834,23 +834,23 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn archive_property_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: ArchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        self.archive_ontology_type(&params.property_type_id, EditionArchivedById::new(actor_id))
+        self.archive_ontology_type(&params.property_type_id, actor_id)
             .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
     async fn unarchive_property_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: UnarchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.unarchive_ontology_type(
             &params.property_type_id,
             &OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
+                created_by_id: actor_id,
                 archived_by_id: None,
                 user_defined: params.provenance,
             },
@@ -861,7 +861,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_property_type_embeddings(
         &mut self,
-        _: ActorId,
+        _: ActorEntityUuid,
         params: UpdatePropertyTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         #[derive(Debug, ToSql)]

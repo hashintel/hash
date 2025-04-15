@@ -1,6 +1,6 @@
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { ActorId, EntityId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
@@ -47,7 +47,7 @@ export const getGoogleAccountById = async ({
   googleAccountId,
   userAccountId,
 }: {
-  userAccountId: ActorId;
+  userAccountId: ActorEntityUuid;
   googleAccountId: string;
   graphApiClient: GraphApi;
 }): Promise<HashEntity<GoogleAccount> | undefined> => {
@@ -56,7 +56,7 @@ export const getGoogleAccountById = async ({
       filter: {
         all: [
           {
-            equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
+            equal: [{ path: ["webId"] }, { parameter: userAccountId }],
           },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
           generateVersionedUrlMatchingFilter(
@@ -108,7 +108,7 @@ export const getTokensForGoogleAccount = async ({
 }: {
   googleAccountEntityId: EntityId;
   graphApiClient: GraphApi;
-  userAccountId: ActorId;
+  userAccountId: ActorEntityUuid;
   vaultClient: VaultClient;
 }): Promise<Auth.Credentials | null> => {
   const secretAndLinkPairs = await getSecretEntitiesForIntegration({

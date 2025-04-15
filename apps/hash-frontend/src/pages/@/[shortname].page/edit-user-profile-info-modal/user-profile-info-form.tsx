@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { Select, TextField } from "@hashintel/design-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
@@ -55,7 +55,7 @@ export const UserProfileInfoForm: FunctionComponent<{
 
   const { archiveEntity } = useBlockProtocolArchiveEntity();
   const { createEntity } = useBlockProtocolCreateEntity(
-    userProfile.accountId as OwnedById,
+    userProfile.accountId as WebId,
   );
 
   const [updateEntity] = useMutation<

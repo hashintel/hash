@@ -1,0 +1,19 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Single index access
+expression: "foo[0]"
+info:
+  kind: Ok
+---
+Expr#4294967040@5
+  ExprKind (Index)
+    IndexExpr#4294967040@5
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: foo)
+      Expr#4294967040@4
+        ExprKind (Literal)
+          LiteralExpr#4294967040@4
+            LiteralKind (Integer)
+              IntegerLiteral (0)

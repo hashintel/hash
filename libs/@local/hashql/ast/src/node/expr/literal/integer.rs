@@ -1,10 +1,9 @@
-use hashql_core::{span::SpanId, symbol::Symbol};
+use hashql_core::symbol::Symbol;
 use lexical::{
     FromLexicalWithOptions as _, ParseIntegerOptions, ParseIntegerOptionsBuilder, format,
 };
 
 use super::float;
-use crate::node::id::NodeId;
 
 const PARSE: ParseIntegerOptions = match ParseIntegerOptionsBuilder::new().build() {
     Ok(options) => options,
@@ -31,9 +30,6 @@ const PARSE: ParseIntegerOptions = match ParseIntegerOptionsBuilder::new().build
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IntegerLiteral {
-    pub id: NodeId,
-    pub span: SpanId,
-
     pub value: Symbol,
 }
 
@@ -151,32 +147,15 @@ impl IntegerLiteral {
 
 #[cfg(test)]
 mod tests {
-    use hashql_core::span::{Span, storage::SpanStorage};
-
     use super::*;
-
-    struct DummySpan;
-
-    impl Span for DummySpan {
-        fn parent_id(&self) -> Option<SpanId> {
-            None
-        }
-    }
 
     fn symbol(value: &str) -> Symbol {
         Symbol::new(value)
     }
 
-    fn span_id() -> SpanId {
-        let storage = SpanStorage::new();
-        storage.insert(DummySpan)
-    }
-
     #[test]
     fn parse_unsigned_integers() {
         let literal = IntegerLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("123"),
         };
 
@@ -190,8 +169,6 @@ mod tests {
     #[test]
     fn parse_signed_integers() {
         let positive = IntegerLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("42"),
         };
 
@@ -202,8 +179,6 @@ mod tests {
         assert_eq!(positive.as_i128(), Some(42));
 
         let negative = IntegerLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("-42"),
         };
 
@@ -217,16 +192,12 @@ mod tests {
     #[test]
     fn unsigned_bounds() {
         let too_large_for_u8 = IntegerLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("256"),
         };
         assert_eq!(too_large_for_u8.as_u8(), None);
         assert_eq!(too_large_for_u8.as_u16(), Some(256));
 
         let max_u8 = IntegerLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("255"),
         };
         assert_eq!(max_u8.as_u8(), Some(255));
@@ -235,16 +206,12 @@ mod tests {
     #[test]
     fn signed_bounds() {
         let too_large_for_i8 = IntegerLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("128"),
         };
         assert_eq!(too_large_for_i8.as_i8(), None);
         assert_eq!(too_large_for_i8.as_i16(), Some(128));
 
         let too_small_for_i8 = IntegerLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("-129"),
         };
         assert_eq!(too_small_for_i8.as_i8(), None);
@@ -255,8 +222,6 @@ mod tests {
     #[expect(clippy::float_cmp)]
     fn float_conversions() {
         let integer = IntegerLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("42"),
         };
 
@@ -267,8 +232,6 @@ mod tests {
     #[test]
     fn invalid_formats() {
         let invalid = IntegerLiteral {
-            id: NodeId::PLACEHOLDER,
-            span: span_id(),
             value: symbol("not_a_number"),
         };
 

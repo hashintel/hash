@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Infer type
+expression: _
+info:
+  kind: Ok
+---
+Type#4294967040@1
+  TypeKind (Infer)

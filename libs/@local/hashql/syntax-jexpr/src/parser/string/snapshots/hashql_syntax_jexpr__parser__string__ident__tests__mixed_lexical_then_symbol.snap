@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Lexical followed by symbol without space
+expression: hello++
+info:
+  kind: Err
+---
+hello++
+     ^

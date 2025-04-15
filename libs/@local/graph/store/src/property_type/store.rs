@@ -12,7 +12,7 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata, PropertyTypeWithMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::ActorId,
+    provenance::ActorEntityUuid,
 };
 
 use crate::{
@@ -145,7 +145,7 @@ pub trait PropertyTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_property_type<R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: CreatePropertyTypeParams<R>,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, Report<InsertionError>>> + Send
     where
@@ -171,7 +171,7 @@ pub trait PropertyTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_property_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>> + Send
     where
@@ -185,7 +185,7 @@ pub trait PropertyTypeStore {
     /// - if the underlying store fails to count the property types.
     fn count_property_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: CountPropertyTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
@@ -196,7 +196,7 @@ pub trait PropertyTypeStore {
     /// - if the requested [`PropertyType`] doesn't exist.
     fn get_property_type_subgraph(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetPropertyTypeSubgraphParams<'_>,
     ) -> impl Future<Output = Result<GetPropertyTypeSubgraphResponse, Report<QueryError>>> + Send;
 
@@ -209,7 +209,7 @@ pub trait PropertyTypeStore {
     /// [`PropertyTypes`]: PropertyType
     fn get_property_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetPropertyTypesParams<'_>,
     ) -> impl Future<Output = Result<GetPropertyTypesResponse, Report<QueryError>>> + Send;
 
@@ -220,7 +220,7 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`] doesn't exist.
     fn update_property_type<R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: UpdatePropertyTypesParams<R>,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, Report<UpdateError>>> + Send
     where
@@ -243,7 +243,7 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`]s do not exist.
     fn update_property_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>> + Send
     where
@@ -257,7 +257,7 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`] doesn't exist.
     fn archive_property_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
 
         params: ArchivePropertyTypeParams<'_>,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
@@ -269,14 +269,14 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`] doesn't exist.
     fn unarchive_property_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
 
         params: UnarchivePropertyTypeParams<'_>,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     fn update_property_type_embeddings(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
 
         params: UpdatePropertyTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;

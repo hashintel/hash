@@ -1,11 +1,11 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   Entity,
   EntityId,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   splitEntityId,
 } from "@blockprotocol/type-system";
 import {
@@ -91,7 +91,11 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
  * Get a Linear user secret by the linear org ID
  */
 export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
-  { userAccountId: ActorId; linearOrgId: string; includeDrafts?: boolean },
+  {
+    userAccountId: ActorEntityUuid;
+    linearOrgId: string;
+    includeDrafts?: boolean;
+  },
   Promise<LinearUserSecret>
 > = async ({ graphApi }, { actorId }, params) => {
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
@@ -101,10 +105,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
       filter: {
         all: [
           {
-            equal: [
-              { path: ["ownedById"] },
-              { parameter: userAccountId as OwnedById },
-            ],
+            equal: [{ path: ["webId"] }, { parameter: userAccountId as WebId }],
           },
           generateVersionedUrlMatchingFilter(
             systemEntityTypes.userSecret.entityTypeId,
@@ -178,9 +179,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
   Promise<string>
 > = async (context, authentication, params) => {
   const { hashWorkspaceEntityId, vaultClient, includeDrafts = false } = params;
-  const [workspaceOwnedById, workspaceUuid] = splitEntityId(
-    hashWorkspaceEntityId,
-  );
+  const [workspaceWebId, workspaceUuid] = splitEntityId(hashWorkspaceEntityId);
 
   const linearIntegrationEntities = await context.graphApi
     .getEntities(authentication.actorId, {
@@ -203,9 +202,9 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
           },
           {
             equal: [
-              { path: ["outgoingLinks", "rightEntity", "ownedById"] },
+              { path: ["outgoingLinks", "rightEntity", "webId"] },
               {
-                parameter: workspaceOwnedById,
+                parameter: workspaceWebId,
               },
             ],
           },
@@ -237,9 +236,9 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
   assertLinearIntegration(integrationEntity);
   const { linearOrgId } = simplifyProperties(integrationEntity.properties);
 
-  const userAccountId = extractOwnedByIdFromEntityId(
+  const userAccountId = extractWebIdFromEntityId(
     integrationEntity.metadata.recordId.entityId,
-  ) as ActorId;
+  ) as ActorEntityUuid;
 
   const secretEntity = await getLinearUserSecretByLinearOrgId(
     context,

@@ -4,7 +4,7 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
@@ -249,13 +249,13 @@ const Page: NextPageWithLayout<PageProps> = () => {
   const page = pageSubgraph ? getRoots(pageSubgraph)[0] : undefined;
 
   const pageEntityId = page?.metadata.recordId.entityId;
-  const pageOwnedById = pageEntityId
-    ? extractOwnedByIdFromEntityId(pageEntityId)
+  const pageWebId = pageEntityId
+    ? extractWebIdFromEntityId(pageEntityId)
     : undefined;
 
   const { data: pageComments } = usePageComments(pageEntityId);
 
-  const { data: accountPages } = useAccountPages(pageOwnedById, true);
+  const { data: accountPages } = useAccountPages(pageWebId, true);
 
   const pageSectionContainerProps: PageSectionContainerProps = {
     pageComments,
@@ -301,7 +301,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
     !page ||
     !pageSubgraph ||
     !pageEntityId ||
-    !pageOwnedById ||
+    !pageWebId ||
     !userPermissionsOnEntities ||
     !contents
   ) {
@@ -498,7 +498,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
                     ) : null}
 
                     <BlockCollection
-                      ownedById={pageOwnedById}
+                      webId={pageWebId}
                       contents={contents}
                       enableCommenting
                       entityId={pageEntityId}

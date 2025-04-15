@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Non-numeric index
+expression: "[abc]"
+info:
+  kind: Err
+---
+[abc]
+ ^
+invalid index

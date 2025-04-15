@@ -112,11 +112,11 @@ export const LinkedEntitySelector = ({
   };
 
   const { uploadFile } = useFileUploads();
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { activeWorkspaceWebId } = useContext(WorkspaceContext);
 
   const onFilesProvided = useCallback(
     async (files: [File, ...File[]]) => {
-      if (!activeWorkspaceOwnedById) {
+      if (!activeWorkspaceWebId) {
         throw new Error("Cannot upload file without active workspace");
       }
 
@@ -147,7 +147,7 @@ export const LinkedEntitySelector = ({
 
           onSelect(upload.createdEntities.fileEntity as HashEntity, label);
         },
-        ownedById: activeWorkspaceOwnedById,
+        webId: activeWorkspaceWebId,
         /**
          * Link creation is handled in the onSelect, since we might need to manage drafts,
          * but we supply linkEntityTypeId so we can track which files are being loaded against which link on an entity
@@ -162,7 +162,7 @@ export const LinkedEntitySelector = ({
       /** Upload error handling is in {@link LinkedWithCell} */
     },
     [
-      activeWorkspaceOwnedById,
+      activeWorkspaceWebId,
       entityId,
       expectedEntityTypes,
       linkEntityTypeId,

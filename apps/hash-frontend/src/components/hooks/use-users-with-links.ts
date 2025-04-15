@@ -2,7 +2,7 @@ import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { ActorId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -26,7 +26,7 @@ import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
 export const useUsersWithLinks = ({
   userAccountIds,
 }: {
-  userAccountIds?: ActorId[];
+  userAccountIds?: ActorEntityUuid[];
 }): {
   loading: boolean;
   users?: User[];

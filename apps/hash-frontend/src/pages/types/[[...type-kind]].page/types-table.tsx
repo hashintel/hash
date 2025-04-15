@@ -27,7 +27,7 @@ import {
 import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
-import { extractOwnedById } from "../../../lib/user-and-org";
+import { extractWebId } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
@@ -210,16 +210,14 @@ export const TypesTable: FunctionComponent<{
     for (const type of types ?? []) {
       const isExternal = isExternalOntologyElementMetadata(type.metadata)
         ? true
-        : !internalWebIds.includes(type.metadata.ownedById);
+        : !internalWebIds.includes(type.metadata.webId);
 
-      const namespaceOwnedById = isExternalOntologyElementMetadata(
-        type.metadata,
-      )
+      const namespaceWebId = isExternalOntologyElementMetadata(type.metadata)
         ? undefined
-        : type.metadata.ownedById;
+        : type.metadata.webId;
 
       const webShortname = namespaces?.find(
-        (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
+        (workspace) => extractWebId(workspace) === namespaceWebId,
       )?.shortname;
 
       const isArchived = isTypeArchived(type);
@@ -484,7 +482,7 @@ export const TypesTable: FunctionComponent<{
       types?.filter(({ metadata }) =>
         isExternalOntologyElementMetadata(metadata)
           ? false
-          : internalWebIds.includes(metadata.ownedById),
+          : internalWebIds.includes(metadata.webId),
       ).length,
     [types, internalWebIds],
   );

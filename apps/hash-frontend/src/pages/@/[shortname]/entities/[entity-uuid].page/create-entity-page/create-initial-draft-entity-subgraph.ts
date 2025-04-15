@@ -2,7 +2,7 @@ import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   generateTimestamp,
 } from "@blockprotocol/type-system";
 import type {
@@ -27,7 +27,7 @@ export const createInitialDraftEntitySubgraph = (
     revisionId: now,
   } satisfies EntityVertexId;
 
-  const creator = extractOwnedByIdFromEntityId(draftEntityVertexId.baseId);
+  const creator = extractWebIdFromEntityId(draftEntityVertexId.baseId);
 
   const serializedEntity: GraphApiEntity = {
     properties: {},
@@ -64,7 +64,7 @@ export const createInitialDraftEntitySubgraph = (
         createdById: creator,
         edition: {
           createdById: creator,
-          actorType: "human",
+          actorType: "user",
           origin: {
             type: "api",
           },

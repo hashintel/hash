@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: if/4 should error out
+[
+  "::kernel::special_form::if",
+  { "#literal": true },
+  { "#literal": true },
+  { "#literal": true },
+  { "#literal": true }
+  //~^ ERROR Remove this argument
+]

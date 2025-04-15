@@ -4,8 +4,8 @@ import {
   type Subgraph,
 } from "@blockprotocol/graph";
 import type {
+  ActorEntityUuid,
   ActorGroupId,
-  ActorId,
   BaseUrl,
   Entity,
   EntityId,
@@ -18,7 +18,7 @@ import type {
 import {
   extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   splitEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
@@ -264,7 +264,7 @@ export const countEntities: ImpureGraphFunction<
  * This function does NOT implement:
  * 1. The ability to get the latest draft version without knowing its id.
  * 2. The ability to get ALL versions of an entity at a given timestamp, i.e. if there is a live and one or more drafts
- *    – use {@link getEntitySubgraphResponse} instead, includeDrafts, and match on its ownedById and uuid
+ *    – use {@link getEntitySubgraphResponse} instead, includeDrafts, and match on its webId and uuid
  *
  * @param params.entityId the id of the entity, in one of the following formats:
  *    - `[webUuid]~[entityUuid]` for the 'live', non-draft version of the entity
@@ -285,14 +285,14 @@ export const getLatestEntityById: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { entityId } = params;
 
-  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
+  const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
   const allFilter: AllFilter["all"] = [
     {
       equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
     },
     {
-      equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+      equal: [{ path: ["webId"] }, { parameter: webId }],
     },
     { equal: [{ path: ["archived"] }, { parameter: false }] },
   ];
@@ -382,14 +382,14 @@ export const canUserReadEntity: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { entityId, includeDrafts } = params;
 
-  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
+  const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
   const allFilter: AllFilter["all"] = [
     {
       equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
     },
     {
-      equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+      equal: [{ path: ["webId"] }, { parameter: webId }],
     },
     { equal: [{ path: ["archived"] }, { parameter: false }] },
   ];
@@ -626,9 +626,9 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
       },
       {
         equal: [
-          { path: ["rightEntity", "ownedById"] },
+          { path: ["rightEntity", "webId"] },
           {
-            parameter: extractOwnedByIdFromEntityId(entityId),
+            parameter: extractWebIdFromEntityId(entityId),
           },
         ],
       },
@@ -700,9 +700,9 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
       },
       {
         equal: [
-          { path: ["leftEntity", "ownedById"] },
+          { path: ["leftEntity", "webId"] },
           {
-            parameter: extractOwnedByIdFromEntityId(entityId),
+            parameter: extractWebIdFromEntityId(entityId),
           },
         ],
       },
@@ -735,9 +735,9 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
       },
       {
         equal: [
-          { path: ["rightEntity", "ownedById"] },
+          { path: ["rightEntity", "webId"] },
           {
-            parameter: extractOwnedByIdFromEntityId(rightEntityId),
+            parameter: extractWebIdFromEntityId(rightEntityId),
           },
         ],
       },
@@ -795,9 +795,9 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
           },
           {
             equal: [
-              { path: ["ownedById"] },
+              { path: ["webId"] },
               {
-                parameter: extractOwnedByIdFromEntityId(
+                parameter: extractWebIdFromEntityId(
                   entity.metadata.recordId.entityId,
                 ),
               },
@@ -836,7 +836,7 @@ export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
 };
 
 export const addEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: ActorId | ActorGroupId },
+  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.addEntityAdministrator(
@@ -847,7 +847,7 @@ export const addEntityAdministrator: ImpureGraphFunction<
 };
 
 export const removeEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: ActorId | ActorGroupId },
+  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeEntityAdministrator(
@@ -858,14 +858,14 @@ export const removeEntityAdministrator: ImpureGraphFunction<
 };
 
 export const addEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: ActorId | ActorGroupId },
+  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.addEntityEditor(actorId, params.entityId, params.editor);
 };
 
 export const removeEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: ActorId | ActorGroupId },
+  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeEntityEditor(actorId, params.entityId, params.editor);

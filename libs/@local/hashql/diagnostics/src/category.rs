@@ -28,6 +28,13 @@ where
     }
 }
 
+pub fn canonical_category_id<C>(category: &C) -> impl Display
+where
+    C: DiagnosticCategory,
+{
+    CanonicalDiagnosticCategoryId(category)
+}
+
 pub(crate) struct CanonicalDiagnosticCategoryName<C>(C);
 
 impl<C> CanonicalDiagnosticCategoryName<C> {
@@ -53,6 +60,21 @@ where
 
         Ok(())
     }
+}
+
+pub fn canonical_category_name<C>(category: &C) -> impl Display
+where
+    C: DiagnosticCategory,
+{
+    CanonicalDiagnosticCategoryName(category)
+}
+
+pub(crate) fn category_display_name(mut category: &dyn DiagnosticCategory) -> Cow<str> {
+    while let Some(child) = category.subcategory() {
+        category = child;
+    }
+
+    category.name()
 }
 
 pub trait DiagnosticCategory {
@@ -92,6 +114,20 @@ impl DiagnosticCategory for &dyn DiagnosticCategory {
 }
 
 impl<C: DiagnosticCategory> DiagnosticCategory for &C {
+    fn id(&self) -> Cow<'_, str> {
+        (**self).id()
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        (**self).name()
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        (**self).subcategory()
+    }
+}
+
+impl<C: DiagnosticCategory + ?Sized> DiagnosticCategory for Box<C> {
     fn id(&self) -> Cow<'_, str> {
         (**self).id()
     }

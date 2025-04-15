@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Empty generics
+expression: "<>"
+info:
+  kind: Err
+---
+<>
+  ^
+invalid generics
+expected `>`

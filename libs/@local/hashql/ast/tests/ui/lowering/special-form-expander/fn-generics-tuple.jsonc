@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: fn/4 tuple generics should compile
+[
+  "::kernel::special_form::fn",
+  { "#tuple": ["T"] },
+  { "#struct": {} },
+  "_",
+  ["+", "a", "b"]
+]

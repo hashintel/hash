@@ -3,11 +3,11 @@ import {
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import type {
-  ActorId,
+  ActorEntityUuid,
   BaseUrl,
-  OwnedById,
   PropertyObjectWithMetadata,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   componentsFromVersionedUrl,
@@ -41,9 +41,9 @@ export const upgradeWebEntities = async ({
   entityTypeBaseUrls,
   migrationState,
   migrateProperties,
-  webOwnedById,
+  webWebId,
 }: {
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   context: ImpureGraphContext<false, true>;
   entityTypeBaseUrls: BaseUrl[];
   migrationState: MigrationState;
@@ -53,10 +53,10 @@ export const upgradeWebEntities = async ({
       previousProperties: PropertyObjectWithMetadata,
     ) => PropertyObjectWithMetadata
   >;
-  webOwnedById: OwnedById;
+  webWebId: WebId;
 }) => {
   const webBotAccountId = await getWebMachineActorId(context, authentication, {
-    ownedById: webOwnedById,
+    webId: webWebId,
   });
 
   const webBotAuthentication = { actorId: webBotAccountId };
@@ -87,9 +87,9 @@ export const upgradeWebEntities = async ({
           },
           {
             equal: [
-              { path: ["ownedById"] },
+              { path: ["webId"] },
               {
-                parameter: webOwnedById,
+                parameter: webWebId,
               },
             ],
           },
@@ -158,7 +158,7 @@ export const upgradeWebEntities = async ({
 
         const temporaryEntityTypePermissionsGranted: Record<
           VersionedUrl,
-          ActorId
+          ActorEntityUuid
         > = {};
 
         /**

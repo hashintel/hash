@@ -18,7 +18,7 @@ import {
   setPageParentPage,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -62,7 +62,7 @@ describe("Page", () => {
     const authentication = { actorId: testUser.accountId };
 
     const blockData = await createEntity<Text>(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       entityTypeIds: [systemEntityTypes.text.entityTypeId],
       properties: {
         value: {
@@ -76,7 +76,7 @@ describe("Page", () => {
     });
 
     return createBlock(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       componentId: "text",
       blockData,
     });
@@ -88,7 +88,7 @@ describe("Page", () => {
     const authentication = { actorId: testUser.accountId };
 
     testPage = await createPage(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       title: "Test Page",
       type: "document",
     });
@@ -107,7 +107,7 @@ describe("Page", () => {
     ]);
 
     testPage2 = await createPage(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       title: "Test Page 2",
       summary: "Test page 2 summary",
       initialBlocks: [initialBlock1, initialBlock2],
@@ -145,7 +145,7 @@ describe("Page", () => {
       graphContext,
       authentication,
       {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
       },
     );
 
@@ -170,7 +170,7 @@ describe("Page", () => {
     const authentication = { actorId: testUser.accountId };
 
     parentPage = await createPage(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       title: "Test Parent Page",
       summary: "Test page summary",
       type: "document",
@@ -214,7 +214,7 @@ describe("Page", () => {
       authentication,
       {
         initialBlocks: [firstBlock],
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         title: "Test Page for Block Manipulation",
         type: "document",
       },

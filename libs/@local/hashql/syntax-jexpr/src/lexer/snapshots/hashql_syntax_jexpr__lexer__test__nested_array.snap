@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Nested arrays
+expression: "[[1, 2], [3, 4]]"
+---
+[ [ 1 , 2 ] , [ 3 , 4 ] ]

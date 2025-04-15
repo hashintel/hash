@@ -1,7 +1,10 @@
 use core::error::Error;
 
 use serde::{Deserialize, Serialize};
-use type_system::{ontology::property_type::PropertyTypeUuid, provenance::ActorId, web::OwnedById};
+use type_system::{
+    knowledge::entity::id::EntityUuid, ontology::property_type::PropertyTypeUuid,
+    provenance::ActorEntityUuid, web::WebId,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -72,10 +75,10 @@ pub enum PropertyTypeSetting {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum PropertyTypeSubject {
-    Web(OwnedById),
+    Web(WebId),
     Setting(PropertyTypeSetting),
     Public,
-    Account(ActorId),
+    Account(ActorEntityUuid),
     AccountGroup(ActorGroupId),
 }
 
@@ -115,7 +118,7 @@ impl Resource for PropertyTypeSubject {
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
             (PropertyTypeSubjectNamespace::Web, PropertyTypeSubjectId::Uuid(uuid)) => {
-                Self::Web(OwnedById::new(uuid))
+                Self::Web(WebId::new(uuid))
             }
             (PropertyTypeSubjectNamespace::Setting, PropertyTypeSubjectId::Setting(setting)) => {
                 Self::Setting(setting)
@@ -125,7 +128,7 @@ impl Resource for PropertyTypeSubject {
                 PropertyTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (PropertyTypeSubjectNamespace::Account, PropertyTypeSubjectId::Uuid(id)) => {
-                Self::Account(ActorId::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (PropertyTypeSubjectNamespace::AccountGroup, PropertyTypeSubjectId::Uuid(id)) => {
                 Self::AccountGroup(ActorGroupId::new(id))
@@ -178,7 +181,7 @@ impl Resource for PropertyTypeSubject {
 pub enum PropertyTypeOwnerSubject {
     Web {
         #[serde(rename = "subjectId")]
-        id: OwnedById,
+        id: WebId,
     },
 }
 
@@ -198,7 +201,7 @@ pub enum PropertyTypeSettingSubject {
 pub enum PropertyTypeEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: ActorId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]

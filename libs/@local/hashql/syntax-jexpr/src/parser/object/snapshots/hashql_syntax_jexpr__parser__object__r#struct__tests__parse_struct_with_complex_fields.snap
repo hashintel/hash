@@ -1,0 +1,39 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/struct.rs
+description: Parses a struct with complex field values
+expression: "{\"#struct\": {\n            \"info\": {\"#struct\": {\n                \"id\": {\"#literal\": 42},\n                \"active\": {\"#literal\": true}\n            }},\n            \"items\": {\"#list\": [\n                {\"#literal\": 1},\n                {\"#literal\": 2}\n            ]}\n        }}"
+---
+Expr#4294967040@25
+  ExprKind (Struct)
+    StructExpr#4294967040@24
+      StructEntry#4294967040@14 (key: info)
+        Expr#4294967040@13
+          ExprKind (Struct)
+            StructExpr#4294967040@12
+              StructEntry#4294967040@6 (key: id)
+                Expr#4294967040@5
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@4
+                      LiteralKind (Integer)
+                        IntegerLiteral (42)
+              StructEntry#4294967040@11 (key: active)
+                Expr#4294967040@10
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@9
+                      LiteralKind (True)
+      StructEntry#4294967040@23 (key: items)
+        Expr#4294967040@22
+          ExprKind (List)
+            ListExpr#4294967040@21
+              ListElement#4294967040@18
+                Expr#4294967040@18
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@17
+                      LiteralKind (Integer)
+                        IntegerLiteral (1)
+              ListElement#4294967040@20
+                Expr#4294967040@20
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@19
+                      LiteralKind (Integer)
+                        IntegerLiteral (2)

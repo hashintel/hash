@@ -5,7 +5,7 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { EntityMetadata, OwnedById } from "@blockprotocol/type-system";
+import type { EntityMetadata, WebId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -40,7 +40,7 @@ export type AccountPagesInfo = {
 };
 
 export const useAccountPages = (
-  ownedById?: OwnedById,
+  webId?: WebId,
   includeArchived?: boolean,
 ): AccountPagesInfo => {
   const { hashInstance } = useHashInstance();
@@ -50,10 +50,10 @@ export const useAccountPages = (
     GetEntitySubgraphQueryVariables
   >(getEntitySubgraphQuery, {
     variables: getAccountPagesVariables({
-      ownedById,
+      webId,
       includeArchived,
     }),
-    skip: !ownedById || !hashInstance?.properties.pagesAreEnabled,
+    skip: !webId || !hashInstance?.properties.pagesAreEnabled,
   });
 
   const pages = useMemo<SimplePage[]>(() => {

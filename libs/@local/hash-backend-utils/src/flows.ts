@@ -1,12 +1,12 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
   EntityUuid,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   splitEntityId,
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
@@ -37,7 +37,7 @@ import type { TemporalClient } from "./temporal.js";
 export const getFlowRunEntityById = async (params: {
   flowRunId: EntityUuid;
   graphApiClient: GraphApi;
-  userAuthentication: { actorId: ActorId };
+  userAuthentication: { actorId: ActorEntityUuid };
 }): Promise<HashEntity<FlowRunEntity> | null> => {
   const { flowRunId, graphApiClient, userAuthentication } = params;
 
@@ -74,7 +74,7 @@ type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
   temporalClient: TemporalClient;
-  userAuthentication: { actorId: ActorId };
+  userAuthentication: { actorId: ActorEntityUuid };
 };
 
 export async function getFlowRunById(
@@ -106,7 +106,7 @@ export async function getFlowRunById({
     return null;
   }
 
-  const webId = extractOwnedByIdFromEntityId(
+  const webId = extractWebIdFromEntityId(
     existingFlowEntity.metadata.recordId.entityId,
   );
 
@@ -149,7 +149,7 @@ type GetFlowRunsFilters = {
 };
 
 type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
-  authentication: { actorId: ActorId };
+  authentication: { actorId: ActorEntityUuid };
   filters: GetFlowRunsFilters;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
@@ -209,10 +209,10 @@ export async function getFlowRuns({
     .then(({ data: response }) => {
       const flowRunIdToOwnedByAndName: Record<
         EntityUuid,
-        { ownedById: OwnedById; name: string }
+        { webId: WebId; name: string }
       > = {};
       for (const entity of response.entities) {
-        const [ownedById, entityUuid] = splitEntityId(
+        const [webId, entityUuid] = splitEntityId(
           entity.metadata.recordId.entityId as EntityId,
         );
 
@@ -220,7 +220,7 @@ export async function getFlowRuns({
           name: (entity.properties as FlowRunEntity["properties"])[
             "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
           ],
-          ownedById,
+          webId,
         };
       }
       return flowRunIdToOwnedByAndName;
@@ -279,7 +279,7 @@ export async function getFlowRuns({
         name: flowDetails.name,
         workflowId: flowRunId,
         temporalClient,
-        webId: flowDetails.ownedById,
+        webId: flowDetails.webId,
       });
       workflows.push(runInfo);
     }
@@ -317,7 +317,7 @@ export async function getFlowRuns({
         name: flowDetails.name,
         workflowId: flowRunId,
         temporalClient,
-        webId: flowDetails.ownedById,
+        webId: flowDetails.webId,
       });
       workflows.push(runInfo);
     }

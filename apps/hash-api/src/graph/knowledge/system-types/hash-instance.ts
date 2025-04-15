@@ -1,4 +1,4 @@
-import type { ActorId, OwnedById } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
@@ -69,7 +69,7 @@ export const createHashInstance: ImpureGraphFunction<
   );
 
   const entity = await createEntity<HashInstanceEntity>(ctx, authentication, {
-    ownedById: hashOrg.accountGroupId as OwnedById,
+    webId: hashOrg.accountGroupId as WebId,
     properties: {
       value: {
         "https://hash.ai/@h/types/property-type/pages-are-enabled/": {
@@ -184,7 +184,7 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
  */
 export const getHashInstanceGroupMembers: ImpureGraphFunction<
   Record<string, never>,
-  Promise<ActorId[]>
+  Promise<ActorEntityUuid[]>
 > = async (ctx, authentication) => {
   const hashInstance = await getHashInstance(ctx, authentication);
 
@@ -208,7 +208,9 @@ export const getHashInstanceGroupMembers: ImpureGraphFunction<
     entityAdmin.subjectId,
   );
 
-  return relations.map((relation) => relation.subject.subjectId as ActorId);
+  return relations.map(
+    (relation) => relation.subject.subjectId as ActorEntityUuid,
+  );
 };
 
 /**

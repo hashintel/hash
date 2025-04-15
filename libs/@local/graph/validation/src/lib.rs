@@ -65,6 +65,7 @@ mod tests {
     use thiserror::Error;
     use type_system::{
         knowledge::{
+            entity::id::EntityUuid,
             property::{
                 Property, PropertyObject, PropertyObjectWithMetadata, PropertyValueWithMetadata,
                 PropertyWithMetadata, metadata::PropertyMetadata,
@@ -86,20 +87,20 @@ mod tests {
                 ProvidedOntologyEditionProvenance,
             },
         },
-        provenance::{ActorId, ActorType, EditionCreatedById, OriginProvenance, OriginType},
-        web::OwnedById,
+        provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
+        web::WebId,
     };
     use uuid::Uuid;
 
     use super::*;
 
     fn generate_data_type_metadata(schema: DataType) -> DataTypeWithMetadata {
-        let actor = ActorId::new(Uuid::nil());
+        let actor = ActorEntityUuid::new(EntityUuid::new(Uuid::nil()));
         DataTypeWithMetadata {
             metadata: DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(schema.id.clone()),
                 ownership: OntologyOwnership::Local {
-                    owned_by_id: OwnedById::new(actor.into_uuid()),
+                    web_id: WebId::new(actor.into_uuid()),
                 },
                 temporal_versioning: OntologyTemporalMetadata {
                     transaction_time: Interval::new(
@@ -109,10 +110,10 @@ mod tests {
                 },
                 provenance: OntologyProvenance {
                     edition: OntologyEditionProvenance {
-                        created_by_id: EditionCreatedById::new(actor),
+                        created_by_id: actor,
                         archived_by_id: None,
                         user_defined: ProvidedOntologyEditionProvenance {
-                            actor_type: ActorType::Human,
+                            actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },

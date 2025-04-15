@@ -21,8 +21,8 @@
   },
   "dependencies": {
     "@babel/core": "7.26.10",
-    "@babel/eslint-parser": "7.26.10",
-    "@eslint/compat": "1.2.7",
+    "@babel/eslint-parser": "7.27.0",
+    "@eslint/compat": "1.2.8",
     "@eslint/eslintrc": "3.3.1",
     "effect": "3.13.11",
     "eslint": "9.20.1",
@@ -43,7 +43,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/babel__core": "^7",
     "@types/eslint__eslintrc": "2.1.2",
-    "@types/node": "22.13.14",
+    "@types/node": "22.14.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.3"
   }

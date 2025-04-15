@@ -1,7 +1,7 @@
 import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
-import type { EntityId, OwnedById } from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import type { BoxProps } from "@mui/material";
@@ -24,7 +24,7 @@ type BlockCollectionProps = {
   enableCommenting?: boolean;
   readonly: boolean;
   autoFocus?: boolean;
-  ownedById: OwnedById;
+  webId: WebId;
   entityId: EntityId;
   sx?: BoxProps["sx"];
 };
@@ -40,7 +40,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   readonly,
   enableCommenting = false,
   autoFocus = true,
-  ownedById,
+  webId,
   entityId,
   sx,
 }) => {
@@ -95,7 +95,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
       getLastSavedValue: () =>
         currentContents.current.map((contentItem) => contentItem.rightEntity),
       isCommentingEnabled: enableCommenting,
-      ownedById,
+      webId,
       pageEntityId: entityId,
       pageTitleRef,
       readonly,
@@ -129,7 +129,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
       prosemirrorSetup.current = null;
     };
   }, [
-    ownedById,
+    webId,
     currentBlocks,
     entityId,
     renderPortal,

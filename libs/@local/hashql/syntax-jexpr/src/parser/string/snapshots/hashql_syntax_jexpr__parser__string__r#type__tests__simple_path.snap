@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Simple path type
+expression: Int
+info:
+  kind: Ok
+---
+Type#4294967040@3
+  TypeKind (Path)
+    Path#4294967040@3 (rooted: false)
+      PathSegment#4294967040@2 (name: Int)

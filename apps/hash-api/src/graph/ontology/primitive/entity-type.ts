@@ -5,9 +5,9 @@ import type {
   EntityTypeWithMetadata,
   OntologyTemporalMetadata,
   OntologyTypeRecordId,
-  OwnedById,
   ProvidedOntologyEditionProvenance,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   ENTITY_TYPE_META_SCHEMA,
@@ -128,16 +128,16 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
 /**
  * Create an entity type.
  *
- * @param params.ownedById - the id of the account who owns the entity type
+ * @param params.webId - the id of the account who owns the entity type
  * @param [params.webShortname] – the shortname of the web that owns the entity type, if the web entity does not yet
  *   exist.
- *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
+ *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the webId.
  * @param params.schema - the `EntityType`
  * @param params.actorId - the id of the account that is creating the entity type
  */
 export const createEntityType: ImpureGraphFunction<
   {
-    ownedById: OwnedById;
+    webId: WebId;
     schema: ConstructEntityTypeParams;
     webShortname?: string;
     relationships: EntityTypeRelationAndSubject[];
@@ -145,12 +145,12 @@ export const createEntityType: ImpureGraphFunction<
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname } = params;
+  const { webId, webShortname } = params;
 
   const shortname =
     webShortname ??
     (await getWebShortname(ctx, authentication, {
-      accountOrAccountGroupId: ownedById,
+      accountOrAccountGroupId: webId,
     }));
 
   const entityTypeId = generateTypeId({
@@ -171,7 +171,7 @@ export const createEntityType: ImpureGraphFunction<
   const { data: metadata } = await graphApi.createEntityType(
     authentication.actorId,
     {
-      ownedById,
+      webId,
       schema,
       relationships: params.relationships,
       provenance: {

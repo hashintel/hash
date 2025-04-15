@@ -5,6 +5,10 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
+    policies::store::{
+        CreateWebParameter, PrincipalStore,
+        error::{GetSystemAccountError, WebCreationError},
+    },
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
         EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeViewerSubject,
@@ -71,8 +75,8 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorId, ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId, OriginProvenance, OriginType},
+    web::WebId,
 };
 
 use crate::fetcher::{FetchedOntologyType, FetcherClient};
@@ -81,7 +85,7 @@ pub trait TypeFetcher {
     /// Fetches the provided type reference and inserts it to the Graph.
     fn insert_external_ontology_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         reference: OntologyTypeReference<'_>,
     ) -> impl Future<Output = Result<OntologyTypeMetadata, Report<InsertionError>>> + Send;
 }
@@ -161,6 +165,26 @@ where
 pub struct FetchingStore<S, A> {
     store: S,
     connection_info: Option<TypeFetcherConnectionInfo<A>>,
+}
+
+impl<S, A> PrincipalStore for FetchingStore<S, A>
+where
+    S: PrincipalStore + Send,
+    A: Send,
+{
+    async fn get_or_create_system_account(
+        &mut self,
+    ) -> Result<MachineId, Report<GetSystemAccountError>> {
+        self.store.get_or_create_system_account().await
+    }
+
+    async fn create_web(
+        &mut self,
+        actor: ActorId,
+        parameter: CreateWebParameter,
+    ) -> Result<WebId, Report<WebCreationError>> {
+        self.store.create_web(actor, parameter).await
+    }
 }
 
 const DATA_TYPE_RELATIONSHIPS: [DataTypeRelationAndSubject; 1] =
@@ -251,7 +275,7 @@ where
 {
     async fn contains_ontology_type(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         ontology_type_reference: OntologyTypeReference<'_>,
     ) -> Result<bool, Report<QueryError>> {
         let url = ontology_type_reference.url();
@@ -332,7 +356,7 @@ where
     #[tracing::instrument(level = "trace", skip(self, ontology_type))]
     async fn collect_external_ontology_types<'o, T: OntologyTypeSchema + Sync>(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         ontology_type: &'o T,
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<Vec<OntologyTypeReference<'o>>, Report<QueryError>> {
@@ -354,7 +378,7 @@ where
     #[tracing::instrument(level = "debug", skip(self, ontology_type_references))]
     async fn fetch_external_ontology_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         ontology_type_references: impl IntoIterator<Item = VersionedUrl> + Send,
         fetch_behavior: FetchBehavior,
         bypassed_types: &HashSet<&VersionedUrl>,
@@ -482,7 +506,7 @@ where
     #[tracing::instrument(level = "debug", skip(self, ontology_types))]
     async fn insert_external_types<'o, T: OntologyTypeSchema + Sync + 'o>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         ontology_types: impl IntoIterator<Item = &'o T, IntoIter: Send> + Send,
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<(), Report<InsertionError>> {
@@ -589,7 +613,7 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_external_types_by_reference(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         reference: OntologyTypeReference<'_>,
         on_conflict: ConflictBehavior,
         fetch_behavior: FetchBehavior,
@@ -710,7 +734,7 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_external_ontology_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, Report<InsertionError>> {
         self.insert_external_types_by_reference(
@@ -802,7 +826,7 @@ where
 {
     async fn insert_account_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: InsertAccountIdParams,
     ) -> Result<(), Report<AccountInsertionError>> {
         self.store.insert_account_id(actor_id, params).await
@@ -810,7 +834,7 @@ where
 
     async fn insert_account_group_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: InsertAccountGroupIdParams,
     ) -> Result<(), Report<AccountGroupInsertionError>> {
         self.store.insert_account_group_id(actor_id, params).await
@@ -818,17 +842,17 @@ where
 
     async fn insert_web_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: InsertWebIdParams,
     ) -> Result<(), Report<WebInsertionError>> {
         self.store.insert_web_id(actor_id, params).await
     }
 
-    async fn identify_owned_by_id(
+    async fn identify_web_id(
         &self,
-        owned_by_id: OwnedById,
+        web_id: WebId,
     ) -> Result<WebOwnerSubject, Report<QueryWebError>> {
-        self.store.identify_owned_by_id(owned_by_id).await
+        self.store.identify_web_id(web_id).await
     }
 }
 
@@ -839,7 +863,7 @@ where
 {
     async fn create_data_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<InsertionError>>
     where
@@ -875,7 +899,7 @@ where
 
     async fn count_data_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: CountDataTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         self.store.count_data_types(actor_id, params).await
@@ -883,7 +907,7 @@ where
 
     async fn get_data_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetDataTypesParams<'_>,
     ) -> Result<GetDataTypesResponse, Report<QueryError>> {
         self.store.get_data_types(actor_id, params).await
@@ -891,7 +915,7 @@ where
 
     async fn get_data_type_subgraph(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetDataTypeSubgraphParams<'_>,
     ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
         self.store.get_data_type_subgraph(actor_id, params).await
@@ -899,7 +923,7 @@ where
 
     async fn update_data_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
@@ -936,7 +960,7 @@ where
 
     async fn archive_data_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: ArchiveDataTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.archive_data_type(actor_id, params).await
@@ -944,7 +968,7 @@ where
 
     async fn unarchive_data_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.unarchive_data_type(actor_id, params).await
@@ -952,7 +976,7 @@ where
 
     async fn update_data_type_embeddings(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         self.store
@@ -962,7 +986,7 @@ where
 
     async fn get_data_type_conversion_targets(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetDataTypeConversionTargetsParams,
     ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
         self.store
@@ -982,7 +1006,7 @@ where
 {
     async fn create_property_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>
     where
@@ -1018,7 +1042,7 @@ where
 
     async fn count_property_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: CountPropertyTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         self.store.count_property_types(actor_id, params).await
@@ -1026,7 +1050,7 @@ where
 
     async fn get_property_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetPropertyTypesParams<'_>,
     ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
         self.store.get_property_types(actor_id, params).await
@@ -1034,7 +1058,7 @@ where
 
     async fn get_property_type_subgraph(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetPropertyTypeSubgraphParams<'_>,
     ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
         self.store
@@ -1044,7 +1068,7 @@ where
 
     async fn update_property_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
@@ -1081,7 +1105,7 @@ where
 
     async fn archive_property_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
 
         params: ArchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
@@ -1090,7 +1114,7 @@ where
 
     async fn unarchive_property_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
 
         params: UnarchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
@@ -1099,7 +1123,7 @@ where
 
     async fn update_property_type_embeddings(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
 
         params: UpdatePropertyTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
@@ -1116,7 +1140,7 @@ where
 {
     async fn create_entity_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<InsertionError>>
     where
@@ -1152,7 +1176,7 @@ where
 
     async fn count_entity_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: CountEntityTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         self.store.count_entity_types(actor_id, params).await
@@ -1160,7 +1184,7 @@ where
 
     async fn get_entity_types(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetEntityTypesParams<'_>,
     ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
         self.store.get_entity_types(actor_id, params).await
@@ -1168,7 +1192,7 @@ where
 
     async fn get_closed_multi_entity_types<I, J>(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         entity_type_ids: I,
         temporal_axes: QueryTemporalAxesUnresolved,
         include_resolved: Option<IncludeResolvedEntityTypeOption>,
@@ -1189,7 +1213,7 @@ where
 
     async fn get_entity_type_subgraph(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetEntityTypeSubgraphParams<'_>,
     ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
         self.store.get_entity_type_subgraph(actor_id, params).await
@@ -1197,7 +1221,7 @@ where
 
     async fn update_entity_types<P, R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<UpdateError>>
     where
@@ -1234,7 +1258,7 @@ where
 
     async fn archive_entity_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
 
         params: ArchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
@@ -1243,7 +1267,7 @@ where
 
     async fn unarchive_entity_type(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
 
         params: UnarchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
@@ -1252,7 +1276,7 @@ where
 
     async fn update_entity_type_embeddings(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
 
         params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
@@ -1273,7 +1297,7 @@ where
 {
     async fn create_entities<R>(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: Vec<CreateEntityParams<R>>,
     ) -> Result<Vec<Entity>, Report<InsertionError>>
     where
@@ -1303,7 +1327,7 @@ where
 
     async fn validate_entities(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> HashMap<usize, EntityValidationReport> {
@@ -1314,7 +1338,7 @@ where
 
     async fn get_entities(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetEntitiesParams<'_>,
     ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
         self.store.get_entities(actor_id, params).await
@@ -1322,7 +1346,7 @@ where
 
     async fn get_entity_subgraph(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: GetEntitySubgraphParams<'_>,
     ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
         self.store.get_entity_subgraph(actor_id, params).await
@@ -1330,7 +1354,7 @@ where
 
     async fn get_entity_by_id(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -1342,7 +1366,7 @@ where
 
     async fn count_entities(
         &self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: CountEntitiesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         self.store.count_entities(actor_id, params).await
@@ -1350,7 +1374,7 @@ where
 
     async fn patch_entity(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: PatchEntityParams,
     ) -> Result<Entity, Report<UpdateError>> {
         for entity_type_id in &params.entity_type_ids {
@@ -1372,7 +1396,7 @@ where
 
     async fn update_entity_embeddings(
         &mut self,
-        actor_id: ActorId,
+        actor_id: ActorEntityUuid,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         self.store.update_entity_embeddings(actor_id, params).await

@@ -1,0 +1,20 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Multi-field struct
+expression: "(name: String, age: Int)"
+info:
+  kind: Ok
+---
+Type#4294967040@11
+  TypeKind (Struct)
+    StructType#4294967040@11
+      StructField#4294967040@5 (name: name)
+        Type#4294967040@4
+          TypeKind (Path)
+            Path#4294967040@4 (rooted: false)
+              PathSegment#4294967040@3 (name: String)
+      StructField#4294967040@10 (name: age)
+        Type#4294967040@9
+          TypeKind (Path)
+            Path#4294967040@9 (rooted: false)
+              PathSegment#4294967040@8 (name: Int)

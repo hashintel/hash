@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Unclosed backtick (invalid)
+expression: "`unclosed"
+info:
+  kind: Err
+---
+`unclosed
+ ^
+invalid identifier
+expected http(s) url with trailing `/`

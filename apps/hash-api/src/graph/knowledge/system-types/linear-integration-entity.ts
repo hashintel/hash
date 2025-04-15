@@ -4,14 +4,14 @@ import {
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import type {
-  ActorId,
+  ActorEntityUuid,
   BaseUrl,
   Entity,
   EntityId,
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -123,7 +123,11 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
  * Get a linear integration by the linear org ID
  */
 export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
-  { userAccountId: ActorId; linearOrgId: string; includeDrafts?: boolean },
+  {
+    userAccountId: ActorEntityUuid;
+    linearOrgId: string;
+    includeDrafts?: boolean;
+  },
   Promise<LinearIntegration | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
@@ -132,7 +136,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
       filter: {
         all: [
           {
-            equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
+            equal: [{ path: ["webId"] }, { parameter: userAccountId }],
           },
           generateVersionedUrlMatchingFilter(
             systemEntityTypes.linearIntegration.entityTypeId,
@@ -346,7 +350,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     });
   } else {
     await createLinkEntity<SyncLinearDataWith>(context, authentication, {
-      ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
+      webId: extractWebIdFromEntityId(linearIntegrationEntityId),
       properties,
       linkData: {
         leftEntityId: linearIntegrationEntityId,

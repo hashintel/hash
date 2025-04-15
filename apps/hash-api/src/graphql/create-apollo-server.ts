@@ -71,7 +71,7 @@ export const createApolloServer = ({
         actorId: getActorIdFromRequest(ctx.req),
       },
       provenance: {
-        actorType: "human",
+        actorType: "user",
         origin: {
           type: getHashClientTypeFromRequest(ctx.req) ?? "api",
           userAgent: ctx.req.headers["user-agent"],

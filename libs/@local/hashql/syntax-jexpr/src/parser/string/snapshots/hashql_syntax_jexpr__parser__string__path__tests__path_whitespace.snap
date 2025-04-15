@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/path.rs
+description: Whitespace around path separator
+expression: "foo :: bar"
+info:
+  kind: Ok
+---
+Path#4294967040@5 (rooted: false)
+  PathSegment#4294967040@2 (name: foo)
+  PathSegment#4294967040@4 (name: bar)

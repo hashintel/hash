@@ -1,8 +1,8 @@
 import type {
-  ActorId,
+  ActorEntityUuid,
   EntityId,
-  OwnedById,
   ProvidedEntityEditionProvenance,
+  WebId,
 } from "@blockprotocol/type-system";
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type {
@@ -35,7 +35,7 @@ type CreateUserSecretParams<T extends object> = {
    * The bot that will manage the secret, e.g. update, archive, upgrade it.
    * This is the only account that will have edit permissions for the secret.
    */
-  managingBotAccountId: ActorId;
+  managingBotAccountId: ActorEntityUuid;
   secretData: T;
   /**
    * The rest of the path to the secret in the vault, after the standardized system prefixes.
@@ -53,7 +53,7 @@ type CreateUserSecretParams<T extends object> = {
   /**
    * The user that owns the secret. The user will have read access to the secret.
    */
-  userAccountId: ActorId;
+  userAccountId: ActorEntityUuid;
   vaultClient: VaultClient;
 };
 
@@ -182,7 +182,7 @@ export const createUserSecret = async <
     authentication,
     {
       entityTypeIds: [systemEntityTypes.userSecret.entityTypeId],
-      ownedById: userAccountId as OwnedById,
+      webId: userAccountId as WebId,
       properties: secretMetadata,
       relationships: botEditorUserViewerOnly,
     },
@@ -193,7 +193,7 @@ export const createUserSecret = async <
     { graphApi, provenance },
     authentication,
     {
-      ownedById: userAccountId as OwnedById,
+      webId: userAccountId as WebId,
       properties: { value: {} },
       linkData: {
         leftEntityId: sourceIntegrationEntityId,

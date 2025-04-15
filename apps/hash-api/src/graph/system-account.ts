@@ -1,19 +1,10 @@
-import {
-  type ActorId,
-  versionedUrlFromComponents,
-} from "@blockprotocol/type-system";
+import type { MachineId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { createAccount } from "./account-permission-management";
 import type { ImpureGraphContext } from "./context-types";
-import { getEntityTypeById } from "./ontology/primitive/entity-type";
 
 // eslint-disable-next-line import/no-mutable-exports
-export let systemAccountId: ActorId;
-
-const authentication = { actorId: publicUserAccountId };
+export let systemAccountId: MachineId;
 
 /**
  * Ensure the `systemAccountId` exists by fetching it or creating it. Note this
@@ -25,27 +16,9 @@ export const ensureHashSystemAccountExists = async (params: {
 }) => {
   const { logger, context } = params;
 
-  try {
-    // The system account is the creator of the HASH system types
-    const orgEntityType = await getEntityTypeById(context, authentication, {
-      /**
-       * We want to use the first version of the `Organization` entity type,
-       * so that the system account can be determined in early migration
-       * steps where only the first version is available.
-       */
-      entityTypeId: versionedUrlFromComponents(
-        systemEntityTypes.organization.entityTypeBaseUrl,
-        1,
-      ),
-    });
+  systemAccountId = await context.graphApi
+    .getOrCreateSystemAccount()
+    .then(({ data: machineId }) => machineId as MachineId);
 
-    systemAccountId = orgEntityType.metadata.provenance.edition.createdById;
-
-    logger.debug(`Using existing system account id: ${systemAccountId}`);
-  } catch {
-    // We don't have any system types yet, so we need to create the system account, which will create them
-
-    systemAccountId = await createAccount(context, authentication, {});
-    logger.info(`Created system user account id: ${systemAccountId}`);
-  }
+  logger.info(`Using system account ${systemAccountId}`);
 };

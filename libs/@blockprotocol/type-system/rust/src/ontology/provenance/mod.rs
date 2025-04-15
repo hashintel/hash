@@ -20,10 +20,8 @@ use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use time::OffsetDateTime;
 
 use crate::{
-    provenance::{
-        ActorType, EditionArchivedById, EditionCreatedById, OriginProvenance, SourceProvenance,
-    },
-    web::OwnedById,
+    provenance::{ActorEntityUuid, ActorType, OriginProvenance, SourceProvenance},
+    web::WebId,
 };
 
 /// Specifies whether an ontology type is owned locally or fetched from a remote source.
@@ -40,7 +38,7 @@ pub enum OntologyOwnership {
     #[serde(rename_all = "camelCase")]
     Local {
         /// The ID of the web that owns this ontology type locally
-        owned_by_id: OwnedById,
+        web_id: WebId,
     },
 
     /// The ontology type was fetched from a remote source.
@@ -76,10 +74,10 @@ pub struct ProvidedOntologyEditionProvenance {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OntologyEditionProvenance {
-    pub created_by_id: EditionCreatedById,
+    pub created_by_id: ActorEntityUuid,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub archived_by_id: Option<EditionArchivedById>,
+    pub archived_by_id: Option<ActorEntityUuid>,
     #[serde(flatten)]
     pub user_defined: ProvidedOntologyEditionProvenance,
 }

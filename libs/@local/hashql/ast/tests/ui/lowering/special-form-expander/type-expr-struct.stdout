@@ -1,0 +1,20 @@
+Expr#4294967040@26
+  ExprKind (Is)
+    IsExpr#4294967040@26
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@8
+            LiteralKind (True)
+      Type#4294967040@24
+        TypeKind (Struct)
+          StructType#4294967040@24
+            StructField#4294967040@16 (name: name)
+              Type#4294967040@15
+                TypeKind (Path)
+                  Path#4294967040@15 (rooted: false)
+                    PathSegment#4294967040@14 (name: Name)
+            StructField#4294967040@23 (name: birthday)
+              Type#4294967040@22
+                TypeKind (Path)
+                  Path#4294967040@22 (rooted: false)
+                    PathSegment#4294967040@21 (name: Date)

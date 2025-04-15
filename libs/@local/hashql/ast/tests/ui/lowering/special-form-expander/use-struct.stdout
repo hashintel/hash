@@ -1,0 +1,12 @@
+Expr#4294967040@30
+  ExprKind (Use)
+    UseExpr#4294967040@30
+      Path#4294967040@11 (rooted: true)
+        PathSegment#4294967040@10 (name: math)
+      UseKind (Named)
+        UseBinding#4294967040@18 (name: x, alias: y)
+        UseBinding#4294967040@23 (name: z)
+      Expr#4294967040@29
+        ExprKind (Path)
+          Path#4294967040@29 (rooted: false)
+            PathSegment#4294967040@28 (name: x)

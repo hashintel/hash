@@ -9,9 +9,8 @@ use error_stack::{Report, ResultExt as _};
 
 use super::{
     PolicyValidator,
-    principal::{machine::Machine, user::User, web::WebTeam},
+    principal::{Actor, group::ActorGroup, role::Role},
     resource::{EntityResource, EntityTypeResource},
-    store::Role,
 };
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -20,7 +19,7 @@ pub enum ContextError {
     TransitiveClosureError,
 }
 
-#[derive(Default)]
+#[derive(Default, derive_more::Display)]
 pub struct Context {
     entities: Entities,
 }
@@ -44,24 +43,28 @@ pub struct ContextBuilder {
 }
 
 impl ContextBuilder {
-    pub fn add_machine(&mut self, machine: &Machine) {
-        self.entities.push(machine.to_cedar_entity());
+    /// Adds an actor to the context for policy evaluation.
+    ///
+    /// This allows the actor to be identified as a principal during authorization,
+    /// making it available for matching against principal constraints in policies.
+    pub fn add_actor(&mut self, actor: &Actor) {
+        self.entities.push(actor.to_cedar_entity());
     }
 
-    pub fn add_user(&mut self, user: &User) {
-        self.entities.push(user.to_cedar_entity());
+    /// Adds an actor group to the context for policy evaluation.
+    ///
+    /// This allows policies associated with the actor group to be considered during authorization,
+    /// making the actor group available as a potential principal in the Cedar evaluation context.
+    pub fn add_actor_group(&mut self, actor_group: &ActorGroup) {
+        self.entities.push(actor_group.to_cedar_entity());
     }
 
-    pub fn add_web_team(&mut self, web_team: &WebTeam) {
-        self.entities.push(web_team.to_cedar_entity());
-    }
-
+    /// Adds a role to the context for policy evaluation.
+    ///
+    /// This allows policies associated with the role to be considered during authorization,
+    /// enabling role-based access control as part of the Cedar evaluation context.
     pub fn add_role(&mut self, role: &Role) {
-        match role {
-            Role::Web(web_role) => self.entities.push(web_role.to_cedar_entity()),
-            Role::Team(team_role) => self.entities.push(team_role.to_cedar_entity()),
-            Role::WebTeam(web_team_role) => self.entities.extend(web_team_role.to_cedar_entities()),
-        }
+        self.entities.push(role.to_cedar_entity());
     }
 
     pub fn add_entity(&mut self, entity: &EntityResource) {

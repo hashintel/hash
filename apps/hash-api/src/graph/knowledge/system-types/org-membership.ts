@@ -1,5 +1,5 @@
-import type { ActorId, EntityId } from "@blockprotocol/type-system";
-import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -60,8 +60,8 @@ export const createOrgMembership: ImpureGraphFunction<
   },
   Promise<OrgMembership>
 > = async (ctx, authentication, { userEntityId, orgEntityId }) => {
-  const userActorId = extractOwnedByIdFromEntityId(userEntityId) as ActorId;
-  const orgActorGroupId = extractOwnedByIdFromEntityId(orgEntityId);
+  const userActorId = extractWebIdFromEntityId(userEntityId);
+  const orgActorGroupId = extractWebIdFromEntityId(orgEntityId);
 
   await ctx.graphApi.addAccountGroupMember(
     authentication.actorId,
@@ -72,7 +72,7 @@ export const createOrgMembership: ImpureGraphFunction<
   let linkEntity;
   try {
     linkEntity = await createLinkEntity<IsMemberOf>(ctx, authentication, {
-      ownedById: orgActorGroupId,
+      webId: orgActorGroupId,
       properties: { value: {} },
       linkData: {
         leftEntityId: userEntityId,
@@ -86,8 +86,8 @@ export const createOrgMembership: ImpureGraphFunction<
   } catch (error) {
     await ctx.graphApi.removeAccountGroupMember(
       authentication.actorId,
-      extractOwnedByIdFromEntityId(orgEntityId),
-      extractOwnedByIdFromEntityId(userEntityId),
+      extractWebIdFromEntityId(orgEntityId),
+      extractWebIdFromEntityId(userEntityId),
     );
 
     throw error;

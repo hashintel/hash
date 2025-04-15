@@ -1,0 +1,27 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
+description: Parses a labeled argument containing nested labeled arguments
+expression: "[\"func\", {\":config\": [\"setup\", {\":nested\": {\"#literal\": true}}]}]"
+---
+Expr#4294967040@17
+  ExprKind (Call)
+    CallExpr#4294967040@17
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: func)
+      LabeledArgument#4294967040@16 (label: config)
+        Argument#4294967040@15
+          Expr#4294967040@15
+            ExprKind (Call)
+              CallExpr#4294967040@15
+                Expr#4294967040@9
+                  ExprKind (Path)
+                    Path#4294967040@9 (rooted: false)
+                      PathSegment#4294967040@8 (name: setup)
+                LabeledArgument#4294967040@14 (label: nested)
+                  Argument#4294967040@13
+                    Expr#4294967040@13
+                      ExprKind (Literal)
+                        LiteralExpr#4294967040@12
+                          LiteralKind (True)

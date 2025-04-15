@@ -1,0 +1,59 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/tuple.rs
+description: Parses a tuple with complex nested elements
+expression: "{\"#tuple\": [\n            [\"add\", {\"#literal\": 1}, {\"#literal\": 2}],\n            {\"#list\": [{\"#literal\": \"a\"}, {\"#literal\": \"b\"}]},\n            {\"#dict\": {\"key\": {\"#literal\": 42}}}\n        ]}"
+---
+Expr#4294967040@22
+  ExprKind (Tuple)
+    TupleExpr#4294967040@21
+      TupleElement#4294967040@8
+        Expr#4294967040@8
+          ExprKind (Call)
+            CallExpr#4294967040@8
+              Expr#4294967040@3
+                ExprKind (Path)
+                  Path#4294967040@3 (rooted: false)
+                    PathSegment#4294967040@2 (name: add)
+              Argument#4294967040@5
+                Expr#4294967040@5
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@4
+                      LiteralKind (Integer)
+                        IntegerLiteral (1)
+              Argument#4294967040@7
+                Expr#4294967040@7
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@6
+                      LiteralKind (Integer)
+                        IntegerLiteral (2)
+      TupleElement#4294967040@14
+        Expr#4294967040@14
+          ExprKind (List)
+            ListExpr#4294967040@13
+              ListElement#4294967040@10
+                Expr#4294967040@10
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@9
+                      LiteralKind (String)
+                        StringLiteral (a)
+              ListElement#4294967040@12
+                Expr#4294967040@12
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@11
+                      LiteralKind (String)
+                        StringLiteral (b)
+      TupleElement#4294967040@20
+        Expr#4294967040@20
+          ExprKind (Dict)
+            DictExpr#4294967040@19
+              DictEntry#4294967040@18
+                Expr#4294967040@15
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@15
+                      LiteralKind (String)
+                        StringLiteral (key)
+                Expr#4294967040@17
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@16
+                      LiteralKind (Integer)
+                        IntegerLiteral (42)

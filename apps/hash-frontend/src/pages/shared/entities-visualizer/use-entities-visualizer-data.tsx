@@ -1,10 +1,6 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  BaseUrl,
-  OwnedById,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
@@ -50,7 +46,7 @@ export const useEntitiesVisualizerData = (params: {
   entityTypeIds?: VersionedUrl[];
   includeArchived: boolean;
   limit?: number;
-  ownedByIds?: OwnedById[];
+  webIds?: WebId[];
   sort?: EntityQuerySortingRecord;
 }): EntitiesVisualizerData => {
   const {
@@ -60,7 +56,7 @@ export const useEntitiesVisualizerData = (params: {
     entityTypeIds,
     includeArchived,
     limit,
-    ownedByIds,
+    webIds: webIdsParam,
     sort,
   } = params;
 
@@ -86,7 +82,7 @@ export const useEntitiesVisualizerData = (params: {
     entityTypeIds,
     includeArchived,
     limit,
-    ownedByIds,
+    webIds: webIdsParam,
     graphResolveDepths: {
       hasLeftEntity: { outgoing: 1, incoming: 1 },
       hasRightEntity: { outgoing: 1, incoming: 1 },

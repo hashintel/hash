@@ -16,7 +16,7 @@ import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/on
 import {
   type DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
-  type OwnedById,
+  type WebId,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
@@ -85,7 +85,7 @@ beforeAll(async () => {
       relationship: {
         resource: {
           kind: "web",
-          resourceId: testOrg.accountGroupId as OwnedById,
+          resourceId: testOrg.accountGroupId as WebId,
         },
         relation: "owner",
         subject: {
@@ -115,7 +115,7 @@ describe("Data type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     createdDataType = await createDataType(graphContext, authentication, {
-      ownedById: testOrg.accountGroupId as OwnedById,
+      webId: testOrg.accountGroupId as WebId,
       schema: dataTypeSchema,
       relationships: [
         { relation: "viewer", subject: { kind: "public" } },

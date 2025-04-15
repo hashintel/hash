@@ -78,7 +78,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
   const entityValues: Omit<
     CreateEntityParameters,
-    "relationships" | "ownedById" | "draft" | "linkData"
+    "relationships" | "webId" | "draft" | "linkData"
   > & { linkData: HashEntity["linkData"] } = {
     entityTypeIds,
     properties: mergePropertyObjectAndMetadata(properties, propertyMetadata),
@@ -86,7 +86,6 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     provenance,
   };
 
-  const ownedById = webId;
   const entityUuid = extractEntityUuidFromEntityId(localEntityId);
 
   const isAiGenerated = provenance.actorType === "ai";
@@ -95,17 +94,17 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     ? await getAiAssistantAccountIdActivity({
         authentication: { actorId },
         graphApiClient,
-        grantCreatePermissionForWeb: ownedById,
+        grantCreatePermissionForWeb: webId,
       })
     : await getWebMachineActorId(
         { graphApi: graphApiClient },
         { actorId },
-        { ownedById },
+        { webId },
       );
 
   if (!webBotActorId) {
     throw new Error(
-      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${ownedById}`,
+      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${webId}`,
     );
   }
 
@@ -158,7 +157,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         findExistingLinkEntity({
           actorId,
           graphApiClient,
-          ownedById,
+          webId,
           linkData,
           proposedEntity: proposedEntityWithResolvedLinks,
           includeDrafts: createEditionAsDraft,
@@ -166,7 +165,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       : findExistingEntity({
           actorId,
           graphApiClient,
-          ownedById,
+          webId,
           proposedEntity: proposedEntityWithResolvedLinks,
           includeDrafts: createEditionAsDraft,
         }));
@@ -222,7 +221,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
                 ...entityValues,
                 draft: createEditionAsDraft,
                 entityUuid,
-                ownedById,
+                webId,
                 relationships: createDefaultAuthorizationRelationships({
                   actorId,
                 }),
@@ -274,7 +273,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       {
         draft,
         entityTypeIds: [entityTypeId],
-        ownedById: webId,
+        webId,
         provenance: {
           sources: claim.metadata.provenance.edition.sources,
           actorType: "ai",

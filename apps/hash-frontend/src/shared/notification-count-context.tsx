@@ -37,7 +37,7 @@ import {
   updateEntityMutation,
 } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
-import { pollInterval } from "./poll-interval";
+import { usePollInterval } from "./use-poll-interval";
 
 export type NotificationCountContextValues = {
   numberOfUnreadNotifications?: number;
@@ -86,6 +86,8 @@ export const NotificationCountContextProvider: FunctionComponent<
 > = ({ children }) => {
   const { authenticatedUser } = useAuthInfo();
 
+  const pollInterval = usePollInterval();
+
   const {
     data: notificationCountData,
     loading: loadingNotificationCount,
@@ -100,7 +102,7 @@ export const NotificationCountContextProvider: FunctionComponent<
             all: [
               {
                 equal: [
-                  { path: ["ownedById"] },
+                  { path: ["webId"] },
                   { parameter: authenticatedUser?.accountId },
                 ],
               },
@@ -151,7 +153,7 @@ export const NotificationCountContextProvider: FunctionComponent<
               all: [
                 {
                   equal: [
-                    { path: ["ownedById"] },
+                    { path: ["webId"] },
                     { parameter: authenticatedUser?.accountId },
                   ],
                 },

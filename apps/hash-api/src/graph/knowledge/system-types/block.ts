@@ -1,7 +1,7 @@
 import type { Entity, EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type {
@@ -102,16 +102,16 @@ export const getBlockById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createBlock: ImpureGraphFunction<
-  Pick<CreateEntityParameters, "ownedById"> & {
+  Pick<CreateEntityParameters, "webId"> & {
     componentId: string;
     blockData: Entity;
   },
   Promise<Block>
 > = async (ctx, authentication, params) => {
-  const { componentId, blockData, ownedById } = params;
+  const { componentId, blockData, webId } = params;
 
   const entity = await createEntity<BlockEntity>(ctx, authentication, {
-    ownedById,
+    webId,
     properties: {
       value: {
         "https://hash.ai/@h/types/property-type/component-id/": {
@@ -128,7 +128,7 @@ export const createBlock: ImpureGraphFunction<
   });
 
   await createLinkEntity<HasData>(ctx, authentication, {
-    ownedById,
+    webId,
     properties: { value: {} },
     linkData: {
       leftEntityId: entity.metadata.recordId.entityId,
@@ -230,9 +230,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
   );
 
   await createLinkEntity(ctx, authentication, {
-    ownedById: extractOwnedByIdFromEntityId(
-      block.entity.metadata.recordId.entityId,
-    ),
+    webId: extractWebIdFromEntityId(block.entity.metadata.recordId.entityId),
     properties: { value: {} },
     linkData: {
       leftEntityId: block.entity.metadata.recordId.entityId,

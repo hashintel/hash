@@ -24,7 +24,7 @@ const baseSchema = gql`
   scalar JSONObject
   scalar TextToken
   # Branded types
-  scalar OwnedById
+  scalar WebId
   scalar AccountId
   scalar AccountGroupId
   scalar AuthorizationSubjectId

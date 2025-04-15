@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: check if we error out if the path has not enough segments
+[
+  "::kernel::special_form",
+  //~^ ERROR exactly 3 segments
+  { "#literal": true },
+  { "#literal": 1 },
+  { "#literal": 2 }
+]

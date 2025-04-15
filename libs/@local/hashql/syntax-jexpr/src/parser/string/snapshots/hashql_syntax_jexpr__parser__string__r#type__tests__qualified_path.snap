@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Qualified path
+expression: "Std::String"
+info:
+  kind: Ok
+---
+Type#4294967040@5
+  TypeKind (Path)
+    Path#4294967040@5 (rooted: false)
+      PathSegment#4294967040@2 (name: Std)
+      PathSegment#4294967040@4 (name: String)

@@ -1,7 +1,5 @@
-import {
-  type ActorId,
-  extractOwnedByIdFromEntityId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
   automaticBrowserInferenceFlowDefinition,
   manualBrowserInferenceFlowDefinition,
@@ -64,7 +62,7 @@ const mapFlowRunToMinimalFlowRun = (
 const getFlowRuns = async ({
   userAccountId,
 }: {
-  userAccountId: ActorId;
+  userAccountId: ActorEntityUuid;
 }): Promise<FlowFromBrowserOrWithPageRequest[]> =>
   queryGraphQlApi<GetMinimalFlowRunsQuery, GetMinimalFlowRunsQueryVariables>(
     getMinimalFlowRunsQuery,
@@ -127,9 +125,9 @@ export const useFlowRuns = (): {
     if (!user) {
       return null;
     }
-    return extractOwnedByIdFromEntityId(
+    return extractWebIdFromEntityId(
       user.metadata.recordId.entityId,
-    ) as ActorId;
+    ) as ActorEntityUuid;
   }, [user]);
 
   useEffect(() => {

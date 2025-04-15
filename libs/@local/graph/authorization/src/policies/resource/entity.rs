@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::{Report, ResultExt as _};
 use smol_str::SmolStr;
-use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
+use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::WebId};
 use uuid::Uuid;
 
 use super::entity_type::EntityTypeId;
@@ -16,7 +16,7 @@ use crate::policies::cedar::{
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityResource<'a> {
-    pub web_id: OwnedById,
+    pub web_id: WebId,
     pub id: EntityUuid,
     pub entity_type: Cow<'a, [VersionedUrl]>,
 }
@@ -164,29 +164,15 @@ pub enum EntityResourceConstraint {
         filter: EntityResourceFilter,
     },
     Exact {
-        #[serde(deserialize_with = "Option::deserialize")]
-        id: Option<EntityUuid>,
+        id: EntityUuid,
     },
     Web {
-        #[serde(deserialize_with = "Option::deserialize")]
-        web_id: Option<OwnedById>,
+        web_id: WebId,
         filter: EntityResourceFilter,
     },
 }
 
 impl EntityResourceConstraint {
-    #[must_use]
-    pub const fn has_slot(&self) -> bool {
-        match self {
-            Self::Any { .. }
-            | Self::Exact { id: Some(_) }
-            | Self::Web {
-                web_id: Some(_), ..
-            } => false,
-            Self::Exact { id: None } | Self::Web { web_id: None, .. } => true,
-        }
-    }
-
     #[must_use]
     pub(crate) fn to_cedar_resource_constraint(&self) -> (ast::ResourceConstraint, ast::Expr) {
         match self {
@@ -194,28 +180,14 @@ impl EntityResourceConstraint {
                 ast::ResourceConstraint::is_entity_type(Arc::clone(EntityUuid::entity_type())),
                 filter.to_cedar(),
             ),
-            Self::Exact { id } => id.map_or_else(
-                || (ast::ResourceConstraint::is_eq_slot(), ast::Expr::val(true)),
-                |id| {
-                    (
-                        ast::ResourceConstraint::is_eq(Arc::new(id.to_euid())),
-                        ast::Expr::val(true),
-                    )
-                },
+            Self::Exact { id } => (
+                ast::ResourceConstraint::is_eq(Arc::new(id.to_euid())),
+                ast::Expr::val(true),
             ),
             Self::Web { web_id, filter } => (
-                web_id.map_or_else(
-                    || {
-                        ast::ResourceConstraint::is_entity_type_in_slot(Arc::clone(
-                            EntityUuid::entity_type(),
-                        ))
-                    },
-                    |web_id| {
-                        ast::ResourceConstraint::is_entity_type_in(
-                            Arc::clone(EntityUuid::entity_type()),
-                            Arc::new(web_id.to_euid()),
-                        )
-                    },
+                ast::ResourceConstraint::is_entity_type_in(
+                    Arc::clone(EntityUuid::entity_type()),
+                    Arc::new(web_id.to_euid()),
                 ),
                 filter.to_cedar(),
             ),
@@ -228,7 +200,7 @@ mod tests {
     use core::{error::Error, str::FromStr as _};
 
     use serde_json::json;
-    use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
+    use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::WebId};
     use uuid::Uuid;
 
     use super::{EntityResourceConstraint, EntityResourceFilter};
@@ -240,11 +212,15 @@ mod tests {
     #[test]
     fn constraint_any() -> Result<(), Box<dyn Error>> {
         check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
                 filter: EntityResourceFilter::All { filters: vec![] },
-            }),
+            })),
             json!({
-                "type": "entity"
+                "type": "entity",
+                "filter": {
+                    "type": "all",
+                    "filters": [],
+                },
             }),
             "resource is HASH::Entity",
         )?;
@@ -263,13 +239,13 @@ mod tests {
     #[test]
     fn constraint_any_with_filter() -> Result<(), Box<dyn Error>> {
         check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
                 filter: EntityResourceFilter::IsOfType {
                     entity_type: VersionedUrl::from_str(
                         "https://hash.ai/@h/types/entity-type/machine/v/1",
                     )?,
                 },
-            }),
+            })),
             json!({
                 "type": "entity",
                 "filter": {
@@ -295,9 +271,9 @@ mod tests {
     fn constraint_exact() -> Result<(), Box<dyn Error>> {
         let entity_uuid = EntityUuid::new(Uuid::new_v4());
         check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Exact {
-                id: Some(entity_uuid),
-            }),
+            Some(ResourceConstraint::Entity(
+                EntityResourceConstraint::Exact { id: entity_uuid },
+            )),
             json!({
                 "type": "entity",
                 "id": entity_uuid,
@@ -305,19 +281,10 @@ mod tests {
             format!(r#"resource == HASH::Entity::"{entity_uuid}""#),
         )?;
 
-        check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Exact { id: None }),
-            json!({
-                "type": "entity",
-                "id": null,
-            }),
-            "resource == ?resource",
-        )?;
-
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "entity",
-                "webId": OwnedById::new(Uuid::new_v4()),
+                "webId": WebId::new(Uuid::new_v4()),
                 "id": entity_uuid,
             }),
             "data did not match any variant of untagged enum EntityResourceConstraint",
@@ -328,35 +295,27 @@ mod tests {
 
     #[test]
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
-        let web_id = OwnedById::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::new_v4());
         check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Web {
-                web_id: Some(web_id),
+            Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
+                web_id,
                 filter: EntityResourceFilter::All { filters: vec![] },
-            }),
+            })),
             json!({
                 "type": "entity",
                 "webId": web_id,
+                "filter": {
+                    "type": "all",
+                    "filters": [],
+                },
             }),
             format!(r#"resource is HASH::Entity in HASH::Web::"{web_id}""#),
-        )?;
-
-        check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Web {
-                web_id: None,
-                filter: EntityResourceFilter::All { filters: vec![] },
-            }),
-            json!({
-                "type": "entity",
-                "webId": null,
-            }),
-            "resource is HASH::Entity in ?resource",
         )?;
 
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "entity",
-                "webId": OwnedById::new(Uuid::new_v4()),
+                "webId": WebId::new(Uuid::new_v4()),
                 "id": EntityUuid::new(Uuid::new_v4()),
             }),
             "data did not match any variant of untagged enum EntityResourceConstraint",
@@ -367,16 +326,16 @@ mod tests {
 
     #[test]
     fn constraint_in_web_with_filter() -> Result<(), Box<dyn Error>> {
-        let web_id = OwnedById::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::new_v4());
         check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Web {
-                web_id: Some(web_id),
+            Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
+                web_id,
                 filter: EntityResourceFilter::IsOfType {
                     entity_type: VersionedUrl::from_str(
                         "https://hash.ai/@h/types/entity-type/machine/v/1",
                     )?,
                 },
-            }),
+            })),
             json!({
                 "type": "entity",
                 "webId": web_id,
@@ -386,26 +345,6 @@ mod tests {
                 },
             }),
             format!(r#"resource is HASH::Entity in HASH::Web::"{web_id}""#),
-        )?;
-
-        check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Web {
-                web_id: None,
-                filter: EntityResourceFilter::IsOfType {
-                    entity_type: VersionedUrl::from_str(
-                        "https://hash.ai/@h/types/entity-type/machine/v/1",
-                    )?,
-                },
-            }),
-            json!({
-                "type": "entity",
-                "webId": null,
-                "filter": {
-                    "type": "isOfType",
-                    "entityType": "https://hash.ai/@h/types/entity-type/machine/v/1"
-                },
-            }),
-            "resource is HASH::Entity in ?resource",
         )?;
 
         Ok(())

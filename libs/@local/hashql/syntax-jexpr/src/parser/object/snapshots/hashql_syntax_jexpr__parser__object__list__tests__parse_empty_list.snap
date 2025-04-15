@@ -1,0 +1,8 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/list.rs
+description: Parses an empty list
+expression: "{\"#list\": []}"
+---
+Expr#4294967040@1
+  ExprKind (List)
+    ListExpr#4294967040@0

@@ -1,7 +1,7 @@
 import type {
   EntityTypeWithMetadata,
   OntologyTemporalMetadata,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import {
@@ -50,10 +50,10 @@ export const createEntityTypeResolver: ResolverFn<
   const { authentication, user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const { ownedById, entityType } = params;
+  const { webId, entityType } = params;
 
   const createdEntityType = await createEntityType(context, authentication, {
-    ownedById: ownedById ?? (user.accountId as OwnedById),
+    webId: webId ?? (user.accountId as WebId),
     schema: entityType,
     relationships: defaultEntityTypeAuthorizationRelationships,
   });

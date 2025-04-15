@@ -1,14 +1,14 @@
 import type { EntityTypeRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
-  ActorId,
+  ActorEntityUuid,
   BaseUrl,
   LinkData,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
@@ -43,14 +43,14 @@ export const findExistingEntity = async ({
   actorId,
   dereferencedEntityTypes,
   graphApiClient,
-  ownedById,
+  webId,
   proposedEntity,
   includeDrafts,
 }: {
-  actorId: ActorId;
+  actorId: ActorEntityUuid;
   dereferencedEntityTypes?: DereferencedEntityType[];
   graphApiClient: GraphApi;
-  ownedById: OwnedById;
+  webId: WebId;
   proposedEntity: Pick<
     ProposedEntity,
     "entityTypeIds" | "properties" | "propertyMetadata" | "provenance"
@@ -126,9 +126,9 @@ export const findExistingEntity = async ({
     { equal: [{ path: ["archived"] }, { parameter: false }] },
     {
       equal: [
-        { path: ["ownedById"] },
+        { path: ["webId"] },
         {
-          parameter: ownedById,
+          parameter: webId,
         },
       ],
     },
@@ -287,14 +287,14 @@ export const findExistingLinkEntity = async ({
   graphApiClient,
   includeDrafts,
   linkData,
-  ownedById,
+  webId,
   proposedEntity,
 }: {
-  actorId: ActorId;
+  actorId: ActorEntityUuid;
   graphApiClient: GraphApi;
   includeDrafts: boolean;
   linkData: LinkData;
-  ownedById: OwnedById;
+  webId: WebId;
   proposedEntity: Pick<
     ProposedEntity,
     "entityTypeIds" | "properties" | "propertyMetadata" | "provenance"
@@ -315,19 +315,19 @@ export const findExistingLinkEntity = async ({
           },
           {
             equal: [
-              { path: ["ownedById"] },
+              { path: ["webId"] },
               {
-                parameter: ownedById,
+                parameter: webId,
               },
             ],
           },
           {
             equal: [
               {
-                path: ["leftEntity", "ownedById"],
+                path: ["leftEntity", "webId"],
               },
               {
-                parameter: extractOwnedByIdFromEntityId(linkData.leftEntityId),
+                parameter: extractWebIdFromEntityId(linkData.leftEntityId),
               },
             ],
           },
@@ -344,10 +344,10 @@ export const findExistingLinkEntity = async ({
           {
             equal: [
               {
-                path: ["rightEntity", "ownedById"],
+                path: ["rightEntity", "webId"],
               },
               {
-                parameter: extractOwnedByIdFromEntityId(linkData.rightEntityId),
+                parameter: extractWebIdFromEntityId(linkData.rightEntityId),
               },
             ],
           },

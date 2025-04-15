@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: let/2 should error out
+["::kernel::special_form::let", "x", { "#literal": true }]
+//~^ ERROR Add missing arguments

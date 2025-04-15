@@ -4,11 +4,7 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  EntityId,
-  OwnedById,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityId, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   HashEntity,
@@ -81,7 +77,7 @@ type AfterBlockDraftIdAndLink = [
  */
 const calculateSaveActions = (
   store: EntityStore,
-  ownedById: OwnedById,
+  webId: WebId,
   blocksAndLinks: {
     blockEntity: GqlBlock;
     contentLinkEntity: HashLinkEntity<
@@ -170,7 +166,7 @@ const calculateSaveActions = (
 
       const action: UpdateBlockCollectionAction = {
         createEntity: {
-          ownedById,
+          webId,
           entityPlaceholderId: placeholderId,
           entity: {
             entityTypeIds: [entityTypeId],
@@ -385,7 +381,7 @@ const calculateSaveActions = (
 
       actions.push({
         insertBlock: {
-          ownedById,
+          webId,
           position: {
             indexPosition: {
               "https://hash.ai/@h/types/property-type/fractional-index/":
@@ -484,14 +480,14 @@ const mapEntityToGqlBlock = (
 
 export const save = async ({
   apolloClient,
-  ownedById,
+  webId,
   blockCollectionEntityId,
   doc,
   store,
   getBlocksMap,
 }: {
   apolloClient: ApolloClient<unknown>;
-  ownedById: OwnedById;
+  webId: WebId;
   blockCollectionEntityId: EntityId;
   doc: Node;
   store: EntityStore;
@@ -559,7 +555,7 @@ export const save = async ({
 
   const [actions, placeholderToDraft] = calculateSaveActions(
     store,
-    ownedById,
+    webId,
     blockAndLinkList,
     doc,
     (componentId: string) => {

@@ -1,7 +1,11 @@
-import type { ActorId, Entity, OwnedById } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  Entity,
+  WebId,
+} from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import {
   getMachineActorId,
@@ -55,9 +59,9 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     },
   );
 
-  const userAccountId = extractOwnedByIdFromEntityId(
+  const userAccountId = extractWebIdFromEntityId(
     linearIntegration.entity.metadata.recordId.entityId,
-  ) as ActorId;
+  ) as ActorEntityUuid;
 
   const linearUserSecret = await getLinearUserSecretByLinearOrgId(
     impureGraphContext,
@@ -139,9 +143,9 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       },
     ),
     ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
-      const workspaceOwnedById = extractEntityUuidFromEntityId(
+      const workspaceWebId = extractEntityUuidFromEntityId(
         workspaceEntityId,
-      ) as string as OwnedById;
+      ) as string as WebId;
 
       const userOrOrganizationEntity = await getLatestEntityById(
         impureGraphContext,
@@ -151,7 +155,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 
       const webAccountId = extractEntityUuidFromEntityId(
         userOrOrganizationEntity.metadata.recordId.entityId,
-      ) as string as ActorId;
+      ) as string as ActorEntityUuid;
 
       /**
        * Add the Linear machine user to the web,
@@ -172,7 +176,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
           dataSources,
           authentication,
           {
-            ownedById: webAccountId as OwnedById,
+            webId: webAccountId as WebId,
           },
         );
 
@@ -208,7 +212,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       return Promise.all([
         linearClient.triggerWorkspaceSync({
           authentication: { actorId: linearBotAccountId },
-          workspaceOwnedById,
+          workspaceWebId,
           teamIds: linearTeamIds,
         }),
         linkIntegrationToWorkspace(impureGraphContext, authentication, {

@@ -670,7 +670,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
             draft: createEntitiesAsDraft,
             entityUuid: claimUuid,
             entityTypeIds: ["https://hash.ai/@h/types/entity-type/claim/v/1"],
-            ownedById: webId,
+            webId,
             provenance,
             relationships: createDefaultAuthorizationRelationships({
               actorId: userAuthentication.actorId,

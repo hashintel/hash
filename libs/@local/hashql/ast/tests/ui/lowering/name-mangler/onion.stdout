@@ -1,0 +1,48 @@
+Expr#4294967040@62
+  ExprKind (Type)
+    TypeExpr#4294967040@62 (name: T:0)
+      Type#4294967040@11
+        TypeKind (Path)
+          Path#4294967040@11 (rooted: false)
+            PathSegment#4294967040@10 (name: U)
+      Expr#4294967040@61
+        ExprKind (Call)
+          CallExpr#4294967040@61
+            Expr#4294967040@15
+              ExprKind (Path)
+                Path#4294967040@15 (rooted: true)
+                  PathSegment#4294967040@14 (name: math)
+                  PathSegment#4294967040@14 (name: mul)
+            Argument#4294967040@47
+              Expr#4294967040@47
+                ExprKind (Closure)
+                  ClosureExpr#4294967040@47
+                    ClosureSignature#4294967040@47
+                      Generics#4294967040@28
+                        GenericParam#4294967040@23 (name: T:1)
+                        GenericParam#4294967040@27 (name: T:2)
+                      Type#4294967040@33
+                        TypeKind (Infer)
+                    Expr#4294967040@46
+                      ExprKind (Is)
+                        IsExpr#4294967040@46
+                          Expr#4294967040@41
+                            ExprKind (Path)
+                              Path#4294967040@41 (rooted: false)
+                                PathSegment#4294967040@40 (name: a)
+                          Type#4294967040@45
+                            TypeKind (Path)
+                              Path#4294967040@45 (rooted: false)
+                                PathSegment#4294967040@44 (name: T:2)
+            Argument#4294967040@60
+              Expr#4294967040@60
+                ExprKind (Is)
+                  IsExpr#4294967040@60
+                    Expr#4294967040@55
+                      ExprKind (Path)
+                        Path#4294967040@55 (rooted: false)
+                          PathSegment#4294967040@54 (name: a)
+                    Type#4294967040@59
+                      TypeKind (Path)
+                        Path#4294967040@59 (rooted: false)
+                          PathSegment#4294967040@58 (name: T:0)

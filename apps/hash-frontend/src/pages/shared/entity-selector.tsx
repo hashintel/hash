@@ -129,7 +129,7 @@ export const EntitySelector = <Multiple extends boolean>({
            * live. Entities without a live version can't have multiple drafts at a point in time because there's
            * nothing to fork multiple from.
            */
-          const [ownedById, entityUuid, draftId] = splitEntityId(rootEntityId);
+          const [webId, entityUuid, draftId] = splitEntityId(rootEntityId);
           if (!draftId) {
             /** If there is no draftId, this is the live version, which is always preferred in the selector */
             hasLiveVersion[rootEntityId] = true;
@@ -137,7 +137,7 @@ export const EntitySelector = <Multiple extends boolean>({
           }
 
           /** This has a draftId, and therefore is only permitted if there is no live version */
-          const liveEntityId = entityIdFromComponents(ownedById, entityUuid);
+          const liveEntityId = entityIdFromComponents(webId, entityUuid);
           if (hasLiveVersion[liveEntityId]) {
             /**
              * We already checked for this entityId and there is a live version

@@ -142,7 +142,7 @@ For complex functions:
 /// Merges multiple data sources and applies transformation rules.
 ///
 /// This function combines data from various sources, applies the specified
-/// transformation rules, and returns a unified data structure. The process  
+/// transformation rules, and returns a unified data structure. The process
 /// preserves metadata from all sources when possible.
 ///
 /// # Arguments
@@ -177,7 +177,7 @@ pub struct EntityId {
     pub entity_uuid: EntityUuid,
 
     /// The web this entity belongs to
-    pub web_id: OwnedById,
+    pub web_id: WebId,
 }
 ```
 

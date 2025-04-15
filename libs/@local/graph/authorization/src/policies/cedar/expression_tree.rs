@@ -7,7 +7,7 @@ use smol_str::SmolStr;
 use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::{BaseUrl, VersionedUrl, id::OntologyTypeVersion},
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::policies::{PartialResourceId, cedar::CedarEntityId as _, resource::EntityTypeId};
@@ -19,7 +19,7 @@ pub enum PolicyExpressionTree {
 
     Any(Vec<Self>),
     Is(PartialResourceId<'static>),
-    In(OwnedById),
+    In(WebId),
     BaseUrl(BaseUrl),
     OntologyTypeVersion(OntologyTypeVersion),
     IsOfType(VersionedUrl),
@@ -178,7 +178,7 @@ impl PolicyExpressionTree {
             .attach_printable_lazy(|| Arc::clone(lhs))?;
 
         match rhs.expr_kind() {
-            ast::ExprKind::Lit(ast::Literal::EntityUID(euid)) => OwnedById::from_euid(euid)
+            ast::ExprKind::Lit(ast::Literal::EntityUID(euid)) => WebId::from_euid(euid)
                 .change_context(ParseBinaryExpressionError::Right)
                 .map(Self::In),
             _ => Err(Report::new(ParseExpressionError::Unexpected)
