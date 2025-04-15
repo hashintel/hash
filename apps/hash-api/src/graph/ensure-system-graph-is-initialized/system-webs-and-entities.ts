@@ -1,7 +1,7 @@
 import {
-  componentsFromVersionedUrl,
   type ActorEntityUuid,
   type ActorGroupId,
+  componentsFromVersionedUrl,
   type VersionedUrl,
   type WebId,
 } from "@blockprotocol/type-system";
