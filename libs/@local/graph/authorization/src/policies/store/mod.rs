@@ -199,7 +199,10 @@ pub trait PolicyStore {
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: ActorCreationError::StoreError
-    fn create_machine(&mut self) -> Result<MachineId, Report<ActorCreationError>>;
+    fn create_machine(
+        &mut self,
+        identifier: String,
+    ) -> Result<MachineId, Report<ActorCreationError>>;
 
     /// Creates a new web and returns its ID.
     ///
@@ -208,7 +211,7 @@ pub trait PolicyStore {
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: WebCreationError::StoreError
-    fn create_web(&mut self) -> Result<WebId, Report<WebCreationError>>;
+    fn create_web(&mut self, shortname: Option<String>) -> Result<WebId, Report<WebCreationError>>;
 
     /// Creates a new web role within the given web and returns its ID.
     ///
@@ -232,7 +235,11 @@ pub trait PolicyStore {
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: TeamCreationError::StoreError
-    fn create_team(&mut self, parent: ActorGroupId) -> Result<TeamId, Report<TeamCreationError>>;
+    fn create_team(
+        &mut self,
+        parent_id: ActorGroupId,
+        name: String,
+    ) -> Result<TeamId, Report<TeamCreationError>>;
 
     /// Creates a new team role within the given team and returns its ID.
     ///
@@ -390,12 +397,16 @@ impl PolicyStore for MemoryPolicyStore {
         Ok(user_id)
     }
 
-    fn create_machine(&mut self) -> Result<MachineId, Report<ActorCreationError>> {
+    fn create_machine(
+        &mut self,
+        identifier: String,
+    ) -> Result<MachineId, Report<ActorCreationError>> {
         let machine_id = MachineId::new(Uuid::new_v4());
         self.actors.insert(
             ActorId::Machine(machine_id),
             Actor::Machine(Machine {
                 id: machine_id,
+                identifier,
                 roles: HashSet::new(),
             }),
         );
@@ -403,12 +414,13 @@ impl PolicyStore for MemoryPolicyStore {
         Ok(machine_id)
     }
 
-    fn create_web(&mut self) -> Result<WebId, Report<WebCreationError>> {
+    fn create_web(&mut self, shortname: Option<String>) -> Result<WebId, Report<WebCreationError>> {
         let web_id = WebId::new(Uuid::new_v4());
         self.teams.insert(
             ActorGroupId::Web(web_id),
             ActorGroup::Web(Web {
                 id: web_id,
+                shortname,
                 roles: HashSet::new(),
             }),
         );
@@ -440,14 +452,19 @@ impl PolicyStore for MemoryPolicyStore {
         Ok(role_id)
     }
 
-    fn create_team(&mut self, parent: ActorGroupId) -> Result<TeamId, Report<TeamCreationError>> {
+    fn create_team(
+        &mut self,
+        parent_id: ActorGroupId,
+        name: String,
+    ) -> Result<TeamId, Report<TeamCreationError>> {
         let team_id = TeamId::new(Uuid::new_v4());
         self.teams.insert(
             ActorGroupId::Team(team_id),
             ActorGroup::Team(Team {
                 id: team_id,
-                parents: vec![parent],
+                parent_id,
                 roles: HashSet::new(),
+                name,
             }),
         );
         Ok(team_id)

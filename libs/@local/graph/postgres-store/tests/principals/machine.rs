@@ -198,7 +198,7 @@ async fn machine_role_assignment() -> Result<(), Box<dyn Error>> {
 
     // Check that the machine no longer has the role assigned
     let machine_roles_after = client.get_actor_roles(machine_id.into()).await?;
-    assert!(!machine_roles_after.contains_key(&role_id));
+    assert!(!machine_roles_after.contains_key(role_id));
 
     Ok(())
 }

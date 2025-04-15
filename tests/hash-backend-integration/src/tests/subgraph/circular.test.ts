@@ -108,6 +108,7 @@ beforeAll(async () => {
     },
   ).then(({ subgraph }) => getRoots(subgraph));
 
+  console.log(`Entities: ${JSON.stringify(entities, null, 2)})}`);
   expect(entities.length).toBe(12);
 
   const findEntity = (name: string): Entity => {

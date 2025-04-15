@@ -80,7 +80,10 @@ impl From<UserId> for WebId {
 /// A human user account within the system.
 ///
 /// Represents a user with their unique identifier and assigned roles.
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct User {
     pub id: UserId,
     pub roles: HashSet<RoleId>,

@@ -1,13 +1,10 @@
 use alloc::sync::Arc;
 use core::{iter, str::FromStr as _};
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
-use type_system::principal::{
-    actor::{Machine, MachineId},
-    role::RoleId,
-};
+use type_system::principal::actor::{Machine, MachineId};
 use uuid::Uuid;
 
 use crate::policies::cedar::{FromCedarEntityId, ToCedarEntity, ToCedarEntityId};
@@ -41,7 +38,7 @@ impl ToCedarEntity for Machine {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
-            self.roles.iter().map(RoleId::to_euid).collect(),
+            HashSet::new(),
             iter::empty(),
             Extensions::none(),
         )

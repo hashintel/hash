@@ -179,7 +179,7 @@ async fn ai_role_assignment() -> Result<(), Box<dyn Error>> {
 
     // Check that the AI no longer has the role assigned
     let ai_roles_after = client.get_actor_roles(ai_id.into()).await?;
-    assert!(!ai_roles_after.contains_key(&role_id));
+    assert!(!ai_roles_after.contains_key(role_id));
 
     Ok(())
 }

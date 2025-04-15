@@ -388,7 +388,7 @@ CREATE TABLE actor_role (
 INSERT INTO web (id, shortname)
 SELECT
     webs.web_id,
-    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/shortname/'
+    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/shortname/' AS shortname
 FROM webs
 LEFT OUTER JOIN entity_temporal_metadata
     ON webs.web_id = entity_temporal_metadata.entity_uuid
@@ -413,7 +413,7 @@ WHERE entity_temporal_metadata.decision_time @> now()
 INSERT INTO machine_actor (id, identifier)
 SELECT
     accounts.account_id,
-    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/'
+    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/' AS identifier
 FROM accounts
 INNER JOIN entity_temporal_metadata
     ON accounts.account_id = entity_temporal_metadata.entity_uuid
@@ -426,13 +426,12 @@ INNER JOIN entity_editions
 WHERE entity_temporal_metadata.decision_time @> now()
     AND entity_temporal_metadata.transaction_time @> now()
     AND ontology_ids.base_url = 'https://hash.ai/@h/types/entity-type/machine/'
-    AND entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/'
-    != 'hash-ai';
+    AND entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/' != 'hash-ai';
 
 INSERT INTO ai_actor (id, identifier)
 SELECT
     accounts.account_id,
-    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/'
+    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/' AS identifier
 FROM accounts
 INNER JOIN entity_temporal_metadata
     ON accounts.account_id = entity_temporal_metadata.entity_uuid
@@ -445,8 +444,7 @@ INNER JOIN entity_editions
 WHERE entity_temporal_metadata.decision_time @> now()
     AND entity_temporal_metadata.transaction_time @> now()
     AND ontology_ids.base_url = 'https://hash.ai/@h/types/entity-type/ai/'
-    AND entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/ai-identifier/'
-    = 'hash-ai';
+    AND entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/ai-identifier/' = 'hash-ai';
 
 -- We currently only have a single team: the instance admins which we can identify
 -- by the only account group without a web id
@@ -470,16 +468,14 @@ WITH
         WHERE entity_temporal_metadata.decision_time @> now()
             AND entity_temporal_metadata.transaction_time @> now()
             AND ontology_ids.base_url = 'https://hash.ai/@h/types/entity-type/organization/'
-            AND entity_editions.properties
-            ->> 'https://hash.ai/@h/types/property-type/shortname/'
-            = 'h'
+            AND entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/shortname/' = 'h'
     )
 
 INSERT INTO team (id, parent_id, name)
 SELECT
     system_account.id,
     system_web.id AS web_id,
-    'instance-admins' AS name
+    'instance-admins' AS team_name
 FROM system_account, system_web
 WHERE system_account.id IS NOT NULL AND system_web.id IS NOT NULL;
 
@@ -550,8 +546,7 @@ WITH
             entity_has_right_entity.right_entity_uuid AS actor_group_id,
             CASE
                 WHEN
-                    (entity_ids_right.provenance ->> 'createdById')::UUID
-                    = entity_has_left_entity.left_entity_uuid
+                    (entity_ids_right.provenance ->> 'createdById')::UUID = entity_has_left_entity.left_entity_uuid
                     THEN 'Administrator'
                 ELSE 'Member'
             END AS role_name

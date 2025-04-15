@@ -104,7 +104,21 @@ impl From<RoleType> for PrincipalType {
 ///
 /// Wraps specific identifier types for actors, actor groups, and roles into a single
 /// enumeration, allowing them to be used interchangeably in authorization contexts.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::From)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::Display,
+    derive_more::From,
+)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "principalType", rename_all = "camelCase")]
 pub enum PrincipalId {
     Actor(ActorId),
     ActorGroup(ActorGroupId),
@@ -182,10 +196,13 @@ impl postgres_types::ToSql for PrincipalId {
 ///
 /// Represents an actor, team, or role that can be referenced for authorization
 /// and provenance tracking purposes.
-#[derive(Debug, derive_more::From)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::From)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "principalType", rename_all = "camelCase")]
 pub enum Principal {
     Actor(Actor),
-    Team(ActorGroup),
+    ActorGroup(ActorGroup),
     Role(Role),
 }
 
@@ -197,7 +214,7 @@ impl Principal {
     pub const fn id(&self) -> PrincipalId {
         match self {
             Self::Actor(actor) => PrincipalId::Actor(actor.id()),
-            Self::Team(actor_group) => PrincipalId::ActorGroup(actor_group.id()),
+            Self::ActorGroup(actor_group) => PrincipalId::ActorGroup(actor_group.id()),
             Self::Role(role) => PrincipalId::Role(role.id()),
         }
     }

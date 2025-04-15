@@ -1,56 +1,53 @@
 # This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
 
+### Get system user
+GET http://127.0.0.1:4000/system/actor/h
+Content-Type: application/json
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("system_machine_id", response.body);
+%}
+
+
 ### Create account
-POST http://127.0.0.1:4000/accounts
+POST http://127.0.0.1:4000/actors/user
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
 {
-  "accountType": "machine"
-}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.global.set("account_id", response.body.id);
-    });
-%}
-
-### Create account web
-POST http://127.0.0.1:4000/webs
-Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
-
-{
-   "webId": "{{account_id}}",
-   "administrator": "{{account_id}}"
-}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-%}
-
-### Create account group web
-POST http://127.0.0.1:4000/webs
-Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
-
-{
-   "administrator": "{{account_id}}"
+  "shortname": "test-user",
+  "registrationComplete": true
 }
 
 > {%
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
-    client.global.set("account_group_id", response.body.toString());
+  });
+  client.global.set("user_id", response.body.userId);
+%}
+
+### Create account group web
+POST http://127.0.0.1:4000/webs
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+{
+   "shortname": "test-group"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.global.set("account_group_id", response.body.webId);
   });
 %}
 
 ### Check permission for adding member to account group
-GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/permissions/add_member
-X-Authenticated-User-Actor-Id: {{account_id}}
+GET http://127.0.0.1:4000/actor_groups/{{account_group_id}}/permissions/add_member
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 > {%
     client.test("status", function() {
@@ -60,9 +57,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Add account group member
-POST http://127.0.0.1:4000/account_groups/{{account_group_id}}/member/{{account_id}}
+POST http://127.0.0.1:4000/actor_groups/{{account_group_id}}/member/{{system_machine_id}}
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 > {%
     client.test("status", function() {
@@ -71,8 +68,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Get account group members
-GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/relations
-X-Authenticated-User-Actor-Id: {{account_id}}
+GET http://127.0.0.1:4000/actor_groups/{{account_group_id}}/relations
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 > {%
     client.test("status", function() {
@@ -82,8 +79,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Remove account group member
-DELETE http://127.0.0.1:4000/account_groups/{{account_group_id}}/member/{{account_id}}
-X-Authenticated-User-Actor-Id: {{account_id}}
+DELETE http://127.0.0.1:4000/actor_groups/{{account_group_id}}/member/{{system_machine_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 > {%
     client.test("status", function() {
@@ -92,8 +89,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Get account group members
-GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/relations
-X-Authenticated-User-Actor-Id: {{account_id}}
+GET http://127.0.0.1:4000/actor_groups/{{account_group_id}}/relations
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 > {%
     client.test("status", function() {
@@ -105,7 +102,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all data types
 POST http://127.0.0.1:4000/data-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -140,10 +137,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/data-types
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "schema": [
     {
       "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -204,7 +201,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/data-types/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "dataTypeId": "{{meter_data_type_id}}",
@@ -224,7 +221,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/data-types/load
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "schema": {
@@ -263,7 +260,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/data-types/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "dataTypeId": "{{text_data_type_id}}",
@@ -281,7 +278,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get Text data type
 POST http://127.0.0.1:4000/data-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -325,7 +322,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 PUT http://127.0.0.1:4000/data-types/bulk
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 [
   {
@@ -376,7 +373,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/data-types/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "dataTypeId": "{{meter_data_type_id_2}}",
@@ -395,10 +392,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/property-types
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
@@ -438,7 +435,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/property-types/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "propertyTypeId": "{{name_property_type_id}}",
@@ -457,10 +454,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/property-types
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
@@ -500,7 +497,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/property-types/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "propertyTypeId": "{{height_property_type_id}}",
@@ -518,7 +515,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get Name property type
 POST http://127.0.0.1:4000/property-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -556,7 +553,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 PUT http://127.0.0.1:4000/property-types
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/1",
@@ -598,7 +595,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/property-types/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "propertyTypeId": "{{name_property_type_id_2}}",
@@ -616,7 +613,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all latest property types
 POST http://127.0.0.1:4000/property-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -660,7 +657,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entity-types/load
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "schema": {
@@ -698,7 +695,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entity-types/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityTypeId": "{{link_entity_type_id}}",
@@ -717,10 +714,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -762,7 +759,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entity-types/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityTypeId": "{{friendship_link_entity_type_id}}",
@@ -781,7 +778,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entity-types/relationships
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 [
   {
@@ -791,7 +788,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "relation": "instantiator",
       "subject": {
         "kind": "account",
-        "subjectId": "{{account_id}}"
+        "subjectId": "{{user_id}}"
       }
     }
   }
@@ -800,7 +797,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get Friendship entity type
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -844,10 +841,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -888,7 +885,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entity-types/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityTypeId": "{{person_entity_type_id}}",
@@ -907,7 +904,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entity-types/relationships
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 [
   {
@@ -917,7 +914,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "relation": "instantiator",
       "subject": {
         "kind": "account",
-        "subjectId": "{{account_id}}"
+        "subjectId": "{{user_id}}"
       }
     }
   }
@@ -926,7 +923,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get Person entity type
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -964,7 +961,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 PUT http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/1",
@@ -1023,7 +1020,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entity-types/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityTypeId": "{{person_entity_type_2_id}}",
@@ -1042,7 +1039,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entity-types/relationships
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 [
   {
@@ -1052,7 +1049,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "relation": "instantiator",
       "subject": {
         "kind": "account",
-        "subjectId": "{{account_id}}"
+        "subjectId": "{{user_id}}"
       }
     }
   }
@@ -1061,7 +1058,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all latest entity types
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -1104,7 +1101,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get entity types by label property
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -1147,7 +1144,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all link entity type
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -1192,7 +1189,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all parent entity types
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -1236,7 +1233,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all entity types which links to a link (should be none)
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -1285,7 +1282,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all entity types starting with "http://localhost:3000/@alice"
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -1322,7 +1319,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all entity types, where the title ends with "ship"
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -1360,7 +1357,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Validate person entity to insert
 POST http://127.0.0.1:4000/entities/validate
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityTypes": ["http://localhost:3000/@alice/types/entity-type/person/v/1"],
@@ -1387,10 +1384,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": {
     "value": {
       "http://localhost:3000/@alice/types/property-type/name/": {
@@ -1431,7 +1428,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities/relationships
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 [
   {
@@ -1447,7 +1444,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get latest Person entity
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "sortingPaths": [
@@ -1463,7 +1460,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       {
         "equal": [
           { "path": ["provenance", "createdById"] },
-          { "parameter": "{{account_id}}" }
+          { "parameter": "{{user_id}}" }
         ]
       }
     ]
@@ -1495,7 +1492,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Validate person entity to update
 POST http://127.0.0.1:4000/entities/validate
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityTypes": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
@@ -1522,7 +1519,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityId": "{{person_a_entity_id}}",
@@ -1559,7 +1556,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 # The first embedding is the full JSON blob of the entity
 # The second embedding is the name property `Name: Alice Allison`
@@ -1590,10 +1587,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": {
     "value": {
       "http://localhost:3000/@alice/types/property-type/name/": {
@@ -1641,7 +1638,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities/embeddings
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 # The first embedding is the full JSON blob of the entity
 # The second embedding is the name property `Name: Bob`
@@ -1671,7 +1668,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all latest entities by using a query including drafts
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -1704,7 +1701,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all latest entities by using a query without drafts
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
     "filter": {
@@ -1736,7 +1733,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Validate link to insert between persons
 POST http://127.0.0.1:4000/entities/validate
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityTypes": ["{{friendship_link_entity_type_id}}"],
@@ -1758,10 +1755,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["{{friendship_link_entity_type_id}}"],
   "linkData": {
@@ -1795,7 +1792,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityId": "{{person_b_entity_id}}",
@@ -1820,7 +1817,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityId": "{{link_entity_id}}",
@@ -1843,7 +1840,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all link entities
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -1887,7 +1884,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get link by source and target
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -1947,7 +1944,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityId": "{{person_b_entity_id}}",
@@ -1970,7 +1967,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 // Only person_a and the link remains as entities
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -2012,7 +2009,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all archived entities
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -2055,7 +2052,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all entities where the name property contains "Alice"
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -2092,7 +2089,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all data types by embedding "An ordered sequence of characters"
 POST http://127.0.0.1:4000/data-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -2129,7 +2126,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all property types by embedding "Name"
 POST http://127.0.0.1:4000/property-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -2166,7 +2163,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all entity types by embedding "Person"
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -2205,7 +2202,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all entities by embedding "My name is Alice"
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -2243,7 +2240,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Get all entities by embedding "My name is Bob"
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "filter": {
@@ -2284,10 +2281,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": {
     "value": {
       "http://localhost:3000/@alice/types/property-type/name/": {
@@ -2327,7 +2324,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityId": "{{person_c_entity_id}}",
@@ -2364,7 +2361,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 PATCH http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "entityId": "{{person_c_entity_id_draft}}",
