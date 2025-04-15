@@ -156,7 +156,16 @@ export const SimpleAutocomplete = <
           ? options.sort((a, b) => a.label.localeCompare(b.label))
           : options
       }
-      renderOption={({ key: _, ...props }, option) => {
+      renderOption={(
+        {
+          /**
+           * Don't spread the key as part of props into the MenuItem (which causes a Reacet error)
+           */
+          key: _,
+          ...props
+        },
+        option,
+      ) => {
         const label =
           option.label +
           (suffixKey && option[suffixKey] ? ` ${option[suffixKey]}` : "");

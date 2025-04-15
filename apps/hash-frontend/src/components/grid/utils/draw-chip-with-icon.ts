@@ -228,6 +228,10 @@ export const drawChipWithIcon = ({
         width,
       });
     } else {
+      /**
+       * The image loads asynchronously and won't be available immediately,
+       * so we fallback to the icon's top and height until it has loaded in.
+       */
       chipTop = iconTop;
       chipHeight = iconHeight;
     }
