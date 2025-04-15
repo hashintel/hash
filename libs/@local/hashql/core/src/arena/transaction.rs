@@ -46,7 +46,10 @@ impl<T> TransactionalArena<T> {
     {
         let id = T::Id::from_usize(self.next_id());
 
-        self.items.push_back_mut(item(id));
+        let item = item(id);
+        debug_assert_eq!(item.id(), id);
+
+        self.items.push_back_mut(item);
         id
     }
 
