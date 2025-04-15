@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: index/2 should compile
+["::kernel::special_form::index", "x", "y"]

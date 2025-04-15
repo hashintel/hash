@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: If the name is shadowed, it's properly mangled either way
+[
+  "let",
+  "a",
+  { "#literal": 2 },
+  ["+", "a", ["let", "a", { "#literal": 4 }, "a"]]
+]

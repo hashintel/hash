@@ -4,25 +4,25 @@ use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
 use type_system::{
     provenance::{ActorId, ActorType, AiId, MachineId, UserId},
-    web::OwnedById,
+    web::WebId,
 };
 use uuid::Uuid;
 
 pub use self::actor::Actor;
 use self::{
-    role::{RoleId, SubteamRoleId, WebRoleId},
-    team::{SubteamId, TeamId},
+    group::{ActorGroup, ActorGroupId, TeamId},
+    role::{Role, RoleId, TeamRoleId, WebRoleId},
 };
 use super::cedar::CedarEntityId as _;
 
 pub mod actor;
+pub mod group;
 pub mod role;
-pub mod team;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 pub enum PrincipalId {
     Actor(ActorId),
-    Team(TeamId),
+    ActorGroup(ActorGroupId),
     Role(RoleId),
 }
 
@@ -31,7 +31,7 @@ impl PrincipalId {
     pub const fn as_uuid(&self) -> &Uuid {
         match self {
             Self::Actor(actor_id) => actor_id.as_uuid(),
-            Self::Team(team_id) => team_id.as_uuid(),
+            Self::ActorGroup(team_id) => team_id.as_uuid(),
             Self::Role(role_id) => role_id.as_uuid(),
         }
     }
@@ -40,10 +40,17 @@ impl PrincipalId {
     pub const fn into_uuid(self) -> Uuid {
         match self {
             Self::Actor(actor_id) => actor_id.into_uuid(),
-            Self::Team(team_id) => team_id.into_uuid(),
+            Self::ActorGroup(team_id) => team_id.into_uuid(),
             Self::Role(role_id) => role_id.into_uuid(),
         }
     }
+}
+
+#[derive(Debug)]
+pub enum Principal {
+    Actor(Actor),
+    Team(ActorGroup),
+    Role(Role),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -61,9 +68,9 @@ pub enum PrincipalConstraint {
     ActorType {
         actor_type: ActorType,
     },
-    Team {
+    ActorGroup {
         #[serde(flatten)]
-        team: TeamId,
+        actor_group: ActorGroupId,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         actor_type: Option<ActorType>,
     },
@@ -179,11 +186,11 @@ impl PrincipalConstraint {
     ) -> Result<Self, Report<InvalidPrincipalConstraint>> {
         let actor_type = principal_type.map(actor_type_from_cedar).transpose()?;
 
-        if *in_principal.entity_type() == **OwnedById::entity_type() {
-            Ok(Self::Team {
+        if *in_principal.entity_type() == **WebId::entity_type() {
+            Ok(Self::ActorGroup {
                 actor_type,
-                team: TeamId::Web(
-                    OwnedById::from_eid(in_principal.eid())
+                actor_group: ActorGroupId::Web(
+                    WebId::from_eid(in_principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             })
@@ -195,19 +202,19 @@ impl PrincipalConstraint {
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             })
-        } else if *in_principal.entity_type() == **SubteamId::entity_type() {
-            Ok(Self::Team {
+        } else if *in_principal.entity_type() == **TeamId::entity_type() {
+            Ok(Self::ActorGroup {
                 actor_type,
-                team: TeamId::Subteam(
-                    SubteamId::from_eid(in_principal.eid())
+                actor_group: ActorGroupId::Team(
+                    TeamId::from_eid(in_principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             })
-        } else if *in_principal.entity_type() == **SubteamRoleId::entity_type() {
+        } else if *in_principal.entity_type() == **TeamRoleId::entity_type() {
             Ok(Self::Role {
                 actor_type,
-                role: RoleId::Subteam(
-                    SubteamRoleId::from_eid(in_principal.eid())
+                role: RoleId::Team(
+                    TeamRoleId::from_eid(in_principal.eid())
                         .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                 ),
             })
@@ -231,7 +238,10 @@ impl PrincipalConstraint {
                 ActorId::Machine(machine) => machine.to_euid(),
                 ActorId::Ai(ai) => ai.to_euid(),
             })),
-            Self::Team { team, actor_type } => {
+            Self::ActorGroup {
+                actor_group: team,
+                actor_type,
+            } => {
                 let euid = Arc::new(team.to_euid());
                 if let Some(actor_type) = actor_type {
                     ast::PrincipalConstraint::is_entity_type_in(

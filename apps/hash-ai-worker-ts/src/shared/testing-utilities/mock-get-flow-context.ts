@@ -1,7 +1,7 @@
 import type {
   ActorEntityUuid,
   EntityUuid,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -45,7 +45,7 @@ const createDummyFlow = async (params: { actorId: ActorEntityUuid }) => {
     graphApiClient,
     { actorId },
     {
-      ownedById: actorId as OwnedById,
+      webId: actorId as WebId,
       entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
       properties: dummyFlowRunProperties,
       provenance: {
@@ -137,7 +137,7 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
               flowTrigger: {
                 triggerDefinitionId: "userTrigger",
               },
-              webId: aliceUserAccountId as OwnedById,
+              webId: aliceUserAccountId as WebId,
               userAuthentication: {
                 actorId: aliceUserAccountId,
               },

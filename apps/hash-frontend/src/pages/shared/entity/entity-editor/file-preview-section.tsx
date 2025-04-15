@@ -1,4 +1,4 @@
-import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
   ArrowLeftIcon,
   ArrowUpRightAndArrowDownLeftFromCenterIcon,
@@ -95,9 +95,7 @@ const ReplaceFile = ({
           },
         },
         makePublic: false, // maintain existing visibility settings
-        ownedById: extractOwnedByIdFromEntityId(
-          entity.metadata.recordId.entityId,
-        ),
+        webId: extractWebIdFromEntityId(entity.metadata.recordId.entityId),
       });
 
       if (response.status === "complete") {

@@ -1,4 +1,4 @@
-import type { EntityId, OwnedById } from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { LinkEntity } from "@local/hash-graph-sdk/entity";
@@ -82,7 +82,7 @@ export const createOrgMembership: ImpureGraphFunction<
   let linkEntity;
   try {
     linkEntity = await createLinkEntity<IsMemberOf>(ctx, authentication, {
-      ownedById: orgActorGroupId as OwnedById,
+      webId: orgActorGroupId as WebId,
       properties: { value: {} },
       linkData: {
         leftEntityId: userEntityId,

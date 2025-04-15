@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: If any generics are used in the path, error out
+["::kernel::special_form<T>::if<U>"]
+//~^ERROR Remove these generic arguments

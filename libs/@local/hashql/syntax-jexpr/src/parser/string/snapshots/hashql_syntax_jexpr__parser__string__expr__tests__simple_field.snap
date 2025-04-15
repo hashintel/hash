@@ -10,7 +10,7 @@ Field(
         span: SpanId(
             1,
         ),
-        name: Symbol(
+        value: Symbol(
             "field",
         ),
         kind: Lexical,

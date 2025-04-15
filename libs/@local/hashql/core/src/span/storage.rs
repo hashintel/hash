@@ -1,6 +1,6 @@
 use orx_concurrent_vec::ConcurrentVec;
 
-use super::{Span, SpanId, entry::Entry, node::SpanNode};
+use super::{Span, SpanId, entry::Entry};
 
 /// A collection of spans within a single source.
 ///
@@ -41,6 +41,17 @@ where
         SpanId::new(index as u32)
     }
 
+    pub fn modify(&self, span: SpanId, func: impl FnMut(&mut S)) -> bool {
+        let index = span.value() as usize;
+
+        let Some(element) = self.inner.get(index) else {
+            return false;
+        };
+
+        element.update(func);
+        true
+    }
+
     #[must_use]
     pub fn get(&self, span: SpanId) -> Option<Entry<S>> {
         let index = span.value() as usize;
@@ -58,42 +69,33 @@ where
         self.inner.get_cloned(index)
     }
 
-    fn resolve_inner(&self, span: SpanId, visited: &mut Vec<SpanId>) -> Option<SpanNode<S>>
-    where
-        S: Clone,
-    {
-        assert!(!visited.contains(&span), "circular span reference detected");
-
-        visited.push(span);
-
-        let current = self.get_cloned(span)?;
-
-        let parent = current
-            .parent_id()
-            .and_then(|parent| self.resolve_inner(parent, visited));
-
-        Some(SpanNode {
-            value: current,
-            parent: parent.map(Box::new),
-        })
-    }
-
-    /// Resolves a span into a full span tree.
-    ///
-    /// This has a time complexity of O(n), where n is the depth of the span tree.
-    /// Tolerable, as `SpanNode`s are expected to only be used on report generation, and are
-    /// supposed to be shallow in depth.
+    /// Returns a vector of ancestor span IDs for the given span.
     ///
     /// # Panics
     ///
-    /// Panics if a circular span reference is detected.
-    #[must_use]
-    pub fn resolve(&self, span: SpanId) -> Option<SpanNode<S>>
-    where
-        S: Clone,
-    {
-        let mut visited = Vec::new();
-        self.resolve_inner(span, &mut visited)
+    /// This function will panic if a circular reference is detected in the span hierarchy.
+    pub fn ancestors(&self, span: SpanId) -> Vec<SpanId> {
+        let mut visited = vec![span];
+        let mut ancestors = Vec::new();
+
+        let mut current = self.get(span);
+
+        while let Some(entry) = current.take() {
+            let parent_id = entry.map(Span::parent_id);
+
+            if let Some(parent_id) = parent_id {
+                assert!(
+                    !visited.contains(&parent_id),
+                    "circular span reference detected"
+                );
+                visited.push(parent_id);
+
+                ancestors.push(parent_id);
+                current = self.get(parent_id);
+            }
+        }
+
+        ancestors
     }
 }
 

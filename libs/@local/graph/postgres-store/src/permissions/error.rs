@@ -10,6 +10,9 @@ pub enum PrincipalError {
     #[display("Principal with ID {id} doesn't exist")]
     PrincipalNotFound { id: PrincipalId },
 
+    #[display("Context builder error")]
+    ContextBuilderError,
+
     #[display("Database error")]
     StoreError,
 }
@@ -25,8 +28,6 @@ pub enum ActionError {
     NotFound { id: ActionName },
     #[display("Action `{id}` has children which must be unregistered first")]
     HasChildren { id: ActionName },
-    #[display("Action `{id}` has no parent")]
-    HasNoParent { id: ActionName },
     #[display("Action `{id}` has a self-cycle")]
     HasSelfCycle { id: ActionName },
 

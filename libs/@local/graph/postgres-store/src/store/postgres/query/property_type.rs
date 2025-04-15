@@ -22,7 +22,7 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
             | Self::Description
             | Self::Schema(_) => vec![Relation::PropertyTypeIds],
             Self::BaseUrl | Self::Version => vec![Relation::OntologyIds],
-            Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
+            Self::WebId => vec![Relation::OntologyOwnedMetadata],
             Self::AdditionalMetadata => vec![Relation::OntologyAdditionalMetadata],
             Self::TransactionTime | Self::EditionProvenance(_) => vec![],
             Self::Embedding => vec![Relation::PropertyTypeEmbeddings],
@@ -94,7 +94,7 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::TransactionTime),
                 None,
             ),
-            Self::OwnedById => (
+            Self::WebId => (
                 Column::OntologyOwnedMetadata(OntologyOwnedMetadata::WebId),
                 None,
             ),

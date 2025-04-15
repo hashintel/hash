@@ -69,6 +69,14 @@ where
     CanonicalDiagnosticCategoryName(category)
 }
 
+pub(crate) fn category_display_name(mut category: &dyn DiagnosticCategory) -> Cow<str> {
+    while let Some(child) = category.subcategory() {
+        category = child;
+    }
+
+    category.name()
+}
+
 pub trait DiagnosticCategory {
     fn id(&self) -> Cow<'_, str>;
     fn name(&self) -> Cow<'_, str>;

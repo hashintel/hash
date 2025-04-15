@@ -1,8 +1,8 @@
 import type {
   ActorEntityUuid,
   EntityId,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { Team } from "@linear/sdk";
 import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
@@ -23,7 +23,7 @@ export type CreateHashEntityFromLinearData = <
   linearId: string;
   linearType: T;
   linearApiKey: string;
-  ownedById: OwnedById;
+  webId: WebId;
 }) => Promise<void>;
 
 export type UpdateHashEntityFromLinearData = <
@@ -33,7 +33,7 @@ export type UpdateHashEntityFromLinearData = <
   linearId: string;
   linearType: T;
   linearApiKey: string;
-  ownedById: OwnedById;
+  webId: WebId;
 }) => Promise<void>;
 
 export type ReadLinearTeamsWorkflow = (params: {
@@ -43,7 +43,7 @@ export type ReadLinearTeamsWorkflow = (params: {
 export type SyncWorkspaceWorkflow = (params: {
   authentication: { actorId: ActorEntityUuid };
   apiKey: string;
-  workspaceOwnedById: OwnedById;
+  workspaceWebId: WebId;
   teamIds: string[];
 }) => Promise<void>;
 

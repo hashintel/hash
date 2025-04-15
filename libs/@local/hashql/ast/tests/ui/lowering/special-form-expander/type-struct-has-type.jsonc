@@ -1,0 +1,12 @@
+//@ run: fail
+//@ description: struct type expression that has a type annotation is invalid
+[
+  "::kernel::special_form::type",
+  "x",
+  {
+    "#struct": { "name": "String" },
+    "#type": "(name: String)"
+    //~^ ERROR Remove this type annotation
+  },
+  "x"
+]

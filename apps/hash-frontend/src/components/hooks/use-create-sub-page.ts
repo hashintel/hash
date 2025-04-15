@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId, OwnedById } from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
@@ -18,10 +18,10 @@ import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 
 export const useCreateSubPage = ({
   shortname,
-  ownedById,
+  webId,
 }: {
   shortname?: string;
-  ownedById?: OwnedById;
+  webId?: WebId;
 }) => {
   const router = useRouter();
 
@@ -38,7 +38,7 @@ export const useCreateSubPage = ({
     refetchQueries: [
       {
         query: getEntitySubgraphQuery,
-        variables: getAccountPagesVariables({ ownedById }),
+        variables: getAccountPagesVariables({ webId }),
       },
     ],
   });
@@ -49,13 +49,13 @@ export const useCreateSubPage = ({
       prevFractionalIndex: string | null,
       type: "canvas" | "document",
     ) => {
-      if (!ownedById) {
-        throw new Error("No ownedById provided to useCreateSubPage");
+      if (!webId) {
+        throw new Error("No webId provided to useCreateSubPage");
       }
 
       const response = await createPageFn({
         variables: {
-          ownedById,
+          webId,
           properties: {
             title: "Untitled",
             type: type === "canvas" ? PageType.Canvas : PageType.Document,
@@ -86,7 +86,7 @@ export const useCreateSubPage = ({
         }
       }
     },
-    [createPageFn, ownedById, setParentPageFn, router, shortname],
+    [createPageFn, webId, setParentPageFn, router, shortname],
   );
 
   return [

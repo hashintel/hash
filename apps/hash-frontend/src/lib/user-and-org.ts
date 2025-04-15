@@ -6,7 +6,7 @@ import type {
   ActorEntityUuid,
   ActorGroupId,
   BaseUrl,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
@@ -523,9 +523,7 @@ export const isOrg = (
   userOrOrg: MinimalUser | MinimalOrg,
 ): userOrOrg is MinimalOrg => "accountGroupId" in userOrOrg;
 
-export const extractOwnedById = (
-  userOrOrg: MinimalUser | MinimalOrg,
-): OwnedById =>
+export const extractWebId = (userOrOrg: MinimalUser | MinimalOrg): WebId =>
   isUser(userOrOrg)
-    ? (userOrOrg.accountId as OwnedById)
-    : (userOrOrg.accountGroupId as OwnedById);
+    ? (userOrOrg.accountId as WebId)
+    : (userOrOrg.accountGroupId as WebId);

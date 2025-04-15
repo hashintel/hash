@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -9,7 +9,7 @@ export type SessionContext = {
     token: string;
     expiresAt?: number;
     user: SimpleProperties<User["properties"]> & { password: string };
-    ownedById: OwnedById;
+    webId: WebId;
   };
 };
 

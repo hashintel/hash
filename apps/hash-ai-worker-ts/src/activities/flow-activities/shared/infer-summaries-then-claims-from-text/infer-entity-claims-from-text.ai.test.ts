@@ -1,6 +1,6 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
-import type { EntityUuid, OwnedById, Url } from "@blockprotocol/type-system";
+import type { EntityUuid, Url, WebId } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { expect, test } from "vitest";
@@ -18,10 +18,10 @@ import { inferEntityClaimsFromTextAgent } from "./infer-entity-claims-from-text-
  * NOTE: these tests depend on having run `npx tsx apps/hash-api/src/seed-data/seed-flow-test-types.ts`
  */
 
-const ownedById = generateUuid();
+const webId = generateUuid();
 
 const generateEntityId = (entityUuid: string) =>
-  entityIdFromComponents(ownedById as OwnedById, entityUuid as EntityUuid);
+  entityIdFromComponents(webId as WebId, entityUuid as EntityUuid);
 
 test(
   "Test inferEntityClaimsFromText with the FTSE350 table",

@@ -2,9 +2,9 @@ import type {
   BaseUrl,
   EntityTypeWithMetadata,
   OntologyTypeVersion,
-  OwnedById,
   PropertyType,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   atLeastOne,
@@ -60,7 +60,7 @@ import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 
 type EntityTypeProps = {
-  ownedById?: OwnedById | null;
+  webId?: WebId | null;
   draftEntityType?: EntityTypeWithMetadata | null;
   entityTypeBaseUrl?: BaseUrl;
   isInSlide: boolean;
@@ -119,7 +119,7 @@ const TypeDefinition = ({
 };
 
 export const EntityType = ({
-  ownedById,
+  webId,
   draftEntityType,
   entityTypeBaseUrl,
   isInSlide,
@@ -149,7 +149,7 @@ export const EntityType = ({
   ] = useEntityTypeValue(
     entityTypeBaseUrl ?? null,
     requestedVersion,
-    ownedById ?? null,
+    webId ?? null,
     (fetchedEntityType) => {
       // Load the initial form data after the entity type has been fetched
       reset({

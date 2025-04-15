@@ -16,7 +16,7 @@ use core::fmt;
 use cedar::CedarEntityId as _;
 use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
-use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorId};
+use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorId, web::WebId};
 use uuid::Uuid;
 
 pub(crate) use self::cedar::cedar_resource_type;
@@ -120,6 +120,7 @@ impl RequestContext {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PartialResourceId<'a> {
+    Web(Option<WebId>),
     Entity(Option<EntityUuid>),
     EntityType(Option<Cow<'a, EntityTypeId>>),
 }
@@ -135,6 +136,16 @@ pub struct Request<'a> {
 impl PartialResourceId<'_> {
     fn to_euid(&self) -> ast::EntityUIDEntry {
         match self {
+            Self::Web(web_id) => web_id.as_ref().map_or_else(
+                || ast::EntityUIDEntry::Unknown {
+                    ty: Some((**WebId::entity_type()).clone()),
+                    loc: None,
+                },
+                |web_id| ast::EntityUIDEntry::Known {
+                    euid: Arc::new(web_id.to_euid()),
+                    loc: None,
+                },
+            ),
             Self::Entity(entity_uuid) => entity_uuid.as_ref().map_or_else(
                 || ast::EntityUIDEntry::Unknown {
                     ty: Some((**EntityUuid::entity_type()).clone()),
@@ -363,7 +374,7 @@ mod tests {
             knowledge::entity::id::EntityUuid,
             ontology::VersionedUrl,
             provenance::{ActorEntityUuid, ActorId, UserId},
-            web::OwnedById,
+            web::WebId,
         };
 
         use super::*;
@@ -425,7 +436,7 @@ mod tests {
                 roles: HashSet::new(),
             };
             let user_entity = EntityResource {
-                web_id: OwnedById::new(user_id.into_uuid()),
+                web_id: WebId::new(user_id.into_uuid()),
                 id: entity_uuid,
                 entity_type: Cow::Owned(vec![
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,

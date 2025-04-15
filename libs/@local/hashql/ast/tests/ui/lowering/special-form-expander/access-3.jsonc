@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: access/3 should not compile
+[
+  "::kernel::special_form::access",
+  "x",
+  "y",
+  "z"
+  //~^ ERROR Remove this argument
+]

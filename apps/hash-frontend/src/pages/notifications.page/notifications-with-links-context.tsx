@@ -136,7 +136,7 @@ export const useNotificationsWithLinksContextValue =
             all: [
               {
                 equal: [
-                  { path: ["ownedById"] },
+                  { path: ["webId"] },
                   { parameter: authenticatedUser?.accountId },
                 ],
               },

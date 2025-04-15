@@ -37,7 +37,7 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 
 type Pool = PostgresStorePool;
@@ -309,7 +309,7 @@ pub async fn seed<D, P, E, C, A>(
                 CreateDataTypeParams {
                     schema: data_type.clone(),
                     ownership: OntologyOwnership::Local {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id.into_uuid()),
                     },
                     relationships: [DataTypeRelationAndSubject::Viewer {
                         subject: DataTypeViewerSubject::Public,
@@ -365,7 +365,7 @@ pub async fn seed<D, P, E, C, A>(
                 CreatePropertyTypeParams {
                     schema: property_type.clone(),
                     ownership: OntologyOwnership::Local {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id.into_uuid()),
                     },
                     relationships: [PropertyTypeRelationAndSubject::Viewer {
                         subject: PropertyTypeViewerSubject::Public,
@@ -419,7 +419,7 @@ pub async fn seed<D, P, E, C, A>(
                 CreateEntityTypeParams {
                     schema: entity_type.clone(),
                     ownership: OntologyOwnership::Local {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id.into_uuid()),
                     },
                     relationships: [EntityTypeRelationAndSubject::Viewer {
                         subject: EntityTypeViewerSubject::Public,

@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -32,7 +32,7 @@ export const submitEarlyAccessFormResolver: ResolverFn<
     /** The user does not yet have permissions to create entities, so we do it with the HASH system account instead */
     { actorId: systemAccountId },
     {
-      ownedById: user.accountId as OwnedById,
+      webId: user.accountId as WebId,
       entityTypeIds: [systemEntityTypes.prospectiveUser.entityTypeId],
       properties: {
         value: {

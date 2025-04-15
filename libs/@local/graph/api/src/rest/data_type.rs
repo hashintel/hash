@@ -52,7 +52,7 @@ use type_system::{
         json_schema::{DomainValidator, JsonSchemaValueType, ValidateOntologyType as _},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    web::OwnedById,
+    web::WebId,
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -182,7 +182,7 @@ impl RoutedResource for DataTypeResource {
 struct CreateDataTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfDataType,
-    owned_by_id: OwnedById,
+    web_id: WebId,
     relationships: Vec<DataTypeRelationAndSubject>,
     provenance: ProvidedOntologyEditionProvenance,
     conversions: HashMap<BaseUrl, Conversions>,
@@ -233,7 +233,7 @@ where
 
     let Json(CreateDataTypeRequest {
         schema,
-        owned_by_id,
+        web_id,
         relationships,
         provenance,
         conversions,
@@ -253,7 +253,7 @@ where
 
                     Ok(CreateDataTypeParams {
                         schema,
-                        ownership: OntologyOwnership::Local { owned_by_id },
+                        ownership: OntologyOwnership::Local { web_id },
                         relationships: relationships.clone(),
                         conflict_behavior: ConflictBehavior::Fail,
                         provenance: provenance.clone(),

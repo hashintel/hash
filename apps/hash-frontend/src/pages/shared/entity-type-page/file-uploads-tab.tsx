@@ -47,7 +47,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
 
   const uploadsProgress = useFileUploadsProgress();
 
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { activeWorkspaceWebId } = useContext(WorkspaceContext);
 
   const [showUploadForm, setShowUploadForm] = useState(!uploads.length);
 
@@ -61,7 +61,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
           file,
         },
         makePublic: false,
-        ownedById: activeWorkspaceOwnedById!,
+        webId: activeWorkspaceWebId!,
       });
     }
     setShowUploadForm(false);

@@ -18,7 +18,7 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     provenance::ActorEntityUuid,
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::{
@@ -69,7 +69,7 @@ pub struct GetEntityTypeSubgraphResponse {
     pub subgraph: Subgraph,
     pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
-    pub web_ids: Option<HashMap<OwnedById, usize>>,
+    pub web_ids: Option<HashMap<WebId, usize>>,
     pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
 }
 
@@ -176,7 +176,7 @@ pub struct GetEntityTypesResponse {
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub web_ids: Option<HashMap<OwnedById, usize>>,
+    pub web_ids: Option<HashMap<WebId, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,

@@ -27,7 +27,7 @@ import { HistoryTable } from "./history-section/history-table";
 import type { HistoryEvent } from "./history-section/shared/types";
 
 export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
-  const [ownedById, entityUuid, _draftUuid] = splitEntityId(entityId);
+  const [webId, entityUuid, _draftUuid] = splitEntityId(entityId);
 
   const { data: editionsData, loading: editionsLoading } = useQuery<
     GetEntitySubgraphQuery,
@@ -42,7 +42,7 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
               equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
             },
             {
-              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+              equal: [{ path: ["webId"] }, { parameter: webId }],
             },
           ],
         },

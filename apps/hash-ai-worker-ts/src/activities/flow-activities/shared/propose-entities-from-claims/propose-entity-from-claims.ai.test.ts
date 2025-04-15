@@ -2,9 +2,9 @@ import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import type {
   EntityUuid,
-  OwnedById,
   Timestamp,
   Url,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
@@ -27,10 +27,10 @@ import { proposeEntityFromClaimsAgent } from "./propose-entity-from-claims-agent
  * NOTE: these tests depend on having run `npx tsx apps/hash-api/src/seed-data/seed-flow-test-types.ts`
  */
 
-const ownedById = generateUuid();
+const webId = generateUuid();
 
 const generateEntityId = (entityUuid: string) =>
-  entityIdFromComponents(ownedById as OwnedById, entityUuid as EntityUuid);
+  entityIdFromComponents(webId as WebId, entityUuid as EntityUuid);
 
 const huntingPlcEntitySummary: LocalEntitySummary = {
   localId: generateEntityId("6916156b-e759-41ad-b1da-2cf7af05d223"),

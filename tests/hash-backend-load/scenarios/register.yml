@@ -30,4 +30,4 @@ scenarios:
           expect:
             - equals:
                 - "{{ entityId }}"
-                - "{{ session.ownedById }}~{{ session.ownedById }}"
+                - "{{ session.webId }}~{{ session.webId }}"

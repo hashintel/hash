@@ -22,7 +22,7 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-   "ownedById": "{{account_id}}",
+   "webId": "{{account_id}}",
    "owner": {
        "kind": "account",
        "subjectId": "{{account_id}}"
@@ -42,7 +42,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": [
       {
         "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -97,7 +97,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     "kind": "dataType",
@@ -142,7 +142,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     "kind": "dataType",
@@ -188,7 +188,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
@@ -230,7 +230,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -281,7 +281,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/line/v/1"],
   "properties": {
     "value": {
@@ -322,7 +322,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/line/v/1"],
   "properties": {
     "value": {
@@ -364,7 +364,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/line/v/1"],
   "properties": {
     "value": {

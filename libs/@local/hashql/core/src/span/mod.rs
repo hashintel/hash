@@ -1,10 +1,12 @@
 pub mod entry;
-pub mod node;
 pub mod storage;
 
 use core::fmt::{self, Display};
 
+use hashql_diagnostics::span::DiagnosticSpan;
 pub use text_size::{TextRange, TextSize};
+
+use self::storage::SpanStorage;
 
 /// Represents a unique identifier for a span in some source.
 ///
@@ -97,6 +99,25 @@ impl Display for SpanId {
 /// frontends, this data is always optional, as some spans, for example for malformed code, may not
 /// have any additional data.
 pub trait Span {
+    /// The relative range of the span within its parent span.
+    fn range(&self) -> TextRange;
+
     /// Optional parent span, if any.
     fn parent_id(&self) -> Option<SpanId>;
+}
+
+impl<S> DiagnosticSpan<&SpanStorage<S>> for SpanId
+where
+    S: Span,
+{
+    fn span(&self, context: &mut &SpanStorage<S>) -> Option<TextRange> {
+        let entry = context.get(*self)?;
+
+        Some(entry.map(Span::range))
+    }
+
+    #[expect(refining_impl_trait_reachable, reason = "false positive")]
+    fn ancestors(&self, context: &mut &SpanStorage<S>) -> impl IntoIterator<Item = Self> + use<S> {
+        context.ancestors(*self)
+    }
 }

@@ -19,9 +19,12 @@ hashbrown = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-lexical           = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
-simple-mermaid    = { workspace = true }
-tracing.workspace = true
+derive_more             = { workspace = true, features = ["display"] }
+enum-iterator.workspace = true
+lexical                 = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
+simple-mermaid          = { workspace = true }
+strsim                  = "0.11.1"
+tracing.workspace       = true
 
 [dev-dependencies]
 hashql-compiletest = { workspace = true }

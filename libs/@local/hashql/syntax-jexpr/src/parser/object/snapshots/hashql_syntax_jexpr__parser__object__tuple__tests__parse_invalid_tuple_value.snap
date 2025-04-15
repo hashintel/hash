@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/tuple.rs
 description: Rejects non-array values for tuples
 expression: "{\"#tuple\": {\"not\": \"an-array\"}}"
 ---
-[31m[parser::object::tuple-expected-array] Error:[0m Parser
+[31m[parser::object::tuple-expected-array] Error:[0m Expected array for #tuple definition
    ╭─[ <unknown>:1:12 ]
    │
  1 │ {"#tuple": {"not": "an-array"}}

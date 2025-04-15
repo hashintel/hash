@@ -1,4 +1,4 @@
-import type { EntityId, OwnedById } from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type {
   CreateEntityParameters,
@@ -119,7 +119,7 @@ export const getPageById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createPage: ImpureGraphFunction<
-  Pick<CreateEntityParameters, "ownedById"> & {
+  Pick<CreateEntityParameters, "webId"> & {
     title: string;
     summary?: string;
     prevFractionalIndex?: string;
@@ -128,7 +128,7 @@ export const createPage: ImpureGraphFunction<
   },
   Promise<Page>
 > = async (ctx, authentication, params): Promise<Page> => {
-  const { title, type, summary, prevFractionalIndex, ownedById } = params;
+  const { title, type, summary, prevFractionalIndex, webId } = params;
 
   const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
@@ -163,7 +163,7 @@ export const createPage: ImpureGraphFunction<
   };
 
   const entity = await createEntity<Canvas | Document>(ctx, authentication, {
-    ownedById,
+    webId,
     properties,
     entityTypeIds: [
       type === "document"
@@ -267,7 +267,7 @@ export const isPageArchived: ImpureGraphFunction<
  */
 export const getAllPagesInWorkspace: ImpureGraphFunction<
   {
-    ownedById: OwnedById;
+    webId: WebId;
     includeArchived?: boolean;
     includeDrafts?: boolean;
   },
@@ -275,13 +275,13 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { ownedById, includeArchived = false, includeDrafts = false } = params;
+  const { webId, includeArchived = false, includeDrafts = false } = params;
   const pageEntities = await getEntities(ctx, authentication, {
     filter: {
       all: [
         pageEntityTypeFilter,
         {
-          equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+          equal: [{ path: ["webId"] }, { parameter: webId }],
         },
       ],
     },
@@ -435,7 +435,7 @@ export const setPageParentPage: ImpureGraphFunction<
     }
 
     await createLinkEntity<HasParent>(ctx, authentication, {
-      ownedById: authentication.actorId as OwnedById,
+      webId: authentication.actorId as WebId,
       properties: { value: {} },
       linkData: {
         leftEntityId: page.entity.metadata.recordId.entityId,

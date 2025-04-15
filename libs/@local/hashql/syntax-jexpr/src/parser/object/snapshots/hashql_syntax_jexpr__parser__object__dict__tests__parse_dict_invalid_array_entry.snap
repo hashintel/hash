@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
 description: Rejects invalid entry format in array-format dict
 expression: "{\"#dict\": [\n            {\"not\": \"an-array\"}\n        ]}"
 ---
-[31m[parser::object::dict-entry-expected-array] Error:[0m Parser
+[31m[parser::object::dict-entry-expected-array] Error:[0m Expected array for dictionary entry
    ╭─[ <unknown>:2:13 ]
    │
  2 │             {"not": "an-array"}

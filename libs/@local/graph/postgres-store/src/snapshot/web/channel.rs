@@ -11,7 +11,7 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use hash_graph_authorization::schema::WebRelationAndSubject;
-use type_system::web::OwnedById;
+use type_system::web::WebId;
 
 use crate::{
     snapshot::{SnapshotRestoreError, Web, web::WebBatch},
@@ -25,7 +25,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct WebSender {
     webs: Sender<WebRow>,
-    relations: Sender<(OwnedById, WebRelationAndSubject)>,
+    relations: Sender<(WebId, WebRelationAndSubject)>,
 }
 
 impl Sink<Web> for WebSender {
@@ -48,7 +48,7 @@ impl Sink<Web> for WebSender {
     fn start_send(mut self: Pin<&mut Self>, web: Web) -> StdResult<(), Self::Error> {
         self.webs
             .start_send_unpin(WebRow {
-                web_id: OwnedById::new(web.id.into_uuid()),
+                web_id: WebId::new(web.id.into_uuid()),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send webs")?;

@@ -2,7 +2,7 @@ import type {
   ActorGroupId,
   EntityId,
   EntityUuid,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
@@ -142,12 +142,12 @@ export const createOrg: ImpureGraphFunction<
     orgAccountGroupId = await createAccountGroup(ctx, authentication, {});
 
     await createWeb(ctx, authentication, {
-      ownedById: orgAccountGroupId as OwnedById,
+      webId: orgAccountGroupId as WebId,
       owner: { kind: "accountGroup", subjectId: orgAccountGroupId },
     });
 
     await createWebMachineActor(ctx, authentication, {
-      ownedById: orgAccountGroupId as OwnedById,
+      webId: orgAccountGroupId as WebId,
       logger,
     });
   }
@@ -212,7 +212,7 @@ export const createOrg: ImpureGraphFunction<
     );
 
     const entity = await createEntity(ctx, authentication, {
-      ownedById: orgAccountGroupId as OwnedById,
+      webId: orgAccountGroupId as WebId,
       properties,
       entityTypeIds: [entityTypeId],
       entityUuid: orgAccountGroupId as string as EntityUuid,

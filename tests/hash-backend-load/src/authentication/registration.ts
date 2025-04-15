@@ -1,4 +1,4 @@
-import { extractOwnedByIdFromEntityId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import opentelemetry from "@opentelemetry/api";
 import { v4 as uuid } from "uuid";
@@ -104,7 +104,7 @@ export const signupUser: ActionFn<SessionContext, TracingContext> = async (
         kratosIdentityId: fullRegistration.identity.id,
         password,
       },
-      ownedById: extractOwnedByIdFromEntityId(user.entityId),
+      webId: extractWebIdFromEntityId(user.entityId),
     };
   });
 

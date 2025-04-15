@@ -12,10 +12,10 @@
 -- 4. Trigger-based integrity: To maintain relationships between entities
 --
 -- Major hierarchies:
--- 1. Team Hierarchy: team → web/subteam + team_hierarchy relationships
--- 2. Principal Hierarchy: principal → actor/team, actor → user/machine, principal → role
+-- 1. Group Hierarchy: actor_group → web/team + actor_group_hierarchy relationships
+-- 2. Principal Hierarchy: principal → actor/group, actor → user/machine, principal → role
 --
--- NOTE: All teams are also principals, allowing them to be subjects in authorization
+-- NOTE: All groups are also principals, allowing them to be subjects in authorization
 
 -- ==========================================
 -- UTILITY FUNCTIONS
@@ -47,7 +47,7 @@ $$ LANGUAGE plpgsql;
 -- Principal is the abstract base type for all security principals
 -- It has concrete subtypes: user, machine, ai, team, role
 CREATE TYPE principal_type AS ENUM (
-    'user', 'machine', 'ai', 'web', 'subteam', 'web_role', 'subteam_role'
+    'user', 'machine', 'ai', 'web', 'team', 'web_role', 'team_role'
 );
 CREATE TABLE principal (
     id UUID NOT NULL,
@@ -108,24 +108,24 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 -- ==========================================
 
 -- Team is a concrete principal that represents a group of users/machines
-CREATE TABLE team (
+CREATE TABLE actor_group (
     id UUID PRIMARY KEY,
     principal_type PRINCIPAL_TYPE NOT NULL,
     FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
-    CHECK (principal_type IN ('web', 'subteam'))
+    CHECK (principal_type IN ('web', 'team'))
 );
 
--- Prevent direct operations on team (abstract) table
+-- Prevent direct operations on actor_group (abstract) table
 CREATE TRIGGER prevent_team_modification
-BEFORE INSERT OR UPDATE OR DELETE ON team
+BEFORE INSERT OR UPDATE OR DELETE ON actor_group
 FOR EACH ROW WHEN (pg_trigger_depth() = 0)
 EXECUTE FUNCTION prevent_direct_modification();
 
--- Create a trigger to automatically create a principal record when a team is created
-CREATE FUNCTION register_team()
+-- Create a trigger to automatically create a principal record when an actor group is created
+CREATE FUNCTION register_actor_group()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Create the principal record with the team's ID and principal_type
+    -- Create the principal record with the actor group's ID and principal_type
     INSERT INTO principal (id, principal_type)
     VALUES (NEW.id, NEW.principal_type);
 
@@ -133,31 +133,31 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER team_register_trigger
-BEFORE INSERT ON team
-FOR EACH ROW EXECUTE FUNCTION register_team();
+CREATE TRIGGER actor_group_register_trigger
+BEFORE INSERT ON actor_group
+FOR EACH ROW EXECUTE FUNCTION register_actor_group();
 
--- Team deletion trigger - prevents direct deletion from team table
-CREATE TRIGGER team_delete_trigger
-BEFORE DELETE ON team
+-- Actor group deletion trigger - prevents direct deletion from actor group table
+CREATE TRIGGER actor_group_delete_trigger
+BEFORE DELETE ON actor_group
 FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
 EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- ==========================================
--- WEB - SPECIALIZED TEAM
+-- WEB - SPECIALIZED ACTOR GROUP
 -- ==========================================
 
--- Web is a specialized team that represents a top-level entity in our system
+-- Web is a specialized actor group that represents a top-level entity in our system
 CREATE TABLE web (
-    id UUID PRIMARY KEY REFERENCES team (id) ON DELETE CASCADE
+    id UUID PRIMARY KEY REFERENCES actor_group (id) ON DELETE CASCADE
 );
 
--- Web registration trigger - creates team record when web is created
+-- Web registration trigger - creates actor group record when web is created
 CREATE FUNCTION register_web()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Create team record with the same ID and web type
-    INSERT INTO team (id, principal_type) VALUES (NEW.id, 'web');
+    -- Create actor group record with the same ID and web type
+    INSERT INTO actor_group (id, principal_type) VALUES (NEW.id, 'web');
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -173,32 +173,32 @@ FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, al
 EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- ==========================================
--- SUBTEAM - SPECIALIZED TEAM
+-- TEAM - SPECIALIZED ACTOR GROUP
 -- ==========================================
 
--- SubTeam is a team that must have at least one parent
-CREATE TABLE subteam (
-    id UUID PRIMARY KEY REFERENCES team (id) ON DELETE CASCADE,
-    parent_id UUID NOT NULL REFERENCES team (id) ON DELETE CASCADE
+-- Team is a actor group that must have at least one parent
+CREATE TABLE team (
+    id UUID PRIMARY KEY REFERENCES actor_group (id) ON DELETE CASCADE,
+    parent_id UUID NOT NULL REFERENCES actor_group (id) ON DELETE CASCADE
 );
 
--- SubTeam registration trigger - creates team record when subteam is created
-CREATE FUNCTION register_subteam()
+-- Team registration trigger - creates actor group record when team is created
+CREATE FUNCTION register_team()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Create team record with the same ID and subteam type
-    INSERT INTO team (id, principal_type) VALUES (NEW.id, 'subteam');
+    -- Create actor group record with the same ID and team type
+    INSERT INTO actor_group (id, principal_type) VALUES (NEW.id, 'team');
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER subteam_register_trigger
-BEFORE INSERT ON subteam
-FOR EACH ROW EXECUTE FUNCTION register_subteam();
+CREATE TRIGGER team_register_trigger
+BEFORE INSERT ON team
+FOR EACH ROW EXECUTE FUNCTION register_team();
 
--- SubTeam deletion prevention trigger - prevents direct deletion from subteam
-CREATE TRIGGER subteam_prevent_delete_trigger
-BEFORE DELETE ON subteam
+-- Team deletion prevention trigger - prevents direct deletion from team
+CREATE TRIGGER team_prevent_delete_trigger
+BEFORE DELETE ON team
 FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
 EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
@@ -208,16 +208,18 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- Team hierarchy represents parent-child relationships between teams
 -- This allows teams to have multiple parents, forming a directed acyclic graph
-CREATE TABLE team_hierarchy (
-    parent_id UUID NOT NULL REFERENCES team (id) ON DELETE CASCADE,
-    child_id UUID NOT NULL REFERENCES subteam (id) ON DELETE CASCADE,
+CREATE TABLE actor_group_hierarchy (
+    parent_id UUID NOT NULL REFERENCES actor_group (id) ON DELETE CASCADE,
+    child_id UUID NOT NULL REFERENCES team (id) ON DELETE CASCADE,
     depth INTEGER NOT NULL DEFAULT 1,
     CONSTRAINT no_self_parent CHECK (parent_id != child_id),
     CONSTRAINT non_negative_depth CHECK (depth > 0)
 );
 
--- Create an index to efficiently find the primary parent (depth=1) for each subteam
-CREATE UNIQUE INDEX idx_team_hierarchy_single_parent ON team_hierarchy (child_id) WHERE (depth = 1);
+-- Create an index to efficiently find the primary parent (depth=1) for each team
+CREATE UNIQUE INDEX idx_actor_group_hierarchy_single_parent ON actor_group_hierarchy (
+    child_id
+) WHERE (depth = 1);
 
 -- ==========================================
 -- CONCRETE PRINCIPAL TABLES - LEAF LEVEL
@@ -325,10 +327,10 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 CREATE TABLE role (
     id UUID NOT NULL,
     principal_type PRINCIPAL_TYPE NOT NULL,
-    team_id UUID NOT NULL REFERENCES team (id) ON DELETE CASCADE,
+    actor_group_id UUID NOT NULL REFERENCES actor_group (id) ON DELETE CASCADE,
     PRIMARY KEY (id, principal_type),
     FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
-    CHECK (principal_type IN ('web_role', 'subteam_role'))
+    CHECK (principal_type IN ('web_role', 'team_role'))
 );
 
 CREATE UNIQUE INDEX idx_role_id ON role (id);
@@ -370,12 +372,12 @@ CREATE TABLE actor_role (
 -- INDEXES
 -- ==========================================
 
--- Indexes for team hierarchy queries
+-- Indexes for actor group hierarchy queries
 -- These improve performance when looking up relationships
-CREATE INDEX idx_team_hierarchy_parent ON team_hierarchy (parent_id);
-CREATE INDEX idx_team_hierarchy_child ON team_hierarchy (child_id);
+CREATE INDEX idx_actor_group_hierarchy_parent ON actor_group_hierarchy (parent_id);
+CREATE INDEX idx_actor_group_hierarchy_child ON actor_group_hierarchy (child_id);
 
 -- Indexes for roles and role assignments
-CREATE INDEX idx_role_team_id ON role (team_id);
+CREATE INDEX idx_role_actor_group_id ON role (actor_group_id);
 CREATE INDEX idx_actor_role_actor_id ON actor_role (actor_id);
 CREATE INDEX idx_actor_role_role_id ON actor_role (role_id);

@@ -1,0 +1,11 @@
+//@ run: fail
+//@ description: We should collect all errors when lowering let/4, and not only report the first one.
+[
+  "::kernel::special_form::let",
+  "::x",
+  //~^ ERROR Replace this with a simple identifier
+  { "#literal": 1 },
+  //~^ ERROR Replace this literal with a type name
+  { "#literal": 1 },
+  "x"
+]

@@ -16,6 +16,7 @@
 //! The [`Symbol`] type is designed as an opaque wrapper around its internal string storage.
 //! This encapsulation enables future optimizations such as string interning (either through
 //! the `string_interner` crate or a custom implementation) without requiring API changes.
+
 use core::{
     borrow::Borrow,
     fmt::{self, Display, Formatter},
@@ -45,7 +46,7 @@ use crate::span::SpanId;
 /// assert_eq!(variable_name.as_str(), "counter");
 /// assert_ne!(variable_name, function_name);
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Symbol(EcoString);
 
 impl Symbol {
@@ -65,6 +66,20 @@ impl Symbol {
     #[must_use]
     pub fn new(name: impl AsRef<str>) -> Self {
         Self(EcoString::from(name.as_ref()))
+    }
+
+    /// Creates a new symbol from a static string literal.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::symbol::Symbol;
+    /// let keyword = Symbol::new_static("function");
+    /// assert_eq!(keyword.as_str(), "function");
+    /// ```
+    #[must_use]
+    pub const fn new_static(name: &'static str) -> Self {
+        Self(EcoString::inline(name))
     }
 
     /// Creates a new symbol from an iterator of characters.
@@ -116,6 +131,34 @@ impl Symbol {
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
+
+    /// Appends a single character to this symbol, modifying it in place.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::symbol::Symbol;
+    /// let mut symbol = Symbol::new("abc");
+    /// symbol.push('d');
+    /// assert_eq!(symbol.as_str(), "abcd");
+    /// ```
+    pub fn push(&mut self, char: char) {
+        self.0.push(char);
+    }
+
+    /// Appends a string-like value to this symbol, modifying it in place.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::symbol::Symbol;
+    /// let mut symbol = Symbol::new("prefix_");
+    /// symbol.push_str("suffix");
+    /// assert_eq!(symbol.as_str(), "prefix_suffix");
+    /// ```
+    pub fn push_str(&mut self, string: impl AsRef<str>) {
+        self.0.push_str(string.as_ref());
+    }
 }
 
 // Sound because Symbol is a newtype wrapper around EcoString
@@ -134,6 +177,19 @@ impl AsRef<str> for Symbol {
 impl Display for Symbol {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, fmt)
+    }
+}
+
+#[expect(clippy::renamed_function_params)]
+impl fmt::Write for Symbol {
+    #[inline]
+    fn write_str(&mut self, string: &str) -> fmt::Result {
+        EcoString::write_str(&mut self.0, string)
+    }
+
+    #[inline]
+    fn write_char(&mut self, char: char) -> fmt::Result {
+        EcoString::write_char(&mut self.0, char)
     }
 }
 
@@ -269,18 +325,18 @@ pub enum IdentKind {
 pub struct Ident {
     pub span: SpanId,
 
-    pub name: Symbol,
+    pub value: Symbol,
     pub kind: IdentKind,
 }
 
 impl AsRef<str> for Ident {
     fn as_ref(&self) -> &str {
-        self.name.as_str()
+        self.value.as_str()
     }
 }
 
 impl Display for Ident {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.name.0, fmt)
+        Display::fmt(&self.value.0, fmt)
     }
 }

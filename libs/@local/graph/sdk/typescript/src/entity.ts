@@ -7,7 +7,6 @@ import type {
   EntityMetadata,
   EntityUuid,
   LinkData,
-  OwnedById,
   Property,
   PropertyArrayWithMetadata,
   PropertyMetadata,
@@ -22,6 +21,7 @@ import type {
   PropertyWithMetadata,
   ProvidedEntityEditionProvenance,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   isArrayMetadata,
@@ -53,7 +53,7 @@ import type { AuthenticationContext } from "./authentication-context.js";
 export type CreatedByIdsMap = Record<ActorEntityUuid, number>;
 export type TypeIdsMap = Record<VersionedUrl, number>;
 export type TypeTitlesMap = Record<VersionedUrl, string>;
-export type WebIdsMap = Record<OwnedById, number>;
+export type WebIdsMap = Record<WebId, number>;
 
 export type CreateEntityParameters<
   T extends EntityProperties = EntityProperties,
@@ -61,7 +61,7 @@ export type CreateEntityParameters<
   GraphApiCreateEntityRequest,
   "decisionTime" | "entityTypeIds" | "draft" | "properties" | "provenance"
 > & {
-  ownedById: OwnedById;
+  webId: WebId;
   properties: T["propertiesWithMetadata"];
   linkData?: LinkData;
   entityTypeIds: T["entityTypeIds"];

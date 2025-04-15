@@ -1,13 +1,14 @@
-mod subteam;
+mod team;
 mod web;
 
 use cedar_policy_core::ast;
 use uuid::Uuid;
 
 pub use self::{
-    subteam::{SubteamRole, SubteamRoleId},
+    team::{TeamRole, TeamRoleId},
     web::{WebRole, WebRoleId},
 };
+use super::group::ActorGroupId;
 use crate::policies::cedar::CedarEntityId as _;
 
 #[derive(
@@ -29,7 +30,7 @@ use crate::policies::cedar::CedarEntityId as _;
 )]
 pub enum RoleId {
     Web(WebRoleId),
-    Subteam(SubteamRoleId),
+    Team(TeamRoleId),
 }
 
 impl RoleId {
@@ -37,7 +38,7 @@ impl RoleId {
     pub const fn as_uuid(&self) -> &Uuid {
         match self {
             Self::Web(role_id) => role_id.as_uuid(),
-            Self::Subteam(role_id) => role_id.as_uuid(),
+            Self::Team(role_id) => role_id.as_uuid(),
         }
     }
 
@@ -45,14 +46,14 @@ impl RoleId {
     pub const fn into_uuid(self) -> Uuid {
         match self {
             Self::Web(role_id) => role_id.into_uuid(),
-            Self::Subteam(role_id) => role_id.into_uuid(),
+            Self::Team(role_id) => role_id.into_uuid(),
         }
     }
 
     pub(crate) fn to_euid(self) -> ast::EntityUID {
         match self {
             Self::Web(web_role_id) => web_role_id.to_euid(),
-            Self::Subteam(role_id) => role_id.to_euid(),
+            Self::Team(role_id) => role_id.to_euid(),
         }
     }
 }
@@ -60,14 +61,22 @@ impl RoleId {
 #[derive(Debug)]
 pub enum Role {
     Web(WebRole),
-    Subteam(SubteamRole),
+    Team(TeamRole),
 }
 
 impl Role {
     pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
         match self {
             Self::Web(web_role) => web_role.to_cedar_entity(),
-            Self::Subteam(subteam_role) => subteam_role.to_cedar_entity(),
+            Self::Team(team_role) => team_role.to_cedar_entity(),
+        }
+    }
+
+    #[must_use]
+    pub const fn actor_group_id(&self) -> ActorGroupId {
+        match self {
+            Self::Web(web_role) => ActorGroupId::Web(web_role.web_id),
+            Self::Team(team_role) => ActorGroupId::Team(team_role.team_id),
         }
     }
 }
@@ -97,7 +106,7 @@ mod tests {
                 "type": "role",
                 "roleType": "wrong",
             }),
-            "unknown variant `wrong`, expected `web` or `subteam`",
+            "unknown variant `wrong`, expected `web` or `team`",
         )
     }
 }

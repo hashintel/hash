@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import type { Node } from "prosemirror-model";
 import type { EditorView, NodeView } from "prosemirror-view";
 
@@ -13,7 +13,7 @@ export class MentionView implements NodeView {
     public view: EditorView,
     public getPos: () => number,
     public renderPortal: RenderPortal,
-    public ownedById: OwnedById,
+    public webId: WebId,
   ) {
     this.dom = document.createElement("span");
     this.dom.classList.add("mention-stuff");

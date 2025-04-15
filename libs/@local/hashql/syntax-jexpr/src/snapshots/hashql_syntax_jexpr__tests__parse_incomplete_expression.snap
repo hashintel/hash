@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/lib.rs
 description: End-to-end test of handling unexpected EOF
 expression: error
 ---
-[31m[jexpr::parser::lexer::lexer::unexpected-eof] Error:[0m J-Expr syntax
+[31m[jexpr::lexer::unexpected-eof] Error:[0m Unexpected end of file
    ╭─[ <unknown>:1:14 ]
    │
  1 │ ["incomplete"

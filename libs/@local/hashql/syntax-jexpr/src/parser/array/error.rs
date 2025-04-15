@@ -57,6 +57,15 @@ pub enum ArrayDiagnosticCategory {
     LabeledArgumentInvalidIdentifier,
 }
 
+impl ArrayDiagnosticCategory {
+    pub(crate) fn hoist(&self) -> &dyn DiagnosticCategory {
+        match self {
+            Self::Lexer(category) => category.subcategory().unwrap_or(category),
+            _ => self,
+        }
+    }
+}
+
 impl DiagnosticCategory for ArrayDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         match self {
@@ -74,7 +83,7 @@ impl DiagnosticCategory for ArrayDiagnosticCategory {
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            Self::Lexer(category) => Some(category),
+            Self::Lexer(category) => category.subcategory(),
             Self::LeadingComma => Some(&LEADING_COMMA),
             Self::TrailingComma => Some(&TRAILING_COMMA),
             Self::ConsecutiveComma => Some(&CONSECUTIVE_COMMA),

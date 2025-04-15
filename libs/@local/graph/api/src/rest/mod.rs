@@ -31,6 +31,7 @@ use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
 use hash_graph_authorization::{
     AuthorizationApiPool,
+    policies::store::PrincipalStore,
     schema::{
         AccountGroupPermission, DataTypePermission, EntityPermission, EntityTypePermission,
         PropertyTypePermission,
@@ -85,7 +86,7 @@ use type_system::{
         },
     },
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, OwnedById},
+    web::{ActorGroupId, WebId},
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,
@@ -196,7 +197,7 @@ fn api_resources<S, A>() -> Vec<Router>
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
+    for<'pool, 'api> S::Store<'pool, A::Api<'api>>: RestApiStore + PrincipalStore,
 {
     vec![
         account::AccountResource::routes::<S, A>(),
@@ -215,7 +216,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         property_type::PropertyTypeResource::documentation(),
         entity_type::EntityTypeResource::documentation(),
         entity::EntityResource::documentation(),
-        web::WebResource::documentation(),
+        web::WebResource::openapi(),
     ]
 }
 
@@ -365,7 +366,7 @@ pub fn rest_api_router<S, A>(dependencies: RestRouterDependencies<S, A>) -> Rout
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: RestApiStore + PrincipalStore,
 {
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S, A>()
@@ -432,7 +433,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
 
             BaseUrl,
             VersionedUrl,
-            OwnedById,
+            WebId,
             OntologyProvenance,
             OntologyEditionProvenance,
             ProvidedOntologyEditionProvenance,

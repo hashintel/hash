@@ -19,8 +19,8 @@ import {
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import type {
   EntityTypeWithMetadata,
-  OwnedById,
   PropertyTypeWithMetadata,
+  WebId,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -89,7 +89,7 @@ describe("Entity CRU", () => {
 
     await Promise.all([
       createEntityType(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         schema: {
           title: "Friends",
           description: "Friend of",
@@ -120,7 +120,7 @@ describe("Entity CRU", () => {
           throw err;
         }),
       createPropertyType(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         schema: {
           title: "Favorite Book",
           description: "The favorite book of a person",
@@ -143,7 +143,7 @@ describe("Entity CRU", () => {
           throw err;
         }),
       createPropertyType(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         schema: {
           title: "Name",
           description: "The name of a person",
@@ -168,7 +168,7 @@ describe("Entity CRU", () => {
     ]);
 
     entityType = await createEntityType(graphContext, authentication, {
-      ownedById: testOrg.accountGroupId as OwnedById,
+      webId: testOrg.accountGroupId as WebId,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
           webShortname: testOrg.shortname,
@@ -220,7 +220,7 @@ describe("Entity CRU", () => {
   it("can create an entity", async () => {
     const authentication = { actorId: testUser.accountId };
     createdEntity = await createEntity(graphContext, authentication, {
-      ownedById: testOrg.accountGroupId as OwnedById,
+      webId: testOrg.accountGroupId as WebId,
       properties: {
         value: {
           [namePropertyType.metadata.recordId.baseUrl]: {
@@ -245,7 +245,7 @@ describe("Entity CRU", () => {
   it("can create a multi-type entity", async () => {
     const authentication = { actorId: testUser.accountId };
     await createEntity(graphContext, authentication, {
-      ownedById: testOrg.accountGroupId as OwnedById,
+      webId: testOrg.accountGroupId as WebId,
       properties: {
         value: {
           [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]: {
@@ -410,7 +410,7 @@ describe("Entity CRU", () => {
           all: [
             {
               equal: [
-                { path: ["ownedById"] },
+                { path: ["webId"] },
                 { parameter: testOrg.accountGroupId },
               ],
             },
@@ -462,7 +462,7 @@ describe("Entity CRU", () => {
       graphContext,
       { actorId: testUser.accountId },
       {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         // First create a new entity given the following definition
         entityTypeIds: [entityType.schema.$id],
         properties: {

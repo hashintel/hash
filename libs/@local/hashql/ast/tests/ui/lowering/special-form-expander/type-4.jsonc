@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: type/4 should error out
+[
+  "::kernel::special_form::type",
+  "x",
+  "Boolean",
+  ["+", "x", "x"],
+  { "#literal": true }
+  //~^ ERROR Remove this argument
+]

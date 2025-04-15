@@ -9,7 +9,7 @@ Ident {
     span: SpanId(
         1,
     ),
-    name: Symbol(
+    value: Symbol(
         "https://example.com/?query=value&param=123/",
     ),
     kind: BaseUrl,

@@ -1,0 +1,11 @@
+//@ run: fail
+//@ description: check if we error out if the path has labeled arguments
+[
+  "::kernel::special_form::if",
+  {
+    ":test": { "#literal": true },
+    //~^ ERROR this labeled argument
+    ":then": { "#literal": true },
+    ":else": { "#literal": false }
+  }
+]

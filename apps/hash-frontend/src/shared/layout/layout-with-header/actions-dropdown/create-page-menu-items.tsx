@@ -13,12 +13,12 @@ import { MenuItem } from "../../../ui/menu-item";
 export const CreatePageMenuItems = ({ onClick }: { onClick: () => void }) => {
   const [loading, setLoading] = useState(false);
 
-  const { activeWorkspaceOwnedById, activeWorkspace } = useActiveWorkspace();
+  const { activeWorkspaceWebId, activeWorkspace } = useActiveWorkspace();
 
-  const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
+  const { lastRootPageIndex } = useAccountPages(activeWorkspaceWebId);
   const [createUntitledPage] = useCreatePage({
     shortname: activeWorkspace?.shortname,
-    ownedById: activeWorkspaceOwnedById,
+    webId: activeWorkspaceWebId,
   });
 
   const popupState = usePopupState({

@@ -1,6 +1,6 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
-import type { EntityUuid, OwnedById, Url } from "@blockprotocol/type-system";
+import type { EntityUuid, Url, WebId } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
   entityIdFromComponents,
@@ -22,10 +22,10 @@ import { proposeEntitiesFromClaims } from "../propose-entities-from-claims.js";
  * NOTE: these tests depend on having run `npx tsx apps/hash-api/src/seed-data/seed-flow-test-types.ts`
  */
 
-const ownedById = generateUuid();
+const webId = generateUuid();
 
 const generateEntityId = (entityUuid: string) =>
-  entityIdFromComponents(ownedById as OwnedById, entityUuid as EntityUuid);
+  entityIdFromComponents(webId as WebId, entityUuid as EntityUuid);
 
 const ftse350EntitySummaries: LocalEntitySummary[] = [
   {
@@ -599,7 +599,7 @@ test(
       (claim): Claim => ({
         ...claim,
         claimId: entityIdFromComponents(
-          userAuthentication.actorId as OwnedById,
+          userAuthentication.actorId as WebId,
           generateUuid() as EntityUuid,
         ),
         sources: [

@@ -1,4 +1,4 @@
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
@@ -119,7 +119,7 @@ export const googleOAuthCallback: RequestHandler<
 
     newGoogleAccountEntity = await createEntity(req.context, authentication, {
       entityTypeIds: [googleEntityTypes.account.entityTypeId],
-      ownedById: req.user.accountId as OwnedById,
+      webId: req.user.accountId as WebId,
       properties: googleAccountProperties,
       relationships: [
         {

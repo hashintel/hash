@@ -36,21 +36,21 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityUuid`]: type_system::knowledge::entity::id::EntityUuid
     /// [`EntityId`]: type_system::knowledge::entity::id::EntityId
     Uuid,
-    /// The [`OwnedById`] of the [`EntityId`] belonging to the [`Entity`].
+    /// The [`WebId`] of the [`EntityId`] belonging to the [`Entity`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use hash_graph_store::entity::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["ownedById"]))?;
-    /// assert_eq!(path, EntityQueryPath::OwnedById);
+    /// let path = EntityQueryPath::deserialize(json!(["webId"]))?;
+    /// assert_eq!(path, EntityQueryPath::WebId);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`Entity`]: type_system::knowledge::Entity
-    /// [`OwnedById`]: type_system::web::OwnedById
+    /// [`WebId`]: type_system::web::WebId
     /// [`EntityId`]: type_system::knowledge::entity::EntityId
-    OwnedById,
+    WebId,
     /// The [`DraftId`] of the [`EntityId`] belonging to the [`Entity`].
     ///
     /// ```rust
@@ -493,7 +493,7 @@ impl fmt::Display for EntityQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Uuid => fmt.write_str("uuid"),
-            Self::OwnedById => fmt.write_str("ownedById"),
+            Self::WebId => fmt.write_str("webId"),
             Self::DraftId => fmt.write_str("draftId"),
             Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
@@ -557,7 +557,7 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::EditionId | Self::Uuid | Self::OwnedById | Self::DraftId => ParameterType::Uuid,
+            Self::EditionId | Self::Uuid | Self::WebId | Self::DraftId => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
             Self::TypeBaseUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
             Self::TypeVersions => {
@@ -594,7 +594,7 @@ pub enum EntityQueryToken {
     EditionId,
     DraftId,
     Archived,
-    OwnedById,
+    WebId,
     Type,
     Properties,
     Label,
@@ -615,7 +615,7 @@ pub(crate) struct EntityQueryPathVisitor {
 
 impl EntityQueryPathVisitor {
     pub(crate) const EXPECTING: &'static str =
-        "one of `uuid`, `editionId`, `draftId`, `archived`, `ownedById`, `type`, `properties`, \
+        "one of `uuid`, `editionId`, `draftId`, `archived`, `webId`, `type`, `properties`, \
          `label`, `provenance`, `editionProvenance`, `embedding`, `incomingLinks`, \
          `outgoingLinks`, `leftEntity`, `rightEntity`";
 
@@ -725,7 +725,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
         let query_path = match token {
             EntityQueryToken::Uuid => EntityQueryPath::Uuid,
             EntityQueryToken::EditionId => EntityQueryPath::EditionId,
-            EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
+            EntityQueryToken::WebId => EntityQueryPath::WebId,
             EntityQueryToken::DraftId => EntityQueryPath::DraftId,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Embedding => EntityQueryPath::Embedding,
@@ -914,7 +914,7 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
     pub fn into_owned(self) -> EntityQueryPath<'static> {
         match self {
             Self::Uuid => EntityQueryPath::Uuid,
-            Self::OwnedById => EntityQueryPath::OwnedById,
+            Self::WebId => EntityQueryPath::WebId,
             Self::DraftId => EntityQueryPath::DraftId,
             Self::EditionId => EntityQueryPath::EditionId,
             Self::DecisionTime => EntityQueryPath::DecisionTime,
@@ -1119,7 +1119,7 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        assert_eq!(deserialize(["ownedById"]), EntityQueryPath::OwnedById);
+        assert_eq!(deserialize(["webId"]), EntityQueryPath::WebId);
         assert_eq!(
             deserialize(["type", "version"]),
             EntityQueryPath::EntityTypeEdge {

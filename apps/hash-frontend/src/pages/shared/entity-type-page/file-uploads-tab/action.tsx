@@ -7,7 +7,7 @@ import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths"
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Tooltip } from "@mui/material";
 
-import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
+import { useUserOrOrgShortnameByWebId } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type { FileUpload } from "../../../../shared/file-upload-context";
 import { Link } from "../../../../shared/ui/link";
 
@@ -29,8 +29,8 @@ export const Action = ({
   onRetry: () => void;
   upload: FileUpload;
 }) => {
-  const { shortname } = useUserOrOrgShortnameByOwnedById({
-    ownedById: upload.ownedById,
+  const { shortname } = useUserOrOrgShortnameByWebId({
+    webId: upload.webId,
   });
 
   switch (upload.status) {

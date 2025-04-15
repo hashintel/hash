@@ -1,5 +1,5 @@
 import { intervalForTimestamp } from "@blockprotocol/graph/stdlib";
-import type { EntityId, OwnedById } from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
@@ -49,7 +49,7 @@ const getAvatarForEntity = (
 };
 
 /**
- * Ideally we would use {@link extractOwnedByIdFromEntityId} from @local/hash-subgraph here,
+ * Ideally we would use {@link extractWebIdFromEntityId} from @local/hash-subgraph here,
  * but importing it causes WASM-related functions to end up in the bundle,
  * even when imports in that package only come from `@blockprotocol/type-system/slim`,
  * which isn't supposed to have WASM.
@@ -57,8 +57,8 @@ const getAvatarForEntity = (
  * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package
  *    or in the plugin-browser webpack config.
  */
-export const getOwnedByIdFromEntityId = (entityId: EntityId) =>
-  entityId.split("~")[0] as OwnedById;
+export const getWebIdFromEntityId = (entityId: EntityId) =>
+  entityId.split("~")[0] as WebId;
 
 export const getUser = (): Promise<LocalStorage["user"] | null> => {
   return queryGraphQlApi<MeQuery, MeQueryVariables>(meQuery)
@@ -146,12 +146,12 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         /**
          * Create the user's browser settings entity
          */
-        const userWebOwnedById = getOwnedByIdFromEntityId(
+        const userWebWebId = getWebIdFromEntityId(
           user.metadata.recordId.entityId,
         );
 
         const defaultSettings = createDefaultSettings({
-          userWebOwnedById,
+          userWebWebId,
         });
 
         const automaticInferenceConfig =
@@ -235,9 +235,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
             org.properties as OrganizationProperties,
           ),
           avatar: orgAvatar,
-          webOwnedById: getOwnedByIdFromEntityId(
-            org.metadata.recordId.entityId,
-          ),
+          webWebId: getWebIdFromEntityId(org.metadata.recordId.entityId),
         };
       });
 
@@ -256,7 +254,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         },
         enabledFeatureFlags,
         settingsEntityId,
-        webOwnedById: getOwnedByIdFromEntityId(user.metadata.recordId.entityId),
+        webWebId: getWebIdFromEntityId(user.metadata.recordId.entityId),
       } as LocalStorage["user"];
     })
     .catch(() => null);

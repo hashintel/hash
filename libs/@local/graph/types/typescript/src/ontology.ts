@@ -10,12 +10,12 @@ import type {
   OntologyProvenance,
   OntologyTemporalMetadata,
   OntologyTypeRecordId,
-  OwnedById,
   PartialEntityType,
   PropertyType,
   PropertyTypeMetadata,
   Timestamp,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
@@ -30,7 +30,7 @@ export type OwnedOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
   provenance: OntologyProvenance;
   temporalVersioning: OntologyTemporalMetadata;
-  ownedById: OwnedById;
+  webId: WebId;
 };
 
 export type ExternalOntologyElementMetadata = {

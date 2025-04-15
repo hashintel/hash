@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Newline character inside quotes
 expression: "\"\nhello\""
 ---
-[31m[lexer::invalid-string] Error:[0m Lexer
+[31m[lexer::invalid-string] Error:[0m Invalid string literal
    ╭─[ <unknown>:2:1 ]
    │
  2 │ hello"

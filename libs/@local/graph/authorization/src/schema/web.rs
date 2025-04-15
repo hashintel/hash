@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::entity::id::EntityUuid,
     provenance::ActorEntityUuid,
-    web::{ActorGroupId, OwnedById},
+    web::{ActorGroupId, WebId},
 };
 use uuid::Uuid;
 
@@ -25,7 +25,7 @@ pub enum WebNamespace {
     Web,
 }
 
-impl Resource for OwnedById {
+impl Resource for WebId {
     type Id = Self;
     type Kind = WebNamespace;
 
@@ -59,7 +59,7 @@ pub enum WebResourceRelation {
     DataTypeViewer,
 }
 
-impl Relation<OwnedById> for WebResourceRelation {}
+impl Relation<WebId> for WebResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -75,7 +75,7 @@ pub enum WebPermission {
     CreatePropertyType,
     CreateDataType,
 }
-impl Permission<OwnedById> for WebPermission {}
+impl Permission<WebId> for WebPermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
@@ -277,9 +277,9 @@ pub enum WebRelationAndSubject {
     },
 }
 
-impl Relationship for (OwnedById, WebRelationAndSubject) {
+impl Relationship for (WebId, WebRelationAndSubject) {
     type Relation = WebResourceRelation;
-    type Resource = OwnedById;
+    type Resource = WebId;
     type Subject = WebSubject;
     type SubjectSet = WebSubjectSet;
 

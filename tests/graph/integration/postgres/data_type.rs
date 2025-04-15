@@ -35,7 +35,7 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::{DatabaseTestWrapper, data_type_relationships};
@@ -56,7 +56,7 @@ async fn insert() {
         CreateDataTypeParams {
             schema: boolean_dt,
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -88,7 +88,7 @@ async fn query() {
         CreateDataTypeParams {
             schema: list_v1.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -180,7 +180,7 @@ async fn inheritance() {
         CreateDataTypeParams {
             schema: centimeter_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -302,7 +302,7 @@ async fn inheritance() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl::from_str(
@@ -349,7 +349,7 @@ async fn inheritance() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            web_id: WebId::new(api.account_id.into_uuid()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([VersionedUrl::from_str(
@@ -394,7 +394,7 @@ async fn inheritance() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            web_id: WebId::new(api.account_id.into_uuid()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([VersionedUrl::from_str(
@@ -454,7 +454,7 @@ async fn update() {
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -557,7 +557,7 @@ async fn insert_same_base_url() {
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -578,7 +578,7 @@ async fn insert_same_base_url() {
             CreateDataTypeParams {
                 schema: object_dt_v1.clone(),
                 ownership: OntologyOwnership::Local {
-                    owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                    web_id: WebId::new(api.account_id.into_uuid()),
                 },
                 relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
@@ -603,7 +603,7 @@ async fn insert_same_base_url() {
             CreateDataTypeParams {
                 schema: object_dt_v2.clone(),
                 ownership: OntologyOwnership::Local {
-                    owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                    web_id: WebId::new(api.account_id.into_uuid()),
                 },
                 relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
@@ -714,7 +714,7 @@ async fn wrong_update_order() {
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,

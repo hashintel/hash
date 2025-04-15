@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: The scope should be properly entered and exited
+[
+  "if",
+  { "#literal": true },
+  ["let", "a", { "#literal": 2 }, { "#literal": 3 }],
+  "a"
+]

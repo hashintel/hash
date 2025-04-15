@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/visit.rs
 description: Unclosed object should fail
 expression: "{\"a\": 1"
 ---
-[31m[lexer::lexer::unexpected-eof] Error:[0m Lexer
+[31m[lexer::unexpected-eof] Error:[0m Unexpected end of file
    ╭─[ <unknown>:1:8 ]
    │
  1 │ {"a": 1

@@ -1,7 +1,7 @@
 import type {
   ActorEntityUuid,
   EntityId,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
@@ -31,7 +31,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
   userAccountId: ActorEntityUuid;
   graphApiClient: GraphApi;
   flowEntityId?: EntityId;
-  webId: OwnedById;
+  webId: WebId;
 }) => {
   const {
     webPage,

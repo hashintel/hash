@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
+    policies::store::{CreateWebParameter, PrincipalStore, error::WebCreationError},
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
         EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeViewerSubject,
@@ -71,8 +72,8 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    provenance::{ActorEntityUuid, ActorId, ActorType, OriginProvenance, OriginType},
+    web::WebId,
 };
 
 use crate::fetcher::{FetchedOntologyType, FetcherClient};
@@ -161,6 +162,20 @@ where
 pub struct FetchingStore<S, A> {
     store: S,
     connection_info: Option<TypeFetcherConnectionInfo<A>>,
+}
+
+impl<S, A> PrincipalStore for FetchingStore<S, A>
+where
+    S: PrincipalStore + Send,
+    A: Send,
+{
+    async fn create_web(
+        &mut self,
+        actor: ActorId,
+        parameter: CreateWebParameter,
+    ) -> Result<WebId, Report<WebCreationError>> {
+        self.store.create_web(actor, parameter).await
+    }
 }
 
 const DATA_TYPE_RELATIONSHIPS: [DataTypeRelationAndSubject; 1] =
@@ -824,11 +839,11 @@ where
         self.store.insert_web_id(actor_id, params).await
     }
 
-    async fn identify_owned_by_id(
+    async fn identify_web_id(
         &self,
-        owned_by_id: OwnedById,
+        web_id: WebId,
     ) -> Result<WebOwnerSubject, Report<QueryWebError>> {
-        self.store.identify_owned_by_id(owned_by_id).await
+        self.store.identify_web_id(web_id).await
     }
 }
 

@@ -7,7 +7,7 @@ use ariadne::{CharSet, IndexType, LabelAttach};
 /// not.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[expect(clippy::struct_excessive_bools, reason = "mirror of ariadne::Config")]
-pub struct ReportConfig<F> {
+pub struct ReportConfig {
     pub cross_gap: bool,
     pub label_attach: LabelAttach,
     pub compact: bool,
@@ -17,52 +17,10 @@ pub struct ReportConfig<F> {
     pub tab_width: usize,
     pub char_set: CharSet,
     pub index_type: IndexType,
-    /// Transform any span contained in a [`SpanNode`] into a `DiagnosticSpan`
-    ///
-    /// This must implement [`TransformSpan<S>`], where `S` is the type of the span contained in
-    /// the [`SpanNode`].
-    ///
-    /// [`TransformSpan<S>`]: crate::span::TransformSpan
-    /// [`SpanNode`]: hashql_core::span::node::SpanNode
-    pub transform_span: F,
 }
 
-impl<F> ReportConfig<F> {
-    /// Change the span transformation function more ergonomically
-    ///
-    /// This is because we cannot define [`Default`] on any `F`, so we need to provide a way to
-    /// change the span transformation, even if a default configuration is used.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use hashql_diagnostics::span::DiagnosticSpan;
-    /// # use hashql_diagnostics::config::ReportConfig;
-    /// # struct JsonSpan { range: text_size::TextRange }
-    ///
-    /// ReportConfig::default().with_transform_span(|span: JsonSpan| DiagnosticSpan {
-    ///     range: span.range,
-    ///     parent_id: None,
-    /// });
-    /// ```
-    pub fn with_transform_span<F2>(self, transform_span: F2) -> ReportConfig<F2> {
-        ReportConfig {
-            cross_gap: self.cross_gap,
-            label_attach: self.label_attach,
-            compact: self.compact,
-            underlines: self.underlines,
-            multiline_arrows: self.multiline_arrows,
-            color: self.color,
-            tab_width: self.tab_width,
-            char_set: self.char_set,
-            index_type: self.index_type,
-            transform_span,
-        }
-    }
-}
-
-impl<F> From<ReportConfig<F>> for ariadne::Config {
-    fn from(config: ReportConfig<F>) -> Self {
+impl From<ReportConfig> for ariadne::Config {
+    fn from(config: ReportConfig) -> Self {
         Self::default()
             .with_cross_gap(config.cross_gap)
             .with_label_attach(config.label_attach)
@@ -76,7 +34,7 @@ impl<F> From<ReportConfig<F>> for ariadne::Config {
     }
 }
 
-impl Default for ReportConfig<()> {
+impl Default for ReportConfig {
     fn default() -> Self {
         Self {
             cross_gap: true,
@@ -88,7 +46,6 @@ impl Default for ReportConfig<()> {
             tab_width: 4,
             char_set: CharSet::Unicode,
             index_type: IndexType::Byte,
-            transform_span: (),
         }
     }
 }

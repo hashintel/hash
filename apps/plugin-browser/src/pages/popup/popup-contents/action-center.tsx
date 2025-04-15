@@ -71,7 +71,7 @@ export const ActionCenter = ({
   const [automaticInferenceConfig, setAutomaticInferenceConfig] =
     useStorageSync(
       "automaticInferenceConfig",
-      createDefaultSettings({ userWebOwnedById: user.webOwnedById })
+      createDefaultSettings({ userWebWebId: user.webWebId })
         .automaticInferenceConfig,
     );
 

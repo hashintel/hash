@@ -1,0 +1,14 @@
+//@ run: fail
+//@ description: fn/4 struct generics with a literal should fail to compile
+[
+  "::kernel::special_form::fn",
+  {
+    "#struct": {
+      "T": { "#literal": 2 }
+      //~^ ERROR Replace this literal with a type name
+    }
+  },
+  { "#struct": {} },
+  "_",
+  ["+", "a", "b"]
+]

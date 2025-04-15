@@ -6,9 +6,9 @@ import { fileURLToPath } from "node:url";
 import type {
   EntityId,
   EntityUuid,
-  OwnedById,
   PropertyObjectMetadata,
   ValueMetadata,
+  WebId,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -37,10 +37,10 @@ const emptyMetadataObject: PropertyObjectMetadata = {
   value: {},
 };
 
-const testOwnedById = generateUuid() as OwnedById;
+const testWebId = generateUuid() as WebId;
 
 const generateEntityId = () =>
-  entityIdFromComponents(testOwnedById, generateUuid() as EntityUuid);
+  entityIdFromComponents(testWebId, generateUuid() as EntityUuid);
 
 type MatchExistingEntityTest = {
   testName: string;

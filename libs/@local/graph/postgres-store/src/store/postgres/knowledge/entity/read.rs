@@ -18,7 +18,7 @@ use tracing::Instrument as _;
 use type_system::{
     knowledge::entity::id::{EntityEditionId, EntityId, EntityUuid},
     ontology::id::{BaseUrl, OntologyTypeUuid},
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::store::postgres::{
@@ -28,7 +28,7 @@ use crate::store::postgres::{
 
 #[derive(Debug)]
 pub struct EntityEdgeTraversalData {
-    owned_by_ids: Vec<OwnedById>,
+    web_ids: Vec<WebId>,
     entity_uuids: Vec<EntityUuid>,
     entity_revision_ids: Vec<Timestamp<VariableAxis>>,
     intervals: Vec<RightBoundedTemporalInterval<VariableAxis>>,
@@ -40,7 +40,7 @@ pub struct EntityEdgeTraversalData {
 impl EntityEdgeTraversalData {
     pub const fn new(pinned_timestamp: Timestamp<PinnedAxis>, variable_axis: TimeAxis) -> Self {
         Self {
-            owned_by_ids: Vec::new(),
+            web_ids: Vec::new(),
             entity_uuids: Vec::new(),
             entity_revision_ids: Vec::new(),
             intervals: Vec::new(),
@@ -56,7 +56,7 @@ impl EntityEdgeTraversalData {
         interval: RightBoundedTemporalInterval<VariableAxis>,
         resolve_depth: GraphResolveDepths,
     ) {
-        self.owned_by_ids.push(vertex_id.base_id.owned_by_id);
+        self.web_ids.push(vertex_id.base_id.web_id);
         self.entity_uuids.push(vertex_id.base_id.entity_uuid);
         self.entity_revision_ids.push(vertex_id.revision_id);
         self.intervals.push(interval);
@@ -139,7 +139,7 @@ where
                     "
                 ),
                 &[
-                    &traversal_data.owned_by_ids,
+                    &traversal_data.web_ids,
                     &traversal_data.entity_uuids,
                     &traversal_data.entity_revision_ids,
                     &traversal_data.intervals,
@@ -158,7 +158,7 @@ where
                     SharedEdgeTraversal {
                         left_endpoint: EntityVertexId {
                             base_id: EntityId {
-                                owned_by_id: traversal_data.owned_by_ids[index],
+                                web_id: traversal_data.web_ids[index],
                                 entity_uuid: traversal_data.entity_uuids[index],
                                 draft_id: None,
                             },
@@ -251,7 +251,7 @@ where
                     "
                 ),
                 &[
-                    &traversal_data.owned_by_ids,
+                    &traversal_data.web_ids,
                     &traversal_data.entity_uuids,
                     &traversal_data.entity_revision_ids,
                     &traversal_data.intervals,
@@ -265,7 +265,7 @@ where
             .map(|row| {
                 let index = usize::try_from(row.get::<_, i64>(0) - 1).expect("invalid index");
                 let right_endpoint_base_id = EntityId {
-                    owned_by_id: row.get(1),
+                    web_id: row.get(1),
                     entity_uuid: row.get(2),
                     draft_id: None,
                 };
@@ -274,7 +274,7 @@ where
                     KnowledgeEdgeTraversal {
                         left_endpoint: EntityVertexId {
                             base_id: EntityId {
-                                owned_by_id: traversal_data.owned_by_ids[index],
+                                web_id: traversal_data.web_ids[index],
                                 entity_uuid: traversal_data.entity_uuids[index],
                                 draft_id: None,
                             },

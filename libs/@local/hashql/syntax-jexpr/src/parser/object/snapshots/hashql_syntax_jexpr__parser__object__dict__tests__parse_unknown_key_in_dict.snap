@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
 description: Rejects unknown keys in dict objects
 expression: "{\"#dict\": {}, \"unknown\": {\"#literal\": \"value\"}}"
 ---
-[31m[parser::object::unknown-key] Error:[0m Parser
+[31m[parser::object::unknown-key] Error:[0m Unknown or unsupported object key
    ╭─[ <unknown>:1:15 ]
    │
  1 │ {"#dict": {}, "unknown": {"#literal": "value"}}

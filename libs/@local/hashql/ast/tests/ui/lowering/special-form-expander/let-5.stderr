@@ -1,0 +1,19 @@
+[31m[special-form-expander::special-form-argument-length] Error:[0m Incorrect number of arguments for special form
+    ╭─[ <unknown>:9:3 ]
+    │
+  3 │ ╭─▶ [
+    ┆ ┆   
+  9 │ │     { "#literal": true }
+    │ │     ──────────┬─────────  
+    │ │               ╰─────────── Remove this argument
+    ┆ ┆   
+ 11 │ ├─▶ ]
+    │ │       
+    │ ╰─────── In this `let` special form call
+    │     
+    │     Help: Use either:
+    │           - let/3: (let name value body)
+    │           - let/4: (let name type value body)
+    │     
+    │     Note: The let function has 2 variants: let/3, let/4
+────╯

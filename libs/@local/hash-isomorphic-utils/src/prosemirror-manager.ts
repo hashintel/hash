@@ -1,5 +1,5 @@
 import type { BlockVariant, JsonObject } from "@blockprotocol/core";
-import type { EntityId, OwnedById } from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { Node, Schema } from "prosemirror-model";
 import type { EditorState, Transaction } from "prosemirror-state";
 import type { EditorProps, EditorView } from "prosemirror-view";
@@ -51,7 +51,7 @@ type ComponentNodeViewFactory = (block: HashBlock) => NodeViewFactory;
 export class ProsemirrorManager {
   constructor(
     private schema: Schema,
-    private ownedById: OwnedById,
+    private webId: WebId,
     private view: EditorView | null = null,
     private componentNodeViewFactory: ComponentNodeViewFactory | null = null,
   ) {}
@@ -552,7 +552,7 @@ export class ProsemirrorManager {
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
-        ownedById: this.ownedById,
+        webId: this.webId,
         draftId: newBlockId,
         entityId: null,
       },
@@ -562,7 +562,7 @@ export class ProsemirrorManager {
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
-        ownedById: this.ownedById,
+        webId: this.webId,
         draftId: blockDataDraftId,
         entityId: null,
       },

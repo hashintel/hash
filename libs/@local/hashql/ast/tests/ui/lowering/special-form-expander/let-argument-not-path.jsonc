@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: The binding name must be a path expression.
+[
+  "::kernel::special_form::let",
+  { "#literal": true },
+  //~^ ERROR Replace this expression with a simple identifier
+  { "#literal": true },
+  ["+", "x", "x"]
+]

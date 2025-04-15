@@ -1,9 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type {
-  BaseUrl,
-  OwnedById,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
@@ -45,22 +41,22 @@ type UseEntityTypeEntitiesQueryParams = {
   graphResolveDepths?: Partial<GraphResolveDepths>;
   includeArchived?: boolean;
   includeTypeIds?: boolean;
-  ownedByIds?: OwnedById[];
+  webIds?: WebId[];
   limit?: number;
   sort?: EntityQuerySortingRecord;
 };
 
 export const generateUseEntityTypeEntitiesFilter = ({
-  excludeOwnedByIds,
-  ownedByIds,
+  excludeWebIds,
+  webIds,
   entityTypeBaseUrl,
   entityTypeIds,
   includeArchived,
 }: Pick<
   UseEntityTypeEntitiesQueryParams,
-  "entityTypeBaseUrl" | "entityTypeIds" | "includeArchived" | "ownedByIds"
+  "entityTypeBaseUrl" | "entityTypeIds" | "includeArchived" | "webIds"
 > & {
-  excludeOwnedByIds?: OwnedById[];
+  excludeWebIds?: WebId[];
 }): GetEntitySubgraphRequest["filter"] => {
   return {
     // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
@@ -99,20 +95,20 @@ export const generateUseEntityTypeEntitiesFilter = ({
             },
           ]
         : []),
-      ...(ownedByIds?.length
+      ...(webIds?.length
         ? [
             {
-              any: ownedByIds.map((ownedById) => ({
-                equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+              any: webIds.map((webId) => ({
+                equal: [{ path: ["webId"] }, { parameter: webId }],
               })),
             },
           ]
         : []),
-      ...(excludeOwnedByIds?.length
+      ...(excludeWebIds?.length
         ? [
             {
-              all: excludeOwnedByIds.map((ownedById) => ({
-                notEqual: [{ path: ["ownedById"] }, { parameter: ownedById }],
+              all: excludeWebIds.map((webId) => ({
+                notEqual: [{ path: ["webId"] }, { parameter: webId }],
               })),
             },
           ]
@@ -150,9 +146,9 @@ export const generateUseEntityTypeEntitiesFilter = ({
  * if the user has chosen to show it as a toggleable list of types rather than a single 'Entities' link.
  */
 export const generateSidebarEntityTypeEntitiesQueryVariables = ({
-  ownedById,
+  webId,
 }: {
-  ownedById: OwnedById;
+  webId: WebId;
 }): GetEntitySubgraphQueryVariables => {
   return {
     request: {
@@ -166,7 +162,7 @@ export const generateSidebarEntityTypeEntitiesQueryVariables = ({
       limit: 1,
       includeTypeIds: true,
       filter: generateUseEntityTypeEntitiesFilter({
-        ownedByIds: [ownedById],
+        webIds: [webId],
         includeArchived: false,
       }),
       graphResolveDepths: zeroedGraphResolveDepths,
@@ -178,7 +174,7 @@ export const generateSidebarEntityTypeEntitiesQueryVariables = ({
 };
 
 const generateUseEntityTypeEntitiesQueryVariables = ({
-  ownedByIds,
+  webIds,
   entityTypeBaseUrl,
   entityTypeIds,
   graphResolveDepths,
@@ -197,7 +193,7 @@ const generateUseEntityTypeEntitiesQueryVariables = ({
       includeWebIds: true,
       filter: generateUseEntityTypeEntitiesFilter({
         includeArchived,
-        ownedByIds,
+        webIds,
         entityTypeBaseUrl,
         entityTypeIds,
       }),

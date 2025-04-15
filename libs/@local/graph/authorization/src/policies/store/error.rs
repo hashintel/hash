@@ -1,16 +1,16 @@
 use core::error::Error;
 
-use type_system::{provenance::ActorId, web::OwnedById};
+use type_system::{provenance::ActorId, web::WebId};
 
-use crate::policies::principal::{role::RoleId, team::SubteamId};
+use crate::policies::principal::{group::TeamId, role::RoleId};
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create actor: {_variant}")]
 pub enum ActorCreationError {
     #[display("Web with ID `{web_id}` does not exist")]
-    WebNotFound { web_id: OwnedById },
+    WebNotFound { web_id: WebId },
     #[display("Web with ID `{web_id}` is already assigned")]
-    WebOccupied { web_id: OwnedById },
+    WebOccupied { web_id: WebId },
     #[display("Store operation failed")]
     StoreError,
 }
@@ -20,6 +20,10 @@ impl Error for ActorCreationError {}
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create web: {_variant}")]
 pub enum WebCreationError {
+    #[display("Web with ID `{web_id}` already exists")]
+    AlreadyExists { web_id: WebId },
+    #[display("Permission to create web was denied")]
+    NotAuthorized,
     #[display("Store operation failed")]
     StoreError,
 }
@@ -30,7 +34,7 @@ impl Error for WebCreationError {}
 #[display("Could not create web role: {_variant}")]
 pub enum WebRoleCreationError {
     #[display("Web with ID `{web_id}` does not exist")]
-    WebNotFound { web_id: OwnedById },
+    WebNotFound { web_id: WebId },
     #[display("Store operation failed")]
     StoreError,
 }
@@ -39,23 +43,23 @@ impl Error for WebRoleCreationError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create team: {_variant}")]
-pub enum SubteamCreationError {
+pub enum TeamCreationError {
     #[display("Store operation failed")]
     StoreError,
 }
 
-impl Error for SubteamCreationError {}
+impl Error for TeamCreationError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create team role: {_variant}")]
-pub enum SubteamRoleCreationError {
-    #[display("Subteam with ID `{subteam_id}` does not exist")]
-    SubteamNotFound { subteam_id: SubteamId },
+pub enum TeamRoleCreationError {
+    #[display("Team with ID `{team_id}` does not exist")]
+    TeamNotFound { team_id: TeamId },
     #[display("Store operation failed")]
     StoreError,
 }
 
-impl Error for SubteamRoleCreationError {}
+impl Error for TeamRoleCreationError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could change role assignment: {_variant}")]

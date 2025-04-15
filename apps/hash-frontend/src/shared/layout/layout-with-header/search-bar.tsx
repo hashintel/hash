@@ -2,7 +2,7 @@ import { useQuery } from "@apollo/client";
 import type { EntityType } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { Chip, IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
@@ -29,7 +29,7 @@ import type { FunctionComponent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
-import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
+import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
@@ -119,10 +119,10 @@ const EntityResult: FunctionComponent<{
 }> = ({ entity, onClick, subgraph }) => {
   const entityId = entity.metadata.recordId.entityId;
 
-  const ownedById = extractOwnedByIdFromEntityId(entityId);
-  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
-    { ownedById },
-  );
+  const webId = extractWebIdFromEntityId(entityId);
+  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByWebId({
+    webId,
+  });
 
   const entityTypes = useMemo(
     () =>

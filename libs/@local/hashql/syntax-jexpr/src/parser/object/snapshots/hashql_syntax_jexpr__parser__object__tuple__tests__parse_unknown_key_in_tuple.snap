@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/tuple.rs
 description: Rejects unknown keys in tuple objects
 expression: "{\"#tuple\": [], \"unknown\": {\"#literal\": \"value\"}}"
 ---
-[31m[parser::object::unknown-key] Error:[0m Parser
+[31m[parser::object::unknown-key] Error:[0m Unknown or unsupported object key
    ╭─[ <unknown>:1:16 ]
    │
  1 │ {"#tuple": [], "unknown": {"#literal": "value"}}

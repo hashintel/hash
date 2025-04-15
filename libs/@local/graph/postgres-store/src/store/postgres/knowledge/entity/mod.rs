@@ -77,7 +77,7 @@ use type_system::{
         id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
     },
     provenance::ActorEntityUuid,
-    web::OwnedById,
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -435,7 +435,7 @@ where
             || params.include_type_ids
         {
             let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
-            let web_id_idx = compiler.add_selection_path(&EntityQueryPath::OwnedById);
+            let web_id_idx = compiler.add_selection_path(&EntityQueryPath::WebId);
             let entity_uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
             let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
             let provenance_idx = params
@@ -466,7 +466,7 @@ where
                 .map_ok(move |row| {
                     (
                         EntityId {
-                            owned_by_id: row.get(web_id_idx),
+                            web_id: row.get(web_id_idx),
                             entity_uuid: row.get(entity_uuid_idx),
                             draft_id: row.get(draft_id_idx),
                         },
@@ -508,7 +508,7 @@ where
                 .filter(|(entity_id, _)| permitted_ids.contains(&entity_id.entity_uuid))
                 .inspect(|(entity_id, row)| {
                     if let Some(web_ids) = &mut web_ids {
-                        web_ids.extend_one(entity_id.owned_by_id);
+                        web_ids.extend_one(entity_id.web_id);
                     }
 
                     if let Some((created_by_ids, provenance_idx)) =
@@ -846,15 +846,15 @@ where
                 .decision_time
                 .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
             let entity_id = EntityId {
-                owned_by_id: params.owned_by_id,
+                web_id: params.web_id,
                 entity_uuid: params
                     .entity_uuid
                     .unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
                 draft_id: params.draft.then(|| DraftId::new(Uuid::new_v4())),
             };
 
-            if entity_id.entity_uuid.as_uuid() != entity_id.owned_by_id.as_uuid() {
-                checked_web_ids.insert(entity_id.owned_by_id);
+            if entity_id.entity_uuid.as_uuid() != entity_id.web_id.as_uuid() {
+                checked_web_ids.insert(entity_id.web_id);
             }
 
             let entity_provenance = EntityProvenance {
@@ -878,13 +878,13 @@ where
                 },
             };
             entity_id_rows.push(EntityIdRow {
-                web_id: entity_id.owned_by_id,
+                web_id: entity_id.web_id,
                 entity_uuid: entity_id.entity_uuid,
                 provenance: entity_provenance.inferred.clone(),
             });
             if let Some(draft_id) = entity_id.draft_id {
                 entity_draft_rows.push(EntityDraftRow {
-                    web_id: entity_id.owned_by_id,
+                    web_id: entity_id.web_id,
                     entity_uuid: entity_id.entity_uuid,
                     draft_id,
                 });
@@ -912,7 +912,7 @@ where
                 ),
             };
             entity_temporal_metadata_rows.push(EntityTemporalMetadataRow {
-                web_id: entity_id.owned_by_id,
+                web_id: entity_id.web_id,
                 entity_uuid: entity_id.entity_uuid,
                 draft_id: entity_id.draft_id,
                 entity_edition_id,
@@ -932,17 +932,17 @@ where
 
             let link_data = params.link_data.inspect(|link_data| {
                 entity_has_left_entity_rows.push(EntityHasLeftEntityRow {
-                    web_id: entity_id.owned_by_id,
+                    web_id: entity_id.web_id,
                     entity_uuid: entity_id.entity_uuid,
-                    left_web_id: link_data.left_entity_id.owned_by_id,
+                    left_web_id: link_data.left_entity_id.web_id,
                     left_entity_uuid: link_data.left_entity_id.entity_uuid,
                     confidence: link_data.left_entity_confidence,
                     provenance: link_data.left_entity_provenance.clone(),
                 });
                 entity_has_right_entity_rows.push(EntityHasRightEntityRow {
-                    web_id: entity_id.owned_by_id,
+                    web_id: entity_id.web_id,
                     entity_uuid: entity_id.entity_uuid,
-                    right_web_id: link_data.right_entity_id.owned_by_id,
+                    right_web_id: link_data.right_entity_id.web_id,
                     right_entity_uuid: link_data.right_entity_id.entity_uuid,
                     confidence: link_data.right_entity_confidence,
                     provenance: link_data.right_entity_provenance.clone(),
@@ -974,9 +974,7 @@ where
                     .relationships
                     .into_iter()
                     .chain(once(EntityRelationAndSubject::Owner {
-                        subject: EntityOwnerSubject::Web {
-                            id: params.owned_by_id,
-                        },
+                        subject: EntityOwnerSubject::Web { id: params.web_id },
                         level: 0,
                     }))
                     .map(|relation_and_subject| (entity_id, relation_and_subject)),
@@ -1876,7 +1874,7 @@ where
                             draft_id
                         ) VALUES ($1, $2, $3);",
                         &[
-                            &params.entity_id.owned_by_id,
+                            &params.entity_id.web_id,
                             &params.entity_id.entity_uuid,
                             &draft_id,
                         ],
@@ -1914,7 +1912,7 @@ where
                             &[
                                 &transaction_time,
                                 &decision_time,
-                                &params.entity_id.owned_by_id,
+                                &params.entity_id.web_id,
                                 &params.entity_id.entity_uuid,
                             ],
                         )
@@ -2015,7 +2013,7 @@ where
         #[derive(Debug, ToSql)]
         #[postgres(name = "entity_embeddings")]
         pub struct EntityEmbeddingsRow<'a> {
-            web_id: OwnedById,
+            web_id: WebId,
             entity_uuid: EntityUuid,
             draft_id: Option<DraftId>,
             property: Option<String>,
@@ -2027,7 +2025,7 @@ where
             .embeddings
             .into_iter()
             .map(|embedding: EntityEmbedding<'_>| EntityEmbeddingsRow {
-                web_id: params.entity_id.owned_by_id,
+                web_id: params.entity_id.web_id,
                 entity_uuid: params.entity_id.entity_uuid,
                 draft_id: params.entity_id.draft_id,
                 property: embedding.property.as_ref().map(ToString::to_string),
@@ -2073,7 +2071,7 @@ where
                           AND updated_at_decision_time <= $5;
                     ",
                         &[
-                            &params.entity_id.owned_by_id,
+                            &params.entity_id.web_id,
                             &params.entity_id.entity_uuid,
                             &draft_id,
                             &params.updated_at_transaction_time,
@@ -2094,7 +2092,7 @@ where
                           AND updated_at_decision_time <= $4;
                     ",
                         &[
-                            &params.entity_id.owned_by_id,
+                            &params.entity_id.web_id,
                             &params.entity_id.entity_uuid,
                             &params.updated_at_transaction_time,
                             &params.updated_at_decision_time,
@@ -2263,7 +2261,7 @@ where
                           AND entity_temporal_metadata.decision_time @> $5::timestamptz
                           FOR NO KEY UPDATE NOWAIT;",
                     &[
-                        &entity_id.owned_by_id,
+                        &entity_id.web_id,
                         &entity_id.entity_uuid,
                         &draft_id,
                         &transaction_time,
@@ -2287,7 +2285,7 @@ where
                           AND entity_temporal_metadata.decision_time @> $4::timestamptz
                           FOR NO KEY UPDATE NOWAIT;",
                     &[
-                        &entity_id.owned_by_id,
+                        &entity_id.web_id,
                         &entity_id.entity_uuid,
                         &transaction_time,
                         &decision_time,
@@ -2341,7 +2339,7 @@ where
                     tstzrange($6, NULL, '[)')
                 ) RETURNING decision_time, transaction_time;",
                 &[
-                    &entity_id.owned_by_id,
+                    &entity_id.web_id,
                     &entity_id.entity_uuid,
                     &entity_id.draft_id,
                     &edition_id,
@@ -2385,7 +2383,7 @@ where
                   AND entity_temporal_metadata.decision_time @> $5::timestamptz
                 RETURNING decision_time, transaction_time;",
                         &[
-                            &locked_row.entity_id.owned_by_id,
+                            &locked_row.entity_id.web_id,
                             &locked_row.entity_id.entity_uuid,
                             &draft_id,
                             &transaction_time,
@@ -2411,7 +2409,7 @@ where
                   AND entity_temporal_metadata.decision_time @> $5::timestamptz
                 RETURNING decision_time, transaction_time;",
                         &[
-                            &locked_row.entity_id.owned_by_id,
+                            &locked_row.entity_id.web_id,
                             &locked_row.entity_id.entity_uuid,
                             &draft_id,
                             &transaction_time,
@@ -2438,7 +2436,7 @@ where
                   AND entity_temporal_metadata.decision_time @> $4::timestamptz
                 RETURNING decision_time, transaction_time;",
                     &[
-                        &locked_row.entity_id.owned_by_id,
+                        &locked_row.entity_id.web_id,
                         &locked_row.entity_id.entity_uuid,
                         &transaction_time,
                         &decision_time,
@@ -2469,7 +2467,7 @@ where
                     tstzrange(lower($6::tstzrange), $7, '[)')
                 );",
                 &[
-                    &locked_row.entity_id.owned_by_id,
+                    &locked_row.entity_id.web_id,
                     &locked_row.entity_id.entity_uuid,
                     &locked_row.entity_id.draft_id,
                     &locked_row.entity_edition_id,
@@ -2501,7 +2499,7 @@ where
                     tstzrange(lower($5::tstzrange), $7, '[)')
                 );",
                 &[
-                    &locked_row.entity_id.owned_by_id,
+                    &locked_row.entity_id.web_id,
                     &locked_row.entity_id.entity_uuid,
                     &locked_row.entity_id.draft_id,
                     &locked_row.entity_edition_id,
@@ -2542,7 +2540,7 @@ where
                   AND entity_temporal_metadata.decision_time @> $5::timestamptz
                 RETURNING decision_time, transaction_time;",
                     &[
-                        &locked_row.entity_id.owned_by_id,
+                        &locked_row.entity_id.web_id,
                         &locked_row.entity_id.entity_uuid,
                         &draft_id,
                         &transaction_time,
@@ -2566,7 +2564,7 @@ where
                   AND entity_temporal_metadata.decision_time @> $4::timestamptz
                 RETURNING decision_time, transaction_time;",
                     &[
-                        &locked_row.entity_id.owned_by_id,
+                        &locked_row.entity_id.web_id,
                         &locked_row.entity_id.entity_uuid,
                         &transaction_time,
                         &decision_time,
@@ -2596,7 +2594,7 @@ where
                     $5
                 );",
                 &[
-                    &locked_row.entity_id.owned_by_id,
+                    &locked_row.entity_id.web_id,
                     &locked_row.entity_id.entity_uuid,
                     &locked_row.entity_id.draft_id,
                     &locked_row.entity_edition_id,

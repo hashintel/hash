@@ -1,0 +1,14 @@
+[31m[special-form-expander::invalid-use-import] Error:[0m Invalid use import expression
+   ╭─[ <unknown>:6:16 ]
+   │
+ 6 │   { "#tuple": [{ "#literal": 1 }] },
+   │                ────────┬────────  
+   │                        ╰────────── Replace with a valid import expression
+   │ 
+   │ Help: Use imports must be either a glob (*), a tuple of identifiers, or a struct of bindings. Other expression types are not valid in this context.
+   │ 
+   │ Note: Valid import expressions include:
+   │       - Glob: *
+   │       - Tuple of identifiers: (name1, name2)
+   │       - Struct with aliases: (name1: alias1, name2: alias2) or (name1: _, name2: _)
+───╯

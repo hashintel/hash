@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Invalid exponent format
 expression: 1e
 ---
-[31m[lexer::invalid-number] Error:[0m Lexer
+[31m[lexer::invalid-number] Error:[0m Invalid number literal
    ╭─[ <unknown>:1:1 ]
    │
  1 │ 1e

@@ -1,8 +1,8 @@
 import type {
   ActorEntityUuid,
   ActorGroupId,
-  OwnedById,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
@@ -126,7 +126,7 @@ export const getOrCreateOwningAccountGroupId = async (
   );
 
   await createWeb(context, authentication, {
-    ownedById: accountGroupId as OwnedById,
+    webId: accountGroupId as WebId,
     owner: { kind: "accountGroup", subjectId: accountGroupId },
   });
 
@@ -200,7 +200,7 @@ export const ensureSystemWebEntitiesExist = async ({
         machineAccountId: machineActorAccountId,
         identifier: webShortname,
         logger,
-        ownedById: accountGroupId as OwnedById,
+        webId: accountGroupId as WebId,
         displayName,
         systemAccountId,
         machineEntityTypeId,
@@ -276,7 +276,7 @@ export const ensureSystemEntitiesExist = async (params: {
         context,
         { actorId: machineActorAccountId },
         {
-          ownedById: accountGroupId as OwnedById,
+          webId: accountGroupId as WebId,
         },
       );
     } catch (err) {
@@ -286,7 +286,7 @@ export const ensureSystemEntitiesExist = async (params: {
           // We have to use an org admin's authority to add the machine to their web
           { actorId: machineActorAccountId },
           {
-            ownedById: accountGroupId as OwnedById,
+            webId: accountGroupId as WebId,
             logger,
           },
         );
@@ -356,7 +356,7 @@ export const ensureSystemEntitiesExist = async (params: {
         identifier: "hash-ai",
         logger,
         machineAccountId: aiAssistantAccountId,
-        ownedById: hashAccountGroupId as OwnedById,
+        webId: hashAccountGroupId as WebId,
         displayName: "HASH AI",
         systemAccountId,
       });

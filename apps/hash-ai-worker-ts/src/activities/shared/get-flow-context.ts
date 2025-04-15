@@ -2,12 +2,12 @@ import type {
   ActorEntityUuid,
   EntityId,
   EntityUuid,
-  OwnedById,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   entityIdFromComponents,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
@@ -138,7 +138,7 @@ type FlowContext = {
   flowEntityId: EntityId;
   stepId: string;
   userAuthentication: { actorId: ActorEntityUuid };
-  webId: OwnedById;
+  webId: WebId;
 };
 
 /**
@@ -210,8 +210,8 @@ export const getProvidedFiles = async (): Promise<Entity<File>[]> => {
             },
             {
               equal: [
-                { path: ["ownedById"] },
-                { parameter: extractOwnedByIdFromEntityId(fileEntityId) },
+                { path: ["webId"] },
+                { parameter: extractWebIdFromEntityId(fileEntityId) },
               ],
             },
             { equal: [{ path: ["archived"] }, { parameter: false }] },

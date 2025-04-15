@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: if given that `a = b`, then `a` should be replaced with `b` in the body
+["newtype", "a", "b", ["a", "x", "x"]]

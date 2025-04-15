@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { OwnedById } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import { useCallback } from "react";
@@ -18,7 +18,7 @@ import { uploadFileToStorageProvider } from "../../../../shared/upload-to-storag
 import type { UploadFileRequestCallback } from "./knowledge-shim";
 
 export const useBlockProtocolFileUpload = (
-  ownedById?: OwnedById,
+  webId?: WebId,
   _readonly?: boolean,
 ): { uploadFile: UploadFileRequestCallback } => {
   const [requestFileUploadFn] = useMutation<
@@ -33,8 +33,8 @@ export const useBlockProtocolFileUpload = (
 
   const uploadFile: UploadFileRequestCallback = useCallback(
     async ({ data: fileUploadData }) => {
-      if (!ownedById) {
-        throw new Error("No ownedById provided for uploadFile");
+      if (!webId) {
+        throw new Error("No webId provided for uploadFile");
       }
       if (!fileUploadData) {
         return {
@@ -57,7 +57,7 @@ export const useBlockProtocolFileUpload = (
               ? { fileEntityUpdateInput: fileUploadData.fileEntityUpdateInput }
               : {
                   fileEntityCreationInput: {
-                    ownedById,
+                    webId,
                     ...fileUploadData.fileEntityCreationInput,
                   },
                 }),
@@ -104,7 +104,7 @@ export const useBlockProtocolFileUpload = (
             ? { fileEntityUpdateInput: fileUploadData.fileEntityUpdateInput }
             : {
                 fileEntityCreationInput: {
-                  ownedById,
+                  webId,
                   ...fileUploadData.fileEntityCreationInput,
                 },
               }),
@@ -133,7 +133,7 @@ export const useBlockProtocolFileUpload = (
 
       return { data: new Entity<File>(uploadedFileEntity) };
     },
-    [createFileFromUrlFn, ownedById, requestFileUploadFn],
+    [createFileFromUrlFn, webId, requestFileUploadFn],
   );
 
   return {

@@ -212,25 +212,23 @@ export const createFileEntityFromUrl = async (params: {
       fileSizeInBytes,
   };
 
-  const ownedById = webId;
-
   const isAiGenerated = provenanceFromParams?.actorType === "ai";
 
   const webBotActorId = isAiGenerated
     ? await getAiAssistantAccountIdActivity({
         authentication: { actorId: userAuthentication.actorId },
         graphApiClient,
-        grantCreatePermissionForWeb: ownedById,
+        grantCreatePermissionForWeb: webId,
       })
     : await getWebMachineActorId(
         { graphApi: graphApiClient },
         { actorId: userAuthentication.actorId },
-        { ownedById },
+        { webId },
       );
 
   if (!webBotActorId) {
     throw new Error(
-      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${ownedById}`,
+      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${webId}`,
     );
   }
 
@@ -248,7 +246,7 @@ export const createFileEntityFromUrl = async (params: {
     { actorId: webBotActorId },
     {
       draft: false,
-      ownedById: webId,
+      webId,
       properties: mergePropertyObjectAndMetadata<File>(
         initialProperties,
         propertyMetadata,

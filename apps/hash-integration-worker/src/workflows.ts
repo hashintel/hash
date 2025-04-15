@@ -23,14 +23,14 @@ const linearActivities =
   );
 
 export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
-  const { apiKey, workspaceOwnedById, authentication, teamIds } = params;
+  const { apiKey, workspaceWebId, authentication, teamIds } = params;
 
   const organization = linearActivities
     .readLinearOrganization({ apiKey })
     .then((organizationEntity) =>
       linearActivities.createPartialEntities({
         authentication,
-        workspaceOwnedById,
+        workspaceWebId,
         entities: [organizationEntity],
       }),
     );
@@ -40,7 +40,7 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
     .then((userEntities) =>
       linearActivities.createPartialEntities({
         authentication,
-        workspaceOwnedById,
+        workspaceWebId,
         entities: userEntities,
       }),
     );
@@ -51,7 +51,7 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
       .then((issueEntities) =>
         linearActivities.createPartialEntities({
           authentication,
-          workspaceOwnedById,
+          workspaceWebId,
           entities: issueEntities,
         }),
       ),

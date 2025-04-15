@@ -21,7 +21,7 @@ use crate::{
     FileAnnotations, Suite, TestCase,
     annotation::directive::RunMode,
     reporter::Statistics,
-    styles::{BLUE, CYAN, GREEN, RED, YELLOW},
+    styles::{BLUE, CYAN, GRAY, GREEN, RED, YELLOW},
     suite::{ResolvedSuiteDiagnostic, find_suite},
 };
 
@@ -171,6 +171,11 @@ impl Trial {
             write!(output, " ({YELLOW}ignored{YELLOW:#})")?;
         }
 
+        if let Some(description) = &self.annotations.directive.description {
+            writeln!(output)?;
+            write!(output, "    {GRAY}{description}{GRAY:#}")?;
+        }
+
         Ok(())
     }
 
@@ -253,7 +258,7 @@ impl Trial {
 
     fn run_suite<'heap>(
         &self,
-        spans: &SpanStorage<Span>,
+        mut spans: &SpanStorage<Span>,
         heap: &'heap Heap,
         expr: Expr<'heap>,
     ) -> Result<(Option<String>, Vec<ResolvedSuiteDiagnostic>), Report<TrialError>> {
@@ -269,7 +274,7 @@ impl Trial {
         let diagnostics = diagnostics
             .into_iter()
             .chain(fatal_diagnostic)
-            .map(|diagnostic| diagnostic.resolve(spans))
+            .map(|diagnostic| diagnostic.resolve(&mut spans))
             .try_collect_reports()
             .change_context(TrialError::DiagnosticResolution)?;
 

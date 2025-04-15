@@ -1,0 +1,11 @@
+//@ run: fail
+//@ description: fn/5 should error out
+[
+  "::kernel::special_form::fn",
+  { "#tuple": [] },
+  { "#struct": {} },
+  "_",
+  ["+", "a", "b"],
+  ["*", "c", "d"]
+  //~^ ERROR Remove this argument
+]

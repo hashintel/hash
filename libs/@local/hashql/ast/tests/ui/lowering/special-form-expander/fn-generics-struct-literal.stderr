@@ -1,0 +1,17 @@
+[31m[special-form-expander::invalid-type-expression] Error:[0m Invalid type expression
+   ╭─[ <unknown>:7:12 ]
+   │
+ 7 │       "T": { "#literal": 2 }
+   │            ────────┬────────  
+   │                    ╰────────── Replace this literal with a type name
+   │ 
+   │ Help: Replace this expression with a valid type reference, struct type, or tuple type
+   │ 
+   │ Note: Valid type expressions include:
+   │       - Type names: String, Int, Float
+   │       - Struct types: {name: String, age: Int}
+   │       - Tuple types: (String, Int, Boolean)
+   │       - Unions: (| String Int)
+   │       - Intersections: (& String Int)
+   │       - Generic types: Array<String>, Option<Int>
+───╯

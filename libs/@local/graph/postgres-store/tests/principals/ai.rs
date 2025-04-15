@@ -1,6 +1,10 @@
 use core::{assert_matches::assert_matches, error::Error};
 
-use hash_graph_authorization::policies::principal::{PrincipalId, team::TeamId};
+use hash_graph_authorization::policies::{
+    action::ActionName,
+    principal::{PrincipalId, group::ActorGroupId},
+    store::{CreateWebParameter, PrincipalStore as _},
+};
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
 use type_system::{
@@ -14,7 +18,7 @@ use crate::DatabaseTestWrapper;
 #[tokio::test]
 async fn create_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let ai_id = client.create_ai(None).await?;
     assert!(client.is_ai(ai_id).await?);
@@ -25,7 +29,7 @@ async fn create_ai() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_ai_with_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let id = Uuid::new_v4();
     let ai_id = client.create_ai(Some(id)).await?;
@@ -39,7 +43,7 @@ async fn create_ai_with_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let ai_id = client.create_ai(None).await?;
     assert!(client.is_ai(ai_id).await?);
@@ -53,14 +57,14 @@ async fn delete_ai() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_ai_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let ai_id = client.create_ai(Some(Uuid::new_v4())).await?;
-    let result = client.create_ai(Some(*ai_id.as_uuid())).await;
+    let result = client.create_ai(Some(ai_id.into_uuid())).await;
     drop(client);
 
     let expected_actor_id = ActorId::Ai(AiId::new(ActorEntityUuid::new(EntityUuid::new(
-        *ai_id.as_uuid(),
+        ai_id.into_uuid(),
     ))));
 
     assert_matches!(
@@ -74,7 +78,7 @@ async fn create_ai_with_duplicate_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let client = db.client().await?;
+    let (client, _actor_id) = db.seed([]).await?;
 
     let non_existent_id = AiId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
     let result = client.get_ai(non_existent_id).await?;
@@ -90,13 +94,13 @@ async fn get_non_existent_ai() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let non_existent_id = AiId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
     let result = client.delete_ai(non_existent_id).await;
 
     let expected_actor_id = ActorId::Ai(AiId::new(ActorEntityUuid::new(EntityUuid::new(
-        *non_existent_id.as_uuid(),
+        non_existent_id.into_uuid(),
     ))));
 
     assert_matches!(
@@ -110,9 +114,11 @@ async fn delete_non_existent_ai() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_web_ai_relation() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    let web_id = client.create_web(None).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
     let ai_id = client.create_ai(None).await?;
 
     assert!(client.is_web(web_id).await?);
@@ -124,14 +130,16 @@ async fn create_web_ai_relation() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn ai_role_assignment() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
     let ai_id = client.create_ai(None).await?;
-    let web_id = client.create_web(None).await?;
-    let role_id = client.create_role(None, TeamId::Web(web_id)).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
+    let role_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
 
     let actor_id = ActorId::Ai(AiId::new(ActorEntityUuid::new(EntityUuid::new(
-        *ai_id.as_uuid(),
+        ai_id.into_uuid(),
     ))));
 
     // Assign the role to the AI
@@ -139,7 +147,7 @@ async fn ai_role_assignment() -> Result<(), Box<dyn Error>> {
 
     // Check that the AI has the role assigned
     let ai_roles = client.get_actor_roles(actor_id).await?;
-    assert!(ai_roles.contains(&role_id));
+    assert!(ai_roles.contains_key(&role_id));
 
     // Check that the role has the AI assigned
     let role_actors = client.get_role_actors(role_id).await?;
@@ -150,7 +158,7 @@ async fn ai_role_assignment() -> Result<(), Box<dyn Error>> {
 
     // Check that the AI no longer has the role assigned
     let ai_roles_after = client.get_actor_roles(actor_id).await?;
-    assert!(!ai_roles_after.contains(&role_id));
+    assert!(!ai_roles_after.contains_key(&role_id));
 
     Ok(())
 }

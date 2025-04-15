@@ -7,17 +7,18 @@ use hash_graph_authorization::{
         action::ActionName,
         principal::{
             PrincipalConstraint,
+            group::{ActorGroupId, TeamId},
             role::RoleId,
-            team::{SubteamId, TeamId},
         },
         resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
+        store::{CreateWebParameter, PrincipalStore as _},
     },
 };
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
 use type_system::{
     knowledge::entity::id::EntityUuid,
     provenance::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
-    web::OwnedById,
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -30,18 +31,18 @@ use crate::DatabaseTestWrapper;
 )]
 struct TestPolicyEnvironment {
     // Teams
-    web1: OwnedById,
-    web2: OwnedById,
-    subteam1: SubteamId,
-    subteam2: SubteamId,
-    nested_subteam: SubteamId,
+    web1: WebId,
+    web2: WebId,
+    team1: TeamId,
+    team2: TeamId,
+    nested_team: TeamId,
 
     // Roles
     web1_role: RoleId,
     web2_role: RoleId,
-    subteam1_role: RoleId,
-    subteam2_role: RoleId,
-    nested_subteam_role: RoleId,
+    team1_role: RoleId,
+    team2_role: RoleId,
+    nested_team_role: RoleId,
 
     // Actors
     user1: UserId,
@@ -60,7 +61,7 @@ struct TestPolicyIds {
     machine_type: PolicyId,
     user1: PolicyId,
     web1_role: PolicyId,
-    subteam1: PolicyId,
+    team1: PolicyId,
     web2_role_user: PolicyId,
     deny_user1: PolicyId,
 }
@@ -77,7 +78,7 @@ struct TestPolicyIds {
 ///       ┌─────────┴──────────┐       │
 ///       │                    │       │
 ///  ┌────┴────┐          ┌────┴────┐  │
-///  │subteam 1│──────────│subteam 2│  │
+///  │team 1│──────────│team 2│  │
 ///  └────┬────┘          └─────────┘  │
 ///       │                            │
 ///       │                            │
@@ -91,9 +92,9 @@ struct TestPolicyIds {
 ///
 /// ROLES:
 /// - user1 → web1_role
-/// - user2 → subteam1_role, web2_role
-/// - machine → subteam2_role
-/// - ai → nested_subteam_role
+/// - user2 → team1_role, web2_role
+/// - machine → team2_role
+/// - ai → nested_team_role
 ///
 /// POLICIES:
 /// - global (all)
@@ -102,53 +103,47 @@ struct TestPolicyIds {
 /// - user1 → specific to user1
 /// - web1_role → role specific
 /// - web2_role_user → role with actor type constraint
-/// - subteam1 → team based
+/// - team1 → team based
 /// - deny_user1 → forbid policy
 /// ```
 #[expect(clippy::too_many_lines)]
 async fn setup_policy_test_environment(
     client: &mut PostgresStore<impl AsClient, impl AuthorizationApi>,
+    actor_id: ActorId,
 ) -> Result<TestPolicyEnvironment, Box<dyn Error>> {
     // Register actions
-    client.register_action(ActionName::All, None).await?;
-    client
-        .register_action(ActionName::Create, Some(ActionName::All))
-        .await?;
-    client
-        .register_action(ActionName::View, Some(ActionName::All))
-        .await?;
-    client
-        .register_action(ActionName::ViewEntity, Some(ActionName::View))
-        .await?;
-    client
-        .register_action(ActionName::Update, Some(ActionName::All))
-        .await?;
-    client
-        .register_action(ActionName::Instantiate, Some(ActionName::All))
-        .await?;
+    client.register_action(ActionName::Create).await?;
+    client.register_action(ActionName::View).await?;
+    client.register_action(ActionName::ViewEntity).await?;
+    client.register_action(ActionName::Update).await?;
+    client.register_action(ActionName::Instantiate).await?;
 
     // Create web teams (top level)
-    let web1_id = client.create_web(None).await?;
-    let web2_id = client.create_web(None).await?;
+    let web1_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
+    let web2_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
 
-    // Create subteams with different hierarchies
-    let subteam_1_id = client.create_subteam(None, TeamId::Web(web1_id)).await?;
-    let subteam_2_id = client.create_subteam(None, TeamId::Web(web1_id)).await?;
-    let nested_subteam_id = client
-        .create_subteam(None, TeamId::Subteam(subteam_1_id))
+    // Create teams with different hierarchies
+    let team_1_id = client.create_team(None, ActorGroupId::Web(web1_id)).await?;
+    let team_2_id = client.create_team(None, ActorGroupId::Web(web1_id)).await?;
+    let nested_team_id = client
+        .create_team(None, ActorGroupId::Team(team_1_id))
         .await?;
 
     // Create roles for each team
-    let web_1_role_id = client.create_role(None, TeamId::Web(web1_id)).await?;
-    let web_2_role_id = client.create_role(None, TeamId::Web(web2_id)).await?;
-    let subteam1_role_id = client
-        .create_role(None, TeamId::Subteam(subteam_1_id))
+    let web_1_role_id = client.create_role(None, ActorGroupId::Web(web1_id)).await?;
+    let web_2_role_id = client.create_role(None, ActorGroupId::Web(web2_id)).await?;
+    let team1_role_id = client
+        .create_role(None, ActorGroupId::Team(team_1_id))
         .await?;
-    let subteam2_role_id = client
-        .create_role(None, TeamId::Subteam(subteam_2_id))
+    let team2_role_id = client
+        .create_role(None, ActorGroupId::Team(team_2_id))
         .await?;
-    let nested_subteam_role_id = client
-        .create_role(None, TeamId::Subteam(nested_subteam_id))
+    let nested_team_role_id = client
+        .create_role(None, ActorGroupId::Team(nested_team_id))
         .await?;
 
     // Create actors of different types
@@ -162,16 +157,16 @@ async fn setup_policy_test_environment(
         .assign_role_to_actor(ActorId::User(user1_id), web_1_role_id)
         .await?;
     client
-        .assign_role_to_actor(ActorId::User(user2_id), subteam1_role_id)
+        .assign_role_to_actor(ActorId::User(user2_id), team1_role_id)
         .await?;
     client
         .assign_role_to_actor(ActorId::User(user2_id), web_2_role_id)
         .await?;
     client
-        .assign_role_to_actor(ActorId::Machine(machine_id), subteam2_role_id)
+        .assign_role_to_actor(ActorId::Machine(machine_id), team2_role_id)
         .await?;
     client
-        .assign_role_to_actor(ActorId::Ai(ai_id), nested_subteam_role_id)
+        .assign_role_to_actor(ActorId::Ai(ai_id), nested_team_role_id)
         .await?;
 
     // Create policies of various types
@@ -245,12 +240,12 @@ async fn setup_policy_test_environment(
         .await?;
 
     // 5. Team-based policies
-    let subteam1_policy_id = client
+    let team1_policy_id = client
         .create_policy(Policy {
             id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Team {
-                team: TeamId::Subteam(subteam_1_id),
+            principal: Some(PrincipalConstraint::ActorGroup {
+                actor_group: ActorGroupId::Team(team_1_id),
                 actor_type: None,
             }),
             actions: vec![ActionName::ViewEntity],
@@ -292,16 +287,16 @@ async fn setup_policy_test_environment(
         // Teams
         web1: web1_id,
         web2: web2_id,
-        subteam1: subteam_1_id,
-        subteam2: subteam_2_id,
-        nested_subteam: nested_subteam_id,
+        team1: team_1_id,
+        team2: team_2_id,
+        nested_team: nested_team_id,
 
         // Roles
         web1_role: web_1_role_id,
         web2_role: web_2_role_id,
-        subteam1_role: subteam1_role_id,
-        subteam2_role: subteam2_role_id,
-        nested_subteam_role: nested_subteam_role_id,
+        team1_role: team1_role_id,
+        team2_role: team2_role_id,
+        nested_team_role: nested_team_role_id,
 
         // Actors
         user1: user1_id,
@@ -316,7 +311,7 @@ async fn setup_policy_test_environment(
             machine_type: machine_type_policy_id,
             user1: user1_policy_id,
             web1_role: web1_role_policy_id,
-            subteam1: subteam1_policy_id,
+            team1: team1_policy_id,
             web2_role_user: web2_role_user_policy_id,
             deny_user1: deny_user1_policy_id,
         },
@@ -326,9 +321,9 @@ async fn setup_policy_test_environment(
 #[tokio::test]
 async fn global_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // Every actor should get global policies
     let user1_policies = client
@@ -377,9 +372,9 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // Test user type policies
     let user1_policies = client
@@ -439,9 +434,9 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // user1 has a specific policy assigned
     let user1_policies = client
@@ -476,9 +471,9 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn role_based_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // Test role-based policies
     let user1_policies = client
@@ -530,12 +525,12 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // Test team hierarchies
-    // User2 has subteam1_role, AI has nested_subteam_role which is under subteam1
+    // User2 has team1_role, AI has nested_team_role which is under team1
     let user2_policies = client
         .get_policies_for_actor(ActorId::User(env.user2))
         .await?;
@@ -543,16 +538,16 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
         .get_policies_for_actor(ActorId::Ai(env.ai_id))
         .await?;
 
-    // User2 should have subteam1's policies
+    // User2 should have team1's policies
     assert!(
-        user2_policies.contains_key(&env.policies.subteam1),
-        "User2 should have subteam1 policy"
+        user2_policies.contains_key(&env.policies.team1),
+        "User2 should have team1 policy"
     );
 
-    // AI with nested_subteam_role should inherit policies from parent subteam1
+    // AI with nested_team_role should inherit policies from parent team1
     assert!(
-        ai_policies.contains_key(&env.policies.subteam1),
-        "AI should inherit subteam1 policy through team hierarchy"
+        ai_policies.contains_key(&env.policies.team1),
+        "AI should inherit team1 policy through team hierarchy"
     );
 
     Ok(())
@@ -561,9 +556,9 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     let nonexistent_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
 
@@ -616,9 +611,9 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    let env = setup_policy_test_environment(&mut client).await?;
+    let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
     // Initial policy count
     let user2_policies = client
@@ -678,10 +673,10 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, _actor_id) = db.seed([]).await?;
 
     let user_id = client.create_user(None).await?;
-    client.register_action(ActionName::All, None).await?;
+    client.register_action(ActionName::All).await?;
 
     // Create a policy with resource constraints
     let resource_policy_id = client
@@ -729,13 +724,15 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn multiple_actor_roles() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
     // Create teams and roles
-    let web_id = client.create_web(None).await?;
-    let role1_id = client.create_role(None, TeamId::Web(web_id)).await?;
-    let role2_id = client.create_role(None, TeamId::Web(web_id)).await?;
-    let role3_id = client.create_role(None, TeamId::Web(web_id)).await?;
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
+        .await?;
+    let role1_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role2_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role3_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
 
     // Create user with multiple roles
     let user_id = client.create_user(None).await?;
@@ -748,8 +745,6 @@ async fn multiple_actor_roles() -> Result<(), Box<dyn Error>> {
     client
         .assign_role_to_actor(ActorId::User(user_id), role3_id)
         .await?;
-
-    client.register_action(ActionName::All, None).await?;
 
     // Create policies for each role
     let policy1_id = client
@@ -822,44 +817,44 @@ async fn multiple_actor_roles() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let mut client = db.client().await?;
+    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
     // Create a deep team hierarchy
-    let web_id = client.create_web(None).await?;
-    let subteam1_id = client.create_subteam(None, TeamId::Web(web_id)).await?;
-    let subteam2_id = client
-        .create_subteam(None, TeamId::Subteam(subteam1_id))
+    let web_id = client
+        .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let subteam3_id = client
-        .create_subteam(None, TeamId::Subteam(subteam2_id))
+    let team1_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
+    let team2_id = client
+        .create_team(None, ActorGroupId::Team(team1_id))
         .await?;
-    let subteam4_id = client
-        .create_subteam(None, TeamId::Subteam(subteam3_id))
+    let team3_id = client
+        .create_team(None, ActorGroupId::Team(team2_id))
         .await?;
-    let subteam5_id = client
-        .create_subteam(None, TeamId::Subteam(subteam4_id))
+    let team4_id = client
+        .create_team(None, ActorGroupId::Team(team3_id))
+        .await?;
+    let team5_id = client
+        .create_team(None, ActorGroupId::Team(team4_id))
         .await?;
 
     // Create roles
-    let subteam5_role_id = client
-        .create_role(None, TeamId::Subteam(subteam5_id))
+    let team5_role_id = client
+        .create_role(None, ActorGroupId::Team(team5_id))
         .await?;
 
     // Create user assigned to the deepest role
     let user_id = client.create_user(None).await?;
     client
-        .assign_role_to_actor(ActorId::User(user_id), subteam5_role_id)
+        .assign_role_to_actor(ActorId::User(user_id), team5_role_id)
         .await?;
-
-    client.register_action(ActionName::All, None).await?;
 
     // Create policies
     let web_policy_id = client
         .create_policy(Policy {
             id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Team {
-                team: TeamId::Web(web_id),
+            principal: Some(PrincipalConstraint::ActorGroup {
+                actor_group: ActorGroupId::Web(web_id),
                 actor_type: None,
             }),
             actions: vec![ActionName::All],
@@ -868,12 +863,12 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
         })
         .await?;
 
-    let subteam1_policy_id = client
+    let team1_policy_id = client
         .create_policy(Policy {
             id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Team {
-                team: TeamId::Subteam(subteam1_id),
+            principal: Some(PrincipalConstraint::ActorGroup {
+                actor_group: ActorGroupId::Team(team1_id),
                 actor_type: None,
             }),
             actions: vec![ActionName::All],
@@ -882,12 +877,12 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
         })
         .await?;
 
-    let subteam5_policy_id = client
+    let team5_policy_id = client
         .create_policy(Policy {
             id: PolicyId::new(Uuid::new_v4()),
             effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Team {
-                team: TeamId::Subteam(subteam5_id),
+            principal: Some(PrincipalConstraint::ActorGroup {
+                actor_group: ActorGroupId::Team(team5_id),
                 actor_type: None,
             }),
             actions: vec![ActionName::All],
@@ -906,12 +901,12 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
         "User should inherit web team policy"
     );
     assert!(
-        policies.contains_key(&subteam1_policy_id),
-        "User should inherit subteam1 policy"
+        policies.contains_key(&team1_policy_id),
+        "User should inherit team1 policy"
     );
     assert!(
-        policies.contains_key(&subteam5_policy_id),
-        "User should have direct subteam5 policy"
+        policies.contains_key(&team5_policy_id),
+        "User should have direct team5 policy"
     );
 
     Ok(())

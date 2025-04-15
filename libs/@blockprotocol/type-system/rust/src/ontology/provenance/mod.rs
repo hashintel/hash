@@ -21,7 +21,7 @@ use time::OffsetDateTime;
 
 use crate::{
     provenance::{ActorEntityUuid, ActorType, OriginProvenance, SourceProvenance},
-    web::OwnedById,
+    web::WebId,
 };
 
 /// Specifies whether an ontology type is owned locally or fetched from a remote source.
@@ -38,7 +38,7 @@ pub enum OntologyOwnership {
     #[serde(rename_all = "camelCase")]
     Local {
         /// The ID of the web that owns this ontology type locally
-        owned_by_id: OwnedById,
+        web_id: WebId,
     },
 
     /// The ontology type was fetched from a remote source.

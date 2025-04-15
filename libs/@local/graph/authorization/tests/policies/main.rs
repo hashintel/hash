@@ -15,8 +15,8 @@ use hash_graph_authorization::policies::{
     Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
     action::ActionName,
     principal::{
+        group::ActorGroupId,
         role::{RoleId, WebRoleId},
-        team::TeamId,
     },
     resource::{EntityResource, EntityTypeId, EntityTypeResource},
     store::{MemoryPolicyStore, PolicyStore},
@@ -25,7 +25,7 @@ use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::VersionedUrl,
     provenance::{ActorId, MachineId, UserId},
-    web::OwnedById,
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -36,7 +36,7 @@ use self::definitions::{
 
 #[derive(Debug, serde::Serialize)]
 struct TestWeb {
-    id: OwnedById,
+    id: WebId,
     admin_role: WebRoleId,
     member_role: WebRoleId,
     machine: TestMachine,
@@ -118,7 +118,7 @@ struct TestMachine {
 
 impl TestMachine {
     fn generate(
-        web_id: OwnedById,
+        web_id: WebId,
         policy_store: &mut impl PolicyStore,
         context: &mut ContextBuilder,
     ) -> Result<Self, Box<dyn Error>> {
@@ -149,7 +149,7 @@ struct TestSystem {
     web: TestWeb,
     machine: TestMachine,
     hash_ai_machine: TestMachine,
-    hash_instance_admins: TeamId,
+    hash_instance_admins: ActorGroupId,
     hash_instance_admins_admin_role: RoleId,
     hash_instance_admins_member_role: RoleId,
     hash_instance_entity: EntityResource<'static>,
@@ -177,16 +177,16 @@ impl TestSystem {
 
         let hash_ai_machine = TestMachine::generate(web.id, policy_store, context)?;
 
-        let hash_instance_admins = policy_store.create_subteam(TeamId::Web(web.id))?;
+        let hash_instance_admins = policy_store.create_team(ActorGroupId::Web(web.id))?;
         let hash_instance_admins_admin_role =
-            policy_store.create_subteam_role(hash_instance_admins)?;
+            policy_store.create_team_role(hash_instance_admins)?;
         let hash_instance_admins_member_role =
-            policy_store.create_subteam_role(hash_instance_admins)?;
+            policy_store.create_team_role(hash_instance_admins)?;
 
         policy_store
             .assign_role(
                 ActorId::Machine(hash_ai_machine.id),
-                RoleId::Subteam(hash_instance_admins_admin_role),
+                RoleId::Team(hash_instance_admins_admin_role),
             )
             .expect("should be able to assign role");
         let hash_instance_entity = EntityResource {
@@ -206,9 +206,9 @@ impl TestSystem {
             web,
             machine,
             hash_ai_machine,
-            hash_instance_admins: TeamId::Subteam(hash_instance_admins),
-            hash_instance_admins_admin_role: RoleId::Subteam(hash_instance_admins_admin_role),
-            hash_instance_admins_member_role: RoleId::Subteam(hash_instance_admins_member_role),
+            hash_instance_admins: ActorGroupId::Team(hash_instance_admins),
+            hash_instance_admins_admin_role: RoleId::Team(hash_instance_admins_admin_role),
+            hash_instance_admins_member_role: RoleId::Team(hash_instance_admins_member_role),
             hash_instance_entity,
         })
     }

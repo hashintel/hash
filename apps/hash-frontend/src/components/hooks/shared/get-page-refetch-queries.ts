@@ -1,7 +1,7 @@
 import type { EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { useCallback } from "react";
 
@@ -23,7 +23,7 @@ export const useGetPageRefetchQueries = () =>
       {
         query: getEntitySubgraphQuery,
         variables: getAccountPagesVariables({
-          ownedById: extractOwnedByIdFromEntityId(pageEntityId),
+          webId: extractWebIdFromEntityId(pageEntityId),
           // Breadcrumbs use the archived query (since they may be archived)
           includeArchived: true,
         }),
@@ -32,7 +32,7 @@ export const useGetPageRefetchQueries = () =>
         query: getEntitySubgraphQuery,
         variables: getAccountPagesVariables({
           // The page sidebar does not include archived pages
-          ownedById: extractOwnedByIdFromEntityId(pageEntityId),
+          webId: extractWebIdFromEntityId(pageEntityId),
         }),
       },
       {

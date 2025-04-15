@@ -37,6 +37,6 @@ pub struct InputExpr<'heap> {
     pub span: SpanId,
 
     pub name: Ident,
-    pub r#type: Option<heap::Box<'heap, Type<'heap>>>,
+    pub r#type: heap::Box<'heap, Type<'heap>>,
     pub default: Option<heap::Box<'heap, Expr<'heap>>>,
 }

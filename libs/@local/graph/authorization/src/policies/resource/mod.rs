@@ -6,7 +6,7 @@ use core::{error::Error, fmt, str::FromStr as _};
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
-use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::OwnedById};
+use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::WebId};
 use uuid::Uuid;
 
 pub use self::{
@@ -49,7 +49,7 @@ impl CedarExpressionVisitor for ResourceVariableVisitor {
     deny_unknown_fields
 )]
 pub enum ResourceConstraint {
-    Web { web_id: OwnedById },
+    Web { web_id: WebId },
     Entity(EntityResourceConstraint),
     EntityType(EntityTypeResourceConstraint),
 }
@@ -144,9 +144,9 @@ impl ResourceConstraint {
     fn try_from_cedar_in(
         resource: &ast::EntityUID,
     ) -> Result<Self, Report<InvalidResourceConstraint>> {
-        if *resource.entity_type() == **OwnedById::entity_type() {
+        if *resource.entity_type() == **WebId::entity_type() {
             Ok(Self::Web {
-                web_id: OwnedById::new(
+                web_id: WebId::new(
                     Uuid::from_str(resource.eid().as_ref())
                         .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                 ),
@@ -171,9 +171,9 @@ impl ResourceConstraint {
                 return Ok(Self::Entity(EntityResourceConstraint::Any { filter }));
             };
 
-            if *in_resource.entity_type() == **OwnedById::entity_type() {
+            if *in_resource.entity_type() == **WebId::entity_type() {
                 Ok(Self::Entity(EntityResourceConstraint::Web {
-                    web_id: OwnedById::new(
+                    web_id: WebId::new(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     ),
@@ -194,9 +194,9 @@ impl ResourceConstraint {
                 }));
             };
 
-            if *in_resource.entity_type() == **OwnedById::entity_type() {
+            if *in_resource.entity_type() == **WebId::entity_type() {
                 Ok(Self::EntityType(EntityTypeResourceConstraint::Web {
-                    web_id: OwnedById::new(
+                    web_id: WebId::new(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     ),
@@ -224,7 +224,7 @@ mod tests {
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
-    use type_system::web::OwnedById;
+    use type_system::web::WebId;
     use uuid::Uuid;
 
     use super::ResourceConstraint;
@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
-        let web_id = OwnedById::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::new_v4());
         check_resource(
             Some(ResourceConstraint::Web { web_id }),
             json!({

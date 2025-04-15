@@ -1,15 +1,10 @@
 use core::iter;
 
 use error_stack::{Report, ReportSink};
-use hashql_core::span::node::SpanNode;
 use hashql_diagnostics::{
-    category::canonical_category_name,
-    help::Help,
-    label::Label,
-    note::Note,
-    span::{AbsoluteDiagnosticSpan, DiagnosticSpan},
+    category::canonical_category_name, help::Help, label::Label, note::Note,
+    span::AbsoluteDiagnosticSpan,
 };
-use hashql_syntax_jexpr::span::Span;
 use line_index::{LineCol, LineIndex};
 
 use super::{TrialError, render_diagnostic};
@@ -18,13 +13,10 @@ use crate::{annotation::diagnostic::DiagnosticAnnotation, suite::ResolvedSuiteDi
 fn filter_labels<'label>(
     line_index: &LineIndex,
     line_number: u32,
-    labels: &'label [Label<SpanNode<Span>>],
-) -> impl IntoIterator<Item = &'label Label<SpanNode<Span>>> {
+    labels: &'label [Label<AbsoluteDiagnosticSpan>],
+) -> impl IntoIterator<Item = &'label Label<AbsoluteDiagnosticSpan>> {
     labels.iter().filter(move |label| {
-        let absolute_span = AbsoluteDiagnosticSpan::new(label.span(), &mut |span: &Span| {
-            DiagnosticSpan::from(span)
-        });
-        let range = absolute_span.range();
+        let range = label.span().range();
 
         let LineCol {
             line: start,
@@ -138,29 +130,19 @@ mod tests {
     use core::assert_matches::assert_matches;
 
     use error_stack::ReportSink;
-    use hashql_core::span::{node::SpanNode, storage::SpanStorage};
     use hashql_diagnostics::{
         Diagnostic,
         category::{DiagnosticCategory, TerminalDiagnosticCategory},
         label::Label,
         severity::Severity,
     };
-    use hashql_syntax_jexpr::span::Span;
     use line_index::{LineIndex, TextRange};
 
     use super::*;
 
     // Helper to create test spans
-    fn make_span(start: u32, end: u32) -> SpanNode<Span> {
-        let storage = SpanStorage::new();
-
-        let id = storage.insert(Span {
-            range: TextRange::new(start.into(), end.into()),
-            pointer: None,
-            parent_id: None,
-        });
-
-        storage.resolve(id).expect("should resolve - just created")
+    fn make_span(start: u32, end: u32) -> AbsoluteDiagnosticSpan {
+        AbsoluteDiagnosticSpan::from_range(TextRange::new(start.into(), end.into()))
     }
 
     // Helper to create a simple diagnostic for testing
@@ -168,8 +150,7 @@ mod tests {
         category: &'static str,
         severity: Severity,
         message: &'static str,
-        span_start: u32,
-        span_end: u32,
+        span: AbsoluteDiagnosticSpan,
     ) -> ResolvedSuiteDiagnostic {
         let mock_category = TerminalDiagnosticCategory {
             id: category,
@@ -181,9 +162,7 @@ mod tests {
             severity,
         );
 
-        diagnostic
-            .labels
-            .push(Label::new(make_span(span_start, span_end), message));
+        diagnostic.labels.push(Label::new(span, message));
 
         diagnostic
     }
@@ -207,9 +186,12 @@ mod tests {
         let source = "line1\nline2\nline3\nline4";
         let line_index = LineIndex::new(source);
 
-        let diagnostics = vec![
-            make_diagnostic("test", Severity::ERROR, "test error", 6, 11), // spans "line2"
-        ];
+        let diagnostics = vec![make_diagnostic(
+            "test",
+            Severity::ERROR,
+            "test error",
+            make_span(6, 11),
+        ) /* spans "line2" */];
 
         let annotations = vec![
             make_annotation("error", Some(2), Severity::ERROR), // matches line2
@@ -232,9 +214,12 @@ mod tests {
         let source = "line1\nline2\nline3";
         let line_index = LineIndex::new(source);
 
-        let diagnostics = vec![
-            make_diagnostic("test", Severity::ERROR, "test error", 0, 5), // spans "line1"
-        ];
+        let diagnostics = vec![make_diagnostic(
+            "test",
+            Severity::ERROR,
+            "test error",
+            make_span(0, 5),
+        ) /* spans "line1" */];
 
         let annotations = vec![
             make_annotation("warning", Some(2), Severity::WARNING), // doesn't match
@@ -257,9 +242,12 @@ mod tests {
         let source = "line1\nline2\nline3";
         let line_index = LineIndex::new(source);
 
-        let diagnostics = vec![
-            make_diagnostic("test", Severity::ERROR, "test error", 0, 5), // spans "line1"
-        ];
+        let diagnostics = vec![make_diagnostic(
+            "test",
+            Severity::ERROR,
+            "test error",
+            make_span(0, 5),
+        ) /* spans "line1" */];
 
         // No annotations - should report the diagnostic as unexpected
         let annotations = vec![];
@@ -281,8 +269,8 @@ mod tests {
         let line_index = LineIndex::new(source);
 
         let diagnostics = vec![
-            make_diagnostic("test1", Severity::ERROR, "first error", 0, 5), // line1
-            make_diagnostic("test2", Severity::ERROR, "second error", 6, 11), // line2
+            make_diagnostic("test1", Severity::ERROR, "first error", make_span(0, 5)), // line1
+            make_diagnostic("test2", Severity::ERROR, "second error", make_span(6, 11)), // line2
         ];
 
         let annotations = vec![
@@ -307,8 +295,13 @@ mod tests {
 
         // Create two diagnostics at the same line with similar messages
         let diagnostics = vec![
-            make_diagnostic("test1", Severity::ERROR, "error in line1", 0, 5), // line1
-            make_diagnostic("test2", Severity::ERROR, "another error in line1", 0, 5), // also line1
+            make_diagnostic("test1", Severity::ERROR, "error in line1", make_span(0, 5)), // line1
+            make_diagnostic(
+                "test2",
+                Severity::ERROR,
+                "another error in line1",
+                make_span(0, 5),
+            ), /* also line1 */
         ];
 
         // Only one annotation for the line

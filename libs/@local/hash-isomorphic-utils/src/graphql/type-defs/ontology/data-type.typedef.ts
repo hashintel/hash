@@ -43,7 +43,7 @@ export const dataTypeTypedef = gql`
 
 
   extend type Mutation {
-    createDataType(ownedById: OwnedById!, dataType: ConstructDataTypeParams!, conversions: DataTypeDirectConversionsMap): DataTypeWithMetadata!
+    createDataType(webId: WebId!, dataType: ConstructDataTypeParams!, conversions: DataTypeDirectConversionsMap): DataTypeWithMetadata!
     updateDataType(dataTypeId: VersionedUrl!, dataType: ConstructDataTypeParams!, conversions: DataTypeDirectConversionsMap): DataTypeWithMetadata!
     archiveDataType(dataTypeId: VersionedUrl!): OntologyTemporalMetadata!
     unarchiveDataType(dataTypeId: VersionedUrl!): OntologyTemporalMetadata!

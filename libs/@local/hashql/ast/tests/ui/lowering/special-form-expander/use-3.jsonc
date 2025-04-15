@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: use/3 should compile to AST node
+["::kernel::special_form::use", "::math", { "#tuple": ["pi"] }, "x"]
