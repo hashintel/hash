@@ -19,4 +19,4 @@ export const isOwnedOntologyElementMetadata = <
   Metadata extends OntologyElementMetadata,
 >(
   metadata: Metadata,
-): metadata is Metadata & { ownedById: string } => "ownedById" in metadata;
+): metadata is Metadata & { webId: string } => "webId" in metadata;

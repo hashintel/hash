@@ -2,8 +2,8 @@ import { useLazyQuery, useMutation } from "@apollo/client";
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
-  type ActorId,
-  extractOwnedByIdFromEntityId,
+  type ActorEntityUuid,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -133,18 +133,18 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
             rightEntityId: org.entity.metadata.recordId.entityId,
           },
           relationships: createOrgMembershipAuthorizationRelationships({
-            memberAccountId: extractOwnedByIdFromEntityId(
+            memberAccountId: extractWebIdFromEntityId(
               user.metadata.recordId.entityId,
-            ) as ActorId,
+            ) as ActorEntityUuid,
           }),
         },
       }),
       addMemberPermission({
         variables: {
           accountGroupId: org.accountGroupId,
-          accountId: extractOwnedByIdFromEntityId(
+          accountId: extractWebIdFromEntityId(
             user.metadata.recordId.entityId,
-          ) as ActorId,
+          ) as ActorEntityUuid,
         },
       }),
     ]);

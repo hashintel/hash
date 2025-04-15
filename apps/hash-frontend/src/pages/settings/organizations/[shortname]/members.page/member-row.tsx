@@ -1,8 +1,8 @@
 import { useMutation } from "@apollo/client";
 import {
+  type ActorEntityUuid,
   type ActorGroupId,
-  type ActorId,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { TableCell, TableRow, Typography } from "@mui/material";
 
@@ -47,9 +47,9 @@ export const MemberRow = ({
       removeMemberPermission({
         variables: {
           accountGroupId,
-          accountId: extractOwnedByIdFromEntityId(
+          accountId: extractWebIdFromEntityId(
             membership.user.entity.metadata.recordId.entityId,
-          ) as ActorId,
+          ) as ActorEntityUuid,
         },
       }),
     ]);

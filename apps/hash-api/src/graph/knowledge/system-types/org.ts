@@ -6,7 +6,7 @@ import type {
 } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
-  extractOwnedByIdFromEntityId,
+  extractWebIdFromEntityId,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
@@ -85,7 +85,7 @@ export const getOrgFromEntity: PureGraphFunction<
   );
 
   return {
-    accountGroupId: extractOwnedByIdFromEntityId(
+    accountGroupId: extractWebIdFromEntityId(
       entity.metadata.recordId.entityId,
     ) as ActorGroupId,
     shortname,

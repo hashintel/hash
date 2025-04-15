@@ -1,6 +1,6 @@
 import {
-  type ActorId,
-  extractOwnedByIdFromEntityId,
+  type ActorEntityUuid,
+  extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import type { GetEntitiesRequest } from "@local/hash-graph-client/api";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
@@ -100,9 +100,9 @@ export const completeUserRegistration = async (params: {
 
   const systemAccountId = await getSystemAccountId();
   const graphApi = getGraphApiClient();
-  const accountId = extractOwnedByIdFromEntityId(
+  const accountId = extractWebIdFromEntityId(
     user.metadata.recordId.entityId,
-  ) as ActorId;
+  ) as ActorEntityUuid;
 
   await graphApi.modifyWebAuthorizationRelationships(systemAccountId, [
     {
