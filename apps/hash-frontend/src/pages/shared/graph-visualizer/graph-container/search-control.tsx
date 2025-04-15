@@ -22,11 +22,18 @@ const Search = ({
   open: boolean;
   onClose: () => void;
 }) => {
-  const { filters, refreshGraphHighlights, setGraphState } = useGraphContext();
+  const { filters, refreshGraphHighlights, graphState, setGraphState } =
+    useGraphContext();
 
   const [selectedNode, _setSelectedNode] = useState<NodeData | null>(null);
 
   const sigma = useSigma();
+
+  useEffect(() => {
+    if (!open && !graphState.selectedNodeId) {
+      _setSelectedNode(null);
+    }
+  }, [open, graphState.selectedNodeId]);
 
   const nodeOptions = useMemo(() => {
     const { includeByNodeTypeId } = filters;
