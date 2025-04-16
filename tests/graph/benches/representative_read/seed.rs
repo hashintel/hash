@@ -1,12 +1,12 @@
 use core::{iter::repeat_n, str::FromStr as _};
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use hash_graph_authorization::AuthorizationApi;
-use hash_graph_postgres_store::store::AsClient as _;
-use hash_graph_store::{
-    account::{AccountStore as _, CreateOrgWebParams, CreateUserParams},
-    entity::{CreateEntityParams, EntityStore as _},
+use hash_graph_authorization::{
+    AuthorizationApi,
+    policies::store::{CreateWebParameter, LocalPrincipalStore as _},
 };
+use hash_graph_postgres_store::store::AsClient as _;
+use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{
     knowledge::{
@@ -15,7 +15,7 @@ use type_system::{
     },
     ontology::{VersionedUrl, entity_type::EntityType},
     principal::{
-        actor::{ActorEntityUuid, ActorType},
+        actor::{ActorEntityUuid, ActorId, ActorType},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -145,26 +145,28 @@ async fn seed_db<A: AuthorizationApi>(
         .await
         .expect("Should be able to check actor")
     {
+        let system_account_id = transaction
+            .get_or_create_system_actor("h")
+            .await
+            .expect("could not read system account");
+
+        let user_id = transaction
+            .create_user(Some(account_id.into()))
+            .await
+            .expect("could not create user");
+
         transaction
-            .insert_account_id(
-                account_id,
-                CreateUserParams {
-                    account_id,
-                    account_type: ActorType::Machine,
+            .create_web(
+                ActorId::from(system_account_id),
+                CreateWebParameter {
+                    id: Some(user_id.into()),
+                    administrator: user_id.into(),
+                    shortname: Some("alice".to_owned()),
+                    is_actor_web: true,
                 },
             )
             .await
-            .expect("could not insert account id");
-        transaction
-            .create_org_web(
-                account_id,
-                CreateOrgWebParams {
-                    web_id: WebId::new(account_id),
-                    administrator: account_id,
-                },
-            )
-            .await
-            .expect("could not create web id");
+            .expect("could not create web");
     }
 
     seed(

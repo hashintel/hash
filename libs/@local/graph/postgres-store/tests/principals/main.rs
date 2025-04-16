@@ -4,9 +4,9 @@
 mod actions;
 mod ai;
 mod machine;
-// mod policies;
-// mod role;
-// mod team;
+mod policies;
+mod role;
+mod team;
 mod user;
 mod web;
 
