@@ -1,4 +1,4 @@
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { UserInputError } from "apollo-server-errors";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
@@ -65,7 +65,7 @@ export const requestFileUpload: ResolverFn<
     entity,
     temporalClient: temporal,
     userAccountId: authentication.actorId,
-    webId: extractOwnedByIdFromEntityId(entity.entityId),
+    webId: extractWebIdFromEntityId(entity.entityId),
   });
 
   return {

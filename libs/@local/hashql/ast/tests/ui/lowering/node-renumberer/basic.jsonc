@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: ensure renumbering works correctly
+["+", { "#literal": 3 }, { "#literal": 4 }]

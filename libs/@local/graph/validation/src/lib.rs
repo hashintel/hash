@@ -3,7 +3,6 @@
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(extend_one)]
-#![feature(hash_raw_entry)]
 
 extern crate alloc;
 
@@ -55,13 +54,9 @@ mod tests {
         ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp,
     };
     use hash_graph_types::{
-        account::AccountId,
-        knowledge::property::{
-            error::install_error_stack_hooks,
-            visitor::{
-                EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
-                ValueValidationReport,
-            },
+        knowledge::property::visitor::{
+            EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
+            ValueValidationReport,
         },
         ontology::{DataTypeLookup, OntologyTypeProvider},
     };
@@ -70,9 +65,10 @@ mod tests {
     use thiserror::Error;
     use type_system::{
         knowledge::{
+            entity::id::EntityUuid,
             property::{
-                Property, PropertyObject, PropertyWithMetadata, PropertyWithMetadataObject,
-                PropertyWithMetadataValue, metadata::PropertyMetadata,
+                Property, PropertyObject, PropertyObjectWithMetadata, PropertyValueWithMetadata,
+                PropertyWithMetadata, metadata::PropertyMetadata,
             },
             value::{ValueMetadata, metadata::ValueProvenance},
         },
@@ -91,20 +87,20 @@ mod tests {
                 ProvidedOntologyEditionProvenance,
             },
         },
-        provenance::{ActorType, EditionCreatedById, OriginProvenance, OriginType},
-        web::OwnedById,
+        provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
+        web::WebId,
     };
     use uuid::Uuid;
 
     use super::*;
 
     fn generate_data_type_metadata(schema: DataType) -> DataTypeWithMetadata {
-        let actor = AccountId::new(Uuid::nil());
+        let actor = ActorEntityUuid::new(EntityUuid::new(Uuid::nil()));
         DataTypeWithMetadata {
             metadata: DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(schema.id.clone()),
                 ownership: OntologyOwnership::Local {
-                    owned_by_id: OwnedById::new(actor.into_uuid()),
+                    web_id: WebId::new(actor.into_uuid()),
                 },
                 temporal_versioning: OntologyTemporalMetadata {
                     transaction_time: Interval::new(
@@ -114,10 +110,10 @@ mod tests {
                 },
                 provenance: OntologyProvenance {
                     edition: OntologyEditionProvenance {
-                        created_by_id: EditionCreatedById::new(actor.into_uuid()),
+                        created_by_id: actor,
                         archived_by_id: None,
                         user_defined: ProvidedOntologyEditionProvenance {
-                            actor_type: ActorType::Human,
+                            actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
@@ -309,9 +305,7 @@ mod tests {
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadataObject, ObjectValidationReport> {
-        install_error_stack_hooks();
-
+    ) -> Result<PropertyObjectWithMetadata, ObjectValidationReport> {
         let mut ontology_type_resolver = OntologyTypeResolver::default();
         let entity_types = entity_types
             .into_iter()
@@ -362,7 +356,7 @@ mod tests {
             }),
         );
 
-        let mut properties = PropertyWithMetadataObject::from_parts(
+        let mut properties = PropertyObjectWithMetadata::from_parts(
             serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string"),
             None,
         )
@@ -383,7 +377,6 @@ mod tests {
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
     ) -> Result<PropertyWithMetadata, PropertyValidationReport> {
-        install_error_stack_hooks();
         let property = Property::deserialize(property).expect("failed to deserialize property");
 
         let provider = Provider::new(
@@ -414,8 +407,7 @@ mod tests {
         data_type: &str,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadataValue, ValueValidationReport> {
-        install_error_stack_hooks();
+    ) -> Result<PropertyValueWithMetadata, ValueValidationReport> {
         let mut value = serde_json::from_value(value).expect("failed to parse value");
         let mut provider = Provider::new(
             [],
@@ -450,6 +442,6 @@ mod tests {
         EntityPreprocessor { components }
             .visit_value(&data_type_ref, &mut value, &mut metadata, &provider)
             .await?;
-        Ok(PropertyWithMetadataValue { value, metadata })
+        Ok(PropertyValueWithMetadata { value, metadata })
     }
 }

@@ -1,3 +1,13 @@
+import {
+  getEntityTypeById,
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import {
+  extractBaseUrl,
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
@@ -5,16 +15,6 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Popover, styled, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useMemo, useRef, useState } from "react";
@@ -76,16 +76,16 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     [entity, entitySubgraph],
   );
 
-  const entityOwnedById = useMemo(
+  const entityWebId = useMemo(
     () =>
       entity
-        ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+        ? extractWebIdFromEntityId(entity.metadata.recordId.entityId)
         : undefined,
     [entity],
   );
 
   const { userOrOrg: owner } = useUserOrOrg({
-    accountOrAccountGroupId: entityOwnedById,
+    accountOrAccountGroupId: entityWebId,
   });
 
   const entityOwnerShortname = useMemo(() => {

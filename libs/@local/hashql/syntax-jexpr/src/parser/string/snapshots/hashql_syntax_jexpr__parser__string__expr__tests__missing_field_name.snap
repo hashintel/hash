@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Missing field name
+expression: "."
+info:
+  kind: Err
+---
+.
+ ^

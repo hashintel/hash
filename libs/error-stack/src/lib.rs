@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2025-03-10&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2025-04-14&color=blue)][rust-version]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
 //! [libs.rs]: https://lib.rs/crates/error-stack
@@ -102,7 +102,8 @@
 //! ### Initializing a Report
 //!
 //! A [`Report`] can be created directly from anything that implements [`Error`] by using
-//! [`Report::new()`] or through any of the provided macros ([`report!`], [`bail!`], [`ensure!`]).
+//! [`Report::new()`], [`IntoReport::into_report()`], or through any of the provided macros
+//! ([`bail!`], [`ensure!`]).
 //!
 //! ```rust
 //! use std::{fs, io, path::Path};
@@ -405,14 +406,10 @@
 //!
 //! ### Macros for Convenience
 //!
-//! Three macros are provided to simplify the generation of a [`Report`].
+//! Two macros are provided to simplify the generation of a [`Report`].
 //!
-//! - [`report!`] will only create a [`Report`] from its parameter. It will take into account if the
-//!   passed type itself is a [`Report`] or a [`Error`]. For the former case, it will retain the
-//!   details stored on a [`Report`], for the latter case it will create a new [`Report`] from the
-//!   [`Error`].
-//! - [`bail!`] acts like [`report!`] but also immediately returns the [`Report`] as [`Err`]
-//!   variant.
+//! - [`bail!`] acts like calling [`IntoReport::into_report()`] but also immediately returns the
+//!   [`Report`] as [`Err`] variant.
 //! - [`ensure!`] will check an expression and if it's evaluated to `false`, it will act like
 //!   [`bail!`].
 //!
@@ -529,8 +526,7 @@ pub use self::sink::ReportSink;
 pub use self::{
     compat::IntoReportCompat,
     frame::{AttachmentKind, Frame, FrameKind},
-    macros::*,
-    report::Report,
+    report::{IntoReport, Report},
 };
 #[doc(inline)]
 pub use self::{future::FutureExt, result::ResultExt};

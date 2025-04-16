@@ -24,7 +24,6 @@ use hash_graph_store::{
     property_type::{CreatePropertyTypeParams, PropertyTypeStore as _, UpdatePropertyTypesParams},
     query::ConflictBehavior,
 };
-use hash_graph_types::account::AccountId;
 use hash_repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
@@ -37,8 +36,8 @@ use type_system::{
         property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
+    web::WebId,
 };
 
 type Pool = PostgresStorePool;
@@ -53,7 +52,7 @@ pub struct StoreWrapper<A: AuthorizationApi> {
     pub store: ManuallyDrop<Store<A>>,
     #[expect(clippy::allow_attributes, reason = "False positive")]
     #[allow(dead_code, reason = "False positive")]
-    pub account_id: AccountId,
+    pub account_id: ActorEntityUuid,
 }
 
 pub fn setup_subscriber(
@@ -89,7 +88,7 @@ where
         bench_db_name: &str,
         fail_on_exists: bool,
         delete_on_drop: bool,
-        account_id: AccountId,
+        account_id: ActorEntityUuid,
         mut authorization_api: A,
     ) -> Self {
         load_env(Environment::Test);
@@ -289,7 +288,7 @@ where
 #[expect(clippy::too_many_lines)]
 pub async fn seed<D, P, E, C, A>(
     store: &mut PostgresStore<C, A>,
-    account_id: AccountId,
+    account_id: ActorEntityUuid,
     data_types: D,
     property_types: P,
     entity_types: E,
@@ -310,7 +309,7 @@ pub async fn seed<D, P, E, C, A>(
                 CreateDataTypeParams {
                     schema: data_type.clone(),
                     ownership: OntologyOwnership::Local {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id.into_uuid()),
                     },
                     relationships: [DataTypeRelationAndSubject::Viewer {
                         subject: DataTypeViewerSubject::Public,
@@ -318,7 +317,7 @@ pub async fn seed<D, P, E, C, A>(
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: ProvidedOntologyEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -340,7 +339,7 @@ pub async fn seed<D, P, E, C, A>(
                                     level: 0,
                                 }],
                                 provenance: ProvidedOntologyEditionProvenance {
-                                    actor_type: ActorType::Human,
+                                    actor_type: ActorType::User,
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                                     sources: Vec::new(),
                                 },
@@ -366,7 +365,7 @@ pub async fn seed<D, P, E, C, A>(
                 CreatePropertyTypeParams {
                     schema: property_type.clone(),
                     ownership: OntologyOwnership::Local {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id.into_uuid()),
                     },
                     relationships: [PropertyTypeRelationAndSubject::Viewer {
                         subject: PropertyTypeViewerSubject::Public,
@@ -374,7 +373,7 @@ pub async fn seed<D, P, E, C, A>(
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: ProvidedOntologyEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -395,7 +394,7 @@ pub async fn seed<D, P, E, C, A>(
                                     level: 0,
                                 }],
                                 provenance: ProvidedOntologyEditionProvenance {
-                                    actor_type: ActorType::Human,
+                                    actor_type: ActorType::User,
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                                     sources: Vec::new(),
                                 },
@@ -420,7 +419,7 @@ pub async fn seed<D, P, E, C, A>(
                 CreateEntityTypeParams {
                     schema: entity_type.clone(),
                     ownership: OntologyOwnership::Local {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id.into_uuid()),
                     },
                     relationships: [EntityTypeRelationAndSubject::Viewer {
                         subject: EntityTypeViewerSubject::Public,
@@ -428,7 +427,7 @@ pub async fn seed<D, P, E, C, A>(
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: ProvidedOntologyEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -455,7 +454,7 @@ pub async fn seed<D, P, E, C, A>(
                                     },
                                 ],
                                 provenance: ProvidedOntologyEditionProvenance {
-                                    actor_type: ActorType::Human,
+                                    actor_type: ActorType::User,
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                                     sources: Vec::new(),
                                 },
@@ -475,7 +474,7 @@ pub fn setup<A: AuthorizationApi>(
     db_name: &str,
     fail_on_exists: bool,
     delete_on_drop: bool,
-    account_id: AccountId,
+    account_id: ActorEntityUuid,
     authorization_api: A,
 ) -> (Runtime, StoreWrapper<A>) {
     let runtime = Runtime::new().expect("could not create runtime");

@@ -1,15 +1,14 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
-  extractEntityUuidFromEntityId,
-  linkEntityTypeUrl,
-} from "@local/hash-subgraph";
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   Box,
   Divider,
@@ -41,7 +40,7 @@ import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-hea
 import type { ProfilePageTab } from "./util";
 
 const EntityRow: FunctionComponent<{
-  entity: Entity;
+  entity: HashEntity;
   entityType?: EntityTypeWithMetadata;
   profile: User | Org;
   entitiesSubgraph: Subgraph<EntityRootType>;
@@ -87,9 +86,11 @@ const EntityRow: FunctionComponent<{
               /**
                * @todo H-3363 use closed schema to take account of indirectly inherited link status
                */
-              entityType?.schema.$id === linkEntityTypeUrl ||
+              entityType?.schema.$id ===
+                blockProtocolEntityTypes.link.entityTypeId ||
               !!entityType?.schema.allOf?.some(
-                (allOf) => allOf.$ref === linkEntityTypeUrl,
+                (allOf) =>
+                  allOf.$ref === blockProtocolEntityTypes.link.entityTypeId,
               )
             }
           />
@@ -139,14 +140,14 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
 
   const [sortOrder, setSortOrder] = useState<SortOrder>("updated-at-desc");
 
-  const ownedById = (
+  const webId = (
     profile.kind === "user" ? profile.accountId : profile.accountGroupId
-  ) as OwnedById;
+  ) as WebId;
 
-  const { lastRootPageIndex } = useAccountPages(ownedById);
+  const { lastRootPageIndex } = useAccountPages(webId);
   const [createUntitledPage] = useCreatePage({
     shortname: profile.shortname,
-    ownedById,
+    webId,
   });
 
   const createPage = useCallback(async () => {

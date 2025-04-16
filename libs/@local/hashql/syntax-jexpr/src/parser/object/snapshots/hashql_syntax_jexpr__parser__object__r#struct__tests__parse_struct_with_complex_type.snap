@@ -1,0 +1,33 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/struct.rs
+description: Parses a struct with complex type annotation
+expression: "{\"#struct\": {\n            \"name\": {\"#literal\": \"Alice\"},\n            \"age\": {\"#literal\": 30}\n        }, \"#type\": \"(name: String, age: Int)\"}"
+---
+Expr#4294967040@23
+  ExprKind (Struct)
+    StructExpr#4294967040@10
+      StructEntry#4294967040@4 (key: name)
+        Expr#4294967040@3
+          ExprKind (Literal)
+            LiteralExpr#4294967040@2
+              LiteralKind (String)
+                StringLiteral (Alice)
+      StructEntry#4294967040@9 (key: age)
+        Expr#4294967040@8
+          ExprKind (Literal)
+            LiteralExpr#4294967040@7
+              LiteralKind (Integer)
+                IntegerLiteral (30)
+      Type#4294967040@22
+        TypeKind (Struct)
+          StructType#4294967040@22
+            StructField#4294967040@16 (name: name)
+              Type#4294967040@15
+                TypeKind (Path)
+                  Path#4294967040@15 (rooted: false)
+                    PathSegment#4294967040@14 (name: String)
+            StructField#4294967040@21 (name: age)
+              Type#4294967040@20
+                TypeKind (Path)
+                  Path#4294967040@20 (rooted: false)
+                    PathSegment#4294967040@19 (name: Int)

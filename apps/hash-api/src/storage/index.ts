@@ -1,3 +1,5 @@
+import type { Entity, EntityId } from "@blockprotocol/type-system";
+import { isEntityId, splitEntityId } from "@blockprotocol/type-system";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import type {
   FileStorageProvider,
@@ -10,8 +12,6 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -20,7 +20,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import { isEntityId, splitEntityId } from "@local/hash-subgraph";
 import type { Express } from "express";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
@@ -98,7 +97,7 @@ const getFileEntity = async (
   params: { entityId: EntityId; key: string; includeDrafts?: boolean },
 ) => {
   const { entityId, key, includeDrafts = false } = params;
-  const [ownedById, entityUuid] = splitEntityId(entityId);
+  const [webId, entityUuid] = splitEntityId(entityId);
 
   const fileEntityRevisions = await getEntities(context, authentication, {
     filter: {
@@ -107,7 +106,7 @@ const getFileEntity = async (
           equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
         },
         {
-          equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+          equal: [{ path: ["webId"] }, { parameter: webId }],
         },
         {
           equal: [

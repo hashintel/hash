@@ -23,11 +23,11 @@ use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::{
         entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
-        property::{PropertyObject, PropertyWithMetadataObject},
+        property::{PropertyObject, PropertyObjectWithMetadata},
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -199,18 +199,18 @@ async fn insert<A: AuthorizationApi>(
         api.create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
                 decision_time: None,
                 entity_type_ids: HashSet::from([type_id.clone()]),
-                properties: PropertyWithMetadataObject::from_parts(properties.clone(), None)
+                properties: PropertyObjectWithMetadata::from_parts(properties.clone(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
                 draft: false,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },

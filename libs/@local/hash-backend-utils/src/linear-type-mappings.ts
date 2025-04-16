@@ -1,14 +1,17 @@
 /* eslint-disable no-param-reassign */
 
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  Entity,
+  Property,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { Issue, Organization, User } from "@linear/sdk";
 import type {
   IssueUpdateInput,
   UpdateOrganizationInput,
   UpdateUserInput,
 } from "@linear/sdk/dist/_generated_documents.js";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { Property } from "@local/hash-graph-types/entity";
+import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
   linearEntityTypes,
@@ -80,7 +83,7 @@ type OutgoingLinkMapping<
   addToLinearUpdateInput?: (
     updateInput: SupportedLinearUpdateInput[LinearType],
     matchingOutgoingLinks: {
-      linkEntity: LinkEntity;
+      linkEntity: HashLinkEntity;
       rightEntity: Entity;
     }[],
   ) => SupportedLinearUpdateInput[LinearType];

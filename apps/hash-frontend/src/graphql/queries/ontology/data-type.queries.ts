@@ -53,11 +53,11 @@ export const checkUserPermissionsOnDataTypeQuery = gql`
 
 export const createDataTypeMutation = gql`
   mutation createDataType(
-    $ownedById: OwnedById!
+    $webId: WebId!
     $dataType: ConstructDataTypeParams!
     $conversions: DataTypeDirectConversionsMap
   ) {
-    createDataType(ownedById: $ownedById, dataType: $dataType, conversions: $conversions)
+    createDataType(webId: $webId, dataType: $dataType, conversions: $conversions)
   }
 `;
 

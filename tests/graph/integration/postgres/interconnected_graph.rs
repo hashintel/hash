@@ -10,11 +10,11 @@ use type_system::{
             id::{EntityId, EntityUuid},
             provenance::ProvidedEntityEditionProvenance,
         },
-        property::{PropertyObject, PropertyWithMetadataObject, metadata::PropertyProvenance},
+        property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::VersionedUrl,
     provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -49,18 +49,18 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    let owned_by_id = OwnedById::new(api.account_id.into_uuid());
+    let web_id = WebId::new(api.account_id.into_uuid());
 
     let alice_id = EntityUuid::new(Uuid::new_v4());
     let alice_entity = CreateEntityParams {
-        owned_by_id,
+        web_id,
         entity_uuid: Some(alice_id),
         decision_time: None,
         entity_type_ids: HashSet::from([VersionedUrl::from_str(
             "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
         )
         .expect("couldn't construct Versioned URL")]),
-        properties: PropertyWithMetadataObject::from_parts(
+        properties: PropertyObjectWithMetadata::from_parts(
             serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity"),
             None,
         )
@@ -70,7 +70,7 @@ async fn insert() {
         draft: false,
         relationships: [],
         provenance: ProvidedEntityEditionProvenance {
-            actor_type: ActorType::Human,
+            actor_type: ActorType::User,
             origin: OriginProvenance::from_empty_type(OriginType::Api),
             sources: Vec::new(),
         },
@@ -78,14 +78,14 @@ async fn insert() {
 
     let bob_id = EntityUuid::new(Uuid::new_v4());
     let bob_entity = CreateEntityParams {
-        owned_by_id,
+        web_id,
         entity_uuid: Some(bob_id),
         decision_time: None,
         entity_type_ids: HashSet::from([VersionedUrl::from_str(
             "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
         )
         .expect("couldn't construct Versioned URL")]),
-        properties: PropertyWithMetadataObject::from_parts(
+        properties: PropertyObjectWithMetadata::from_parts(
             serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity"),
             None,
         )
@@ -95,31 +95,31 @@ async fn insert() {
         draft: false,
         relationships: [],
         provenance: ProvidedEntityEditionProvenance {
-            actor_type: ActorType::Human,
+            actor_type: ActorType::User,
             origin: OriginProvenance::from_empty_type(OriginType::Api),
             sources: Vec::new(),
         },
     };
 
     let friendship_entity = CreateEntityParams {
-        owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+        web_id: WebId::new(api.account_id.into_uuid()),
         entity_uuid: None,
         decision_time: None,
         entity_type_ids: HashSet::from([VersionedUrl::from_str(
             "https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1",
         )
         .expect("couldn't construct Versioned URL")]),
-        properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+        properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
             .expect("could not create property with metadata object"),
         confidence: None,
         link_data: Some(LinkData {
             left_entity_id: EntityId {
-                owned_by_id,
+                web_id,
                 entity_uuid: alice_id,
                 draft_id: None,
             },
             right_entity_id: EntityId {
-                owned_by_id,
+                web_id,
                 entity_uuid: bob_id,
                 draft_id: None,
             },
@@ -131,7 +131,7 @@ async fn insert() {
         draft: false,
         relationships: [],
         provenance: ProvidedEntityEditionProvenance {
-            actor_type: ActorType::Human,
+            actor_type: ActorType::User,
             origin: OriginProvenance::from_empty_type(OriginType::Api),
             sources: Vec::new(),
         },

@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Mix of bounded and unbounded parameters
+expression: "<T, U: Comparable, V>"
+info:
+  kind: Ok
+---
+Generics#4294967040@10
+  GenericParam#4294967040@2 (name: T)
+  GenericParam#4294967040@7 (name: U)
+    Type#4294967040@6
+      TypeKind (Path)
+        Path#4294967040@6 (rooted: false)
+          PathSegment#4294967040@5 (name: Comparable)
+  GenericParam#4294967040@9 (name: V)

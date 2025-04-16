@@ -1,21 +1,21 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
+import {
+  extractDraftIdFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import {
   ArrowUpRightFromSquareRegularIcon,
   EntityOrTypeIcon,
 } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
-import type { ClosedMultiEntityType } from "@local/hash-graph-types/ontology";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  extractDraftIdFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import type { ReactNode } from "react";
 
-import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
+import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { isItemArchived } from "../../../shared/is-archived";
 import { Link } from "../../../shared/ui";
 import { inSlideContainerStyles } from "../shared/slide-styles";
@@ -31,6 +31,7 @@ export const EntityHeader = ({
   entitySubgraph,
   hideOpenInNew,
   isInSlide,
+  isLocalDraft,
   isModifyingEntity,
   lightTitle,
   onDraftArchived,
@@ -40,22 +41,24 @@ export const EntityHeader = ({
 }: {
   closedMultiEntityType?: ClosedMultiEntityType;
   editBar?: ReactNode;
-  entity?: Entity;
+  entity?: HashEntity;
   entityLabel: string;
-  entitySubgraph?: Subgraph<EntityRootType>;
+  entitySubgraph?: Subgraph<EntityRootType<HashEntity>>;
   hideOpenInNew?: boolean;
   isInSlide: boolean;
+  isLocalDraft: boolean;
   isModifyingEntity?: boolean;
   lightTitle?: boolean;
   onDraftArchived: () => void;
-  onDraftPublished: (entity: Entity) => void;
+  onDraftPublished: (entity: HashEntity) => void;
   onUnarchived: () => void;
   showTabs?: boolean;
 }) => {
-  const { shortname } = useUserOrOrgShortnameByOwnedById({
-    ownedById: entity
-      ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
-      : null,
+  const { shortname } = useUserOrOrgShortnameByWebId({
+    webId:
+      entity && !isLocalDraft
+        ? extractWebIdFromEntityId(entity.metadata.recordId.entityId)
+        : null,
   });
 
   const icon = closedMultiEntityType

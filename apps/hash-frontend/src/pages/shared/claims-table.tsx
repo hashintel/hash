@@ -1,16 +1,17 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import type { EntityId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { SourceProvenance } from "@local/hash-graph-client/api";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -292,7 +293,7 @@ const createRowContent: CreateVirtualizedRowContentFn<
 > = (_index, row) => <TableRow row={row.data} />;
 
 type ClaimsTableProps = {
-  claimsSubgraph: Subgraph<EntityRootType<Claim>>;
+  claimsSubgraph: Subgraph<EntityRootType<HashEntity<Claim>>>;
   includeStatusColumn: boolean;
   onEntityClick: (entityId: EntityId) => void;
   /**
@@ -362,7 +363,8 @@ export const ClaimsTable = memo(
         object: new Set<string>(),
       };
 
-      const claims = getRoots<EntityRootType<Claim>>(claimsSubgraph);
+      const claims =
+        getRoots<EntityRootType<HashEntity<Claim>>>(claimsSubgraph);
 
       /**
        * We want a record of claimIds -> proposed entities to check when looping over claims,

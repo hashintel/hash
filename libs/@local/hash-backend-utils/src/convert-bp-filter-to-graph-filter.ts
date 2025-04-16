@@ -25,14 +25,14 @@ const bpMultiFilterFieldPathToPathExpression = (
         return ["properties", ...rest];
       }
 
-      // case `EntityQueryToken.OwnedById`
-      if (pathRoot === "ownedById") {
+      // case `EntityQueryToken.WebId`
+      if (pathRoot === "webId") {
         if (rest.length !== 0) {
           throw new InvalidEntityQueryError(
-            `Invalid filter field path, unable to add more filters on top of \`ownedById\``,
+            `Invalid filter field path, unable to add more filters on top of \`webId\``,
           );
         }
-        return ["ownedById"];
+        return ["webId"];
       }
 
       if (pathRoot === "metadata") {
@@ -74,13 +74,13 @@ const bpMultiFilterFieldPathToPathExpression = (
 
           const [recordIdRoot, ...recordIdRest] = metadataRest;
 
-          if (recordIdRoot === "ownedById" || recordIdRoot === "uuid") {
+          if (recordIdRoot === "webId" || recordIdRoot === "uuid") {
             return [recordIdRoot];
           }
 
           if (recordIdRoot === "entityId") {
             throw new InvalidEntityQueryError(
-              "Cannot query by entityId – you can filter by ownedById or uuid – entityIds are in the format 'ownedById~uuid'",
+              "Cannot query by entityId – you can filter by webId or uuid – entityIds are in the format 'webId~uuid'",
             );
           }
 

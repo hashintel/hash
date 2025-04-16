@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Character with combining diaeresis (NFD)
+expression: ä
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    value: Symbol(
+        "ä",
+    ),
+    kind: Lexical,
+}

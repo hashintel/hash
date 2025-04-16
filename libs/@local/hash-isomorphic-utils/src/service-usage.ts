@@ -1,7 +1,10 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
+import type {
+  ClosedTemporalBound,
+  TemporalInterval,
+} from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import type { FlowUsageRecordCustomMetadata } from "./flows/types.js";
 import { systemLinkEntityTypes } from "./ontology-type-ids.js";
@@ -24,7 +27,7 @@ const getServiceFeatureForUsage = ({
   usageRecord,
 }: {
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
-  usageRecord: Entity<UsageRecord>;
+  usageRecord: HashEntity<UsageRecord>;
 }) => {
   const linkedEntities = getOutgoingLinkAndTargetEntities(
     serviceUsageRecordSubgraph,
@@ -44,7 +47,7 @@ const getServiceFeatureForUsage = ({
   }
 
   const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
-    .rightEntity[0]! as Entity<ServiceFeature>;
+    .rightEntity[0]! as HashEntity<ServiceFeature>;
 
   const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
     serviceFeatureEntity.properties,
@@ -92,7 +95,10 @@ export type AggregatedUsageRecord = {
   totalOutputUnitCount: number;
   totalCostInUsd: number;
   last24hoursTotalCostInUsd: number;
-  limitedToPeriod: BoundedTimeInterval | null;
+  limitedToPeriod: TemporalInterval<
+    ClosedTemporalBound,
+    ClosedTemporalBound
+  > | null;
 };
 
 export const getAggregateUsageRecordsByServiceFeature = ({
@@ -100,8 +106,11 @@ export const getAggregateUsageRecordsByServiceFeature = ({
   serviceUsageRecords,
   serviceUsageRecordSubgraph,
 }: {
-  decisionTimeInterval?: BoundedTimeInterval;
-  serviceUsageRecords: Entity<UsageRecord>[];
+  decisionTimeInterval?: TemporalInterval<
+    ClosedTemporalBound,
+    ClosedTemporalBound
+  >;
+  serviceUsageRecords: HashEntity<UsageRecord>[];
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
 }): AggregatedUsageRecord[] => {
   const aggregateUsageByServiceFeature: Record<string, AggregatedUsageRecord> =
@@ -171,7 +180,7 @@ export const getAggregateUsageRecordsByTask = ({
   serviceUsageRecords,
   serviceUsageRecordSubgraph,
 }: {
-  serviceUsageRecords: Entity<UsageRecord>[];
+  serviceUsageRecords: HashEntity<UsageRecord>[];
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
 }): AggregatedUsageByTask[] => {
   const aggregateUsageByTask: Record<string, AggregatedUsageByTask> = {};

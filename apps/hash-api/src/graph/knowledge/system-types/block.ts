@@ -1,9 +1,13 @@
+import type { Entity, EntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type {
   CreateEntityParameters,
-  Entity,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -19,10 +23,6 @@ import type {
   Block as BlockEntity,
   HasData,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 
 import type {
   ImpureGraphFunction,
@@ -46,12 +46,12 @@ import { getCommentFromEntity } from "./comment";
 
 export type Block = {
   componentId: string;
-  entity: Entity<BlockEntity>;
+  entity: HashEntity<BlockEntity>;
 };
 
 function assertBlockEntity(
-  entity: Entity,
-): asserts entity is Entity<BlockEntity> {
+  entity: HashEntity,
+): asserts entity is HashEntity<BlockEntity> {
   if (
     !entity.metadata.entityTypeIds.includes(
       systemEntityTypes.block.entityTypeId,
@@ -66,7 +66,7 @@ function assertBlockEntity(
 }
 
 export const getBlockFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: HashEntity },
   Block
 > = ({ entity }) => {
   assertBlockEntity(entity);
@@ -102,16 +102,16 @@ export const getBlockById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createBlock: ImpureGraphFunction<
-  Pick<CreateEntityParameters, "ownedById"> & {
+  Pick<CreateEntityParameters, "webId"> & {
     componentId: string;
     blockData: Entity;
   },
   Promise<Block>
 > = async (ctx, authentication, params) => {
-  const { componentId, blockData, ownedById } = params;
+  const { componentId, blockData, webId } = params;
 
   const entity = await createEntity<BlockEntity>(ctx, authentication, {
-    ownedById,
+    webId,
     properties: {
       value: {
         "https://hash.ai/@h/types/property-type/component-id/": {
@@ -128,7 +128,7 @@ export const createBlock: ImpureGraphFunction<
   });
 
   await createLinkEntity<HasData>(ctx, authentication, {
-    ownedById,
+    webId,
     properties: { value: {} },
     linkData: {
       leftEntityId: entity.metadata.recordId.entityId,
@@ -148,7 +148,7 @@ export const createBlock: ImpureGraphFunction<
  */
 export const getBlockData: ImpureGraphFunction<
   { block: Block },
-  Promise<Entity>
+  Promise<HashEntity>
 > = async (ctx, authentication, { block }) => {
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(
     ctx,
@@ -230,9 +230,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
   );
 
   await createLinkEntity(ctx, authentication, {
-    ownedById: extractOwnedByIdFromEntityId(
-      block.entity.metadata.recordId.entityId,
-    ),
+    webId: extractWebIdFromEntityId(block.entity.metadata.recordId.entityId),
     properties: { value: {} },
     linkData: {
       leftEntityId: block.entity.metadata.recordId.entityId,
@@ -274,7 +272,7 @@ export const getBlockComments: ImpureGraphFunction<
  */
 export const getBlockCollectionByBlock: ImpureGraphFunction<
   { block: Block; includeDrafts?: boolean },
-  Promise<Entity | null>
+  Promise<HashEntity | null>
 > = async (context, authentication, params) => {
   const { block, includeDrafts = false } = params;
 

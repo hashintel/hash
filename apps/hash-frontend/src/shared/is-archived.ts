@@ -1,9 +1,9 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   DataTypeWithMetadata,
+  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+} from "@blockprotocol/type-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 

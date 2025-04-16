@@ -1,10 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
-  GraphApi,
   OriginProvenance,
   ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -44,7 +44,7 @@ export const parseTextFromFile = async (
   const { graphApiClient } = context;
 
   const { presignedFileDownloadUrl, webMachineActorId } = params;
-  const fileEntity = new Entity(params.fileEntity);
+  const fileEntity = new HashEntity(params.fileEntity);
 
   const fileResponse = await fetchFileFromUrl(presignedFileDownloadUrl);
 

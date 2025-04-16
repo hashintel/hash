@@ -1,11 +1,11 @@
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   createWebMachineActor,
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
-import type { AccountId } from "@local/hash-graph-types/account";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { logger } from "../../../../logger";
 import { createHashInstance } from "../../../knowledge/system-types/hash-instance";
@@ -89,21 +89,21 @@ const migrate: MigrationFunction = async ({
   );
 
   for (const user of users) {
-    const userAccountId = extractOwnedByIdFromEntityId(
+    const userAccountId = extractWebIdFromEntityId(
       user.metadata.recordId.entityId,
     );
     try {
       await getWebMachineActorId(context, authentication, {
-        ownedById: userAccountId,
+        webId: userAccountId,
       });
     } catch (err) {
       if (err instanceof NotFoundError) {
         await createWebMachineActor(
           context,
           // We have to use the user's authority to add the machine to their web
-          { actorId: userAccountId as AccountId },
+          { actorId: userAccountId as ActorEntityUuid },
           {
-            ownedById: userAccountId,
+            webId: userAccountId,
             logger,
             machineEntityTypeId: currentMachineEntityTypeId,
           },
@@ -120,12 +120,12 @@ const migrate: MigrationFunction = async ({
   }
 
   for (const org of orgs) {
-    const orgAccountGroupId = extractOwnedByIdFromEntityId(
+    const orgAccountGroupId = extractWebIdFromEntityId(
       org.metadata.recordId.entityId,
     );
     try {
       await getWebMachineActorId(context, authentication, {
-        ownedById: orgAccountGroupId,
+        webId: orgAccountGroupId,
       });
     } catch (err) {
       if (err instanceof NotFoundError) {
@@ -136,7 +136,7 @@ const migrate: MigrationFunction = async ({
           // We have to use an org admin's authority to add the machine to their web
           { actorId: orgAdminAccountId },
           {
-            ownedById: orgAccountGroupId,
+            webId: orgAccountGroupId,
             logger,
             machineEntityTypeId: currentMachineEntityTypeId,
           },

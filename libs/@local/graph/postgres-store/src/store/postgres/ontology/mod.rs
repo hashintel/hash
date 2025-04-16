@@ -24,7 +24,7 @@ use type_system::{
         id::{BaseUrl, OntologyTypeUuid, VersionedUrl},
         provenance::OntologyOwnership,
     },
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::store::{
@@ -198,7 +198,7 @@ impl_ontology_cursor!(EntityTypeWithMetadata, EntityTypeQueryPath);
 #[serde(untagged)]
 enum PostgresOntologyOwnership {
     Owned {
-        web_id: OwnedById,
+        web_id: WebId,
     },
     External {
         #[serde(with = "hash_codec::serde::time")]
@@ -209,9 +209,7 @@ enum PostgresOntologyOwnership {
 impl From<PostgresOntologyOwnership> for OntologyOwnership {
     fn from(value: PostgresOntologyOwnership) -> Self {
         match value {
-            PostgresOntologyOwnership::Owned { web_id } => Self::Local {
-                owned_by_id: web_id,
-            },
+            PostgresOntologyOwnership::Owned { web_id } => Self::Local { web_id },
             PostgresOntologyOwnership::External { fetched_at } => Self::Remote { fetched_at },
         }
     }

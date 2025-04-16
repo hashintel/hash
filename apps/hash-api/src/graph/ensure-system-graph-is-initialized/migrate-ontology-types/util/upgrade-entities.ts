@@ -1,13 +1,21 @@
 import {
+  getBreadthFirstEntityTypesAndParents,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  PropertyObjectWithMetadata,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  componentsFromVersionedUrl,
   mustHaveAtLeastOne,
-  type VersionedUrl,
+  versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   fullOntologyResolveDepths,
@@ -18,14 +26,6 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  getBreadthFirstEntityTypesAndParents,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
-import {
-  componentsFromVersionedUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphContext } from "../../../context-types";
 import {
@@ -41,9 +41,9 @@ export const upgradeWebEntities = async ({
   entityTypeBaseUrls,
   migrationState,
   migrateProperties,
-  webOwnedById,
+  webWebId,
 }: {
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorEntityUuid };
   context: ImpureGraphContext<false, true>;
   entityTypeBaseUrls: BaseUrl[];
   migrationState: MigrationState;
@@ -53,10 +53,10 @@ export const upgradeWebEntities = async ({
       previousProperties: PropertyObjectWithMetadata,
     ) => PropertyObjectWithMetadata
   >;
-  webOwnedById: OwnedById;
+  webWebId: WebId;
 }) => {
   const webBotAccountId = await getWebMachineActorId(context, authentication, {
-    ownedById: webOwnedById,
+    webId: webWebId,
   });
 
   const webBotAuthentication = { actorId: webBotAccountId };
@@ -87,9 +87,9 @@ export const upgradeWebEntities = async ({
           },
           {
             equal: [
-              { path: ["ownedById"] },
+              { path: ["webId"] },
               {
-                parameter: webOwnedById,
+                parameter: webWebId,
               },
             ],
           },
@@ -158,7 +158,7 @@ export const upgradeWebEntities = async ({
 
         const temporaryEntityTypePermissionsGranted: Record<
           VersionedUrl,
-          AccountId
+          ActorEntityUuid
         > = {};
 
         /**

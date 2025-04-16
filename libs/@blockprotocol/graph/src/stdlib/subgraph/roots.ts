@@ -5,6 +5,7 @@ import type {
   PropertyTypeRootType,
   Subgraph,
   SubgraphRootType,
+  Vertex,
 } from "../../types/subgraph.js";
 import {
   isEntityVertexId,
@@ -31,13 +32,14 @@ export const getRoots = <RootType extends SubgraphRootType>(
   subgraph: Subgraph<RootType>,
 ): RootType["element"][] =>
   subgraph.roots.map((rootVertexId) => {
+    if (!("baseId" in rootVertexId && "revisionId" in rootVertexId)) {
+      throw new Error(`Invalid vertex ID: ${JSON.stringify(rootVertexId)}`);
+    }
+
     const root = mustBeDefined(
-      subgraph.vertices[rootVertexId.baseId]?.[
-        // We could use type-guards here to convince TS that it's safe, but that would be slower, it's currently not
-        // smart enough to realise this can produce a value of type `Vertex` as it struggles with discriminating
-        // `EntityId` and `BaseUrl`
-        rootVertexId.revisionId
-      ],
+      (subgraph.vertices as Record<string, Record<string, Vertex>>)[
+        rootVertexId.baseId
+      ]?.[rootVertexId.revisionId],
       `roots should have corresponding vertices but ${JSON.stringify(
         rootVertexId,
       )} was missing`,

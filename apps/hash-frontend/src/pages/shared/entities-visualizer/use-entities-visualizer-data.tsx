@@ -1,14 +1,12 @@
 import type { ApolloQueryResult } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
 } from "@local/hash-graph-client";
-import { type Entity } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ConversionRequest } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import type { GetEntitySubgraphQuery } from "../../../graphql/api-types.gen";
@@ -28,7 +26,7 @@ export type EntitiesVisualizerData = Partial<
     | "webIds"
   >
 > & {
-  entities?: Entity[];
+  entities?: HashEntity[];
   // Whether or not cached content was available immediately for the context data
   hadCachedContent: boolean;
   /**
@@ -38,7 +36,7 @@ export type EntitiesVisualizerData = Partial<
    */
   loading: boolean;
   refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
-  subgraph?: Subgraph<EntityRootType>;
+  subgraph?: Subgraph<EntityRootType<HashEntity>>;
 };
 
 export const useEntitiesVisualizerData = (params: {
@@ -48,7 +46,7 @@ export const useEntitiesVisualizerData = (params: {
   entityTypeIds?: VersionedUrl[];
   includeArchived: boolean;
   limit?: number;
-  ownedByIds?: OwnedById[];
+  webIds?: WebId[];
   sort?: EntityQuerySortingRecord;
 }): EntitiesVisualizerData => {
   const {
@@ -58,7 +56,7 @@ export const useEntitiesVisualizerData = (params: {
     entityTypeIds,
     includeArchived,
     limit,
-    ownedByIds,
+    webIds: webIdsParam,
     sort,
   } = params;
 
@@ -84,7 +82,7 @@ export const useEntitiesVisualizerData = (params: {
     entityTypeIds,
     includeArchived,
     limit,
-    ownedByIds,
+    webIds: webIdsParam,
     graphResolveDepths: {
       hasLeftEntity: { outgoing: 1, incoming: 1 },
       hasRightEntity: { outgoing: 1, incoming: 1 },

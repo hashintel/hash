@@ -176,7 +176,7 @@ For an exhaustive list of all supported paths, please generate the Rust document
 ```json5
 {
   filter: {
-    equal: [{ path: ["ownedById"] }, { parameter: "{{account_id}}" }],
+    equal: [{ path: ["webId"] }, { parameter: "{{account_id}}" }],
   },
   graphResolveDepths: {
     // ...

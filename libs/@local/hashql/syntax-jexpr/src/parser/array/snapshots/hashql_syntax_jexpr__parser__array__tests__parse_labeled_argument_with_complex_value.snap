@@ -1,0 +1,21 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
+description: Parses a labeled argument with a complex value
+expression: "[\"func\", {\":config\": [\"getConfig\"]}]"
+---
+Expr#4294967040@12
+  ExprKind (Call)
+    CallExpr#4294967040@12
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: func)
+      LabeledArgument#4294967040@11 (label: config)
+        Argument#4294967040@10
+          Expr#4294967040@10
+            ExprKind (Call)
+              CallExpr#4294967040@10
+                Expr#4294967040@9
+                  ExprKind (Path)
+                    Path#4294967040@9 (rooted: false)
+                      PathSegment#4294967040@8 (name: getConfig)

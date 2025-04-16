@@ -3,37 +3,45 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type {
+  BaseUrl,
   Conversions,
   DataType,
   DataTypeReference,
+  DataTypeWithMetadata,
+  Entity,
   EntityType,
+  EntityTypeWithMetadata,
   OneOfSchema,
+  PropertyObjectWithMetadata,
   PropertyType,
   PropertyTypeReference,
+  PropertyTypeWithMetadata,
   PropertyValueArray,
   PropertyValueObject,
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   atLeastOne,
+  componentsFromVersionedUrl,
   DATA_TYPE_META_SCHEMA,
   ENTITY_TYPE_META_SCHEMA,
+  extractBaseUrl,
+  extractWebIdFromEntityId,
   PROPERTY_TYPE_META_SCHEMA,
+  versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity";
 import type {
-  BaseUrl,
-  ConstructDataTypeParams,
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  DataTypeRelationAndSubjectBranded,
+  EntityTypeInstantiatorSubjectBranded,
+  EntityTypeRelationAndSubjectBranded,
+  PropertyTypeRelationAndSubjectBranded,
+} from "@local/hash-graph-sdk/branded-authorization";
+import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -54,18 +62,6 @@ import {
   generateLinkMapWithConsistentSelfReferences,
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import type {
-  DataTypeRelationAndSubject,
-  EntityTypeInstantiatorSubject,
-  EntityTypeRelationAndSubject,
-  PropertyTypeRelationAndSubject,
-} from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import {
-  componentsFromVersionedUrl,
-  extractBaseUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getEntities } from "../../knowledge/primitive/entity";
@@ -258,7 +254,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
   const { accountGroupId, machineActorId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
 
-  const relationships: DataTypeRelationAndSubject[] = [
+  const relationships: DataTypeRelationAndSubjectBranded[] = [
     {
       relation: "viewer",
       subject: {
@@ -289,7 +285,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
       context,
       { actorId: machineActorId },
       {
-        ownedById: accountGroupId as OwnedById,
+        webId: accountGroupId as WebId,
         schema: dataTypeSchema,
         webShortname,
         relationships,
@@ -350,7 +346,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   const { accountGroupId, machineActorId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
 
-  const relationships: PropertyTypeRelationAndSubject[] = [
+  const relationships: PropertyTypeRelationAndSubjectBranded[] = [
     {
       relation: "editor",
       subject: {
@@ -387,7 +383,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
       context,
       { actorId: machineActorId },
       {
-        ownedById: accountGroupId as OwnedById,
+        webId: accountGroupId as WebId,
         schema: propertyTypeSchema,
         webShortname,
         relationships,
@@ -529,7 +525,7 @@ export const generateSystemEntityTypeSchema = (
 export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   {
     entityTypeDefinition: Omit<EntityTypeDefinition, "entityTypeId">;
-    instantiator: EntityTypeInstantiatorSubject | null;
+    instantiator: EntityTypeInstantiatorSubjectBranded | null;
   } & BaseCreateTypeIfNotExistsParameters,
   Promise<EntityTypeWithMetadata>
 > = async (
@@ -571,7 +567,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   const { accountGroupId, machineActorId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
 
-  const relationships: EntityTypeRelationAndSubject[] = [
+  const relationships: EntityTypeRelationAndSubjectBranded[] = [
     {
       relation: "editor",
       subject: {
@@ -616,7 +612,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       context,
       { actorId: machineActorId },
       {
-        ownedById: accountGroupId as OwnedById,
+        webId: accountGroupId as WebId,
         schema: entityTypeSchema,
         webShortname,
         relationships,
@@ -974,7 +970,7 @@ export const getEntitiesByType: ImpureGraphFunction<
     temporalAxes: currentTimeInstantTemporalAxes,
   });
 
-export const anyUserInstantiator: EntityTypeInstantiatorSubject = {
+export const anyUserInstantiator: EntityTypeInstantiatorSubjectBranded = {
   kind: "public",
 };
 
@@ -1047,7 +1043,7 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
   );
 
   for (const webEntity of [...users, ...orgs]) {
-    const webOwnedById = extractOwnedByIdFromEntityId(
+    const webWebId = extractWebIdFromEntityId(
       webEntity.metadata.recordId.entityId,
     );
 
@@ -1057,7 +1053,7 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
       entityTypeBaseUrls,
       migrationState,
       migrateProperties,
-      webOwnedById,
+      webWebId,
     });
   }
 };

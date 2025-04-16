@@ -1,4 +1,4 @@
-import type { AccountId } from "@local/hash-graph-types/account";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 
 import type { ImpureGraphContext } from "../../../graph/context-types";
 import { getOrgMembershipOrg } from "../../../graph/knowledge/system-types/org-membership";
@@ -13,7 +13,7 @@ export type SimpleWeb = {
 
 export const getUserSimpleWebs = async (
   context: ImpureGraphContext,
-  authentication: { actorId: AccountId },
+  authentication: { actorId: ActorEntityUuid },
   { user }: { user: User },
 ): Promise<SimpleWeb[]> => {
   if (!user.shortname) {

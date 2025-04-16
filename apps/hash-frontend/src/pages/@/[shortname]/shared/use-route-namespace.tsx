@@ -1,13 +1,13 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { WebId } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import { useGetOwnedByIdForShortname } from "../../../../components/hooks/use-get-account-id-for-shortname";
+import { useGetWebIdForShortname } from "../../../../components/hooks/use-get-account-id-for-shortname";
 
 export const useRouteNamespace = (): {
   loading: boolean;
   routeNamespace?: {
-    ownedById: OwnedById;
+    webId: WebId;
     shortname?: string;
   };
 } => {
@@ -28,19 +28,19 @@ export const useRouteNamespace = (): {
     shortname = router.asPath.match(/\/@([^/]+)/)?.[1];
   }
 
-  const { loading, ownedById } = useGetOwnedByIdForShortname(shortname);
+  const { loading, webId } = useGetWebIdForShortname(shortname);
 
   return useMemo(() => {
-    if (!loading && ownedById) {
+    if (!loading && webId) {
       return {
         loading,
         routeNamespace: {
-          ownedById,
+          webId,
           shortname,
         },
       };
     } else {
       return { loading };
     }
-  }, [loading, ownedById, shortname]);
+  }, [loading, webId, shortname]);
 };

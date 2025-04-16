@@ -1,8 +1,12 @@
 use core::error::Error;
 
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
-use type_system::{ontology::entity_type::EntityTypeUuid, web::OwnedById};
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    ontology::entity_type::EntityTypeUuid,
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, WebId},
+};
 use uuid::Uuid;
 
 use crate::{
@@ -75,11 +79,11 @@ pub enum EntityTypeSetting {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum EntityTypeSubject {
-    Web(OwnedById),
+    Web(WebId),
     Setting(EntityTypeSetting),
     Public,
-    Account(AccountId),
-    AccountGroup(AccountGroupId),
+    Account(ActorEntityUuid),
+    AccountGroup(ActorGroupId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -118,7 +122,7 @@ impl Resource for EntityTypeSubject {
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
             (EntityTypeSubjectNamespace::Web, EntityTypeSubjectId::Uuid(uuid)) => {
-                Self::Web(OwnedById::new(uuid))
+                Self::Web(WebId::new(uuid))
             }
             (EntityTypeSubjectNamespace::Setting, EntityTypeSubjectId::Setting(setting)) => {
                 Self::Setting(setting)
@@ -128,10 +132,10 @@ impl Resource for EntityTypeSubject {
                 EntityTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (EntityTypeSubjectNamespace::Account, EntityTypeSubjectId::Uuid(id)) => {
-                Self::Account(AccountId::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (EntityTypeSubjectNamespace::AccountGroup, EntityTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(AccountGroupId::new(id))
+                Self::AccountGroup(ActorGroupId::new(id))
             }
             (
                 EntityTypeSubjectNamespace::Web
@@ -181,7 +185,7 @@ impl Resource for EntityTypeSubject {
 pub enum EntityTypeOwnerSubject {
     Web {
         #[serde(rename = "subjectId")]
-        id: OwnedById,
+        id: WebId,
     },
 }
 
@@ -201,11 +205,11 @@ pub enum EntityTypeSettingSubject {
 pub enum EntityTypeEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: EntityTypeSubjectSet,
     },
@@ -225,11 +229,11 @@ pub enum EntityTypeInstantiatorSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: EntityTypeSubjectSet,
     },

@@ -18,10 +18,10 @@ pub use self::metadata::ValueMetadata;
 /// types defined in the ontology.
 ///
 /// This enum is the fundamental data unit in the type system and is used throughout
-/// the validation process. [`Value`]s are instances of [`DataType`]s defined in the ontology.
-/// The relationship is similar to values and types in typed programming languages:
+/// the validation process. [`PropertyValue`]s are instances of [`DataType`]s defined in the
+/// ontology. The relationship is similar to values and types in typed programming languages:
 /// - [`DataType`]s define the validation rules, constraints, and format a value must follow
-/// - [`Value`] instances contain actual data conforming to those data types
+/// - [`PropertyValue`] instances contain actual data conforming to those data types
 ///
 /// Each value in an entity:
 /// - Corresponds to a specific [`DataType`] in the ontology (referenced in its metadata)
@@ -34,43 +34,48 @@ pub use self::metadata::ValueMetadata;
 /// ```
 /// use std::collections::HashMap;
 ///
-/// use type_system::knowledge::Value;
+/// use type_system::knowledge::PropertyValue;
 ///
 /// // Create a simple string value
-/// let string_value = Value::String("Hello, world!".to_string());
+/// let string_value = PropertyValue::String("Hello, world!".to_string());
 ///
 /// // Create a more complex object value
 /// let mut obj = HashMap::new();
-/// obj.insert("greeting".to_string(), Value::String("Hello".to_string()));
-/// obj.insert("count".to_string(), Value::Number(42_i32.into()));
-/// let object_value = Value::Object(obj);
+/// obj.insert(
+///     "greeting".to_string(),
+///     PropertyValue::String("Hello".to_string()),
+/// );
+/// obj.insert("count".to_string(), PropertyValue::Number(42_i32.into()));
+/// let object_value = PropertyValue::Object(obj);
 /// ```
 ///
 /// [`DataType`]: crate::ontology::data_type::DataType
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(untagged, rename = "JsonValue")]
-pub enum Value {
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[serde(untagged)]
+pub enum PropertyValue {
     Null,
     Bool(bool),
     String(String),
     Number(#[cfg_attr(target_arch = "wasm32", tsify(type = "number"))] Real),
-    Array(#[cfg_attr(target_arch = "wasm32", tsify(type = "JsonValue[]"))] Vec<Self>),
+    Array(#[cfg_attr(target_arch = "wasm32", tsify(type = "PropertyValue[]"))] Vec<Self>),
     Object(
-        #[cfg_attr(target_arch = "wasm32", tsify(type = "{ [key: string]: JsonValue }"))]
+        #[cfg_attr(
+            target_arch = "wasm32",
+            tsify(type = "{ [key: string]: PropertyValue }")
+        )]
         HashMap<String, Self>,
     ),
 }
 
-impl fmt::Display for Value {
+impl fmt::Display for PropertyValue {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(fmt)
     }
 }
 
 #[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for Value {
+impl<'a> FromSql<'a> for PropertyValue {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Json::<Self>::from_sql(ty, raw)?.0)
     }
@@ -81,7 +86,7 @@ impl<'a> FromSql<'a> for Value {
 }
 
 #[cfg(feature = "postgres")]
-impl ToSql for Value {
+impl ToSql for PropertyValue {
     postgres_types::to_sql_checked!();
 
     fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>

@@ -1,13 +1,15 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
+import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
-  Entity as EntityClass,
   getClosedMultiEntityTypeFromMap,
+  HashEntity,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -18,9 +20,6 @@ import {
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { splitEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import NextErrorComponent from "next/error";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -41,6 +40,7 @@ import { EntityEditor } from "./entity/entity-editor";
 import { EntityEditorContainer } from "./entity/entity-editor-container";
 import { EntityHeader } from "./entity/entity-header";
 import { EntityPageLoadingState } from "./entity/entity-page-loading-state";
+import { getEntityMultiTypeDependencies } from "./entity/get-entity-multi-type-dependencies";
 import { QueryEditor } from "./entity/query-editor";
 import { QueryEditorToggle } from "./entity/query-editor-toggle";
 import { createDraftEntitySubgraph } from "./entity/shared/create-draft-entity-subgraph";
@@ -82,13 +82,13 @@ interface EntityProps {
      * The parent should reroute to the appropriate page, slide etc, with the persisted entityId.
      */
     createFromLocalDraft: (params: {
-      localDraft: EntityClass;
+      localDraft: HashEntity;
       draftLinksToCreate: DraftLinksToCreate;
     }) => Promise<void>;
     /**
      * The initial subgraph of the new draft entity.
      */
-    initialSubgraph: Subgraph<EntityRootType>;
+    initialSubgraph: Subgraph<EntityRootType<HashEntity>>;
     /**
      * The action to take when the user clicks 'discard'.
      * The parent is responsible for rerouting the user to the appropriate page.
@@ -107,7 +107,7 @@ interface EntityProps {
    * Callback allowing the parent to take some action when an entity update is persisted to the database.
    * The form will reflect the changes, so parents need not do anything if the user is supposed to remain on the form.
    */
-  onEntityUpdatedInDb: (updatedEntity: EntityClass) => void | null;
+  onEntityUpdatedInDb: (updatedEntity: HashEntity) => void | null;
   /**
    * Callback for when a remote draft is archived (i.e. rejected).
    * The parent should take some action to reroute the user to another page or component.
@@ -121,12 +121,12 @@ interface EntityProps {
    * If the parent is SURE the entity is not a draft in the db, this can throw an error.
    * e.g. if creating a new entity, it cannot be a draft in the db.
    */
-  onRemoteDraftPublished: (publishedEntity: EntityClass) => void;
+  onRemoteDraftPublished: (publishedEntity: HashEntity) => void;
   /**
    * Optional callback to allow the parent to take some action based on the initial state of the entity,
    * useful for e.g. rerouting to another page if the entity is of a specific type,
    */
-  onEntityLoad?: (entity: EntityClass) => void;
+  onEntityLoad?: (entity: HashEntity) => void;
   /**
    * Optional callback to allow the parent to take some action when the entity's label changes,
    * e.g. if it's displaying it somewhere outside of this component (such as HTML <title>).
@@ -137,7 +137,7 @@ interface EntityProps {
    * If the entity is a Flow proposal, it won't be persisted in the database yet.
    * This mock subgraph allows viewing it in the slide (and will disable attempting to request info from the db on it)
    */
-  proposedEntitySubgraph?: Subgraph<EntityRootType>;
+  proposedEntitySubgraph?: Subgraph<EntityRootType<HashEntity>>;
 }
 
 export const Entity = ({
@@ -157,7 +157,7 @@ export const Entity = ({
 
   const { pushToSlideStack } = useSlideStack();
 
-  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
+  const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
   const [dataFromDb, setDataFromDb] =
     useState<
@@ -165,22 +165,31 @@ export const Entity = ({
         EntityEditorProps,
         | "closedMultiEntityType"
         | "closedMultiEntityTypesDefinitions"
-        | "closedMultiEntityTypesMap"
         | "entitySubgraph"
+        | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
       >
     >();
 
   const [draftEntitySubgraph, setDraftEntitySubgraph] = useState<
-    Subgraph<EntityRootType> | undefined
+    Subgraph<EntityRootType<HashEntity>> | undefined
   >(draftLocalEntity?.initialSubgraph ?? proposedEntitySubgraph);
 
   const [draftEntityTypesDetails, setDraftEntityTypesDetails] = useState<
     | Pick<
         EntityEditorProps,
-        "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
+        | "closedMultiEntityType"
+        | "closedMultiEntityTypesDefinitions"
+        | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
       >
     | undefined
   >();
+
+  const [
+    draftLinksToCreate,
+    setDraftLinksToCreate,
+    draftLinksToArchive,
+    setDraftLinksToArchive,
+  ] = useDraftLinkState();
 
   const { getClosedMultiEntityTypes } = useGetClosedMultiEntityTypes();
 
@@ -207,13 +216,21 @@ export const Entity = ({
         throw new Error("No entity type ids found");
       }
 
-      void getClosedMultiEntityTypes(entityTypeIds).then((result) => {
+      const allRequiredMultiTypeIds = getEntityMultiTypeDependencies({
+        entityId,
+        entityTypeIds,
+        entitySubgraph: proposedEntitySubgraph ?? null,
+      });
+
+      void getClosedMultiEntityTypes(allRequiredMultiTypeIds).then((result) => {
         const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
           result.closedMultiEntityTypes,
           mustHaveAtLeastOne(entityTypeIds),
         );
 
         setDraftEntityTypesDetails({
+          linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+            result.closedMultiEntityTypes,
           closedMultiEntityType,
           closedMultiEntityTypesDefinitions:
             result.closedMultiEntityTypesDefinitions,
@@ -223,6 +240,8 @@ export const Entity = ({
   }, [
     draftLocalEntity,
     draftEntityTypesDetails,
+    draftLinksToCreate,
+    entityId,
     getClosedMultiEntityTypes,
     proposedEntitySubgraph,
   ]);
@@ -233,22 +252,15 @@ export const Entity = ({
 
   const [isDirty, setIsDirty] = useState(!!draftLocalEntity);
 
-  const [
-    draftLinksToCreate,
-    setDraftLinksToCreate,
-    draftLinksToArchive,
-    setDraftLinksToArchive,
-  ] = useDraftLinkState();
-
   const { data: getEntitySubgraphData, refetch } = useQuery<
     GetEntitySubgraphQuery,
     GetEntitySubgraphQueryVariables
   >(getEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     onCompleted: (data) => {
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.getEntitySubgraph.subgraph,
-      );
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+        EntityRootType<HashEntity>
+      >(data.getEntitySubgraph.subgraph);
 
       const { definitions, closedMultiEntityTypes } = data.getEntitySubgraph;
 
@@ -272,6 +284,8 @@ export const Entity = ({
       );
 
       setDraftEntityTypesDetails({
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+          closedMultiEntityTypes,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions: definitions,
       });
@@ -280,7 +294,8 @@ export const Entity = ({
         entitySubgraph: subgraph,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions: definitions,
-        closedMultiEntityTypesMap: closedMultiEntityTypes,
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+          closedMultiEntityTypes,
       });
 
       setDraftEntitySubgraph(subgraph);
@@ -299,7 +314,7 @@ export const Entity = ({
               equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
             },
             {
-              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+              equal: [{ path: ["webId"] }, { parameter: webId }],
             },
             ...(draftId
               ? [
@@ -344,6 +359,11 @@ export const Entity = ({
   );
 
   const isReadOnly =
+    /**
+     * @todo H-3398 fix Glide grid editor overlays when body isn't fullscreened.
+     *       Editing popups won't work until this is fixed, so we set the editor to readonly in fullscreen mode.
+     */
+    !!document.fullscreenElement ||
     !!draftEntity?.metadata.archived ||
     !!proposedEntitySubgraph ||
     (!draftLocalEntity &&
@@ -364,6 +384,8 @@ export const Entity = ({
     if (dataFromDb) {
       setDraftEntitySubgraph(dataFromDb.entitySubgraph);
       setDraftEntityTypesDetails({
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+          dataFromDb.linkAndDestinationEntitiesClosedMultiEntityTypesMap,
         closedMultiEntityType: dataFromDb.closedMultiEntityType,
         closedMultiEntityTypesDefinitions:
           dataFromDb.closedMultiEntityTypesDefinitions,
@@ -384,7 +406,7 @@ export const Entity = ({
   const { validateEntity: validateFn } = useValidateEntity();
 
   const validateEntity = useCallback(
-    async (entityToValidate: EntityClass) => {
+    async (entityToValidate: HashEntity) => {
       const report = await validateFn({
         properties: entityToValidate.propertiesWithMetadata,
         entityTypeIds: entityToValidate.metadata.entityTypeIds,
@@ -463,7 +485,7 @@ export const Entity = ({
           throw new Error("Failed to update entity");
         }
 
-        return new EntityClass(result.data.updateEntity);
+        return new HashEntity(result.data.updateEntity);
       });
 
       await refetch();
@@ -519,9 +541,6 @@ export const Entity = ({
       )}
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditor
-          closedMultiEntityTypesMap={
-            dataFromDb?.closedMultiEntityTypesMap ?? null
-          }
           {...draftEntityTypesDetails}
           draftLinksToCreate={draftLinksToCreate}
           draftLinksToArchive={draftLinksToArchive}
@@ -634,6 +653,7 @@ export const Entity = ({
             entitySubgraph={draftEntitySubgraph}
             hideOpenInNew={!!proposedEntitySubgraph || !!draftLocalEntity}
             isInSlide={isInSlide}
+            isLocalDraft={!!draftLocalEntity}
             isModifyingEntity={haveChangesBeenMade}
             onDraftArchived={onRemoteDraftArchived}
             onDraftPublished={onRemoteDraftPublished}
@@ -644,9 +664,6 @@ export const Entity = ({
           />
           <EntityEditorContainer isInSlide={isInSlide}>
             <EntityEditor
-              closedMultiEntityTypesMap={
-                dataFromDb?.closedMultiEntityTypesMap ?? null
-              }
               defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
               {...draftEntityTypesDetails}
               draftLinksToCreate={draftLinksToCreate}

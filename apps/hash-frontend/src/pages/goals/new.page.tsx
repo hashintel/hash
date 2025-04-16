@@ -1,11 +1,10 @@
 import { useApolloClient, useMutation } from "@apollo/client";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 import {
   ArrowRightRegularIcon,
   BullseyeLightIcon,
   TextField,
 } from "@hashintel/design-system";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import {
   goalFlowDefinition,
@@ -172,8 +171,8 @@ const NewGoalPageContent = () => {
 
   const [goal, setGoal] = useState("");
   const [entityTypes, setEntityTypes] = useState<EntityTypeWithMetadata[]>([]);
-  const [webId, setWebId] = useState<OwnedById>(
-    authenticatedUser.accountId as OwnedById,
+  const [webId, setWebId] = useState<WebId>(
+    authenticatedUser.accountId as WebId,
   );
   const [createAsDraft, setCreateAsDraft] = useState(true);
   const [internetSettings, setInternetSettings] = useState<
@@ -365,7 +364,7 @@ const NewGoalPageContent = () => {
       include: [getFlowRunsQuery],
     });
 
-    const { shortname } = getOwner({ ownedById: webId });
+    const { shortname } = getOwner({ webId });
 
     void push(generateWorkerRunPath({ shortname, flowRunId }));
   };
@@ -421,8 +420,8 @@ const NewGoalPageContent = () => {
               avatarSize={18}
               inputHeight={30}
               inputId="web-selector"
-              setSelectedWebOwnedById={(ownedById) => setWebId(ownedById)}
-              selectedWebOwnedById={webId}
+              selectedWebId={webId}
+              setSelectedWebId={(selectedWebId) => setWebId(selectedWebId)}
             />
           </Question>
           <Question

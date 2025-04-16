@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Invalid field separator
+expression: (name String)
+info:
+  kind: Err
+---
+(name String)
+      ^
+invalid type
+expected `)`, `,`, `:`

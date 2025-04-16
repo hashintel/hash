@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/path.rs
+description: Unicode identifier
+expression: 标识符
+info:
+  kind: Ok
+---
+Path#4294967040@3 (rooted: false)
+  PathSegment#4294967040@2 (name: 标识符)

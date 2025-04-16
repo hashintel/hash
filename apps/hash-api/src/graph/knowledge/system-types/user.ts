@@ -1,10 +1,15 @@
+import {
+  type ActorEntityUuid,
+  type EntityId,
+  type EntityUuid,
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+  type WebId,
+} from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
@@ -18,11 +23,6 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
-import type { AccountEntityId } from "@local/hash-subgraph";
-import {
-  extractAccountId,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
 
 import type {
   KratosUserIdentity,
@@ -55,18 +55,18 @@ import {
 } from "./org-membership";
 
 export type User = {
-  accountId: AccountId;
+  accountId: ActorEntityUuid;
   kratosIdentityId: string;
   emails: string[];
   shortname?: string;
   displayName?: string;
   isAccountSignupComplete: boolean;
-  entity: Entity<UserEntity>;
+  entity: HashEntity<UserEntity>;
 };
 
 function assertUserEntity(
-  entity: Entity,
-): asserts entity is Entity<UserEntity> {
+  entity: HashEntity,
+): asserts entity is HashEntity<UserEntity> {
   if (
     !entity.metadata.entityTypeIds.includes(systemEntityTypes.user.entityTypeId)
   ) {
@@ -78,9 +78,10 @@ function assertUserEntity(
   }
 }
 
-export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
-  entity,
-}) => {
+export const getUserFromEntity: PureGraphFunction<
+  { entity: HashEntity },
+  User
+> = ({ entity }) => {
   assertUserEntity(entity);
 
   const {
@@ -93,9 +94,9 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   const isAccountSignupComplete = !!shortname && !!displayName;
 
   return {
-    accountId: extractAccountId(
-      entity.metadata.recordId.entityId as AccountEntityId,
-    ),
+    accountId: extractWebIdFromEntityId(
+      entity.metadata.recordId.entityId,
+    ) as ActorEntityUuid,
     shortname,
     displayName,
     isAccountSignupComplete,
@@ -244,7 +245,6 @@ export const createUser: ImpureGraphFunction<
     shortname?: string;
     displayName?: string;
     isInstanceAdmin?: boolean;
-    userAccountId?: AccountId;
   },
   Promise<User>
 > = async (ctx, authentication, params) => {
@@ -288,32 +288,29 @@ export const createUser: ImpureGraphFunction<
 
   const userShouldHavePermissionsOnWeb = shortname && displayName;
 
-  let userAccountId: AccountId;
-  if (params.userAccountId) {
-    userAccountId = params.userAccountId;
-  } else {
-    userAccountId = await createAccount(ctx, authentication, {});
+  const userAccountId = await createAccount(ctx, authentication, {
+    accountType: "user",
+  });
 
-    await createWeb(
-      ctx,
-      { actorId: systemAccountId },
-      {
-        ownedById: userAccountId as OwnedById,
-        owner: {
-          kind: "account",
-          /**
-           * Creating a web allows users to create further entities in it
-           * – we don't want them to do that until they've completed signup (have a shortname and display name)
-           * - the web is created with the system account as the owner and will be updated to the user account as the
-           *   owner once the user has completed signup
-           */
-          subjectId: userShouldHavePermissionsOnWeb
-            ? userAccountId
-            : systemAccountId,
-        },
+  await createWeb(
+    ctx,
+    { actorId: systemAccountId },
+    {
+      webId: userAccountId as WebId,
+      owner: {
+        kind: "account",
+        /**
+         * Creating a web allows users to create further entities in it
+         * – we don't want them to do that until they've completed signup (have a shortname and display name)
+         * - the web is created with the system account as the owner and will be updated to the user account as the
+         *   owner once the user has completed signup
+         */
+        subjectId: userShouldHavePermissionsOnWeb
+          ? userAccountId
+          : systemAccountId,
       },
-    );
-  }
+    },
+  );
 
   const userWebMachineActorId = await createWebMachineActor(
     ctx,
@@ -321,7 +318,7 @@ export const createUser: ImpureGraphFunction<
       actorId: userShouldHavePermissionsOnWeb ? userAccountId : systemAccountId,
     },
     {
-      ownedById: userAccountId as OwnedById,
+      webId: userAccountId as WebId,
       logger,
     },
   );
@@ -407,7 +404,7 @@ export const createUser: ImpureGraphFunction<
     ctx,
     { actorId: userWebMachineActorId },
     {
-      ownedById: userAccountId as OwnedById,
+      webId: userAccountId as WebId,
       properties,
       entityTypeIds: [systemEntityTypes.user.entityTypeId],
       entityUuid: userAccountId as string as EntityUuid,

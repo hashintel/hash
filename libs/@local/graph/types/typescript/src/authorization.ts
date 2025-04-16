@@ -1,4 +1,4 @@
-import type { AccountGroupId, AccountId } from "./account.js";
+import type { ActorEntityUuid, ActorGroupId } from "@blockprotocol/type-system";
 
 /** An ID to uniquely identify an authorization subject (either a User or an Org) */
-export type AuthorizationSubjectId = AccountId | AccountGroupId;
+export type AuthorizationSubjectId = ActorEntityUuid | ActorGroupId;

@@ -8,37 +8,38 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    1[<a href="../hash_codec/index.html">hash-codec</a>]
-    2[<a href="../hash_graph/index.html">hash-graph</a>]
-    3[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
-    4[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
-    5[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    6[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    7[<a href="../error_stack/index.html">error-stack</a>]
+    0[<a href="../hash_graph">hash-graph</a>]
+    1[<a href="../type_system">type-system</a>]
+    2[<a href="../hash_codec">hash-codec</a>]
+    3[<a href="../hash_graph_api">hash-graph-api</a>]
+    4[<a href="../hash_graph_authorization">hash-graph-authorization</a>]
+    5[<a href="../hash_graph_store">hash-graph-store</a>]
+    6[<a href="../hash_graph_temporal_versioning">hash-graph-temporal-versioning</a>]
+    7[<a href="../hash_graph_test_server">hash-graph-test-server</a>]
     8[hash-graph-type-fetcher]
     class 8 root
-    9[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    10[<a href="../type_system/index.html">type-system</a>]
-    11[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
-    12[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    13[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
-    14[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
-    15[<a href="../harpc_types/index.html">harpc-types</a>]
-    3 --> 8
-    4 --> 9
-    5 -.-> 3
-    11 --> 4
-    11 --> 6
-    12 --> 1
-    10 --> 12
-    8 --> 11
-    10 -.-> 13
-    14 --> 3
-    9 --> 10
+    9[<a href="../hash_graph_types">hash-graph-types</a>]
+    10[<a href="../harpc_types">harpc-types</a>]
+    11[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
+    12[<a href="../hash_temporal_client">hash-temporal-client</a>]
+    13[<a href="../error_stack">error-stack</a>]
+    14[<a href="../hash_graph_benches">hash-graph-benches</a>]
+    15[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
     0 --> 7
-    0 --> 15
-    0 -.-> 15
-    1 --> 0
-    6 --> 9
-    2 --> 14
+    1 --> 6
+    1 -.-> 15
+    2 --> 11
+    3 --> 8
+    4 --> 1
+    5 --> 4
+    5 --> 9
+    5 --> 12
+    6 --> 2
+    7 --> 3
+    8 --> 5
+    9 --> 1
+    11 -.-> 10
+    11 --> 10
+    11 --> 13
+    12 --> 1
+    14 -.-> 3

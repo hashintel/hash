@@ -1,6 +1,5 @@
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -8,7 +7,6 @@ import {
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 
 import { isProdEnv } from "../../../../lib/env-config";
 import { createOrUpdateMailchimpUser } from "../../../../mailchimp";
@@ -83,8 +81,8 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
       const pageAuthor = await getUserById(context, authentication, {
         entityId: entityIdFromComponents(
-          pageAuthorAccountId as Uuid as OwnedById,
-          pageAuthorAccountId as Uuid as EntityUuid,
+          pageAuthorAccountId as WebId,
+          pageAuthorAccountId as string as EntityUuid,
         ),
       });
 
@@ -108,7 +106,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
           context,
           { actorId: pageAuthor.accountId },
           {
-            ownedById: pageAuthor.accountId as OwnedById,
+            webId: pageAuthor.accountId as WebId,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
             occurredInEntity,
@@ -172,7 +170,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
           context,
           { actorId: parentCommentAuthor.accountId },
           {
-            ownedById: parentCommentAuthor.accountId as OwnedById,
+            webId: parentCommentAuthor.accountId as WebId,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
             occurredInEntity,
@@ -220,7 +218,7 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
   const triggeredByUser = await getUserById(context, authentication, {
     entityId: entityIdFromComponents(
-      authentication.actorId as OwnedById,
+      authentication.actorId as WebId,
       authentication.actorId as string as EntityUuid,
     ),
   });
@@ -260,7 +258,7 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
             /** @todo: use authentication of machine user instead */
             { actorId: mentionedUser.accountId },
             {
-              ownedById: mentionedUser.accountId as OwnedById,
+              webId: mentionedUser.accountId as WebId,
               occurredInEntity,
               occurredInBlock,
               occurredInComment,

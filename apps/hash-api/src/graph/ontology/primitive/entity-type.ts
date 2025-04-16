@@ -1,5 +1,18 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
+import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  EntityType,
+  EntityTypeMetadata,
+  EntityTypeWithMetadata,
+  OntologyTemporalMetadata,
+  OntologyTypeRecordId,
+  ProvidedOntologyEditionProvenance,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  ENTITY_TYPE_META_SCHEMA,
+  ontologyTypeRecordIdToVersionedUrl,
+} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
@@ -7,25 +20,25 @@ import type {
   ArchiveEntityTypeParams,
   ClosedMultiEntityTypeMap,
   EntityTypePermission,
+  EntityTypeRelationAndSubject,
   GetClosedMultiEntityTypesParams,
   GetClosedMultiEntityTypesResponse as GetClosedMultiEntityTypesResponseGraphApi,
   GetEntityTypesParams,
   GetEntityTypeSubgraphParams,
   ModifyRelationshipOperation,
-  OntologyTemporalMetadata,
-  ProvidedOntologyEditionProvenance,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import type {
+  EntityTypeAuthorizationRelationship,
+  EntityTypeRelationAndSubjectBranded,
+} from "@local/hash-graph-sdk/branded-authorization";
+import type {
   ClosedEntityTypeWithMetadata,
-  EntityTypeMetadata,
   EntityTypeResolveDefinitions,
-  EntityTypeWithMetadata,
-  OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   mapGraphApiClosedEntityTypesToClosedEntityTypes,
@@ -37,16 +50,6 @@ import type {
   ConstructEntityTypeParams,
   UserPermissionsOnEntityType,
 } from "@local/hash-isomorphic-utils/types";
-import type {
-  EntityTypeAuthorizationRelationship,
-  EntityTypeRelationAndSubject,
-  EntityTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
-  linkEntityTypeUrl,
-  ontologyTypeRecordIdToVersionedUrl,
-} from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
@@ -59,13 +62,10 @@ export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
   graphApi
     .getEntityTypeAuthorizationRelationships(actorId, params.entityTypeId)
     .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: { kind: "entityType", resourceId: params.entityTypeId },
-            ...relationship,
-          }) as EntityTypeAuthorizationRelationship,
-      ),
+      data.map((relationship) => ({
+        resource: { kind: "entityType", resourceId: params.entityTypeId },
+        ...(relationship as EntityTypeRelationAndSubjectBranded),
+      })),
     );
 
 export const modifyEntityTypeAuthorizationRelationships: ImpureGraphFunction<
@@ -128,16 +128,16 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
 /**
  * Create an entity type.
  *
- * @param params.ownedById - the id of the account who owns the entity type
+ * @param params.webId - the id of the account who owns the entity type
  * @param [params.webShortname] – the shortname of the web that owns the entity type, if the web entity does not yet
  *   exist.
- *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
+ *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the webId.
  * @param params.schema - the `EntityType`
  * @param params.actorId - the id of the account that is creating the entity type
  */
 export const createEntityType: ImpureGraphFunction<
   {
-    ownedById: OwnedById;
+    webId: WebId;
     schema: ConstructEntityTypeParams;
     webShortname?: string;
     relationships: EntityTypeRelationAndSubject[];
@@ -145,12 +145,12 @@ export const createEntityType: ImpureGraphFunction<
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname } = params;
+  const { webId, webShortname } = params;
 
   const shortname =
     webShortname ??
     (await getWebShortname(ctx, authentication, {
-      accountOrAccountGroupId: ownedById,
+      accountOrAccountGroupId: webId,
     }));
 
   const entityTypeId = generateTypeId({
@@ -171,7 +171,7 @@ export const createEntityType: ImpureGraphFunction<
   const { data: metadata } = await graphApi.createEntityType(
     authentication.actorId,
     {
-      ownedById,
+      webId,
       schema,
       relationships: params.relationships,
       provenance: {
@@ -452,7 +452,11 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { allOf } = params;
 
-  if (allOf?.some(({ $ref }) => $ref === linkEntityTypeUrl)) {
+  if (
+    allOf?.some(
+      ({ $ref }) => $ref === blockProtocolEntityTypes.link.entityTypeId,
+    )
+  ) {
     return true;
   }
 
@@ -498,7 +502,7 @@ export const archiveEntityType: ImpureGraphFunction<
     params,
   );
 
-  return temporalMetadata;
+  return temporalMetadata as OntologyTemporalMetadata;
 };
 
 /**
@@ -516,5 +520,5 @@ export const unarchiveEntityType: ImpureGraphFunction<
     { ...params, provenance },
   );
 
-  return temporalMetadata;
+  return temporalMetadata as OntologyTemporalMetadata;
 };

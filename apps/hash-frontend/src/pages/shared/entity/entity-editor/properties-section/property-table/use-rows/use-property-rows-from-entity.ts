@@ -1,14 +1,14 @@
+import type {
+  BaseUrl,
+  PropertyObjectMetadata,
+  PropertyPath,
+  PropertyValueMetadata,
+} from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import {
-  Entity,
   generateChangedPropertyMetadataObject,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import type {
-  PropertyMetadataObject,
-  PropertyMetadataValue,
-  PropertyPath,
-} from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { useMemo } from "react";
 
 import { useEntityEditor } from "../../../entity-editor-context";
@@ -36,7 +36,7 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
     let basePropertiesMetadata = JSON.parse(
       JSON.stringify(
         entity.metadata.properties ??
-          ({ value: {} } satisfies PropertyMetadataObject),
+          ({ value: {} } satisfies PropertyObjectMetadata),
       ),
     );
 
@@ -47,7 +47,7 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
     }: {
       propertyKeyChain: PropertyPath;
       valuePath: PropertyPath;
-      valueMetadata: PropertyMetadataValue | "delete";
+      valueMetadata: PropertyValueMetadata | "delete";
     }) => {
       basePropertiesMetadata = generateChangedPropertyMetadataObject(
         valuePath,
@@ -55,7 +55,7 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
         basePropertiesMetadata,
       );
 
-      const temporaryEntity = new Entity({
+      const temporaryEntity = new HashEntity({
         ...entity.toJSON(),
         metadata: {
           ...entity.metadata,

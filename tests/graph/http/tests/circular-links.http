@@ -5,13 +5,15 @@ POST http://127.0.0.1:4000/accounts
 Content-Type: application/json
 X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
-{}
+{
+  "accountType": "machine"
+}
 
 > {%
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
   });
-  client.global.set("account_id", response.body.toString());
+  client.global.set("account_id", response.body.id);
 %}
 
 ### Create account web
@@ -20,7 +22,7 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-   "ownedById": "{{account_id}}",
+   "webId": "{{account_id}}",
    "owner": {
        "kind": "account",
        "subjectId": "{{account_id}}"
@@ -76,7 +78,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -136,7 +138,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
+  "webId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -208,8 +210,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/object/v/1"],
   "entityUuid": "0000000A-0001-0000-0000-000000000000",
   "draft": false,
@@ -242,8 +244,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/object/v/1"],
   "entityUuid": "0000000B-0001-0000-0000-000000000000",
   "draft": false,
@@ -276,8 +278,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/object/v/1"],
   "entityUuid": "0000000C-0001-0000-0000-000000000000",
   "draft": false,
@@ -310,8 +312,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/object/v/1"],
   "entityUuid": "0000000D-0001-0000-0000-000000000000",
   "draft": false,
@@ -344,8 +346,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link/v/1"],
   "entityUuid": "000000AB-0001-0000-0000-000000000000",
   "linkData": {
@@ -381,8 +383,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link/v/1"],
   "entityUuid": "000000BC-0001-0000-0000-000000000000",
   "linkData": {
@@ -418,8 +420,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link/v/1"],
   "entityUuid": "000000CD-0001-0000-0000-000000000000",
   "linkData": {
@@ -455,8 +457,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value":  {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link/v/1"],
   "entityUuid": "000000DA-0001-0000-0000-000000000000",
   "linkData": {
@@ -493,8 +495,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value":  {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link/v/1"],
   "entityUuid": "000000BA-0001-0000-0000-000000000000",
   "linkData": {
@@ -532,8 +534,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value":  {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link/v/1"],
   "entityUuid": "000000CB-0001-0000-0000-000000000000",
   "linkData": {
@@ -571,8 +573,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value":  {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link/v/1"],
   "entityUuid": "000000DC-0001-0000-0000-000000000000",
   "linkData": {
@@ -610,8 +612,8 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "ownedById": "{{account_id}}",
-  "properties": {},
+  "webId": "{{account_id}}",
+  "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link/v/1"],
   "entityUuid": "000000AD-0001-0000-0000-000000000000",
   "linkData": {

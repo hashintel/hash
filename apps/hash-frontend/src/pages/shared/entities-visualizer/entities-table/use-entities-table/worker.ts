@@ -1,26 +1,26 @@
-import { extractVersion } from "@blockprotocol/type-system";
+import { getEntityRevision } from "@blockprotocol/graph/stdlib";
+import type { BaseUrl } from "@blockprotocol/type-system";
+import {
+  extractVersion,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import {
-  Entity,
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   generateEntityLabel,
   generateLinkEntityLabel,
 } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  extractOwnedByIdFromEntityId,
-  linkEntityTypeUrl,
-} from "@local/hash-subgraph";
-import { getEntityRevision } from "@local/hash-subgraph/stdlib";
 import { format } from "date-fns";
 
 import type {
@@ -106,7 +106,7 @@ const generateTableData = async (
     hideColumns,
     hideArchivedColumn,
     hidePropertiesColumns,
-    webNameByOwnedById,
+    webNameByWebId,
   } = params;
 
   if (await isCancelled(requestId)) {
@@ -143,7 +143,7 @@ const generateTableData = async (
       return "cancelled";
     }
 
-    const entity = new Entity(serializedEntity);
+    const entity = new HashEntity(serializedEntity);
 
     const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
       closedMultiEntityTypesRootMap,
@@ -164,7 +164,7 @@ const generateTableData = async (
         entityTypeTitles.add(entityType.title);
       }
 
-      for (const typeOrAncestor of entityType.allOf ?? []) {
+      for (const typeOrAncestor of entityType.allOf) {
         if (typeOrAncestor.icon) {
           entityIcon = typeOrAncestor.icon;
           break;
@@ -183,8 +183,8 @@ const generateTableData = async (
     }
 
     const entityNamespace =
-      webNameByOwnedById[
-        extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+      webNameByWebId[
+        extractWebIdFromEntityId(entity.metadata.recordId.entityId)
       ] ?? "loading";
 
     const entityId = entity.metadata.recordId.entityId;
@@ -348,15 +348,18 @@ const generateTableData = async (
       entityLabel,
       entityIcon,
       entityTypes: closedMultiEntityType.allOf.map((entityType) => {
-        let isLink: boolean = false;
+        let isLink = false;
         let icon: string | undefined;
 
-        for (const typeOrAncestor of entityType.allOf ?? []) {
+        for (const typeOrAncestor of entityType.allOf) {
           if (!icon && typeOrAncestor.icon) {
             icon = typeOrAncestor.icon;
           }
 
-          if (!isLink && typeOrAncestor.$id === linkEntityTypeUrl) {
+          if (
+            !isLink &&
+            typeOrAncestor.$id === blockProtocolEntityTypes.link.entityTypeId
+          ) {
             isLink = true;
           }
         }

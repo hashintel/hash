@@ -8,15 +8,14 @@ use hash_graph_store::{
     entity::{CreateEntityParams, EntityStore as _},
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::account::AccountId;
 use type_system::{
     knowledge::{
         entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
-        property::{PropertyObject, PropertyWithMetadataObject, metadata::PropertyProvenance},
+        property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::{VersionedUrl, entity_type::EntityType},
-    provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -125,7 +124,10 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
     clippy::significant_drop_tightening,
     reason = "transaction is committed which consumes the object"
 )]
-async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut StoreWrapper<A>) {
+async fn seed_db<A: AuthorizationApi>(
+    account_id: ActorEntityUuid,
+    store_wrapper: &mut StoreWrapper<A>,
+) {
     let mut transaction = store_wrapper
         .store
         .transaction()
@@ -136,14 +138,20 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id, InsertAccountIdParams { account_id })
+        .insert_account_id(
+            account_id,
+            InsertAccountIdParams {
+                account_id,
+                account_type: ActorType::Machine,
+            },
+        )
         .await
         .expect("could not insert account id");
     transaction
         .insert_web_id(
             account_id,
             InsertWebIdParams {
-                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                web_id: WebId::new(account_id.into_uuid()),
                 owner: WebOwnerSubject::Account { id: account_id },
             },
         )
@@ -174,18 +182,18 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
                 account_id,
                 repeat_n(
                     CreateEntityParams {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id.into_uuid()),
                         entity_uuid: None,
                         decision_time: None,
                         entity_type_ids: HashSet::from([entity_type_id]),
-                        properties: PropertyWithMetadataObject::from_parts(properties, None)
+                        properties: PropertyObjectWithMetadata::from_parts(properties, None)
                             .expect("could not create property with metadata object"),
                         confidence: None,
                         link_data: None,
                         draft: false,
                         relationships: [],
                         provenance: ProvidedEntityEditionProvenance {
-                            actor_type: ActorType::Human,
+                            actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
@@ -213,11 +221,11 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
                     .map(|(left_entity, right_entity)| CreateEntityParams {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id.into_uuid()),
                         entity_uuid: None,
                         decision_time: None,
                         entity_type_ids: HashSet::from([entity_type_id.clone()]),
-                        properties: PropertyWithMetadataObject::from_parts(
+                        properties: PropertyObjectWithMetadata::from_parts(
                             PropertyObject::empty(),
                             None,
                         )
@@ -234,7 +242,7 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
                         draft: false,
                         relationships: [],
                         provenance: ProvidedEntityEditionProvenance {
-                            actor_type: ActorType::Human,
+                            actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
@@ -262,12 +270,12 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
 
 /// DOC - TODO
 pub struct Samples {
-    pub entities: HashMap<AccountId, HashMap<VersionedUrl, Vec<EntityUuid>>>,
-    pub entity_types: HashMap<AccountId, Vec<VersionedUrl>>,
+    pub entities: HashMap<ActorEntityUuid, HashMap<VersionedUrl, Vec<EntityUuid>>>,
+    pub entity_types: HashMap<ActorEntityUuid, Vec<VersionedUrl>>,
 }
 
 async fn get_samples<A: AuthorizationApi>(
-    account_id: AccountId,
+    account_id: ActorEntityUuid,
     store_wrapper: &StoreWrapper<A>,
 ) -> Samples {
     let mut entity_types = HashMap::new();
@@ -342,9 +350,9 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
     //
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = AccountId::new(
+    let account_id = ActorEntityUuid::new(EntityUuid::new(
         Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"),
-    );
+    ));
 
     // We use the existence of the account ID as a marker for if the DB has been seeded already
     let already_seeded: bool = store_wrapper

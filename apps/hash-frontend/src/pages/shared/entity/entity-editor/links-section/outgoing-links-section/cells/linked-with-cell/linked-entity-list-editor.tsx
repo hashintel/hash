@@ -1,17 +1,14 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  extractDraftIdFromEntityId,
+} from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  CreatedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-  Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
@@ -41,8 +38,8 @@ export const createDraftLinkEntity = ({
   rightEntityId: EntityId;
   leftEntityId: EntityId;
   linkEntityTypeId: VersionedUrl;
-}): Entity =>
-  new Entity({
+}): HashEntity =>
+  new HashEntity({
     properties: {},
     linkData: { rightEntityId, leftEntityId },
     metadata: {
@@ -50,12 +47,12 @@ export const createDraftLinkEntity = ({
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
       entityTypeIds: [linkEntityTypeId],
       provenance: {
-        createdById: "" as CreatedById,
-        createdAtTransactionTime: "" as CreatedAtTransactionTime,
-        createdAtDecisionTime: "" as CreatedAtDecisionTime,
+        createdById: "" as ActorEntityUuid,
+        createdAtTransactionTime: currentTimestamp(),
+        createdAtDecisionTime: currentTimestamp(),
         edition: {
-          createdById: "" as EditionCreatedById,
-          actorType: "human",
+          createdById: "" as ActorEntityUuid,
+          actorType: "user",
           origin: { type: "api" },
         },
       },
@@ -63,7 +60,7 @@ export const createDraftLinkEntity = ({
         decisionTime: {
           start: {
             kind: "inclusive",
-            limit: "" as Timestamp,
+            limit: currentTimestamp(),
           },
           end: {
             kind: "unbounded",
@@ -72,7 +69,7 @@ export const createDraftLinkEntity = ({
         transactionTime: {
           start: {
             kind: "inclusive",
-            limit: "" as Timestamp,
+            limit: currentTimestamp(),
           },
           end: {
             kind: "unbounded",
@@ -100,7 +97,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
   const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
 
-  const onSelect = (selectedEntity: Entity, entityLabel: string) => {
+  const onSelect = (selectedEntity: HashEntity, entityLabel: string) => {
     const alreadyLinked = linkAndTargetEntities.find(
       ({ rightEntity }) =>
         rightEntity.metadata.recordId.entityId ===

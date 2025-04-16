@@ -5,8 +5,10 @@ import {
   FontAwesomeIcon,
   LinkIcon,
 } from "@hashintel/design-system";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import {
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   Box,
   Divider,
@@ -117,7 +119,7 @@ const ActionsDropdownInner: FunctionComponent = () => {
           <ListItemText primary="Entity type" />
         </MenuItem>
         <MenuItem
-          href={`/new/types/entity-type?extends=${linkEntityTypeUrl}`}
+          href={`/new/types/entity-type?extends=${blockProtocolEntityTypes.link.entityTypeId}`}
           onClick={popupState.close}
         >
           <ListItemIcon>
@@ -171,7 +173,7 @@ const ActionsDropdownInner: FunctionComponent = () => {
 };
 
 export const ActionsDropdown: FunctionComponent = () => {
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { activeWorkspaceWebId } = useContext(WorkspaceContext);
 
-  return activeWorkspaceOwnedById ? <ActionsDropdownInner /> : null;
+  return activeWorkspaceWebId ? <ActionsDropdownInner /> : null;
 };

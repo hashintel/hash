@@ -1,4 +1,4 @@
-import type { Subgraph } from "@local/hash-subgraph";
+import type { Subgraph } from "@blockprotocol/graph";
 
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { createOrg } from "../../../../graph/knowledge/system-types/org";

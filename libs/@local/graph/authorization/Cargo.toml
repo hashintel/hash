@@ -8,25 +8,25 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hash-graph-types = { workspace = true, public = true }
+error-stack = { workspace = true, public = true, features = ["unstable"] }
+type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
-futures-core = { workspace = true, public = true }
-reqwest      = { workspace = true, public = true, features = ["json", "stream"] }
+futures-core   = { workspace = true, public = true }
+postgres-types = { workspace = true, public = true, features = ["derive", "with-uuid-1"], optional = true }
+reqwest        = { workspace = true, public = true, features = ["json", "stream"] }
 
 # Private workspace dependencies
-error-stack = { workspace = true, features = ["unstable"] }
-hash-codec  = { workspace = true }
-type-system = { workspace = true }
+hash-codec = { workspace = true, features = ["bytes"] }
 
 # Private third-party dependencies
+bytes                  = { workspace = true, optional = true }
 cedar-policy-core      = { workspace = true }
 cedar-policy-validator = { workspace = true }
 derive-where           = { workspace = true }
 derive_more            = { workspace = true, features = ["display", "error", "from"] }
-either                 = { workspace = true }
+enum-iterator          = { workspace = true }
 futures                = { workspace = true }
-postgres-types         = { workspace = true, features = ["derive", "with-uuid-1"], optional = true }
 serde                  = { workspace = true, features = ["derive", "unstable"] }
 serde_json             = { workspace = true }
 serde_plain            = { workspace = true }
@@ -35,6 +35,7 @@ smol_str               = { workspace = true }
 tokio                  = { workspace = true }
 tokio-util             = { workspace = true, features = ["io"] }
 tracing                = { workspace = true, features = ["attributes"] }
+trait-variant          = { workspace = true }
 utoipa                 = { workspace = true, optional = true }
 uuid                   = { workspace = true, features = ["v4"] }
 
@@ -45,7 +46,7 @@ tokio             = { workspace = true, features = ["macros", "rt-multi-thread"]
 
 [features]
 utoipa   = ["dep:utoipa"]
-postgres = ["dep:postgres-types"]
+postgres = ["dep:postgres-types", "dep:bytes"]
 
 [lints]
 workspace = true

@@ -82,11 +82,11 @@ impl io::Write for ConsoleWriter {
     }
 
     #[inline]
-    fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) -> io::Result<()> {
+    fn write_fmt(&mut self, args: core::fmt::Arguments<'_>) -> io::Result<()> {
         match self {
-            Self::Stdout(w) => w.write_fmt(fmt),
-            Self::Stderr(w) => w.write_fmt(fmt),
-            Self::Test(w) => w.write_fmt(fmt),
+            Self::Stdout(w) => w.write_fmt(args),
+            Self::Stderr(w) => w.write_fmt(args),
+            Self::Test(w) => w.write_fmt(args),
         }
     }
 }

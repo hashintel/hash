@@ -1,24 +1,23 @@
 import { useLazyQuery } from "@apollo/client";
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { EntityTypeRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
+  EntityType,
   EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  componentsFromVersionedUrl,
+  extractBaseUrl,
+  isExternalOntologyElementMetadata,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  type EntityTypeRootType,
-  isExternalOntologyElementMetadata,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
-import {
-  componentsFromVersionedUrl,
-  extractBaseUrl,
-} from "@local/hash-subgraph/type-system-patch";
 import { useCallback, useMemo } from "react";
 
 import type {
@@ -114,11 +113,11 @@ export const useGetEntityTypeDependents = (): {
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const userWebs = useMemo<OwnedById[]>(() => {
+  const userWebs = useMemo<WebId[]>(() => {
     return [
-      authenticatedUser.accountId as OwnedById,
+      authenticatedUser.accountId as WebId,
       ...authenticatedUser.memberOf.map(
-        ({ org }) => org.accountGroupId as OwnedById,
+        ({ org }) => org.accountGroupId as WebId,
       ),
     ];
   }, [authenticatedUser]);
@@ -216,7 +215,7 @@ export const useGetEntityTypeDependents = (): {
               continue;
             }
 
-            if (!userWebs.includes(dependent.metadata.ownedById)) {
+            if (!userWebs.includes(dependent.metadata.webId)) {
               dependentsByBaseUrl[dependentBaseUrl] = {
                 entityType: dependent.schema,
                 noFurtherTraversalBecause: "external-web",

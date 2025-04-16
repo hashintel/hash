@@ -1,17 +1,21 @@
 import { useLazyQuery } from "@apollo/client";
-import type { Entity as EntityBp } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import type {
-  EntityRevisionId,
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphVertices,
   Subgraph,
-} from "@local/hash-subgraph";
+} from "@blockprotocol/graph";
+import type {
+  ActorEntityUuid,
+  EntityEditionId,
+  EntityId,
+  PropertyObject,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { currentTimestamp } from "@blockprotocol/type-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { useCallback } from "react";
 
 import type {
@@ -68,12 +72,12 @@ export const useFetchBlockSubgraph = (): ((
         // there's a delay while the request to the API to insert it is processed
         // @todo some better way of handling this – probably affected by revamped collab.
         //    or could simply not load a new block until the entity is created?
-        const now = new Date().toISOString() as Timestamp;
-        const placeholderEntity: EntityBp = {
+        const now = currentTimestamp();
+        const placeholderEntity = new HashEntity({
           metadata: {
             recordId: {
               entityId: "placeholder-account~entity-id-not-set" as EntityId,
-              editionId: now,
+              editionId: now as string as EntityEditionId,
             },
             entityTypeIds: blockEntityTypeIds,
             temporalVersioning: {
@@ -96,9 +100,22 @@ export const useFetchBlockSubgraph = (): ((
                 },
               },
             },
+            archived: false,
+            provenance: {
+              edition: {
+                createdById: "placeholder-account" as ActorEntityUuid,
+                actorType: "user",
+                origin: {
+                  type: "web-app",
+                },
+              },
+              createdById: "placeholder-account" as ActorEntityUuid,
+              createdAtTransactionTime: now,
+              createdAtDecisionTime: now,
+            },
           },
           properties: fallbackBlockProperties ?? {},
-        } as const;
+        });
 
         const subgraphTemporalAxes = {
           pinned: {
@@ -124,8 +141,8 @@ export const useFetchBlockSubgraph = (): ((
           edges: {},
           roots: [
             {
-              baseId: placeholderEntity.metadata.recordId.entityId as EntityId,
-              revisionId: now as EntityRevisionId,
+              baseId: placeholderEntity.metadata.recordId.entityId,
+              revisionId: now,
             },
           ],
           vertices: {
@@ -164,10 +181,9 @@ export const useFetchBlockSubgraph = (): ((
             );
           }
 
-          const subgraph =
-            mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-              data.getEntity.subgraph,
-            );
+          const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+            EntityRootType<HashEntity>
+          >(data.getEntity.subgraph);
 
           return {
             subgraph,

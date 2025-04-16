@@ -1,6 +1,9 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import type {
+  BaseUrl,
+  EntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   Box,
   Checkbox,

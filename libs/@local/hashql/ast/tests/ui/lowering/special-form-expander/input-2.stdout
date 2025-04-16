@@ -1,0 +1,7 @@
+Expr#4294967040@16
+  ExprKind (Input)
+    InputExpr#4294967040@16 (name: x)
+      Type#4294967040@15
+        TypeKind (Path)
+          Path#4294967040@15 (rooted: false)
+            PathSegment#4294967040@14 (name: Y)

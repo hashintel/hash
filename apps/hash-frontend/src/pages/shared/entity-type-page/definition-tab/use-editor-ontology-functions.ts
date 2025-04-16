@@ -1,17 +1,17 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import {
+  getEntityTypeById,
+  getPropertyTypeById,
+} from "@blockprotocol/graph/stdlib";
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
 import type {
   EditorOntologyFunctions,
   EntityTypeEditorProps,
 } from "@hashintel/type-editor";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import {
-  getEntityTypeById,
-  getPropertyTypeById,
-} from "@local/hash-subgraph/stdlib";
 import { useCallback } from "react";
 
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
@@ -27,7 +27,7 @@ import { useAuthInfo } from "../../auth-info-context";
 import { useGenerateTypeUrlsForUser } from "../../use-generate-type-urls-for-user";
 
 export const useEditorOntologyFunctions = (
-  ownedById: OwnedById | null,
+  webId: WebId | null,
   typesWithMetadata: Record<
     VersionedUrl,
     EntityTypeWithMetadata | PropertyTypeWithMetadata
@@ -36,11 +36,11 @@ export const useEditorOntologyFunctions = (
   const { authenticatedUser } = useAuthInfo();
 
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { createEntityType } = useBlockProtocolCreateEntityType(ownedById);
+  const { createEntityType } = useBlockProtocolCreateEntityType(webId);
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
   const { getPropertyType } = useBlockProtocolGetPropertyType();
-  const { createPropertyType } = useBlockProtocolCreatePropertyType(ownedById);
+  const { createPropertyType } = useBlockProtocolCreatePropertyType(webId);
   const { updatePropertyType } = useBlockProtocolUpdatePropertyType();
 
   const refetchEntityTypes = useFetchEntityTypes();
@@ -155,8 +155,8 @@ export const useEditorOntologyFunctions = (
       const resourceMetadata = typesWithMetadata[resource.$id]?.metadata;
       const resourceAccountId =
         resourceMetadata &&
-        "ownedById" in resourceMetadata &&
-        resourceMetadata.ownedById;
+        "webId" in resourceMetadata &&
+        resourceMetadata.webId;
 
       return resourceAccountId &&
         canUserEditType(resourceAccountId, authenticatedUser)

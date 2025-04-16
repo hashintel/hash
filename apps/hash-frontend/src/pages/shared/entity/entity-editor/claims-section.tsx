@@ -1,5 +1,9 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Chip, Skeleton } from "@hashintel/design-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -8,11 +12,6 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
-import {
-  type EntityRootType,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import { useMemo } from "react";
 
@@ -79,7 +78,7 @@ export const ClaimsSection = () => {
 
   const { claimsSubgraph, numberOfClaims } = useMemo(() => {
     if (claimsData) {
-      const subgraph = deserializeSubgraph<EntityRootType<Claim>>(
+      const subgraph = deserializeSubgraph<EntityRootType<HashEntity<Claim>>>(
         claimsData.getEntitySubgraph.subgraph,
       );
 

@@ -1,3 +1,8 @@
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  isEntityId,
+} from "@blockprotocol/type-system";
 import type {
   DragEndEvent,
   DragMoveEvent,
@@ -20,12 +25,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { IconButton } from "@hashintel/design-system";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import {
-  extractEntityUuidFromEntityId,
-  isEntityId,
-} from "@local/hash-subgraph";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -37,7 +36,7 @@ import { useCreatePage } from "../../../../components/hooks/use-create-page";
 import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-page";
 import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
 import { useUpdateAuthenticatedUser } from "../../../../components/hooks/use-update-authenticated-user";
-import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
+import { useUserOrOrgShortnameByWebId } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { useEnabledFeatureFlags } from "../../../../pages/shared/use-enabled-feature-flags";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
@@ -56,7 +55,7 @@ import { NavLink } from "./shared/nav-link";
 import { ViewAllLink } from "./shared/view-all-link";
 
 type AccountPageListProps = {
-  ownedById: OwnedById;
+  webId: WebId;
   currentPageEntityUuid?: EntityUuid;
 };
 
@@ -68,9 +67,9 @@ const measuringConfig = {
 
 export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityUuid,
-  ownedById,
+  webId,
 }) => {
-  const { data, loading: pagesLoading } = useAccountPages(ownedById);
+  const { data, loading: pagesLoading } = useAccountPages(webId);
 
   const preferences = useUserPreferences();
 
@@ -97,15 +96,15 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     });
   };
 
-  const { shortname: ownerShortname } = useUserOrOrgShortnameByOwnedById({
-    ownedById,
+  const { shortname: ownerShortname } = useUserOrOrgShortnameByWebId({
+    webId,
   });
 
   const [createUntitledPage, { loading: createUntitledPageLoading }] =
-    useCreatePage({ ownedById, shortname: ownerShortname });
+    useCreatePage({ webId, shortname: ownerShortname });
 
   const [createSubPage, { loading: createSubpageLoading }] = useCreateSubPage({
-    ownedById,
+    webId,
     shortname: ownerShortname,
   });
   const [reorderPage, { loading: reorderLoading }] = useReorderPage();

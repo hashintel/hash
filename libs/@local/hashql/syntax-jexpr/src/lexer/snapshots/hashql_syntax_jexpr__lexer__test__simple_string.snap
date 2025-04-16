@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Simple string
+expression: "\"hello world\""
+---
+"hello world"

@@ -1,17 +1,15 @@
 import type { ApolloClient } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { LinkEntity } from "@local/hash-graph-sdk/entity";
-import {
-  Entity,
-  mergePropertyObjectAndMetadata,
-} from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
-} from "@local/hash-subgraph/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import type { EntityId, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  HashEntity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import { generateNKeysBetween } from "fractional-indexing";
 import { isEqual } from "lodash-es";
 import type { Node } from "prosemirror-model";
@@ -79,10 +77,10 @@ type AfterBlockDraftIdAndLink = [
  */
 const calculateSaveActions = (
   store: EntityStore,
-  ownedById: OwnedById,
+  webId: WebId,
   blocksAndLinks: {
     blockEntity: GqlBlock;
-    contentLinkEntity: LinkEntity<
+    contentLinkEntity: HashLinkEntity<
       HasIndexedContent | HasSpatiallyPositionedContent
     >;
   }[],
@@ -168,7 +166,7 @@ const calculateSaveActions = (
 
       const action: UpdateBlockCollectionAction = {
         createEntity: {
-          ownedById,
+          webId,
           entityPlaceholderId: placeholderId,
           entity: {
             entityTypeIds: [entityTypeId],
@@ -383,7 +381,7 @@ const calculateSaveActions = (
 
       actions.push({
         insertBlock: {
-          ownedById,
+          webId,
           position: {
             indexPosition: {
               "https://hash.ai/@h/types/property-type/fractional-index/":
@@ -439,7 +437,7 @@ const getDraftEntityIds = (
 };
 
 const mapEntityToGqlBlock = (
-  entity: Entity<Block>,
+  entity: HashEntity<Block>,
   entitySubgraph: Subgraph<EntityRootType>,
 ): GqlBlock => {
   if (
@@ -473,7 +471,7 @@ const mapEntityToGqlBlock = (
     entity.properties["https://hash.ai/@h/types/property-type/component-id/"];
 
   return {
-    blockChildEntity: blockChildEntity.toJSON(),
+    blockChildEntity: new HashEntity(blockChildEntity).toJSON(),
     componentId,
     metadata: entity.metadata,
     properties: entity.properties,
@@ -482,14 +480,14 @@ const mapEntityToGqlBlock = (
 
 export const save = async ({
   apolloClient,
-  ownedById,
+  webId,
   blockCollectionEntityId,
   doc,
   store,
   getBlocksMap,
 }: {
   apolloClient: ApolloClient<unknown>;
-  ownedById: OwnedById;
+  webId: WebId;
   blockCollectionEntityId: EntityId;
   doc: Node;
   store: EntityStore;
@@ -508,18 +506,18 @@ export const save = async ({
       fetchPolicy: "network-only",
     })
     .then(({ data }) => {
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.getEntity.subgraph,
-      );
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+        EntityRootType<HashEntity>
+      >(data.getEntity.subgraph);
 
       const [blockCollectionEntity] = getRoots(subgraph);
 
       const blocksAndLinks = getOutgoingLinkAndTargetEntities<
         {
-          linkEntity: LinkEntity<
+          linkEntity: HashLinkEntity<
             HasIndexedContent | HasSpatiallyPositionedContent
           >[];
-          rightEntity: Entity<Block>[];
+          rightEntity: HashEntity<Block>[];
         }[]
       >(subgraph, blockCollectionEntity!.metadata.recordId.entityId)
         .filter(
@@ -557,7 +555,7 @@ export const save = async ({
 
   const [actions, placeholderToDraft] = calculateSaveActions(
     store,
-    ownedById,
+    webId,
     blockAndLinkList,
     doc,
     (componentId: string) => {
@@ -573,7 +571,7 @@ export const save = async ({
 
   let currentBlocks = blockAndLinkList.map(({ blockEntity }) => ({
     ...blockEntity,
-    blockChildEntity: new Entity(blockEntity.blockChildEntity),
+    blockChildEntity: new HashEntity(blockEntity.blockChildEntity),
   }));
 
   let placeholders: UpdateBlockCollectionContentsResultPlaceholder[] = [];
@@ -595,7 +593,7 @@ export const save = async ({
       res.data.updateBlockCollectionContents.blockCollection.contents.map(
         (contentItem) => ({
           ...contentItem.rightEntity,
-          blockChildEntity: new Entity(
+          blockChildEntity: new HashEntity(
             contentItem.rightEntity.blockChildEntity,
           ),
         }),

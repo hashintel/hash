@@ -1,28 +1,122 @@
-#![expect(
-    clippy::empty_enum,
-    reason = "serde::Deserialize does not use the never-type"
-)]
-
 use alloc::sync::Arc;
-use core::{error::Error, fmt, str::FromStr};
+#[cfg(feature = "postgres")]
+use core::error::Error;
+use core::{fmt, iter, str::FromStr};
 use std::sync::LazyLock;
 
+#[cfg(feature = "postgres")]
+use bytes::BytesMut;
 use cedar_policy_core::ast;
-use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
+use error_stack::{Report, ResultExt as _};
 use serde::Serialize as _;
 
 use crate::policies::cedar::CedarEntityId;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    enum_iterator::Sequence,
+)]
 #[serde(rename_all = "camelCase")]
-pub enum ActionId {
+pub enum ActionName {
+    All,
+
     Create,
+    CreateWeb,
+
     View,
+    ViewEntity,
+    ViewEntityType,
+
     Update,
+
     Instantiate,
 }
 
-impl CedarEntityId for ActionId {
+impl ActionName {
+    #[must_use]
+    pub const fn parent(self) -> Option<Self> {
+        match self {
+            Self::All => None,
+            Self::Create | Self::CreateWeb | Self::View | Self::Update | Self::Instantiate => {
+                Some(Self::All)
+            }
+            Self::ViewEntity | Self::ViewEntityType => Some(Self::View),
+        }
+    }
+
+    pub fn parents(self) -> impl Iterator<Item = Self> {
+        iter::successors(self.parent(), |&action| action.parent())
+    }
+
+    #[must_use]
+    pub fn is_parent_of(self, other: Self) -> bool {
+        other.parents().any(|parent| parent == self)
+    }
+
+    #[must_use]
+    pub fn is_child_of(self, other: Self) -> bool {
+        self.parents().any(|parent| parent == other)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'a> postgres_types::FromSql<'a> for ActionName {
+    postgres_types::accepts!(TEXT);
+
+    fn from_sql(
+        ty: &postgres_types::Type,
+        raw: &'a [u8],
+    ) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self::from_str(
+            <&str as postgres_types::FromSql>::from_sql(ty, raw)?,
+        )?)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl postgres_types::ToSql for ActionName {
+    postgres_types::accepts!(TEXT);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(
+        &self,
+        ty: &postgres_types::Type,
+        out: &mut BytesMut,
+    ) -> Result<postgres_types::IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        self.to_string().to_sql(ty, out)
+    }
+}
+
+impl FromStr for ActionName {
+    type Err = Report<InvalidActionConstraint>;
+
+    fn from_str(action: &str) -> Result<Self, Self::Err> {
+        serde_plain::from_str(action).change_context(InvalidActionConstraint::InvalidAction)
+    }
+}
+
+impl fmt::Display for ActionName {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.serialize(fmt)
+    }
+}
+
+impl CedarEntityId for ActionName {
+    type Error = Report<InvalidActionConstraint>;
+
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Action"]));
@@ -33,159 +127,98 @@ impl CedarEntityId for ActionId {
         ast::Eid::new(self.to_string())
     }
 
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
-        Ok(serde_plain::from_str(eid.as_ref())?)
-    }
-}
-
-impl FromStr for ActionId {
-    type Err = Report<impl Error + Send + Sync + 'static>;
-
-    fn from_str(action: &str) -> Result<Self, Self::Err> {
-        Ok(serde_plain::from_str(action)?)
-    }
-}
-
-impl fmt::Display for ActionId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
+        Self::from_str(eid.as_ref()).change_context(InvalidActionConstraint::InvalidAction)
     }
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-pub(crate) enum InvalidActionConstraint {
+pub enum InvalidActionConstraint {
     #[display("Invalid action in constraint")]
     InvalidAction,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(
-    tag = "type",
-    rename_all = "camelCase",
-    rename_all_fields = "camelCase",
-    deny_unknown_fields
-)]
-pub enum ActionConstraint {
-    #[expect(
-        clippy::empty_enum_variants_with_brackets,
-        reason = "Serialization is different"
-    )]
-    All {},
-    One {
-        action: ActionId,
-    },
-    Many {
-        actions: Vec<ActionId>,
-    },
-}
-
-impl ActionConstraint {
-    pub(crate) fn try_from_cedar(
-        constraint: &ast::ActionConstraint,
-    ) -> Result<Self, Report<InvalidActionConstraint>> {
-        Ok(match constraint {
-            ast::ActionConstraint::Any => Self::All {},
-            ast::ActionConstraint::Eq(action) => Self::One {
-                action: ActionId::from_euid(action)
-                    .change_context(InvalidActionConstraint::InvalidAction)?,
-            },
-            ast::ActionConstraint::In(actions) => Self::Many {
-                actions: actions
-                    .iter()
-                    .map(|action| ActionId::from_euid(action))
-                    .try_collect_reports()
-                    .change_context(InvalidActionConstraint::InvalidAction)?,
-            },
-        })
-    }
-
-    #[must_use]
-    pub(crate) fn to_cedar(&self) -> ast::ActionConstraint {
-        match self {
-            Self::All {} => ast::ActionConstraint::any(),
-            Self::One { action } => ast::ActionConstraint::is_eq(action.to_euid()),
-            Self::Many { actions } => {
-                ast::ActionConstraint::is_in(actions.iter().map(ActionId::to_euid))
-            }
-        }
-    }
 }
 
 #[cfg(test)]
 #[expect(clippy::panic_in_result_fn, reason = "Assertions in test are expected")]
 mod tests {
     use core::error::Error;
+    use std::collections::HashMap;
 
+    use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
+    use uuid::Uuid;
 
-    use super::ActionConstraint;
     use crate::{
-        policies::ActionId,
-        test_utils::{check_deserialization_error, check_serialization},
+        policies::{
+            ActionName, Effect, Policy, PolicyId, cedar::CedarEntityId as _, tests::check_policy,
+            validation,
+        },
+        test_utils::check_serialization,
     };
 
     #[track_caller]
     pub(crate) fn check_action(
-        constraint: &ActionConstraint,
+        constraint: Vec<ActionName>,
         value: JsonValue,
         cedar_string: impl AsRef<str>,
     ) -> Result<(), Box<dyn Error>> {
-        check_serialization(constraint, value);
+        let cedar_string = cedar_string.as_ref();
 
-        let cedar_constraint = constraint.to_cedar();
-        assert_eq!(cedar_constraint.to_string(), cedar_string.as_ref());
-        ActionConstraint::try_from_cedar(&cedar_constraint)?;
+        let policy = Policy {
+            id: PolicyId::new(Uuid::new_v4()),
+            effect: Effect::Permit,
+            principal: None,
+            actions: constraint,
+            resource: None,
+            constraints: None,
+        };
+        let cedar_policy = policy.to_cedar_static_policy()?;
+
+        assert_eq!(cedar_policy.action_constraint().to_string(), cedar_string);
+
+        check_policy(
+            &policy,
+            json!({
+                "id": policy.id,
+                "effect": "permit",
+                "principal": null,
+                "actions": &value,
+                "resource": null,
+            }),
+            formatdoc!(
+                "permit(
+                  principal,
+                  {cedar_string},
+                  resource
+                ) when {{
+                  true
+                }};"
+            ),
+        )?;
+
+        check_serialization(&policy.actions, value);
+
+        let parsed_policy = Policy::try_from_cedar(&cedar_policy)?;
+        assert_eq!(parsed_policy, policy);
+
         Ok(())
     }
 
     #[test]
     fn constraint_all() -> Result<(), Box<dyn Error>> {
-        check_action(
-            &ActionConstraint::All {},
-            json!({
-                "type": "all",
-            }),
-            "action",
-        )?;
-
-        check_deserialization_error::<ActionConstraint>(
-            json!({
-                "type": "all",
-                "additional": "unexpected"
-            }),
-            "unknown field `additional`, there are no fields",
-        )?;
+        check_action(vec![ActionName::All], json!(["all"]), "action")?;
 
         Ok(())
     }
 
     #[test]
     fn constraint_one() -> Result<(), Box<dyn Error>> {
-        let action = ActionId::View;
+        let action = ActionName::View;
         check_action(
-            &ActionConstraint::One { action },
-            json!({
-                "type": "one",
-                "action": action,
-            }),
-            format!(r#"action == HASH::Action::"{action}""#),
-        )?;
-
-        check_deserialization_error::<ActionConstraint>(
-            json!({
-                "type": "one",
-            }),
-            "missing field `action`",
-        )?;
-
-        check_deserialization_error::<ActionConstraint>(
-            json!({
-                "type": "one",
-                "action": action,
-                "additional": "unexpected",
-            }),
-            "unknown field `additional`, expected `action`",
+            vec![action],
+            json!(["view"]),
+            format!(r#"action in [HASH::Action::"{action}"]"#),
         )?;
 
         Ok(())
@@ -193,37 +226,144 @@ mod tests {
 
     #[test]
     fn constraint_many() -> Result<(), Box<dyn Error>> {
-        let actions = [ActionId::View, ActionId::Update];
+        let actions = [ActionName::View, ActionName::Update];
         check_action(
-            &ActionConstraint::Many {
-                actions: actions.to_vec(),
-            },
-            json!({
-                "type": "many",
-                "actions": actions,
-            }),
+            vec![actions[0], actions[1]],
+            json!(["view", "update"]),
             format!(
                 r#"action in [HASH::Action::"{}",HASH::Action::"{}"]"#,
                 actions[0], actions[1]
             ),
         )?;
 
-        check_deserialization_error::<ActionConstraint>(
-            json!({
-                "type": "many",
-            }),
-            "missing field `actions`",
-        )?;
+        Ok(())
+    }
 
-        check_deserialization_error::<ActionConstraint>(
-            json!({
-                "type": "many",
-                "actions": actions,
-                "additional": "unexpected",
-            }),
-            "unknown field `additional`, expected `actions`",
-        )?;
+    /// Validates consistency between the Rust `ActionName` enum hierarchy and the Cedar schema.
+    /// This test ensures that:
+    /// - Each action defined in the Cedar schema can be mapped to a Rust `ActionName`
+    /// - The parent-child relationships defined by `action.parents()` match the hierarchical
+    ///   relationships in the Cedar schema (descendants)
+    #[test]
+    fn action_ids() -> Result<(), Box<dyn Error>> {
+        for action_id in validation::PolicyValidator::schema().action_ids() {
+            let action_name = ActionName::from_euid(action_id.name())?;
+            for descendant_id in action_id.descendants() {
+                let descendant = ActionName::from_euid(descendant_id)?;
+                println!("{action_name} is parent of {descendant}");
+                assert!(
+                    action_name.is_parent_of(descendant),
+                    "{action_name} is not a parent of {descendant}"
+                );
+                assert!(
+                    descendant.is_child_of(action_name),
+                    "{descendant} is not a child of {action_name}"
+                );
+            }
+        }
 
         Ok(())
+    }
+
+    /// Complements the `action_ids` test by validating consistency in the reverse direction.
+    /// This test ensures that:
+    /// - Every `ActionName` enum variant is present in the Cedar schema
+    /// - For each action, its `parents()` method returns actions that are consistent with the
+    ///   descendants relationship in the Cedar schema
+    /// - Every descendant of an action in the Cedar schema is correctly identified as a child of
+    ///   that action in the Rust code
+    #[test]
+    fn action_names() -> Result<(), Box<dyn Error>> {
+        let action_ids = validation::PolicyValidator::schema()
+            .action_ids()
+            .map(|action_id| ActionName::from_euid(action_id.name()).map(|name| (name, action_id)))
+            .collect::<Result<HashMap<_, _>, _>>()?;
+        for action in enum_iterator::all::<ActionName>() {
+            let action_id = action.to_euid();
+            for parent in action.parents() {
+                assert!(
+                    action_ids[&parent]
+                        .descendants()
+                        .any(|descendant| *descendant == action_id),
+                    "{parent} is not a parent of {action}"
+                );
+            }
+            let action_id = action_ids
+                .get(&action)
+                .unwrap_or_else(|| panic!("Action {action:?} is not present in the schema"));
+            for descendant_id in action_id.descendants() {
+                let descendant = ActionName::from_euid(descendant_id)?;
+                assert!(
+                    descendant.is_child_of(action),
+                    "{descendant} is not a child of {action}"
+                );
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parents_method() {
+        // All has no parents
+        assert_eq!(ActionName::All.parents().collect::<Vec<_>>(), vec![]);
+
+        // First level actions have All as their only parent
+        assert_eq!(
+            ActionName::Create.parents().collect::<Vec<_>>(),
+            vec![ActionName::All]
+        );
+        assert_eq!(
+            ActionName::CreateWeb.parents().collect::<Vec<_>>(),
+            vec![ActionName::All]
+        );
+        assert_eq!(
+            ActionName::View.parents().collect::<Vec<_>>(),
+            vec![ActionName::All]
+        );
+        assert_eq!(
+            ActionName::Update.parents().collect::<Vec<_>>(),
+            vec![ActionName::All]
+        );
+        assert_eq!(
+            ActionName::Instantiate.parents().collect::<Vec<_>>(),
+            vec![ActionName::All]
+        );
+
+        // Second level actions have their direct parent and All as ancestors
+        assert_eq!(
+            ActionName::ViewEntity.parents().collect::<Vec<_>>(),
+            vec![ActionName::View, ActionName::All]
+        );
+        assert_eq!(
+            ActionName::ViewEntityType.parents().collect::<Vec<_>>(),
+            vec![ActionName::View, ActionName::All]
+        );
+    }
+
+    #[test]
+    fn test_is_parent_of_method() {
+        // View is parent of ViewEntity and ViewEntityType
+        assert!(ActionName::View.is_parent_of(ActionName::ViewEntity));
+        assert!(ActionName::View.is_parent_of(ActionName::ViewEntityType));
+
+        // Negative cases
+        assert!(!ActionName::Create.is_parent_of(ActionName::View));
+        assert!(!ActionName::View.is_parent_of(ActionName::Create));
+        assert!(!ActionName::All.is_parent_of(ActionName::All));
+        assert!(!ActionName::ViewEntity.is_parent_of(ActionName::View));
+    }
+
+    #[test]
+    fn test_is_child_of_method() {
+        // ViewEntity and ViewEntityType are children of View
+        assert!(ActionName::ViewEntity.is_child_of(ActionName::View));
+        assert!(ActionName::ViewEntityType.is_child_of(ActionName::View));
+
+        // Negative cases
+        assert!(!ActionName::View.is_child_of(ActionName::Create));
+        assert!(!ActionName::Create.is_child_of(ActionName::View));
+        assert!(!ActionName::All.is_child_of(ActionName::All));
+        assert!(!ActionName::View.is_child_of(ActionName::ViewEntity));
     }
 }

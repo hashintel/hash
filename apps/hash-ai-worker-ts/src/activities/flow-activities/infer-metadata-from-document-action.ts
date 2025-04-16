@@ -3,8 +3,10 @@ import type {
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
   SourceProvenance,
-} from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+  Url,
+} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -15,7 +17,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import type { Output } from "pdf2json";
@@ -33,7 +34,7 @@ import { generateDocumentProposedEntitiesAndCreateClaims } from "./infer-metadat
 import { getLlmAnalysisOfDoc } from "./infer-metadata-from-document-action/get-llm-analysis-of-doc.js";
 import type { FlowActionActivity } from "./types.js";
 
-const isFileEntity = (entity: Entity): entity is Entity<File> =>
+const isFileEntity = (entity: HashEntity): entity is HashEntity<File> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
@@ -72,7 +73,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     filter: {
       all: [
         {
-          equal: [{ path: ["ownedById"] }, { parameter: webId }],
+          equal: [{ path: ["webId"] }, { parameter: webId }],
         },
         {
           equal: [
@@ -101,10 +102,9 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     };
   }
 
-  const fileUrl =
-    documentEntity.properties[
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-    ];
+  const fileUrl = documentEntity.properties[
+    "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+  ] as Url;
 
   if (!fileUrl) {
     return {

@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { WebId } from "@blockprotocol/type-system";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   blockProtocolPropertyTypes,
@@ -12,9 +12,9 @@ import { useCallback } from "react";
 
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 
-export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
-  const { ownedById } = props;
-  const { createEntity } = useBlockProtocolCreateEntity(ownedById);
+export const useCreateBlockCollection = (props: { webId: WebId }) => {
+  const { webId } = props;
+  const { createEntity } = useBlockProtocolCreateEntity(webId);
 
   const createBlockCollectionEntity = useCallback(
     async (params: { kind: "page" | "note" | "profileBio" }) => {

@@ -1,42 +1,42 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { WebId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { useMemo } from "react";
 
 import { useOrgs } from "./use-orgs";
 import { useUsers } from "./use-users";
 
-export const useGetOwnedByIdForShortname = (
+export const useGetWebIdForShortname = (
   shortname: string | undefined,
-): { loading: boolean; ownedById: OwnedById | undefined } => {
+): { loading: boolean; webId: WebId | undefined } => {
   const { loading: usersLoading, users } = useUsers();
   const { loading: orgsLoading, orgs } = useOrgs();
 
-  const ownedById = useMemo(() => {
+  const webId = useMemo(() => {
     /** @todo - don't do extract anymore */
     const userEntityId = users?.find((user) => user.shortname === shortname)
       ?.entity.metadata.recordId.entityId;
 
-    const userOwnedById = userEntityId
-      ? extractOwnedByIdFromEntityId(userEntityId)
+    const userWebId = userEntityId
+      ? extractWebIdFromEntityId(userEntityId)
       : undefined;
 
-    if (userOwnedById !== undefined) {
-      return userOwnedById;
+    if (userWebId !== undefined) {
+      return userWebId;
     }
 
     const orgEntityId = orgs?.find((org) => org.shortname === shortname)?.entity
       .metadata.recordId.entityId;
-    const orgOwnedById = orgEntityId
-      ? extractOwnedByIdFromEntityId(orgEntityId)
+    const orgWebId = orgEntityId
+      ? extractWebIdFromEntityId(orgEntityId)
       : undefined;
 
-    if (orgOwnedById !== undefined) {
-      return orgOwnedById;
+    if (orgWebId !== undefined) {
+      return orgWebId;
     }
   }, [users, orgs, shortname]);
 
   return {
     loading: usersLoading || orgsLoading,
-    ownedById,
+    webId,
   };
 };

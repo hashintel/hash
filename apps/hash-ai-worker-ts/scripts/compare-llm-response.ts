@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { type OwnedById } from "@local/hash-graph-types/web";
+import type { WebId } from "@blockprotocol/type-system";
 
 import { getLlmResponse } from "../src/activities/shared/get-llm-response.js";
 import type {
@@ -83,7 +83,7 @@ export const compareLlmResponses = async () => {
 
   const userAccountId = await getAliceUserAccountId();
 
-  const webId = userAccountId as OwnedById;
+  const webId = userAccountId as WebId;
 
   const llmResponses = await Promise.all(
     models.map((model) => {

@@ -1,12 +1,18 @@
+import type {
+  ActorEntityUuid,
+  Entity,
+  EntityId,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  extractWebIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import {
   EntityTypeMismatchError,
   NotFoundError,
 } from "@local/hash-backend-utils/error";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -20,10 +26,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { LinearIntegration } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  extractOwnedByIdFromEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
 
 import type {
   ImpureGraphFunction,
@@ -89,7 +91,11 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
  * Get a Linear user secret by the linear org ID
  */
 export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
-  { userAccountId: AccountId; linearOrgId: string; includeDrafts?: boolean },
+  {
+    userAccountId: ActorEntityUuid;
+    linearOrgId: string;
+    includeDrafts?: boolean;
+  },
   Promise<LinearUserSecret>
 > = async ({ graphApi }, { actorId }, params) => {
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
@@ -99,10 +105,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
       filter: {
         all: [
           {
-            equal: [
-              { path: ["ownedById"] },
-              { parameter: userAccountId as OwnedById },
-            ],
+            equal: [{ path: ["webId"] }, { parameter: userAccountId as WebId }],
           },
           generateVersionedUrlMatchingFilter(
             systemEntityTypes.userSecret.entityTypeId,
@@ -176,9 +179,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
   Promise<string>
 > = async (context, authentication, params) => {
   const { hashWorkspaceEntityId, vaultClient, includeDrafts = false } = params;
-  const [workspaceOwnedById, workspaceUuid] = splitEntityId(
-    hashWorkspaceEntityId,
-  );
+  const [workspaceWebId, workspaceUuid] = splitEntityId(hashWorkspaceEntityId);
 
   const linearIntegrationEntities = await context.graphApi
     .getEntities(authentication.actorId, {
@@ -201,9 +202,9 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
           },
           {
             equal: [
-              { path: ["outgoingLinks", "rightEntity", "ownedById"] },
+              { path: ["outgoingLinks", "rightEntity", "webId"] },
               {
-                parameter: workspaceOwnedById,
+                parameter: workspaceWebId,
               },
             ],
           },
@@ -235,9 +236,9 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
   assertLinearIntegration(integrationEntity);
   const { linearOrgId } = simplifyProperties(integrationEntity.properties);
 
-  const userAccountId = extractOwnedByIdFromEntityId(
+  const userAccountId = extractWebIdFromEntityId(
     integrationEntity.metadata.recordId.entityId,
-  ) as AccountId;
+  ) as ActorEntityUuid;
 
   const secretEntity = await getLinearUserSecretByLinearOrgId(
     context,

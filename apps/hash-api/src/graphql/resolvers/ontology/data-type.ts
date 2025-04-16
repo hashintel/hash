@@ -1,5 +1,9 @@
-import type { DataTypeWithMetadata } from "@blockprotocol/graph";
-import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
+import type { DataTypeRootType } from "@blockprotocol/graph";
+import type {
+  DataTypeWithMetadata,
+  OntologyTemporalMetadata,
+} from "@blockprotocol/type-system";
+import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import type { DataTypeFullConversionTargetsMap } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
@@ -12,10 +16,6 @@ import {
   serializeSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserPermissionsOnDataType } from "@local/hash-isomorphic-utils/types";
-import type {
-  DataTypeRootType,
-  SerializedSubgraph,
-} from "@local/hash-subgraph";
 
 import {
   archiveDataType,
@@ -133,7 +133,7 @@ export const createDataTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationCreateDataTypeArgs
 > = async (_, params, { dataSources, authentication, provenance }) => {
-  const { ownedById, conversions, dataType } = params;
+  const { webId, conversions, dataType } = params;
 
   const createdDataType = await createDataType(
     {
@@ -142,7 +142,7 @@ export const createDataTypeResolver: ResolverFn<
     },
     authentication,
     {
-      ownedById,
+      webId,
       schema: dataType,
       relationships: defaultDataTypeAuthorizationRelationships,
       conversions: conversions ?? {},

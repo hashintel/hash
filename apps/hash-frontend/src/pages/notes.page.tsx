@@ -1,12 +1,13 @@
 import { useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Container } from "@mui/material";
 import {
   differenceInDays,
@@ -57,7 +58,7 @@ const NotesPage: NextPageWithLayout = () => {
             ),
             {
               equal: [
-                { path: ["ownedById"] },
+                { path: ["webId"] },
                 { parameter: authenticatedUser.accountId },
               ],
             },
@@ -72,10 +73,20 @@ const NotesPage: NextPageWithLayout = () => {
     fetchPolicy: "cache-and-network",
   });
 
-  const quickNotesSubgraph = (quickNotesData ?? previouslyFetchedQuickNotesData)
-    ?.getEntitySubgraph.subgraph as Subgraph<EntityRootType> | undefined;
+  const quickNotesSubgraph = useMemo(() => {
+    const subgraph = (quickNotesData ?? previouslyFetchedQuickNotesData)
+      ?.getEntitySubgraph.subgraph;
 
-  const latestQuickNoteEntities = useMemo<Entity[] | undefined>(() => {
+    if (!subgraph) {
+      return undefined;
+    }
+
+    return mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
+      subgraph,
+    );
+  }, [quickNotesData, previouslyFetchedQuickNotesData]);
+
+  const latestQuickNoteEntities = useMemo<HashEntity[] | undefined>(() => {
     if (!quickNotesSubgraph) {
       return undefined;
     }
@@ -96,7 +107,7 @@ const NotesPage: NextPageWithLayout = () => {
 
           return bCreatedAt.getTime() - aCreatedAt.getTime();
         })
-        .reduce<Record<string, Entity[]>>((acc, quickNoteEntity) => {
+        .reduce<Record<string, HashEntity[]>>((acc, quickNoteEntity) => {
           const createdAt = new Date(
             quickNoteEntity.metadata.provenance.createdAtDecisionTime,
           );

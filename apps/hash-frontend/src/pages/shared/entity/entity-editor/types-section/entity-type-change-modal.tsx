@@ -1,10 +1,10 @@
+import type { BaseUrl } from "@blockprotocol/type-system";
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import {
   AlertModal,
   FontAwesomeIcon,
   LinkIcon,
 } from "@hashintel/design-system";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   Box,
   Stack,

@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/literal.rs
+description: Parses a float literal
+expression: "{\"#literal\": 3.14}"
+---
+Expr#4294967040@1
+  ExprKind (Literal)
+    LiteralExpr#4294967040@0
+      LiteralKind (Float)
+        FloatLiteral (3.14)

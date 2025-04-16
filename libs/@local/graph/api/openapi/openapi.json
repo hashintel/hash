@@ -26,7 +26,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -46,7 +46,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AccountGroupId"
+                  "$ref": "#/components/schemas/ActorGroupId"
                 }
               }
             }
@@ -71,7 +71,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -80,7 +80,7 @@
             "description": "The ID of the account group to add the member to",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountGroupId"
+              "$ref": "#/components/schemas/ActorGroupId"
             }
           },
           {
@@ -89,7 +89,7 @@
             "description": "The ID of the account to add to the group",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -118,7 +118,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -127,7 +127,7 @@
             "description": "The ID of the account group to remove the member from",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountGroupId"
+              "$ref": "#/components/schemas/ActorGroupId"
             }
           },
           {
@@ -136,7 +136,7 @@
             "description": "The ID of the account to remove from the group",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -167,7 +167,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -176,7 +176,7 @@
             "description": "The ID of the account group to check if the actor has the permission",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountGroupId"
+              "$ref": "#/components/schemas/ActorGroupId"
             }
           },
           {
@@ -220,7 +220,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -229,7 +229,7 @@
             "description": "The ID of the account group to get relations from",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountGroupId"
+              "$ref": "#/components/schemas/ActorGroupId"
             }
           }
         ],
@@ -270,7 +270,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -290,7 +290,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AccountId"
+                  "$ref": "#/components/schemas/ActorId"
                 }
               }
             }
@@ -315,7 +315,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -364,7 +364,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -415,7 +415,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -469,7 +469,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -526,7 +526,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -567,7 +567,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -618,7 +618,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -666,7 +666,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -711,7 +711,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -759,7 +759,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -800,7 +800,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -854,7 +854,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -907,7 +907,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -954,7 +954,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -1003,7 +1003,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -1057,7 +1057,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -1114,7 +1114,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -1165,7 +1165,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -1206,7 +1206,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -1275,7 +1275,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -1324,7 +1324,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -1393,7 +1393,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -1434,7 +1434,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -1488,7 +1488,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -1506,7 +1506,7 @@
             "description": "The administrator to add to the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/OwnedById"
+              "$ref": "#/components/schemas/WebId"
             }
           }
         ],
@@ -1532,7 +1532,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -1550,7 +1550,7 @@
             "description": "The administrator to remove from the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/OwnedById"
+              "$ref": "#/components/schemas/WebId"
             }
           }
         ],
@@ -1578,7 +1578,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -1596,7 +1596,7 @@
             "description": "The editor to add to the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/OwnedById"
+              "$ref": "#/components/schemas/WebId"
             }
           }
         ],
@@ -1622,7 +1622,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -1640,7 +1640,7 @@
             "description": "The editor to remove from the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/OwnedById"
+              "$ref": "#/components/schemas/WebId"
             }
           }
         ],
@@ -1668,7 +1668,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -1721,7 +1721,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -1768,7 +1768,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -1838,7 +1838,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -1889,7 +1889,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -1943,7 +1943,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2000,7 +2000,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2041,7 +2041,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2113,7 +2113,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2161,7 +2161,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2209,7 +2209,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2257,7 +2257,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2298,7 +2298,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2352,7 +2352,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -2405,7 +2405,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -2452,7 +2452,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2501,7 +2501,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2552,7 +2552,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2606,7 +2606,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2663,7 +2663,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2704,7 +2704,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2755,7 +2755,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2803,7 +2803,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2859,7 +2859,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2900,7 +2900,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -2954,7 +2954,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -3007,7 +3007,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -3040,6 +3040,30 @@
         }
       }
     },
+    "/system_account": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Account"
+        ],
+        "operationId": "get_or_create_system_account",
+        "responses": {
+          "200": {
+            "description": "The schema of the created account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MachineId"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/webs": {
       "post": {
         "tags": [
@@ -3054,7 +3078,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -3092,7 +3116,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           }
         ],
@@ -3133,7 +3157,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -3186,7 +3210,7 @@
             "description": "The ID of the actor which is used to authorize the request",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/AccountId"
+              "$ref": "#/components/schemas/ActorEntityUuid"
             }
           },
           {
@@ -3195,7 +3219,7 @@
             "description": "The web to read the relations for",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/OwnedById"
+              "$ref": "#/components/schemas/WebId"
             }
           }
         ],
@@ -3238,7 +3262,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           }
@@ -3246,10 +3270,6 @@
         "discriminator": {
           "propertyName": "kind"
         }
-      },
-      "AccountGroupId": {
-        "type": "string",
-        "format": "uuid"
       },
       "AccountGroupMemberSubject": {
         "oneOf": [
@@ -3267,7 +3287,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           }
@@ -3326,17 +3346,84 @@
           "propertyName": "relation"
         }
       },
-      "AccountId": {
+      "ActorEntityUuid": {
+        "$ref": "#/components/schemas/EntityUuid"
+      },
+      "ActorGroupId": {
         "type": "string",
         "format": "uuid"
+      },
+      "ActorId": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "actorType",
+              "id"
+            ],
+            "properties": {
+              "actorType": {
+                "type": "string",
+                "enum": [
+                  "user"
+                ]
+              },
+              "id": {
+                "$ref": "#/components/schemas/UserId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "actorType",
+              "id"
+            ],
+            "properties": {
+              "actorType": {
+                "type": "string",
+                "enum": [
+                  "machine"
+                ]
+              },
+              "id": {
+                "$ref": "#/components/schemas/MachineId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "actorType",
+              "id"
+            ],
+            "properties": {
+              "actorType": {
+                "type": "string",
+                "enum": [
+                  "ai"
+                ]
+              },
+              "id": {
+                "$ref": "#/components/schemas/AiId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "actorType"
+        }
       },
       "ActorType": {
         "type": "string",
         "enum": [
-          "human",
-          "ai",
-          "machine"
+          "user",
+          "machine",
+          "ai"
         ]
+      },
+      "AiId": {
+        "$ref": "#/components/schemas/ActorEntityUuid"
       },
       "ArchiveDataTypeParams": {
         "type": "object",
@@ -3657,7 +3744,7 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
+          "webId",
           "relationships",
           "provenance",
           "conversions"
@@ -3668,9 +3755,6 @@
             "additionalProperties": {
               "$ref": "#/components/schemas/Conversions"
             }
-          },
-          "ownedById": {
-            "$ref": "#/components/schemas/OwnedById"
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
@@ -3693,6 +3777,9 @@
                 }
               }
             ]
+          },
+          "webId": {
+            "$ref": "#/components/schemas/WebId"
           }
         },
         "additionalProperties": false
@@ -3700,7 +3787,7 @@
       "CreateEntityRequest": {
         "type": "object",
         "required": [
-          "ownedById",
+          "webId",
           "entityTypeIds",
           "properties",
           "draft",
@@ -3745,11 +3832,8 @@
               }
             ]
           },
-          "ownedById": {
-            "$ref": "#/components/schemas/OwnedById"
-          },
           "properties": {
-            "$ref": "#/components/schemas/PropertyWithMetadataObject"
+            "$ref": "#/components/schemas/PropertyObjectWithMetadata"
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedEntityEditionProvenance"
@@ -3759,6 +3843,9 @@
             "items": {
               "$ref": "#/components/schemas/EntityRelationAndSubject"
             }
+          },
+          "webId": {
+            "$ref": "#/components/schemas/WebId"
           }
         },
         "additionalProperties": false
@@ -3767,14 +3854,11 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
+          "webId",
           "relationships",
           "provenance"
         ],
         "properties": {
-          "ownedById": {
-            "$ref": "#/components/schemas/OwnedById"
-          },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },
@@ -3796,6 +3880,9 @@
                 }
               }
             ]
+          },
+          "webId": {
+            "$ref": "#/components/schemas/WebId"
           }
         },
         "additionalProperties": false
@@ -3804,14 +3891,11 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
+          "webId",
           "relationships",
           "provenance"
         ],
         "properties": {
-          "ownedById": {
-            "$ref": "#/components/schemas/OwnedById"
-          },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },
@@ -3833,13 +3917,12 @@
                 }
               }
             ]
+          },
+          "webId": {
+            "$ref": "#/components/schemas/WebId"
           }
         },
         "additionalProperties": false
-      },
-      "CreatedById": {
-        "type": "string",
-        "format": "uuid"
       },
       "DataType": {
         "$ref": "./models/data_type.json"
@@ -3964,7 +4047,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           },
@@ -3982,7 +4065,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/ActorGroupId"
               }
             }
           }
@@ -4062,7 +4145,7 @@
             "title": "OwnedDataTypeMetadata",
             "required": [
               "recordId",
-              "ownedById",
+              "webId",
               "temporalVersioning",
               "provenance"
             ],
@@ -4073,9 +4156,6 @@
                   "$ref": "#/components/schemas/Conversions"
                 }
               },
-              "ownedById": {
-                "$ref": "#/components/schemas/OwnedById"
-              },
               "provenance": {
                 "$ref": "#/components/schemas/OntologyProvenance"
               },
@@ -4084,6 +4164,9 @@
               },
               "temporalVersioning": {
                 "$ref": "#/components/schemas/OntologyTemporalMetadata"
+              },
+              "webId": {
+                "$ref": "#/components/schemas/WebId"
               }
             }
           },
@@ -4135,7 +4218,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/OwnedById"
+                "$ref": "#/components/schemas/WebId"
               }
             }
           }
@@ -4158,7 +4241,7 @@
           "baseUrl",
           "version",
           "versionedUrl",
-          "ownedById",
+          "webId",
           "title",
           "description",
           "type",
@@ -4445,14 +4528,6 @@
           }
         }
       },
-      "EditionArchivedById": {
-        "type": "string",
-        "format": "uuid"
-      },
-      "EditionCreatedById": {
-        "type": "string",
-        "format": "uuid"
-      },
       "Embedding": {
         "type": "array",
         "items": {
@@ -4499,7 +4574,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           },
@@ -4518,7 +4593,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/ActorGroupId"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -4548,12 +4623,12 @@
               "archivedById": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/EditionArchivedById"
+                    "$ref": "#/components/schemas/ActorEntityUuid"
                   }
                 ]
               },
               "createdById": {
-                "$ref": "#/components/schemas/EditionCreatedById"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           }
@@ -4575,7 +4650,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           },
@@ -4594,7 +4669,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/ActorGroupId"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -4673,7 +4748,7 @@
             "description": "The set of entity types this entity conforms to.\n\nEach entity must conform to at least one entity type, and may conform to multiple\ntypes simultaneously."
           },
           "properties": {
-            "$ref": "#/components/schemas/PropertyMetadataObject"
+            "$ref": "#/components/schemas/PropertyObjectMetadata"
           },
           "provenance": {
             "$ref": "#/components/schemas/EntityProvenance"
@@ -4703,7 +4778,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/OwnedById"
+                "$ref": "#/components/schemas/WebId"
               }
             }
           }
@@ -4801,7 +4876,7 @@
           "editionId",
           "draftId",
           "archived",
-          "ownedById",
+          "webId",
           "type",
           "properties",
           "label",
@@ -5002,7 +5077,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           },
@@ -5020,7 +5095,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/ActorGroupId"
               }
             }
           }
@@ -5117,7 +5192,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           },
@@ -5135,7 +5210,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/ActorGroupId"
               }
             }
           }
@@ -5151,14 +5226,11 @@
             "title": "OwnedEntityTypeMetadata",
             "required": [
               "recordId",
-              "ownedById",
+              "webId",
               "temporalVersioning",
               "provenance"
             ],
             "properties": {
-              "ownedById": {
-                "$ref": "#/components/schemas/OwnedById"
-              },
               "provenance": {
                 "$ref": "#/components/schemas/OntologyProvenance"
               },
@@ -5167,6 +5239,9 @@
               },
               "temporalVersioning": {
                 "$ref": "#/components/schemas/OntologyTemporalMetadata"
+              },
+              "webId": {
+                "$ref": "#/components/schemas/WebId"
               }
             }
           },
@@ -5212,7 +5287,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/OwnedById"
+                "$ref": "#/components/schemas/WebId"
               }
             }
           }
@@ -5236,7 +5311,7 @@
           "baseUrl",
           "version",
           "versionedUrl",
-          "ownedById",
+          "webId",
           "title",
           "description",
           "properties",
@@ -5588,7 +5663,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           },
@@ -5607,7 +5682,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/ActorGroupId"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -6801,7 +6876,7 @@
             "$ref": "#/components/schemas/Timestamp"
           },
           "createdById": {
-            "$ref": "#/components/schemas/CreatedById"
+            "$ref": "#/components/schemas/ActorEntityUuid"
           },
           "firstNonDraftCreatedAtDecisionTime": {
             "allOf": [
@@ -6824,16 +6899,22 @@
         "type": "object",
         "properties": {
           "accountGroupId": {
-            "$ref": "#/components/schemas/AccountGroupId"
+            "$ref": "#/components/schemas/ActorGroupId"
           }
         },
         "additionalProperties": false
       },
       "InsertAccountIdParams": {
         "type": "object",
+        "required": [
+          "accountType"
+        ],
         "properties": {
           "accountId": {
-            "$ref": "#/components/schemas/AccountId"
+            "$ref": "#/components/schemas/ActorEntityUuid"
+          },
+          "accountType": {
+            "$ref": "#/components/schemas/ActorType"
           }
         },
         "additionalProperties": false
@@ -6841,15 +6922,15 @@
       "InsertWebIdParams": {
         "type": "object",
         "required": [
-          "ownedById",
+          "webId",
           "owner"
         ],
         "properties": {
-          "ownedById": {
-            "$ref": "#/components/schemas/OwnedById"
-          },
           "owner": {
             "$ref": "#/components/schemas/WebOwnerSubject"
+          },
+          "webId": {
+            "$ref": "#/components/schemas/WebId"
           }
         },
         "additionalProperties": false
@@ -7412,6 +7493,9 @@
         },
         "additionalProperties": false
       },
+      "MachineId": {
+        "$ref": "#/components/schemas/ActorEntityUuid"
+      },
       "MaybeListOfDataTypeMetadata": {
         "oneOf": [
           {
@@ -7567,7 +7651,7 @@
             "$ref": "#/components/schemas/WebRelationAndSubject"
           },
           "resource": {
-            "$ref": "#/components/schemas/OwnedById"
+            "$ref": "#/components/schemas/WebId"
           }
         }
       },
@@ -7848,12 +7932,12 @@
               "archivedById": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/EditionArchivedById"
+                    "$ref": "#/components/schemas/ActorEntityUuid"
                   }
                 ]
               },
               "createdById": {
-                "$ref": "#/components/schemas/EditionCreatedById"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           }
@@ -8353,10 +8437,6 @@
         },
         "additionalProperties": false
       },
-      "OwnedById": {
-        "type": "string",
-        "format": "uuid"
-      },
       "PartialEntityType": {
         "$ref": "./models/partial_entity_type.json"
       },
@@ -8432,10 +8512,29 @@
             "$ref": "#/components/schemas/PropertyObject"
           },
           {
-            "description": "A primitive value such as a string, number, boolean, etc.\n\nValues represent the atomic units of data in the property system."
+            "$ref": "#/components/schemas/PropertyValue"
           }
         ],
         "description": "Structured data that can be associated with an entity, conforming to property types defined in\nthe ontology.\n\nThe [`Property`] enum represents the hierarchical structure of data within an entity.\nProperties are instances of [`PropertyType`]s defined in the ontology. The relationship\nis similar to objects and classes in object-oriented programming:\n- [`PropertyType`]s define the schema, structure, and constraints that properties must follow\n- [`Property`] instances contain actual data conforming to those schemas\n\nProperties can be:\n\n- Arrays of other properties\n- Objects (maps) with property type URLs as keys and nested properties as values\n- Primitive values like strings, numbers, booleans, etc.\n\nEach property in an entity:\n- Corresponds to a specific [`PropertyType`] in the ontology\n- May have associated metadata tracking provenance, confidence, and other contextual information\n- Must satisfy the validation rules defined in its property type\n- Can be addressed using a [`PropertyPath`] for targeted access and modification\n\nProperties form the backbone of entity data representation in the system, allowing\nfor flexible and structured knowledge organization that aligns with the ontology.\n\n[`PropertyType`]: crate::ontology::property_type::PropertyType"
+      },
+      "PropertyArrayMetadata": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ArrayMetadata"
+          },
+          "value": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyMetadata"
+            },
+            "description": "Metadata for each item in the array."
+          }
+        },
+        "additionalProperties": false
       },
       "PropertyArrayValidationReport": {
         "oneOf": [
@@ -8479,6 +8578,24 @@
         "discriminator": {
           "propertyName": "type"
         }
+      },
+      "PropertyArrayWithMetadata": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ArrayMetadata"
+          },
+          "value": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyWithMetadata"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "PropertyDiff": {
         "oneOf": [
@@ -8564,75 +8681,16 @@
       "PropertyMetadata": {
         "oneOf": [
           {
-            "type": "object",
-            "title": "PropertyMetadataArray",
-            "description": "Metadata for an array property, containing element-level and array-level metadata.",
-            "required": [
-              "value"
-            ],
-            "properties": {
-              "metadata": {
-                "$ref": "#/components/schemas/ArrayMetadata"
-              },
-              "value": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PropertyMetadata"
-                },
-                "description": "Metadata for each element in the array.\n\nThe position of each metadata entry corresponds to the position of the\nelement in the property array."
-              }
-            }
+            "$ref": "#/components/schemas/PropertyArrayMetadata"
           },
           {
-            "type": "object",
-            "title": "PropertyMetadataObject",
-            "description": "Metadata for an object property, containing field-level and object-level metadata.",
-            "required": [
-              "value"
-            ],
-            "properties": {
-              "metadata": {
-                "$ref": "#/components/schemas/ObjectMetadata"
-              },
-              "value": {
-                "type": "object",
-                "description": "Metadata for each field in the object.\n\nThe keys correspond to the property type URLs used in the object property.",
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/PropertyMetadata"
-                }
-              }
-            }
+            "$ref": "#/components/schemas/PropertyObjectMetadata"
           },
           {
-            "type": "object",
-            "title": "PropertyMetadataValue",
-            "description": "Metadata for a primitive value property.",
-            "required": [
-              "metadata"
-            ],
-            "properties": {
-              "metadata": {
-                "$ref": "#/components/schemas/ValueMetadata"
-              }
-            }
+            "$ref": "#/components/schemas/PropertyValueMetadata"
           }
         ],
         "description": "Metadata for property values, structured to match the hierarchical nature of properties.\n\n[`PropertyMetadata`] follows the same structure as the [`Property`] enum, providing\nmetadata for arrays, objects, and values. This parallel structure ensures that\nevery property element can have associated metadata regardless of its type.\n\nThe metadata at each level includes relevant information like provenance, confidence,\nand type references, allowing for fine-grained tracking of data origins and reliability.\n\n[`Property`]: crate::knowledge::property::Property"
-      },
-      "PropertyMetadataObject": {
-        "type": "object",
-        "properties": {
-          "metadata": {
-            "$ref": "#/components/schemas/ObjectMetadata"
-          },
-          "value": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/PropertyMetadata"
-            }
-          }
-        },
-        "additionalProperties": false
       },
       "PropertyMetadataValidationReport": {
         "default": null,
@@ -8643,6 +8701,25 @@
         "additionalProperties": {
           "$ref": "#/components/schemas/Property"
         }
+      },
+      "PropertyObjectMetadata": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ObjectMetadata"
+          },
+          "value": {
+            "type": "object",
+            "description": "Metadata for each field in the object.\n\nThe keys correspond to the property type URLs used in the object property.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyMetadata"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "PropertyObjectValidationReport": {
         "oneOf": [
@@ -8689,6 +8766,24 @@
         "discriminator": {
           "propertyName": "type"
         }
+      },
+      "PropertyObjectWithMetadata": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ObjectMetadata"
+          },
+          "value": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyWithMetadata"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "PropertyPatchOperation": {
         "oneOf": [
@@ -8809,7 +8904,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           },
@@ -8827,7 +8922,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/ActorGroupId"
               }
             }
           }
@@ -8858,14 +8953,11 @@
             "title": "OwnedPropertyTypeMetadata",
             "required": [
               "recordId",
-              "ownedById",
+              "webId",
               "temporalVersioning",
               "provenance"
             ],
             "properties": {
-              "ownedById": {
-                "$ref": "#/components/schemas/OwnedById"
-              },
               "provenance": {
                 "$ref": "#/components/schemas/OntologyProvenance"
               },
@@ -8874,6 +8966,9 @@
               },
               "temporalVersioning": {
                 "$ref": "#/components/schemas/OntologyTemporalMetadata"
+              },
+              "webId": {
+                "$ref": "#/components/schemas/WebId"
               }
             }
           },
@@ -8919,7 +9014,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/OwnedById"
+                "$ref": "#/components/schemas/WebId"
               }
             }
           }
@@ -8942,7 +9037,7 @@
           "baseUrl",
           "version",
           "versionedUrl",
-          "ownedById",
+          "webId",
           "title",
           "description",
           "editionProvenance",
@@ -9179,6 +9274,19 @@
           "propertyName": "type"
         }
       },
+      "PropertyValue": {},
+      "PropertyValueMetadata": {
+        "type": "object",
+        "required": [
+          "metadata"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ValueMetadata"
+          }
+        },
+        "additionalProperties": false
+      },
       "PropertyValueType": {
         "type": "string",
         "description": "Categorizes property value structures by their basic structural type.\n\nThis enum provides a simple classification of the different kinds of property\nvalue structures in the Block Protocol type system. It's used by the\n[`PropertyValues::property_value_type`] method to indicate which variant a particular property\nvalue represents.",
@@ -9246,59 +9354,9 @@
           "propertyName": "type"
         }
       },
-      "PropertyWithMetadata": {
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/PropertyWithMetadataArray"
-          },
-          {
-            "$ref": "#/components/schemas/PropertyWithMetadataObject"
-          },
-          {
-            "$ref": "#/components/schemas/PropertyWithMetadataValue"
-          }
-        ],
-        "description": "Property data combined with its corresponding metadata.\n\n[`PropertyWithMetadata`] pairs each property with its metadata, maintaining the same\nhierarchical structure. This unified representation enables operations that need to\nmodify both properties and their metadata consistently, such as patching operations.\n\nThe structure mirrors the [`Property`] enum, with specialized types for arrays, objects,\nand values that maintain metadata at each level of the hierarchy."
-      },
-      "PropertyWithMetadataArray": {
+      "PropertyValueWithMetadata": {
         "type": "object",
-        "required": [
-          "value"
-        ],
-        "properties": {
-          "metadata": {
-            "$ref": "#/components/schemas/ArrayMetadata"
-          },
-          "value": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PropertyWithMetadata"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "PropertyWithMetadataObject": {
-        "type": "object",
-        "required": [
-          "value"
-        ],
-        "properties": {
-          "metadata": {
-            "$ref": "#/components/schemas/ObjectMetadata"
-          },
-          "value": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/PropertyWithMetadata"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "PropertyWithMetadataValue": {
-        "type": "object",
-        "description": "A primitive value with its associated metadata.\n\n[`PropertyWithMetadataValue`] combines a [`Value`] (such as a string, number, or boolean)\nwith its [`ValueMetadata`] containing provenance, confidence, and type information.\n\nThis structure is used as the leaf node in the [`PropertyWithMetadata`] hierarchy,\nrepresenting atomic data values with their context.\n\n[`PropertyWithMetadata`]: crate::knowledge::property::PropertyWithMetadata",
+        "description": "A primitive value with its associated metadata.\n\n`PropertyValueWithMetadata` combines a [`PropertyValue`] (such as a string, number, or boolean)\nwith its [`ValueMetadata`] containing provenance, confidence, and type information.\n\nThis structure is used as the leaf node in the [`PropertyWithMetadata`] hierarchy,\nrepresenting atomic data values with their context.\n\n[`PropertyWithMetadata`]: crate::knowledge::property::PropertyWithMetadata",
         "required": [
           "value",
           "metadata"
@@ -9308,10 +9366,24 @@
             "$ref": "#/components/schemas/ValueMetadata"
           },
           "value": {
-            "description": "The primitive value data, such as a string, number, or boolean."
+            "$ref": "#/components/schemas/PropertyValue"
           }
         },
         "additionalProperties": false
+      },
+      "PropertyWithMetadata": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PropertyArrayWithMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyObjectWithMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyValueWithMetadata"
+          }
+        ],
+        "description": "Property data combined with its corresponding metadata.\n\n[`PropertyWithMetadata`] pairs each property with its metadata, maintaining the same\nhierarchical structure. This unified representation enables operations that need to\nmodify both properties and their metadata consistently, such as patching operations.\n\nThe structure mirrors the [`Property`] enum, with specialized types for arrays, objects,\nand values that maintain metadata at each level of the hierarchy."
       },
       "ProvidedEntityEditionProvenance": {
         "type": "object",
@@ -10062,6 +10134,9 @@
         },
         "additionalProperties": false
       },
+      "UserId": {
+        "$ref": "#/components/schemas/ActorEntityUuid"
+      },
       "ValidateEntityComponents": {
         "type": "object",
         "properties": {
@@ -10105,7 +10180,7 @@
             ]
           },
           "properties": {
-            "$ref": "#/components/schemas/PropertyWithMetadataObject"
+            "$ref": "#/components/schemas/PropertyObjectWithMetadata"
           }
         },
         "additionalProperties": false
@@ -10118,7 +10193,9 @@
         "properties": {
           "canonical": {
             "type": "object",
-            "additionalProperties": {}
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyValue"
+            }
           },
           "confidence": {
             "allOf": [
@@ -10310,7 +10387,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           },
@@ -10328,7 +10405,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/ActorGroupId"
               }
             }
           }
@@ -10353,7 +10430,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           },
@@ -10371,7 +10448,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/ActorGroupId"
               }
             }
           }
@@ -10428,7 +10505,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           },
@@ -10446,7 +10523,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/ActorGroupId"
               }
             }
           }
@@ -10454,6 +10531,10 @@
         "discriminator": {
           "propertyName": "kind"
         }
+      },
+      "WebId": {
+        "type": "string",
+        "format": "uuid"
       },
       "WebOwnerSubject": {
         "oneOf": [
@@ -10471,7 +10552,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
+                "$ref": "#/components/schemas/ActorEntityUuid"
               }
             }
           },
@@ -10489,7 +10570,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/ActorGroupId"
               }
             }
           }

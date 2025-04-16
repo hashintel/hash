@@ -1,0 +1,20 @@
+Expr#0@8
+  ExprKind (Call)
+    CallExpr#1@8
+      Expr#2@3
+        ExprKind (Path)
+          Path#3@3 (rooted: true)
+            PathSegment#4@2 (name: math)
+            PathSegment#5@2 (name: add)
+      Argument#6@5
+        Expr#7@5
+          ExprKind (Literal)
+            LiteralExpr#8@4
+              LiteralKind (Integer)
+                IntegerLiteral (3)
+      Argument#9@7
+        Expr#10@7
+          ExprKind (Literal)
+            LiteralExpr#11@6
+              LiteralKind (Integer)
+                IntegerLiteral (4)

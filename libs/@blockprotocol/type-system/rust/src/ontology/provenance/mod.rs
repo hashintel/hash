@@ -20,10 +20,8 @@ use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use time::OffsetDateTime;
 
 use crate::{
-    provenance::{
-        ActorType, EditionArchivedById, EditionCreatedById, OriginProvenance, SourceProvenance,
-    },
-    web::OwnedById,
+    provenance::{ActorEntityUuid, ActorType, OriginProvenance, SourceProvenance},
+    web::WebId,
 };
 
 /// Specifies whether an ontology type is owned locally or fetched from a remote source.
@@ -32,6 +30,7 @@ use crate::{
 /// - Types that are created and owned by the local system
 /// - Types that have been fetched from external sources
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum OntologyOwnership {
@@ -39,7 +38,7 @@ pub enum OntologyOwnership {
     #[serde(rename_all = "camelCase")]
     Local {
         /// The ID of the web that owns this ontology type locally
-        owned_by_id: OwnedById,
+        web_id: WebId,
     },
 
     /// The ontology type was fetched from a remote source.
@@ -47,10 +46,12 @@ pub enum OntologyOwnership {
     Remote {
         /// Timestamp when the ontology type was fetched from the remote source
         #[serde(with = "hash_codec::serde::time")]
+        #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
         fetched_at: OffsetDateTime,
     },
 }
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OntologyProvenance {
@@ -58,6 +59,7 @@ pub struct OntologyProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvidedOntologyEditionProvenance {
@@ -68,13 +70,14 @@ pub struct ProvidedOntologyEditionProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OntologyEditionProvenance {
-    pub created_by_id: EditionCreatedById,
+    pub created_by_id: ActorEntityUuid,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub archived_by_id: Option<EditionArchivedById>,
+    pub archived_by_id: Option<ActorEntityUuid>,
     #[serde(flatten)]
     pub user_defined: ProvidedOntologyEditionProvenance,
 }

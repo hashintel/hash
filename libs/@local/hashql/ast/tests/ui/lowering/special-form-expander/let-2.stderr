@@ -1,0 +1,13 @@
+[31m[special-form-expander::special-form-argument-length] Error:[0m Incorrect number of arguments for special form
+   ╭─[ <unknown>:3:1 ]
+   │
+ 3 │ ["::kernel::special_form::let", "x", { "#literal": true }]
+   │ ─────────────────────────────┬────────────────────────────  
+   │                              ╰────────────────────────────── Add missing arguments
+   │ 
+   │ Help: Use either:
+   │       - let/3: (let name value body)
+   │       - let/4: (let name type value body)
+   │ 
+   │ Note: The let function has 2 variants: let/3, let/4
+───╯

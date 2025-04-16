@@ -22,13 +22,13 @@ export const createPageResolver: ResolverFn<
   MutationCreatePageArgs
 > = async (
   _,
-  { ownedById, properties: { title, prevFractionalIndex, type } },
+  { webId, properties: { title, prevFractionalIndex, type } },
   graphQLContext,
 ) => {
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const page = await createPage(context, graphQLContext.authentication, {
-    ownedById,
+    webId,
     title,
     prevFractionalIndex: prevFractionalIndex ?? undefined,
     type,

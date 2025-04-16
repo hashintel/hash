@@ -1,6 +1,8 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import type { WebId } from "@blockprotocol/type-system";
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   GetEntityQuery,
@@ -8,7 +10,6 @@ import type {
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityRootType } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
@@ -34,9 +35,9 @@ export const ProfileBio: FunctionComponent<{
   refetchProfile: () => Promise<void>;
   isEditable: boolean;
 }> = ({ profile, refetchProfile, isEditable }) => {
-  const ownedById = (
+  const webId = (
     profile.kind === "user" ? profile.accountId : profile.accountGroupId
-  ) as OwnedById;
+  ) as WebId;
 
   const { data, loading, refetch } = useQuery<
     GetEntityQuery,
@@ -51,7 +52,7 @@ export const ProfileBio: FunctionComponent<{
   });
 
   const profileBioSubgraph = data
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
         data.getEntity.subgraph,
       )
     : undefined;
@@ -70,9 +71,9 @@ export const ProfileBio: FunctionComponent<{
         })
       : undefined;
 
-  const { createEntity } = useBlockProtocolCreateEntity(ownedById);
+  const { createEntity } = useBlockProtocolCreateEntity(webId);
   const { createBlockCollectionEntity } = useCreateBlockCollection({
-    ownedById,
+    webId,
   });
 
   const createProfileBioEntity = useCallback(async () => {
@@ -174,7 +175,7 @@ export const ProfileBio: FunctionComponent<{
                 >
                   <BlockCollection
                     contents={profileBioContents}
-                    ownedById={ownedById}
+                    webId={webId}
                     entityId={
                       profile.hasBio.profileBioEntity.metadata.recordId.entityId
                     }

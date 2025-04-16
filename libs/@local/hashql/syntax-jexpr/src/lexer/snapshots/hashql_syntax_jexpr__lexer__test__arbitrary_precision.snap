@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Arbitrary precision integer
+expression: "9007199254740992"
+---
+9007199254740992

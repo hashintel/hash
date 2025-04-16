@@ -1,4 +1,4 @@
-import type { AccountId } from "@local/hash-graph-types/account";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import { NIL as UUID_NIL } from "uuid";
 
-export const publicUserAccountId: AccountId = UUID_NIL as AccountId;
+export const publicUserAccountId: ActorEntityUuid = UUID_NIL as ActorEntityUuid;

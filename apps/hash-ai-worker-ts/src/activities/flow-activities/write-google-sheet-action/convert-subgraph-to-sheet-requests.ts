@@ -1,26 +1,29 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import {
-  typedEntries,
-  typedKeys,
-  typedValues,
-} from "@local/advanced-types/typed-entries";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { isDraftEntity } from "@local/hash-isomorphic-utils/entity-store";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  EntityRootType,
-  EntityVertex,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { isEntityVertex } from "@local/hash-subgraph";
+  type EntityRootType,
+  type EntityVertex,
+  isEntityVertex,
+  type Subgraph,
+} from "@blockprotocol/graph";
 import {
   getEntityRevision,
   getEntityTypeAndParentsById,
   getEntityTypeById,
   getPropertyTypeForEntity,
-} from "@local/hash-subgraph/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import type {
+  BaseUrl,
+  EntityId,
+  EntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  typedEntries,
+  typedKeys,
+  typedValues,
+} from "@local/advanced-types/typed-entries";
+import { isDraftEntity } from "@local/hash-isomorphic-utils/entity-store";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { sheets_v4 } from "googleapis";
 
 import type { SheetOutputFormat } from "./shared/config.js";
@@ -62,7 +65,7 @@ const createColumnsForEntity = (
   format: SheetOutputFormat,
 ): ColumnsForEntity => {
   const { audience } = format;
-  const humanReadable = audience === "human";
+  const humanReadable = audience === "user";
 
   const columns: ColumnsForEntity["columns"] = {
     entityId: {
@@ -270,7 +273,7 @@ export const convertSubgraphToSheetRequests = ({
     };
   } = {};
 
-  const humanReadable = format.audience === "human";
+  const humanReadable = format.audience === "user";
 
   for (const entity of sortedEntities) {
     const entityType = getEntityTypeById(
@@ -589,7 +592,7 @@ export const convertSubgraphToSheetRequests = ({
              */
             entityCells.push(
               createCellFromValue({
-                value: entity.linkData.leftEntityId,
+                value: leftEntityId,
               }),
             );
           }
@@ -624,7 +627,7 @@ export const convertSubgraphToSheetRequests = ({
           } else {
             entityCells.push(
               createCellFromValue({
-                value: entity.linkData.rightEntityId,
+                value: rightEntityId,
               }),
             );
           }
@@ -667,10 +670,10 @@ export const convertSubgraphToSheetRequests = ({
           addSheet: {
             properties: {
               gridProperties: {
-                frozenRowCount: format.audience === "human" ? 2 : 0,
+                frozenRowCount: format.audience === "user" ? 2 : 0,
               },
               sheetId,
-              title: format.audience === "human" ? typeTitle : typeId,
+              title: format.audience === "user" ? typeTitle : typeId,
             },
           },
         },

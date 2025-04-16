@@ -1,13 +1,13 @@
 import { useMutation } from "@apollo/client";
+import {
+  type DataTypeWithMetadata,
+  type EntityTypeWithMetadata,
+  extractWebIdFromEntityId,
+  type PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { isEntity } from "@local/hash-isomorphic-utils/entity-store";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   Box,
   chipClasses,
@@ -62,7 +62,7 @@ import { MenuItem } from "../ui";
 
 export const BulkActionsDropdown: FunctionComponent<{
   selectedItems: (
-    | Entity
+    | HashEntity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
@@ -119,16 +119,16 @@ export const BulkActionsDropdown: FunctionComponent<{
   const itemsAreArchiveable = useMemo(
     () =>
       selectedItems.filter((item) => {
-        const itemOwnedById = isType(item)
+        const itemWebId = isType(item)
           ? item.metadata.provenance.edition.createdById
-          : extractOwnedByIdFromEntityId(item.metadata.recordId.entityId);
+          : extractWebIdFromEntityId(item.metadata.recordId.entityId);
 
         // The item has to be owned by the user or an org the user is a member of
         if (
           ![
             authenticatedUser.accountId,
             ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
-          ].includes(itemOwnedById)
+          ].includes(itemWebId)
         ) {
           /**
            * @todo: use proper permission checking for entities

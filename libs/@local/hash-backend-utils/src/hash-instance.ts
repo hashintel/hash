@@ -1,9 +1,6 @@
+import type { ActorEntityUuid, ActorGroupId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -23,13 +20,13 @@ import { EntityTypeMismatchError, NotFoundError } from "./error.js";
 import { getMachineActorId } from "./machine-actors.js";
 
 export type HashInstance = {
-  entity: Entity<HASHInstance>;
+  entity: HashEntity<HASHInstance>;
 } & SimpleProperties<HASHInstanceProperties>;
 
 export const getHashInstanceFromEntity = ({
   entity,
 }: {
-  entity: Entity<HASHInstanceEntity>;
+  entity: HashEntity<HASHInstanceEntity>;
 }): HashInstance => {
   if (
     !entity.metadata.entityTypeIds.includes(
@@ -54,7 +51,7 @@ export const getHashInstanceFromEntity = ({
  */
 export const getHashInstance = async (
   { graphApi }: { graphApi: GraphApi },
-  { actorId }: { actorId: AccountId },
+  { actorId }: { actorId: ActorEntityUuid },
 ): Promise<HashInstance> => {
   const entities = await backOff(
     () =>
@@ -99,8 +96,8 @@ export const getHashInstance = async (
  */
 export const isUserHashInstanceAdmin = async (
   ctx: { graphApi: GraphApi },
-  authentication: { actorId: AccountId },
-  { userAccountId }: { userAccountId: AccountId },
+  authentication: { actorId: ActorEntityUuid },
+  { userAccountId }: { userAccountId: ActorEntityUuid },
 ) => {
   // console.info(`[${userAccountId}] Fetching HASH Instance entity`);
   const hashInstance = await getHashInstance(ctx, authentication).catch(
@@ -139,8 +136,8 @@ export const isUserHashInstanceAdmin = async (
  */
 export const getHashInstanceAdminAccountGroupId = async (
   ctx: { graphApi: GraphApi },
-  authentication: { actorId: AccountId },
-): Promise<AccountGroupId> => {
+  authentication: { actorId: ActorEntityUuid },
+): Promise<ActorGroupId> => {
   const hashInstance = await getHashInstance(ctx, authentication);
 
   const systemAccountId = await getMachineActorId(
@@ -170,5 +167,5 @@ export const getHashInstanceAdminAccountGroupId = async (
     );
   }
 
-  return entityAdmin.subjectId as AccountGroupId;
+  return entityAdmin.subjectId as ActorGroupId;
 };

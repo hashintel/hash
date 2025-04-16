@@ -1,23 +1,32 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { PROPERTY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
+import type { PropertyTypeRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  OntologyTemporalMetadata,
+  OntologyTypeRecordId,
+  PropertyTypeMetadata,
+  PropertyTypeWithMetadata,
+  ProvidedOntologyEditionProvenance,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  ontologyTypeRecordIdToVersionedUrl,
+  PROPERTY_TYPE_META_SCHEMA,
+} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   ArchivePropertyTypeParams,
   GetPropertyTypesParams,
   GetPropertyTypeSubgraphParams,
   ModifyRelationshipOperation,
-  OntologyTemporalMetadata,
   PropertyTypePermission,
-  ProvidedOntologyEditionProvenance,
+  PropertyTypeRelationAndSubject,
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
 import type {
-  OntologyTypeRecordId,
-  PropertyTypeMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  PropertyTypeAuthorizationRelationship,
+  PropertyTypeRelationAndSubjectBranded,
+} from "@local/hash-graph-sdk/branded-authorization";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -25,13 +34,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
-import type {
-  PropertyTypeAuthorizationRelationship,
-  PropertyTypeRelationAndSubject,
-  PropertyTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
@@ -39,15 +41,15 @@ import { getWebShortname, isExternalTypeId } from "./util";
 /**
  * Create a property type.
  *
- * @param params.ownedById - the id of the account who owns the property type
+ * @param params.webId - the id of the account who owns the property type
  * @param params.schema - the `PropertyType`
  * @param [params.webShortname] – the shortname of the web that owns the property type, if the web entity does not yet exist.
- *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
+ *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the webId.
  * @param params.actorId - the id of the account that is creating the property type
  */
 export const createPropertyType: ImpureGraphFunction<
   {
-    ownedById: OwnedById;
+    webId: WebId;
     schema: ConstructPropertyTypeParams;
     webShortname?: string;
     relationships: PropertyTypeRelationAndSubject[];
@@ -58,12 +60,12 @@ export const createPropertyType: ImpureGraphFunction<
   },
   Promise<PropertyTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname } = params;
+  const { webId, webShortname } = params;
 
   const shortname =
     webShortname ??
     (await getWebShortname(ctx, authentication, {
-      accountOrAccountGroupId: ownedById,
+      accountOrAccountGroupId: webId,
     }));
 
   const propertyTypeId = generateTypeId({
@@ -84,7 +86,7 @@ export const createPropertyType: ImpureGraphFunction<
   const { data: metadata } = await graphApi.createPropertyType(
     authentication.actorId,
     {
-      ownedById,
+      webId,
       schema,
       relationships: params.relationships,
       provenance: {
@@ -253,7 +255,7 @@ export const archivePropertyType: ImpureGraphFunction<
     params,
   );
 
-  return temporalMetadata;
+  return temporalMetadata as OntologyTemporalMetadata;
 };
 
 /**
@@ -271,7 +273,7 @@ export const unarchivePropertyType: ImpureGraphFunction<
     { ...params, provenance },
   );
 
-  return temporalMetadata;
+  return temporalMetadata as OntologyTemporalMetadata;
 };
 
 export const getPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
@@ -281,16 +283,13 @@ export const getPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
   graphApi
     .getPropertyTypeAuthorizationRelationships(actorId, params.propertyTypeId)
     .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: {
-              kind: "propertyType",
-              resourceId: params.propertyTypeId,
-            },
-            ...relationship,
-          }) as PropertyTypeAuthorizationRelationship,
-      ),
+      data.map((relationship) => ({
+        resource: {
+          kind: "propertyType",
+          resourceId: params.propertyTypeId,
+        },
+        ...(relationship as PropertyTypeRelationAndSubjectBranded),
+      })),
     );
 
 export const modifyPropertyTypeAuthorizationRelationships: ImpureGraphFunction<

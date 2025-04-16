@@ -1,35 +1,35 @@
 import { useQuery } from "@apollo/client";
+import type {
+  EntityRootType,
+  EntityTypeRootType,
+  Subgraph,
+} from "@blockprotocol/graph";
+import {
+  getEntityTypeById,
+  getRoots,
+  isEntityRootedSubgraph,
+} from "@blockprotocol/graph/stdlib";
 import type { EntityType } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { Chip, IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  EntityRootType,
-  EntityTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getRoots,
-  isEntityRootedSubgraph,
-} from "@local/hash-subgraph/stdlib";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
-import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
+import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
@@ -113,16 +113,16 @@ const ResultItem: FunctionComponent<{
 const chipStyles = { cursor: "pointer !important", ml: 1 };
 
 const EntityResult: FunctionComponent<{
-  entity: Entity;
+  entity: HashEntity;
   onClick: () => void;
-  subgraph: Subgraph<EntityRootType>;
+  subgraph: Subgraph<EntityRootType<HashEntity>>;
 }> = ({ entity, onClick, subgraph }) => {
   const entityId = entity.metadata.recordId.entityId;
 
-  const ownedById = extractOwnedByIdFromEntityId(entityId);
-  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
-    { ownedById },
-  );
+  const webId = extractWebIdFromEntityId(entityId);
+  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByWebId({
+    webId,
+  });
 
   const entityTypes = useMemo(
     () =>
@@ -289,8 +289,11 @@ export const SearchBar: FunctionComponent = () => {
   });
 
   const deserializedEntitySubgraph = entityResultData
-    ? deserializeSubgraph(entityResultData.getEntitySubgraph.subgraph)
+    ? deserializeSubgraph<EntityRootType<HashEntity>>(
+        entityResultData.getEntitySubgraph.subgraph,
+      )
     : undefined;
+
   const entitySubgraph =
     deserializedEntitySubgraph &&
     isEntityRootedSubgraph(deserializedEntitySubgraph)

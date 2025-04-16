@@ -1,12 +1,12 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import {
-  Entity,
-  LinkEntity,
+  HashEntity,
+  HashLinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -19,7 +19,6 @@ import type {
   HasSubject,
 } from "@local/hash-isomorphic-utils/system-types/claim";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import { backOff } from "exponential-backoff";
@@ -79,15 +78,14 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
   const entityValues: Omit<
     CreateEntityParameters,
-    "relationships" | "ownedById" | "draft" | "linkData"
-  > & { linkData: Entity["linkData"] } = {
+    "relationships" | "webId" | "draft" | "linkData"
+  > & { linkData: HashEntity["linkData"] } = {
     entityTypeIds,
     properties: mergePropertyObjectAndMetadata(properties, propertyMetadata),
     linkData,
     provenance,
   };
 
-  const ownedById = webId;
   const entityUuid = extractEntityUuidFromEntityId(localEntityId);
 
   const isAiGenerated = provenance.actorType === "ai";
@@ -96,17 +94,17 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     ? await getAiAssistantAccountIdActivity({
         authentication: { actorId },
         graphApiClient,
-        grantCreatePermissionForWeb: ownedById,
+        grantCreatePermissionForWeb: webId,
       })
     : await getWebMachineActorId(
         { graphApi: graphApiClient },
         { actorId },
-        { ownedById },
+        { webId },
       );
 
   if (!webBotActorId) {
     throw new Error(
-      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${ownedById}`,
+      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${webId}`,
     );
   }
 
@@ -125,8 +123,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       ]
     : undefined;
 
-  let entity: Entity;
-  let matchedEntityUpdate: MatchedEntityUpdate<Entity> | null = null;
+  let entity: HashEntity;
+  let matchedEntityUpdate: MatchedEntityUpdate<HashEntity> | null = null;
   let operation: "create" | "update";
 
   if (isFileEntity && fileUrl) {
@@ -159,7 +157,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         findExistingLinkEntity({
           actorId,
           graphApiClient,
-          ownedById,
+          webId,
           linkData,
           proposedEntity: proposedEntityWithResolvedLinks,
           includeDrafts: createEditionAsDraft,
@@ -167,7 +165,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       : findExistingEntity({
           actorId,
           graphApiClient,
-          ownedById,
+          webId,
           proposedEntity: proposedEntityWithResolvedLinks,
           includeDrafts: createEditionAsDraft,
         }));
@@ -216,14 +214,14 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       } else {
         entity = await backOff(
           () =>
-            Entity.create(
+            HashEntity.create(
               graphApiClient,
               { actorId: webBotActorId },
               {
                 ...entityValues,
                 draft: createEditionAsDraft,
                 entityUuid,
-                ownedById,
+                webId,
                 relationships: createDefaultAuthorizationRelationships({
                   actorId,
                 }),
@@ -267,13 +265,15 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     const entityTypeId =
       `https://hash.ai/@h/types/entity-type/${linkType}/v/1` as const;
 
-    return LinkEntity.create<T extends "has-subject" ? HasSubject : HasObject>(
+    return HashLinkEntity.create<
+      T extends "has-subject" ? HasSubject : HasObject
+    >(
       graphApiClient,
       { actorId: webBotActorId },
       {
         draft,
         entityTypeIds: [entityTypeId],
-        ownedById: webId,
+        webId,
         provenance: {
           sources: claim.metadata.provenance.edition.sources,
           actorType: "ai",

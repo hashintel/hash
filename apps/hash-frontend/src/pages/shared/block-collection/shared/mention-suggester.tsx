@@ -1,13 +1,23 @@
 import { useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { LoadingSpinner } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityRootType } from "@blockprotocol/graph";
+import {
+  getEntityTypeById,
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
+  EntityId,
   EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
+import { LoadingSpinner } from "@hashintel/design-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -23,14 +33,6 @@ import {
   includesPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import type { FunctionComponent } from "react";
 import {
@@ -94,13 +96,13 @@ export interface MentionSuggesterProps {
   // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
   // before this was: onChange(mention: Mention): void;
   onChange: (mention: Mention) => void;
-  ownedById: OwnedById;
+  webId: WebId;
 }
 
 type EntitiesByType = {
   entityType: EntityTypeWithMetadata;
-  displayedEntities: Entity[];
-  allEntities: Entity[];
+  displayedEntities: HashEntity[];
+  allEntities: HashEntity[];
 }[];
 
 const numberOfEntitiesDisplayedPerSection = 4;
@@ -108,7 +110,7 @@ const numberOfEntitiesDisplayedPerSection = 4;
 export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   search = "",
   onChange,
-  ownedById: _ownedById,
+  webId: _webId,
 }) => {
   const { authenticatedUser } = useAuthenticatedUser();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -152,16 +154,13 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               any: [
                 {
                   equal: [
-                    { path: ["ownedById"] },
+                    { path: ["webId"] },
                     { parameter: authenticatedUser.accountId },
                   ],
                 },
                 ...authenticatedUser.memberOf.map(
                   ({ org: { accountGroupId } }) => ({
-                    equal: [
-                      { path: ["ownedById"] },
-                      { parameter: accountGroupId },
-                    ],
+                    equal: [{ path: ["webId"] }, { parameter: accountGroupId }],
                   }),
                 ),
                 generateVersionedUrlMatchingFilter(
@@ -194,7 +193,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   const entitiesSubgraph = data
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
         data.getEntitySubgraph.subgraph,
       )
     : undefined;
@@ -290,10 +289,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               // Sort the entities to ensure the user's entities are displayed first
               const sortedEntities = allEntities.sort((a, b) => {
                 const isAInUserAccount =
-                  extractOwnedByIdFromEntityId(a.metadata.recordId.entityId) ===
+                  extractWebIdFromEntityId(a.metadata.recordId.entityId) ===
                   authenticatedUser.accountId;
                 const isBInUserAccount =
-                  extractOwnedByIdFromEntityId(b.metadata.recordId.entityId) ===
+                  extractWebIdFromEntityId(b.metadata.recordId.entityId) ===
                   authenticatedUser.accountId;
 
                 if (isAInUserAccount && !isBInUserAccount) {
@@ -500,7 +499,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   const handleSubmit = useCallback(
-    (params?: { entity?: Entity; subMenuIndex?: number }) => {
+    (params?: { entity?: HashEntity; subMenuIndex?: number }) => {
       const { subMenuIndex } = params ?? {};
       if (!searchedEntities) {
         return;

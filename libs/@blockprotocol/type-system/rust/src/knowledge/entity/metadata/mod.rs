@@ -19,7 +19,7 @@ use hash_graph_temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, T
 pub use self::diff::EntityTypeIdDiff;
 use super::{EntityProvenance, id::EntityRecordId};
 use crate::{
-    knowledge::{Confidence, property::metadata::PropertyMetadataObject},
+    knowledge::{Confidence, property::metadata::PropertyObjectMetadata},
     ontology::VersionedUrl,
 };
 
@@ -30,6 +30,7 @@ use crate::{
 /// This metadata provides context for interpreting and validating the entity's properties.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
     /// Unique identifier for this entity record.
@@ -72,8 +73,8 @@ pub struct EntityMetadata {
     ///
     /// Contains structured metadata that corresponds to the structure of the entity's properties,
     /// including property-specific provenance and confidence information.
-    #[serde(default, skip_serializing_if = "PropertyMetadataObject::is_empty")]
-    pub properties: PropertyMetadataObject,
+    #[serde(default, skip_serializing_if = "PropertyObjectMetadata::is_empty")]
+    pub properties: PropertyObjectMetadata,
 }
 
 /// Temporal metadata for tracking entity versions over time.
@@ -86,12 +87,15 @@ pub struct EntityMetadata {
 /// versus when it was recorded, enabling accurate historical queries.
 #[derive(Debug, Clone, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityTemporalMetadata {
     /// The interval during which this entity version was decided to be inserted or considered
     /// relevant by the decision maker.
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "LeftClosedTemporalInterval"))]
     pub decision_time: LeftClosedTemporalInterval<DecisionTime>,
 
     /// The interval during which this entity version was recorded in the system.
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "LeftClosedTemporalInterval"))]
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }

@@ -27,7 +27,7 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 use tokio_postgres::Row;
-use type_system::knowledge::{Entity, Value};
+use type_system::knowledge::{Entity, PropertyValue};
 
 pub use self::{
     compile::{SelectCompiler, SelectCompilerError},
@@ -146,7 +146,7 @@ where
                 .iter()
                 .zip(&cursor.values)
                 .map(|(sorting_record, parameter)| {
-                    let expression = (*parameter != CursorField::Json(Value::Null))
+                    let expression = (*parameter != CursorField::Json(PropertyValue::Null))
                         .then(|| compiler.add_parameter(parameter));
                     compiler.add_cursor_selection(
                         &sorting_record.path,

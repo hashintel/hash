@@ -1,12 +1,16 @@
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+  OntologyTypeVersion,
+  PropertyType,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
 import {
   atLeastOne,
   extractVersion,
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
-import type {
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
@@ -15,14 +19,9 @@ import {
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-  OntologyElementMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { OntologyElementMetadata } from "@local/hash-graph-types/ontology";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -61,12 +60,12 @@ import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 
 type EntityTypeProps = {
-  ownedById?: OwnedById | null;
+  webId?: WebId | null;
   draftEntityType?: EntityTypeWithMetadata | null;
   entityTypeBaseUrl?: BaseUrl;
   isInSlide: boolean;
   onEntityTypeUpdated?: (entityType: EntityTypeWithMetadata) => void;
-  requestedVersion: number | null;
+  requestedVersion: OntologyTypeVersion | null;
 };
 
 const TypeDefinition = ({
@@ -120,7 +119,7 @@ const TypeDefinition = ({
 };
 
 export const EntityType = ({
-  ownedById,
+  webId,
   draftEntityType,
   entityTypeBaseUrl,
   isInSlide,
@@ -150,7 +149,7 @@ export const EntityType = ({
   ] = useEntityTypeValue(
     entityTypeBaseUrl ?? null,
     requestedVersion,
-    ownedById ?? null,
+    webId ?? null,
     (fetchedEntityType) => {
       // Load the initial form data after the entity type has been fetched
       reset({
@@ -367,7 +366,10 @@ export const EntityType = ({
     const res = await updateEntityTypes(
       {
         ...rootType,
-        allOf: [{ $ref: linkEntityTypeUrl }, ...(rootType.allOf ?? [])],
+        allOf: [
+          { $ref: blockProtocolEntityTypes.link.entityTypeId },
+          ...(rootType.allOf ?? []),
+        ],
       },
       dependents,
     );

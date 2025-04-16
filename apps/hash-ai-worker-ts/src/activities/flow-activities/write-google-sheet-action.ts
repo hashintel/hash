@@ -1,3 +1,7 @@
+import type {
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@blockprotocol/type-system";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
@@ -5,11 +9,7 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type {
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   createDefaultAuthorizationRelationships,
@@ -162,7 +162,8 @@ export const writeGoogleSheetAction: FlowActionActivity<{
           any: dataToWrite.persistedEntities
             .map((persistedEntity) =>
               persistedEntity.entity
-                ? new Entity(persistedEntity.entity).metadata.recordId.entityId
+                ? new HashEntity(persistedEntity.entity).metadata.recordId
+                    .entityId
                 : undefined,
             )
             .filter(isNotNullish)
@@ -364,7 +365,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
   const webBotActorId = await getWebMachineActorId(
     { graphApi: graphApiClient },
     { actorId: userAccountId },
-    { ownedById: webId },
+    { webId },
   );
 
   const provenance: ProvidedEntityEditionProvenance = {
@@ -382,7 +383,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     filter: {
       all: [
         {
-          equal: [{ path: ["ownedById"] }, { parameter: webId }],
+          equal: [{ path: ["webId"] }, { parameter: webId }],
         },
         {
           equal: [
@@ -400,7 +401,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     graphApiClient,
   });
 
-  let entityToReturn: Entity;
+  let entityToReturn: HashEntity;
   if (existingEntity) {
     const { existingEntityIsDraft, isExactMatch, patchOperations } =
       getEntityUpdate({
@@ -426,20 +427,20 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       actorId: userAccountId,
     });
 
-    entityToReturn = await Entity.create<GoogleSheetsFile>(
+    entityToReturn = await HashEntity.create<GoogleSheetsFile>(
       graphApiClient,
       { actorId: webBotActorId },
       {
         entityTypeIds: [googleEntityTypes.googleSheetsFile.entityTypeId],
         properties: fileProperties,
         draft: false,
-        ownedById: webId,
+        webId,
         relationships: authRelationships,
         provenance,
       },
     );
 
-    await Entity.create<AssociatedWithAccount>(
+    await HashEntity.create<AssociatedWithAccount>(
       graphApiClient,
       { actorId: webBotActorId },
       {
@@ -447,7 +448,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         entityTypeIds: [
           systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId,
         ],
-        ownedById: webId,
+        webId,
         linkData: {
           leftEntityId: entityToReturn.metadata.recordId.entityId,
           rightEntityId: googleAccount.metadata.recordId.entityId,

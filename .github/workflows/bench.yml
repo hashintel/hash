@@ -89,7 +89,7 @@ jobs:
 
       - name: Cache Rust dependencies
         if: github.event_name == 'pull_request'
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
           workspaces: ${{ matrix.path }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
@@ -161,7 +161,7 @@ jobs:
 
       - name: Upload benchmark summary
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
           path: /tmp/${{ env.TRIMMED_PACKAGE_NAME }}.md
@@ -207,7 +207,7 @@ jobs:
 
       - name: Cache Rust dependencies
         if: github.event_name == 'pull_request'
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
           workspaces: ${{ matrix.path }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
@@ -290,7 +290,7 @@ jobs:
 
       - name: Upload benchmark summary
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
           path: /tmp/${{ env.TRIMMED_PACKAGE_NAME }}.md
@@ -318,7 +318,7 @@ jobs:
           [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@c33737706dea87cd7784c687dadc9adf1be59990
+        uses: rtCamp/action-slack-notify@de074c669d871fbd0f57101c6968c140ceab1818
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
@@ -335,7 +335,7 @@ jobs:
 
       - name: Download reports' artifacts
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           path: downloads
 

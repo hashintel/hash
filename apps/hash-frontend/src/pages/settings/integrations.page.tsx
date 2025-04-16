@@ -4,7 +4,7 @@ import type { FunctionComponent } from "react";
 import { useContext } from "react";
 
 import { isProduction } from "../../lib/config";
-import { extractOwnedById } from "../../lib/user-and-org";
+import { extractWebId } from "../../lib/user-and-org";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { Link } from "../../shared/ui";
 import { Button } from "../../shared/ui/button";
@@ -63,7 +63,7 @@ const AddNewIntegrations: FunctionComponent = () => {
       </Typography>
       <Stack direction="row" gap={2}>
         <IntegrationCard
-          href={`${apiOrigin}/oauth/linear?ownedById=${extractOwnedById(
+          href={`${apiOrigin}/oauth/linear?webId=${extractWebId(
             activeWorkspace,
           )}`}
           name="Linear"

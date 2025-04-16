@@ -1,7 +1,8 @@
-import type { EntityType } from "@blockprotocol/type-system";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import type { BaseUrl, EntityType } from "@blockprotocol/type-system";
+import {
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import type { MigrationFunction } from "../types";
@@ -112,7 +113,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has",
         description: "Something that something has",
       },

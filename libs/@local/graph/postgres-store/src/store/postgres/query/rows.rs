@@ -1,10 +1,7 @@
 use hash_graph_temporal_versioning::{
     DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime,
 };
-use hash_graph_types::{
-    Embedding,
-    account::{AccountGroupId, AccountId},
-};
+use hash_graph_types::Embedding;
 use postgres_types::ToSql;
 use time::OffsetDateTime;
 use type_system::{
@@ -17,7 +14,7 @@ use type_system::{
         },
         property::{
             PropertyObject,
-            metadata::{PropertyMetadataObject, PropertyProvenance},
+            metadata::{PropertyObjectMetadata, PropertyProvenance},
         },
     },
     ontology::{
@@ -28,7 +25,7 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeUuid},
         provenance::OntologyEditionProvenance,
     },
-    web::OwnedById,
+    web::{ActorGroupId, WebId},
 };
 
 use crate::store::postgres::query::Table;
@@ -40,13 +37,13 @@ pub trait PostgresRow: ToSql + Sized {
 #[derive(Debug, ToSql)]
 #[postgres(name = "account_groups")]
 pub struct AccountGroupRow {
-    pub account_group_id: AccountGroupId,
+    pub account_group_id: ActorGroupId,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "accounts")]
 pub struct AccountRow {
-    pub account_id: AccountId,
+    pub account_id: EntityUuid,
 }
 
 #[derive(Debug, ToSql)]
@@ -83,7 +80,7 @@ pub struct DataTypeRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_drafts")]
 pub struct EntityDraftRow {
-    pub web_id: OwnedById,
+    pub web_id: WebId,
     pub entity_uuid: EntityUuid,
     pub draft_id: DraftId,
 }
@@ -96,13 +93,13 @@ pub struct EntityEditionRow {
     pub archived: bool,
     pub confidence: Option<Confidence>,
     pub provenance: EntityEditionProvenance,
-    pub property_metadata: PropertyMetadataObject,
+    pub property_metadata: PropertyObjectMetadata,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_embeddings")]
 pub struct EntityEmbeddingRow {
-    pub web_id: OwnedById,
+    pub web_id: WebId,
     pub entity_uuid: EntityUuid,
     pub draft_id: Option<DraftId>,
     pub property: Option<String>,
@@ -114,9 +111,9 @@ pub struct EntityEmbeddingRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_has_left_entity")]
 pub struct EntityHasLeftEntityRow {
-    pub web_id: OwnedById,
+    pub web_id: WebId,
     pub entity_uuid: EntityUuid,
-    pub left_web_id: OwnedById,
+    pub left_web_id: WebId,
     pub left_entity_uuid: EntityUuid,
     pub confidence: Option<Confidence>,
     pub provenance: PropertyProvenance,
@@ -131,9 +128,9 @@ impl PostgresRow for EntityHasLeftEntityRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_has_right_entity")]
 pub struct EntityHasRightEntityRow {
-    pub web_id: OwnedById,
+    pub web_id: WebId,
     pub entity_uuid: EntityUuid,
-    pub right_web_id: OwnedById,
+    pub right_web_id: WebId,
     pub right_entity_uuid: EntityUuid,
     pub confidence: Option<Confidence>,
     pub provenance: PropertyProvenance,
@@ -148,7 +145,7 @@ impl PostgresRow for EntityHasRightEntityRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_ids")]
 pub struct EntityIdRow {
-    pub web_id: OwnedById,
+    pub web_id: WebId,
     pub entity_uuid: EntityUuid,
     pub provenance: InferredEntityProvenance,
 }
@@ -164,7 +161,7 @@ pub struct EntityIsOfTypeRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_temporal_metadata")]
 pub struct EntityTemporalMetadataRow {
-    pub web_id: OwnedById,
+    pub web_id: WebId,
     pub entity_uuid: EntityUuid,
     pub draft_id: Option<DraftId>,
     pub entity_edition_id: EntityEditionId,
@@ -228,7 +225,7 @@ pub struct OntologyIdRow {
 #[postgres(name = "ontology_owned_metadata")]
 pub struct OntologyOwnedMetadataRow {
     pub ontology_id: OntologyTypeUuid,
-    pub web_id: OwnedById,
+    pub web_id: WebId,
 }
 
 #[derive(Debug, ToSql)]
@@ -278,5 +275,5 @@ pub struct PropertyTypeConstrainsPropertiesOnRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "webs")]
 pub struct WebRow {
-    pub web_id: OwnedById,
+    pub web_id: WebId,
 }

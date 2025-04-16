@@ -31,10 +31,10 @@
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
     "@local/hash-isomorphic-utils": "0.0.0-private",
-    "@mui/material": "5.16.14",
+    "@mui/material": "5.17.1",
     "echarts": "5.6.0",
     "lodash.debounce": "4.0.8",
-    "react-hook-form": "7.54.2"
+    "react-hook-form": "7.55.0"
   },
   "devDependencies": {
     "@emotion/react": "11.14.0",
@@ -42,14 +42,14 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.debounce": "4.0.9",
-    "@types/react-dom": "19.0.4",
+    "@types/react-dom": "19.1.2",
     "@types/react-is": "19.0.0",
     "block-scripts": "0.3.4",
     "eslint": "9.20.1",
     "mock-block-dock": "0.1.9",
     "prettier": "3.5.3",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
     "typescript": "5.7.3"
   },
   "peerDependencies": {

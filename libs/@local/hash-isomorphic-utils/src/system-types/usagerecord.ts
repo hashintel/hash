@@ -2,8 +2,8 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { ObjectMetadata } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   AppliesFromPropertyValue,
@@ -237,7 +237,7 @@ export type UsageRecord = {
 
 export type UsageRecordCreatedLink = {
   linkEntity: Created;
-  rightEntity: Entity;
+  rightEntity: HashEntity;
 };
 
 export type UsageRecordIncurredInLink = {
@@ -283,5 +283,5 @@ export type UsageRecordRecordsUsageOfLink = {
 
 export type UsageRecordUpdatedLink = {
   linkEntity: Updated;
-  rightEntity: Entity;
+  rightEntity: HashEntity;
 };

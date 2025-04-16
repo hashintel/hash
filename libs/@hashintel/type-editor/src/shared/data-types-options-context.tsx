@@ -5,7 +5,7 @@ import type {
   TupleConstraints,
   ValueConstraints,
   VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 import {
   faList,
   faListCheck,

@@ -18,7 +18,7 @@ export const dataTypeTypedef = gql`
       inheritsFrom: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
       latestOnly: Boolean = true
-    ): Subgraph!
+    ): GqlSubgraph!
 
     """
     Get a subgraph rooted at an data type resolved by its versioned URL.
@@ -27,7 +27,7 @@ export const dataTypeTypedef = gql`
       dataTypeId: VersionedUrl!
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
-    ): Subgraph!
+    ): GqlSubgraph!
 
     getDataTypeConversionTargets(
       dataTypeIds: [VersionedUrl!]!
@@ -43,7 +43,7 @@ export const dataTypeTypedef = gql`
 
 
   extend type Mutation {
-    createDataType(ownedById: OwnedById!, dataType: ConstructDataTypeParams!, conversions: DataTypeDirectConversionsMap): DataTypeWithMetadata!
+    createDataType(webId: WebId!, dataType: ConstructDataTypeParams!, conversions: DataTypeDirectConversionsMap): DataTypeWithMetadata!
     updateDataType(dataTypeId: VersionedUrl!, dataType: ConstructDataTypeParams!, conversions: DataTypeDirectConversionsMap): DataTypeWithMetadata!
     archiveDataType(dataTypeId: VersionedUrl!): OntologyTemporalMetadata!
     unarchiveDataType(dataTypeId: VersionedUrl!): OntologyTemporalMetadata!

@@ -1,11 +1,11 @@
-import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import type {
+  ActorEntityUuid,
   OriginProvenance,
   ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  WebId,
+} from "@blockprotocol/type-system";
+import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { LocalFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -17,8 +17,8 @@ import { graphApiClient } from "../shared/graph-api-client.js";
 
 type PersistFlowActivityParams = {
   flow: LocalFlowRun;
-  userAuthentication: { actorId: AccountId };
-  webId: OwnedById;
+  userAuthentication: { actorId: ActorEntityUuid };
+  webId: WebId;
 };
 
 export const persistFlowActivity = async (
@@ -59,8 +59,8 @@ export const persistFlowActivity = async (
       provenance,
     });
   } else {
-    await Entity.create<FlowRun>(graphApiClient, userAuthentication, {
-      ownedById: webId,
+    await HashEntity.create<FlowRun>(graphApiClient, userAuthentication, {
+      webId,
       entityUuid: flowRunId,
       entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
       properties: flowRunProperties,

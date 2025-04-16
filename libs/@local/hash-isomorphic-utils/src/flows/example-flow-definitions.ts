@@ -1,4 +1,4 @@
-import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { EntityUuid } from "@blockprotocol/type-system";
 
 import type {
   InputNameForAction,
@@ -147,7 +147,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
           kind: "hardcoded",
           payload: {
             kind: "ActorType",
-            value: "human",
+            value: "user",
           },
         },
         {
@@ -309,7 +309,7 @@ export const researchEntitiesFlowDefinition: FlowDefinition = {
           kind: "hardcoded",
           payload: {
             kind: "ActorType",
-            value: "human",
+            value: "user",
           },
         },
         {
@@ -745,7 +745,7 @@ export const answerQuestionFlow: FlowDefinition = {
           kind: "hardcoded",
           payload: {
             kind: "ActorType",
-            value: "human",
+            value: "user",
           },
         },
         {

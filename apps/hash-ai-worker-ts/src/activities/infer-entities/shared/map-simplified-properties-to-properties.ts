@@ -1,9 +1,9 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
+  BaseUrl,
   PropertyObject,
   PropertyValue,
-} from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+} from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export type PropertyValueWithSimplifiedProperties =
   | PropertyValue
@@ -16,7 +16,7 @@ export type PropertiesObjectWithSimplifiedProperties = {
 const mapSimplifiedPropertyValueToPropertyValue = (params: {
   simplifiedPropertyValue: PropertyValueWithSimplifiedProperties;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
-}): Entity["properties"][BaseUrl] => {
+}): HashEntity["properties"][BaseUrl] => {
   const { simplifiedPropertyValue, simplifiedPropertyTypeMappings } = params;
 
   if (
@@ -62,17 +62,17 @@ const mapSimplifiedPropertyValueToPropertyValue = (params: {
         }),
       };
     },
-    {} as Entity["properties"],
+    {} as HashEntity["properties"],
   );
 };
 
 export const mapSimplifiedPropertiesToProperties = (params: {
   simplifiedProperties: Record<string, PropertyValueWithSimplifiedProperties>;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
-}): Entity["properties"] => {
+}): HashEntity["properties"] => {
   const { simplifiedProperties, simplifiedPropertyTypeMappings } = params;
 
-  return Object.entries(simplifiedProperties).reduce<Entity["properties"]>(
+  return Object.entries(simplifiedProperties).reduce<HashEntity["properties"]>(
     (acc, [simplifiedId, value]) => {
       const baseUrl = simplifiedPropertyTypeMappings[simplifiedId];
 
@@ -90,6 +90,6 @@ export const mapSimplifiedPropertiesToProperties = (params: {
         }),
       };
     },
-    {} as Entity["properties"],
+    {} as HashEntity["properties"],
   );
 };

@@ -1,12 +1,13 @@
-import type { EntityId } from "../../entity.js";
-import { isEntityRecordId } from "../../entity.js";
-import { isOntologyTypeRecordId } from "../../ontology.js";
 import type {
+  EntityId,
   LimitedTemporalBound,
   TemporalBound,
-  TimeInterval,
+  TemporalInterval,
   Timestamp,
-} from "../../temporal-versioning.js";
+} from "@blockprotocol/type-system";
+
+import { isEntityRecordId } from "../../entity.js";
+import { isOntologyTypeRecordId } from "../../ontology.js";
 import {
   isKnowledgeGraphEdgeKind,
   isOntologyEdgeKind,
@@ -34,7 +35,7 @@ export type EntityIdWithTimestamp = {
  */
 export type EntityIdWithInterval = {
   entityId: EntityId;
-  interval: TimeInterval<LimitedTemporalBound, TemporalBound>;
+  interval: TemporalInterval<LimitedTemporalBound, TemporalBound>;
 };
 
 export type OutwardEdge = OntologyOutwardEdge | KnowledgeGraphOutwardEdge;

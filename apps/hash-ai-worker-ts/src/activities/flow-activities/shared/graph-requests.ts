@@ -1,23 +1,23 @@
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
+  ActorEntityUuid,
   EntityId,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
-} from "@local/hash-graph-types/entity";
+} from "@blockprotocol/type-system";
+import {
+  extractDraftIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  extractDraftIdFromEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import isEqual from "lodash/isEqual.js";
 
 import type { ExistingEntityForMatching } from "../../shared/match-existing-entity.js";
@@ -31,13 +31,13 @@ import type { ExistingEntityForMatching } from "../../shared/match-existing-enti
 
 export const getLatestEntityById = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorEntityUuid };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
-  const [ownedById, entityUuid] = splitEntityId(entityId);
+  const [webId, entityUuid] = splitEntityId(entityId);
 
   const response = await graphApiClient.getEntitySubgraph(
     authentication.actorId,
@@ -48,7 +48,7 @@ export const getLatestEntityById = async (params: {
             equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
           },
           {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            equal: [{ path: ["webId"] }, { parameter: webId }],
           },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],

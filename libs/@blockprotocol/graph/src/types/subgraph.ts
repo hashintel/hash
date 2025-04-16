@@ -1,7 +1,10 @@
-import type { Entity } from "./entity.js";
-import type { DataTypeWithMetadata } from "./ontology/data-type.js";
-import type { EntityTypeWithMetadata } from "./ontology/entity-type.js";
-import type { PropertyTypeWithMetadata } from "./ontology/property-type.js";
+import type {
+  DataTypeWithMetadata,
+  Entity,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
+
 import type { Edges } from "./subgraph/edges.js";
 import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 import type { SubgraphTemporalAxes } from "./subgraph/temporal-axes.js";
@@ -33,9 +36,9 @@ export type EntityTypeRootType = {
   element: EntityTypeWithMetadata;
 };
 
-export type EntityRootType = {
+export type EntityRootType<EntityImpl extends Entity = Entity> = {
   vertexId: EntityVertexId;
-  element: Entity;
+  element: EntityImpl;
 };
 
 export type SubgraphRootType =
@@ -44,9 +47,12 @@ export type SubgraphRootType =
   | EntityTypeRootType
   | EntityRootType;
 
-export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
+export type Subgraph<
+  RootType extends SubgraphRootType = SubgraphRootType,
+  EntityImpl extends Entity = Entity,
+> = {
   roots: RootType["vertexId"][];
-  vertices: Vertices;
+  vertices: Vertices<EntityImpl>;
   edges: Edges;
   depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;

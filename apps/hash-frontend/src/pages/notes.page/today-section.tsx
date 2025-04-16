@@ -1,5 +1,5 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box, Collapse, Divider } from "@mui/material";
 import { format } from "date-fns";
 import { forwardRef, Fragment, useMemo, useState } from "react";
@@ -25,8 +25,8 @@ import { TimestampColumn } from "./timestamp-column";
 export const TodaySection = forwardRef<
   HTMLDivElement,
   {
-    quickNoteEntities?: Entity[];
-    quickNotesSubgraph?: Subgraph<EntityRootType> | null;
+    quickNoteEntities?: HashEntity[];
+    quickNotesSubgraph?: Subgraph<EntityRootType<HashEntity>> | null;
     refetchQuickNotes: () => Promise<void>;
     navigateDown?: () => void;
   }
@@ -36,7 +36,7 @@ export const TodaySection = forwardRef<
     ref,
   ) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [creatingQuickNote, setCreatingQuickNote] = useState<Entity>();
+    const [creatingQuickNote, setCreatingQuickNote] = useState<HashEntity>();
 
     const latestQuickNoteEntityWithEmptyContents = useMemo(() => {
       if (!quickNoteEntities || typeof quickNotesSubgraph === "undefined") {

@@ -1,12 +1,15 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
-
-import type { Entity, EntityId, EntityRecordId } from "../entity.js";
 import type {
+  BaseUrl,
   DataTypeWithMetadata,
+  Entity,
+  EntityId,
+  EntityRecordId,
   EntityTypeWithMetadata,
   OntologyTypeRecordId,
   PropertyTypeWithMetadata,
-} from "../ontology.js";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+
 import type { EntityIdWithInterval } from "./edges.js";
 import type { EntityIdWithTimestamp } from "./edges/outward-edge.js";
 import type {

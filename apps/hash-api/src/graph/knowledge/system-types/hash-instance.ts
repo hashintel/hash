@@ -1,11 +1,10 @@
+import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   getHashInstance,
   getHashInstanceFromEntity,
 } from "@local/hash-backend-utils/hash-instance";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { HASHInstance as HashInstanceEntity } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
@@ -70,7 +69,7 @@ export const createHashInstance: ImpureGraphFunction<
   );
 
   const entity = await createEntity<HashInstanceEntity>(ctx, authentication, {
-    ownedById: hashOrg.accountGroupId as OwnedById,
+    webId: hashOrg.accountGroupId as WebId,
     properties: {
       value: {
         "https://hash.ai/@h/types/property-type/pages-are-enabled/": {
@@ -185,7 +184,7 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
  */
 export const getHashInstanceGroupMembers: ImpureGraphFunction<
   Record<string, never>,
-  Promise<AccountId[]>
+  Promise<ActorEntityUuid[]>
 > = async (ctx, authentication) => {
   const hashInstance = await getHashInstance(ctx, authentication);
 
@@ -209,7 +208,9 @@ export const getHashInstanceGroupMembers: ImpureGraphFunction<
     entityAdmin.subjectId,
   );
 
-  return relations.map((relation) => relation.subject.subjectId as AccountId);
+  return relations.map(
+    (relation) => relation.subject.subjectId as ActorEntityUuid,
+  );
 };
 
 /**

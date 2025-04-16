@@ -1,20 +1,17 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
+import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  entityIdFromComponents,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 
 import type { ImpureGraphContext } from "../../graph/context-types";
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
@@ -25,13 +22,12 @@ const supportedLinearEntityTypeIds = linearTypeMappings.map(
   ({ hashEntityTypeId }) => hashEntityTypeId as VersionedUrl,
 );
 
-const supportedLinearLinkEntityTypeIds = linearTypeMappings
-  .map(({ outgoingLinkMappings }) =>
+const supportedLinearLinkEntityTypeIds = linearTypeMappings.flatMap(
+  ({ outgoingLinkMappings }) =>
     outgoingLinkMappings.map(
       ({ linkEntityTypeId }) => linkEntityTypeId as VersionedUrl,
     ),
-  )
-  .flat();
+);
 
 export const supportedLinearTypeIds = [
   ...supportedLinearEntityTypeIds,
@@ -39,7 +35,7 @@ export const supportedLinearTypeIds = [
 ];
 
 export const processEntityChange = async (
-  entity: Entity,
+  entity: HashEntity,
   graphApi: GraphApi,
 ) => {
   const { entityTypeIds } = entity.metadata;
@@ -92,7 +88,7 @@ export const processEntityChange = async (
     : await getLatestEntityById(
         graphContext,
         { actorId: linearMachineActorId },
-        { entityId: new LinkEntity(entity).linkData.leftEntityId },
+        { entityId: new HashLinkEntity(entity).linkData.leftEntityId },
       );
 
   const temporalClient = await createTemporalClient();
@@ -104,7 +100,7 @@ export const processEntityChange = async (
     );
   }
 
-  const owningAccountUuId = extractOwnedByIdFromEntityId(
+  const owningAccountUuId = extractWebIdFromEntityId(
     linearEntityToUpdate.metadata.recordId.entityId,
   );
 
@@ -115,7 +111,7 @@ export const processEntityChange = async (
    */
   const hashWorkspaceEntityId = entityIdFromComponents(
     owningAccountUuId,
-    owningAccountUuId as Uuid as EntityUuid,
+    owningAccountUuId as string as EntityUuid,
   );
 
   const linearApiKey = await getLinearSecretValueByHashWorkspaceId(

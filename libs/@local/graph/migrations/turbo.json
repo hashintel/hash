@@ -1,8 +1,11 @@
 {
   "extends": ["//"],
   "tasks": {
-    "doc:dependency-diagram": {
-      "outputs": ["docs/dependency-diagram.mmd"]
+    "start:migrate:up": {
+      "cache": false
+    },
+    "start:migrate:down": {
+      "cache": false
     }
   }
 }

@@ -21,6 +21,25 @@ pub struct PropertyTypeMetadata {
     pub provenance: OntologyProvenance,
 }
 
+#[cfg(target_arch = "wasm32")]
+#[expect(dead_code, reason = "Used in the generated TypeScript types")]
+mod metadata_patch {
+    use super::*;
+
+    #[derive(tsify_next::Tsify)]
+    #[serde(untagged)]
+    enum PropertyTypeMetadata {
+        #[serde(rename_all = "camelCase")]
+        Impl {
+            record_id: OntologyTypeRecordId,
+            #[serde(flatten)]
+            ownership: OntologyOwnership,
+            temporal_versioning: OntologyTemporalMetadata,
+            provenance: OntologyProvenance,
+        },
+    }
+}
+
 #[cfg(feature = "utoipa")]
 impl ToSchema<'static> for PropertyTypeMetadata {
     fn schema() -> (&'static str, RefOr<Schema>) {
@@ -33,8 +52,8 @@ impl ToSchema<'static> for PropertyTypeMetadata {
                             .title(Some("OwnedPropertyTypeMetadata"))
                             .property("recordId", Ref::from_schema_name("OntologyTypeRecordId"))
                             .required("recordId")
-                            .property("ownedById", Ref::from_schema_name("OwnedById"))
-                            .required("ownedById")
+                            .property("webId", Ref::from_schema_name("WebId"))
+                            .required("webId")
                             .property(
                                 "temporalVersioning",
                                 Ref::from_schema_name("OntologyTemporalMetadata"),
@@ -68,6 +87,18 @@ impl ToSchema<'static> for PropertyTypeMetadata {
 }
 
 pub type PropertyTypeWithMetadata = OntologyTypeWithMetadata<PropertyType>;
+
+#[cfg(target_arch = "wasm32")]
+#[expect(dead_code, reason = "Used in the generated TypeScript types")]
+mod with_metadata_patch {
+    use super::*;
+
+    #[derive(tsify_next::Tsify)]
+    struct PropertyTypeWithMetadata {
+        schema: PropertyType,
+        metadata: PropertyTypeMetadata,
+    }
+}
 
 #[cfg(feature = "utoipa")]
 impl ToSchema<'static> for PropertyTypeWithMetadata {

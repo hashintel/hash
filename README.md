@@ -129,7 +129,7 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 7. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
 
    ```sh
-   yarn external-services up --wait
+   yarn external-services up -d
    ```
 
    1. You can optionally force a rebuild of the Docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.

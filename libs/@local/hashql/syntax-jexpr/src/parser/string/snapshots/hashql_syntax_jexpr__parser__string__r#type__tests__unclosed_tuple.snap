@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Unclosed tuple
+expression: "(Int, String"
+info:
+  kind: Err
+---
+(Int, String
+            ^
+invalid type
+expected `)`

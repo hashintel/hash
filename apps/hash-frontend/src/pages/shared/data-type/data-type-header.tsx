@@ -1,13 +1,13 @@
-import type { DataType } from "@blockprotocol/type-system/slim";
-import { extractVersion } from "@blockprotocol/type-system/slim";
+import type { DataType } from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractVersion,
+  versionedUrlFromComponents,
+} from "@blockprotocol/type-system";
 import {
   ArrowUpRightFromSquareRegularIcon,
   ArrowUpRightIcon,
 } from "@hashintel/design-system";
-import {
-  extractBaseUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 

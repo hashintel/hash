@@ -1,0 +1,33 @@
+[package]
+name              = "hashql-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+hashql-diagnostics = { workspace = true, public = true }
+
+# Public third-party dependencies
+ecow      = { workspace = true, public = true }
+text-size = { workspace = true, public = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+anstyle            = { workspace = true }
+archery            = { workspace = true }
+foldhash           = { workspace = true }
+orx-concurrent-vec = { workspace = true }
+pretty             = { workspace = true }
+rpds               = { workspace = true }
+serde              = { workspace = true, optional = true, features = ["alloc", "derive"] }
+simple-mermaid     = { workspace = true }
+
+[features]
+serde = ["dep:serde", "text-size/serde"]
+
+[lints]
+workspace = true

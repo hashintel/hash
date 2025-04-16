@@ -1,0 +1,22 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Rooted path with access
+expression: "::foo.bar[0]"
+info:
+  kind: Ok
+---
+Expr#4294967040@7
+  ExprKind (Index)
+    IndexExpr#4294967040@7
+      Expr#4294967040@6
+        ExprKind (Field)
+          FieldExpr#4294967040@6 (field: bar)
+            Expr#4294967040@3
+              ExprKind (Path)
+                Path#4294967040@3 (rooted: true)
+                  PathSegment#4294967040@2 (name: foo)
+      Expr#4294967040@5
+        ExprKind (Literal)
+          LiteralExpr#4294967040@5
+            LiteralKind (Integer)
+              IntegerLiteral (0)

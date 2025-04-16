@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Complex operator chain
+expression: "<=>=><=>"
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    value: Symbol(
+        "<=>=><=>",
+    ),
+    kind: Symbol,
+}

@@ -1,12 +1,12 @@
 import { useMutation } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockCollection } from "@local/hash-isomorphic-utils/entity";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
 import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { useApp } from "@tldraw/editor";
 import type { DialogProps } from "@tldraw/tldraw";
 import { useCallback, useState } from "react";
@@ -31,7 +31,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
   const { routeNamespace } = useRouteNamespace();
 
-  const { ownedById } = routeNamespace ?? {};
+  const { webId } = routeNamespace ?? {};
 
   const { pageEntityId } = usePageContext();
 
@@ -52,9 +52,9 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
       const x = app.viewportPageCenter.x - width / 2;
       const y = app.viewportPageCenter.y - height / 2;
 
-      if (!ownedById) {
+      if (!webId) {
         throw new Error(
-          "No ownedById available – possibly routeNamespace is not yet loaded",
+          "No webId available – possibly routeNamespace is not yet loaded",
         );
       }
 
@@ -69,7 +69,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
                   entityTypeIds: blockEntityTypeIds,
                   entityProperties: { value: {} },
                 },
-                ownedById,
+                webId,
                 position: {
                   // These defaults will be overridden when the user draws the shape on the canvas
                   canvasPosition: {
@@ -106,12 +106,14 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         contents:
           data.updateBlockCollectionContents.blockCollection.contents.map(
             (item) => ({
-              linkEntity: new LinkEntity(item.linkEntity) as
-                | LinkEntity<HasIndexedContent>
-                | LinkEntity<HasSpatiallyPositionedContent>,
+              linkEntity: new HashLinkEntity(item.linkEntity) as
+                | HashLinkEntity<HasIndexedContent>
+                | HashLinkEntity<HasSpatiallyPositionedContent>,
               rightEntity: {
                 ...item.rightEntity,
-                blockChildEntity: new Entity(item.rightEntity.blockChildEntity),
+                blockChildEntity: new HashEntity(
+                  item.rightEntity.blockChildEntity,
+                ),
               },
             }),
           ),
@@ -161,7 +163,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         );
       });
     },
-    [ownedById, app, onClose, pageEntityId, updateBlockCollectionContentsFn],
+    [webId, app, onClose, pageEntityId, updateBlockCollectionContentsFn],
   );
 
   return creatingEntity ? (

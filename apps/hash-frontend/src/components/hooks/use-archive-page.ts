@@ -1,9 +1,9 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { useCallback } from "react";
 
 import type {
@@ -24,11 +24,11 @@ export const useArchivePage = () => {
   });
 
   const getRefetchQueries = useCallback((pageEntityId: EntityId) => {
-    const ownedById = extractOwnedByIdFromEntityId(pageEntityId);
+    const webId = extractWebIdFromEntityId(pageEntityId);
     return [
       {
         query: getEntitySubgraphQuery,
-        variables: getAccountPagesVariables({ ownedById }),
+        variables: getAccountPagesVariables({ webId }),
       },
 
       {

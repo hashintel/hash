@@ -1,6 +1,10 @@
-import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
-import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { PropertyTypeRootType } from "@blockprotocol/graph";
+import type {
+  OntologyTemporalMetadata,
+  PropertyTypeWithMetadata,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   defaultPropertyTypeAuthorizationRelationships,
@@ -11,10 +15,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
   serializeSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  PropertyTypeRootType,
-  SerializedSubgraph,
-} from "@local/hash-subgraph";
 
 import {
   archivePropertyType,
@@ -45,13 +45,13 @@ export const createPropertyTypeResolver: ResolverFn<
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const { ownedById, propertyType } = params;
+  const { webId, propertyType } = params;
 
   const createdPropertyType = await createPropertyType(
     context,
     authentication,
     {
-      ownedById: (ownedById ?? user.accountId) as OwnedById,
+      webId: (webId ?? user.accountId) as WebId,
       schema: propertyType,
       relationships: defaultPropertyTypeAuthorizationRelationships,
     },

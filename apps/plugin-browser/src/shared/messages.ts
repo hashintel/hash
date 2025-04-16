@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -7,7 +6,7 @@ export type InferEntitiesRequest = {
   createAs: "draft" | "live";
   entityTypeIds: VersionedUrl[];
   model: InferenceModelName;
-  ownedById: OwnedById;
+  webId: WebId;
   sourceWebPage: WebPage;
   type: "infer-entities";
 };

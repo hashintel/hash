@@ -1,14 +1,14 @@
-import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
-import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type {
-  GraphApi,
+  ActorEntityUuid,
+  EntityId,
   OriginProvenance,
   ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  WebId,
+} from "@blockprotocol/type-system";
+import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
+import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
+import type { GraphApi } from "@local/hash-graph-client";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -43,9 +43,9 @@ export type UsageTrackingParams = {
    * @todo: consider abstracting this in a wrapper method, or via
    * generic params (via a `logUsage` method).
    */
-  userAccountId: AccountId;
+  userAccountId: ActorEntityUuid;
   customMetadata: FlowUsageRecordCustomMetadata | null;
-  webId: OwnedById;
+  webId: WebId;
   graphApiClient: GraphApi;
   incurredInEntities: { entityId: EntityId }[];
 };
@@ -151,7 +151,7 @@ export const getLlmResponse = async <T extends LlmParams>(
   ) {
     const { usage } = llmResponse;
 
-    let usageRecordEntity: Entity;
+    let usageRecordEntity: HashEntity;
 
     try {
       usageRecordEntity = await backOff(
@@ -207,14 +207,14 @@ export const getLlmResponse = async <T extends LlmParams>(
       const errors = await Promise.all(
         incurredInEntities.map(async ({ entityId }) => {
           try {
-            await Entity.create<IncurredIn>(
+            await HashEntity.create<IncurredIn>(
               graphApiClient,
               { actorId: aiAssistantAccountId },
               {
                 draft: false,
                 properties: { value: {} },
                 provenance,
-                ownedById: webId,
+                webId,
                 entityTypeIds: [
                   systemLinkEntityTypes.incurredIn.linkEntityTypeId,
                 ],

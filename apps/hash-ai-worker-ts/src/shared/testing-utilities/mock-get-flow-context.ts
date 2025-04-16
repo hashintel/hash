@@ -1,14 +1,16 @@
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type {
+  ActorEntityUuid,
+  EntityUuid,
+  WebId,
+} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { Context } from "@temporalio/activity";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { vi } from "vitest";
@@ -26,7 +28,7 @@ type DeepPartial<T> = {
         : T[P];
 };
 
-const createDummyFlow = async (params: { actorId: AccountId }) => {
+const createDummyFlow = async (params: { actorId: ActorEntityUuid }) => {
   const { actorId } = params;
 
   const dummyFlowRunProperties = mapFlowRunToEntityProperties({
@@ -39,11 +41,11 @@ const createDummyFlow = async (params: { actorId: AccountId }) => {
     steps: [],
   });
 
-  const dummyFlowEntity = await Entity.create(
+  const dummyFlowEntity = await HashEntity.create(
     graphApiClient,
     { actorId },
     {
-      ownedById: actorId as OwnedById,
+      webId: actorId as WebId,
       entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
       properties: dummyFlowRunProperties,
       provenance: {
@@ -135,7 +137,7 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
               flowTrigger: {
                 triggerDefinitionId: "userTrigger",
               },
-              webId: aliceUserAccountId as OwnedById,
+              webId: aliceUserAccountId as WebId,
               userAuthentication: {
                 actorId: aliceUserAccountId,
               },

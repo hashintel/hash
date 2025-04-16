@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Whitespace inside brackets
+expression: "[ 42 ]"
+info:
+  kind: Ok
+---
+Index(
+    LiteralExpr {
+        id: NodeId(
+            4294967040,
+        ),
+        span: SpanId(
+            1,
+        ),
+        kind: Integer(
+            IntegerLiteral {
+                value: Symbol(
+                    "42",
+                ),
+            },
+        ),
+        type: None,
+    },
+)

@@ -19,12 +19,12 @@ error-stack = { workspace = true, public = true, default-features = false, featu
 
 # Public third-party dependencies
 erased-serde = { workspace = true, public = true, features = ['alloc'] }
+num-traits   = { workspace = true, public = true }
 serde        = { workspace = true, public = true, features = ['alloc', 'derive'] }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-num-traits = { workspace = true }
 
 [dev-dependencies]
 approx          = { workspace = true }

@@ -1,8 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  ActorEntityUuid,
+  EntityId,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -45,10 +47,10 @@ export const inferEntitySummaries = async (params: {
    *
    * @see https://linear.app/hash/issue/H-2621/remove-superfluous-parameters-in-flow-activity-methods-and-use
    */
-  userAccountId: AccountId;
+  userAccountId: ActorEntityUuid;
   graphApiClient: GraphApi;
   flowEntityId?: EntityId;
-  webId: OwnedById;
+  webId: WebId;
 }): Promise<Status<InferenceState>> => {
   const {
     completionPayload,

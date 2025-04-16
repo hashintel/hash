@@ -5,7 +5,7 @@ use error_stack::Report;
 use futures::TryFutureExt as _;
 use hash_graph_authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_graph_types::{account::AccountId, knowledge::entity::EntityEmbedding};
+use hash_graph_types::knowledge::entity::EntityEmbedding;
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::{
@@ -17,12 +17,12 @@ use type_system::{
             provenance::ProvidedEntityEditionProvenance,
         },
         property::{
-            PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
+            PropertyDiff, PropertyObjectWithMetadata, PropertyPatchOperation, PropertyPath,
         },
     },
     ontology::{VersionedUrl, entity_type::ClosedMultiEntityType},
-    provenance::{CreatedById, EditionCreatedById},
-    web::OwnedById,
+    provenance::ActorEntityUuid,
+    web::WebId,
 };
 #[cfg(feature = "utoipa")]
 use utoipa::{
@@ -128,7 +128,7 @@ impl Default for ValidateEntityComponents {
     bound(deserialize = "R: Deserialize<'de>")
 )]
 pub struct CreateEntityParams<R> {
-    pub owned_by_id: OwnedById,
+    pub web_id: WebId,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub entity_uuid: Option<EntityUuid>,
@@ -137,7 +137,7 @@ pub struct CreateEntityParams<R> {
     pub decision_time: Option<Timestamp<DecisionTime>>,
     #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
     pub entity_type_ids: HashSet<VersionedUrl>,
-    pub properties: PropertyWithMetadataObject,
+    pub properties: PropertyObjectWithMetadata,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
@@ -156,7 +156,7 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub entity_types: EntityValidationType<'a>,
     #[serde(borrow)]
-    pub properties: Cow<'a, PropertyWithMetadataObject>,
+    pub properties: Cow<'a, PropertyObjectWithMetadata>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,
@@ -243,13 +243,13 @@ pub struct GetEntitiesResponse<'r> {
     pub definitions: Option<EntityTypeResolveDefinitions>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub web_ids: Option<HashMap<OwnedById, usize>>,
+    pub web_ids: Option<HashMap<WebId, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub created_by_ids: Option<HashMap<CreatedById, usize>>,
+    pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
+    pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub type_ids: Option<HashMap<VersionedUrl, usize>>,
@@ -284,9 +284,9 @@ pub struct GetEntitySubgraphResponse<'r> {
     pub count: Option<usize>,
     pub closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
     pub definitions: Option<EntityTypeResolveDefinitions>,
-    pub web_ids: Option<HashMap<OwnedById, usize>>,
-    pub created_by_ids: Option<HashMap<CreatedById, usize>>,
-    pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
+    pub web_ids: Option<HashMap<WebId, usize>>,
+    pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
+    pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     pub type_ids: Option<HashMap<VersionedUrl, usize>>,
     pub type_titles: Option<HashMap<VersionedUrl, String>>,
 }
@@ -379,15 +379,15 @@ pub trait EntityStore {
     /// # Errors:
     ///
     /// - if the [`EntityType`] doesn't exist
-    /// - if the [`PropertyWithMetadataObject`] is not valid with respect to the specified
+    /// - if the [`PropertyObjectWithMetadata`] is not valid with respect to the specified
     ///   [`EntityType`]
-    /// - if the account referred to by `owned_by_id` does not exist
+    /// - if the account referred to by `web_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     fn create_entity<R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorEntityUuid,
         params: CreateEntityParams<R>,
     ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send
     where
@@ -404,7 +404,7 @@ pub trait EntityStore {
     /// Creates new [`Entities`][Entity].
     fn create_entities<R>(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorEntityUuid,
         params: Vec<CreateEntityParams<R>>,
     ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send
     where
@@ -417,7 +417,7 @@ pub trait EntityStore {
     /// - if the validation failed
     fn validate_entity(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorEntityUuid,
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
     ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send {
@@ -431,7 +431,7 @@ pub trait EntityStore {
     /// - if the validation failed
     fn validate_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorEntityUuid,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send;
@@ -443,7 +443,7 @@ pub trait EntityStore {
     /// - if the requested [`Entities`][Entity] cannot be retrieved
     fn get_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorEntityUuid,
         params: GetEntitiesParams<'_>,
     ) -> impl Future<Output = Result<GetEntitiesResponse<'static>, Report<QueryError>>> + Send;
 
@@ -454,7 +454,7 @@ pub trait EntityStore {
     /// - if the requested [`Entities`][Entity] cannot be retrieved
     fn get_entity_subgraph(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorEntityUuid,
         params: GetEntitySubgraphParams<'_>,
     ) -> impl Future<Output = Result<GetEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
 
@@ -467,13 +467,13 @@ pub trait EntityStore {
     /// [`get_entity`]: Self::get_entity_subgraph
     fn count_entities(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorEntityUuid,
         params: CountEntitiesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
     fn get_entity_by_id(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorEntityUuid,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -481,13 +481,13 @@ pub trait EntityStore {
 
     fn patch_entity(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorEntityUuid,
         params: PatchEntityParams,
     ) -> impl Future<Output = Result<Entity, Report<UpdateError>>> + Send;
 
     fn diff_entity(
         &self,
-        actor_id: AccountId,
+        actor_id: ActorEntityUuid,
         params: DiffEntityParams,
     ) -> impl Future<Output = Result<DiffEntityResult<'static>, Report<QueryError>>> + Send
     where
@@ -552,7 +552,7 @@ pub trait EntityStore {
 
     fn update_entity_embeddings(
         &mut self,
-        actor_id: AccountId,
+        actor_id: ActorEntityUuid,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 

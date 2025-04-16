@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Array with missing commas
+expression: "[1 2 3]"
+---
+[ 1 2 3 ]

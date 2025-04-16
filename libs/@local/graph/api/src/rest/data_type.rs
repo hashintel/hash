@@ -52,11 +52,10 @@ use type_system::{
         json_schema::{DomainValidator, JsonSchemaValueType, ValidateOntologyType as _},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    web::OwnedById,
+    web::WebId,
 };
 use utoipa::{OpenApi, ToSchema};
 
-use super::api_resource::RoutedResource;
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, RestApiStore,
     json::Json,
@@ -126,9 +125,9 @@ use crate::rest::{
 )]
 pub(crate) struct DataTypeResource;
 
-impl RoutedResource for DataTypeResource {
+impl DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<S, A>() -> Router
+    pub(crate) fn routes<S, A>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
@@ -182,7 +181,7 @@ impl RoutedResource for DataTypeResource {
 struct CreateDataTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfDataType,
-    owned_by_id: OwnedById,
+    web_id: WebId,
     relationships: Vec<DataTypeRelationAndSubject>,
     provenance: ProvidedOntologyEditionProvenance,
     conversions: HashMap<BaseUrl, Conversions>,
@@ -194,7 +193,7 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created data type", body = MaybeListOfDataTypeMetadata),
@@ -233,7 +232,7 @@ where
 
     let Json(CreateDataTypeRequest {
         schema,
-        owned_by_id,
+        web_id,
         relationships,
         provenance,
         conversions,
@@ -253,7 +252,7 @@ where
 
                     Ok(CreateDataTypeParams {
                         schema,
-                        ownership: OntologyOwnership::Local { owned_by_id },
+                        ownership: OntologyOwnership::Local { web_id },
                         relationships: relationships.clone(),
                         conflict_behavior: ConflictBehavior::Fail,
                         provenance: provenance.clone(),
@@ -294,7 +293,7 @@ enum LoadExternalDataTypeRequest {
     request_body = LoadExternalDataTypeRequest,
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the loaded data type", body = DataTypeMetadata),
@@ -390,7 +389,7 @@ where
     request_body = GetDataTypesParams,
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (
@@ -465,7 +464,7 @@ struct GetDataTypeSubgraphResponse {
     request_body = GetDataTypeSubgraphParams,
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (
@@ -538,7 +537,7 @@ where
     request_body = GetDataTypeConversionTargetsParams,
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (
@@ -596,7 +595,7 @@ struct UpdateDataTypeRequest {
     path = "/data-types",
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = DataTypeMetadata),
@@ -664,7 +663,7 @@ where
     path = "/data-types/bulk",
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated data types", body = [DataTypeMetadata]),
@@ -736,7 +735,7 @@ where
     path = "/data-types/embeddings",
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, content_type = "application/json", description = "The embeddings were created"),
@@ -788,7 +787,7 @@ where
     path = "/data-types/archive",
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = OntologyTemporalMetadata),
@@ -851,7 +850,7 @@ where
     path = "/data-types/unarchive",
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The temporal metadata of the updated data type", body = OntologyTemporalMetadata),
@@ -923,7 +922,7 @@ struct ModifyDataTypeAuthorizationRelationship {
     tag = "DataType",
     request_body = [ModifyDataTypeAuthorizationRelationship],
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, description = "The relationship was modified for the data"),
@@ -996,7 +995,7 @@ where
     path = "/data-types/{data_type_id}/relationships",
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("data_type_id" = VersionedUrl, Path, description = "The Data type to read the relations for"),
     ),
     responses(
@@ -1047,7 +1046,7 @@ where
     path = "/data-types/{data_type_id}/permissions/{permission}",
     tag = "DataType",
     params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("data_type_id" = VersionedUrl, Path, description = "The data type ID to check if the actor has the permission"),
         ("permission" = DataTypePermission, Path, description = "The permission to check for"),
     ),

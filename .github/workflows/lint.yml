@@ -91,7 +91,7 @@ jobs:
 
       - name: Cache Rust dependencies
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
           workspaces: ${{ matrix.path }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
@@ -148,7 +148,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@6bb031afdd8eb862ea3fc1848194185e076637e5 # v3.28.11
+        uses: github/codeql-action/upload-sarif@45775bd8235c68ba998cffa5171334d58593da47 # v3.28.15
         if: always() && steps.lints.outputs.has-rust == 'true'
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
@@ -187,7 +187,7 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
@@ -200,7 +200,7 @@ jobs:
       - name: Validate Dependency Diagrams
         if: ${{ success() || failure() }}
         run: |
-          yarn doc:dependency-diagram
+          mise run doc:dependency-diagram
           git --no-pager diff --exit-code --color '**/docs/dependency-diagram.mmd'
 
       - name: Run yarn lint:constraints
@@ -367,7 +367,7 @@ jobs:
           [[ ${{ needs.global.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@c33737706dea87cd7784c687dadc9adf1be59990
+        uses: rtCamp/action-slack-notify@de074c669d871fbd0f57101c6968c140ceab1818
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

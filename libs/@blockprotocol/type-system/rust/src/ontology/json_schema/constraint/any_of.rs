@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 use super::{
     Constraint, ConstraintError, ConstraintValidator, SingleValueSchema, ValueConstraints,
 };
-use crate::{knowledge::Value, ontology::data_type::schema::ResolveClosedDataTypeError};
+use crate::{knowledge::PropertyValue, ontology::data_type::schema::ResolveClosedDataTypeError};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AnyOfConstraints {
     #[cfg_attr(
@@ -94,16 +94,16 @@ impl Constraint for AnyOfConstraints {
     }
 }
 
-impl ConstraintValidator<Value> for AnyOfConstraints {
+impl ConstraintValidator<PropertyValue> for AnyOfConstraints {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &Value) -> bool {
+    fn is_valid(&self, value: &PropertyValue) -> bool {
         self.any_of
             .iter()
             .any(|schema| schema.constraints.is_valid(value))
     }
 
-    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &PropertyValue) -> Result<(), Report<ConstraintError>> {
         let mut status = ReportSink::<ConstraintError>::new();
         for schema in &self.any_of {
             if status

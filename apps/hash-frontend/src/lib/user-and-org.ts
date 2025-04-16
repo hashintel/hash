@@ -1,11 +1,25 @@
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import {
+  getIncomingLinksForEntity,
+  getLeftEntityForLinkEntity,
+  getOutgoingLinkAndTargetEntities,
+  getOutgoingLinksForEntity,
+  getRightEntityForLinkEntity,
+  intervalCompareWithInterval,
+  intervalForTimestamp,
+} from "@blockprotocol/graph/stdlib";
 import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  ActorEntityUuid,
+  ActorGroupId,
+  BaseUrl,
+  Entity,
+  LinkEntity,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
@@ -22,22 +36,6 @@ import type {
   ServiceAccount,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
-import type {
-  AccountEntityId,
-  AccountGroupEntityId,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { extractAccountGroupId, extractAccountId } from "@local/hash-subgraph";
-import {
-  getIncomingLinksForEntity,
-  getLeftEntityForLinkEntity,
-  getOutgoingLinkAndTargetEntities,
-  getOutgoingLinksForEntity,
-  getRightEntityForLinkEntity,
-  intervalCompareWithInterval,
-  intervalForTimestamp,
-} from "@local/hash-subgraph/stdlib";
 
 import type { UserPreferences } from "../shared/use-user-preferences";
 
@@ -52,9 +50,9 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entity: orgEntity,
-    accountGroupId: extractAccountGroupId(
-      orgEntity.metadata.recordId.entityId as AccountGroupEntityId,
-    ),
+    accountGroupId: extractWebIdFromEntityId(
+      orgEntity.metadata.recordId.entityId,
+    ) as ActorGroupId,
     name: organizationName,
     ...(pinnedEntityTypeBaseUrl !== undefined
       ? {
@@ -68,7 +66,7 @@ export const constructMinimalOrg = (params: {
 export type MinimalUser = {
   kind: "user";
   entity: Entity<UserEntity>;
-  accountId: AccountId;
+  accountId: ActorEntityUuid;
   accountSignupComplete: boolean;
   enabledFeatureFlags: FeatureFlag[];
   pinnedEntityTypeBaseUrls?: BaseUrl[];
@@ -101,10 +99,10 @@ export const constructMinimalUser = (params: {
   return {
     kind: "user",
     entity: userEntity,
-    // Cast reason: The EntityUuid of a User's baseId is an AccountId
-    accountId: extractAccountId(
-      userEntity.metadata.recordId.entityId as AccountEntityId,
-    ),
+    // Cast reason: The WebId of a User's baseId is an ActorEntityUuid
+    accountId: extractWebIdFromEntityId(
+      userEntity.metadata.recordId.entityId,
+    ) as ActorEntityUuid,
     accountSignupComplete,
     ...simpleProperties,
     enabledFeatureFlags,
@@ -163,7 +161,7 @@ export const constructOrg = (params: {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     orgEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter(({ linkEntity }) =>
     linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
@@ -182,7 +180,7 @@ export const constructOrg = (params: {
   const hasBioLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     orgEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter(({ linkEntity }) =>
     linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasBio.linkEntityTypeId,
@@ -201,7 +199,7 @@ export const constructOrg = (params: {
   const orgMemberships = getIncomingLinksForEntity(
     subgraph,
     orgEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter((linkEntity): linkEntity is LinkEntity<IsMemberOf> =>
     linkEntity.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
@@ -212,7 +210,7 @@ export const constructOrg = (params: {
     const userEntityRevisions = getLeftEntityForLinkEntity(
       subgraph,
       linkEntity.metadata.recordId.entityId,
-      intervalForTimestamp(new Date().toISOString() as Timestamp),
+      intervalForTimestamp(currentTimestamp()),
     );
 
     if (!userEntityRevisions || userEntityRevisions.length === 0) {
@@ -286,7 +284,7 @@ export type User = MinimalUser & {
   hasServiceAccounts: UserServiceAccount[];
   joinedAt: Date;
   memberOf: {
-    linkEntity: Entity<IsMemberOf>;
+    linkEntity: LinkEntity;
     org: Org;
   }[];
   preferences?: UserPreferences;
@@ -333,7 +331,7 @@ export const constructUser = (params: {
     getOutgoingLinksForEntity(
       subgraph,
       userEntity.metadata.recordId.entityId,
-      intervalForTimestamp(new Date().toISOString() as Timestamp),
+      intervalForTimestamp(currentTimestamp()),
     ).filter((linkEntity) =>
       linkEntity.metadata.entityTypeIds.includes(
         systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
@@ -358,7 +356,7 @@ export const constructUser = (params: {
     const orgEntityRevisions = getRightEntityForLinkEntity(
       subgraph,
       metadata.recordId.entityId,
-      intervalForTimestamp(new Date().toISOString() as Timestamp),
+      intervalForTimestamp(currentTimestamp()),
     );
 
     if (!orgEntityRevisions || orgEntityRevisions.length === 0) {
@@ -391,7 +389,7 @@ export const constructUser = (params: {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter(({ linkEntity }) =>
     linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
@@ -410,7 +408,7 @@ export const constructUser = (params: {
   const coverImageLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter(({ linkEntity }) =>
     linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
@@ -429,7 +427,7 @@ export const constructUser = (params: {
   const hasBioLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   ).filter(({ linkEntity }) =>
     linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasBio.linkEntityTypeId,
@@ -449,7 +447,7 @@ export const constructUser = (params: {
   const hasServiceAccounts = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(new Date().toISOString() as Timestamp),
+    intervalForTimestamp(currentTimestamp()),
   )
     .filter(({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeIds.includes(
@@ -502,8 +500,8 @@ export const constructUser = (params: {
 
 export type MinimalOrg = {
   kind: "org";
-  entity: Entity;
-  accountGroupId: AccountGroupId;
+  entity: Entity<Organization>;
+  accountGroupId: ActorGroupId;
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   description?: string;
   location?: string;
@@ -520,9 +518,7 @@ export const isOrg = (
   userOrOrg: MinimalUser | MinimalOrg,
 ): userOrOrg is MinimalOrg => "accountGroupId" in userOrOrg;
 
-export const extractOwnedById = (
-  userOrOrg: MinimalUser | MinimalOrg,
-): OwnedById =>
+export const extractWebId = (userOrOrg: MinimalUser | MinimalOrg): WebId =>
   isUser(userOrOrg)
-    ? (userOrOrg.accountId as OwnedById)
-    : (userOrOrg.accountGroupId as OwnedById);
+    ? (userOrOrg.accountId as WebId)
+    : (userOrOrg.accountGroupId as WebId);

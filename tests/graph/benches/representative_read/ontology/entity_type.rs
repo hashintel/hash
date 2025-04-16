@@ -8,10 +8,9 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
-use hash_graph_types::account::AccountId;
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
-use type_system::ontology::VersionedUrl;
+use type_system::{ontology::VersionedUrl, provenance::ActorEntityUuid};
 
 use crate::util::Store;
 
@@ -19,7 +18,7 @@ pub fn bench_get_entity_type_by_id<A: AuthorizationApi>(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
-    actor_id: AccountId,
+    actor_id: ActorEntityUuid,
     entity_type_ids: &[VersionedUrl],
 ) {
     bencher.to_async(runtime).iter_batched(

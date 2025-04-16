@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { WebId } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   pageOrNotificationNotArchivedFilter,
@@ -7,10 +7,10 @@ import {
 import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 
 export const getAccountPagesVariables = ({
-  ownedById,
+  webId,
   includeArchived = false,
 }: {
-  ownedById?: OwnedById;
+  webId?: WebId;
   includeArchived?: boolean;
 }) => ({
   request: {
@@ -18,7 +18,7 @@ export const getAccountPagesVariables = ({
       all: [
         pageEntityTypeFilter,
         {
-          equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+          equal: [{ path: ["webId"] }, { parameter: webId }],
         },
         ...(includeArchived ? [] : [pageOrNotificationNotArchivedFilter]),
       ],

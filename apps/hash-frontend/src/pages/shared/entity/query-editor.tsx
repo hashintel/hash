@@ -1,8 +1,9 @@
-import type { Entity as EntityBp, MultiFilter } from "@blockprotocol/graph";
+import type { MultiFilter } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { Entity as EntityBp } from "@blockprotocol/type-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Stack, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useCallback, useState } from "react";
@@ -85,6 +86,7 @@ export const QueryEditor = (props: QueryEditorProps) => {
       <EntityHeader
         entityLabel={entityLabel}
         isInSlide={isInSlide}
+        isLocalDraft={false}
         onDraftArchived={() => {
           throw new Error(
             "Unexpected call to onDraftArchived from query editor",

@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Unclosed bracket
+expression: "[42"
+info:
+  kind: Err
+---
+[42
+   ^
+invalid index
+expected `]`

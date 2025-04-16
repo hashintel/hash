@@ -1,4 +1,4 @@
-import { Backdrop, Box, Slide } from "@mui/material";
+import { Backdrop, Box, Portal, Slide } from "@mui/material";
 import type {
   Dispatch,
   FunctionComponent,
@@ -62,9 +62,9 @@ const StackSlide = ({
       <Box
         ref={slideRef}
         sx={{
-          height: "100vh",
+          height: "100%",
           width: SLIDE_WIDTH,
-          position: "absolute",
+          position: "fixed",
           top: 0,
           right: 0,
           overflowY: "scroll",
@@ -99,20 +99,23 @@ const StackSlide = ({
 
 export const SlideStack: FunctionComponent<{
   currentIndex: number;
+  closeSlideStack: () => void;
   items: { item: SlideItem; ref: RefObject<HTMLDivElement | null> }[];
   replaceItem: (item: SlideItem) => void;
   removeItem: () => void;
-  setCurrentIndex: Dispatch<SetStateAction<number>>;
-  setItems: (
-    items: { item: SlideItem; ref: RefObject<HTMLDivElement | null> }[],
-  ) => void;
+  setItems: Dispatch<
+    SetStateAction<{
+      items: { item: SlideItem; ref: RefObject<HTMLDivElement | null> }[];
+      currentIndex: number;
+    }>
+  >;
   slideContainerRef: RefObject<HTMLDivElement | null> | null;
 }> = ({
   currentIndex,
+  closeSlideStack,
   items,
   removeItem,
   replaceItem,
-  setCurrentIndex,
   setItems,
   slideContainerRef,
 }) => {
@@ -121,98 +124,120 @@ export const SlideStack: FunctionComponent<{
   useScrollLock(items.length > 0);
 
   const handleBack = useCallback(() => {
-    setCurrentIndex((prevIndex) => Math.max(prevIndex - 1, 0));
-  }, [setCurrentIndex]);
+    setItems((prev) => ({
+      currentIndex: Math.max(prev.currentIndex - 1, 0),
+      items: prev.items,
+    }));
+  }, [setItems]);
 
   const handleForward = useCallback(() => {
-    setCurrentIndex((prevIndex) => Math.min(prevIndex + 1, items.length - 1));
-  }, [items.length, setCurrentIndex]);
+    setItems((prev) => ({
+      currentIndex: Math.min(prev.currentIndex + 1, items.length - 1),
+      items: prev.items,
+    }));
+  }, [items.length, setItems]);
 
   const handleClose = useCallback(() => {
     setAnimateOut(true);
 
     setTimeout(() => {
       setAnimateOut(false);
-      setItems([]);
+      closeSlideStack();
     }, 200);
-  }, [setAnimateOut, setItems]);
+  }, [closeSlideStack, setAnimateOut]);
 
   return (
-    <Backdrop
-      open={items.length > 0 && !animateOut}
-      onClick={handleClose}
-      sx={{ zIndex: ({ zIndex }) => zIndex.drawer + 2 }}
-    >
-      {items.slice(0, currentIndex + 1).map(({ item, ref }, index) => (
-        <StackSlide
-          // eslint-disable-next-line react/no-array-index-key
-          key={`${index}-${item.itemId}`}
-          item={item}
-          open={!animateOut}
-          onBack={index > 0 ? handleBack : undefined}
-          onForward={index < items.length - 1 ? handleForward : undefined}
-          onClose={handleClose}
-          removeItem={removeItem}
-          replaceItem={replaceItem}
-          slideRef={ref}
-          slideContainerRef={slideContainerRef}
-          stackPosition={index}
-        />
-      ))}
-    </Backdrop>
+    <Portal container={slideContainerRef?.current ?? undefined}>
+      <Backdrop
+        open={items.length > 0 && !animateOut}
+        onClick={handleClose}
+        sx={{ zIndex: ({ zIndex }) => zIndex.drawer + 2 }}
+      >
+        {items.slice(0, currentIndex + 1).map(({ item, ref }, index) => (
+          <StackSlide
+            // eslint-disable-next-line react/no-array-index-key
+            key={`${index}-${item.itemId}`}
+            item={item}
+            open={!animateOut}
+            onBack={index > 0 ? handleBack : undefined}
+            onForward={index < items.length - 1 ? handleForward : undefined}
+            onClose={handleClose}
+            removeItem={removeItem}
+            replaceItem={replaceItem}
+            slideRef={ref}
+            slideContainerRef={slideContainerRef}
+            stackPosition={index}
+          />
+        ))}
+      </Backdrop>
+    </Portal>
   );
 };
 
 export const SlideStackProvider = ({
   children,
+  rewriteSlideItemOverride,
 }: {
   children: React.ReactNode;
+  /**
+   * If provided, this function will be called with the item to be added to the slide stack.
+   * It can then undergo transformations before being added to the slide stack.
+   * The use case that prompted this is Flow outputs, where some entities are not in the db, and are in a 'proposed' state.
+   * For these entities, we need to manually provide the subgraph to the EntitySlide.
+   * The Flow outputs component (outputs.tsx) achieves this by wrapping components that might add to a stack with its own SlideStackProvider,
+   * and can intercept calls for entities being added to the stack, check if they're 'proposed', and if so, provide the subgraph.
+   */
+  rewriteSlideItemOverride?: (item: SlideItem) => SlideItem;
 }) => {
-  const [items, setItems] = useState<
-    { item: SlideItem; ref: RefObject<HTMLDivElement | null> }[]
-  >([]);
+  const [{ items, currentIndex }, setItems] = useState<{
+    currentIndex: number;
+    items: { item: SlideItem; ref: RefObject<HTMLDivElement | null> }[];
+  }>({ currentIndex: 0, items: [] });
 
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [slideContainerRef, setSlideContainerRef] =
     useState<RefObject<HTMLDivElement | null> | null>(null);
 
   if (currentIndex > 0 && items.length === 0) {
-    setCurrentIndex(0);
+    setItems({ currentIndex: 0, items: [] });
   }
 
   const pushToSlideStack = useCallback(
-    (item: SlideItem) => {
-      setItems((prev) => [
-        ...prev.slice(0, currentIndex + 1),
-        { item, ref: createRef() },
-      ]);
+    (uncheckedItem: SlideItem) => {
+      const item = rewriteSlideItemOverride?.(uncheckedItem) ?? uncheckedItem;
 
-      if (items.length === 0) {
-        setCurrentIndex(0);
-      } else {
-        setCurrentIndex((prevIndex) => prevIndex + 1);
-      }
+      setItems((prev) => {
+        return {
+          currentIndex: Math.min(prev.currentIndex + 1, prev.items.length),
+          items: [
+            ...prev.items.slice(0, prev.currentIndex + 1),
+            { item, ref: createRef() },
+          ],
+        };
+      });
     },
-    [currentIndex, items.length],
+    [rewriteSlideItemOverride],
   );
 
-  const replaceItem = useCallback(
-    (item: SlideItem) => {
-      setItems((prev) => [
-        ...prev.slice(0, currentIndex),
-        { item, ref: createRef() },
-      ]);
-    },
-    [currentIndex],
-  );
+  const replaceItem = useCallback((item: SlideItem) => {
+    setItems((prev) => {
+      return {
+        currentIndex: prev.currentIndex,
+        items: [...prev.items.slice(0, 1), { item, ref: createRef() }],
+      };
+    });
+  }, []);
 
   const removeItem = useCallback(() => {
-    setItems((prev) => prev.slice(0, currentIndex));
-    setCurrentIndex((prevIndex) => Math.max(prevIndex - 1, 0));
-  }, [currentIndex]);
+    setItems((prev) => {
+      return {
+        currentIndex: Math.max(prev.currentIndex - 1, 0),
+        items: prev.items.slice(0, 1),
+      };
+    });
+  }, []);
 
   const closeSlideStack = useCallback(() => {
-    setItems([]);
+    setItems({ currentIndex: 0, items: [] });
   }, []);
 
   const value = useMemo(
@@ -236,17 +261,15 @@ export const SlideStackProvider = ({
   return (
     <SlideStackContext.Provider value={value}>
       {children}
-      {items.length > 0 && (
-        <SlideStack
-          currentIndex={currentIndex}
-          items={items}
-          removeItem={removeItem}
-          replaceItem={replaceItem}
-          setCurrentIndex={setCurrentIndex}
-          setItems={setItems}
-          slideContainerRef={slideContainerRef}
-        />
-      )}
+      <SlideStack
+        closeSlideStack={closeSlideStack}
+        currentIndex={currentIndex}
+        items={items}
+        removeItem={removeItem}
+        replaceItem={replaceItem}
+        setItems={setItems}
+        slideContainerRef={slideContainerRef}
+      />
     </SlideStackContext.Provider>
   );
 };

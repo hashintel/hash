@@ -21,10 +21,10 @@ use hash_graph_temporal_versioning::TemporalBound;
 use time::OffsetDateTime;
 use type_system::{
     knowledge::{
-        Value,
+        PropertyValue,
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{
-            PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
+            PropertyObjectWithMetadata, PropertyValueWithMetadata, PropertyWithMetadata,
             metadata::ObjectMetadata,
         },
         value::{ValueMetadata, metadata::ValueProvenance},
@@ -35,7 +35,7 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::{DatabaseTestWrapper, data_type_relationships};
@@ -56,12 +56,12 @@ async fn insert() {
         CreateDataTypeParams {
             schema: boolean_dt,
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -88,12 +88,12 @@ async fn query() {
         CreateDataTypeParams {
             schema: list_v1.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -180,12 +180,12 @@ async fn inheritance() {
         CreateDataTypeParams {
             schema: centimeter_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -284,7 +284,7 @@ async fn inheritance() {
             schema: centimeter_dt_v2.clone(),
             relationships: data_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -302,21 +302,21 @@ async fn inheritance() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl::from_str(
                     "http://localhost:3000/@alice/types/entity-type/line/v/1",
                 )
                 .expect("couldn't construct Base URL")]),
-                properties: PropertyWithMetadataObject {
+                properties: PropertyObjectWithMetadata {
                     value: HashMap::from([(
                         BaseUrl::new(
                             "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                         )
                         .expect("couldn't construct Base URL"),
-                        PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                            value: Value::Number(Real::from(5)),
+                        PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                            value: PropertyValue::Number(Real::from(5)),
                             metadata: ValueMetadata {
                                 provenance: ValueProvenance::default(),
                                 confidence: None,
@@ -333,7 +333,7 @@ async fn inheritance() {
                 draft: false,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -349,21 +349,21 @@ async fn inheritance() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            web_id: WebId::new(api.account_id.into_uuid()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([VersionedUrl::from_str(
                 "http://localhost:3000/@alice/types/entity-type/line/v/1",
             )
             .expect("couldn't construct Base URL")]),
-            properties: PropertyWithMetadataObject {
+            properties: PropertyObjectWithMetadata {
                 value: HashMap::from([(
                     BaseUrl::new(
                         "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
-                    PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: Value::Number(Real::from(10)),
+                    PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                        value: PropertyValue::Number(Real::from(10)),
                         metadata: ValueMetadata {
                             provenance: ValueProvenance::default(),
                             confidence: None,
@@ -380,7 +380,7 @@ async fn inheritance() {
             draft: false,
             relationships: [],
             provenance: ProvidedEntityEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -394,21 +394,21 @@ async fn inheritance() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            web_id: WebId::new(api.account_id.into_uuid()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([VersionedUrl::from_str(
                 "http://localhost:3000/@alice/types/entity-type/line/v/1",
             )
             .expect("couldn't construct Base URL")]),
-            properties: PropertyWithMetadataObject {
+            properties: PropertyObjectWithMetadata {
                 value: HashMap::from([(
                     BaseUrl::new(
                         "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
-                    PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: Value::Number(Real::from(10)),
+                    PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                        value: PropertyValue::Number(Real::from(10)),
                         metadata: ValueMetadata {
                             provenance: ValueProvenance::default(),
                             confidence: None,
@@ -425,7 +425,7 @@ async fn inheritance() {
             draft: false,
             relationships: [],
             provenance: ProvidedEntityEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -454,12 +454,12 @@ async fn update() {
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -475,7 +475,7 @@ async fn update() {
             schema: object_dt_v2.clone(),
             relationships: data_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -557,12 +557,12 @@ async fn insert_same_base_url() {
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -578,12 +578,12 @@ async fn insert_same_base_url() {
             CreateDataTypeParams {
                 schema: object_dt_v1.clone(),
                 ownership: OntologyOwnership::Local {
-                    owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                    web_id: WebId::new(api.account_id.into_uuid()),
                 },
                 relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -603,12 +603,12 @@ async fn insert_same_base_url() {
             CreateDataTypeParams {
                 schema: object_dt_v2.clone(),
                 ownership: OntologyOwnership::Local {
-                    owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                    web_id: WebId::new(api.account_id.into_uuid()),
                 },
                 relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -633,7 +633,7 @@ async fn insert_same_base_url() {
                 relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -658,7 +658,7 @@ async fn insert_same_base_url() {
                 relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -695,7 +695,7 @@ async fn wrong_update_order() {
                 schema: object_dt_v1.clone(),
                 relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -714,12 +714,12 @@ async fn wrong_update_order() {
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -736,7 +736,7 @@ async fn wrong_update_order() {
                 schema: object_dt_v1.clone(),
                 relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -756,7 +756,7 @@ async fn wrong_update_order() {
             schema: object_dt_v2.clone(),
             relationships: data_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -773,7 +773,7 @@ async fn wrong_update_order() {
                 schema: object_dt_v2.clone(),
                 relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -812,7 +812,7 @@ async fn update_external_with_owned() {
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -829,7 +829,7 @@ async fn update_external_with_owned() {
                 schema: object_dt_v2.clone(),
                 relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -853,7 +853,7 @@ async fn update_external_with_owned() {
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -870,7 +870,7 @@ async fn update_external_with_owned() {
                 schema: object_dt_v2,
                 relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },

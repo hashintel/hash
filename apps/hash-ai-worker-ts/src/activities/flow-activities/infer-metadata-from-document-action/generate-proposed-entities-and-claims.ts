@@ -1,15 +1,14 @@
 import type {
-  PropertyProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type {
+  ActorEntityUuid,
   EntityId,
   EntityUuid,
-  PropertyMetadataObject,
-} from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  PropertyObjectMetadata,
+  PropertyProvenance,
+  ProvidedEntityEditionProvenance,
+  WebId,
+} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -29,7 +28,6 @@ import type {
   PersonProperties,
   TextDataTypeMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
 
 import { getFlowContext } from "../../shared/get-flow-context.js";
@@ -42,30 +40,30 @@ const createClaim = async ({
   creatorActorId,
   draft,
   objectText,
-  ownedById,
+  webId,
   propertyProvenance,
   provenance,
   subjectText,
   userActorId,
 }: {
   claimText: string;
-  creatorActorId: AccountId;
+  creatorActorId: ActorEntityUuid;
   draft: boolean;
   objectText: string;
-  ownedById: OwnedById;
+  webId: WebId;
   propertyProvenance: PropertyProvenance;
   provenance: ProvidedEntityEditionProvenance;
   subjectText: string;
-  userActorId: AccountId;
+  userActorId: ActorEntityUuid;
 }) => {
-  return await Entity.create<ClaimEntity>(
+  return await HashEntity.create<ClaimEntity>(
     graphApiClient,
     { actorId: creatorActorId },
     {
       draft,
       entityUuid: generateUuid() as EntityUuid,
       entityTypeIds: ["https://hash.ai/@h/types/entity-type/claim/v/1"],
-      ownedById,
+      webId,
       provenance,
       relationships: createDefaultAuthorizationRelationships({
         actorId: userActorId,
@@ -112,7 +110,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   provenance,
   propertyProvenance,
 }: {
-  aiAssistantAccountId: AccountId;
+  aiAssistantAccountId: ActorEntityUuid;
   documentMetadata: Pick<DocumentData, "authors">;
   documentEntityId: EntityId;
   documentTitle: string;
@@ -133,7 +131,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     provenance: propertyProvenance,
   };
 
-  const nameOnlyPropertyMetadata: PropertyMetadataObject = {
+  const nameOnlyPropertyMetadata: PropertyObjectMetadata = {
     value: {
       [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: {
         metadata:
@@ -188,7 +186,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       creatorActorId: aiAssistantAccountId,
       draft: createEntitiesAsDraft,
       objectText: documentTitle,
-      ownedById: webId,
+      webId,
       propertyProvenance,
       provenance,
       subjectText: authorName,
@@ -198,13 +196,13 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     /**
      * Create the link between the existing document entity and the claim (document is the object)
      */
-    await LinkEntity.create<HasObject>(
+    await HashLinkEntity.create<HasObject>(
       graphApiClient,
       { actorId: aiAssistantAccountId },
       {
         draft: createEntitiesAsDraft,
         entityTypeIds: [systemLinkEntityTypes.hasObject.linkEntityTypeId],
-        ownedById: webId,
+        webId,
         provenance,
         linkData: {
           leftEntityId: authorToDocClaim.entityId,
@@ -304,7 +302,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
         creatorActorId: aiAssistantAccountId,
         draft: createEntitiesAsDraft,
         objectText: affiliateName,
-        ownedById: webId,
+        webId,
         propertyProvenance,
         provenance,
         subjectText: authorName,

@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { WebId } from "@blockprotocol/type-system";
 import type { EditorState } from "prosemirror-state";
 import type { DirectEditorProps } from "prosemirror-view";
 import { EditorView } from "prosemirror-view";
@@ -11,7 +11,7 @@ export const createTextEditorView = (
   state: EditorState,
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
-  ownedById: OwnedById,
+  webId: WebId,
   editorProps?: Partial<DirectEditorProps>,
 ) =>
   new EditorView(renderNode, {
@@ -22,6 +22,6 @@ export const createTextEditorView = (
     ),
     nodeViews: {
       ...(editorProps?.nodeViews ?? {}),
-      mention: mentionNodeView(renderPortal, ownedById),
+      mention: mentionNodeView(renderPortal, webId),
     },
   });

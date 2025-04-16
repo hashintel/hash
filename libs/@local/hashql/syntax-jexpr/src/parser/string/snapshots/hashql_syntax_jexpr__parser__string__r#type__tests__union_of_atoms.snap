@@ -1,0 +1,22 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Union of atom types
+expression: Int | String | Boolean
+info:
+  kind: Ok
+---
+Type#4294967040@10
+  TypeKind (Union)
+    UnionType#4294967040@10
+      Type#4294967040@3
+        TypeKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: Int)
+      Type#4294967040@6
+        TypeKind (Path)
+          Path#4294967040@6 (rooted: false)
+            PathSegment#4294967040@5 (name: String)
+      Type#4294967040@9
+        TypeKind (Path)
+          Path#4294967040@9 (rooted: false)
+            PathSegment#4294967040@8 (name: Boolean)

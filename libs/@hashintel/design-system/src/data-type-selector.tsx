@@ -1,17 +1,14 @@
 import {
+  type BaseUrl,
+  componentsFromVersionedUrl,
   type DataType,
   type StringConstraints,
   type VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 // eslint-disable-next-line no-restricted-imports -- TODO needs fixing if this package to be used from npm
-import type {
-  BaseUrl,
-  ClosedDataTypeDefinition,
-} from "@local/hash-graph-types/ontology";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 // eslint-disable-next-line no-restricted-imports -- TODO needs fixing if this package to be used from npm
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
-// eslint-disable-next-line no-restricted-imports -- TODO needs fixing if this package to be used from npm
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   outlinedInputClasses,

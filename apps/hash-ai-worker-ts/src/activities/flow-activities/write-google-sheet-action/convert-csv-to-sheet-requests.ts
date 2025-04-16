@@ -5,7 +5,7 @@ import Papa from "papaparse";
 import { createCellFromValue } from "./shared/create-sheet-data.js";
 
 type SheetOutputFormat = {
-  audience: "human" | "machine";
+  audience: "user" | "machine";
 };
 
 type ParsedCsvRow = (string | number | boolean)[];
@@ -42,7 +42,7 @@ export const convertCsvToSheetRequests = ({
     throw new Error(`CSV content is empty`);
   }
 
-  const humanReadable = format.audience === "human";
+  const humanReadable = format.audience === "user";
 
   const rows: sheets_v4.Schema$RowData[] = [];
 
@@ -65,7 +65,7 @@ export const convertCsvToSheetRequests = ({
       addSheet: {
         properties: {
           gridProperties: {
-            frozenRowCount: format.audience === "human" ? 1 : 0,
+            frozenRowCount: format.audience === "user" ? 1 : 0,
           },
           sheetId,
           title: "Data",

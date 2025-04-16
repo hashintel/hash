@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Empty brackets
+expression: "[]"
+info:
+  kind: Err
+---
+[]
+ ^
+invalid index

@@ -17,17 +17,17 @@ use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::{
-        Value,
+        PropertyValue,
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{
-            PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyWithMetadata,
-            PropertyWithMetadataObject, PropertyWithMetadataValue,
+            PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
+            PropertyPathElement, PropertyValueWithMetadata, PropertyWithMetadata,
         },
         value::{ValueMetadata, metadata::ValueProvenance},
     },
     ontology::{BaseUrl, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
@@ -95,18 +95,18 @@ async fn properties_add() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
                 draft: false,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -125,8 +125,8 @@ async fn properties_add() {
             properties: vec![
                 PropertyPatchOperation::Add {
                     path: once(PropertyPathElement::from(age_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: Value::Number(Real::from(30)),
+                    property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                        value: PropertyValue::Number(Real::from(30)),
                         metadata: ValueMetadata {
                             confidence: None,
                             data_type_id: None,
@@ -138,8 +138,8 @@ async fn properties_add() {
                 },
                 PropertyPatchOperation::Add {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: Value::String("Alice Allison".to_owned()),
+                    property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                        value: PropertyValue::String("Alice Allison".to_owned()),
                         metadata: ValueMetadata {
                             confidence: None,
                             data_type_id: None,
@@ -154,7 +154,7 @@ async fn properties_add() {
             archived: None,
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -198,11 +198,11 @@ async fn properties_add() {
     assert_eq!(properties.len(), 2);
     assert_eq!(
         properties[&name_property_type_id()],
-        Value::String("Alice Allison".to_owned())
+        PropertyValue::String("Alice Allison".to_owned())
     );
     assert_eq!(
         properties[&age_property_type_id()],
-        Value::Number(Real::from(30))
+        PropertyValue::Number(Real::from(30))
     );
 }
 
@@ -215,18 +215,18 @@ async fn properties_remove() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
                 draft: false,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -249,7 +249,7 @@ async fn properties_remove() {
             archived: None,
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -302,18 +302,18 @@ async fn properties_replace() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
                 draft: false,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -331,8 +331,8 @@ async fn properties_replace() {
             entity_type_ids: HashSet::new(),
             properties: vec![PropertyPatchOperation::Replace {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: Value::String("Bob".to_owned()),
+                property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                    value: PropertyValue::String("Bob".to_owned()),
                     metadata: ValueMetadata {
                         confidence: None,
                         data_type_id: None,
@@ -346,7 +346,7 @@ async fn properties_replace() {
             archived: None,
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -390,7 +390,7 @@ async fn properties_replace() {
     assert_eq!(properties.len(), 1);
     assert_eq!(
         properties[&name_property_type_id()],
-        Value::String("Bob".to_owned())
+        PropertyValue::String("Bob".to_owned())
     );
 }
 
@@ -404,18 +404,18 @@ async fn type_ids() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+                properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
                 draft: false,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -436,7 +436,7 @@ async fn type_ids() {
             archived: None,
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -494,7 +494,7 @@ async fn type_ids() {
             archived: None,
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -554,7 +554,7 @@ async fn type_ids() {
             archived: None,
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },

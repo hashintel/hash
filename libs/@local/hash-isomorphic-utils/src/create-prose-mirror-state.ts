@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { WebId } from "@blockprotocol/type-system";
 import { cloneDeep } from "lodash-es";
 import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
@@ -34,11 +34,11 @@ const defaultPlugins: Plugin<unknown>[] = [
 ];
 
 export const createProseMirrorState = ({
-  ownedById,
+  webId,
   doc = createInitialDoc(),
   plugins = [],
 }: {
-  ownedById: OwnedById;
+  webId: WebId;
   doc?: Node;
   // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
   plugins?: Plugin<unknown>[];
@@ -47,7 +47,7 @@ export const createProseMirrorState = ({
     doc,
     plugins: [
       ...defaultPlugins,
-      createEntityStorePlugin({ ownedById }),
+      createEntityStorePlugin({ webId }),
       formatKeymap(doc.type.schema),
       ...plugins,
     ],

@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
+description: Minimum precision double value
+expression: "5e-324"
+---
+5e-324

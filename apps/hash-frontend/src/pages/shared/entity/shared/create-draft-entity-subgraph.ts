@@ -1,16 +1,18 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   EntityRevisionId,
   EntityRootType,
   Subgraph,
-} from "@local/hash-subgraph";
+} from "@blockprotocol/graph";
+import type {
+  BaseUrl,
+  EntityMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 
 export const createDraftEntitySubgraph = ({
   currentSubgraph,
@@ -18,8 +20,8 @@ export const createDraftEntitySubgraph = ({
   entityTypeIds,
   omitProperties,
 }: {
-  currentSubgraph: Subgraph<EntityRootType> | undefined;
-  entity: Entity;
+  currentSubgraph: Subgraph<EntityRootType<HashEntity>> | undefined;
+  entity: HashEntity;
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   omitProperties: BaseUrl[];
 }) => {
@@ -45,7 +47,7 @@ export const createDraftEntitySubgraph = ({
   );
 
   const newEntity = Object.freeze(
-    new Entity({
+    new HashEntity({
       ...entity.toJSON(),
       metadata,
       properties: newProperties,

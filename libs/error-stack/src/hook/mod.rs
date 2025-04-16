@@ -33,7 +33,7 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     report, Report,
+    ///     Report, IntoReport,
     /// };
     ///
     /// struct Suggestion(&'static str);
@@ -43,7 +43,7 @@ impl Report<()> {
     /// });
     ///
     /// let report =
-    ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("oh no, try again"));
+    ///     Error::from(ErrorKind::InvalidInput).into_report().attach(Suggestion("oh no, try again"));
     ///
     /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {
@@ -83,7 +83,7 @@ impl Report<()> {
     /// # mod nightly {
     /// use core::error::{Request, Error};
     /// use core::fmt;
-    /// use error_stack::{Report, report};
+    /// use error_stack::{Report, IntoReport};
     ///
     /// struct Suggestion(&'static str);
     ///
@@ -117,7 +117,7 @@ impl Report<()> {
     ///     context.push_body(format!("error code: {value}"));
     /// });
     ///
-    /// let report = report!(UserError {code: ErrorCode(420)});
+    /// let report = UserError {code: ErrorCode(420)}.into_report();
     ///
     /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {
@@ -160,11 +160,13 @@ impl Report<()> {
     ///     panic::Location,
     /// };
     ///
+    /// use error_stack::IntoReport;
+    ///
     /// error_stack::Report::install_debug_hook::<Location>(|_location, _context| {
     ///     // Intentionally left empty so nothing will be printed
     /// });
     ///
-    /// let report = error_stack::report!(Error::from(ErrorKind::InvalidInput));
+    /// let report = Error::from(ErrorKind::InvalidInput).into_report();
     ///
     /// # error_stack::Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {

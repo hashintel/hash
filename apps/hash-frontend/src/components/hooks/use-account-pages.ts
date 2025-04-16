@@ -1,7 +1,12 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityRootType } from "@blockprotocol/graph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import type { EntityMetadata, WebId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -11,11 +16,6 @@ import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-pro
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
@@ -40,7 +40,7 @@ export type AccountPagesInfo = {
 };
 
 export const useAccountPages = (
-  ownedById?: OwnedById,
+  webId?: WebId,
   includeArchived?: boolean,
 ): AccountPagesInfo => {
   const { hashInstance } = useHashInstance();
@@ -50,10 +50,10 @@ export const useAccountPages = (
     GetEntitySubgraphQueryVariables
   >(getEntitySubgraphQuery, {
     variables: getAccountPagesVariables({
-      ownedById,
+      webId,
       includeArchived,
     }),
-    skip: !ownedById || !hashInstance?.properties.pagesAreEnabled,
+    skip: !webId || !hashInstance?.properties.pagesAreEnabled,
   });
 
   const pages = useMemo<SimplePage[]>(() => {
@@ -64,7 +64,9 @@ export const useAccountPages = (
     }
 
     const typedSubgraph =
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(subgraph);
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
+        subgraph,
+      );
 
     return getRoots(typedSubgraph).map((latestPage) => {
       const pageOutgoingLinks = getOutgoingLinkAndTargetEntities(

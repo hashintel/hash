@@ -17,14 +17,18 @@ import {
   getClosedMultiEntityTypes,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { Logger } from "@local/hash-backend-utils/logger";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  WebId,
+} from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
+import {
+  getClosedMultiEntityTypeFromMap,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -32,15 +36,13 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
+  blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
   systemDataTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -89,13 +91,13 @@ describe("Entity CRU", () => {
 
     await Promise.all([
       createEntityType(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         schema: {
           title: "Friends",
           description: "Friend of",
           type: "object",
           properties: {},
-          allOf: [{ $ref: linkEntityTypeUrl }],
+          allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
         },
         relationships: [
           {
@@ -120,7 +122,7 @@ describe("Entity CRU", () => {
           throw err;
         }),
       createPropertyType(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         schema: {
           title: "Favorite Book",
           description: "The favorite book of a person",
@@ -143,7 +145,7 @@ describe("Entity CRU", () => {
           throw err;
         }),
       createPropertyType(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         schema: {
           title: "Name",
           description: "The name of a person",
@@ -168,7 +170,7 @@ describe("Entity CRU", () => {
     ]);
 
     entityType = await createEntityType(graphContext, authentication, {
-      ownedById: testOrg.accountGroupId as OwnedById,
+      webId: testOrg.accountGroupId as WebId,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
           webShortname: testOrg.shortname,
@@ -216,11 +218,11 @@ describe("Entity CRU", () => {
     };
   });
 
-  let createdEntity: Entity;
+  let createdEntity: HashEntity;
   it("can create an entity", async () => {
     const authentication = { actorId: testUser.accountId };
     createdEntity = await createEntity(graphContext, authentication, {
-      ownedById: testOrg.accountGroupId as OwnedById,
+      webId: testOrg.accountGroupId as WebId,
       properties: {
         value: {
           [namePropertyType.metadata.recordId.baseUrl]: {
@@ -245,7 +247,7 @@ describe("Entity CRU", () => {
   it("can create a multi-type entity", async () => {
     const authentication = { actorId: testUser.accountId };
     await createEntity(graphContext, authentication, {
-      ownedById: testOrg.accountGroupId as OwnedById,
+      webId: testOrg.accountGroupId as WebId,
       properties: {
         value: {
           [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]: {
@@ -361,7 +363,7 @@ describe("Entity CRU", () => {
     }
   });
 
-  let updatedEntity: Entity;
+  let updatedEntity: HashEntity;
   it("can update an entity", async () => {
     expect(createdEntity.metadata.provenance.edition.createdById).toBe(
       testUser.accountId,
@@ -410,7 +412,7 @@ describe("Entity CRU", () => {
           all: [
             {
               equal: [
-                { path: ["ownedById"] },
+                { path: ["webId"] },
                 { parameter: testOrg.accountGroupId },
               ],
             },
@@ -462,7 +464,7 @@ describe("Entity CRU", () => {
       graphContext,
       { actorId: testUser.accountId },
       {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         // First create a new entity given the following definition
         entityTypeIds: [entityType.schema.$id],
         properties: {

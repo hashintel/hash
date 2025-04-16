@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Japanese Unicode identifier
+expression: こんにちは
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    value: Symbol(
+        "こんにちは",
+    ),
+    kind: Lexical,
+}

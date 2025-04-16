@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Empty input (invalid)
+expression: ""
+info:
+  kind: Err
+---
+^
+invalid identifier

@@ -1,3 +1,4 @@
+import type { WebId } from "@blockprotocol/type-system";
 import { faImage } from "@fortawesome/free-regular-svg-icons";
 import {
   Avatar,
@@ -5,7 +6,6 @@ import {
   IconButton,
   RotateRegularIcon,
 } from "@hashintel/design-system";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -146,7 +146,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
       setNewCoverImageUploading(true);
 
       await uploadFile({
-        ownedById: userProfile.accountId as OwnedById,
+        webId: userProfile.accountId as WebId,
         makePublic: true,
         fileData: {
           description: `The cover image for the ${userProfile.displayName} user in HASH`,

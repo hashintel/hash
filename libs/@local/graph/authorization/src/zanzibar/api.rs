@@ -2,14 +2,14 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ReportSink, ResultExt as _};
 use futures::{Stream, TryStreamExt as _};
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use type_system::{
     knowledge::entity::id::{EntityId, EntityUuid},
     ontology::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
-    web::OwnedById,
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, WebId},
 };
 
 use crate::{
@@ -21,9 +21,9 @@ use crate::{
         ModifyRelationshipOperation, ModifyRelationshipResponse, ReadError, ZanzibarBackend,
     },
     schema::{
-        AccountGroupPermission, AccountGroupRelationAndSubject, AccountIdOrPublic,
-        AccountNamespace, DataTypePermission, DataTypeRelationAndSubject, EntityNamespace,
-        EntityPermission, EntityRelationAndSubject, EntitySetting, EntityTypePermission,
+        AccountGroupPermission, AccountGroupRelationAndSubject, AccountNamespace, ActorIdOrPublic,
+        DataTypePermission, DataTypeRelationAndSubject, EntityNamespace, EntityPermission,
+        EntityRelationAndSubject, EntitySetting, EntityTypePermission,
         EntityTypeRelationAndSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
         SettingName, SettingRelationAndSubject, SettingSubject, WebPermission,
         WebRelationAndSubject,
@@ -95,9 +95,9 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_account_group_permission(
         &self,
-        actor: AccountId,
+        actor: ActorEntityUuid,
         permission: AccountGroupPermission,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         self.backend
@@ -108,11 +108,11 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_account_group_relations(
         &self,
-        account_group: AccountGroupId,
+        account_group: ActorGroupId,
         consistency: Consistency<'_>,
     ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
         self.backend
-            .read_relations::<(AccountGroupId, AccountGroupRelationAndSubject)>(
+            .read_relations::<(ActorGroupId, AccountGroupRelationAndSubject)>(
                 RelationshipFilter::from_resource(account_group),
                 consistency,
             )
@@ -129,7 +129,7 @@ where
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                AccountGroupId,
+                ActorGroupId,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,
@@ -151,9 +151,9 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_web_permission(
         &self,
-        actor: AccountId,
+        actor: ActorEntityUuid,
         permission: WebPermission,
-        web: OwnedById,
+        web: WebId,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         self.backend
@@ -165,11 +165,7 @@ where
     async fn modify_web_relations(
         &mut self,
         relationships: impl IntoIterator<
-            Item = (
-                ModifyRelationshipOperation,
-                OwnedById,
-                WebRelationAndSubject,
-            ),
+            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
             IntoIter: Send,
         > + Send,
     ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
@@ -188,11 +184,11 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_web_relations(
         &self,
-        web: OwnedById,
+        web: WebId,
         consistency: Consistency<'static>,
     ) -> Result<Vec<WebRelationAndSubject>, Report<ReadError>> {
         self.backend
-            .read_relations::<(OwnedById, WebRelationAndSubject)>(
+            .read_relations::<(WebId, WebRelationAndSubject)>(
                 RelationshipFilter::from_resource(web),
                 consistency,
             )
@@ -228,7 +224,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_entity_permission(
         &self,
-        actor: AccountId,
+        actor: ActorEntityUuid,
         permission: EntityPermission,
         entity: EntityId,
         consistency: Consistency<'_>,
@@ -241,7 +237,7 @@ where
     #[tracing::instrument(level = "info", skip(self, entities))]
     async fn check_entities_permission(
         &self,
-        actor: AccountId,
+        actor: ActorEntityUuid,
         permission: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -282,7 +278,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_entities(
         &self,
-        actor: AccountId,
+        actor: ActorEntityUuid,
         permission: EntityPermission,
         consistency: Consistency<'_>,
     ) -> Result<Vec<EntityUuid>, Report<ReadError>> {
@@ -298,9 +294,9 @@ where
         entity: EntityUuid,
         permission: EntityPermission,
         consistency: Consistency<'_>,
-    ) -> Result<Vec<AccountIdOrPublic>, Report<ReadError>> {
+    ) -> Result<Vec<ActorIdOrPublic>, Report<ReadError>> {
         self.backend
-            .lookup_subjects::<AccountIdOrPublic, EntityUuid>(
+            .lookup_subjects::<ActorIdOrPublic, EntityUuid>(
                 &AccountNamespace::Account,
                 None,
                 &permission,
@@ -356,7 +352,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_entity_type_permission(
         &self,
-        actor: AccountId,
+        actor: ActorEntityUuid,
         permission: EntityTypePermission,
         entity_type: EntityTypeUuid,
         consistency: Consistency<'_>,
@@ -369,7 +365,7 @@ where
     #[tracing::instrument(level = "info", skip(self, entity_types))]
     async fn check_entity_types_permission(
         &self,
-        actor: AccountId,
+        actor: ActorEntityUuid,
         permission: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -454,7 +450,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_property_type_permission(
         &self,
-        actor: AccountId,
+        actor: ActorEntityUuid,
         permission: PropertyTypePermission,
         property_type: PropertyTypeUuid,
         consistency: Consistency<'_>,
@@ -467,7 +463,7 @@ where
     #[tracing::instrument(level = "info", skip(self, property_types))]
     async fn check_property_types_permission(
         &self,
-        actor: AccountId,
+        actor: ActorEntityUuid,
         permission: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
@@ -550,7 +546,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn check_data_type_permission(
         &self,
-        actor: AccountId,
+        actor: ActorEntityUuid,
         permission: DataTypePermission,
         data_type: DataTypeUuid,
         consistency: Consistency<'_>,
@@ -563,7 +559,7 @@ where
     #[tracing::instrument(level = "info", skip(self, data_types))]
     async fn check_data_types_permission(
         &self,
-        actor: AccountId,
+        actor: ActorEntityUuid,
         permission: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,

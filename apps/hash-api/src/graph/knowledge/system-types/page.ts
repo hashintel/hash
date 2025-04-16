@@ -1,11 +1,10 @@
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type {
   CreateEntityParameters,
-  Entity,
-  LinkEntity,
+  HashEntity,
+  HashLinkEntity,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
   createDefaultAuthorizationRelationships,
@@ -59,12 +58,12 @@ export type Page = {
   fractionalIndex?: string;
   icon?: string;
   archived?: boolean;
-  entity: Entity<Canvas | Document>;
+  entity: HashEntity<Canvas | Document>;
 };
 
 function assertPageEntity(
-  entity: Entity,
-): asserts entity is Entity<Canvas | Document> {
+  entity: HashEntity,
+): asserts entity is HashEntity<Canvas | Document> {
   if (!includesPageEntityTypeId(entity.metadata.entityTypeIds)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -74,9 +73,10 @@ function assertPageEntity(
   }
 }
 
-export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
-  entity,
-}) => {
+export const getPageFromEntity: PureGraphFunction<
+  { entity: HashEntity },
+  Page
+> = ({ entity }) => {
   assertPageEntity(entity);
 
   const { title, summary, fractionalIndex, icon, archived } =
@@ -120,7 +120,7 @@ export const getPageById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createPage: ImpureGraphFunction<
-  Pick<CreateEntityParameters, "ownedById"> & {
+  Pick<CreateEntityParameters, "webId"> & {
     title: string;
     summary?: string;
     prevFractionalIndex?: string;
@@ -129,7 +129,7 @@ export const createPage: ImpureGraphFunction<
   },
   Promise<Page>
 > = async (ctx, authentication, params): Promise<Page> => {
-  const { title, type, summary, prevFractionalIndex, ownedById } = params;
+  const { title, type, summary, prevFractionalIndex, webId } = params;
 
   const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
@@ -164,7 +164,7 @@ export const createPage: ImpureGraphFunction<
   };
 
   const entity = await createEntity<Canvas | Document>(ctx, authentication, {
-    ownedById,
+    webId,
     properties,
     entityTypeIds: [
       type === "document"
@@ -268,7 +268,7 @@ export const isPageArchived: ImpureGraphFunction<
  */
 export const getAllPagesInWorkspace: ImpureGraphFunction<
   {
-    ownedById: OwnedById;
+    webId: WebId;
     includeArchived?: boolean;
     includeDrafts?: boolean;
   },
@@ -276,13 +276,13 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { ownedById, includeArchived = false, includeDrafts = false } = params;
+  const { webId, includeArchived = false, includeDrafts = false } = params;
   const pageEntities = await getEntities(ctx, authentication, {
     filter: {
       all: [
         pageEntityTypeFilter,
         {
-          equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+          equal: [{ path: ["webId"] }, { parameter: webId }],
         },
       ],
     },
@@ -436,7 +436,7 @@ export const setPageParentPage: ImpureGraphFunction<
     }
 
     await createLinkEntity<HasParent>(ctx, authentication, {
-      ownedById: authentication.actorId as OwnedById,
+      webId: authentication.actorId as WebId,
       properties: { value: {} },
       linkData: {
         leftEntityId: page.entity.metadata.recordId.entityId,
@@ -480,7 +480,9 @@ export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
   Promise<
     {
-      linkEntity: LinkEntity<HasIndexedContent | HasSpatiallyPositionedContent>;
+      linkEntity: HashLinkEntity<
+        HasIndexedContent | HasSpatiallyPositionedContent
+      >;
       rightEntity: Block;
     }[]
   >,
@@ -499,8 +501,8 @@ export const getPageBlocks: ImpureGraphFunction<
               .linkEntityTypeId,
     },
   )) as
-    | LinkEntity<HasIndexedContent>[]
-    | LinkEntity<HasSpatiallyPositionedContent>[];
+    | HashLinkEntity<HasIndexedContent>[]
+    | HashLinkEntity<HasSpatiallyPositionedContent>[];
 
   return await Promise.all(
     outgoingBlockDataLinks

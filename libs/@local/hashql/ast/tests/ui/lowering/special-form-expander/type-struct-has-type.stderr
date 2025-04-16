@@ -1,0 +1,11 @@
+[31m[special-form-expander::type-with-existing-annotation] Error:[0m Type expression with redundant type annotation
+   ╭─[ <unknown>:8:15 ]
+   │
+ 8 │     "#type": "(name: String)"
+   │               ───────┬──────  
+   │                      ╰──────── Remove this type annotation
+   │ 
+   │ Help: Type expressions used in special forms cannot have their own type annotations. The expression itself defines a type and cannot be annotated with another type.
+   │ 
+   │ Note: When constructing type expressions for special forms like 'type', 'newtype', or 'is', the expression itself represents a type definition and cannot have a separate type annotation.
+───╯

@@ -1,4 +1,4 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import type { EditorView } from "prosemirror-view";
 import type { FunctionComponent, PropsWithChildren, RefObject } from "react";

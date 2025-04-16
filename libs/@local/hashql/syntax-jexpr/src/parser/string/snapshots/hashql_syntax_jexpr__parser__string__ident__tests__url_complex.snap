@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Complex URL with multiple components
+expression: "`https://sub.many.levels.example.co.uk:8443/very/deep/path/?q=complex&t=true#section/`"
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    value: Symbol(
+        "https://sub.many.levels.example.co.uk:8443/very/deep/path/?q=complex&t=true#section/",
+    ),
+    kind: BaseUrl,
+}

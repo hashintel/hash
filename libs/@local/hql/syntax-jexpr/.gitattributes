@@ -1,4 +1,0 @@
-src/parser/snapshots/*.snap linguist-generated=true
-src/parser/snapshots/ linguist-generated=true
-src/lexer/snapshots/*.snap linguist-generated=true
-src/lexer/snapshots/ linguist-generated=true

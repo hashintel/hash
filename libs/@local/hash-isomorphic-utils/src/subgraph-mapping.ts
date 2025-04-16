@@ -1,4 +1,29 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityRootType,
+  KnowledgeGraphVertex,
+  Subgraph,
+  SubgraphRootType,
+  Vertices,
+} from "@blockprotocol/graph";
+import { isEntityVertex } from "@blockprotocol/graph";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  ClosedEntityType,
+  ClosedMultiEntityType,
+  DataTypeWithMetadata,
+  EntityId,
+  EntityTypeWithMetadata,
+  PropertyObject,
+  PropertyTypeWithMetadata,
+  TypeIdsAndPropertiesForEntity,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  extractWebIdFromEntityId,
+  isEntityId,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   ClosedEntityType as GraphApiClosedEntityType,
@@ -13,37 +38,16 @@ import type {
   Subgraph as GraphApiSubgraph,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type {
-  EntityId,
-  EntityProperties,
-  PropertyObject,
-} from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  ClosedEntityType,
-  ClosedMultiEntityType,
-  DataTypeConversionTargets,
-  DataTypeWithMetadata,
-  EntityTypeResolveDefinitions,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type {
-  KnowledgeGraphVertex,
-  SerializedKnowledgeGraphVertex,
-  SerializedSubgraph,
-  SerializedVertices,
-  Subgraph,
-  SubgraphRootType,
-  Vertices,
-} from "@local/hash-subgraph";
 import {
-  extractOwnedByIdFromEntityId,
-  isEntityId,
-  isEntityVertex,
-} from "@local/hash-subgraph";
+  HashEntity,
+  type SerializedKnowledgeGraphVertex,
+  type SerializedSubgraph,
+  type SerializedVertices,
+} from "@local/hash-graph-sdk/entity";
+import type {
+  DataTypeConversionTargets,
+  EntityTypeResolveDefinitions,
+} from "@local/hash-graph-types/ontology";
 
 import { systemEntityTypes, systemPropertyTypes } from "./ontology-type-ids.js";
 
@@ -51,12 +55,14 @@ const restrictedPropertyBaseUrls: string[] = [
   systemPropertyTypes.email.propertyTypeBaseUrl,
 ];
 
-export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
+export const mapGraphApiEntityToEntity = <
+  T extends TypeIdsAndPropertiesForEntity,
+>(
   entity: GraphApiEntity,
-  userAccountId: AccountId | null,
-  preserveProperties: boolean = false,
+  userAccountId: ActorEntityUuid | null,
+  preserveProperties = false,
 ) =>
-  new Entity<T>({
+  new HashEntity<T>({
     ...entity,
     /**
      * Until cell-level permissions is implemented (H-814), remove user properties that shouldn't be generally visible
@@ -69,12 +75,12 @@ export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
         ? entity.properties
         : Object.entries(entity.properties).reduce<PropertyObject>(
             (acc, [key, value]) => {
-              const ownedById = extractOwnedByIdFromEntityId(
+              const webId = extractWebIdFromEntityId(
                 entity.metadata.recordId.entityId as EntityId,
               );
 
               const requesterOwnsEntity =
-                userAccountId && userAccountId === ownedById;
+                userAccountId && (userAccountId as string as WebId) === webId;
 
               if (
                 !restrictedPropertyBaseUrls.includes(key) ||
@@ -90,8 +96,8 @@ export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
 
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,
-  userAccountId: AccountId | null,
-  preserveProperties: boolean = false,
+  userAccountId: ActorEntityUuid | null,
+  preserveProperties = false,
 ) => {
   return {
     kind: vertex.kind,
@@ -103,7 +109,9 @@ const mapKnowledgeGraphVertex = (
   } as KnowledgeGraphVertex;
 };
 
-const serializeKnowledgeGraphVertex = (vertex: KnowledgeGraphVertex) => {
+const serializeKnowledgeGraphVertex = (
+  vertex: KnowledgeGraphVertex<HashEntity>,
+) => {
   return {
     kind: vertex.kind,
     inner: vertex.inner.toJSON(),
@@ -112,17 +120,17 @@ const serializeKnowledgeGraphVertex = (vertex: KnowledgeGraphVertex) => {
 
 const deserializeKnowledgeGraphVertex = (
   vertex: SerializedKnowledgeGraphVertex,
-) => {
+): KnowledgeGraphVertex<HashEntity> => {
   return {
     kind: vertex.kind,
-    inner: new Entity(vertex.inner),
-  } as KnowledgeGraphVertex;
+    inner: new HashEntity(vertex.inner),
+  };
 };
 
 export const mapGraphApiVerticesToVertices = (
   vertices: VerticesGraphApi,
-  userAccountId: AccountId | null,
-  preserveProperties: boolean = false,
+  userAccountId: ActorEntityUuid | null,
+  preserveProperties = false,
 ) =>
   Object.fromEntries(
     typedEntries(vertices).map(([baseId, inner]) => [
@@ -142,7 +150,7 @@ export const mapGraphApiVerticesToVertices = (
     ]),
   ) as Vertices;
 
-export const serializeGraphVertices = (vertices: Vertices) =>
+export const serializeGraphVertices = (vertices: Vertices<HashEntity>) =>
   Object.fromEntries(
     typedEntries(vertices).map(([baseId, inner]) => [
       baseId,
@@ -157,7 +165,9 @@ export const serializeGraphVertices = (vertices: Vertices) =>
     ]),
   ) as SerializedVertices;
 
-export const deserializeGraphVertices = (vertices: SerializedVertices) =>
+export const deserializeGraphVertices = (
+  vertices: SerializedVertices,
+): Vertices<HashEntity> =>
   Object.fromEntries(
     typedEntries(vertices).map(([baseId, inner]) => [
       baseId,
@@ -170,7 +180,7 @@ export const deserializeGraphVertices = (vertices: SerializedVertices) =>
         ]),
       ),
     ]),
-  ) as Vertices;
+  ) as Vertices<HashEntity>;
 
 /**
  * A mapping function that can be used to map the subgraph returned by the Graph API to the HASH `Subgraph` definition.
@@ -184,9 +194,9 @@ export const mapGraphApiSubgraphToSubgraph = <
   RootType extends SubgraphRootType,
 >(
   subgraph: GraphApiSubgraph,
-  userAccountId: AccountId | null,
-  preserveProperties: boolean = false,
-) => {
+  userAccountId: ActorEntityUuid | null,
+  preserveProperties = false,
+): Subgraph<RootType> => {
   return {
     ...subgraph,
     vertices: mapGraphApiVerticesToVertices(
@@ -205,10 +215,14 @@ export const serializeSubgraph = (subgraph: Subgraph): SerializedSubgraph => ({
   temporalAxes: subgraph.temporalAxes,
 });
 
-export const deserializeSubgraph = <RootType extends SubgraphRootType>(
+export const deserializeSubgraph = <
+  RootType extends
+    | Exclude<SubgraphRootType, EntityRootType>
+    | EntityRootType<HashEntity>,
+>(
   subgraph: SerializedSubgraph,
-): Subgraph<RootType> => ({
-  roots: subgraph.roots,
+): Subgraph<RootType, HashEntity> => ({
+  roots: subgraph.roots as RootType["vertexId"][],
   vertices: deserializeGraphVertices(subgraph.vertices),
   edges: subgraph.edges,
   depths: subgraph.depths,

@@ -12,6 +12,7 @@ use crate::{knowledge::Confidence, ontology::BaseUrl};
 
 #[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ObjectMetadata {
     #[serde(default, skip_serializing_if = "PropertyProvenance::is_empty")]
@@ -30,15 +31,20 @@ impl ObjectMetadata {
 
 #[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PropertyMetadataObject {
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+pub struct PropertyObjectMetadata {
+    /// Metadata for each field in the object.
+    ///
+    /// The keys correspond to the property type URLs used in the object property.
     pub value: HashMap<BaseUrl, PropertyMetadata>,
+
+    /// Metadata that applies to the object as a whole.
     #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
     pub metadata: ObjectMetadata,
 }
 
-impl PropertyMetadataObject {
+impl PropertyObjectMetadata {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.value.is_empty() && self.metadata.is_empty()
@@ -46,7 +52,7 @@ impl PropertyMetadataObject {
 }
 
 #[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for PropertyMetadataObject {
+impl<'a> FromSql<'a> for PropertyObjectMetadata {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Json::from_sql(ty, raw)?.0)
     }
@@ -57,7 +63,7 @@ impl<'a> FromSql<'a> for PropertyMetadataObject {
 }
 
 #[cfg(feature = "postgres")]
-impl ToSql for PropertyMetadataObject {
+impl ToSql for PropertyObjectMetadata {
     postgres_types::to_sql_checked!();
 
     fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>

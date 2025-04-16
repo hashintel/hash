@@ -1,9 +1,17 @@
+import type {
+  ActorGroupId,
+  EntityId,
+  EntityUuid,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractWebIdFromEntityId,
+  versionedUrlFromComponents,
+} from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountGroupId } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -16,12 +24,6 @@ import type {
   OrganizationNamePropertyValueWithMetadata,
   OrganizationPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { AccountGroupEntityId } from "@local/hash-subgraph";
-import { extractAccountGroupId } from "@local/hash-subgraph";
-import {
-  extractBaseUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
 
 import { logger } from "../../../logger";
 import {
@@ -46,16 +48,16 @@ import {
 } from "./account.fields";
 
 export type Org = {
-  accountGroupId: AccountGroupId;
+  accountGroupId: ActorGroupId;
   orgName: string;
   shortname: string;
-  entity: Entity<Organization>;
+  entity: HashEntity<Organization>;
 };
 
 function assertOrganizationEntity(
-  entity: Entity,
-  permitOlderVersions: boolean = false,
-): asserts entity is Entity<Organization> {
+  entity: HashEntity,
+  permitOlderVersions = false,
+): asserts entity is HashEntity<Organization> {
   if (
     !entity.metadata.entityTypeIds.find((entityTypeId) =>
       permitOlderVersions
@@ -73,7 +75,7 @@ function assertOrganizationEntity(
 }
 
 export const getOrgFromEntity: PureGraphFunction<
-  { entity: Entity; permitOlderVersions?: boolean },
+  { entity: HashEntity; permitOlderVersions?: boolean },
   Org
 > = ({ entity, permitOlderVersions }) => {
   assertOrganizationEntity(entity, permitOlderVersions);
@@ -83,9 +85,9 @@ export const getOrgFromEntity: PureGraphFunction<
   );
 
   return {
-    accountGroupId: extractAccountGroupId(
-      entity.metadata.recordId.entityId as AccountGroupEntityId,
-    ),
+    accountGroupId: extractWebIdFromEntityId(
+      entity.metadata.recordId.entityId,
+    ) as ActorGroupId,
     shortname,
     orgName,
     entity,
@@ -106,7 +108,7 @@ export const createOrg: ImpureGraphFunction<
   {
     shortname: string;
     name: string;
-    orgAccountGroupId?: AccountGroupId;
+    orgAccountGroupId?: ActorGroupId;
     websiteUrl?: string | null;
     entityTypeVersion?: number;
     bypassShortnameValidation?: boolean;
@@ -134,19 +136,19 @@ export const createOrg: ImpureGraphFunction<
     );
   }
 
-  let orgAccountGroupId: AccountGroupId;
+  let orgAccountGroupId: ActorGroupId;
   if (params.orgAccountGroupId) {
     orgAccountGroupId = params.orgAccountGroupId;
   } else {
     orgAccountGroupId = await createAccountGroup(ctx, authentication, {});
 
     await createWeb(ctx, authentication, {
-      ownedById: orgAccountGroupId as OwnedById,
+      webId: orgAccountGroupId as WebId,
       owner: { kind: "accountGroup", subjectId: orgAccountGroupId },
     });
 
     await createWebMachineActor(ctx, authentication, {
-      ownedById: orgAccountGroupId as OwnedById,
+      webId: orgAccountGroupId as WebId,
       logger,
     });
   }
@@ -211,7 +213,7 @@ export const createOrg: ImpureGraphFunction<
     );
 
     const entity = await createEntity(ctx, authentication, {
-      ownedById: orgAccountGroupId as OwnedById,
+      webId: orgAccountGroupId as WebId,
       properties,
       entityTypeIds: [entityTypeId],
       entityUuid: orgAccountGroupId as string as EntityUuid,

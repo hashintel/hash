@@ -1,0 +1,43 @@
+[package]
+name              = "hashql-ast"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+hashql-core        = { workspace = true, public = true }
+hashql-diagnostics = { workspace = true, public = true }
+
+# Public third-party dependencies
+bumpalo   = { workspace = true, public = true, features = ["allocator_api"] }
+foldhash  = { workspace = true, public = true }
+hashbrown = { workspace = true, public = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+derive_more             = { workspace = true, features = ["display"] }
+enum-iterator.workspace = true
+lexical                 = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
+simple-mermaid          = { workspace = true }
+strsim                  = "0.11.1"
+tracing.workspace       = true
+
+[dev-dependencies]
+hashql-compiletest = { workspace = true }
+
+[lints]
+workspace = true
+
+[[test]]
+name    = "compiletest"
+harness = false
+
+
+[package.metadata.sync.turborepo]
+ignore-dev-dependencies = [
+    "@rust/hashql-compiletest",
+]

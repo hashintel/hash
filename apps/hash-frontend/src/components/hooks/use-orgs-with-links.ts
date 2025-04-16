@@ -1,14 +1,15 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { AccountGroupId } from "@local/hash-graph-types/account";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { ActorGroupId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
@@ -25,7 +26,7 @@ import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 export const useOrgsWithLinks = ({
   orgAccountGroupIds,
 }: {
-  orgAccountGroupIds?: AccountGroupId[];
+  orgAccountGroupIds?: ActorGroupId[];
 }): {
   loading: boolean;
   orgs?: Org[];
@@ -43,11 +44,11 @@ export const useOrgsWithLinks = ({
             ...(orgAccountGroupIds
               ? [
                   {
-                    any: orgAccountGroupIds.map((accountGroupId) => ({
+                    any: orgAccountGroupIds.map((actorGroupId) => ({
                       equal: [
                         { path: ["uuid"] },
                         {
-                          parameter: accountGroupId,
+                          parameter: actorGroupId,
                         },
                       ],
                     })),
@@ -88,9 +89,9 @@ export const useOrgsWithLinks = ({
       return undefined;
     }
 
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-      subgraphAndPermissions.subgraph,
-    );
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+      EntityRootType<HashEntity>
+    >(subgraphAndPermissions.subgraph);
 
     return getRoots(subgraph).map((orgEntity) => {
       if (!isEntityOrgEntity(orgEntity)) {

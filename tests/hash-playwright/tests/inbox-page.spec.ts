@@ -1,3 +1,4 @@
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -8,7 +9,6 @@ import type {
   OccurredInEntity,
 } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { Page } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { createEntity, getUser } from "./shared/api-queries";
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
@@ -29,14 +29,12 @@ const createNotification = async ({
     throw new Error("Cannot create notification without authenticated user");
   }
 
-  const ownedById = extractOwnedByIdFromEntityId(
-    user.metadata.recordId.entityId,
-  );
+  const webId = extractWebIdFromEntityId(user.metadata.recordId.entityId);
 
   const targetEntity = await createEntity<Page>(requestContext, {
     draft,
     entityTypeIds: [systemEntityTypes.page.entityTypeId],
-    ownedById,
+    webId,
     properties: {
       value: {
         "https://hash.ai/@h/types/property-type/title/": {
@@ -62,7 +60,7 @@ const createNotification = async ({
     {
       draft: false,
       entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
-      ownedById,
+      webId,
       properties: {
         value: {
           "https://hash.ai/@h/types/property-type/graph-change-type/": {
@@ -84,7 +82,7 @@ const createNotification = async ({
       leftEntityId: notificationEntity.metadata.recordId.entityId,
       rightEntityId: targetEntity.metadata.recordId.entityId,
     },
-    ownedById,
+    webId,
     properties: {
       value: {
         "https://hash.ai/@h/types/property-type/entity-edition-id/": {

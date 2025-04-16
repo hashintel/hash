@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { WebId } from "@blockprotocol/type-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -18,16 +18,17 @@ export const useUpdateProfileAvatar = (props: {
 
   const existingAvatarImageEntity = profile?.hasAvatar?.imageEntity;
 
-  const ownedById = (
-    profile?.kind === "user" ? profile.accountId : profile?.accountGroupId
-  ) as OwnedById | undefined;
+  const webId =
+    profile?.kind === "user"
+      ? (profile.accountId as WebId)
+      : (profile?.accountGroupId as WebId);
 
   const { uploadFile } = useFileUploads();
   const { refetch: refetchUserAndOrgs } = useAuthInfo();
 
   const updateProfileAvatar = useCallback(
     async (file: File) => {
-      if (!profile || !ownedById) {
+      if (!profile || !webId) {
         return;
       }
       setNewAvatarImageUploading(true);
@@ -37,7 +38,7 @@ export const useUpdateProfileAvatar = (props: {
         (profile.kind === "user" ? profile.displayName : profile.name);
 
       await uploadFile({
-        ownedById,
+        webId,
         makePublic: !existingAvatarImageEntity,
         fileData: {
           description: `The avatar for the ${profileName} ${profile.kind} in HASH`,
@@ -75,7 +76,7 @@ export const useUpdateProfileAvatar = (props: {
     },
     [
       existingAvatarImageEntity,
-      ownedById,
+      webId,
       refetchUserAndOrgs,
       props.profileName,
       uploadFile,

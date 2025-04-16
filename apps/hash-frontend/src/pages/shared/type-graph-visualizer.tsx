@@ -1,12 +1,11 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import { useTheme } from "@mui/material";
-import type { RefObject } from "react";
 import { useCallback, useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -40,10 +39,7 @@ export const TypeGraphVisualizer = ({
   onTypeClick,
   types,
 }: {
-  onTypeClick: (
-    typeId: VersionedUrl,
-    screenContainerRef?: RefObject<HTMLDivElement | null>,
-  ) => void;
+  onTypeClick: (typeId: VersionedUrl) => void;
   types: (
     | DataTypeWithMetadata
     | EntityTypeWithMetadata
@@ -250,14 +246,14 @@ export const TypeGraphVisualizer = ({
   const onNodeClick = useCallback<
     NonNullable<GraphVisualizerProps<StaticNodeSizing>["onNodeSecondClick"]>
   >(
-    ({ nodeId, screenContainerRef }) => {
+    ({ nodeId }) => {
       if (nodeId === anythingNodeId) {
         return;
       }
 
       const typeVersionedUrl = nodeId.split("~")[0] as VersionedUrl;
 
-      onTypeClick(typeVersionedUrl, screenContainerRef);
+      onTypeClick(typeVersionedUrl);
     },
     [onTypeClick],
   );

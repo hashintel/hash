@@ -1,29 +1,32 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { Subgraph } from "@blockprotocol/graph";
+import {
+  getBreadthFirstEntityTypesAndParents,
+  getEntityRevision,
+} from "@blockprotocol/graph/stdlib";
+import type {
+  BaseUrl,
+  ClosedMultiEntityType,
+  EntityMetadata,
+  EntityTypeWithMetadata,
+  PartialEntityType,
+  Property,
+} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityMetadata, Property } from "@local/hash-graph-types/entity";
 import type {
-  BaseUrl,
-  ClosedMultiEntityType,
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
-  EntityTypeWithMetadata,
-  PartialEntityType,
 } from "@local/hash-graph-types/ontology";
-import type { Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import {
-  getBreadthFirstEntityTypesAndParents,
-  getEntityRevision,
-} from "@local/hash-subgraph/stdlib";
 
 import { simplifyProperties } from "./simplify-properties.js";
 
 const getLabelPropertyValue = (
   entity: {
-    properties: Entity["properties"];
+    properties: HashEntity["properties"];
   },
   labelProperty: BaseUrl | undefined,
 ) => {
@@ -45,7 +48,7 @@ const getFallbackLabel = ({
 }: {
   entityTypeTitle?: string;
   entity: {
-    properties: Entity["properties"];
+    properties: HashEntity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   };
   includeHexChars: boolean;
@@ -75,7 +78,7 @@ const getFallbackLabel = ({
 export const generateEntityLabel = (
   typeData: Subgraph | ClosedMultiEntityType | PartialEntityType | null,
   entity: {
-    properties: Entity["properties"];
+    properties: HashEntity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
   includeHexChars: boolean = true,
@@ -116,7 +119,7 @@ export const generateEntityLabel = (
     for (const typeToCheck of entityTypesAndAncestors ?? []) {
       const label = getLabelPropertyValue(
         entity,
-        typeToCheck.schema.labelProperty as BaseUrl | undefined,
+        typeToCheck.schema.labelProperty,
       );
 
       if (label) {
@@ -205,8 +208,8 @@ export const generateEntityLabel = (
 export const generateLinkEntityLabel = (
   entitySubgraph: Subgraph,
   entity: {
-    linkData: Entity["linkData"];
-    properties: Entity["properties"];
+    linkData: HashEntity["linkData"];
+    properties: HashEntity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
   closedTypeData: {

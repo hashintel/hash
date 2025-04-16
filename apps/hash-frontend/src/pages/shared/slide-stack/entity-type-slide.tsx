@@ -1,5 +1,7 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  componentsFromVersionedUrl,
+  type VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
 import { EntityType } from "../entity-type";

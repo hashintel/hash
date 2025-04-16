@@ -1,3 +1,4 @@
+import type { Url } from "@blockprotocol/type-system";
 import type {
   InputNameForAction,
   OutputNameForAction,
@@ -17,7 +18,7 @@ import { webSearchAction } from "../../web-search-action.js";
 import type { CoordinatorToolCallArguments } from "./coordinator-tools.js";
 
 export type WebResourceSummary = {
-  url: string;
+  url: Url;
   title: string;
   summary: string;
   fromSearchQuery: string;

@@ -1,17 +1,25 @@
 import type {
   Entity,
   EntityId,
+  TemporalBound,
+  TemporalInterval,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+
+import type {
+  LinkEntityAndLeftEntity,
   LinkEntityAndRightEntity,
 } from "../../../types/entity.js";
-import type { Subgraph } from "../../../types/subgraph.js";
+import type {
+  KnowledgeGraphRootedEdges,
+  Subgraph,
+} from "../../../types/subgraph.js";
 import {
   isHasLeftEntityEdge,
   isHasRightEntityEdge,
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
 } from "../../../types/subgraph.js";
-import type { TimeInterval } from "../../../types/temporal-versioning.js";
-import { typedEntries } from "../../../util.js";
 import {
   intervalForTimestamp,
   intervalIntersectionWithInterval,
@@ -50,12 +58,12 @@ const getUniqueEntitiesFilter = () => {
 export const getOutgoingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const entityEdges = subgraph.edges[entityId];
+  const entityEdges = (subgraph.edges as KnowledgeGraphRootedEdges)[entityId];
 
   if (!entityEdges) {
     return [];
@@ -122,12 +130,12 @@ export const getOutgoingLinksForEntity = (
 export const getIncomingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const entityEdges = subgraph.edges[entityId];
+  const entityEdges = (subgraph.edges as KnowledgeGraphRootedEdges)[entityId];
 
   if (!entityEdges) {
     return [];
@@ -193,12 +201,14 @@ export const getIncomingLinksForEntity = (
 export const getLeftEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] | undefined => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
+  const outwardEdge = Object.values(
+    (subgraph.edges as KnowledgeGraphRootedEdges)[entityId] ?? {},
+  )
     .flat()
     .find(isHasLeftEntityEdge);
 
@@ -242,12 +252,14 @@ export const getLeftEntityForLinkEntity = (
 export const getRightEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] | undefined => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
+  const outwardEdge = Object.values(
+    (subgraph.edges as KnowledgeGraphRootedEdges)[entityId] ?? {},
+  )
     .flat()
     .find(isHasRightEntityEdge);
 
@@ -291,7 +303,7 @@ export const getOutgoingLinkAndTargetEntities = <
 >(
   subgraph: Subgraph,
   entityId: EntityId,
-  interval?: TimeInterval,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): LinkAndRightEntities => {
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
@@ -326,4 +338,60 @@ export const getOutgoingLinkAndTargetEntities = <
       };
     },
   ) as LinkAndRightEntities; // @todo consider fixing generics in functions called within
+};
+
+/**
+ * For a given {@link TimeInterval}, get all incoming link {@link Entity} revisions, and their "source" {@link Entity}
+ * revisions (by default this is the "left entity"), from a given {@link Entity}.
+ *
+ * @param subgraph
+ * @param {EntityId} entityId - The ID of the target entity to search for incoming links to
+ * @param {TimeInterval} [interval] - An optional {@link TimeInterval} to constrain the period of time to search across.
+ * If the parameter is omitted then results will default to only returning results that are active in the latest instant
+ *   of time in the {@link Subgraph}
+ */
+export const getIncomingLinkAndSourceEntities = <
+  LinkAndLeftEntities extends
+    LinkEntityAndLeftEntity[] = LinkEntityAndLeftEntity[],
+>(
+  subgraph: Subgraph,
+  entityId: EntityId,
+  interval?: TemporalInterval<TemporalBound, TemporalBound>,
+): LinkAndLeftEntities => {
+  const searchInterval =
+    interval ??
+    intervalForTimestamp(
+      subgraph.temporalAxes.resolved.variable.interval.end.limit,
+    );
+
+  const incomingLinkEntities = getIncomingLinksForEntity(
+    subgraph,
+    entityId,
+    searchInterval,
+  );
+  const mappedRevisions = incomingLinkEntities.reduce(
+    (revisionMap, entity) => {
+      const linkEntityId = entity.metadata.recordId.entityId;
+
+      // eslint-disable-next-line no-param-reassign
+      revisionMap[linkEntityId] ??= [];
+      revisionMap[linkEntityId].push(entity);
+
+      return revisionMap;
+    },
+    {} as Record<EntityId, Entity[]>,
+  );
+
+  return typedEntries(mappedRevisions).map(
+    ([linkEntityId, linkEntityRevisions]) => {
+      return {
+        linkEntity: linkEntityRevisions,
+        leftEntity: getLeftEntityForLinkEntity(
+          subgraph,
+          linkEntityId,
+          searchInterval,
+        ),
+      };
+    },
+  ) as LinkAndLeftEntities; // @todo consider fixing generics in functions called within
 };

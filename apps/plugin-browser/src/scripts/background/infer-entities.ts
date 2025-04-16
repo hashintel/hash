@@ -1,4 +1,4 @@
-import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import type {
   AutomaticInferenceWebsocketRequestMessage,
   CancelInferEntitiesWebsocketRequestMessage,
@@ -293,12 +293,12 @@ export const inferEntities = async (
     throw new Error("Cannot infer entities without a logged-in user.");
   }
 
-  const { createAs, entityTypeIds, model, ownedById, sourceWebPage } = message;
+  const { createAs, entityTypeIds, model, webId, sourceWebPage } = message;
 
   const requestUuid = uuid() as EntityUuid;
 
   const basePayload = {
-    webId: ownedById,
+    webId,
     visitedWebPage: {
       kind: "WebPage",
       value: sourceWebPage,
@@ -351,7 +351,7 @@ export const inferEntities = async (
       closedAt: null,
       executedAt: new Date().toISOString(),
       persistedEntities: [],
-      webId: ownedById,
+      webId,
       inputRequests: [],
       inputs: [
         {
@@ -372,7 +372,7 @@ export const inferEntities = async (
             triggerDefinitionId: flowDefinition.trigger.triggerDefinitionId,
             outputs: [],
           },
-          webId: ownedById,
+          webId,
         },
       ],
       webPage: basePayload.visitedWebPage.value,

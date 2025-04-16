@@ -1,3 +1,4 @@
+import type { Url } from "@blockprotocol/type-system";
 import browser from "webextension-polyfill";
 
 import {
@@ -34,7 +35,7 @@ browser.runtime.onMessage.addListener(async (message) => {
      * Helps avoid making duplicate requests for the same page.
      */
     const urlObject = new URL(window.location.href);
-    const pageUrl = urlObject.href.replace(urlObject.hash, "");
+    const pageUrl = urlObject.href.replace(urlObject.hash, "") as Url;
 
     return {
       htmlContent: docContent?.innerHTML ?? "",

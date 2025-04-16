@@ -1,0 +1,29 @@
+Expr#4294967040@34
+  ExprKind (Closure)
+    ClosureExpr#4294967040@34
+      ClosureSignature#4294967040@34
+        Generics#4294967040@15
+          GenericParam#4294967040@14 (name: T)
+            Type#4294967040@13
+              TypeKind (Path)
+                Path#4294967040@13 (rooted: false)
+                  PathSegment#4294967040@12 (name: Int)
+        Type#4294967040@20
+          TypeKind (Infer)
+      Expr#4294967040@33
+        ExprKind (Call)
+          CallExpr#4294967040@33
+            Expr#4294967040@24
+              ExprKind (Path)
+                Path#4294967040@24 (rooted: false)
+                  PathSegment#4294967040@23 (name: +)
+            Argument#4294967040@28
+              Expr#4294967040@28
+                ExprKind (Path)
+                  Path#4294967040@28 (rooted: false)
+                    PathSegment#4294967040@27 (name: a)
+            Argument#4294967040@32
+              Expr#4294967040@32
+                ExprKind (Path)
+                  Path#4294967040@32 (rooted: false)
+                    PathSegment#4294967040@31 (name: b)

@@ -1,8 +1,7 @@
 import { useMutation } from "@apollo/client";
+import type { BaseUrl, WebId } from "@blockprotocol/type-system";
 import { Autocomplete, TextField } from "@hashintel/design-system";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -37,7 +36,7 @@ import { Button, Modal } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 
 export type PageWithParentLink = SimplePage & {
-  parentLinkEntity?: Entity;
+  parentLinkEntity?: HashEntity;
 };
 
 type ConvertToPageFormData = {
@@ -49,7 +48,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {
     onClose: () => void;
     onConvertedToPage: (page: PageWithParentLink) => void;
-    quickNoteEntity: Entity;
+    quickNoteEntity: HashEntity;
   }
 > = ({ quickNoteEntity, onClose, onConvertedToPage, ...modalProps }) => {
   const { authenticatedUser } = useAuthenticatedUser();
@@ -64,9 +63,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
 
   const defaultTitle = `Quick Note - ${createdAt.toLocaleString()}`;
 
-  const { data: pages } = useAccountPages(
-    authenticatedUser.accountId as OwnedById,
-  );
+  const { data: pages } = useAccountPages(authenticatedUser.accountId as WebId);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -74,7 +71,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
   >(updateEntityMutation);
 
   const { createEntity } = useBlockProtocolCreateEntity(
-    authenticatedUser.accountId as OwnedById,
+    authenticatedUser.accountId as WebId,
   );
 
   const innerSubmit = handleSubmit(async (data) => {
@@ -139,7 +136,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
       throw new Error("Failed to update quick note entity to page entity");
     }
 
-    const pageEntity = new Entity(pageEntityData.updateEntity);
+    const pageEntity = new HashEntity(pageEntityData.updateEntity);
 
     if (parentPage) {
       await createEntity({

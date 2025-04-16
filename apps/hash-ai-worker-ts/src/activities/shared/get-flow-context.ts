@@ -1,9 +1,17 @@
+import type {
+  ActorEntityUuid,
+  EntityId,
+  EntityUuid,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ManualInferenceTriggerInputName } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
@@ -11,11 +19,6 @@ import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  entityIdFromComponents,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
 import type { Client as TemporalClient } from "@temporalio/client";
 import type { MemoryCache } from "cache-manager";
@@ -134,8 +137,8 @@ type FlowContext = {
   dataSources: FlowDataSources;
   flowEntityId: EntityId;
   stepId: string;
-  userAuthentication: { actorId: AccountId };
-  webId: OwnedById;
+  userAuthentication: { actorId: ActorEntityUuid };
+  webId: WebId;
 };
 
 /**
@@ -173,7 +176,7 @@ export const getFlowContext = async (): Promise<FlowContext> => {
   };
 };
 
-export const getProvidedFiles = async (): Promise<Entity<File>[]> => {
+export const getProvidedFiles = async (): Promise<HashEntity<File>[]> => {
   const {
     dataSources: { files },
     flowEntityId,
@@ -187,7 +190,7 @@ export const getProvidedFiles = async (): Promise<Entity<File>[]> => {
   const filesCacheKey = `files-${flowEntityId}`;
   const cache = await getCache();
 
-  const cachedFiles = await cache.get<Entity<File>[]>(filesCacheKey);
+  const cachedFiles = await cache.get<HashEntity<File>[]>(filesCacheKey);
 
   if (cachedFiles) {
     return cachedFiles;
@@ -207,8 +210,8 @@ export const getProvidedFiles = async (): Promise<Entity<File>[]> => {
             },
             {
               equal: [
-                { path: ["ownedById"] },
-                { parameter: extractOwnedByIdFromEntityId(fileEntityId) },
+                { path: ["webId"] },
+                { parameter: extractWebIdFromEntityId(fileEntityId) },
               ],
             },
             { equal: [{ path: ["archived"] }, { parameter: false }] },
@@ -218,7 +221,7 @@ export const getProvidedFiles = async (): Promise<Entity<File>[]> => {
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: response }) =>
-      response.entities.map((entity) => new Entity<File>(entity)),
+      response.entities.map((entity) => new HashEntity<File>(entity)),
     );
 
   await cache.set(filesCacheKey, entities);
@@ -242,7 +245,7 @@ export const areUrlsTheSameAfterNormalization = (
 
 export const getProvidedFileByUrl = async (
   url: string,
-): Promise<Entity<File> | undefined> => {
+): Promise<HashEntity<File> | undefined> => {
   const files = await getProvidedFiles();
   return files.find((file) => {
     /**

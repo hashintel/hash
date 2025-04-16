@@ -1,9 +1,9 @@
 import {
   blockProtocolDataTypes,
+  blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import type { MigrationFunction } from "../types";
 import {
@@ -404,7 +404,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Contact",
         description: "A contact for something (an organization, project, etc.)",
       },
@@ -419,7 +419,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Sponsored By",
         description:
           "An organization, person or other entity that provides financial, material, or other support for something, e.g. a project, study, or event.",
@@ -438,7 +438,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Investigated By",
         titlePlural: "Investigated By",
         description:

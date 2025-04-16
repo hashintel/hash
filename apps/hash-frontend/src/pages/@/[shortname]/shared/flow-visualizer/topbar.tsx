@@ -1,10 +1,10 @@
 import { useMutation } from "@apollo/client";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import {
   AngleRightRegularIcon,
   PlaySolidIcon,
   Select,
 } from "@hashintel/design-system";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   generateFlowDefinitionPath,
   generateWorkerRunPath,
@@ -316,7 +316,7 @@ export const Topbar = ({
                     throw new Error(`Flow run with id ${value} not found`);
                   }
 
-                  const { shortname } = getOwner({ ownedById: flowRun.webId });
+                  const { shortname } = getOwner({ webId: flowRun.webId });
 
                   void push(
                     generateWorkerRunPath({

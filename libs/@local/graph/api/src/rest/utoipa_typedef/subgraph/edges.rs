@@ -250,7 +250,7 @@ mod tests {
     use type_system::{
         knowledge::entity::id::{EntityId, EntityUuid},
         ontology::id::{BaseUrl, OntologyTypeVersion},
-        web::OwnedById,
+        web::WebId,
     };
     use uuid::Uuid;
 
@@ -260,7 +260,7 @@ mod tests {
     fn merge_ontology() {
         let vertex_id = EntityVertexId {
             base_id: EntityId {
-                owned_by_id: OwnedById::new(Uuid::new_v4()),
+                web_id: WebId::new(Uuid::new_v4()),
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
                 draft_id: None,
             },
@@ -276,7 +276,7 @@ mod tests {
             EdgeDirection::Outgoing,
             EntityIdWithInterval {
                 entity_id: EntityId {
-                    owned_by_id: OwnedById::new(Uuid::new_v4()),
+                    web_id: WebId::new(Uuid::new_v4()),
                     entity_uuid: EntityUuid::new(Uuid::new_v4()),
                     draft_id: None,
                 },

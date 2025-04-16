@@ -1,8 +1,8 @@
 import {
   blockProtocolDataTypes,
+  blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
 import type { MigrationFunction } from "../types";
@@ -100,7 +100,7 @@ const migrate: MigrationFunction = async ({
   const associatedWithAccountLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Associated With Account",
         inverse: {
           title: "Account For",
@@ -136,7 +136,7 @@ const migrate: MigrationFunction = async ({
         title: "Actor Type",
         description:
           "The type of thing that can, should or will act on something.",
-        enum: ["human", "machine"],
+        enum: ["user", "machine"],
         type: "string",
       },
       conversions: {},

@@ -1,16 +1,17 @@
+import type {
+  ActorEntityUuid,
+  Entity,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import {
   getMachineActorId,
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
 
 import {
   getLatestEntityById,
@@ -58,9 +59,9 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     },
   );
 
-  const userAccountId = extractOwnedByIdFromEntityId(
+  const userAccountId = extractWebIdFromEntityId(
     linearIntegration.entity.metadata.recordId.entityId,
-  ) as AccountId;
+  ) as ActorEntityUuid;
 
   const linearUserSecret = await getLinearUserSecretByLinearOrgId(
     impureGraphContext,
@@ -142,9 +143,9 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       },
     ),
     ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
-      const workspaceOwnedById = extractEntityUuidFromEntityId(
+      const workspaceWebId = extractEntityUuidFromEntityId(
         workspaceEntityId,
-      ) as Uuid as OwnedById;
+      ) as string as WebId;
 
       const userOrOrganizationEntity = await getLatestEntityById(
         impureGraphContext,
@@ -154,7 +155,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 
       const webAccountId = extractEntityUuidFromEntityId(
         userOrOrganizationEntity.metadata.recordId.entityId,
-      ) as Uuid as AccountId;
+      ) as string as ActorEntityUuid;
 
       /**
        * Add the Linear machine user to the web,
@@ -175,7 +176,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
           dataSources,
           authentication,
           {
-            ownedById: webAccountId as OwnedById,
+            webId: webAccountId as WebId,
           },
         );
 
@@ -211,7 +212,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       return Promise.all([
         linearClient.triggerWorkspaceSync({
           authentication: { actorId: linearBotAccountId },
-          workspaceOwnedById,
+          workspaceWebId,
           teamIds: linearTeamIds,
         }),
         linkIntegrationToWorkspace(impureGraphContext, authentication, {

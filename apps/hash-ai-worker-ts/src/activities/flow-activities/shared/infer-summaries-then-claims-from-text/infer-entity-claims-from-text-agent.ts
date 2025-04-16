@@ -1,11 +1,15 @@
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  EntityUuid,
+  ProvidedEntityEditionProvenance,
+  Url,
+} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import type { Claim as ClaimEntity } from "@local/hash-isomorphic-utils/system-types/claim";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import dedent from "dedent";
 
 import { getAiAssistantAccountIdActivity } from "../../../get-ai-assistant-account-id-activity.js";
@@ -335,7 +339,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
   /**
    * The URL the text was retrieved from, if any, which may itself provide the value for a claim (e.g. a LinkedIn URL).
    */
-  url: string | null;
+  url: Url | null;
   /**
    * The title of the webpage or document, which may itself provide useful context for entity or claim recognition.
    */
@@ -659,14 +663,14 @@ export const inferEntityClaimsFromTextAgent = async (params: {
         /**
          * @todo H-3162: when we pass existing entities to Flows, we can link them directly to the claim here
          */
-        const createdClaim = await Entity.create<ClaimEntity>(
+        const createdClaim = await HashEntity.create<ClaimEntity>(
           graphApiClient,
           { actorId: aiAssistantAccountId },
           {
             draft: createEntitiesAsDraft,
             entityUuid: claimUuid,
             entityTypeIds: ["https://hash.ai/@h/types/entity-type/claim/v/1"],
-            ownedById: webId,
+            webId,
             provenance,
             relationships: createDefaultAuthorizationRelationships({
               actorId: userAuthentication.actorId,

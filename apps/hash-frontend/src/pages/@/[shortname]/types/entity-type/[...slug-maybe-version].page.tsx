@@ -1,6 +1,13 @@
-import type { EntityTypeWithMetadata as BpEntityTypeWithMetadata } from "@blockprotocol/graph";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+import type {
+  ActorEntityUuid,
+  EntityTypeWithMetadata,
+  OntologyTypeVersion,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  componentsFromVersionedUrl,
+  currentTimestamp,
+} from "@blockprotocol/type-system";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
@@ -65,23 +72,41 @@ const Page: NextPageWithLayout = () => {
       const { baseUrl, version } = componentsFromVersionedUrl(
         entityTypeSchema.$id,
       );
-
       return {
         metadata: {
           recordId: {
             baseUrl,
             version,
           },
+          temporalVersioning: {
+            transactionTime: {
+              start: {
+                kind: "inclusive",
+                limit: currentTimestamp(),
+              },
+              end: { kind: "unbounded" },
+            },
+          },
+          provenance: {
+            edition: {
+              createdById: "irrelevant-here" as ActorEntityUuid,
+              actorType: "user",
+              origin: {
+                type: "web-app",
+              },
+            },
+          },
+          webId: "irrelevant-here" as WebId,
         },
         schema: entityTypeSchema,
-      } satisfies BpEntityTypeWithMetadata as EntityTypeWithMetadata;
+      } satisfies EntityTypeWithMetadata;
     } else {
       return null;
     }
   }, [router.query.draft]);
 
   const requestedVersion = requestedVersionString
-    ? parseInt(requestedVersionString, 10)
+    ? (Number.parseInt(requestedVersionString, 10) as OntologyTypeVersion)
     : null;
 
   if (!routeNamespace) {
@@ -96,7 +121,7 @@ const Page: NextPageWithLayout = () => {
     <>
       <EntityType
         isInSlide={false}
-        ownedById={routeNamespace.ownedById}
+        webId={routeNamespace.webId}
         draftEntityType={draftEntityType}
         entityTypeBaseUrl={entityTypeBaseUrl}
         key={`${entityTypeBaseUrl}-${requestedVersion}`}

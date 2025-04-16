@@ -24,7 +24,7 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             | Self::Type
             | Self::Schema(_) => vec![Relation::DataTypeIds],
             Self::BaseUrl | Self::Version => vec![Relation::OntologyIds],
-            Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
+            Self::WebId => vec![Relation::OntologyOwnedMetadata],
             Self::AdditionalMetadata => vec![Relation::OntologyAdditionalMetadata],
             Self::Embedding => vec![Relation::DataTypeEmbeddings],
             Self::TransactionTime | Self::EditionProvenance(_) => vec![],
@@ -67,7 +67,7 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::TransactionTime),
                 None,
             ),
-            Self::OwnedById => (
+            Self::WebId => (
                 Column::OntologyOwnedMetadata(OntologyOwnedMetadata::WebId),
                 None,
             ),

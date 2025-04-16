@@ -1,3 +1,9 @@
+import type {
+  ActorEntityUuid,
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   Entity as GraphApiEntity,
@@ -5,13 +11,7 @@ import type {
   Filter,
 } from "@local/hash-graph-client";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -55,7 +55,7 @@ export const createEmbeddings = async (
 
 type UpdateDataTypeEmbeddingsParams = {
   authentication: {
-    actorId: AccountId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {
@@ -140,7 +140,7 @@ export const updateDataTypeEmbeddings = async (
 
 type UpdatePropertyTypeEmbeddingsParams = {
   authentication: {
-    actorId: AccountId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {
@@ -225,7 +225,7 @@ export const updatePropertyTypeEmbeddings = async (
 
 type UpdateEntityTypeEmbeddingsParams = {
   authentication: {
-    actorId: AccountId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {
@@ -310,7 +310,7 @@ export const updateEntityTypeEmbeddings = async (
 
 type UpdateEntityEmbeddingsParams = {
   authentication: {
-    actorId: AccountId;
+    actorId: ActorEntityUuid;
   };
 } & (
   | {
@@ -349,7 +349,9 @@ export const updateEntityEmbeddings = async (
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     if ("entities" in params) {
-      entities = params.entities.map((entity) => new Entity(entity).toJSON());
+      entities = params.entities.map((entity) =>
+        new HashEntity(entity).toJSON(),
+      );
     } else {
       const queryResponse = await graphActivities.getEntitySubgraph({
         authentication: params.authentication,
@@ -382,7 +384,7 @@ export const updateEntityEmbeddings = async (
     }
 
     for (const serializedEntity of entities) {
-      const entity = new Entity(serializedEntity);
+      const entity = new HashEntity(serializedEntity);
       /**
        * Don't try to create embeddings for `FlowRun` entities, due to the size
        * of their property values.

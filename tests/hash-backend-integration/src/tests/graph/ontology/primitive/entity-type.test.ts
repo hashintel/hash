@@ -16,34 +16,35 @@ import {
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { getDataTypes, getPropertyTypes } from "@blockprotocol/graph/stdlib";
 import type {
   ClosedEntityType,
   ClosedMultiEntityType,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  WebId,
 } from "@blockprotocol/type-system";
-import { atLeastOne } from "@blockprotocol/type-system";
+import {
+  atLeastOne,
+  isOwnedOntologyElementMetadata,
+} from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  blockProtocolEntityTypes,
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
 } from "@local/hash-isomorphic-utils/types";
-import {
-  isOwnedOntologyElementMetadata,
-  linkEntityTypeUrl,
-} from "@local/hash-subgraph";
-import { getDataTypes, getPropertyTypes } from "@local/hash-subgraph/stdlib";
 import { assert, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -93,7 +94,7 @@ beforeAll(async () => {
 
   await Promise.all([
     createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Worker",
         description: "A worker",
@@ -112,7 +113,7 @@ beforeAll(async () => {
       workerEntityType = val;
     }),
     createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Address",
         description: "An address",
@@ -131,7 +132,7 @@ beforeAll(async () => {
       addressEntityType = val;
     }),
     createPropertyType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Favorite Book",
         description: "Favorite book of the user",
@@ -149,7 +150,7 @@ beforeAll(async () => {
       favoriteBookPropertyType = val;
     }),
     createPropertyType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Name",
         description: "The name of the user",
@@ -167,12 +168,12 @@ beforeAll(async () => {
       namePropertyType = val;
     }),
     createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Knows",
         description: "Knows of someone",
         type: "object",
-        allOf: [{ $ref: linkEntityTypeUrl }],
+        allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
         properties: {},
         ...({} as Record<SystemDefinedProperties, never>),
       },
@@ -188,12 +189,12 @@ beforeAll(async () => {
       knowsLinkEntityType = val;
     }),
     createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: {
         title: "Previous Address",
         description: "A previous address of something.",
         type: "object",
-        allOf: [{ $ref: linkEntityTypeUrl }],
+        allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
         properties: {},
       },
       relationships: [
@@ -255,7 +256,7 @@ describe("Entity type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     createdEntityType = await createEntityType(graphContext, authentication, {
-      ownedById: testOrg.accountGroupId as OwnedById,
+      webId: testOrg.accountGroupId as WebId,
       schema: entityTypeSchema,
       relationships: [
         {
@@ -354,7 +355,7 @@ describe("Entity type CRU", () => {
               $id: systemEntityTypes.actor.entityTypeId,
               icon: "/icons/types/user.svg",
               labelProperty:
-                "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+                blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
             },
           ],
         } satisfies ClosedEntityType,

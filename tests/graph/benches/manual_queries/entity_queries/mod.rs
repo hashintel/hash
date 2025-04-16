@@ -17,12 +17,12 @@ use hash_graph_postgres_store::{
 use hash_graph_store::{
     entity::EntityStore, pool::StorePool as _, subgraph::edges::GraphResolveDepths,
 };
-use hash_graph_types::account::AccountId;
 use itertools::{Itertools as _, iproduct};
 use serde::{Deserialize as _, Serialize as _};
 use serde_json::Value as JsonValue;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
+use type_system::provenance::ActorEntityUuid;
 use walkdir::WalkDir;
 
 use crate::util::setup_subscriber;
@@ -116,7 +116,7 @@ struct Settings<P> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetEntitiesQueryParameters {
     #[serde(default)]
-    actor_id: Vec<AccountId>,
+    actor_id: Vec<ActorEntityUuid>,
     #[serde(default)]
     limit: Vec<usize>,
     #[serde(default)]
@@ -126,7 +126,7 @@ struct GetEntitiesQueryParameters {
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetEntitiesQuery<'q, 's, 'p> {
-    actor_id: AccountId,
+    actor_id: ActorEntityUuid,
     #[serde(borrow)]
     request: GetEntitiesRequest<'q, 's, 'p>,
     #[serde(default)]
@@ -141,7 +141,7 @@ impl GetEntitiesQuery<'_, '_, '_> {
 
         let actor_id = iter::once(self.actor_id)
             .chain(mem::take(&mut self.settings.parameters.actor_id))
-            .sorted()
+            .sorted_by_key(|actor_id| actor_id.into_uuid())
             .dedup();
         let limit = iter::once(self.request.limit)
             .chain(
@@ -189,7 +189,7 @@ impl GetEntitiesQuery<'_, '_, '_> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetEntitySubgraphQueryParameters {
     #[serde(default)]
-    actor_id: Vec<AccountId>,
+    actor_id: Vec<ActorEntityUuid>,
     #[serde(default)]
     limit: Vec<usize>,
     #[serde(default)]
@@ -201,7 +201,7 @@ struct GetEntitySubgraphQueryParameters {
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetEntitySubgraphQuery<'q, 's, 'p> {
-    actor_id: AccountId,
+    actor_id: ActorEntityUuid,
     #[serde(borrow)]
     request: GetEntitySubgraphRequest<'q, 's, 'p>,
     #[serde(default)]
@@ -235,7 +235,7 @@ impl GetEntitySubgraphQuery<'_, '_, '_> {
 
         let actor_id = iter::once(self.actor_id)
             .chain(mem::take(&mut self.settings.parameters.actor_id))
-            .sorted()
+            .sorted_by_key(|actor_id| actor_id.into_uuid())
             .dedup();
         let limit = iter::once(self.request.limit)
             .chain(

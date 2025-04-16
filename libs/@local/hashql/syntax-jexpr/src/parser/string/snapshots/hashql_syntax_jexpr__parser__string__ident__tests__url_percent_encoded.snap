@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: URL with percent-encoded characters
+expression: "`https://example.com/%E2%82%AC/`"
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    value: Symbol(
+        "https://example.com/%E2%82%AC/",
+    ),
+    kind: BaseUrl,
+}

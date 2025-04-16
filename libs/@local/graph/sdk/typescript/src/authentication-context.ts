@@ -1,5 +1,5 @@
-import type { AccountId } from "@local/hash-graph-types/account";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 
 export type AuthenticationContext = {
-  actorId: AccountId;
+  actorId: ActorEntityUuid;
 };

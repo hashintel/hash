@@ -11,12 +11,12 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { WebId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Text } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -86,13 +86,13 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: recipientUser.accountId },
       {
-        ownedById: testOrg.accountGroupId as OwnedById,
+        webId: testOrg.accountGroupId as WebId,
         componentId: "text",
         blockData: await createEntity<Text>(
           graphContext,
           { actorId: recipientUser.accountId },
           {
-            ownedById: testOrg.accountGroupId as OwnedById,
+            webId: testOrg.accountGroupId as WebId,
             entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
@@ -114,7 +114,7 @@ describe("Comment Notification", () => {
       {
         initialBlocks: [initialBlock],
         title: "Test Page",
-        ownedById: testOrg.accountGroupId as OwnedById,
+        webId: testOrg.accountGroupId as WebId,
         type: "document",
       },
     );
@@ -134,7 +134,7 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: triggerUser.accountId },
       {
-        ownedById: extractOwnedByIdFromEntityId(
+        webId: extractWebIdFromEntityId(
           occurredInEntity.entity.metadata.recordId.entityId,
         ),
         author: triggerUser,
@@ -173,13 +173,13 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: triggerUser.accountId },
       {
-        ownedById: testOrg.accountGroupId as OwnedById,
+        webId: testOrg.accountGroupId as WebId,
         componentId: "text",
         blockData: await createEntity<Text>(
           graphContext,
           { actorId: triggerUser.accountId },
           {
-            ownedById: testOrg.accountGroupId as OwnedById,
+            webId: testOrg.accountGroupId as WebId,
             entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
@@ -201,7 +201,7 @@ describe("Comment Notification", () => {
       {
         initialBlocks: [initialBlock],
         title: "Test Page",
-        ownedById: testOrg.accountGroupId as OwnedById,
+        webId: testOrg.accountGroupId as WebId,
         type: "document",
       },
     );
@@ -221,7 +221,7 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: recipientUser.accountId },
       {
-        ownedById: extractOwnedByIdFromEntityId(
+        webId: extractWebIdFromEntityId(
           occurredInEntity.entity.metadata.recordId.entityId,
         ),
         author: recipientUser,
@@ -234,7 +234,7 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: triggerUser.accountId },
       {
-        ownedById: extractOwnedByIdFromEntityId(
+        webId: extractWebIdFromEntityId(
           occurredInEntity.entity.metadata.recordId.entityId,
         ),
         author: triggerUser,

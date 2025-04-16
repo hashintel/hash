@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: use/4 should error out
+[
+  "::kernel::special_form::use",
+  "::math",
+  { "#tuple": ["pi"] },
+  "x",
+  "y"
+  //~^ ERROR Remove this argument
+]

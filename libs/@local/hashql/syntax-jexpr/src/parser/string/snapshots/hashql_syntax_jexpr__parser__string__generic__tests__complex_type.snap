@@ -1,0 +1,22 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Generic type as generic argument
+expression: "Map<K, V>"
+info:
+  kind: Ok
+---
+GenericArgument#4294967040@12
+  Type#4294967040@11
+    TypeKind (Path)
+      Path#4294967040@11 (rooted: false)
+        PathSegment#4294967040@10 (name: Map)
+          GenericArgument#4294967040@5
+            Type#4294967040@4
+              TypeKind (Path)
+                Path#4294967040@4 (rooted: false)
+                  PathSegment#4294967040@3 (name: K)
+          GenericArgument#4294967040@9
+            Type#4294967040@8
+              TypeKind (Path)
+                Path#4294967040@8 (rooted: false)
+                  PathSegment#4294967040@7 (name: V)

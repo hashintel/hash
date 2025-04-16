@@ -1,23 +1,23 @@
+import type {
+  ActorEntityUuid,
+  EntityId,
+  ProvidedEntityEditionProvenance,
+  WebId,
+} from "@blockprotocol/type-system";
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type {
   UserSecretService,
   VaultClient,
 } from "@local/hash-backend-utils/vault";
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
-import type {
-  GraphApi,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 import type { Auth } from "googleapis";
 
 import { createEntity } from "../primitive/entity";
@@ -35,7 +35,7 @@ type CreateUserSecretParams<T extends object> = {
    * The bot that will manage the secret, e.g. update, archive, upgrade it.
    * This is the only account that will have edit permissions for the secret.
    */
-  managingBotAccountId: AccountId;
+  managingBotAccountId: ActorEntityUuid;
   secretData: T;
   /**
    * The rest of the path to the secret in the vault, after the standardized system prefixes.
@@ -53,7 +53,7 @@ type CreateUserSecretParams<T extends object> = {
   /**
    * The user that owns the secret. The user will have read access to the secret.
    */
-  userAccountId: AccountId;
+  userAccountId: ActorEntityUuid;
   vaultClient: VaultClient;
 };
 
@@ -118,7 +118,7 @@ export const createUserSecret = async <
    * The user themselves can read the secret.
    * No other account requires access to it.
    */
-  const botEditorUserViewerOnly: EntityRelationAndSubject[] = [
+  const botEditorUserViewerOnly: EntityRelationAndSubjectBranded[] = [
     {
       relation: "editor",
       subject: {
@@ -182,7 +182,7 @@ export const createUserSecret = async <
     authentication,
     {
       entityTypeIds: [systemEntityTypes.userSecret.entityTypeId],
-      ownedById: userAccountId as OwnedById,
+      webId: userAccountId as WebId,
       properties: secretMetadata,
       relationships: botEditorUserViewerOnly,
     },
@@ -193,7 +193,7 @@ export const createUserSecret = async <
     { graphApi, provenance },
     authentication,
     {
-      ownedById: userAccountId as OwnedById,
+      webId: userAccountId as WebId,
       properties: { value: {} },
       linkData: {
         leftEntityId: sourceIntegrationEntityId,

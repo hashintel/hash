@@ -1,33 +1,38 @@
-import type { EntityPropertyValue } from "@blockprotocol/graph";
-import type { EntityType } from "@blockprotocol/type-system/slim";
-import { extractVersion } from "@blockprotocol/type-system/slim";
-import {
-  EntityOrTypeIcon,
-  EyeSlashRegularIcon,
-} from "@hashintel/design-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import {
-  getClosedMultiEntityTypeFromMap,
-  getDisplayFieldsForClosedEntityType,
-  getPropertyTypeForClosedMultiEntityType,
-} from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  ClosedMultiEntityTypesDefinitions,
-  ClosedMultiEntityTypesRootMap,
-  EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getEntityRevision,
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getPropertyTypeForEntity,
-} from "@local/hash-subgraph/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import type {
+  Entity,
+  EntityId,
+  EntityType,
+  EntityTypeWithMetadata,
+  LinkEntity,
+  PropertyValue,
+} from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractVersion,
+} from "@blockprotocol/type-system";
+import {
+  EntityOrTypeIcon,
+  EyeSlashRegularIcon,
+} from "@hashintel/design-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import {
+  getClosedMultiEntityTypeFromMap,
+  getDisplayFieldsForClosedEntityType,
+  getPropertyTypeForClosedMultiEntityType,
+} from "@local/hash-graph-sdk/entity";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { BoxProps } from "@mui/material";
 import {
   Box,
@@ -57,7 +62,7 @@ const ContentTypography = styled(Typography)(({ theme }) => ({
   whiteSpace: "nowrap",
 }));
 
-const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
+const stringifyEntityPropertyValue = (value: PropertyValue): string => {
   if (Array.isArray(value)) {
     return value.map(stringifyEntityPropertyValue).join(", ");
   } else if (typeof value === "boolean") {
@@ -225,8 +230,8 @@ const LeftOrRightEntity: FunctionComponent<{
       return undefined;
     }
 
-    return typedEntries(entity.properties)
-      .map(([baseUrl, propertyValue]) => {
+    return typedEntries(entity.properties).flatMap(
+      ([baseUrl, propertyValue]) => {
         const closedEntityType = closedMultiEntityTypesMap
           ? getClosedMultiEntityTypeFromMap(
               closedMultiEntityTypesMap,
@@ -254,8 +259,8 @@ const LeftOrRightEntity: FunctionComponent<{
           propertyType,
           stringifiedPropertyValue,
         };
-      })
-      .flat();
+      },
+    );
   }, [
     closedMultiEntityTypesMap,
     closedMultiEntityTypesDefinitions,

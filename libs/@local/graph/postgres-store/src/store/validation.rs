@@ -18,10 +18,7 @@ use hash_graph_store::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
-use hash_graph_types::{
-    account::AccountId,
-    ontology::{DataTypeLookup, OntologyTypeProvider},
-};
+use hash_graph_types::ontology::{DataTypeLookup, OntologyTypeProvider};
 use hash_graph_validation::EntityProvider;
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient as _;
@@ -38,6 +35,7 @@ use type_system::{
         entity_type::{ClosedEntityType, EntityTypeUuid},
         property_type::{PropertyType, PropertyTypeUuid},
     },
+    provenance::ActorEntityUuid,
 };
 
 use crate::store::postgres::{AsClient, PostgresStore};
@@ -135,7 +133,7 @@ pub struct StoreCache {
 pub struct StoreProvider<'a, S> {
     pub store: &'a S,
     pub cache: StoreCache,
-    pub authorization: Option<(AccountId, Consistency<'static>)>,
+    pub authorization: Option<(ActorEntityUuid, Consistency<'static>)>,
 }
 
 impl<C, A> StoreProvider<'_, PostgresStore<C, A>>

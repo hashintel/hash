@@ -1,20 +1,24 @@
-import { extractBaseUrl, type VersionedUrl } from "@blockprotocol/type-system";
-import { extractVersion } from "@blockprotocol/type-system/slim";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { EntityTypeIdDiff } from "@local/hash-graph-client";
-import type { EntityId, PropertyPath } from "@local/hash-graph-types/entity";
-import { isValueMetadata } from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import type { Subgraph } from "@local/hash-subgraph";
+import type { EntityRevisionId, Subgraph } from "@blockprotocol/graph";
 import {
   getEntityRevision,
   getEntityTypeById,
   getPropertyTypeForEntity,
-} from "@local/hash-subgraph/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import type {
+  BaseUrl,
+  EntityId,
+  EntityTypeIdDiff,
+  EntityTypeWithMetadata,
+  PropertyDiff,
+  Timestamp,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractVersion,
+  isValueMetadata,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 
 import type { EntityDiff } from "../../../../../graphql/api-types.gen";
 import type { HistoryEvent } from "./shared/types";
@@ -135,9 +139,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
                 baseUrl,
           );
           if (removedOldVersion) {
-            upgradedFromEntityTypeIds.push(
-              removedOldVersion.removed as VersionedUrl,
-            );
+            upgradedFromEntityTypeIds.push(removedOldVersion.removed);
           }
 
           events.push({
@@ -152,7 +154,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
               title: addedOrRemovedType.schema.title,
               version: addedOrRemovedType.metadata.recordId.version,
               oldVersion: removedOldVersion
-                ? extractVersion(removedOldVersion.removed as VersionedUrl)
+                ? extractVersion(removedOldVersion.removed)
                 : undefined,
             },
           });
@@ -180,9 +182,9 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     }
 
     if (diffData.diff.properties) {
-      for (const propertyDiff of diffData.diff.properties) {
+      for (const propertyDiff of diffData.diff.properties as PropertyDiff[]) {
         const propertyMetadata = changedEntityEdition.propertyMetadata(
-          propertyDiff.path as PropertyPath,
+          propertyDiff.path,
         );
 
         if (!propertyMetadata) {
@@ -265,7 +267,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
           property: propertyProvenance,
         },
         propertyType: propertyTypeWithMetadata.propertyType,
-        timestamp: firstEditionIdentifier.revisionId,
+        timestamp: firstEditionIdentifier.revisionId as EntityRevisionId,
         type: "property-update",
         diff: {
           op: "added",
@@ -302,7 +304,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     number: "1",
     entity: firstEntityEdition,
     entityTypes: firstEntityTypes.map((type) => type.schema),
-    timestamp: firstEditionIdentifier.revisionId,
+    timestamp: firstEditionIdentifier.revisionId as EntityRevisionId,
     provenance: {
       edition: firstEntityEdition.metadata.provenance.edition,
     },

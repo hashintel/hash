@@ -1,9 +1,10 @@
 import { IconButton } from "@hashintel/design-system";
-import { Box, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren, ReactElement, RefObject } from "react";
 
 import { ArrowRightToLineIcon } from "../../../../../shared/icons/arrow-right-to-line-icon";
 import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
+import { GraphVizTooltip } from "./graph-viz-tooltip";
 
 export const InfoIconTooltip = ({
   tooltip,
@@ -11,7 +12,7 @@ export const InfoIconTooltip = ({
   tooltip: string | ReactElement;
 }) => {
   return (
-    <Tooltip title={tooltip} placement="top">
+    <GraphVizTooltip title={tooltip} placement="top">
       <Box
         sx={{
           display: "flex",
@@ -21,7 +22,7 @@ export const InfoIconTooltip = ({
       >
         <CircleInfoIcon fontSize="inherit" />
       </Box>
-    </Tooltip>
+    </GraphVizTooltip>
   );
 };
 

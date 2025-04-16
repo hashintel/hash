@@ -3,10 +3,10 @@
  */
 
 import type {
+  Confidence,
   ObjectMetadata,
   PropertyProvenance,
-} from "@local/hash-graph-client";
-import type { Confidence } from "@local/hash-graph-types/entity";
+} from "@blockprotocol/type-system";
 
 import type {
   Account,
@@ -96,7 +96,7 @@ export type {
  * The type of thing that can, should or will act on something.
  */
 // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents -- @todo H-3848 stop codegen adding inherited type here
-export type ActorTypeDataType = TextDataType & ("machine" | "human");
+export type ActorTypeDataType = TextDataType & ("machine" | "user");
 
 export type ActorTypeDataTypeWithMetadata = {
   value: ActorTypeDataType;

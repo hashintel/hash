@@ -1,15 +1,18 @@
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
-  GraphApi,
+  ActorEntityUuid,
+  ActorGroupId,
+  ClosedTemporalBound,
+  EntityUuid,
   ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  TemporalInterval,
+  WebId,
+} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -31,12 +34,6 @@ import type {
   RecordsUsageOf,
   UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type {
-  EntityRelationAndSubject,
-  EntityRootType,
-} from "@local/hash-subgraph";
-import { entityIdFromComponents } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { backOff } from "exponential-backoff";
 
 import { getHashInstanceAdminAccountGroupId } from "./hash-instance.js";
@@ -51,9 +48,12 @@ export const getWebServiceUsage = async (
     userAccountId,
     webId,
   }: {
-    userAccountId: AccountId;
-    decisionTimeInterval?: BoundedTimeInterval;
-    webId: OwnedById;
+    userAccountId: ActorEntityUuid;
+    decisionTimeInterval?: TemporalInterval<
+      ClosedTemporalBound,
+      ClosedTemporalBound
+    >;
+    webId: WebId;
   },
 ): Promise<AggregatedUsageRecord[]> => {
   const serviceUsageRecordSubgraph = await backOff(
@@ -69,7 +69,7 @@ export const getWebServiceUsage = async (
               {
                 equal: [
                   {
-                    path: ["ownedById"],
+                    path: ["webId"],
                   },
                   { parameter: webId },
                 ],
@@ -97,10 +97,9 @@ export const getWebServiceUsage = async (
           includeDrafts: false,
         })
         .then(({ data }) => {
-          return mapGraphApiSubgraphToSubgraph<EntityRootType<UsageRecord>>(
-            data.subgraph,
-            userAccountId,
-          );
+          return mapGraphApiSubgraphToSubgraph<
+            EntityRootType<HashEntity<UsageRecord>>
+          >(data.subgraph, userAccountId);
         }),
     {
       numOfAttempts: 3,
@@ -135,11 +134,11 @@ export const createUsageRecord = async (
     /**
      * Grant view access on the usage record to these additional accounts
      */
-    additionalViewers?: AccountId[];
+    additionalViewers?: ActorEntityUuid[];
     /**
      * The web the usage will be assigned to (user or org)
      */
-    assignUsageToWebId: OwnedById;
+    assignUsageToWebId: WebId;
     /**
      * Additional arbitrary metadata to store on the usage record.
      */
@@ -152,7 +151,7 @@ export const createUsageRecord = async (
      * The user that is incurring the usage (e.g. the user that triggered the flow)
      * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
      */
-    userAccountId: AccountId;
+    userAccountId: ActorEntityUuid;
   },
 ) => {
   const properties: UsageRecord["propertiesWithMetadata"] = {
@@ -254,7 +253,7 @@ export const createUsageRecord = async (
   }
   const serviceFeatureEntity = serviceFeatureEntities[0]!;
 
-  const entityRelationships: EntityRelationAndSubject[] = [
+  const entityRelationships: EntityRelationAndSubjectBranded[] = [
     {
       relation: "administrator",
       subject: {
@@ -278,7 +277,7 @@ export const createUsageRecord = async (
       relation: "viewer",
       subject: {
         kind: "accountGroup",
-        subjectId: assignUsageToWebId as AccountGroupId,
+        subjectId: assignUsageToWebId as ActorGroupId,
         subjectSet: "administrator",
       },
     });
@@ -308,11 +307,11 @@ export const createUsageRecord = async (
     },
   };
 
-  const [usageRecord] = await Entity.createMultiple<
+  const [usageRecord] = await HashEntity.createMultiple<
     [UsageRecord, RecordsUsageOf]
   >(context.graphApi, authentication, [
     {
-      ownedById: assignUsageToWebId,
+      webId: assignUsageToWebId,
       draft: false,
       entityUuid: usageRecordEntityUuid,
       properties,
@@ -321,7 +320,7 @@ export const createUsageRecord = async (
       relationships: entityRelationships,
     },
     {
-      ownedById: assignUsageToWebId,
+      webId: assignUsageToWebId,
       draft: false,
       properties: { value: {} },
       provenance,

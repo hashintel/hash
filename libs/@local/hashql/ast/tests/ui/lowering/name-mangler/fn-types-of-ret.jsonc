@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: test return type takes mangled into account
+["fn", { "#tuple": ["T"] }, { "#struct": { "a": "Integer" } }, "T", "a"]

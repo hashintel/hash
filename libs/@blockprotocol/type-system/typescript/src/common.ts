@@ -50,3 +50,5 @@ export const mustHaveAtLeastOne = <T>(array: T[]): [T, ...T[]] => {
 
   return arr;
 };
+
+// setWasmInit(() => (typeof wasm === "function" ? wasm() : wasm));

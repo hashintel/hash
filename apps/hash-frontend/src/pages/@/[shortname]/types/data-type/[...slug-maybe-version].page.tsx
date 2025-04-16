@@ -1,5 +1,12 @@
-import type { DataTypeWithMetadata } from "@blockprotocol/graph";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+import type {
+  ActorEntityUuid,
+  DataTypeWithMetadata,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  componentsFromVersionedUrl,
+  currentTimestamp,
+} from "@blockprotocol/type-system";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
@@ -72,6 +79,25 @@ const Page: NextPageWithLayout = () => {
             baseUrl,
             version,
           },
+          temporalVersioning: {
+            transactionTime: {
+              start: {
+                kind: "inclusive",
+                limit: currentTimestamp(),
+              },
+              end: { kind: "unbounded" },
+            },
+          },
+          provenance: {
+            edition: {
+              createdById: "irrelevant-here" as ActorEntityUuid,
+              actorType: "user",
+              origin: {
+                type: "web-app",
+              },
+            },
+          },
+          webId: "irrelevant-here" as WebId,
         },
         schema: dataTypeSchema,
       } satisfies DataTypeWithMetadata;
@@ -81,7 +107,7 @@ const Page: NextPageWithLayout = () => {
   }, [router.query.draft]);
 
   const requestedVersion = requestedVersionString
-    ? parseInt(requestedVersionString, 10)
+    ? Number.parseInt(requestedVersionString, 10)
     : null;
 
   if (!routeNamespace) {
@@ -95,7 +121,7 @@ const Page: NextPageWithLayout = () => {
   return (
     <>
       <DataType
-        ownedById={routeNamespace.ownedById}
+        webId={routeNamespace.webId}
         draftNewDataType={draftDataType}
         dataTypeBaseUrl={dataTypeBaseUrl}
         key={`${dataTypeBaseUrl}-${requestedVersion}`}

@@ -49,7 +49,7 @@
 //!   - [`ontology::entity_type`] - Defines complete entity structures and relationships
 //!
 //! - [`knowledge`] module - Contains data instances that conform to ontology types:
-//!   - [`knowledge::Value`] - Primitive values conforming to data types
+//!   - [`knowledge::PropertyValue`] - Primitive values conforming to data types
 //!   - [`knowledge::Property`] - Structured data conforming to property types
 //!   - [`knowledge::Entity`] - Complete entities conforming to entity types
 //!
@@ -74,19 +74,20 @@
 //!
 //! use time::OffsetDateTime;
 //! use type_system::{
+//!     knowledge::entity::id::EntityUuid,
 //!     ontology::provenance::{
 //!         OntologyEditionProvenance, OntologyOwnership, OntologyProvenance,
 //!         ProvidedOntologyEditionProvenance,
 //!     },
-//!     provenance::{ActorType, EditionCreatedById, OriginProvenance, OriginType},
-//!     web::OwnedById,
+//!     provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
+//!     web::WebId,
 //! };
 //! use uuid::Uuid;
 //!
 //! // Create ownership information for a locally owned type
 //! let web_id = Uuid::from_str("01234567-89ab-cdef-0123-456789abcdef").unwrap();
-//! let owned_by_id = OwnedById::new(web_id);
-//! let ownership = OntologyOwnership::Local { owned_by_id };
+//! let web_id = WebId::new(web_id);
+//! let ownership = OntologyOwnership::Local { web_id };
 //!
 //! // Alternative: For a type fetched from elsewhere
 //! let remote_ownership = OntologyOwnership::Remote {
@@ -94,13 +95,15 @@
 //! };
 //!
 //! // Create provenance information
-//! let actor_id = Uuid::from_str("12345678-90ab-cdef-1234-567890abcdef").unwrap();
+//! let actor_id = ActorEntityUuid::new(EntityUuid::new(Uuid::from_u128(
+//!     0x12345678_90AB_CDEF_1234_567890ABCDEF,
+//! )));
 //! let edition_provenance = OntologyEditionProvenance {
-//!     created_by_id: EditionCreatedById::new(actor_id),
+//!     created_by_id: actor_id,
 //!     archived_by_id: None,
 //!     user_defined: {
 //!         // User-defined provenance information
-//!         let actor_type = ActorType::Human;
+//!         let actor_type = ActorType::User;
 //!         let origin = OriginProvenance {
 //!             ty: OriginType::WebApp,
 //!             id: None,
@@ -136,7 +139,7 @@
 //! ```
 //! use serde_json::json;
 //! use type_system::{
-//!     knowledge::Value,
+//!     knowledge::PropertyValue,
 //!     ontology::data_type::schema::{DataType, DataTypeValidator},
 //!     Valid, Validator
 //! };
@@ -183,7 +186,7 @@
 //! #
 //! # use serde_json::json;
 //! # use type_system::{
-//! #     knowledge::Value,
+//! #     knowledge::PropertyValue,
 //! #     ontology::{
 //! #         data_type::{schema::{ClosedDataType, DataType, DataTypeReference}, DataTypeUuid},
 //! #         InheritanceDepth,
@@ -213,7 +216,7 @@
 //!
 //! // Now you can validate values against the closed type
 //! for constraint in closed_data_type.all_of {
-//!     assert!(constraint.is_valid(&Value::Number(42_i32.into())));
+//!     assert!(constraint.is_valid(&PropertyValue::Number(42_i32.into())));
 //! }
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
@@ -243,7 +246,7 @@
 //! ```
 //! use serde_json::json;
 //! use type_system::{
-//!     knowledge::Value, Valid, Validator,
+//!     knowledge::PropertyValue, Valid, Validator,
 //!     ontology::data_type::schema::{DataType, DataTypeValidator, ClosedDataType}
 //! };
 //!
@@ -278,11 +281,11 @@
 //! # // This is just for illustrative purposes
 //! # let constraint_validator = {
 //! #     struct NumberValidator;
-//! #     impl Validator<Value> for NumberValidator {
+//! #     impl Validator<PropertyValue> for NumberValidator {
 //! #         type Error = &'static str;
-//! #         fn validate_ref<'v>(&self, value: &'v Value) -> Result<&'v Valid<Value>, Self::Error> {
+//! #         fn validate_ref<'v>(&self, value: &'v PropertyValue) -> Result<&'v Valid<PropertyValue>, Self::Error> {
 //! #             match value {
-//! #                 Value::Number(n) => {
+//! #                 PropertyValue::Number(n) => {
 //! #                     if let Some(i) = n.to_i32() {
 //! #                         if i > 0 {
 //! #                             return Ok(Valid::new_ref_unchecked(value));
@@ -297,8 +300,8 @@
 //! #     NumberValidator
 //! # };
 //! #
-//! let valid_value = Value::Number(5_i32.into());
-//! let invalid_value = Value::Number((-1_i32).into());
+//! let valid_value = PropertyValue::Number(5_i32.into());
+//! let invalid_value = PropertyValue::Number((-1_i32).into());
 //!
 //! // Test validation
 //! let validated = constraint_validator.validate_ref(&valid_value)
@@ -355,18 +358,21 @@ use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 /// # Examples
 ///
 /// ```
-/// use type_system::{Valid, Validator, knowledge::Value};
+/// use type_system::{Valid, Validator, knowledge::PropertyValue};
 ///
 /// // A simple validator that ensures a string value has a certain prefix
 /// struct PrefixValidator {
 ///     prefix: String,
 /// }
 ///
-/// impl Validator<Value> for PrefixValidator {
+/// impl Validator<PropertyValue> for PrefixValidator {
 ///     type Error = &'static str;
 ///
-///     fn validate_ref<'v>(&self, value: &'v Value) -> Result<&'v Valid<Value>, Self::Error> {
-///         if let Value::String(s) = value {
+///     fn validate_ref<'v>(
+///         &self,
+///         value: &'v PropertyValue,
+///     ) -> Result<&'v Valid<PropertyValue>, Self::Error> {
+///         if let PropertyValue::String(s) = value {
 ///             if s.starts_with(&self.prefix) {
 ///                 return Ok(Valid::new_ref_unchecked(value));
 ///             }
@@ -426,15 +432,18 @@ where
 /// # Examples
 ///
 /// ```
-/// use type_system::{Valid, Validator, knowledge::Value};
+/// use type_system::{Valid, Validator, knowledge::PropertyValue};
 ///
 /// // Example implementation of a simple validator
 /// struct AlwaysValidValidator;
 ///
-/// impl Validator<Value> for AlwaysValidValidator {
+/// impl Validator<PropertyValue> for AlwaysValidValidator {
 ///     type Error = &'static str;
 ///
-///     fn validate_ref<'v>(&self, value: &'v Value) -> Result<&'v Valid<Value>, Self::Error> {
+///     fn validate_ref<'v>(
+///         &self,
+///         value: &'v PropertyValue,
+///     ) -> Result<&'v Valid<PropertyValue>, Self::Error> {
 ///         // This validator considers all values valid
 ///         Ok(Valid::new_ref_unchecked(value))
 ///     }
@@ -442,12 +451,12 @@ where
 ///
 /// // Using the validator to produce a Valid<Value>
 /// let validator = AlwaysValidValidator;
-/// let value = Value::String("example".to_string());
+/// let value = PropertyValue::String("example".to_string());
 ///
 /// let valid_value = validator.validate(value).unwrap();
 ///
 /// // Once validated, you can access the inner value with deref operators
-/// if let Value::String(s) = &*valid_value {
+/// if let PropertyValue::String(s) = &*valid_value {
 ///     assert_eq!(s, "example");
 /// }
 /// ```

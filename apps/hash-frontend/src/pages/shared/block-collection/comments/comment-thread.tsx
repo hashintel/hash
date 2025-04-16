@@ -1,9 +1,11 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
+import {
+  type ActorEntityUuid,
+  type EntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { AccountEntityId } from "@local/hash-subgraph";
-import { extractAccountId } from "@local/hash-subgraph";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";
@@ -78,9 +80,9 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const authorId = useMemo(
     () =>
-      extractAccountId(
-        comment.author.metadata.recordId.entityId as AccountEntityId,
-      ),
+      extractWebIdFromEntityId(
+        comment.author.metadata.recordId.entityId,
+      ) as ActorEntityUuid,
     [comment.author],
   );
 

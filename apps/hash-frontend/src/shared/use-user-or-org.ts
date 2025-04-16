@@ -1,9 +1,16 @@
 import { useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
+  EntityRootType,
+  GraphResolveDepths,
+  QueryTemporalAxesUnresolved,
+} from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type {
+  ActorEntityUuid,
+  ActorGroupId,
+  Entity,
+} from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -16,12 +23,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
-import type {
-  EntityRootType,
-  GraphResolveDepths,
-  QueryTemporalAxesUnresolved,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
@@ -38,7 +39,7 @@ export const useUserOrOrg = (
     temporalAxes?: QueryTemporalAxesUnresolved;
   } & (
     | { shortname?: string }
-    | { accountOrAccountGroupId?: AccountId | AccountGroupId }
+    | { accountOrAccountGroupId?: ActorEntityUuid | ActorGroupId }
   ),
 ) => {
   const { data, loading, refetch } = useQuery<
@@ -96,13 +97,16 @@ export const useUserOrOrg = (
         includeDrafts: false,
       },
     },
-    skip: !("accountOrAccountGroupId" in params) && !("shortname" in params),
+    skip:
+      !(
+        "accountOrAccountGroupId" in params && params.accountOrAccountGroupId
+      ) && !("shortname" in params && params.shortname),
     fetchPolicy: "cache-and-network",
   });
 
   return useMemo(() => {
     const subgraph = data
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
           data.getEntitySubgraph.subgraph,
         )
       : undefined;
@@ -135,7 +139,7 @@ export const useUserOrOrg = (
       : undefined;
 
     const userOrOrgSubgraph = data
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
           data.getEntitySubgraph.subgraph,
         )
       : undefined;

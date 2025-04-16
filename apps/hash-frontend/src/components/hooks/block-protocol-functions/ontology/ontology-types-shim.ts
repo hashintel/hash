@@ -9,24 +9,20 @@
 import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import type {
   CreateResourceError,
-  ReadOrModifyResourceError,
-} from "@blockprotocol/graph";
-import type {
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { EmptyObject } from "@local/hash-isomorphic-utils/util";
-import type {
   DataTypeRootType,
   EntityTypeRootType,
   PropertyTypeRootType,
+  ReadOrModifyResourceError,
   Subgraph,
-} from "@local/hash-subgraph";
+} from "@blockprotocol/graph";
+import type {
+  EntityType,
+  EntityTypeWithMetadata,
+  PropertyType,
+  PropertyTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { EmptyObject } from "@local/hash-isomorphic-utils/util";
 
 type SystemDefinedOntologyTypeProperties = "$id" | "kind" | "$schema";
 

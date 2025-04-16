@@ -1,17 +1,19 @@
 import { useMutation } from "@apollo/client";
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import type { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   getEntityTypesByBaseUrl,
   getPropertyTypesForEntityType,
-} from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+} from "@blockprotocol/graph/stdlib";
+import type {
+  BaseUrl,
+  EntityType,
+  EntityTypeWithMetadata,
+  OntologyTypeVersion,
+  PropertyTypeWithMetadata,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import type { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import { useRouter } from "next/router";
 import {
   useCallback,
@@ -41,8 +43,8 @@ import {
 // @todo rethink this from scratch, it's probably more complicated than it needs to be
 export const useEntityTypeValue = (
   entityTypeBaseUrl: BaseUrl | null,
-  requestedVersion: number | null,
-  ownedById: OwnedById | null,
+  requestedVersion: OntologyTypeVersion | null,
+  webId: WebId | null,
   onCompleted?: (entityType: EntityTypeWithMetadata) => void,
 ) => {
   const router = useRouter();
@@ -85,7 +87,7 @@ export const useEntityTypeValue = (
         }) => version,
       );
 
-      const maxVersion = Math.max(...availableVersions);
+      const maxVersion = Math.max(...availableVersions) as OntologyTypeVersion;
 
       // Return the requested version if one has been specified and it exists
       if (requestedVersion) {
@@ -230,13 +232,13 @@ export const useEntityTypeValue = (
 
   const publishDraft = useCallback(
     async (draftEntityType: EntityType) => {
-      if (!ownedById) {
-        throw new Error("Cannot publish draft without ownedById");
+      if (!webId) {
+        throw new Error("Cannot publish draft without webId");
       }
 
       const res = await createEntityType({
         variables: {
-          ownedById,
+          webId,
           entityType: draftEntityType,
         },
       });
@@ -251,7 +253,7 @@ export const useEntityTypeValue = (
 
       await router.replace(newUrl, newUrl, { shallow: true });
     },
-    [createEntityType, ownedById, refetch, router],
+    [createEntityType, webId, refetch, router],
   );
 
   return [

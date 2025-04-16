@@ -1,5 +1,12 @@
 import { useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  BaseUrl,
+  ClosedMultiEntityType,
+  EntityId,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl, isBaseUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -12,20 +19,12 @@ import type {
   Ordering,
 } from "@local/hash-graph-client";
 import {
-  type Entity,
   getClosedMultiEntityTypeFromMap,
+  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  ClosedMultiEntityType,
-} from "@local/hash-graph-types/ontology";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactElement } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -38,12 +37,12 @@ import type {
 import { countEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
-import { pollInterval } from "../../shared/poll-interval";
 import { tableContentSx } from "../../shared/table-content";
 import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import { generateUseEntityTypeEntitiesFilter } from "../../shared/use-entity-type-entities";
 import { useMemoCompare } from "../../shared/use-memo-compare";
+import { usePollInterval } from "../../shared/use-poll-interval";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
@@ -205,9 +204,9 @@ export const EntitiesVisualizer: FunctionComponent<{
   const internalWebIds = useMemoCompare(
     () => {
       return [
-        authenticatedUser.accountId as OwnedById,
+        authenticatedUser.accountId as WebId,
         ...authenticatedUser.memberOf.map(
-          ({ org }) => org.accountGroupId as OwnedById,
+          ({ org }) => org.accountGroupId as WebId,
         ),
       ];
     },
@@ -234,6 +233,8 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const [view, setView] = useState<VisualizerView>(defaultView);
 
+  const pollInterval = usePollInterval();
+
   /**
    * We want to show the count of entities in external webs, and need to query this count separately:
    * 1. When the user is requesting entities in their web only, the count for the main query doesn't include external webs.
@@ -249,7 +250,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     variables: {
       request: {
         filter: generateUseEntityTypeEntitiesFilter({
-          excludeOwnedByIds: internalWebIds,
+          excludeWebIds: internalWebIds,
           entityTypeBaseUrl,
           entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
           includeArchived: !!filterState.includeArchived,
@@ -291,7 +292,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     includeArchived: !!filterState.includeArchived,
     /** @todo H-3255 enable pagination when performance improvements in place */
     // limit: view === "Graph" ? undefined : limit,
-    ownedByIds: filterState.includeGlobal ? undefined : internalWebIds,
+    webIds: filterState.includeGlobal ? undefined : internalWebIds,
     sort: graphSort,
   });
 
@@ -484,7 +485,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     }px + ${theme.spacing(5)} + ${theme.spacing(5)})))`;
 
   const isPrimaryEntity = useCallback(
-    (entity: { metadata: Pick<Entity["metadata"], "entityTypeIds"> }) =>
+    (entity: { metadata: Pick<HashEntity["metadata"], "entityTypeIds"> }) =>
       entityTypeBaseUrl
         ? entity.metadata.entityTypeIds.some(
             (typeId) => extractBaseUrl(typeId) === entityTypeBaseUrl,

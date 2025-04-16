@@ -1,8 +1,11 @@
 use core::error::Error;
 
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
-use type_system::{knowledge::entity::id::EntityUuid, web::OwnedById};
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, WebId},
+};
 use uuid::Uuid;
 
 use crate::{
@@ -78,10 +81,10 @@ pub enum EntitySetting {
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum EntitySubject {
     Setting(EntitySetting),
-    Web(OwnedById),
+    Web(WebId),
     Public,
-    Account(AccountId),
-    AccountGroup(AccountGroupId),
+    Account(ActorEntityUuid),
+    AccountGroup(ActorGroupId),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -124,16 +127,16 @@ impl Resource for EntitySubject {
                 Self::Setting(setting)
             }
             (EntitySubjectNamespace::Web, EntitySubjectId::Uuid(uuid)) => {
-                Self::Web(OwnedById::new(uuid))
+                Self::Web(WebId::new(uuid))
             }
             (EntitySubjectNamespace::Account, EntitySubjectId::Asteriks(PublicAccess::Public)) => {
                 Self::Public
             }
             (EntitySubjectNamespace::Account, EntitySubjectId::Uuid(id)) => {
-                Self::Account(AccountId::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (EntitySubjectNamespace::AccountGroup, EntitySubjectId::Uuid(id)) => {
-                Self::AccountGroup(AccountGroupId::new(id))
+                Self::AccountGroup(ActorGroupId::new(id))
             }
             (
                 EntitySubjectNamespace::Web | EntitySubjectNamespace::AccountGroup,
@@ -195,7 +198,7 @@ pub enum EntitySettingSubject {
 pub enum EntityOwnerSubject {
     Web {
         #[serde(rename = "subjectId")]
-        id: OwnedById,
+        id: WebId,
     },
 }
 
@@ -205,11 +208,11 @@ pub enum EntityOwnerSubject {
 pub enum EntityAdministratorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },
@@ -221,11 +224,11 @@ pub enum EntityAdministratorSubject {
 pub enum EntityEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },
@@ -238,11 +241,11 @@ pub enum EntityViewerSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },

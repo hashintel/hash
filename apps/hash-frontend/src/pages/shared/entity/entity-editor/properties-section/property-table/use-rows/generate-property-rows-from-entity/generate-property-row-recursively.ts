@@ -1,13 +1,11 @@
 import type {
+  BaseUrl,
+  ClosedMultiEntityType,
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  BaseUrl,
-  ClosedMultiEntityType,
-  ClosedMultiEntityTypesDefinitions,
-} from "@local/hash-graph-types/ontology";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-types/ontology";
 import { getPermittedDataTypes } from "@local/hash-isomorphic-utils/data-types";
 import get from "lodash/get";
 
@@ -69,7 +67,7 @@ export const generatePropertyRowRecursively = ({
   generateNewMetadataObject: PropertyRow["generateNewMetadataObject"];
   propertyTypeBaseUrl: BaseUrl;
   propertyKeyChain: BaseUrl[];
-  entity: Entity;
+  entity: HashEntity;
   requiredPropertyTypes: BaseUrl[];
   depth?: number;
   propertyRefSchema: ValueOrArray<PropertyTypeReference>;

@@ -1,0 +1,48 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
+description: Parses a dict with complex expressions as keys using array format
+expression: "{\"#dict\": [\n            [[\"concat\", {\"#literal\": \"pre\"}, {\"#literal\": \"fix\"}], {\"#literal\": \"value\"}],\n            [{\"#struct\": {\"keypart\": {\"#literal\": \"complex\"}}}, {\"#literal\": \"value2\"}]\n        ]}"
+---
+Expr#4294967040@23
+  ExprKind (Dict)
+    DictExpr#4294967040@22
+      DictEntry#4294967040@11
+        Expr#4294967040@8
+          ExprKind (Call)
+            CallExpr#4294967040@8
+              Expr#4294967040@3
+                ExprKind (Path)
+                  Path#4294967040@3 (rooted: false)
+                    PathSegment#4294967040@2 (name: concat)
+              Argument#4294967040@5
+                Expr#4294967040@5
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@4
+                      LiteralKind (String)
+                        StringLiteral (pre)
+              Argument#4294967040@7
+                Expr#4294967040@7
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@6
+                      LiteralKind (String)
+                        StringLiteral (fix)
+        Expr#4294967040@10
+          ExprKind (Literal)
+            LiteralExpr#4294967040@9
+              LiteralKind (String)
+                StringLiteral (value)
+      DictEntry#4294967040@21
+        Expr#4294967040@18
+          ExprKind (Struct)
+            StructExpr#4294967040@17
+              StructEntry#4294967040@16 (key: keypart)
+                Expr#4294967040@15
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@14
+                      LiteralKind (String)
+                        StringLiteral (complex)
+        Expr#4294967040@20
+          ExprKind (Literal)
+            LiteralExpr#4294967040@19
+              LiteralKind (String)
+                StringLiteral (value2)

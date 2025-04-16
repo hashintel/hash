@@ -1,13 +1,16 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
 import type {
   CreateEntityParameters,
-  Entity,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -33,10 +36,6 @@ import type {
   OccurredInText,
 } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { Notification as NotificationEntity } from "@local/hash-isomorphic-utils/system-types/notification";
-import {
-  getOutgoingLinksForEntity,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 
 import type {
   ImpureGraphFunction,
@@ -56,7 +55,7 @@ import type { User } from "./user";
 
 type Notification = {
   archived?: boolean;
-  entity: Entity<NotificationEntity>;
+  entity: HashEntity<NotificationEntity>;
 };
 
 export const archiveNotification: ImpureGraphFunction<
@@ -86,18 +85,18 @@ export const archiveNotification: ImpureGraphFunction<
 };
 
 export type MentionNotification = {
-  entity: Entity<MentionNotificationEntity>;
+  entity: HashEntity<MentionNotificationEntity>;
 } & Omit<Notification, "entity">;
 
 export const isEntityMentionNotificationEntity = (
-  entity: Entity,
-): entity is Entity<MentionNotificationEntity> =>
+  entity: HashEntity,
+): entity is HashEntity<MentionNotificationEntity> =>
   entity.metadata.entityTypeIds.includes(
     systemEntityTypes.mentionNotification.entityTypeId,
   );
 
 export const getMentionNotificationFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: HashEntity },
   MentionNotification
 > = ({ entity }) => {
   if (!isEntityMentionNotificationEntity(entity)) {
@@ -114,7 +113,7 @@ export const getMentionNotificationFromEntity: PureGraphFunction<
 };
 
 export const createMentionNotification: ImpureGraphFunction<
-  Pick<CreateEntityParameters, "ownedById"> & {
+  Pick<CreateEntityParameters, "webId"> & {
     triggeredByUser: User;
     occurredInEntity: Page;
     occurredInBlock: Block;
@@ -129,13 +128,13 @@ export const createMentionNotification: ImpureGraphFunction<
     occurredInEntity,
     occurredInBlock,
     occurredInComment,
-    ownedById,
+    webId,
   } = params;
 
   const webMachineActorId = await getWebMachineActorId(
     context,
     userAuthentication,
-    { ownedById },
+    { webId },
   );
   const botAuthentication = { actorId: webMachineActorId };
 
@@ -148,7 +147,7 @@ export const createMentionNotification: ImpureGraphFunction<
     context,
     botAuthentication,
     {
-      ownedById,
+      webId,
       properties: { value: {} },
       entityTypeIds: [systemEntityTypes.mentionNotification.entityTypeId],
       relationships: notificationEntityRelationships,
@@ -165,7 +164,7 @@ export const createMentionNotification: ImpureGraphFunction<
        * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
        */
       createLinkEntity<TriggeredByUser>(context, userAuthentication, {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
@@ -175,7 +174,7 @@ export const createMentionNotification: ImpureGraphFunction<
         relationships: linkEntityRelationships,
       }),
       createLinkEntity<OccurredInEntity>(context, userAuthentication, {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
@@ -187,7 +186,7 @@ export const createMentionNotification: ImpureGraphFunction<
         relationships: linkEntityRelationships,
       }),
       createLinkEntity<OccurredInBlock>(context, userAuthentication, {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
@@ -198,7 +197,7 @@ export const createMentionNotification: ImpureGraphFunction<
       }),
       occurredInComment
         ? createLinkEntity<OccurredInComment>(context, userAuthentication, {
-            ownedById,
+            webId,
             properties: { value: {} },
             linkData: {
               leftEntityId: entity.metadata.recordId.entityId,
@@ -212,7 +211,7 @@ export const createMentionNotification: ImpureGraphFunction<
           })
         : [],
       createLinkEntity<OccurredInText>(context, userAuthentication, {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
@@ -260,10 +259,7 @@ export const getMentionNotification: ImpureGraphFunction<
             { ignoreParents: true },
           ),
           {
-            equal: [
-              { path: ["ownedById"] },
-              { parameter: recipient.accountId },
-            ],
+            equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
           },
           pageOrNotificationNotArchivedFilter,
         ],
@@ -288,7 +284,7 @@ export const getMentionNotification: ImpureGraphFunction<
     const outgoingLinks = getOutgoingLinksForEntity(
       entitiesSubgraph,
       entity.metadata.recordId.entityId,
-    ).map((linkEntity) => new LinkEntity(linkEntity));
+    ).map((linkEntity) => new HashLinkEntity(linkEntity));
 
     const triggeredByUserLink = outgoingLinks.find(({ metadata }) =>
       metadata.entityTypeIds.includes(
@@ -357,18 +353,18 @@ export const getMentionNotification: ImpureGraphFunction<
 };
 
 export type CommentNotification = {
-  entity: Entity<CommentNotificationEntity>;
+  entity: HashEntity<CommentNotificationEntity>;
 } & Omit<Notification, "entity">;
 
 export const isEntityCommentNotificationEntity = (
-  entity: Entity,
-): entity is Entity<CommentNotificationEntity> =>
+  entity: HashEntity,
+): entity is HashEntity<CommentNotificationEntity> =>
   entity.metadata.entityTypeIds.includes(
     systemEntityTypes.commentNotification.entityTypeId,
   );
 
 export const getCommentNotificationFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: HashEntity },
   CommentNotification
 > = ({ entity }) => {
   if (!isEntityCommentNotificationEntity(entity)) {
@@ -385,7 +381,7 @@ export const getCommentNotificationFromEntity: PureGraphFunction<
 };
 
 export const createCommentNotification: ImpureGraphFunction<
-  Pick<CreateEntityParameters, "ownedById"> & {
+  Pick<CreateEntityParameters, "webId"> & {
     triggeredByUser: User;
     triggeredByComment: Comment;
     occurredInEntity: Page;
@@ -400,13 +396,13 @@ export const createCommentNotification: ImpureGraphFunction<
     occurredInEntity,
     occurredInBlock,
     repliedToComment,
-    ownedById,
+    webId,
   } = params;
 
   const webMachineActorId = await getWebMachineActorId(
     context,
     userAuthentication,
-    { ownedById },
+    { webId },
   );
   const authentication = { actorId: webMachineActorId };
 
@@ -419,7 +415,7 @@ export const createCommentNotification: ImpureGraphFunction<
     context,
     authentication,
     {
-      ownedById,
+      webId,
       properties: { value: {} },
       entityTypeIds: [systemEntityTypes.commentNotification.entityTypeId],
       relationships: notificationEntityRelationships,
@@ -468,7 +464,7 @@ export const createCommentNotification: ImpureGraphFunction<
        * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
        */
       createLinkEntity(context, userAuthentication, {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           leftEntityId,
@@ -518,10 +514,7 @@ export const getCommentNotification: ImpureGraphFunction<
             { ignoreParents: true },
           ),
           {
-            equal: [
-              { path: ["ownedById"] },
-              { parameter: recipient.accountId },
-            ],
+            equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
           },
           /** @todo: enforce the type of these links somehow */
           {
@@ -574,7 +567,7 @@ export const getCommentNotification: ImpureGraphFunction<
     const outgoingLinks = getOutgoingLinksForEntity(
       entitiesSubgraph,
       entity.metadata.recordId.entityId,
-    ).map((linkEntity) => new LinkEntity(linkEntity));
+    ).map((linkEntity) => new HashLinkEntity(linkEntity));
 
     const triggeredByUserLink = outgoingLinks.find(({ metadata }) =>
       metadata.entityTypeIds.includes(

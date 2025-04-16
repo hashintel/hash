@@ -1,30 +1,31 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  EntityId,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
 
 export const getEntitiesByLinearId = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorEntityUuid };
   linearId: string;
   entityTypeId?: VersionedUrl;
-  webOwnedById?: OwnedById;
+  webWebId?: WebId;
   includeDrafts?: boolean;
-}): Promise<Entity[]> =>
+}): Promise<HashEntity[]> =>
   params.graphApiClient
     .getEntities(params.authentication.actorId, {
       filter: {
@@ -45,13 +46,13 @@ export const getEntitiesByLinearId = async (params: {
               { parameter: params.linearId },
             ],
           },
-          params.webOwnedById
+          params.webWebId
             ? {
                 equal: [
                   {
-                    path: ["ownedById"],
+                    path: ["webId"],
                   },
-                  { parameter: params.webOwnedById },
+                  { parameter: params.webWebId },
                 ],
               }
             : [],
@@ -68,7 +69,7 @@ export const getEntitiesByLinearId = async (params: {
 
 export const getEntityOutgoingLinks = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorEntityUuid };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {
@@ -89,9 +90,9 @@ export const getEntityOutgoingLinks = async (params: {
           },
           {
             equal: [
-              { path: ["leftEntity", "ownedById"] },
+              { path: ["leftEntity", "webId"] },
               {
-                parameter: extractOwnedByIdFromEntityId(entityId),
+                parameter: extractWebIdFromEntityId(entityId),
               },
             ],
           },
@@ -107,7 +108,9 @@ export const getEntityOutgoingLinks = async (params: {
 
   const outgoingLinkEntities = response.entities.map(
     (entity) =>
-      new LinkEntity(mapGraphApiEntityToEntity(entity, authentication.actorId)),
+      new HashLinkEntity(
+        mapGraphApiEntityToEntity(entity, authentication.actorId),
+      ),
   );
 
   return outgoingLinkEntities;
@@ -122,13 +125,13 @@ export const getEntityOutgoingLinks = async (params: {
 
 export const getLatestEntityById = async (params: {
   graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorEntityUuid };
   entityId: EntityId;
   includeDrafts?: boolean;
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
-  const [ownedById, entityUuid] = splitEntityId(entityId);
+  const [webId, entityUuid] = splitEntityId(entityId);
 
   const { data: response } = await graphApiClient.getEntities(
     authentication.actorId,
@@ -139,7 +142,7 @@ export const getLatestEntityById = async (params: {
             equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
           },
           {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            equal: [{ path: ["webId"] }, { parameter: webId }],
           },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],

@@ -1,26 +1,26 @@
+import {
+  type EntityTypeWithMetadata,
+  type PropertyTypeWithMetadata,
+  type ProvidedEntityEditionProvenance,
+  versionedUrlFromComponents,
+  type WebId,
+} from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityTypeRelationAndSubject } from "@local/hash-graph-client/dist/api.d";
 import {
   defaultEntityTypeAuthorizationRelationships,
   defaultPropertyTypeAuthorizationRelationships,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
   systemDataTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityTypeRelationAndSubject } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphFunction } from "../graph/context-types";
 import type {
@@ -57,10 +57,10 @@ const webShortname = "h";
 const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   {
     propertyTypeDefinition: Omit<PropertyTypeDefinition, "propertyTypeId">;
-    ownedById: OwnedById;
+    webId: WebId;
   },
   Promise<PropertyTypeWithMetadata>
-> = async (context, authentication, { propertyTypeDefinition, ownedById }) => {
+> = async (context, authentication, { propertyTypeDefinition, webId }) => {
   const { title } = propertyTypeDefinition;
 
   const baseUrl = generateSystemTypeBaseUrl({
@@ -97,7 +97,7 @@ const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     context,
     authentication,
     {
-      ownedById,
+      webId,
       schema: propertyTypeSchema,
       webShortname,
       relationships: defaultPropertyTypeAuthorizationRelationships,
@@ -112,10 +112,10 @@ const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
 const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   {
     entityTypeDefinition: Omit<EntityTypeDefinition, "entityTypeId">;
-    ownedById: OwnedById;
+    webId: WebId;
   },
   Promise<EntityTypeWithMetadata>
-> = async (context, authentication, { entityTypeDefinition, ownedById }) => {
+> = async (context, authentication, { entityTypeDefinition, webId }) => {
   const { title } = entityTypeDefinition;
   const baseUrl = generateSystemTypeBaseUrl({
     kind: "entity-type",
@@ -149,7 +149,7 @@ const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     defaultEntityTypeAuthorizationRelationships;
 
   const createdEntityType = await createEntityType(context, authentication, {
-    ownedById,
+    webId,
     schema: entityTypeSchema,
     webShortname,
     relationships,
@@ -166,7 +166,7 @@ const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
 const seedFlowTestTypes = async () => {
   const graphApi = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
-    port: parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
+    port: Number.parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
   });
 
   const context = { graphApi, provenance };
@@ -190,7 +190,7 @@ const seedFlowTestTypes = async () => {
     });
   }
 
-  const ownedById = org.accountGroupId as OwnedById;
+  const webId = org.accountGroupId as WebId;
 
   const valuePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -201,7 +201,7 @@ const seedFlowTestTypes = async () => {
         description: "The value of something",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      ownedById,
+      webId,
     },
   );
 
@@ -214,7 +214,7 @@ const seedFlowTestTypes = async () => {
         description: "The name of a unit of something",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById,
+      webId,
     },
   );
 
@@ -228,7 +228,7 @@ const seedFlowTestTypes = async () => {
           'The multiplier of something (e.g. "millions", "thousands", etc.)',
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById,
+      webId,
     },
   );
 
@@ -241,7 +241,7 @@ const seedFlowTestTypes = async () => {
         description: "The date and time at which something was measured.",
         possibleValues: [{ dataTypeId: systemDataTypes.datetime.dataTypeId }],
       },
-      ownedById,
+      webId,
     },
   );
 
@@ -274,7 +274,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      webId,
     });
 
   const numberOfVotingRightsPropertyType =
@@ -300,7 +300,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      webId,
     });
 
   const ownershipPercentagePropertyType =
@@ -311,7 +311,7 @@ const seedFlowTestTypes = async () => {
           "The proportion of the total available capital of a company that is owned by a specific shareholder, reflecting their relative financial stake and potential influence in corporate governance.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      ownedById,
+      webId,
     });
 
   const holdingTypePropertyType = await createSystemPropertyTypeIfNotExists(
@@ -324,7 +324,7 @@ const seedFlowTestTypes = async () => {
           "The method or structure through which a shareholder possesses shares, indicating whether the interest is direct, indirect, or through financial instruments such as derivatives.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById,
+      webId,
     },
   );
 
@@ -333,7 +333,7 @@ const seedFlowTestTypes = async () => {
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Invested In",
         description: "Something that something is invested in",
         properties: [
@@ -351,7 +351,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      webId,
     },
   );
 
@@ -360,7 +360,7 @@ const seedFlowTestTypes = async () => {
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Appears In Index",
         description: "The index that something appears in.",
         properties: [
@@ -371,7 +371,7 @@ const seedFlowTestTypes = async () => {
           { propertyType: systemPropertyTypes.appliesUntil.propertyTypeId },
         ],
       },
-      ownedById,
+      webId,
     },
   );
 
@@ -393,7 +393,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      webId,
     },
   );
 
@@ -427,7 +427,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      webId,
     });
 
   const _investmentFundEntityType = await createSystemEntityTypeIfNotExists(
@@ -454,7 +454,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      webId,
     },
   );
 
@@ -487,7 +487,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      webId,
     },
   );
 
@@ -499,7 +499,7 @@ const seedFlowTestTypes = async () => {
     throw new Error("HASH org not found");
   }
 
-  const hashOwnedById = hashOrg.accountGroupId as OwnedById;
+  const hashWebId = hashOrg.accountGroupId as WebId;
 
   const rolePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -510,7 +510,7 @@ const seedFlowTestTypes = async () => {
         description: "The name of a role performed by someone or something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -519,7 +519,7 @@ const seedFlowTestTypes = async () => {
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Worked At",
         description: "Somewhere that someone or something worked at",
         properties: [
@@ -537,7 +537,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -550,7 +550,7 @@ const seedFlowTestTypes = async () => {
         description: "A URL to a LinkedIn profile",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -561,7 +561,7 @@ const seedFlowTestTypes = async () => {
         description: "A URL to a Google Scholar profile",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     });
 
   const twitterUrlPropertyType = await createSystemPropertyTypeIfNotExists(
@@ -573,7 +573,7 @@ const seedFlowTestTypes = async () => {
         description: "A URL to a Twitter account",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -586,7 +586,7 @@ const seedFlowTestTypes = async () => {
         description: "A URL to a GitHub account",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -640,7 +640,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -649,7 +649,7 @@ const seedFlowTestTypes = async () => {
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Author",
         description: "Something that has an author",
         properties: [
@@ -663,7 +663,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -691,7 +691,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -717,7 +717,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -737,7 +737,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     });
 
   const contextSizePropertyType = await createSystemPropertyTypeIfNotExists(
@@ -749,7 +749,7 @@ const seedFlowTestTypes = async () => {
         description: "The maximum context size the model can handle.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -777,7 +777,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -805,7 +805,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -817,7 +817,7 @@ const seedFlowTestTypes = async () => {
           "The date until which the training data was included for the model.",
         possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     });
 
   const providedByLinkEntityType = await createSystemEntityTypeIfNotExists(
@@ -825,12 +825,12 @@ const seedFlowTestTypes = async () => {
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Provided By",
         description: "Something that is provided by something else.",
         properties: [],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -874,7 +874,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -887,7 +887,7 @@ const seedFlowTestTypes = async () => {
         description: "Number of NVIDIA CUDA cores.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -900,7 +900,7 @@ const seedFlowTestTypes = async () => {
         description: "Base clock speed in GHz.",
         possibleValues: [{ dataTypeId: systemDataTypes.gigahertz.dataTypeId }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -913,7 +913,7 @@ const seedFlowTestTypes = async () => {
         description: "Boost clock speed in GHz.",
         possibleValues: [{ dataTypeId: systemDataTypes.gigahertz.dataTypeId }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -926,7 +926,7 @@ const seedFlowTestTypes = async () => {
         description: "Memory size in GB.",
         possibleValues: [{ dataTypeId: systemDataTypes.gigabytes.dataTypeId }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -939,7 +939,7 @@ const seedFlowTestTypes = async () => {
         description: "Type of memory.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -952,7 +952,7 @@ const seedFlowTestTypes = async () => {
         description: "Number of ray tracing cores.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -965,7 +965,7 @@ const seedFlowTestTypes = async () => {
         description: "Number of tensor cores.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -980,7 +980,7 @@ const seedFlowTestTypes = async () => {
           { dataTypeId: systemDataTypes.millimeters.dataTypeId },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -995,7 +995,7 @@ const seedFlowTestTypes = async () => {
           { dataTypeId: systemDataTypes.millimeters.dataTypeId },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -1008,7 +1008,7 @@ const seedFlowTestTypes = async () => {
         description: "Power draw in watts.",
         possibleValues: [{ dataTypeId: systemDataTypes.watts.dataTypeId }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -1021,7 +1021,7 @@ const seedFlowTestTypes = async () => {
         description: "The date on which a thing's training began",
         possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -1034,7 +1034,7 @@ const seedFlowTestTypes = async () => {
         description: "The date on which a thing's training ended",
         possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -1048,7 +1048,7 @@ const seedFlowTestTypes = async () => {
           'The rate at which an AI model is able to output tokens (generally, although not always, specified as "tokens per second")',
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -1062,7 +1062,7 @@ const seedFlowTestTypes = async () => {
           "The maximum number of tokens that an AI model can operate on, including both its inputs and outputs.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -1103,7 +1103,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 
@@ -1141,7 +1141,7 @@ const seedFlowTestTypes = async () => {
           { propertyType: powerDrawPropertyType.schema.$id, required: false },
         ],
       },
-      ownedById: hashOwnedById,
+      webId: hashWebId,
     },
   );
 };

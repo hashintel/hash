@@ -1,8 +1,8 @@
 import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
+import type { WebId } from "@blockprotocol/type-system";
 import { CheckIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Query } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
@@ -89,7 +89,7 @@ const StepContainer = ({
 };
 
 type IntegrationData = {
-  audience: "human" | "machine";
+  audience: "user" | "machine";
   googleAccountId?: string;
   query?: MultiFilter;
   spreadsheetId?: string;
@@ -112,7 +112,7 @@ export const CreateOrEditSheetsSync = ({
   const { authenticatedUser } = useAuthenticatedUser();
 
   const [integrationData, setIntegrationData] = useState<IntegrationData>({
-    audience: "human",
+    audience: "user",
   });
 
   const [createEntity] = useMutation<
@@ -159,7 +159,7 @@ export const CreateOrEditSheetsSync = ({
       const { data } = await createEntity({
         variables: {
           entityTypeIds: [blockProtocolEntityTypes.query.entityTypeId],
-          ownedById: authenticatedUser.accountId as OwnedById,
+          webId: authenticatedUser.accountId as WebId,
           properties: {
             value: {
               "https://blockprotocol.org/@hash/types/property-type/query/": {
@@ -269,11 +269,11 @@ export const CreateOrEditSheetsSync = ({
               onChange={(event) =>
                 setIntegrationData({
                   ...integrationData,
-                  audience: event.target.value as "human" | "machine",
+                  audience: event.target.value as "user" | "machine",
                 })
               }
             >
-              <option value="human">Human</option>
+              <option value="user">User</option>
               <option value="machine">Machine</option>
             </select>
           </Box>

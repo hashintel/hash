@@ -1,6 +1,5 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import * as Sentry from "@sentry/nextjs";
 import { useCallback } from "react";
 
@@ -20,37 +19,37 @@ export const useGetOwnerForEntity = () => {
   const loading = usersLoading || orgsLoading;
 
   return useCallback(
-    (params: { entityId: EntityId } | { ownedById: OwnedById }) => {
-      const ownedById =
+    (params: { entityId: EntityId } | { webId: WebId }) => {
+      const webId =
         "entityId" in params
-          ? extractOwnedByIdFromEntityId(params.entityId)
-          : params.ownedById;
+          ? extractWebIdFromEntityId(params.entityId)
+          : params.webId;
 
       if (loading || !users?.length || !orgs?.length) {
         return {
-          ownedById,
+          webId,
           shortname: "",
         };
       }
 
       const owner =
-        users.find((user) => ownedById === user.accountId) ??
-        orgs.find((org) => ownedById === org.accountGroupId);
+        users.find((user) => webId === user.accountId) ??
+        orgs.find((org) => webId === org.accountGroupId);
 
       if (!owner) {
         Sentry.captureException(
           new Error(
-            `Owner with accountId ${ownedById} not found in entities table – possibly a caching issue if it has been created mid-session`,
+            `Owner with accountId ${webId} not found in entities table – possibly a caching issue if it has been created mid-session`,
           ),
         );
         return {
-          ownedById,
+          webId,
           shortname: "unknown",
         };
       }
 
       return {
-        ownedById,
+        webId,
         shortname: owner.shortname ?? "incomplete-user-account",
       };
     },

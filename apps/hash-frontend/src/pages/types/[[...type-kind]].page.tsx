@@ -1,6 +1,6 @@
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { DataTypeRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import type { DataTypeRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import type { GetServerSideProps } from "next";
 import { NextSeo } from "next-seo";

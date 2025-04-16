@@ -1,3 +1,4 @@
+import type { Url } from "@blockprotocol/type-system";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
@@ -197,7 +198,7 @@ export async function getToolCallResults(
       input: {
         initialResource: {
           goal,
-          url,
+          url: url as Url,
           descriptionOfExpectedContent,
           exampleOfExpectedContent,
           reason: explanation,

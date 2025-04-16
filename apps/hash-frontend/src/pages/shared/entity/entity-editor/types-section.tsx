@@ -1,17 +1,18 @@
 import { useQuery } from "@apollo/client";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityTypeRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { Entity, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  componentsFromVersionedUrl,
+  mustHaveAtLeastOne,
+} from "@blockprotocol/type-system";
 import { PlusIcon, TypeCard } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import { linkEntityTypeUrl } from "@hashintel/type-editor/src/shared/urls";
 import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
 import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityTypeRootType } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack } from "@mui/material";
 import { useMemo, useState } from "react";
 
@@ -237,7 +238,7 @@ export const TypesSection = () => {
         entityTypeId: currentTypeMetadata.$id,
         entityTypeTitle: currentTypeMetadata.title,
         icon,
-        isLink: !!currentTypeMetadata.allOf?.some(
+        isLink: !!currentTypeMetadata.allOf.some(
           (parent) => parent.$id === linkEntityTypeUrl,
         ),
         version,

@@ -1,16 +1,28 @@
 use core::error::Error;
 
-use type_system::web::OwnedById;
+use type_system::{provenance::ActorId, web::WebId};
 
-use crate::policies::principal::{ActorId, role::RoleId, team::TeamId, web::WebTeamId};
+use crate::policies::principal::{group::TeamId, role::RoleId};
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not get system account: {_variant}")]
+pub enum GetSystemAccountError {
+    #[display("Creating system account failed")]
+    CreateSystemAccountFailed,
+
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for GetSystemAccountError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create actor: {_variant}")]
 pub enum ActorCreationError {
     #[display("Web with ID `{web_id}` does not exist")]
-    WebNotFound { web_id: OwnedById },
+    WebNotFound { web_id: WebId },
     #[display("Web with ID `{web_id}` is already assigned")]
-    WebOccupied { web_id: OwnedById },
+    WebOccupied { web_id: WebId },
     #[display("Store operation failed")]
     StoreError,
 }
@@ -20,6 +32,10 @@ impl Error for ActorCreationError {}
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create web: {_variant}")]
 pub enum WebCreationError {
+    #[display("Web with ID `{web_id}` already exists")]
+    AlreadyExists { web_id: WebId },
+    #[display("Permission to create web was denied")]
+    NotAuthorized,
     #[display("Store operation failed")]
     StoreError,
 }
@@ -30,7 +46,7 @@ impl Error for WebCreationError {}
 #[display("Could not create web role: {_variant}")]
 pub enum WebRoleCreationError {
     #[display("Web with ID `{web_id}` does not exist")]
-    WebNotFound { web_id: OwnedById },
+    WebNotFound { web_id: WebId },
     #[display("Store operation failed")]
     StoreError,
 }
@@ -56,30 +72,6 @@ pub enum TeamRoleCreationError {
 }
 
 impl Error for TeamRoleCreationError {}
-
-#[derive(Debug, derive_more::Display)]
-#[display("Could not create web-team: {_variant}")]
-pub enum WebTeamCreationError {
-    #[display("Web with ID `{web_id}` does not exist")]
-    WebNotFound { web_id: OwnedById },
-    #[display("Store operation failed")]
-    StoreError,
-}
-
-impl Error for WebTeamCreationError {}
-
-#[derive(Debug, derive_more::Display)]
-#[display("Could not create web-team role: {_variant}")]
-pub enum WebTeamRoleCreationError {
-    #[display("Web with ID `{web_id}` does not exist")]
-    WebNotFound { web_id: OwnedById },
-    #[display("Team with ID `{team_id}` does not exist")]
-    TeamNotFound { team_id: WebTeamId },
-    #[display("Store operation failed")]
-    StoreError,
-}
-
-impl Error for WebTeamRoleCreationError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could change role assignment: {_variant}")]

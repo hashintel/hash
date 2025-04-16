@@ -2,11 +2,12 @@ mod parameter;
 mod path;
 
 use alloc::borrow::Cow;
-use core::{borrow::Borrow as _, fmt, hash::Hash};
+use core::{borrow::Borrow as _, error::Error, fmt, hash::Hash};
 use std::collections::HashMap;
 
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
+use hash_graph_authorization::policies::{PartialResourceId, PolicyExpressionTree};
 use hash_graph_types::ontology::DataTypeLookup;
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
@@ -246,12 +247,12 @@ impl<'p> Filter<'p, Entity> {
     /// Creates a `Filter` to search for a specific entities, identified by its [`EntityId`].
     #[must_use]
     pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
-        let owned_by_id_filter = Self::Equal(
+        let web_id_filter = Self::Equal(
             Some(FilterExpression::Path {
-                path: EntityQueryPath::OwnedById,
+                path: EntityQueryPath::WebId,
             }),
             Some(FilterExpression::Parameter {
-                parameter: Parameter::Uuid(entity_id.owned_by_id.into_uuid()),
+                parameter: Parameter::Uuid(entity_id.web_id.into_uuid()),
                 convert: None,
             }),
         );
@@ -267,7 +268,7 @@ impl<'p> Filter<'p, Entity> {
 
         if let Some(draft_id) = entity_id.draft_id {
             Self::All(vec![
-                owned_by_id_filter,
+                web_id_filter,
                 entity_uuid_filter,
                 Self::Equal(
                     Some(FilterExpression::Path {
@@ -280,7 +281,7 @@ impl<'p> Filter<'p, Entity> {
                 ),
             ])
         } else {
-            Self::All(vec![owned_by_id_filter, entity_uuid_filter])
+            Self::All(vec![web_id_filter, entity_uuid_filter])
         }
     }
 
@@ -476,6 +477,135 @@ where
     }
 }
 
+#[derive(Debug, derive_more::Display)]
+#[display("expression is not supported: {_0:?}")]
+pub struct InvalidPolicyExpressionTree(PolicyExpressionTree);
+
+impl Error for InvalidPolicyExpressionTree {}
+
+impl TryFrom<PolicyExpressionTree> for Filter<'_, Entity> {
+    type Error = Report<InvalidPolicyExpressionTree>;
+
+    fn try_from(expression: PolicyExpressionTree) -> Result<Self, Self::Error> {
+        match expression {
+            PolicyExpressionTree::All(expressions) => Ok(Self::All(
+                expressions
+                    .into_iter()
+                    .map(Self::try_from)
+                    .collect::<Result<_, _>>()?,
+            )),
+            PolicyExpressionTree::Any(expressions) => Ok(Self::Any(
+                expressions
+                    .into_iter()
+                    .map(Self::try_from)
+                    .collect::<Result<_, _>>()?,
+            )),
+            PolicyExpressionTree::Not(expression) => {
+                Ok(Self::Not(Box::new(Self::try_from(*expression)?)))
+            }
+            PolicyExpressionTree::IsOfType(entity_type) => Ok(Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::VersionedUrl,
+                        inheritance_depth: None,
+                    },
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Owned(entity_type.to_string())),
+                    convert: None,
+                }),
+            )),
+            PolicyExpressionTree::Is(PartialResourceId::Entity(Some(entity_uuid))) => {
+                Ok(Self::Equal(
+                    Some(FilterExpression::Path {
+                        path: EntityQueryPath::Uuid,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(entity_uuid.into_uuid()),
+                        convert: None,
+                    }),
+                ))
+            }
+            PolicyExpressionTree::Is(PartialResourceId::Entity(None)) => Ok(Self::All(vec![])),
+            PolicyExpressionTree::In(web_id) => Ok(Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::WebId,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(web_id.into_uuid()),
+                    convert: None,
+                }),
+            )),
+            _ => Err(Report::new(InvalidPolicyExpressionTree(expression))),
+        }
+    }
+}
+
+impl TryFrom<PolicyExpressionTree> for Filter<'_, EntityTypeWithMetadata> {
+    type Error = Report<InvalidPolicyExpressionTree>;
+
+    fn try_from(expression: PolicyExpressionTree) -> Result<Self, Self::Error> {
+        match expression {
+            PolicyExpressionTree::All(expressions) => Ok(Self::All(
+                expressions
+                    .into_iter()
+                    .map(Self::try_from)
+                    .collect::<Result<_, _>>()?,
+            )),
+            PolicyExpressionTree::Any(expressions) => Ok(Self::Any(
+                expressions
+                    .into_iter()
+                    .map(Self::try_from)
+                    .collect::<Result<_, _>>()?,
+            )),
+            PolicyExpressionTree::Not(expression) => {
+                Ok(Self::Not(Box::new(Self::try_from(*expression)?)))
+            }
+            PolicyExpressionTree::BaseUrl(base_url) => Ok(Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityTypeQueryPath::BaseUrl,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Owned(base_url.to_string())),
+                    convert: None,
+                }),
+            )),
+            PolicyExpressionTree::OntologyTypeVersion(ontology_type_version) => Ok(Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityTypeQueryPath::Version,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::OntologyTypeVersion(ontology_type_version),
+                    convert: None,
+                }),
+            )),
+            PolicyExpressionTree::Is(PartialResourceId::EntityType(Some(entity_type_id))) => {
+                Ok(Self::Equal(
+                    Some(FilterExpression::Path {
+                        path: EntityTypeQueryPath::VersionedUrl,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Text(Cow::Owned(entity_type_id.to_string())),
+                        convert: None,
+                    }),
+                ))
+            }
+            PolicyExpressionTree::Is(PartialResourceId::EntityType(None)) => Ok(Self::All(vec![])),
+            PolicyExpressionTree::In(web_id) => Ok(Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityTypeQueryPath::WebId,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(web_id.into_uuid()),
+                    convert: None,
+                }),
+            )),
+            _ => Err(Report::new(InvalidPolicyExpressionTree(expression))),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct ParameterConversion {
@@ -552,11 +682,12 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
 #[cfg(test)]
 mod tests {
 
+    use hash_graph_types::ontology::DataTypeLookup;
     use serde_json::json;
     use type_system::{
         knowledge::entity::id::{DraftId, EntityUuid},
         ontology::data_type::{ClosedDataType, ConversionExpression},
-        web::OwnedById,
+        web::WebId,
     };
     use uuid::Uuid;
 
@@ -649,7 +780,7 @@ mod tests {
     #[tokio::test]
     async fn for_entity_by_entity_id() {
         let entity_id = EntityId {
-            owned_by_id: OwnedById::new(Uuid::new_v4()),
+            web_id: WebId::new(Uuid::new_v4()),
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
             draft_id: None,
         };
@@ -657,8 +788,8 @@ mod tests {
         let expected = json!({
           "all": [
             { "equal": [
-              { "path": ["ownedById"] },
-              { "parameter": entity_id.owned_by_id }
+              { "path": ["webId"] },
+              { "parameter": entity_id.web_id }
             ]},
             { "equal": [
               { "path": ["uuid"] },
@@ -673,7 +804,7 @@ mod tests {
     #[tokio::test]
     async fn for_entity_by_entity_draft_id() {
         let entity_id = EntityId {
-            owned_by_id: OwnedById::new(Uuid::new_v4()),
+            web_id: WebId::new(Uuid::new_v4()),
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
             draft_id: Some(DraftId::new(Uuid::new_v4())),
         };
@@ -681,8 +812,8 @@ mod tests {
         let expected = json!({
           "all": [
             { "equal": [
-              { "path": ["ownedById"] },
-              { "parameter": entity_id.owned_by_id }
+              { "path": ["webId"] },
+              { "parameter": entity_id.web_id }
             ]},
             { "equal": [
               { "path": ["uuid"] },

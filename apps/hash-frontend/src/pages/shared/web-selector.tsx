@@ -1,9 +1,9 @@
+import type { WebId } from "@blockprotocol/type-system";
 import {
   AngleRightRegularIcon,
   Autocomplete,
   Avatar,
 } from "@hashintel/design-system";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   autocompleteClasses,
   Box,
@@ -45,8 +45,8 @@ type WebSelectorProps = {
   avatarSize?: number;
   inputHeight: number;
   inputId?: string;
-  selectedWebOwnedById?: OwnedById;
-  setSelectedWebOwnedById: (ownedById: OwnedById) => void;
+  selectedWebId?: WebId;
+  setSelectedWebId: (webId: WebId) => void;
 };
 
 const optionPx = 1.5;
@@ -55,8 +55,8 @@ export const WebSelector = ({
   avatarSize,
   inputHeight,
   inputId,
-  selectedWebOwnedById,
-  setSelectedWebOwnedById,
+  selectedWebId,
+  setSelectedWebId,
 }: WebSelectorProps) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
@@ -77,7 +77,7 @@ export const WebSelector = ({
           />
         ),
         label: "My web",
-        value: authenticatedUser.accountId as OwnedById,
+        value: authenticatedUser.accountId as WebId,
       },
       ...authenticatedUser.memberOf.map(
         ({ org: { accountGroupId, name, hasAvatar } }) => ({
@@ -95,15 +95,13 @@ export const WebSelector = ({
             />
           ),
           label: name,
-          value: accountGroupId as OwnedById,
+          value: accountGroupId as WebId,
         }),
       ),
     ];
   }, [avatarSize, authenticatedUser]);
 
-  const selectedWeb = options.find(
-    (option) => option.value === selectedWebOwnedById,
-  );
+  const selectedWeb = options.find((option) => option.value === selectedWebId);
 
   return (
     <Autocomplete
@@ -147,7 +145,7 @@ export const WebSelector = ({
       }}
       multiple={false}
       onChange={(_event, option) => {
-        setSelectedWebOwnedById(option.value);
+        setSelectedWebId(option.value);
       }}
       options={options}
       renderOption={(props, option) => (

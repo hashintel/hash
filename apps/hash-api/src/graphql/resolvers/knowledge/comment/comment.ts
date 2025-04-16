@@ -1,4 +1,4 @@
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 
 import { createComment } from "../../../../graph/knowledge/system-types/comment";
 import type {
@@ -21,7 +21,7 @@ export const createCommentResolver: ResolverFn<
 
   const comment = await createComment(context, authentication, {
     textualContent,
-    ownedById: extractOwnedByIdFromEntityId(parentEntityId),
+    webId: extractWebIdFromEntityId(parentEntityId),
     parentEntityId,
     author: user,
   });

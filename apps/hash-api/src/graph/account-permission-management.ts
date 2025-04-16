@@ -1,18 +1,18 @@
 import type {
+  ActorEntityUuid,
+  ActorGroupId,
+  WebId,
+} from "@blockprotocol/type-system";
+import type {
   InsertAccountGroupIdParams,
   InsertAccountIdParams,
   WebOwnerSubject,
 } from "@local/hash-graph-client";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
-import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { ImpureGraphFunction } from "./context-types";
 
 export const addAccountGroupMember: ImpureGraphFunction<
-  { accountId: AccountId; accountGroupId: AccountGroupId },
+  { accountId: ActorEntityUuid; accountGroupId: ActorGroupId },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.addAccountGroupMember(
@@ -25,7 +25,7 @@ export const addAccountGroupMember: ImpureGraphFunction<
 };
 
 export const removeAccountGroupMember: ImpureGraphFunction<
-  { accountId: AccountId; accountGroupId: AccountGroupId },
+  { accountId: ActorEntityUuid; accountGroupId: ActorGroupId },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeAccountGroupMember(
@@ -39,20 +39,22 @@ export const removeAccountGroupMember: ImpureGraphFunction<
 
 export const createAccount: ImpureGraphFunction<
   InsertAccountIdParams,
-  Promise<AccountId>
+  Promise<ActorEntityUuid>
 > = async ({ graphApi }, { actorId }, params) =>
-  graphApi.createAccount(actorId, params).then(({ data }) => data as AccountId);
+  graphApi
+    .createAccount(actorId, params)
+    .then(({ data }) => data.id as ActorEntityUuid);
 
 export const createAccountGroup: ImpureGraphFunction<
   InsertAccountGroupIdParams,
-  Promise<AccountGroupId>
+  Promise<ActorGroupId>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
     .createAccountGroup(actorId, params)
-    .then(({ data }) => data as AccountGroupId);
+    .then(({ data }) => data as ActorGroupId);
 
 export const createWeb: ImpureGraphFunction<
-  { ownedById: OwnedById; owner: WebOwnerSubject },
+  { webId: WebId; owner: WebOwnerSubject },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.createWeb(actorId, params);

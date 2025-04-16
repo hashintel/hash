@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: let/4 should be converted to an AST node
+[
+  "::kernel::special_form::let",
+  "x",
+  "Boolean",
+  { "#literal": true },
+  ["+", "x", "x"]
+]

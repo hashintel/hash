@@ -1,6 +1,9 @@
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import {
+  currentTimestamp,
+  type EntityId,
+  type PropertyObject,
+  type WebId,
+} from "@blockprotocol/type-system";
 import type { Draft } from "immer";
 import { castDraft, produce } from "immer";
 import { isEqual } from "lodash-es";
@@ -82,7 +85,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
   | {
       type: "newDraftEntity";
       payload: {
-        ownedById: OwnedById;
+        webId: WebId;
         draftId: string;
         entityId: EntityId | null;
       };
@@ -309,7 +312,7 @@ const entityStoreReducer = (
               }
             }
 
-            const now = new Date().toISOString();
+            const now = currentTimestamp();
 
             /**
              * When we merge the updated entity store in from the API in createEntityStore, after a save,
@@ -322,7 +325,7 @@ const entityStoreReducer = (
               decisionTime: {
                 start: {
                   kind: "inclusive",
-                  limit: now as Timestamp,
+                  limit: now,
                 },
                 end: {
                   kind: "unbounded",
@@ -331,7 +334,7 @@ const entityStoreReducer = (
               transactionTime: {
                 start: {
                   kind: "inclusive",
-                  limit: now as Timestamp,
+                  limit: now,
                 },
                 end: {
                   kind: "unbounded",
@@ -381,7 +384,7 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        const now = new Date().toISOString();
+        const now = currentTimestamp();
 
         draftState.store.draft[action.payload.draftId] = {
           metadata: {
@@ -393,7 +396,7 @@ const entityStoreReducer = (
               decisionTime: {
                 start: {
                   kind: "inclusive",
-                  limit: now as Timestamp,
+                  limit: now,
                 },
                 end: {
                   kind: "unbounded",
@@ -402,7 +405,7 @@ const entityStoreReducer = (
               transactionTime: {
                 start: {
                   kind: "inclusive",
-                  limit: now as Timestamp,
+                  limit: now,
                 },
                 end: {
                   kind: "unbounded",
@@ -520,7 +523,7 @@ class ProsemirrorStateChangeHandler {
 
   constructor(
     private state: EditorState,
-    private ownedById: OwnedById,
+    private webId: WebId,
   ) {
     this.tr = state.tr;
   }
@@ -699,7 +702,7 @@ class ProsemirrorStateChangeHandler {
       addEntityStoreAction(this.state, this.tr, {
         type: "newDraftEntity",
         payload: {
-          ownedById: this.ownedById,
+          webId: this.webId,
           draftId,
           entityId: entityId ?? null,
         },
@@ -781,9 +784,9 @@ const scheduleNotifyEntityStoreSubscribers = collect<
 });
 
 export const createEntityStorePlugin = ({
-  ownedById,
+  webId,
 }: {
-  ownedById: OwnedById;
+  webId: WebId;
 }) => {
   // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
   const entityStorePlugin = new Plugin<EntityStorePluginState>({
@@ -830,7 +833,7 @@ export const createEntityStorePlugin = ({
         return;
       }
 
-      return new ProsemirrorStateChangeHandler(state, ownedById).handleDoc();
+      return new ProsemirrorStateChangeHandler(state, webId).handleDoc();
     },
   });
   return entityStorePlugin;

@@ -1,8 +1,12 @@
 use core::error::Error;
 
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
-use type_system::{ontology::data_type::DataTypeUuid, web::OwnedById};
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    ontology::data_type::DataTypeUuid,
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, WebId},
+};
 use uuid::Uuid;
 
 use crate::{
@@ -73,11 +77,11 @@ pub enum DataTypeSetting {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum DataTypeSubject {
-    Web(OwnedById),
+    Web(WebId),
     Setting(DataTypeSetting),
     Public,
-    Account(AccountId),
-    AccountGroup(AccountGroupId),
+    Account(ActorEntityUuid),
+    AccountGroup(ActorGroupId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -116,7 +120,7 @@ impl Resource for DataTypeSubject {
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
             (DataTypeSubjectNamespace::Web, DataTypeSubjectId::Uuid(uuid)) => {
-                Self::Web(OwnedById::new(uuid))
+                Self::Web(WebId::new(uuid))
             }
             (DataTypeSubjectNamespace::Setting, DataTypeSubjectId::Setting(setting)) => {
                 Self::Setting(setting)
@@ -126,10 +130,10 @@ impl Resource for DataTypeSubject {
                 DataTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
             (DataTypeSubjectNamespace::Account, DataTypeSubjectId::Uuid(id)) => {
-                Self::Account(AccountId::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (DataTypeSubjectNamespace::AccountGroup, DataTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(AccountGroupId::new(id))
+                Self::AccountGroup(ActorGroupId::new(id))
             }
             (
                 DataTypeSubjectNamespace::Web
@@ -179,7 +183,7 @@ impl Resource for DataTypeSubject {
 pub enum DataTypeOwnerSubject {
     Web {
         #[serde(rename = "subjectId")]
-        id: OwnedById,
+        id: WebId,
     },
 }
 
@@ -199,11 +203,11 @@ pub enum DataTypeSettingSubject {
 pub enum DataTypeEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: DataTypeSubjectSet,
     },

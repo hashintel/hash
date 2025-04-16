@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/ident.rs
+description: Malformed URL (invalid)
+expression: "`http:///invalid/`"
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    value: Symbol(
+        "http:///invalid/",
+    ),
+    kind: BaseUrl,
+}

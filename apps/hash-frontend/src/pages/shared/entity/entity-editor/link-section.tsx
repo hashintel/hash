@@ -1,4 +1,4 @@
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 
@@ -8,7 +8,8 @@ import { useEntityEditor } from "./entity-editor-context";
 
 export const LinkSection: FunctionComponent = () => {
   const {
-    closedMultiEntityTypesMap,
+    linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+      closedMultiEntityTypesMap,
     closedMultiEntityTypesDefinitions,
     entity,
     entitySubgraph,
@@ -16,7 +17,7 @@ export const LinkSection: FunctionComponent = () => {
   } = useEntityEditor();
 
   const linkEntity = useMemo(() => {
-    return new LinkEntity(entity);
+    return new HashLinkEntity(entity);
   }, [entity]);
 
   return (

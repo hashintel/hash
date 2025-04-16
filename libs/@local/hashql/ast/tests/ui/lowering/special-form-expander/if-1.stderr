@@ -1,0 +1,13 @@
+[31m[special-form-expander::special-form-argument-length] Error:[0m Incorrect number of arguments for special form
+   ╭─[ <unknown>:3:1 ]
+   │
+ 3 │ ["::kernel::special_form::if", { "#literal": true }]
+   │ ──────────────────────────┬─────────────────────────  
+   │                           ╰─────────────────────────── Add missing arguments
+   │ 
+   │ Help: Use either:
+   │       - if/2: (if condition then-expr)
+   │       - if/3: (if condition then-expr else-expr)
+   │ 
+   │ Note: The if function has 2 variants: if/2, if/3
+───╯

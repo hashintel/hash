@@ -1,17 +1,23 @@
 import { useQuery } from "@apollo/client";
-import type { EntityType } from "@blockprotocol/type-system";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { EntityId, EntityType } from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractDraftIdFromEntityId,
+  mustHaveAtLeastOne,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import type {
   SelectorAutocompleteProps,
   TypeListSelectorDropdownProps,
 } from "@hashintel/design-system";
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
@@ -20,13 +26,6 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  entityIdFromComponents,
-  extractDraftIdFromEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo, useState } from "react";
 
 import type {
@@ -36,7 +35,7 @@ import type {
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 type EntitySelectorProps<Multiple extends boolean = false> = Omit<
-  SelectorAutocompleteProps<Entity, Multiple>,
+  SelectorAutocompleteProps<HashEntity, Multiple>,
   | "inputValue"
   | "loading"
   | "options"
@@ -51,10 +50,10 @@ type EntitySelectorProps<Multiple extends boolean = false> = Omit<
   includeDrafts: boolean;
   multiple?: Multiple;
   onSelect: (
-    event: Multiple extends true ? Entity[] : Entity,
+    event: Multiple extends true ? HashEntity[] : HashEntity,
     closedMultiEntityTypeMap: ClosedMultiEntityTypesRootMap,
   ) => void;
-  value?: Multiple extends true ? Entity : Entity[];
+  value?: Multiple extends true ? HashEntity : HashEntity[];
 };
 
 export const EntitySelector = <Multiple extends boolean>({
@@ -93,7 +92,7 @@ export const EntitySelector = <Multiple extends boolean>({
   });
 
   const entitiesSubgraph = entitiesData
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
         entitiesData.getEntitySubgraph.subgraph,
       )
     : undefined;
@@ -130,7 +129,7 @@ export const EntitySelector = <Multiple extends boolean>({
            * live. Entities without a live version can't have multiple drafts at a point in time because there's
            * nothing to fork multiple from.
            */
-          const [ownedById, entityUuid, draftId] = splitEntityId(rootEntityId);
+          const [webId, entityUuid, draftId] = splitEntityId(rootEntityId);
           if (!draftId) {
             /** If there is no draftId, this is the live version, which is always preferred in the selector */
             hasLiveVersion[rootEntityId] = true;
@@ -138,7 +137,7 @@ export const EntitySelector = <Multiple extends boolean>({
           }
 
           /** This has a draftId, and therefore is only permitted if there is no live version */
-          const liveEntityId = entityIdFromComponents(ownedById, entityUuid);
+          const liveEntityId = entityIdFromComponents(webId, entityUuid);
           if (hasLiveVersion[liveEntityId]) {
             /**
              * We already checked for this entityId and there is a live version
@@ -170,7 +169,7 @@ export const EntitySelector = <Multiple extends boolean>({
   }, [entitiesSubgraph, entityIdsToFilterOut, includeDrafts]);
 
   return (
-    <SelectorAutocomplete<Entity, Multiple>
+    <SelectorAutocomplete<HashEntity, Multiple>
       loading={loading}
       onChange={(_, option) => {
         if (!closedMultiEntityTypesRootMap) {

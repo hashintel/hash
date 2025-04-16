@@ -10,13 +10,13 @@ use type_system::{
     knowledge::{
         entity::{EntityId, provenance::ProvidedEntityEditionProvenance},
         property::{
-            Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
-            PropertyWithMetadataObject,
+            Property, PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
+            PropertyPath, PropertyWithMetadata,
         },
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
@@ -91,18 +91,18 @@ async fn initial_draft() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
                 draft: true,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -146,7 +146,7 @@ async fn initial_draft() {
                 decision_time: None,
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -201,7 +201,7 @@ async fn initial_draft() {
                 decision_time: None,
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -211,8 +211,8 @@ async fn initial_draft() {
         .expect("could not update entity");
 
     assert_eq!(
-        updated_entity.metadata.record_id.entity_id.owned_by_id,
-        updated_live_entity.metadata.record_id.entity_id.owned_by_id
+        updated_entity.metadata.record_id.entity_id.web_id,
+        updated_live_entity.metadata.record_id.entity_id.web_id
     );
     assert_eq!(
         updated_entity.metadata.record_id.entity_id.entity_uuid,
@@ -276,18 +276,18 @@ async fn no_initial_draft() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
                 draft: false,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -336,7 +336,7 @@ async fn no_initial_draft() {
                     decision_time: None,
                     confidence: None,
                     provenance: ProvidedEntityEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -346,8 +346,8 @@ async fn no_initial_draft() {
             .expect("could not update entity");
 
         assert_eq!(
-            entity.metadata.record_id.entity_id.owned_by_id,
-            updated_entity.metadata.record_id.entity_id.owned_by_id
+            entity.metadata.record_id.entity_id.web_id,
+            updated_entity.metadata.record_id.entity_id.web_id
         );
         assert_eq!(
             entity.metadata.record_id.entity_id.entity_uuid,
@@ -405,7 +405,7 @@ async fn no_initial_draft() {
                     decision_time: None,
                     confidence: None,
                     provenance: ProvidedEntityEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -463,18 +463,18 @@ async fn multiple_drafts() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
                 draft: false,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -529,7 +529,7 @@ async fn multiple_drafts() {
                     decision_time: None,
                     confidence: None,
                     provenance: ProvidedEntityEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -539,8 +539,8 @@ async fn multiple_drafts() {
             .expect("could not update entity");
 
         assert_eq!(
-            entity.metadata.record_id.entity_id.owned_by_id,
-            updated_entity.metadata.record_id.entity_id.owned_by_id
+            entity.metadata.record_id.entity_id.web_id,
+            updated_entity.metadata.record_id.entity_id.web_id
         );
         assert_eq!(
             entity.metadata.record_id.entity_id.entity_uuid,
@@ -601,7 +601,7 @@ async fn multiple_drafts() {
                     decision_time: None,
                     confidence: None,
                     provenance: ProvidedEntityEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },

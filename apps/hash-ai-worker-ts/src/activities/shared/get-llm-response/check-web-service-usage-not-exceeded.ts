@@ -1,9 +1,8 @@
+import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
+import { generateTimestamp } from "@blockprotocol/type-system";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 
@@ -20,8 +19,8 @@ const usageCostLimit = {
 
 export const checkWebServiceUsageNotExceeded = async (params: {
   graphApiClient: GraphApi;
-  userAccountId: AccountId;
-  webId: OwnedById;
+  userAccountId: ActorEntityUuid;
+  webId: WebId;
 }): Promise<Status<never>> => {
   const { graphApiClient, userAccountId, webId } = params;
 
@@ -35,11 +34,14 @@ export const checkWebServiceUsageNotExceeded = async (params: {
       decisionTimeInterval: {
         start: {
           kind: "inclusive",
-          limit: new Date(
-            now.valueOf() - 1000 * 60 * 60 * 24 * 30,
-          ).toISOString() as Timestamp,
+          limit: generateTimestamp(
+            new Date(now.valueOf() - 1000 * 60 * 60 * 24 * 30),
+          ),
         },
-        end: { kind: "inclusive", limit: now.toISOString() as Timestamp },
+        end: {
+          kind: "inclusive",
+          limit: generateTimestamp(now),
+        },
       },
       userAccountId,
       webId,

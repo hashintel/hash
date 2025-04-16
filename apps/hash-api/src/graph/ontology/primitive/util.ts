@@ -1,15 +1,19 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  ActorGroupId,
+  EntityUuid,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type {
   ModifyRelationshipOperation,
   WebPermission,
+  WebRelationAndSubject,
 } from "@local/hash-graph-client";
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { WebAuthorizationRelationship } from "@local/hash-graph-sdk/branded-authorization";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
-import type { WebAuthorizationRelationship } from "@local/hash-subgraph";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getOrgById } from "../../knowledge/system-types/org";
@@ -29,21 +33,21 @@ export const isExternalTypeId = (typeId: VersionedUrl) =>
  */
 export const getWebShortname: ImpureGraphFunction<
   {
-    accountOrAccountGroupId: OwnedById;
+    accountOrAccountGroupId: WebId;
   },
   Promise<string>
 > = async (ctx, authentication, params) => {
   const namespace = (
     (await getUserById(ctx, authentication, {
       entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId as Uuid as OwnedById,
-        params.accountOrAccountGroupId as Uuid as EntityUuid,
+        params.accountOrAccountGroupId as ActorEntityUuid as WebId,
+        params.accountOrAccountGroupId as ActorEntityUuid,
       ),
     }).catch(() => undefined)) ??
     (await getOrgById(ctx, authentication, {
       entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId as Uuid as OwnedById,
-        params.accountOrAccountGroupId as Uuid as EntityUuid,
+        params.accountOrAccountGroupId as ActorGroupId as WebId,
+        params.accountOrAccountGroupId as string as EntityUuid,
       ),
     }).catch(() => undefined))
   )?.shortname;
@@ -58,20 +62,12 @@ export const getWebShortname: ImpureGraphFunction<
 };
 
 export const getWebAuthorizationRelationships: ImpureGraphFunction<
-  { ownedById: OwnedById },
-  Promise<WebAuthorizationRelationship[]>
+  { webId: WebId },
+  Promise<WebRelationAndSubject[]>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .getWebAuthorizationRelationships(actorId, params.ownedById)
-    .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: { kind: "web", resourceId: params.ownedById },
-            ...relationship,
-          }) as WebAuthorizationRelationship,
-      ),
-    );
+    .getWebAuthorizationRelationships(actorId, params.webId)
+    .then(({ data }) => data);
 
 export const modifyWebAuthorizationRelationships: ImpureGraphFunction<
   {
@@ -91,9 +87,9 @@ export const modifyWebAuthorizationRelationships: ImpureGraphFunction<
 };
 
 export const checkWebPermission: ImpureGraphFunction<
-  { ownedById: OwnedById; permission: WebPermission },
+  { webId: WebId; permission: WebPermission },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .checkWebPermission(actorId, params.ownedById, params.permission)
+    .checkWebPermission(actorId, params.webId, params.permission)
     .then(({ data }) => data.has_permission);

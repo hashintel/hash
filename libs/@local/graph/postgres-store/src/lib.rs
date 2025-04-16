@@ -9,7 +9,6 @@
 #![feature(impl_trait_in_assoc_type)]
 #![feature(try_find)]
 #![feature(type_alias_impl_trait)]
-#![feature(hash_raw_entry)]
 #![feature(let_chains)]
 #![feature(never_type)]
 #![feature(extend_one)]
@@ -27,10 +26,9 @@ use core::fmt;
 use std::path::{Path, PathBuf};
 
 pub mod ontology;
-
-pub mod store;
-
+pub mod permissions;
 pub mod snapshot;
+pub mod store;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Environment {

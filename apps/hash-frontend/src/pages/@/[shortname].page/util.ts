@@ -1,9 +1,9 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+} from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
 
 export type ProfilePageTab =
@@ -17,8 +17,8 @@ export type ProfilePageTab =
       entityType?: EntityTypeWithMetadata;
       pluralTitle?: string;
       title?: string;
-      entities?: Entity[];
-      entitiesSubgraph?: Subgraph<EntityRootType>;
+      entities?: HashEntity[];
+      entitiesSubgraph?: Subgraph<EntityRootType<HashEntity>>;
     };
 
 export const parseProfilePageUrlQueryParams = (

@@ -2,7 +2,7 @@ import type {
   DataType,
   EntityType,
   PropertyType,
-} from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/type-system";
 
 const isObjectWithKindString = (
   obj: unknown,

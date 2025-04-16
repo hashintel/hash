@@ -1,3 +1,4 @@
+import type { Url } from "@blockprotocol/type-system";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   getSimplifiedActionInputs,
@@ -20,10 +21,10 @@ const generateSummarizeWebPageSystemPrompt = (params: {
   dedent(`
     You are a Web Page Summarizer.
     The user provides you with the URL, the title, and the HTML content of a web page,
-    and you must respond with a ${params.numberOfSentences} sentence summary of 
+    and you must respond with a ${params.numberOfSentences} sentence summary of
     the contents of the web page. Describe what information the web page includes.
     Don't include any prefix, introduction, or other surrounding text – just the summary directly.
-    
+
     Mention the types of entities that are described in the page, e.g.
     - 'The page mentions AI companies'
     - 'The page mentions people who do X'
@@ -46,7 +47,10 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
     };
   }
 
-  const webPage = await getWebPageActivity({ url, sanitizeForLlm: true });
+  const webPage = await getWebPageActivity({
+    url: url as Url,
+    sanitizeForLlm: true,
+  });
   if ("error" in webPage) {
     return {
       code: StatusCode.Unavailable,
@@ -74,7 +78,7 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
               text: dedent(`
               URL: ${url}
               Title: ${webPage.title}
-              Text: ${webPage.innerText} 
+              Text: ${webPage.innerText}
             `),
             },
           ],

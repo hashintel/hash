@@ -1,22 +1,24 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  typedEntries,
-  typedKeys,
-  typedValues,
-} from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Subgraph } from "@local/hash-subgraph";
-import {
-  extractDraftIdFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+import type { Subgraph } from "@blockprotocol/graph";
 import {
   getEntityTypeById,
   getOutgoingLinksForEntity,
   getPropertyTypeById,
   getPropertyTypeForEntity,
-} from "@local/hash-subgraph/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import type {
+  Entity,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  extractDraftIdFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
+import {
+  typedEntries,
+  typedKeys,
+  typedValues,
+} from "@local/advanced-types/typed-entries";
 
 /**
  * A simplified object representing an entity type, which will be converted to plain text for the response.
@@ -136,16 +138,14 @@ const createBaseSimpleEntityFields = (
     properties[propertyType.title] = propertyValue;
   }
 
-  const ownedById = extractOwnedByIdFromEntityId(
-    entity.metadata.recordId.entityId,
-  );
+  const webId = extractWebIdFromEntityId(entity.metadata.recordId.entityId);
 
   return {
     draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
     entityId: entity.metadata.recordId.entityId,
     entityTypes: typeTitles,
     properties,
-    webUuid: ownedById,
+    webUuid: webId,
   };
 };
 
@@ -153,9 +153,9 @@ export const getSimpleGraph = (subgraph: Subgraph) => {
   const entities: SimpleEntityWithoutHref[] = [];
   const entityTypes: SimpleEntityType[] = [];
 
-  const vertices = typedValues(subgraph.vertices)
-    .map((vertex) => typedValues(vertex))
-    .flat();
+  const vertices = typedValues(subgraph.vertices).flatMap((vertex) =>
+    typedValues(vertex),
+  );
 
   for (const vertex of vertices) {
     if (vertex.kind === "entity") {

@@ -1,9 +1,9 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   DataTypeWithMetadata,
+  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+} from "@blockprotocol/type-system";
 
 export const isItemType = <
   Type extends

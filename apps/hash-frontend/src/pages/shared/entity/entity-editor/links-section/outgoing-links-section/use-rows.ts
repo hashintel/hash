@@ -1,12 +1,14 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import type { PartialEntityType } from "@local/hash-graph-types/ontology";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   getOutgoingLinkAndTargetEntities,
   intervalCompareWithInterval,
-} from "@local/hash-subgraph/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import type {
+  PartialEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -19,7 +21,7 @@ export const useRows = () => {
   const {
     closedMultiEntityType,
     closedMultiEntityTypesDefinitions,
-    closedMultiEntityTypesMap,
+    linkAndDestinationEntitiesClosedMultiEntityTypesMap,
     entity,
     entitySubgraph,
     draftLinksToArchive,
@@ -142,12 +144,14 @@ export const useRows = () => {
             continue;
           }
 
-          if (!closedMultiEntityTypesMap) {
-            throw new Error("Expected closedMultiEntityTypesMap to be defined");
+          if (!linkAndDestinationEntitiesClosedMultiEntityTypesMap) {
+            throw new Error(
+              "Expected linkAndDestinationEntitiesClosedMultiEntityTypesMap to be defined",
+            );
           }
 
           const targetEntityClosedType = getClosedMultiEntityTypeFromMap(
-            closedMultiEntityTypesMap,
+            linkAndDestinationEntitiesClosedMultiEntityTypesMap,
             latestTargetEntityRevision.metadata.entityTypeIds,
           );
 
@@ -157,7 +161,7 @@ export const useRows = () => {
           );
 
           const linkEntityClosedType = getClosedMultiEntityTypeFromMap(
-            closedMultiEntityTypesMap,
+            linkAndDestinationEntitiesClosedMultiEntityTypesMap,
             latestLinkEntityRevision.metadata.entityTypeIds,
           );
 
@@ -208,13 +212,13 @@ export const useRows = () => {
     );
   }, [
     closedMultiEntityType,
-    closedMultiEntityTypesMap,
     closedMultiEntityTypesDefinitions,
     entitySubgraph,
     entity,
     draftLinksToArchive,
     draftLinksToCreate,
     isSpecialEntityTypeLookup,
+    linkAndDestinationEntitiesClosedMultiEntityTypesMap,
     markLinkEntityToArchive,
     onEntityClick,
     uploads,

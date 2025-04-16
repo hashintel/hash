@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Nested qualified path
+expression: "Std::Collections::HashMap"
+info:
+  kind: Ok
+---
+Type#4294967040@7
+  TypeKind (Path)
+    Path#4294967040@7 (rooted: false)
+      PathSegment#4294967040@2 (name: Std)
+      PathSegment#4294967040@4 (name: Collections)
+      PathSegment#4294967040@6 (name: HashMap)

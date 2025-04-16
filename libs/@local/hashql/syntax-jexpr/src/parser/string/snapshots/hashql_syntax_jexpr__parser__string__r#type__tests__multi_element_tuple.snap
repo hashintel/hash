@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Multi-element tuple
+expression: "(Int, String, Boolean)"
+info:
+  kind: Ok
+---
+Type#4294967040@17
+  TypeKind (Tuple)
+    TupleType#4294967040@17
+      TupleField#4294967040@4
+        Type#4294967040@4
+          TypeKind (Path)
+            Path#4294967040@4 (rooted: false)
+              PathSegment#4294967040@3 (name: Int)
+      TupleField#4294967040@8
+        Type#4294967040@7
+          TypeKind (Path)
+            Path#4294967040@7 (rooted: false)
+              PathSegment#4294967040@6 (name: String)
+      TupleField#4294967040@16
+        Type#4294967040@15
+          TypeKind (Path)
+            Path#4294967040@15 (rooted: false)
+              PathSegment#4294967040@14 (name: Boolean)

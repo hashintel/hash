@@ -1,8 +1,9 @@
 import { useMutation, useQuery } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { BaseUrl, WebId } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
@@ -18,8 +19,6 @@ import type {
   NoteProperties,
 } from "@local/hash-isomorphic-utils/system-types/note";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
@@ -87,8 +86,8 @@ const parseTextFromTextBlock = ({
 export const EditableQuickNote: FunctionComponent<{
   displayLabel?: boolean;
   displayActionButtons?: boolean;
-  quickNoteEntity: Entity;
-  quickNoteSubgraph?: Subgraph<EntityRootType>;
+  quickNoteEntity: HashEntity;
+  quickNoteSubgraph?: Subgraph<EntityRootType<HashEntity>>;
   refetchQuickNotes?: () => Promise<void>;
   autoFocus?: boolean;
 }> = ({
@@ -118,7 +117,7 @@ export const EditableQuickNote: FunctionComponent<{
     useState(false);
 
   const { refetch: refetchPageTree } = useAccountPages(
-    authenticatedUser.accountId as OwnedById,
+    authenticatedUser.accountId as WebId,
   );
 
   const blockCollectionEntityId = quickNoteEntity.metadata.recordId.entityId;
@@ -378,7 +377,7 @@ export const EditableQuickNote: FunctionComponent<{
       {contents && contents.length > 0 ? (
         <BlockCollection
           autoFocus={autoFocus}
-          ownedById={authenticatedUser.accountId as OwnedById}
+          webId={authenticatedUser.accountId as WebId}
           entityId={quickNoteEntity.metadata.recordId.entityId}
           contents={contents}
           readonly={false}

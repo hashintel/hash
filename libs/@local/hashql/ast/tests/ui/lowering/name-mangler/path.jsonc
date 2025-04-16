@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: non-rooted paths should change.
+["let", "a", { "#literal": 2 }, "a::b"]

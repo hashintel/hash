@@ -1,0 +1,20 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/struct.rs
+description: Parses a struct with valid identifiers containing underscores and camelCase
+expression: "{\"#struct\": {\n            \"valid_field\": {\"#literal\": 1},\n            \"anotherField\": {\"#literal\": 2}\n        }}"
+---
+Expr#4294967040@11
+  ExprKind (Struct)
+    StructExpr#4294967040@10
+      StructEntry#4294967040@4 (key: valid_field)
+        Expr#4294967040@3
+          ExprKind (Literal)
+            LiteralExpr#4294967040@2
+              LiteralKind (Integer)
+                IntegerLiteral (1)
+      StructEntry#4294967040@9 (key: anotherField)
+        Expr#4294967040@8
+          ExprKind (Literal)
+            LiteralExpr#4294967040@7
+              LiteralKind (Integer)
+                IntegerLiteral (2)

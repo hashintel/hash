@@ -1,14 +1,22 @@
+import type { EntityTypeRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  LinkData,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   AllFilter,
   CosineDistanceFilter,
   GraphApi,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { LinkData } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -21,12 +29,6 @@ import {
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityTypeRootType } from "@local/hash-subgraph";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { logger } from "./activity-logger.js";
 import type { DereferencedEntityType } from "./dereference-entity-type.js";
@@ -41,20 +43,20 @@ export const findExistingEntity = async ({
   actorId,
   dereferencedEntityTypes,
   graphApiClient,
-  ownedById,
+  webId,
   proposedEntity,
   includeDrafts,
 }: {
-  actorId: AccountId;
+  actorId: ActorEntityUuid;
   dereferencedEntityTypes?: DereferencedEntityType[];
   graphApiClient: GraphApi;
-  ownedById: OwnedById;
+  webId: WebId;
   proposedEntity: Pick<
     ProposedEntity,
     "entityTypeIds" | "properties" | "propertyMetadata" | "provenance"
   >;
   includeDrafts: boolean;
-}): Promise<MatchedEntityUpdate<Entity> | null> => {
+}): Promise<MatchedEntityUpdate<HashEntity> | null> => {
   const entityTypes: DereferencedEntityType[] =
     dereferencedEntityTypes ??
     (await graphApiClient
@@ -124,9 +126,9 @@ export const findExistingEntity = async ({
     { equal: [{ path: ["archived"] }, { parameter: false }] },
     {
       equal: [
-        { path: ["ownedById"] },
+        { path: ["webId"] },
         {
-          parameter: ownedById,
+          parameter: webId,
         },
       ],
     },
@@ -147,10 +149,8 @@ export const findExistingEntity = async ({
     /**
      * @todo H-3363 account for inherited label properties
      */
-    const labelProperty = type.labelProperty as BaseUrl | undefined;
-
-    return labelProperty && proposedEntity.properties[labelProperty]
-      ? [labelProperty]
+    return type.labelProperty && proposedEntity.properties[type.labelProperty]
+      ? [type.labelProperty]
       : [];
   });
 
@@ -204,7 +204,7 @@ export const findExistingEntity = async ({
       })
       .filter(<T>(filter: T): filter is NonNullable<T> => filter !== null);
 
-  let potentialMatches: Entity[] | undefined;
+  let potentialMatches: HashEntity[] | undefined;
 
   if (semanticDistanceFilters.length > 0) {
     potentialMatches = await graphApiClient
@@ -287,19 +287,19 @@ export const findExistingLinkEntity = async ({
   graphApiClient,
   includeDrafts,
   linkData,
-  ownedById,
+  webId,
   proposedEntity,
 }: {
-  actorId: AccountId;
+  actorId: ActorEntityUuid;
   graphApiClient: GraphApi;
   includeDrafts: boolean;
   linkData: LinkData;
-  ownedById: OwnedById;
+  webId: WebId;
   proposedEntity: Pick<
     ProposedEntity,
     "entityTypeIds" | "properties" | "propertyMetadata" | "provenance"
   >;
-}): Promise<MatchedEntityUpdate<Entity> | null> => {
+}): Promise<MatchedEntityUpdate<HashEntity> | null> => {
   const linksWithOverlappingTypes = await graphApiClient
     .getEntities(actorId, {
       filter: {
@@ -315,19 +315,19 @@ export const findExistingLinkEntity = async ({
           },
           {
             equal: [
-              { path: ["ownedById"] },
+              { path: ["webId"] },
               {
-                parameter: ownedById,
+                parameter: webId,
               },
             ],
           },
           {
             equal: [
               {
-                path: ["leftEntity", "ownedById"],
+                path: ["leftEntity", "webId"],
               },
               {
-                parameter: extractOwnedByIdFromEntityId(linkData.leftEntityId),
+                parameter: extractWebIdFromEntityId(linkData.leftEntityId),
               },
             ],
           },
@@ -344,10 +344,10 @@ export const findExistingLinkEntity = async ({
           {
             equal: [
               {
-                path: ["rightEntity", "ownedById"],
+                path: ["rightEntity", "webId"],
               },
               {
-                parameter: extractOwnedByIdFromEntityId(linkData.rightEntityId),
+                parameter: extractWebIdFromEntityId(linkData.rightEntityId),
               },
             ],
           },

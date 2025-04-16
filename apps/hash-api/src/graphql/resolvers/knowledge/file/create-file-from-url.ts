@@ -1,6 +1,6 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import type {
@@ -42,7 +42,7 @@ export const createFileFromUrl: ResolverFn<
     entity,
     temporalClient: temporal,
     userAccountId: authentication.actorId,
-    webId: extractOwnedByIdFromEntityId(entity.entityId),
+    webId: extractWebIdFromEntityId(entity.entityId),
   });
 
   return entity;

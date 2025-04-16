@@ -1,14 +1,15 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
@@ -25,7 +26,7 @@ import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
 export const useUsersWithLinks = ({
   userAccountIds,
 }: {
-  userAccountIds?: AccountId[];
+  userAccountIds?: ActorEntityUuid[];
 }): {
   loading: boolean;
   users?: User[];
@@ -43,11 +44,11 @@ export const useUsersWithLinks = ({
             ...(userAccountIds
               ? [
                   {
-                    any: userAccountIds.map((accountId) => ({
+                    any: userAccountIds.map((actorId) => ({
                       equal: [
                         { path: ["uuid"] },
                         {
-                          parameter: accountId,
+                          parameter: actorId,
                         },
                       ],
                     })),
@@ -81,7 +82,7 @@ export const useUsersWithLinks = ({
   });
 
   const subgraph = data
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
         data.getEntitySubgraph.subgraph,
       )
     : undefined;

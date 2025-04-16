@@ -4,11 +4,11 @@
 
 import type {
   ArrayMetadata,
+  Confidence,
   ObjectMetadata,
   PropertyProvenance,
-} from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { Confidence } from "@local/hash-graph-types/entity";
+} from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 /**
  * Someone or something that can perform actions in the system
@@ -154,7 +154,7 @@ export type BlockCollectionPropertiesWithMetadata = {
   value: {};
 };
 
-export type BlockHasDataLink = { linkEntity: HasData; rightEntity: Entity };
+export type BlockHasDataLink = { linkEntity: HasData; rightEntity: HashEntity };
 
 export type BlockOutgoingLinkAndTarget = BlockHasDataLink;
 

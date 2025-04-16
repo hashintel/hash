@@ -1,10 +1,9 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 import { useMemo } from "react";
@@ -57,7 +56,7 @@ const entityTypeIdToIcon: Record<BaseUrl, ReactNode> = {
 const defaultFileIcon = <FileLightIcon />;
 
 export const GridViewItem: FunctionComponent<{
-  entity: Entity;
+  entity: HashEntity;
   numberOfItems: number;
   index: number;
   onEntityClick: (entityId: EntityId) => void;
@@ -70,7 +69,7 @@ export const GridViewItem: FunctionComponent<{
     ).isFile;
 
     if (isFileEntity) {
-      return entity as Entity<FileEntity>;
+      return entity as HashEntity<FileEntity>;
     }
   }, [includesSpecialEntityTypes, entity]);
 

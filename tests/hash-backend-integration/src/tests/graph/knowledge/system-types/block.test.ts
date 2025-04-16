@@ -11,10 +11,9 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -37,7 +36,7 @@ describe("Block", () => {
 
   const testBlockComponentId = "test-component-id";
 
-  let testBlockDataEntity: Entity;
+  let testBlockDataEntity: HashEntity;
 
   let dummyEntityType: EntityTypeWithMetadata;
 
@@ -52,7 +51,7 @@ describe("Block", () => {
      * once the exact role of the block data entity's entity type is known.
      */
     dummyEntityType = await createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
           kind: "entity-type",
@@ -81,7 +80,7 @@ describe("Block", () => {
     });
 
     testBlockDataEntity = await createEntity(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       properties: { value: {} },
       entityTypeIds: [dummyEntityType.schema.$id],
       relationships: createDefaultAuthorizationRelationships(authentication),
@@ -100,7 +99,7 @@ describe("Block", () => {
     const authentication = { actorId: testUser.accountId };
 
     testBlock = await createBlock(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       componentId: testBlockComponentId,
       blockData: testBlockDataEntity,
     });
@@ -135,7 +134,7 @@ describe("Block", () => {
       graphContext,
       authentication,
       {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         properties: { value: {} },
         entityTypeIds: [dummyEntityType.schema.$id],
         relationships: createDefaultAuthorizationRelationships(authentication),

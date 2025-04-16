@@ -1,5 +1,5 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import {

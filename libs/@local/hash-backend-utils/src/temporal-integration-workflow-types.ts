@@ -1,9 +1,12 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  Entity,
+  EntityId,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
 import type { Team } from "@linear/sdk";
-import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
 export type PartialEntity = {
   properties: Partial<Entity["properties"]>;
@@ -17,21 +20,21 @@ export type SupportedLinearType = (typeof supportedLinearTypes)[number];
 export type CreateHashEntityFromLinearData = <
   T extends SupportedLinearType = SupportedLinearType,
 >(params: {
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorEntityUuid };
   linearId: string;
   linearType: T;
   linearApiKey: string;
-  ownedById: OwnedById;
+  webId: WebId;
 }) => Promise<void>;
 
 export type UpdateHashEntityFromLinearData = <
   T extends SupportedLinearType = SupportedLinearType,
 >(params: {
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorEntityUuid };
   linearId: string;
   linearType: T;
   linearApiKey: string;
-  ownedById: OwnedById;
+  webId: WebId;
 }) => Promise<void>;
 
 export type ReadLinearTeamsWorkflow = (params: {
@@ -39,15 +42,15 @@ export type ReadLinearTeamsWorkflow = (params: {
 }) => Promise<Team[]>;
 
 export type SyncWorkspaceWorkflow = (params: {
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorEntityUuid };
   apiKey: string;
-  workspaceOwnedById: OwnedById;
+  workspaceWebId: WebId;
   teamIds: string[];
 }) => Promise<void>;
 
 export type UpdateLinearDataWorkflow = (params: {
   apiKey: string;
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorEntityUuid };
   linearId: string;
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   entity: SerializedEntity;
@@ -55,7 +58,7 @@ export type UpdateLinearDataWorkflow = (params: {
 
 export type SyncQueryToGoogleSheetWorkflow = (params: {
   integrationEntityId: EntityId;
-  userAccountId: AccountId;
+  userAccountId: ActorEntityUuid;
 }) => Promise<void>;
 
 export type WorkflowTypeMap = {

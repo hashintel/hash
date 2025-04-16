@@ -18,18 +18,17 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
-use hash_graph_types::account::AccountId;
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
 use type_system::{
     knowledge::{
         Entity,
-        entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
-        property::{PropertyObject, PropertyWithMetadataObject, metadata::PropertyProvenance},
+        entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::entity_type::EntityType,
-    provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -51,7 +50,7 @@ struct DatastoreEntitiesMetadata {
     reason = "transaction is committed which consumes the object"
 )]
 async fn seed_db<A: AuthorizationApi>(
-    account_id: AccountId,
+    account_id: ActorEntityUuid,
     store_wrapper: &mut StoreWrapper<A>,
     total: usize,
 ) -> DatastoreEntitiesMetadata {
@@ -65,14 +64,20 @@ async fn seed_db<A: AuthorizationApi>(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id, InsertAccountIdParams { account_id })
+        .insert_account_id(
+            account_id,
+            InsertAccountIdParams {
+                account_id,
+                account_type: ActorType::Machine,
+            },
+        )
         .await
         .expect("could not insert account id");
     transaction
         .insert_web_id(
             account_id,
             InsertWebIdParams {
-                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                web_id: WebId::new(account_id.into_uuid()),
                 owner: WebOwnerSubject::Account { id: account_id },
             },
         )
@@ -116,25 +121,25 @@ async fn seed_db<A: AuthorizationApi>(
     let link_type: EntityType =
         serde_json::from_str(entity_type::link::FRIEND_OF_V1).expect("could not parse entity type");
 
-    let owned_by_id = OwnedById::new(account_id.into_uuid());
+    let web_id = WebId::new(account_id.into_uuid());
 
     let entity_list = transaction
         .create_entities(
             account_id,
             repeat_n(
                 CreateEntityParams {
-                    owned_by_id,
+                    web_id,
                     entity_uuid: None,
                     decision_time: None,
                     entity_type_ids: HashSet::from([entity_type.id]),
-                    properties: PropertyWithMetadataObject::from_parts(properties, None)
+                    properties: PropertyObjectWithMetadata::from_parts(properties, None)
                         .expect("could not create property with metadata object"),
                     confidence: None,
                     link_data: None,
                     draft: false,
                     relationships: [],
                     provenance: ProvidedEntityEditionProvenance {
-                        actor_type: ActorType::Human,
+                        actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
@@ -153,11 +158,11 @@ async fn seed_db<A: AuthorizationApi>(
                 .iter()
                 .flat_map(|entity_a| {
                     entity_list.iter().map(|entity_b| CreateEntityParams {
-                        owned_by_id,
+                        web_id,
                         entity_uuid: None,
                         decision_time: None,
                         entity_type_ids: HashSet::from([link_type.id.clone()]),
-                        properties: PropertyWithMetadataObject::from_parts(
+                        properties: PropertyObjectWithMetadata::from_parts(
                             PropertyObject::empty(),
                             None,
                         )
@@ -174,7 +179,7 @@ async fn seed_db<A: AuthorizationApi>(
                         draft: false,
                         relationships: [],
                         provenance: ProvidedEntityEditionProvenance {
-                            actor_type: ActorType::Human,
+                            actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
@@ -208,7 +213,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
-    actor_id: AccountId,
+    actor_id: ActorEntityUuid,
     entity_metadata_list: &[Entity],
     graph_resolve_depths: GraphResolveDepths,
 ) {
@@ -269,9 +274,9 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = AccountId::new(
+    let account_id = ActorEntityUuid::new(EntityUuid::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    );
+    ));
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
@@ -322,9 +327,9 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = AccountId::new(
+    let account_id = ActorEntityUuid::new(EntityUuid::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    );
+    ));
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read

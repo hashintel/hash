@@ -1,7 +1,7 @@
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { faAdd, faLink, faList } from "@fortawesome/free-solid-svg-icons";
 import { ArrowUpRightIcon } from "@hashintel/design-system";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Menu } from "@mui/material";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import { bindMenu } from "material-ui-popup-state/hooks";

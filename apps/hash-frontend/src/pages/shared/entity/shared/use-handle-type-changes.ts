@@ -1,22 +1,24 @@
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
-import {
-  type Entity,
-  getClosedMultiEntityTypeFromMap,
-} from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
-} from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+} from "@blockprotocol/graph/stdlib";
+import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system-rs/pkg/type-system";
+import {
+  getClosedMultiEntityTypeFromMap,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback } from "react";
 
 import { useGetClosedMultiEntityTypes } from "../../use-get-closed-multi-entity-type";
 import type { EntityEditorProps } from "../entity-editor";
+import { getEntityMultiTypeDependencies } from "../get-entity-multi-type-dependencies";
 import { createDraftEntitySubgraph } from "./create-draft-entity-subgraph";
 
 export const useHandleTypeChanges = ({
@@ -25,14 +27,16 @@ export const useHandleTypeChanges = ({
   setDraftEntityTypesDetails,
   setDraftLinksToArchive,
 }: {
-  entitySubgraph: Subgraph<EntityRootType> | undefined;
+  entitySubgraph: Subgraph<EntityRootType<HashEntity>> | undefined;
   setDraftEntitySubgraph: Dispatch<
-    SetStateAction<Subgraph<EntityRootType> | undefined>
+    SetStateAction<Subgraph<EntityRootType<HashEntity>> | undefined>
   >;
   setDraftEntityTypesDetails: (
     args: Pick<
       EntityEditorProps,
-      "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
+      | "closedMultiEntityType"
+      | "closedMultiEntityTypesDefinitions"
+      | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
     >,
   ) => void;
   setDraftLinksToArchive: Dispatch<SetStateAction<EntityId[]>>;
@@ -44,7 +48,7 @@ export const useHandleTypeChanges = ({
       entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
       removedPropertiesBaseUrls: BaseUrl[];
       removedLinkTypesBaseUrls: BaseUrl[];
-    }): Promise<Entity> => {
+    }): Promise<HashEntity> => {
       const {
         entityTypeIds,
         removedPropertiesBaseUrls,
@@ -61,7 +65,15 @@ export const useHandleTypeChanges = ({
         throw new Error("Entity not found in subgraph");
       }
 
-      const newTypeDetails = await getClosedMultiEntityTypes(entityTypeIds);
+      const requiredEntityTypeIds = getEntityMultiTypeDependencies({
+        entityId: entity.entityId,
+        entityTypeIds,
+        entitySubgraph,
+      });
+
+      const newTypeDetails = await getClosedMultiEntityTypes(
+        requiredEntityTypeIds,
+      );
 
       const outgoingLinks = getOutgoingLinksForEntity(
         entitySubgraph,
@@ -86,6 +98,8 @@ export const useHandleTypeChanges = ({
       );
 
       setDraftEntityTypesDetails({
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
+          newTypeDetails.closedMultiEntityTypes,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions:
           newTypeDetails.closedMultiEntityTypesDefinitions,

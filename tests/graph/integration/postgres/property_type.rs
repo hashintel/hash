@@ -17,7 +17,7 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::{DatabaseTestWrapper, property_type_relationships};
@@ -38,12 +38,12 @@ async fn insert() {
         CreatePropertyTypeParams {
             schema: age_pt,
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -69,12 +69,12 @@ async fn query() {
         CreatePropertyTypeParams {
             schema: favorite_quote_pt.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -137,12 +137,12 @@ async fn update() {
         CreatePropertyTypeParams {
             schema: user_id_pt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
             },
             relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -157,7 +157,7 @@ async fn update() {
             schema: user_id_pt_v2.clone(),
             relationships: property_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance {
-                actor_type: ActorType::Human,
+                actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },

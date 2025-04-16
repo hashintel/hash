@@ -1,9 +1,12 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  EntityId,
+  EntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { PaperProps } from "@mui/material";
 import { Stack, Typography } from "@mui/material";
@@ -26,7 +29,7 @@ import { useEntityEditor } from "../../../../entity-editor-context";
 
 interface LinkedEntitySelectorProps {
   includeDrafts: boolean;
-  onSelect: (option: Entity, entityLabel: string) => void;
+  onSelect: (option: HashEntity, entityLabel: string) => void;
   onFinishedEditing: () => void;
   expectedEntityTypes: Pick<EntityType, "$id">[];
   entityIdsToFilterOut?: EntityId[];
@@ -109,11 +112,11 @@ export const LinkedEntitySelector = ({
   };
 
   const { uploadFile } = useFileUploads();
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { activeWorkspaceWebId } = useContext(WorkspaceContext);
 
   const onFilesProvided = useCallback(
     async (files: [File, ...File[]]) => {
-      if (!activeWorkspaceOwnedById) {
+      if (!activeWorkspaceWebId) {
         throw new Error("Cannot upload file without active workspace");
       }
 
@@ -142,9 +145,9 @@ export const LinkedEntitySelector = ({
             ] ??
             "File";
 
-          onSelect(upload.createdEntities.fileEntity as Entity, label);
+          onSelect(upload.createdEntities.fileEntity as HashEntity, label);
         },
-        ownedById: activeWorkspaceOwnedById,
+        webId: activeWorkspaceWebId,
         /**
          * Link creation is handled in the onSelect, since we might need to manage drafts,
          * but we supply linkEntityTypeId so we can track which files are being loaded against which link on an entity
@@ -159,7 +162,7 @@ export const LinkedEntitySelector = ({
       /** Upload error handling is in {@link LinkedWithCell} */
     },
     [
-      activeWorkspaceOwnedById,
+      activeWorkspaceWebId,
       entityId,
       expectedEntityTypes,
       linkEntityTypeId,
@@ -178,7 +181,7 @@ export const LinkedEntitySelector = ({
     [isImage, onFilesProvided],
   );
 
-  const highlightedRef = useRef<null | Entity>(null);
+  const highlightedRef = useRef<null | HashEntity>(null);
 
   return (
     <FileCreationContext.Provider value={fileCreationContextValue}>

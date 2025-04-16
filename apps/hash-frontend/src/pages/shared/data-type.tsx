@@ -1,15 +1,16 @@
 import { useMutation, useQuery } from "@apollo/client";
-import type { DataTypeWithMetadata as BpDataTypeWithMetadata } from "@blockprotocol/graph";
-import { extractVersion } from "@blockprotocol/type-system";
+import type { DataTypeRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  extractVersion,
+  versionedUrlFromComponents,
+} from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { getRoots } from "@local/hash-subgraph/stdlib";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
-import type { DataTypeRootType } from "@local/hash-subgraph/types";
 import type { Theme } from "@mui/material";
 import { Box, Container, Stack } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
@@ -59,8 +60,8 @@ import { TopContextBar } from "./top-context-bar";
 
 type DataTypeProps = {
   isInSlide?: boolean;
-  ownedById?: OwnedById | null;
-  draftNewDataType?: BpDataTypeWithMetadata | null;
+  webId?: WebId | null;
+  draftNewDataType?: DataTypeWithMetadata | null;
   dataTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
   onDataTypeUpdated: (dataType: DataTypeWithMetadata) => void;
@@ -68,7 +69,7 @@ type DataTypeProps = {
 
 export const DataType = ({
   isInSlide: inSlide,
-  ownedById,
+  webId,
   draftNewDataType,
   dataTypeBaseUrl,
   requestedVersion,
@@ -130,7 +131,7 @@ export const DataType = ({
       reset(
         getFormDataFromDataType({
           schema: draftNewDataType.schema,
-          metadata: {},
+          metadata: { conversions: {} },
         }),
       );
     }
@@ -235,15 +236,15 @@ export const DataType = ({
       getDataTypeFromFormData(data);
 
     if (isDraft) {
-      if (!ownedById) {
-        throw new Error("Cannot publish draft without ownedById");
+      if (!webId) {
+        throw new Error("Cannot publish draft without webId");
       }
 
       const response = await createDataType({
         variables: {
           dataType: inputDataType,
           conversions,
-          ownedById,
+          webId,
         },
       });
 

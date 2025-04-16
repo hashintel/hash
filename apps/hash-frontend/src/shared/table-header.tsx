@@ -1,3 +1,8 @@
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
   CheckIcon,
@@ -7,12 +12,7 @@ import {
   IconButton,
   LoadingSpinner,
 } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { SxProps, Theme, TooltipProps } from "@mui/material";
 import {
@@ -119,7 +119,7 @@ type TableHeaderProps<R extends GridRow> = {
   numberOfUserWebItems?: number;
   onBulkActionCompleted?: () => void;
   selectedItems?: (
-    | Entity
+    | HashEntity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata

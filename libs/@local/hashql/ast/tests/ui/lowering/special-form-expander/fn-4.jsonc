@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: fn/4 should compile
+[
+  "::kernel::special_form::fn",
+  { "#tuple": [] },
+  { "#struct": {} },
+  "_",
+  ["+", "a", "b"]
+]

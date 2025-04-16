@@ -1,16 +1,20 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { extractVersion } from "@blockprotocol/type-system/slim";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import type { AccountId } from "@local/hash-graph-types/account";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
 import {
-  type BaseUrl,
-  type ClosedDataTypeDefinition,
-  type ClosedMultiEntityTypesRootMap,
+  extractBaseUrl,
+  extractVersion,
   isBaseUrl,
+} from "@blockprotocol/type-system";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import type {
+  ClosedDataTypeDefinition,
+  ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { gridHeaderBaseFont } from "../../../../components/grid/grid";
@@ -161,7 +165,7 @@ export const useEntitiesTable = (
   }, [definitions, entities]);
 
   const editorActorIds = useMemo(() => {
-    const editorIds = new Set<AccountId>([
+    const editorIds = new Set<ActorEntityUuid>([
       ...typedKeys(editionCreatedByIds ?? {}),
       ...typedKeys(createdByIds ?? {}),
     ]);
@@ -173,13 +177,13 @@ export const useEntitiesTable = (
     accountIds: editorActorIds,
   });
 
-  const actorsByAccountId: Record<AccountId, MinimalActor | null> =
+  const actorsByAccountId: Record<ActorEntityUuid, MinimalActor | null> =
     useMemo(() => {
       if (!actors) {
         return {};
       }
 
-      const actorsByAccount: Record<AccountId, MinimalActor | null> = {};
+      const actorsByAccount: Record<ActorEntityUuid, MinimalActor | null> = {};
 
       for (const actor of actors) {
         actorsByAccount[actor.accountId] = actor;
@@ -188,15 +192,15 @@ export const useEntitiesTable = (
       return actorsByAccount;
     }, [actors]);
 
-  const webNameByOwnedById = useMemo(() => {
+  const webNameByWebId = useMemo(() => {
     if (!entities || !webIds) {
       return {};
     }
 
-    const webNameByOwner: Record<OwnedById, string> = {};
+    const webNameByOwner: Record<WebId, string> = {};
 
     for (const webId of typedKeys(webIds)) {
-      const owner = getOwnerForEntity({ ownedById: webId });
+      const owner = getOwnerForEntity({ webId });
       webNameByOwner[webId] = owner.shortname;
     }
 
@@ -219,24 +223,22 @@ export const useEntitiesTable = (
       >
     >(() => {
       const createdBy: EntitiesTableFilterData["createdByActors"] = [];
-      for (const [accountId, count] of typedEntries(createdByIds ?? {})) {
-        const actor = actorsByAccountId[accountId];
+      for (const [actorId, count] of typedEntries(createdByIds ?? {})) {
+        const actor = actorsByAccountId[actorId];
         createdBy.push({
-          accountId,
+          actorId,
           count,
-          displayName: actor?.displayName ?? accountId,
+          displayName: actor?.displayName ?? actorId,
         });
       }
 
       const editedBy: EntitiesTableFilterData["lastEditedByActors"] = [];
-      for (const [accountId, count] of typedEntries(
-        editionCreatedByIds ?? {},
-      )) {
-        const actor = actorsByAccountId[accountId];
+      for (const [actorId, count] of typedEntries(editionCreatedByIds ?? {})) {
+        const actor = actorsByAccountId[actorId];
         editedBy.push({
-          accountId,
+          actorId,
           count,
-          displayName: actor?.displayName ?? accountId,
+          displayName: actor?.displayName ?? actorId,
         });
       }
 
@@ -261,12 +263,12 @@ export const useEntitiesTable = (
       }
 
       const webCounts: EntitiesTableFilterData["webs"] = [];
-      for (const [ownedById, count] of typedEntries(webIds ?? {})) {
-        const webname = webNameByOwnedById[ownedById] ?? ownedById;
+      for (const [webId, count] of typedEntries(webIds ?? {})) {
+        const webname = webNameByWebId[webId] ?? webId;
         webCounts.push({
           count,
           shortname: `@${webname}`,
-          webId: ownedById,
+          webId,
         });
       }
 
@@ -284,7 +286,7 @@ export const useEntitiesTable = (
       typeIds,
       typeTitles,
       webIds,
-      webNameByOwnedById,
+      webNameByWebId,
     ]);
 
   useEffect(() => {
@@ -358,7 +360,7 @@ export const useEntitiesTable = (
           hideColumns,
           hideArchivedColumn,
           hidePropertiesColumns,
-          webNameByOwnedById,
+          webNameByWebId,
         },
       } satisfies GenerateEntitiesTableDataRequestMessage);
     }
@@ -374,7 +376,7 @@ export const useEntitiesTable = (
     hideArchivedColumn,
     hidePropertiesColumns,
     subgraph,
-    webNameByOwnedById,
+    webNameByWebId,
     worker,
   ]);
 

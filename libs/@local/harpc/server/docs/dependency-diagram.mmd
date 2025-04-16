@@ -8,45 +8,43 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[<a href="../hash_graph/index.html">hash-graph</a>]
-    1[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
-    2[<a href="../type_system/index.html">type-system</a>]
-    3[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    4[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    5[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
-    6[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
-    7[<a href="../error_stack/index.html">error-stack</a>]
-    8[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    9[<a href="../harpc_client/index.html">harpc-client</a>]
-    10[<a href="../harpc_codec/index.html">harpc-codec</a>]
-    11[<a href="../harpc_net/index.html">harpc-net</a>]
-    12[harpc-server]
-    class 12 root
-    13[<a href="../harpc_system/index.html">harpc-system</a>]
-    14[<a href="../harpc_tower/index.html">harpc-tower</a>]
-    15[<a href="../harpc_types/index.html">harpc-types</a>]
-    16[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    17[<a href="../hash_codec/index.html">hash-codec</a>]
-    3 -.-> 1
-    9 --> 13
-    10 --> 7
-    10 --> 15
-    11 --> 10
-    11 --> 17
-    11 -.-> 10
-    12 -.-> 9
-    12 -.-> 8
-    13 --> 14
-    14 --> 11
-    14 -.-> 11
-    16 --> 7
-    16 --> 15
-    16 -.-> 15
-    17 --> 16
-    0 --> 6
+    0[<a href="../hash_graph">hash-graph</a>]
+    1[<a href="../type_system">type-system</a>]
+    2[<a href="../hash_codec">hash-codec</a>]
+    3[<a href="../hash_graph_api">hash-graph-api</a>]
+    4[<a href="../hash_graph_temporal_versioning">hash-graph-temporal-versioning</a>]
+    5[<a href="../hash_graph_test_server">hash-graph-test-server</a>]
+    6[<a href="../harpc_client">harpc-client</a>]
+    7[<a href="../harpc_codec">harpc-codec</a>]
+    8[<a href="../harpc_net">harpc-net</a>]
+    9[harpc-server]
+    class 9 root
+    10[<a href="../harpc_system">harpc-system</a>]
+    11[<a href="../harpc_tower">harpc-tower</a>]
+    12[<a href="../harpc_types">harpc-types</a>]
+    13[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
+    14[<a href="../error_stack">error-stack</a>]
+    15[<a href="../hash_graph_benches">hash-graph-benches</a>]
+    16[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
+    0 --> 5
+    1 --> 4
+    1 -.-> 16
+    2 --> 13
+    3 --> 9
+    4 --> 2
+    5 --> 3
+    6 --> 10
+    7 --> 12
+    7 --> 14
     8 --> 2
-    1 --> 12
-    2 -.-> 5
-    2 --> 4
-    4 --> 17
-    6 --> 1
+    8 -.-> 7
+    8 --> 7
+    9 -.-> 1
+    9 -.-> 6
+    10 --> 11
+    11 -.-> 8
+    11 --> 8
+    13 -.-> 12
+    13 --> 12
+    13 --> 14
+    15 -.-> 3

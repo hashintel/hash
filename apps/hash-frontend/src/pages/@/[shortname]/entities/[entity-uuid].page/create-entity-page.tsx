@@ -1,15 +1,14 @@
 import { useMutation } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { AlertModal } from "@hashintel/design-system";
-import {
-  Entity as EntityClass,
-  mergePropertyObjectAndMetadata,
-} from "@local/hash-graph-sdk/entity";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
 import {
   entityIdFromComponents,
   extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+} from "@blockprotocol/type-system";
+import { AlertModal } from "@hashintel/design-system";
+import {
+  HashEntity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import { GlobalStyles, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
@@ -41,14 +40,14 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { activeWorkspace, activeWorkspaceOwnedById } =
+  const { activeWorkspace, activeWorkspaceWebId } =
     useContext(WorkspaceContext);
 
   const [createEntity] = useMutation<
     CreateEntityMutation,
     CreateEntityMutationVariables
   >(createEntityMutation, {
-    refetchQueries: activeWorkspaceOwnedById
+    refetchQueries: activeWorkspaceWebId
       ? [
           /**
            * This refetch query accounts for the "Entities" section
@@ -58,7 +57,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
           {
             query: getEntitySubgraphQuery,
             variables: generateSidebarEntityTypeEntitiesQueryVariables({
-              ownedById: activeWorkspaceOwnedById,
+              webId: activeWorkspaceWebId,
             }),
           },
         ]
@@ -73,7 +72,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
-  if (!activeWorkspaceOwnedById) {
+  if (!activeWorkspaceWebId) {
     return <EntityPageLoadingState />;
   }
 
@@ -81,7 +80,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     localDraft,
     draftLinksToCreate,
   }: {
-    localDraft: EntityClass;
+    localDraft: HashEntity;
     draftLinksToCreate: DraftLinksToCreate;
   }) => {
     if (!activeWorkspace) {
@@ -92,7 +91,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       const { data } = await createEntity({
         variables: {
           entityTypeIds: localDraft.metadata.entityTypeIds,
-          ownedById: activeWorkspaceOwnedById,
+          webId: activeWorkspaceWebId,
           properties: mergePropertyObjectAndMetadata(
             localDraft.properties,
             localDraft.metadata.properties,
@@ -101,7 +100,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       });
 
       const createdEntity = data?.createEntity
-        ? new EntityClass(data.createEntity)
+        ? new HashEntity(data.createEntity)
         : null;
 
       if (!createdEntity) {
@@ -121,7 +120,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   };
 
   const entityId = entityIdFromComponents(
-    activeWorkspaceOwnedById,
+    activeWorkspaceWebId,
     "draft" as EntityUuid,
   );
 

@@ -1,0 +1,30 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
+description: Parses a dict with entries using object format
+expression: "{\"#dict\": {\n            \"key1\": {\"#literal\": \"value1\"},\n            \"key2\": {\"#literal\": 42}\n        }}"
+---
+Expr#4294967040@9
+  ExprKind (Dict)
+    DictExpr#4294967040@8
+      DictEntry#4294967040@3
+        Expr#4294967040@0
+          ExprKind (Literal)
+            LiteralExpr#4294967040@0
+              LiteralKind (String)
+                StringLiteral (key1)
+        Expr#4294967040@2
+          ExprKind (Literal)
+            LiteralExpr#4294967040@1
+              LiteralKind (String)
+                StringLiteral (value1)
+      DictEntry#4294967040@7
+        Expr#4294967040@4
+          ExprKind (Literal)
+            LiteralExpr#4294967040@4
+              LiteralKind (String)
+                StringLiteral (key2)
+        Expr#4294967040@6
+          ExprKind (Literal)
+            LiteralExpr#4294967040@5
+              LiteralKind (Integer)
+                IntegerLiteral (42)

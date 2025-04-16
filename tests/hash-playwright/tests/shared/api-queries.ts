@@ -1,14 +1,15 @@
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
-  EntityProperties,
+  Entity,
   LinkData,
-} from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  TypeIdsAndPropertiesForEntity,
+  WebId,
+} from "@blockprotocol/type-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";
 
@@ -49,12 +50,14 @@ export const getUser = async (requestContext: APIRequestContext) => {
     return !data
       ? undefined
       : getRoots(
-          deserializeSubgraph<EntityRootType<User>>(data.me.subgraph),
+          deserializeSubgraph<EntityRootType<HashEntity<User>>>(
+            data.me.subgraph,
+          ),
         )[0];
   });
 };
 
-export const createEntity = async <T extends EntityProperties>(
+export const createEntity = async <T extends TypeIdsAndPropertiesForEntity>(
   requestContext: APIRequestContext,
   params: {
     draft: boolean;
@@ -62,7 +65,7 @@ export const createEntity = async <T extends EntityProperties>(
     properties: T["propertiesWithMetadata"];
     linkData?: LinkData;
     linkedEntities?: LinkedEntityDefinition[];
-    ownedById: OwnedById;
+    webId: WebId;
   },
 ): Promise<Entity<T>> => {
   return callGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
@@ -75,13 +78,13 @@ export const createEntity = async <T extends EntityProperties>(
         properties: params.properties,
         linkData: params.linkData,
         linkedEntities: params.linkedEntities,
-        ownedById: params.ownedById,
+        webId: params.webId,
       },
     },
   ).then(({ data }) => {
     if (!data) {
       throw new Error("Entity not created");
     }
-    return new Entity<T>(data.createEntity);
+    return new HashEntity<T>(data.createEntity);
   });
 };

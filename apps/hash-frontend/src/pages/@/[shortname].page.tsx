@@ -1,5 +1,12 @@
 import { useQuery } from "@apollo/client";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { EntityRootType } from "@blockprotocol/graph";
+import {
+  getEntityTypeAndDescendantsById,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import type { BaseUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -8,12 +15,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  getEntityTypeAndDescendantsById,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
@@ -144,7 +145,7 @@ const ProfilePage: NextPageWithLayout = () => {
               ? [
                   {
                     equal: [
-                      { path: ["ownedById"] },
+                      { path: ["webId"] },
                       {
                         parameter:
                           profile.kind === "org"
@@ -171,7 +172,7 @@ const ProfilePage: NextPageWithLayout = () => {
   });
 
   const entitiesSubgraph = pinnedEntityTypesData
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
         pinnedEntityTypesData.getEntitySubgraph.subgraph,
       )
     : undefined;

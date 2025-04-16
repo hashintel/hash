@@ -1,8 +1,11 @@
 use core::error::Error;
 
-use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
-use type_system::web::OwnedById;
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    provenance::ActorEntityUuid,
+    web::{ActorGroupId, WebId},
+};
 use uuid::Uuid;
 
 use crate::{
@@ -22,7 +25,7 @@ pub enum WebNamespace {
     Web,
 }
 
-impl Resource for OwnedById {
+impl Resource for WebId {
     type Id = Self;
     type Kind = WebNamespace;
 
@@ -56,7 +59,7 @@ pub enum WebResourceRelation {
     DataTypeViewer,
 }
 
-impl Relation<OwnedById> for WebResourceRelation {}
+impl Relation<WebId> for WebResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -72,14 +75,14 @@ pub enum WebPermission {
     CreatePropertyType,
     CreateDataType,
 }
-impl Permission<OwnedById> for WebPermission {}
+impl Permission<WebId> for WebPermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum WebSubject {
     Public,
-    Account(AccountId),
-    AccountGroup(AccountGroupId),
+    Account(ActorEntityUuid),
+    AccountGroup(ActorGroupId),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,10 +119,10 @@ impl Resource for WebSubject {
                 Self::Public
             }
             (WebSubjectNamespace::Account, WebSubjectId::Uuid(id)) => {
-                Self::Account(AccountId::new(id))
+                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
             }
             (WebSubjectNamespace::AccountGroup, WebSubjectId::Uuid(id)) => {
-                Self::AccountGroup(AccountGroupId::new(id))
+                Self::AccountGroup(ActorGroupId::new(id))
             }
             (WebSubjectNamespace::AccountGroup, WebSubjectId::Asteriks(PublicAccess::Public)) => {
                 return Err(InvalidResource::<Self>::invalid_id(kind, id));
@@ -155,11 +158,11 @@ impl Resource for WebSubject {
 pub enum WebOwnerSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
     },
 }
 
@@ -169,11 +172,11 @@ pub enum WebOwnerSubject {
 pub enum WebEntityCreatorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: WebSubjectSet,
     },
@@ -185,11 +188,11 @@ pub enum WebEntityCreatorSubject {
 pub enum WebEntityEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: WebSubjectSet,
     },
@@ -202,11 +205,11 @@ pub enum WebEntityViewerSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
-        id: AccountId,
+        id: ActorEntityUuid,
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: AccountGroupId,
+        id: ActorGroupId,
         #[serde(skip)]
         set: WebSubjectSet,
     },
@@ -274,9 +277,9 @@ pub enum WebRelationAndSubject {
     },
 }
 
-impl Relationship for (OwnedById, WebRelationAndSubject) {
+impl Relationship for (WebId, WebRelationAndSubject) {
     type Relation = WebResourceRelation;
-    type Resource = OwnedById;
+    type Resource = WebId;
     type Subject = WebSubject;
     type SubjectSet = WebSubjectSet;
 

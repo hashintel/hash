@@ -1,9 +1,11 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
-import type { EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityUuid, Url, WebId } from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  entityIdFromComponents,
+} from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
@@ -20,10 +22,10 @@ import { proposeEntitiesFromClaims } from "../propose-entities-from-claims.js";
  * NOTE: these tests depend on having run `npx tsx apps/hash-api/src/seed-data/seed-flow-test-types.ts`
  */
 
-const ownedById = generateUuid();
+const webId = generateUuid();
 
 const generateEntityId = (entityUuid: string) =>
-  entityIdFromComponents(ownedById as OwnedById, entityUuid as EntityUuid);
+  entityIdFromComponents(webId as WebId, entityUuid as EntityUuid);
 
 const ftse350EntitySummaries: LocalEntitySummary[] = [
   {
@@ -597,16 +599,16 @@ test(
       (claim): Claim => ({
         ...claim,
         claimId: entityIdFromComponents(
-          userAuthentication.actorId as OwnedById,
+          userAuthentication.actorId as WebId,
           generateUuid() as EntityUuid,
         ),
         sources: [
           {
             type: "webpage",
             location: {
-              uri: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+              uri: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
             },
-            loadedAt: new Date().toISOString(),
+            loadedAt: currentTimestamp(),
           },
         ],
       }),

@@ -1,9 +1,9 @@
+import type { WebId } from "@blockprotocol/type-system";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
 } from "@local/hash-backend-utils/google";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
   GoogleOAuth2CallbackRequest,
   GoogleOAuth2CallbackResponse,
@@ -119,7 +119,7 @@ export const googleOAuthCallback: RequestHandler<
 
     newGoogleAccountEntity = await createEntity(req.context, authentication, {
       entityTypeIds: [googleEntityTypes.account.entityTypeId],
-      ownedById: req.user.accountId as OwnedById,
+      webId: req.user.accountId as WebId,
       properties: googleAccountProperties,
       relationships: [
         {

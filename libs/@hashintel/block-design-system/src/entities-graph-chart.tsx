@@ -1,4 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { Subgraph } from "@blockprotocol/graph";
+import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
+import type {
+  EntityId,
+  EntityMetadata,
+  LinkData,
+  PropertyObject,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { isEntityId } from "@blockprotocol/type-system";
 import type {
   Chart,
   ECOption,
@@ -7,17 +16,7 @@ import type {
 } from "@hashintel/design-system";
 import { EChart } from "@hashintel/design-system";
 /* eslint-disable no-restricted-imports */
-import type {
-  EntityId,
-  EntityMetadata,
-  LinkData,
-  PropertyObject,
-} from "@local/hash-graph-types/entity";
 import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { Subgraph } from "@local/hash-subgraph";
-import { isEntityId } from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
-/* eslint-enable no-restricted-imports */
 import type { BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";

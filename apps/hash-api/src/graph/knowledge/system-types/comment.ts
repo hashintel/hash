@@ -1,9 +1,10 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
 import type {
   CreateEntityParameters,
-  Entity,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -17,7 +18,6 @@ import type {
   TextPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 import type {
   ImpureGraphFunction,
@@ -49,12 +49,12 @@ export type Comment = {
    */
   resolvedAt?: string;
   deletedAt?: string;
-  entity: Entity<CommentEntity>;
+  entity: HashEntity<CommentEntity>;
 };
 
 function assertCommentEntity(
-  entity: Entity,
-): asserts entity is Entity<CommentEntity> {
+  entity: HashEntity,
+): asserts entity is HashEntity<CommentEntity> {
   if (
     !entity.metadata.entityTypeIds.includes(
       systemEntityTypes.comment.entityTypeId,
@@ -69,7 +69,7 @@ function assertCommentEntity(
 }
 
 export const getCommentFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: HashEntity },
   Comment
 > = ({ entity }) => {
   assertCommentEntity(entity);
@@ -144,17 +144,17 @@ export const getCommentText: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createComment: ImpureGraphFunction<
-  Pick<CreateEntityParameters, "ownedById"> & {
+  Pick<CreateEntityParameters, "webId"> & {
     author: User;
     parentEntityId: EntityId;
     textualContent: TextToken[];
   },
   Promise<Comment>
 > = async (ctx, authentication, params): Promise<Comment> => {
-  const { ownedById, textualContent, parentEntityId, author } = params;
+  const { webId, textualContent, parentEntityId, author } = params;
 
-  // the author has full access, regardless of which web the comment belongs to (ownedById)
-  const relationships: EntityRelationAndSubject[] = [
+  // the author has full access, regardless of which web the comment belongs to (webId)
+  const relationships: EntityRelationAndSubjectBranded[] = [
     {
       relation: "administrator",
       subject: {
@@ -179,7 +179,7 @@ export const createComment: ImpureGraphFunction<
   ];
 
   const textEntity = await createEntity<TextEntity>(ctx, authentication, {
-    ownedById,
+    webId,
     properties: {
       value: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
@@ -199,12 +199,12 @@ export const createComment: ImpureGraphFunction<
   });
 
   const commentEntity = await createEntity<CommentEntity>(ctx, authentication, {
-    ownedById,
+    webId,
     properties: { value: {} },
     entityTypeIds: [systemEntityTypes.comment.entityTypeId],
     outgoingLinks: [
       {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           rightEntityId: parentEntityId,
@@ -213,7 +213,7 @@ export const createComment: ImpureGraphFunction<
         relationships,
       },
       {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           rightEntityId: author.entity.metadata.recordId.entityId,
@@ -227,7 +227,7 @@ export const createComment: ImpureGraphFunction<
        * `parent` nad `author` link entities.
        */
       {
-        ownedById,
+        webId,
         properties: { value: {} },
         linkData: {
           rightEntityId: textEntity.metadata.recordId.entityId,
@@ -326,7 +326,7 @@ export const deleteComment: ImpureGraphFunction<
  */
 export const getCommentParent: ImpureGraphFunction<
   { commentEntityId: EntityId },
-  Promise<Entity>
+  Promise<HashEntity>
 > = async (ctx, authentication, { commentEntityId }) => {
   const parentLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,

@@ -1,5 +1,5 @@
+import type { WebId } from "@blockprotocol/type-system";
 import { Autocomplete, MenuItem } from "@hashintel/design-system";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { Stack, Typography } from "@mui/material";
 import type { ReactElement } from "react";
 
@@ -16,13 +16,13 @@ type WebOption = {
   avatarComponent: ReactElement;
   label: string;
   name: string;
-  value: OwnedById;
+  value: WebId;
 };
 
 type WebSelectorProps = {
   active: boolean;
-  selectedWebOwnedById: OwnedById;
-  setSelectedWebOwnedById: (ownedById: OwnedById) => void;
+  selectedWebWebId: WebId;
+  setSelectedWebWebId: (webId: WebId) => void;
   user: NonNullable<LocalStorage["user"]>;
 };
 
@@ -53,8 +53,8 @@ const inputHeight = 30;
 
 export const WebSelector = ({
   active,
-  selectedWebOwnedById,
-  setSelectedWebOwnedById,
+  selectedWebWebId,
+  setSelectedWebWebId,
   user,
 }: WebSelectorProps) => {
   const options: WebOption[] = [
@@ -69,7 +69,7 @@ export const WebSelector = ({
       ),
       label: "My web",
       name: user.properties.displayName,
-      value: user.webOwnedById,
+      value: user.webWebId,
     },
     ...user.orgs.map((org) => ({
       avatarComponent: (
@@ -81,12 +81,12 @@ export const WebSelector = ({
       ),
       label: org.properties.organizationName,
       name: org.properties.organizationName,
-      value: org.webOwnedById,
+      value: org.webWebId,
     })),
   ];
 
   const selectedWeb = options.find(
-    (option) => option.value === selectedWebOwnedById,
+    (option) => option.value === selectedWebWebId,
   );
 
   return (
@@ -117,7 +117,7 @@ export const WebSelector = ({
       }}
       multiple={false}
       onChange={(_event, option) => {
-        setSelectedWebOwnedById(option.value);
+        setSelectedWebWebId(option.value);
       }}
       options={options}
       renderOption={(props, option) => (

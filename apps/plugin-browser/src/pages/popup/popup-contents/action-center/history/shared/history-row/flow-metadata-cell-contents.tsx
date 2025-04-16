@@ -1,9 +1,12 @@
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
   ArrowDownRegularIcon,
   ArrowRightRegularIcon,
   AsteriskRegularIcon,
   ClockRegularIcon,
 } from "@hashintel/design-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -13,8 +16,6 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { SvgIconProps } from "@mui/material";
 import { Stack } from "@mui/material";
 import { formatDuration, intervalToDuration } from "date-fns";
@@ -77,9 +78,9 @@ const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
       },
     },
   ).then(({ data }) => {
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-      data.getEntitySubgraph.subgraph,
-    );
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+      EntityRootType<HashEntity>
+    >(data.getEntitySubgraph.subgraph);
 
     const usageRecords = getRoots(subgraph);
 

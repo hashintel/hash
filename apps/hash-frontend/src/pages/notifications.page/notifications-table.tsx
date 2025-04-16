@@ -1,10 +1,10 @@
-import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   Skeleton,
   styled,
@@ -27,7 +27,7 @@ import {
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo } from "react";
 
-import { useUserOrOrgShortnameByOwnedById } from "../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
+import { useUserOrOrgShortnameByWebId } from "../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { useNotificationCount } from "../../shared/notification-count-context";
 import { Button, Link } from "../../shared/ui";
@@ -175,17 +175,17 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
     refetch();
   }, [markNotificationAsRead, notification, refetch]);
 
-  const ownedById = useMemo(
+  const webId = useMemo(
     () =>
-      extractOwnedByIdFromEntityId(
+      extractWebIdFromEntityId(
         notification.occurredInEntity.metadata.recordId.entityId,
       ),
     [notification],
   );
 
-  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
-    { ownedById },
-  );
+  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByWebId({
+    webId,
+  });
 
   const targetHref = useMemo(() => {
     if (!entityOwningShortname) {

@@ -1,14 +1,17 @@
-import { type JsonValue, type VersionedUrl } from "@blockprotocol/type-system";
-import { SchemaType } from "@google-cloud/vertexai";
-import { sleep } from "@local/hash-backend-utils/utils";
-import type { PropertyProvenance } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityTypeRootType } from "@blockprotocol/graph";
+import { getEntityTypes } from "@blockprotocol/graph/stdlib";
 import type {
   EntityId,
   PropertyObjectWithMetadata,
+  PropertyProvenance,
   PropertyValue,
   PropertyWithMetadata,
-} from "@local/hash-graph-types/entity";
+  Url,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { SchemaType } from "@google-cloud/vertexai";
+import { sleep } from "@local/hash-backend-utils/utils";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -17,8 +20,6 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityTypeRootType } from "@local/hash-subgraph";
-import { getEntityTypes } from "@local/hash-subgraph/stdlib";
 import dedent from "dedent";
 import get from "lodash/get.js";
 import set from "lodash/set.js";
@@ -161,7 +162,9 @@ const addMetadataToPropertyValue = (
     );
   }
 
-  const propertyType = propertyObjectSchema[key];
+  const propertyType = (
+    propertyObjectSchema as DereferencedEntityTypeWithSimplifiedKeys["schema"]["properties"]
+  )[key];
 
   if (!propertyType) {
     throw new Error(
@@ -350,7 +353,7 @@ const unsimplifyDocumentMetadata = (
         authors: rest.authors?.map((author) => author.name),
         type: "document",
         entityId: provenance.entityId,
-        location: { uri: provenance.fileUrl, name: title },
+        location: { uri: provenance.fileUrl as Url, name: title },
       },
     ],
   };
@@ -391,7 +394,7 @@ const unsimplifyDocumentMetadata = (
 export const getLlmAnalysisOfDoc = async ({
   fileEntity,
 }: {
-  fileEntity: Entity<File>;
+  fileEntity: HashEntity<File>;
 }): Promise<DocumentData> => {
   const { userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
@@ -454,16 +457,16 @@ export const getLlmAnalysisOfDoc = async ({
   const textContent: LlmMessageTextContent = {
     type: "text",
     text: dedent(`Please provide metadata about this document, using only the information visible in the document.
-    
+
     You are given multiple options of what type of document this might be, and must choose from them.
 
     The options are:
-    
+
     ${dereferencedDocEntityTypes.map((type) => `- ${type.schema.title}`).join("\n")}
 
     'Doc' is the most generic type. Use this if no other more specific type is appropriate.
     If you can't find a more specific type, use 'Doc'.
-    
+
     When dealing with dates in the document metadata, use the format YYYY-MM-DD. Bear in mind the document may use a different format.
     Also note the difference between 'estimated'/'predicted' and 'actual'/'confirmed' dates. Either, neither or both may be present.
     Depending on the type of document, this distinction may be important, and the document should give clues as to which dates are which.
@@ -571,7 +574,7 @@ export const getLlmAnalysisOfDoc = async ({
       );
     } else {
       const previousValue = get(response.message, jsonPath) as
-        | JsonValue
+        | PropertyValue
         | undefined;
 
       set(response.message, jsonPath, correctValue);

@@ -1,6 +1,5 @@
+import type { Entity } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon, LinkTypeIcon } from "@hashintel/design-system";
-// eslint-disable-next-line no-restricted-imports -- TODO fix this to make package publishable again
-import type { Entity } from "@local/hash-graph-sdk/entity";
 // eslint-disable-next-line no-restricted-imports -- TODO fix this to make package publishable again
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SxProps, Theme } from "@mui/material";

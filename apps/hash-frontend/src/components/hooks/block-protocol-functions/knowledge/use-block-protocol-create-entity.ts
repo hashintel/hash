@@ -1,9 +1,9 @@
 import { useMutation } from "@apollo/client";
+import type { WebId } from "@blockprotocol/type-system";
 import {
-  Entity,
+  HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { useCallback } from "react";
 
 import type {
@@ -19,18 +19,18 @@ import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../../sha
 import type { CreateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolCreateEntity = (
-  ownedById: OwnedById | null,
+  webId: WebId | null,
   readonly?: boolean,
 ): {
   createEntity: CreateEntityMessageCallback;
 } => {
-  const { activeWorkspaceOwnedById } = useActiveWorkspace();
+  const { activeWorkspaceWebId } = useActiveWorkspace();
 
   const [createFn] = useMutation<
     CreateEntityMutation,
     CreateEntityMutationVariables
   >(createEntityMutation, {
-    refetchQueries: activeWorkspaceOwnedById
+    refetchQueries: activeWorkspaceWebId
       ? [
           /**
            * This refetch query accounts for the "Entities" section
@@ -40,7 +40,7 @@ export const useBlockProtocolCreateEntity = (
           {
             query: getEntitySubgraphQuery,
             variables: generateSidebarEntityTypeEntitiesQueryVariables({
-              ownedById: activeWorkspaceOwnedById,
+              webId: activeWorkspaceWebId,
             }),
           },
         ]
@@ -60,9 +60,9 @@ export const useBlockProtocolCreateEntity = (
         };
       }
 
-      if (!ownedById) {
+      if (!webId) {
         throw new Error(
-          "Hook was constructed without `ownedById` while not in readonly mode. Data must be created under an account.",
+          "Hook was constructed without `webId` while not in readonly mode. Data must be created under an account.",
         );
       }
 
@@ -82,7 +82,7 @@ export const useBlockProtocolCreateEntity = (
       const { data: createEntityResponseData } = await createFn({
         variables: {
           entityTypeIds,
-          ownedById,
+          webId,
           properties: mergePropertyObjectAndMetadata(properties, undefined),
           linkData,
         },
@@ -102,10 +102,10 @@ export const useBlockProtocolCreateEntity = (
       }
 
       return {
-        data: new Entity(createdEntity),
+        data: new HashEntity(createdEntity),
       };
     },
-    [createFn, ownedById, readonly],
+    [createFn, webId, readonly],
   );
 
   return {

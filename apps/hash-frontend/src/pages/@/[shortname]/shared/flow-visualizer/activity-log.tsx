@@ -1,14 +1,15 @@
 import { useMutation } from "@apollo/client";
+import type {
+  EntityEditionId,
+  EntityMetadata,
+  EntityRecordId,
+} from "@blockprotocol/type-system";
 import {
   CaretDownSolidIcon,
   IconButton,
   RotateRegularIcon,
 } from "@hashintel/design-system";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityMetadata,
-  EntityRecordId,
-} from "@local/hash-graph-types/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   CheckpointLog,
   StepProgressLog,
@@ -58,7 +59,7 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
 
   const entity = isPersistedEntity
     ? log.persistedEntity.entity
-      ? new Entity(log.persistedEntity.entity)
+      ? new HashEntity(log.persistedEntity.entity)
       : undefined
     : log.proposedEntity;
 
@@ -82,7 +83,7 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
       properties: entity.properties,
       metadata: {
         recordId: {
-          editionId: "irrelevant-here",
+          editionId: "irrelevant-here" as EntityEditionId,
           entityId,
         } satisfies EntityRecordId,
         entityTypeIds,

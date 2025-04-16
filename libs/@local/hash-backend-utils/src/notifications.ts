@@ -1,12 +1,13 @@
 import type {
-  GraphApi,
+  ActorEntityUuid,
+  EntityId,
   ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  Timestamp,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -15,17 +16,16 @@ import type {
   GraphChangeNotification,
   OccurredInEntity,
 } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
-import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 import { getWebMachineActorId } from "./machine-actors.js";
 
 export const createNotificationEntityPermissions = ({
   machineActorId,
 }: {
-  machineActorId: AccountId;
+  machineActorId: ActorEntityUuid;
 }): {
-  linkEntityRelationships: EntityRelationAndSubject[];
-  notificationEntityRelationships: EntityRelationAndSubject[];
+  linkEntityRelationships: EntityRelationAndSubjectBranded[];
+  notificationEntityRelationships: EntityRelationAndSubjectBranded[];
 } => ({
   linkEntityRelationships: [
     {
@@ -74,7 +74,7 @@ export const createGraphChangeNotification = async (
     changedEntityId: EntityId;
     changedEntityEditionId: Timestamp;
     operation: "create" | "update";
-    notifiedUserAccountId: AccountId;
+    notifiedUserAccountId: ActorEntityUuid;
   },
 ) => {
   const { graphApi } = context;
@@ -91,7 +91,7 @@ export const createGraphChangeNotification = async (
   const webMachineActorId = await getWebMachineActorId(
     context,
     userAuthentication,
-    { ownedById: notifiedUserAccountId as OwnedById },
+    { webId: notifiedUserAccountId as WebId },
   );
 
   const { linkEntityRelationships, notificationEntityRelationships } =
@@ -109,13 +109,13 @@ export const createGraphChangeNotification = async (
   /**
    * We create the notification entity with the user's web bot, as we know it has the necessary permissions in the user's web
    */
-  const notificationEntity = await Entity.create<GraphChangeNotification>(
+  const notificationEntity = await HashEntity.create<GraphChangeNotification>(
     graphApi,
     { actorId: webMachineActorId },
     {
       draft: false,
       entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
-      ownedById: notifiedUserAccountId as OwnedById,
+      webId: notifiedUserAccountId as WebId,
       properties: {
         value: {
           "https://hash.ai/@h/types/property-type/graph-change-type/": {
@@ -132,7 +132,7 @@ export const createGraphChangeNotification = async (
     },
   );
 
-  await Entity.create<OccurredInEntity>(
+  await HashEntity.create<OccurredInEntity>(
     graphApi,
     /**
      * We use the user's authority to create the link to the entity because it might be in a different web, e.g. an org's,
@@ -145,7 +145,7 @@ export const createGraphChangeNotification = async (
     {
       draft: false,
       entityTypeIds: [systemLinkEntityTypes.occurredInEntity.linkEntityTypeId],
-      ownedById: notifiedUserAccountId as OwnedById,
+      webId: notifiedUserAccountId as WebId,
       linkData: {
         leftEntityId: notificationEntity.metadata.recordId.entityId,
         rightEntityId: changedEntityId,

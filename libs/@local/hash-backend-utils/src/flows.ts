@@ -1,9 +1,17 @@
+import type {
+  ActorEntityUuid,
+  EntityId,
+  EntityUuid,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -19,11 +27,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  splitEntityId,
-} from "@local/hash-subgraph";
 
 import {
   getFlowRunFromWorkflowId,
@@ -34,8 +37,8 @@ import type { TemporalClient } from "./temporal.js";
 export const getFlowRunEntityById = async (params: {
   flowRunId: EntityUuid;
   graphApiClient: GraphApi;
-  userAuthentication: { actorId: AccountId };
-}): Promise<Entity<FlowRunEntity> | null> => {
+  userAuthentication: { actorId: ActorEntityUuid };
+}): Promise<HashEntity<FlowRunEntity> | null> => {
   const { flowRunId, graphApiClient, userAuthentication } = params;
 
   const [existingFlowEntity] = await graphApiClient
@@ -71,7 +74,7 @@ type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
   temporalClient: TemporalClient;
-  userAuthentication: { actorId: AccountId };
+  userAuthentication: { actorId: ActorEntityUuid };
 };
 
 export async function getFlowRunById(
@@ -103,7 +106,7 @@ export async function getFlowRunById({
     return null;
   }
 
-  const webId = extractOwnedByIdFromEntityId(
+  const webId = extractWebIdFromEntityId(
     existingFlowEntity.metadata.recordId.entityId,
   );
 
@@ -146,7 +149,7 @@ type GetFlowRunsFilters = {
 };
 
 type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
-  authentication: { actorId: AccountId };
+  authentication: { actorId: ActorEntityUuid };
   filters: GetFlowRunsFilters;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
@@ -206,10 +209,10 @@ export async function getFlowRuns({
     .then(({ data: response }) => {
       const flowRunIdToOwnedByAndName: Record<
         EntityUuid,
-        { ownedById: OwnedById; name: string }
+        { webId: WebId; name: string }
       > = {};
       for (const entity of response.entities) {
-        const [ownedById, entityUuid] = splitEntityId(
+        const [webId, entityUuid] = splitEntityId(
           entity.metadata.recordId.entityId as EntityId,
         );
 
@@ -217,7 +220,7 @@ export async function getFlowRuns({
           name: (entity.properties as FlowRunEntity["properties"])[
             "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
           ],
-          ownedById,
+          webId,
         };
       }
       return flowRunIdToOwnedByAndName;
@@ -276,7 +279,7 @@ export async function getFlowRuns({
         name: flowDetails.name,
         workflowId: flowRunId,
         temporalClient,
-        webId: flowDetails.ownedById,
+        webId: flowDetails.webId,
       });
       workflows.push(runInfo);
     }
@@ -314,7 +317,7 @@ export async function getFlowRuns({
         name: flowDetails.name,
         workflowId: flowRunId,
         temporalClient,
-        webId: flowDetails.ownedById,
+        webId: flowDetails.webId,
       });
       workflows.push(runInfo);
     }

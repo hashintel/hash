@@ -1,34 +1,37 @@
-import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { EntityType } from "@blockprotocol/type-system/slim";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
+  ClosedMultiEntityType,
+  EntityEditionId,
   EntityId,
-  EntityMetadata,
-  EntityProperties,
-  EntityRecordId,
-  PropertyMetadataObject,
   PropertyObject,
-} from "@local/hash-graph-types/entity";
+  PropertyObjectMetadata,
+  PropertyType,
+  TypeIdsAndPropertiesForEntity,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type { EntityType } from "@blockprotocol/type-system/slim";
+import {
+  typedEntries,
+  typedKeys,
+  typedValues,
+} from "@local/advanced-types/typed-entries";
+import {
+  getClosedMultiEntityTypeFromMap,
+  HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getPossibleLinkTypesForEntityType,
-  getPropertyTypesForEntityType,
-} from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, TableCell } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ClickableCellChip } from "../../../../../shared/clickable-cell-chip";
+import { useSlideStack } from "../../../../../shared/slide-stack";
 import { ValueChip } from "../../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
@@ -79,15 +82,14 @@ const isFixedField = (fieldId: string): fieldId is FixedFieldId =>
  */
 type FieldId = FixedFieldId | VersionedUrl;
 
-type EntityColumnMetadata = { appliesToEntityTypeIds: VersionedUrl[] };
+type EntityColumnMetadata = { appliesToEntityTypeIds: Set<VersionedUrl> };
 
-type EntityTypeWithDependenciesByEntityTypeId = Record<
+type EntityTypeCountAndDepsByEntityTypeId = Record<
   VersionedUrl,
   {
     entitiesCount: number;
-    entityType: EntityType;
-    propertyTypes: PropertyTypeWithMetadata[];
-    linkTypes: EntityTypeWithMetadata[];
+    propertyTypeIds: VersionedUrl[];
+    linkTypeIds: VersionedUrl[];
   }
 >;
 
@@ -98,48 +100,73 @@ type EntityTypeWithDependenciesByEntityTypeId = Record<
  * For each, we also need to know which properties and links apply to which types of entities.
  */
 const generateColumns = ({
-  entityTypesRecord,
+  closedMultiEntityTypes,
+  definitions,
   hasRelevantEntities,
-  subgraph,
 }: {
-  entityTypesRecord: EntityTypeWithDependenciesByEntityTypeId;
+  closedMultiEntityTypes: ClosedMultiEntityType[];
+  definitions?: ClosedMultiEntityTypesDefinitions;
   hasRelevantEntities: boolean;
-  subgraph?: Subgraph;
 }): VirtualizedTableColumn<FieldId, EntityColumnMetadata>[] => {
   const propertyTypesByVersionedUrl: Record<
     VersionedUrl,
-    PropertyType & { appliesToEntityTypeIds: VersionedUrl[] }
+    Pick<PropertyType, "$id" | "title"> & {
+      appliesToEntityTypeIds: Set<VersionedUrl>;
+    }
   > = {};
 
   const linkEntityTypesByVersionedUrl: Record<
     VersionedUrl,
-    EntityType & { appliesToEntityTypeIds: VersionedUrl[] }
+    Pick<EntityType, "$id" | "title"> & {
+      appliesToEntityTypeIds: Set<VersionedUrl>;
+    }
   > = {};
 
-  if (subgraph) {
-    for (const { entityType, propertyTypes, linkTypes } of Object.values(
-      entityTypesRecord,
-    )) {
-      for (const { schema } of propertyTypes) {
-        propertyTypesByVersionedUrl[schema.$id] ??= {
-          ...schema,
-          appliesToEntityTypeIds: [],
+  if (definitions) {
+    for (const closedMultiEntityType of closedMultiEntityTypes) {
+      const entityTypeIds = closedMultiEntityType.allOf.map((type) => type.$id);
+
+      for (const schema of typedValues(closedMultiEntityType.properties)) {
+        const propertyTypeId =
+          "$ref" in schema ? schema.$ref : schema.items.$ref;
+
+        const propertyType = definitions.propertyTypes[propertyTypeId];
+
+        if (!propertyType) {
+          throw new Error(
+            `Property type ${propertyTypeId} not found in definitions`,
+          );
+        }
+
+        propertyTypesByVersionedUrl[propertyTypeId] ??= {
+          ...propertyType,
+          appliesToEntityTypeIds: new Set(entityTypeIds),
         };
 
-        propertyTypesByVersionedUrl[schema.$id]!.appliesToEntityTypeIds.push(
-          entityType.$id,
-        );
+        for (const entityTypeId of entityTypeIds) {
+          propertyTypesByVersionedUrl[
+            propertyTypeId
+          ].appliesToEntityTypeIds.add(entityTypeId);
+        }
       }
 
-      for (const { schema } of linkTypes) {
-        linkEntityTypesByVersionedUrl[schema.$id] ??= {
-          ...schema,
-          appliesToEntityTypeIds: [],
+      for (const linkTypeId of typedKeys(closedMultiEntityType.links ?? {})) {
+        const linkType = definitions.entityTypes[linkTypeId];
+
+        if (!linkType) {
+          throw new Error(`Link type ${linkTypeId} not found in definitions`);
+        }
+
+        linkEntityTypesByVersionedUrl[linkTypeId] ??= {
+          ...linkType,
+          appliesToEntityTypeIds: new Set(entityTypeIds),
         };
 
-        linkEntityTypesByVersionedUrl[schema.$id]!.appliesToEntityTypeIds.push(
-          entityType.$id,
-        );
+        for (const entityTypeId of entityTypeIds) {
+          linkEntityTypesByVersionedUrl[linkTypeId].appliesToEntityTypeIds.add(
+            entityTypeId,
+          );
+        }
       }
     }
   }
@@ -197,12 +224,10 @@ const generateColumns = ({
 };
 
 type EntityResultRow = {
+  closedMultiEntityType: ClosedMultiEntityType;
   entityLabel: string;
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
-  entityTypes: EntityType[];
   proposedEntityId?: EntityId;
-  onEntityClick: (entityId: EntityId) => void;
-  onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   outgoingLinksByLinkTypeId: Record<
     VersionedUrl,
     {
@@ -211,9 +236,9 @@ type EntityResultRow = {
       targetEntityLabel: string;
     }[]
   >;
-  persistedEntity?: Entity;
+  persistedEntity?: HashEntity;
   properties: PropertyObject;
-  propertiesMetadata: PropertyMetadataObject;
+  propertiesMetadata: PropertyObjectMetadata;
   relevance: "Yes" | "No";
   researchOngoing: boolean;
   status: "Proposed" | "Created" | "Updated";
@@ -227,6 +252,7 @@ const TableRow = memo(
     columns: VirtualizedTableColumn<FieldId, EntityColumnMetadata>[];
     row: EntityResultRow;
   }) => {
+    const { pushToSlideStack } = useSlideStack();
     const hasRelevanceColumn =
       columns[0]?.id === ("relevance" satisfies FixedFieldId);
 
@@ -274,16 +300,17 @@ const TableRow = memo(
             px: 0.5,
           }}
         >
-          {row.entityTypeIds.map((entityTypeId) => {
-            const entityTypeTitle = row.entityTypes.find(
-              (type) => type.$id === entityTypeId,
-            )?.title;
-
+          {row.closedMultiEntityType.allOf.map(({ title, $id }) => {
             return (
               <Box
                 component="button"
-                key={entityTypeId}
-                onClick={() => row.onEntityTypeClick(entityTypeId)}
+                key={$id}
+                onClick={() =>
+                  pushToSlideStack({
+                    kind: "entityType",
+                    itemId: $id,
+                  })
+                }
                 sx={{ background: "none", border: "none", p: 0 }}
               >
                 <ValueChip
@@ -294,7 +321,7 @@ const TableRow = memo(
                     ...typographySx,
                   }}
                 >
-                  {entityTypeTitle}
+                  {title}
                 </ValueChip>
               </Box>
             );
@@ -310,22 +337,18 @@ const TableRow = memo(
             zIndex: 1,
           }}
         >
-          {row.persistedEntity ? (
-            <ClickableCellChip
-              onClick={() =>
-                row.onEntityClick(
-                  row.persistedEntity
-                    ? row.persistedEntity.metadata.recordId.entityId
-                    : row.proposedEntityId!,
-                )
-              }
-              fontSize={typographySx.fontSize}
-              label={row.entityLabel}
-            />
-            /** @todo H-3849: use closed types in outputs and re-enable clicking to open proposed entity in slideover */
-          ) : (
-            <ValueChip>{row.entityLabel}</ValueChip>
-          )}
+          <ClickableCellChip
+            onClick={() =>
+              pushToSlideStack({
+                kind: "entity",
+                itemId: row.persistedEntity
+                  ? row.persistedEntity.metadata.recordId.entityId
+                  : row.proposedEntityId!,
+              })
+            }
+            fontSize={typographySx.fontSize}
+            label={row.entityLabel}
+          />
         </TableCell>
         {columns
           .slice(
@@ -334,10 +357,9 @@ const TableRow = memo(
               : fixedFieldIds.length - 1,
           )
           .map((column) => {
-            const appliesToEntity =
-              column.metadata?.appliesToEntityTypeIds.some((id) =>
-                row.entityTypeIds.includes(id),
-              );
+            const appliesToEntity = row.entityTypeIds.some((id) =>
+              column.metadata?.appliesToEntityTypeIds.has(id),
+            );
 
             if (!appliesToEntity) {
               return (
@@ -376,7 +398,12 @@ const TableRow = memo(
                 <LinkedEntitiesCell
                   key={column.id}
                   linkedEntities={linkedEntities}
-                  onEntityClick={row.onEntityClick}
+                  onEntityClick={(entityId) =>
+                    pushToSlideStack({
+                      kind: "entity",
+                      itemId: entityId,
+                    })
+                  }
                 />
               );
             }
@@ -422,24 +449,28 @@ const createRowContent: CreateVirtualizedRowContentFn<
 
 type EntityResultTableProps = {
   dataIsLoading: boolean;
-  onEntityClick: (entityId: EntityId) => void;
-  onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
+  persistedEntitiesTypesInfo?: {
+    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
+    definitions: ClosedMultiEntityTypesDefinitions;
+  };
   proposedEntities: ProposedEntityOutput[];
-  proposedEntitiesTypesSubgraph?: Subgraph;
+  proposedEntitiesTypesInfo?: {
+    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
+    definitions: ClosedMultiEntityTypesDefinitions;
+  };
   relevantEntityIds: EntityId[];
 };
 
 export const EntityResultTable = memo(
   ({
     dataIsLoading,
-    onEntityClick,
-    onEntityTypeClick,
     persistedEntities,
     persistedEntitiesSubgraph,
+    persistedEntitiesTypesInfo,
     proposedEntities,
-    proposedEntitiesTypesSubgraph,
+    proposedEntitiesTypesInfo,
     relevantEntityIds,
   }: EntityResultTableProps) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
@@ -461,18 +492,20 @@ export const EntityResultTable = memo(
     }, [outputContainerHeight]);
 
     const {
+      closedMultiEntityTypes,
       filterDefinitions,
       initialFilterValues,
       unsortedRows,
-      entityTypesById,
     }: {
+      closedMultiEntityTypes: ClosedMultiEntityType[];
       filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<FieldId>;
       initialFilterValues: VirtualizedTableFilterValuesByFieldId<FieldId>;
       unsortedRows: VirtualizedTableRow<EntityResultRow>[];
-      entityTypesById: EntityTypeWithDependenciesByEntityTypeId;
     } = useMemo(() => {
       const rowData: VirtualizedTableRow<EntityResultRow>[] = [];
-      const entityTypesRecord: EntityTypeWithDependenciesByEntityTypeId = {};
+      const entityTypesRecord: EntityTypeCountAndDepsByEntityTypeId = {};
+
+      const closedTypesByKey: Record<string, ClosedMultiEntityType> = {};
 
       const staticFilterDefs = {
         relevance: {
@@ -539,8 +572,11 @@ export const EntityResultTable = memo(
         EntityId,
         {
           record: ProposedEntityOutput | PersistedEntity;
+          closedMultiEntityType: ClosedMultiEntityType;
           entityLabel: string;
-          entity: ProposedEntityOutput | Entity<EntityProperties>;
+          entity:
+            | ProposedEntityOutput
+            | HashEntity<TypeIdsAndPropertiesForEntity>;
         }
       > = {};
 
@@ -557,11 +593,11 @@ export const EntityResultTable = memo(
         const entity = isProposed
           ? record
           : record.entity
-            ? new Entity(record.entity)
+            ? new HashEntity(record.entity)
             : undefined;
 
         if (!entity) {
-          continue;
+          throw new Error("Entity is undefined");
         }
 
         const entityId =
@@ -618,85 +654,92 @@ export const EntityResultTable = memo(
           continue;
         }
 
-        const entityLabel = generateEntityLabel(
-          persistedEntitiesSubgraph ?? proposedEntitiesTypesSubgraph ?? null,
-          {
-            properties: entity.properties,
-            metadata: {
-              recordId: {
-                editionId: "irrelevant-here",
-                entityId: `ownedBy~${entityId}` as EntityId,
-              } satisfies EntityRecordId,
-              entityTypeIds:
-                "entityTypeIds" in entity
-                  ? entity.entityTypeIds
-                  : entity.metadata.entityTypeIds,
-            } as EntityMetadata,
-          },
-        );
+        const entityTypeIds =
+          "entityTypeIds" in entity
+            ? entity.entityTypeIds
+            : entity.metadata.entityTypeIds;
 
-        entitiesByEntityId[entityId] = { entity, entityLabel, record };
+        const typeInfo = isProposed
+          ? proposedEntitiesTypesInfo
+          : persistedEntitiesTypesInfo;
+
+        if (!typeInfo) {
+          continue;
+        }
+
+        const typeKey = entityTypeIds.toSorted().join(",");
+
+        const closedMultiEntityType =
+          closedTypesByKey[typeKey] ??
+          getClosedMultiEntityTypeFromMap(
+            typeInfo.closedMultiEntityTypes,
+            entityTypeIds,
+          );
+
+        closedTypesByKey[typeKey] ??= closedMultiEntityType;
+
+        const entityLabel = generateEntityLabel(closedMultiEntityType, {
+          properties: entity.properties,
+          metadata: {
+            entityTypeIds,
+            recordId: {
+              entityId,
+              editionId: "irrelevant-here" as EntityEditionId,
+            },
+          },
+        });
+
+        entitiesByEntityId[entityId] = {
+          closedMultiEntityType,
+          entity,
+          entityLabel,
+          record,
+        };
       }
 
-      for (const [entityId, { entity, entityLabel, record }] of typedEntries(
-        entitiesByEntityId,
-      )) {
+      for (const [
+        entityId,
+        { closedMultiEntityType, entity, entityLabel, record },
+      ] of typedEntries(entitiesByEntityId)) {
         const isProposed = "localEntityId" in record;
+
+        const typeInfo = isProposed
+          ? proposedEntitiesTypesInfo
+          : persistedEntitiesTypesInfo;
+
+        if (!typeInfo) {
+          continue;
+        }
 
         const entityTypeIds =
           "entityTypeIds" in entity
             ? entity.entityTypeIds
             : entity.metadata.entityTypeIds;
 
-        const subgraph = isProposed
-          ? proposedEntitiesTypesSubgraph
-          : persistedEntitiesSubgraph;
-
-        if (!subgraph) {
+        if (!isProposed && !persistedEntitiesSubgraph) {
           continue;
         }
 
         const outgoingLinksByLinkTypeId: EntityResultRow["outgoingLinksByLinkTypeId"] =
           {};
 
-        const entityTypes: EntityType[] = [];
-        for (const entityTypeId of entityTypeIds) {
-          let entityType = entityTypesRecord[entityTypeId]?.entityType;
+        for (const {
+          $id: entityTypeId,
+          title,
+        } of closedMultiEntityType.allOf) {
+          entityTypesRecord[entityTypeId] ??= {
+            entitiesCount: 0,
+            propertyTypeIds: typedValues(closedMultiEntityType.properties).map(
+              (property) =>
+                "$ref" in property ? property.$ref : property.items.$ref,
+            ),
+            linkTypeIds: typedKeys(closedMultiEntityType.links ?? {}),
+          };
 
-          if (!entityType) {
-            const entityTypeWithMetadata = getEntityTypeById(
-              subgraph,
-              entityTypeId,
-            );
-
-            if (!entityTypeWithMetadata) {
-              // The data for the types may not arrive at the same time as the proposal
-              continue;
-            }
-
-            entityType = entityTypeWithMetadata.schema;
-
-            entityTypesRecord[entityTypeId] = {
-              entitiesCount: 0,
-              entityType,
-              linkTypes: [
-                ...getPossibleLinkTypesForEntityType(
-                  entityTypeId,
-                  subgraph,
-                ).values(),
-              ],
-              propertyTypes: [
-                ...getPropertyTypesForEntityType(entityType, subgraph).values(),
-              ],
-            };
-          }
-
-          entityTypes.push(entityType);
-
-          entityTypesRecord[entityTypeId]!.entitiesCount++;
+          entityTypesRecord[entityTypeId].entitiesCount++;
 
           staticFilterDefs.entityTypeIds.options[entityTypeId] ??= {
-            label: entityType.title,
+            label: title,
             count: 0,
             value: entityTypeId,
           };
@@ -727,18 +770,26 @@ export const EntityResultTable = memo(
             }
           }
 
-          for (const linkType of entityTypesRecord[entityTypeId]!.linkTypes) {
-            const linkTypeId = linkType.schema.$id;
+          for (const linkTypeId of typedKeys(
+            closedMultiEntityType.links ?? {},
+          )) {
+            const linkType = typeInfo.definitions.entityTypes[linkTypeId];
+
+            if (!linkType) {
+              throw new Error(
+                `Link type ${linkTypeId} not found in definitions`,
+              );
+            }
 
             dynamicFilterDefs[linkTypeId] ??= {
-              header: linkType.schema.title,
+              header: linkType.title,
               initialValue: new Set<string | null>(),
               options: {},
               type: "checkboxes",
             } as const;
 
             const linkedEntities =
-              outgoingLinksByLinkTypeId[linkType.schema.$id] ?? [];
+              outgoingLinksByLinkTypeId[linkType.$id] ?? [];
 
             if (linkedEntities.length) {
               /**
@@ -777,14 +828,23 @@ export const EntityResultTable = memo(
             }
           }
 
-          for (const propertyType of entityTypesRecord[entityTypeId]!
-            .propertyTypes) {
-            const propertyTypeId = propertyType.schema.$id;
+          for (const schema of typedValues(closedMultiEntityType.properties)) {
+            const propertyTypeId =
+              "$ref" in schema ? schema.$ref : schema.items.$ref;
+
+            const propertyType =
+              typeInfo.definitions.propertyTypes[propertyTypeId];
+
+            if (!propertyType) {
+              throw new Error(
+                `Property type ${propertyTypeId} not found in definitions`,
+              );
+            }
 
             const baseUrl = extractBaseUrl(propertyTypeId);
 
             dynamicFilterDefs[propertyTypeId] ??= {
-              header: propertyType.schema.title,
+              header: propertyType.title,
               initialValue: new Set<string>(),
               options: {},
               type: "checkboxes",
@@ -858,11 +918,9 @@ export const EntityResultTable = memo(
         rowData.push({
           id: entityId,
           data: {
+            closedMultiEntityType,
             entityLabel,
             entityTypeIds: mustHaveAtLeastOne(entityTypeIds.toSorted()),
-            entityTypes,
-            onEntityClick,
-            onEntityTypeClick,
             outgoingLinksByLinkTypeId,
             persistedEntity: "metadata" in entity ? entity : undefined,
             proposedEntityId: isProposed ? entityId : undefined,
@@ -891,12 +949,8 @@ export const EntityResultTable = memo(
       for (const dynamicDefId of typedKeys(dynamicFilterDefs)) {
         for (const entityType of Object.values(entityTypesRecord)) {
           const doesNotApplyToEntity = dynamicDefId.includes("/entity-type/")
-            ? !entityType.linkTypes.some(
-                (linkType) => linkType.schema.$id === dynamicDefId,
-              )
-            : !entityType.propertyTypes.some(
-                (propertyType) => propertyType.schema.$id === dynamicDefId,
-              );
+            ? !entityType.linkTypeIds.includes(dynamicDefId)
+            : !entityType.propertyTypeIds.includes(dynamicDefId);
 
           if (doesNotApplyToEntity) {
             const optionsKey = missingValueString;
@@ -923,7 +977,7 @@ export const EntityResultTable = memo(
       };
 
       return {
-        entityTypesById: entityTypesRecord,
+        closedMultiEntityTypes: Object.values(closedTypesByKey),
         filterDefinitions: filterDefs,
         initialFilterValues: Object.fromEntries(
           typedEntries(filterDefs).map(
@@ -937,12 +991,11 @@ export const EntityResultTable = memo(
         unsortedRows: rowData,
       };
     }, [
-      onEntityClick,
-      onEntityTypeClick,
       persistedEntities,
       persistedEntitiesSubgraph,
+      persistedEntitiesTypesInfo,
       proposedEntities,
-      proposedEntitiesTypesSubgraph,
+      proposedEntitiesTypesInfo,
       relevantEntityIds,
     ]);
 
@@ -1081,18 +1134,17 @@ export const EntityResultTable = memo(
     const columns = useMemo(
       () =>
         generateColumns({
-          entityTypesRecord: entityTypesById,
+          closedMultiEntityTypes,
+          definitions: persistedEntities.length
+            ? persistedEntitiesTypesInfo?.definitions
+            : proposedEntitiesTypesInfo?.definitions,
           hasRelevantEntities: relevantEntityIds.length > 0,
-          subgraph:
-            persistedEntities.length === 0
-              ? proposedEntitiesTypesSubgraph
-              : persistedEntitiesSubgraph,
         }),
       [
-        entityTypesById,
-        proposedEntitiesTypesSubgraph,
-        persistedEntitiesSubgraph,
+        closedMultiEntityTypes,
         persistedEntities.length,
+        persistedEntitiesTypesInfo?.definitions,
+        proposedEntitiesTypesInfo?.definitions,
         relevantEntityIds.length,
       ],
     );

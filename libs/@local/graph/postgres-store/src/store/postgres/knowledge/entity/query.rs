@@ -12,10 +12,10 @@ use type_system::{
             id::{EntityId, EntityRecordId, EntityUuid},
             metadata::EntityTemporalMetadata,
         },
-        property::metadata::PropertyMetadataObject,
+        property::metadata::PropertyObjectMetadata,
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    web::OwnedById,
+    web::WebId,
 };
 use uuid::Uuid;
 
@@ -25,7 +25,7 @@ use crate::store::postgres::{
 };
 
 pub struct EntityRecordRowIndices {
-    pub owned_by_id: usize,
+    pub web_id: usize,
     pub entity_uuid: usize,
     pub draft_id: usize,
     pub transaction_time: usize,
@@ -38,9 +38,9 @@ pub struct EntityRecordRowIndices {
     pub properties: usize,
 
     pub left_entity_uuid: usize,
-    pub left_entity_owned_by_id: usize,
+    pub left_entity_web_id: usize,
     pub right_entity_uuid: usize,
-    pub right_entity_owned_by_id: usize,
+    pub right_entity_web_id: usize,
 
     pub provenance: usize,
     pub edition_provenance: usize,
@@ -57,9 +57,9 @@ pub struct EntityRecordRowIndices {
 
 pub struct EntityRecordPaths<'q> {
     pub left_entity_uuid: EntityQueryPath<'q>,
-    pub left_owned_by_id: EntityQueryPath<'q>,
+    pub left_web_id: EntityQueryPath<'q>,
     pub right_entity_uuid: EntityQueryPath<'q>,
-    pub right_owned_by_id: EntityQueryPath<'q>,
+    pub right_web_id: EntityQueryPath<'q>,
 }
 
 impl Default for EntityRecordPaths<'_> {
@@ -70,9 +70,9 @@ impl Default for EntityRecordPaths<'_> {
                 path: Box::new(EntityQueryPath::Uuid),
                 direction: EdgeDirection::Outgoing,
             },
-            left_owned_by_id: EntityQueryPath::EntityEdge {
+            left_web_id: EntityQueryPath::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                path: Box::new(EntityQueryPath::OwnedById),
+                path: Box::new(EntityQueryPath::WebId),
                 direction: EdgeDirection::Outgoing,
             },
             right_entity_uuid: EntityQueryPath::EntityEdge {
@@ -80,9 +80,9 @@ impl Default for EntityRecordPaths<'_> {
                 path: Box::new(EntityQueryPath::Uuid),
                 direction: EdgeDirection::Outgoing,
             },
-            right_owned_by_id: EntityQueryPath::EntityEdge {
+            right_web_id: EntityQueryPath::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                path: Box::new(EntityQueryPath::OwnedById),
+                path: Box::new(EntityQueryPath::WebId),
                 direction: EdgeDirection::Outgoing,
             },
         }
@@ -95,29 +95,29 @@ impl QueryRecordDecode for Entity {
 
     fn decode(row: &Row, indices: &Self::Indices) -> Self {
         let link_data = {
-            let left_owned_by_id: Option<Uuid> = row.get(indices.left_entity_owned_by_id);
+            let left_web_id: Option<Uuid> = row.get(indices.left_entity_web_id);
             let left_entity_uuid: Option<Uuid> = row.get(indices.left_entity_uuid);
-            let right_owned_by_id: Option<Uuid> = row.get(indices.right_entity_owned_by_id);
+            let right_web_id: Option<Uuid> = row.get(indices.right_entity_web_id);
             let right_entity_uuid: Option<Uuid> = row.get(indices.right_entity_uuid);
             match (
-                left_owned_by_id,
+                left_web_id,
                 left_entity_uuid,
-                right_owned_by_id,
+                right_web_id,
                 right_entity_uuid,
             ) {
                 (
-                    Some(left_owned_by_id),
+                    Some(left_web_id),
                     Some(left_entity_uuid),
-                    Some(right_owned_by_id),
+                    Some(right_web_id),
                     Some(right_entity_uuid),
                 ) => Some(LinkData {
                     left_entity_id: EntityId {
-                        owned_by_id: OwnedById::new(left_owned_by_id),
+                        web_id: WebId::new(left_web_id),
                         entity_uuid: EntityUuid::new(left_entity_uuid),
                         draft_id: None,
                     },
                     right_entity_id: EntityId {
-                        owned_by_id: OwnedById::new(right_owned_by_id),
+                        web_id: WebId::new(right_web_id),
                         entity_uuid: EntityUuid::new(right_entity_uuid),
                         draft_id: None,
                     },
@@ -135,7 +135,7 @@ impl QueryRecordDecode for Entity {
         };
 
         let entity_id = EntityId {
-            owned_by_id: row.get(indices.owned_by_id),
+            web_id: row.get(indices.web_id),
             entity_uuid: row.get(indices.entity_uuid),
             draft_id: row.get(indices.draft_id),
         };
@@ -147,7 +147,7 @@ impl QueryRecordDecode for Entity {
         let property_metadata = row
             .get::<_, Option<serde_json::Value>>(indices.property_metadata)
             .map(|value| {
-                PropertyMetadataObject::deserialize(value)
+                PropertyObjectMetadata::deserialize(value)
                     .expect("Failed to deserialize property metadata")
             })
             .unwrap_or_default();
@@ -199,8 +199,8 @@ impl PostgresRecord for Entity {
         paths: &'p Self::CompilationParameters,
     ) -> Self::Indices {
         EntityRecordRowIndices {
-            owned_by_id: compiler.add_distinct_selection_with_ordering(
-                &EntityQueryPath::OwnedById,
+            web_id: compiler.add_distinct_selection_with_ordering(
+                &EntityQueryPath::WebId,
                 Distinctness::Distinct,
                 None,
             ),
@@ -232,9 +232,9 @@ impl PostgresRecord for Entity {
             properties: compiler.add_selection_path(&EntityQueryPath::Properties(None)),
 
             left_entity_uuid: compiler.add_selection_path(&paths.left_entity_uuid),
-            left_entity_owned_by_id: compiler.add_selection_path(&paths.left_owned_by_id),
+            left_entity_web_id: compiler.add_selection_path(&paths.left_web_id),
             right_entity_uuid: compiler.add_selection_path(&paths.right_entity_uuid),
-            right_entity_owned_by_id: compiler.add_selection_path(&paths.right_owned_by_id),
+            right_entity_web_id: compiler.add_selection_path(&paths.right_web_id),
 
             provenance: compiler.add_selection_path(&EntityQueryPath::Provenance(None)),
             edition_provenance: compiler

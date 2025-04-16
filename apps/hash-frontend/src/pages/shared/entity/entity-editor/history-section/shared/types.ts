@@ -1,12 +1,12 @@
 import type {
+  Entity,
   EntityEditionProvenance,
   EntityType,
   PropertyDiff,
+  PropertyMetadata,
   PropertyProvenance,
   PropertyType,
-} from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { PropertyMetadata } from "@local/hash-graph-types/entity";
+} from "@blockprotocol/type-system";
 
 type HistoryEventBase = {
   number: string;

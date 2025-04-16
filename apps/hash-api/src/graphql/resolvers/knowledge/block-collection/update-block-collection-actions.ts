@@ -1,13 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import type {
+  Entity,
   EntityId,
   PropertyPatchOperation,
-} from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import produce from "immer";
@@ -41,7 +41,7 @@ export const createEntityWithPlaceholdersFn =
     context: ImpureGraphContext<false, true>,
     placeholderResults: PlaceholderResultsMap,
   ) =>
-  async (originalDefinition: EntityDefinition, ownedById: OwnedById) => {
+  async (originalDefinition: EntityDefinition, webId: WebId) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
       if (draft.existingEntityId) {
         draft.existingEntityId = placeholderResults.get(
@@ -69,7 +69,7 @@ export const createEntityWithPlaceholdersFn =
       }
 
       return await createEntityWithLinks(context, authentication, {
-        ownedById,
+        webId,
         entityTypeIds: entityDefinition.entityTypeIds as [
           VersionedUrl,
           ...VersionedUrl[],
@@ -153,14 +153,14 @@ export const handleCreateNewEntity = async (params: {
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
     originalDefinition: EntityDefinition,
-    entityOwnedById: OwnedById,
+    entityWebId: WebId,
   ) => Promise<Entity>;
 }): Promise<void> => {
   try {
     const {
       createEntityAction: {
         entity: entityDefinition,
-        ownedById: entityOwnedById,
+        webId: entityWebId,
         entityPlaceholderId,
       },
       createEntityWithPlaceholders,
@@ -168,7 +168,7 @@ export const handleCreateNewEntity = async (params: {
     } = params;
     placeholderResults.set(entityPlaceholderId, {
       entityId: (
-        await createEntityWithPlaceholders(entityDefinition, entityOwnedById)
+        await createEntityWithPlaceholders(entityDefinition, entityWebId)
       ).metadata.recordId.entityId,
     });
   } catch (error) {
@@ -195,7 +195,7 @@ export const handleInsertNewBlock = async (
     index: number;
     createEntityWithPlaceholders: (
       originalDefinition: EntityDefinition,
-      entityOwnedById: OwnedById,
+      entityWebId: WebId,
     ) => Promise<Entity>;
     placeholderResults: PlaceholderResultsMap;
   },
@@ -204,7 +204,7 @@ export const handleInsertNewBlock = async (
     const {
       user,
       insertBlockAction: {
-        ownedById: blockOwnedById,
+        webId: blockWebId,
         componentId: blockComponentId,
         existingBlockEntityId,
         blockPlaceholderId,
@@ -219,7 +219,7 @@ export const handleInsertNewBlock = async (
     const blockData = await createEntityWithPlaceholders(
       entity,
       // assume that the "block entity" is in the same account as the block itself
-      blockOwnedById,
+      blockWebId,
     );
 
     placeholderResults.set(entityPlaceholderId, {
@@ -247,7 +247,7 @@ export const handleInsertNewBlock = async (
     } else if (blockComponentId) {
       block = await createBlock(context, authentication, {
         blockData,
-        ownedById: blockOwnedById,
+        webId: blockWebId,
         componentId: blockComponentId,
       });
     } else {

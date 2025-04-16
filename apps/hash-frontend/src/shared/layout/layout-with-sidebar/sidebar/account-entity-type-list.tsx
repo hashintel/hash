@@ -1,5 +1,5 @@
+import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
-import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, Collapse, Fade, Tooltip, Typography } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
@@ -23,12 +23,12 @@ import { SortActionsDropdown } from "./shared/sort-actions-dropdown";
 import { ViewAllLink } from "./shared/view-all-link";
 
 type AccountEntityTypeListProps = {
-  ownedById: string;
+  webId: string;
 };
 
 export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
-> = ({ ownedById }) => {
+> = ({ webId }) => {
   const preferences = useUserPreferences();
 
   const [expanded, setExpanded] = useState<boolean>(
@@ -69,12 +69,12 @@ export const AccountEntityTypeList: FunctionComponent<
       return latestEntityTypes.filter(
         (root) =>
           isOwnedOntologyElementMetadata(root.metadata) &&
-          root.metadata.ownedById === ownedById,
+          root.metadata.webId === webId,
       );
     }
 
     return null;
-  }, [latestEntityTypes, ownedById]);
+  }, [latestEntityTypes, webId]);
 
   // todo: handle search server side
   const filteredEntityTypes = useMemo(() => {

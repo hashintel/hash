@@ -1,8 +1,7 @@
 import { useMutation } from "@apollo/client";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
 import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemPropertyTypes,
@@ -99,7 +98,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
   >(updateEntityMutation, { errorPolicy: "all" });
 
   const { createEntityType } = useBlockProtocolCreateEntityType(
-    authenticatedUser.accountId as OwnedById,
+    authenticatedUser.accountId as WebId,
   );
 
   const { control, reset, handleSubmit, formState } =

@@ -1,6 +1,6 @@
+import type { WebId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { Page } from "../graph/knowledge/system-types/page";
@@ -17,7 +17,7 @@ export type PageDefinition = {
 export const seedPages = async (
   authentication: AuthenticationContext,
   pageDefinitions: PageDefinition[],
-  ownedById: OwnedById,
+  webId: WebId,
   sharedParams: {
     logger: Logger;
     context: ImpureGraphContext<false, true>;
@@ -30,7 +30,7 @@ export const seedPages = async (
 
   for (const pageDefinition of pageDefinitions) {
     const newPage: Page = await createPage(context, authentication, {
-      ownedById,
+      webId,
       title: pageDefinition.title,
       prevFractionalIndex,
       type: "document",
@@ -51,7 +51,7 @@ export const seedPages = async (
       await seedPages(
         authentication,
         pageDefinition.nestedPages,
-        ownedById,
+        webId,
         sharedParams,
         newPage,
       );

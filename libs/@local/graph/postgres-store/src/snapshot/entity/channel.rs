@@ -73,7 +73,7 @@ impl Sink<Entity> for EntitySender {
     fn start_send(mut self: Pin<&mut Self>, entity: Entity) -> Result<(), Self::Error> {
         self.id
             .start_send_unpin(EntityIdRow {
-                web_id: entity.metadata.record_id.entity_id.owned_by_id,
+                web_id: entity.metadata.record_id.entity_id.web_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                 provenance: entity.metadata.provenance.inferred,
             })
@@ -83,7 +83,7 @@ impl Sink<Entity> for EntitySender {
         if let Some(draft_id) = entity.metadata.record_id.entity_id.draft_id {
             self.draft
                 .start_send_unpin(EntityDraftRow {
-                    web_id: entity.metadata.record_id.entity_id.owned_by_id,
+                    web_id: entity.metadata.record_id.entity_id.web_id,
                     entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                     draft_id,
                 })
@@ -116,7 +116,7 @@ impl Sink<Entity> for EntitySender {
 
         self.temporal_metadata
             .start_send_unpin(EntityTemporalMetadataRow {
-                web_id: entity.metadata.record_id.entity_id.owned_by_id,
+                web_id: entity.metadata.record_id.entity_id.web_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                 draft_id: entity.metadata.record_id.entity_id.draft_id,
                 entity_edition_id: entity.metadata.record_id.edition_id,
@@ -129,9 +129,9 @@ impl Sink<Entity> for EntitySender {
         if let Some(link_data) = entity.link_data {
             self.left_links
                 .start_send_unpin(EntityHasLeftEntityRow {
-                    web_id: entity.metadata.record_id.entity_id.owned_by_id,
+                    web_id: entity.metadata.record_id.entity_id.web_id,
                     entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                    left_web_id: link_data.left_entity_id.owned_by_id,
+                    left_web_id: link_data.left_entity_id.web_id,
                     left_entity_uuid: link_data.left_entity_id.entity_uuid,
                     confidence: link_data.left_entity_confidence,
                     provenance: link_data.left_entity_provenance,
@@ -140,9 +140,9 @@ impl Sink<Entity> for EntitySender {
                 .attach_printable("could not send entity link edges")?;
             self.right_links
                 .start_send_unpin(EntityHasRightEntityRow {
-                    web_id: entity.metadata.record_id.entity_id.owned_by_id,
+                    web_id: entity.metadata.record_id.entity_id.web_id,
                     entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                    right_web_id: link_data.right_entity_id.owned_by_id,
+                    right_web_id: link_data.right_entity_id.web_id,
                     right_entity_uuid: link_data.right_entity_id.entity_uuid,
                     confidence: link_data.right_entity_confidence,
                     provenance: link_data.right_entity_provenance,

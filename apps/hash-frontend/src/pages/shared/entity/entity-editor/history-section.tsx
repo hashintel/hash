@@ -1,15 +1,14 @@
 import { useQuery } from "@apollo/client";
+import type { EntityId, Timestamp } from "@blockprotocol/type-system";
+import { splitEntityId } from "@blockprotocol/type-system";
 import { Chip, Skeleton, WhiteCard } from "@hashintel/design-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import type { DiffEntityInput } from "@local/hash-graph-sdk/entity";
 import {
   fullDecisionTimeAxis,
   fullOntologyResolveDepths,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { DiffEntityInput } from "@local/hash-subgraph";
-import { splitEntityId } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import type {
@@ -28,7 +27,7 @@ import { HistoryTable } from "./history-section/history-table";
 import type { HistoryEvent } from "./history-section/shared/types";
 
 export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
-  const [ownedById, entityUuid, _draftUuid] = splitEntityId(entityId);
+  const [webId, entityUuid, _draftUuid] = splitEntityId(entityId);
 
   const { data: editionsData, loading: editionsLoading } = useQuery<
     GetEntitySubgraphQuery,
@@ -43,7 +42,7 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
               equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
             },
             {
-              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+              equal: [{ path: ["webId"] }, { parameter: webId }],
             },
           ],
         },

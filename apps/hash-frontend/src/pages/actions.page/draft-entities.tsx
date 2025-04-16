@@ -1,15 +1,12 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import { Skeleton } from "@hashintel/design-system";
 import {
-  type Entity,
   getClosedMultiEntityTypeFromMap,
+  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-types/ontology";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import {
@@ -48,7 +45,7 @@ export const DraftEntities: FunctionComponent<{
   sortOrder: SortOrder;
   selectedDraftEntityIds: EntityId[];
   setSelectedDraftEntityIds: Dispatch<SetStateAction<EntityId[]>>;
-  draftEntitiesWithLinkedDataSubgraph?: Subgraph<EntityRootType>;
+  draftEntitiesWithLinkedDataSubgraph?: Subgraph<EntityRootType<HashEntity>>;
 }> = ({
   closedMultiEntityTypesRootMap,
   entityTypeDisplayInfoByBaseUrl,
@@ -73,7 +70,7 @@ export const DraftEntities: FunctionComponent<{
 
   const previousDraftEntitiesWithCreators = useRef<
     | {
-        entity: Entity;
+        entity: HashEntity;
         creator: MinimalActor;
       }[]
     | null

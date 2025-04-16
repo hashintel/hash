@@ -1,14 +1,13 @@
 import crypto from "node:crypto";
 
+import type { WebId } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { tupleIncludes } from "@local/advanced-types/includes";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { supportedLinearTypes } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
 
 import type { ImpureGraphContext } from "../../graph/context-types";
@@ -138,9 +137,9 @@ export const linearWebhook: RequestHandler<
             const hashWorkspaceEntityId =
               workspace.workspaceEntity.metadata.recordId.entityId;
 
-            const ownedById = extractEntityUuidFromEntityId(
+            const webId = extractEntityUuidFromEntityId(
               hashWorkspaceEntityId,
-            ) as Uuid as OwnedById;
+            ) as string as WebId;
 
             const workflow =
               `${payloadAction}HashEntityFromLinearData` as const satisfies keyof WorkflowTypeMap;
@@ -164,7 +163,7 @@ export const linearWebhook: RequestHandler<
                   linearType,
                   linearId,
                   linearApiKey,
-                  ownedById,
+                  webId,
                 },
               ],
               workflowId: `${workflow}-${generateUuid()}`,

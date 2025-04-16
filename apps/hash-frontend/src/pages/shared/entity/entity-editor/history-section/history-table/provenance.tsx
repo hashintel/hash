@@ -1,3 +1,6 @@
+import type { Subgraph } from "@blockprotocol/graph";
+import type { EntityId, OriginProvenance } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
   ArrowUpRightRegularIcon,
   CodeIcon,
@@ -5,12 +8,7 @@ import {
   Skeleton,
   WandMagicSparklesIcon,
 } from "@hashintel/design-system";
-import type { OriginProvenance } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import type { Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
@@ -70,7 +68,7 @@ export const Provenance = ({
   } = event;
 
   const { actors, loading } = useActors({
-    accountIds: [edition.createdById as AccountId],
+    accountIds: [edition.createdById],
   });
 
   const [showSourcesSlideover, setShowSourcesSlideover] = useState(false);

@@ -27,7 +27,7 @@ export const entityTypedef = gql`
 
   type SubgraphAndPermissions {
     userPermissionsOnEntities: UserPermissionsOnEntities!
-    subgraph: Subgraph!
+    subgraph: GqlSubgraph!
   }
 
   type GetEntitySubgraphResponse {
@@ -38,7 +38,7 @@ export const entityTypedef = gql`
     closedMultiEntityTypes: ClosedMultiEntityTypesRootMap
     definitions: ClosedMultiEntityTypesDefinitions
     userPermissionsOnEntities: UserPermissionsOnEntities!
-    subgraph: Subgraph!
+    subgraph: GqlSubgraph!
     typeIds: TypeIdsMap
     typeTitles: TypeTitlesMap
     webIds: WebIdsMap
@@ -240,7 +240,7 @@ export const entityTypedef = gql`
       """
       The owner of the created entity. Defaults to the user calling the mutation.
       """
-      ownedById: OwnedById
+      webId: WebId
       """
       The type(s) of the new entity.
       """

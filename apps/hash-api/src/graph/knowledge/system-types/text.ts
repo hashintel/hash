@@ -1,6 +1,7 @@
+import type { EntityId } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -16,7 +17,6 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { Text as TextEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
 import type {
   ImpureGraphFunction,
@@ -35,12 +35,12 @@ import { getUserById } from "./user";
 
 export type Text = {
   textualContent: TextToken[];
-  entity: Entity<TextEntity>;
+  entity: HashEntity<TextEntity>;
 };
 
 function assertTextEntity(
-  entity: Entity,
-): asserts entity is Entity<TextEntity> {
+  entity: HashEntity,
+): asserts entity is HashEntity<TextEntity> {
   if (
     !entity.metadata.entityTypeIds.includes(systemEntityTypes.text.entityTypeId)
   ) {
@@ -52,9 +52,10 @@ function assertTextEntity(
   }
 }
 
-export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
-  entity,
-}) => {
+export const getTextFromEntity: PureGraphFunction<
+  { entity: HashEntity },
+  Text
+> = ({ entity }) => {
   assertTextEntity(entity);
 
   const { textualContent } = simplifyProperties(entity.properties);

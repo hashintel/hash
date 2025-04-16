@@ -1,4 +1,11 @@
+import type { Subgraph } from "@blockprotocol/graph";
+import {
+  getDataTypeById,
+  getEntityTypeAndParentsById,
+  getPropertyTypeById,
+} from "@blockprotocol/graph/stdlib";
 import type {
+  BaseUrl,
   DataType,
   EntityType,
   OneOfSchema,
@@ -9,21 +16,15 @@ import type {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { Subgraph } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
-  getDataTypeById,
-  getEntityTypeAndParentsById,
-  getPropertyTypeById,
-} from "@local/hash-subgraph/stdlib";
-import {
+  atLeastOne,
   componentsFromVersionedUrl,
   extractBaseUrl,
-} from "@local/hash-subgraph/type-system-patch";
+  extractVersion,
+} from "@blockprotocol/type-system";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 
@@ -168,7 +169,7 @@ const dereferencePropertyTypeValue = (params: {
 
           const propertyTypeBaseUrl = extractBaseUrl(propertyType.schema.$id);
 
-          let propertyKey: string | BaseUrl = propertyTypeBaseUrl;
+          let propertyKey: BaseUrl = propertyTypeBaseUrl;
 
           if (simplifyPropertyKeys) {
             const {
@@ -183,7 +184,7 @@ const dereferencePropertyTypeValue = (params: {
                 reverseSimplifiedPropertyTypeMappings,
             });
 
-            propertyKey = simplifiedTypeId;
+            propertyKey = simplifiedTypeId as BaseUrl;
 
             simplifiedPropertyTypeMappings = updatedTypeMappings;
             reverseSimplifiedPropertyTypeMappings = updatedReverseTypeMappings;
@@ -209,7 +210,7 @@ const dereferencePropertyTypeValue = (params: {
                   ).find(
                     ([_, propertyBaseUrl]) =>
                       propertyBaseUrl === requiredPropertyBaseUrl,
-                  )?.[0];
+                  )?.[0] as BaseUrl | undefined;
 
                   return simplifiedPropertyId ?? requiredPropertyBaseUrl;
                 }),
@@ -347,7 +348,8 @@ export const dereferenceEntityType = <
   );
 
   const isLink = entityTypeWithAncestors.some(
-    (entityType) => entityType.schema.$id === linkEntityTypeUrl,
+    (entityType) =>
+      entityType.schema.$id === blockProtocolEntityTypes.link.entityTypeId,
   );
 
   let labelProperty: BaseUrl | undefined;
@@ -359,7 +361,7 @@ export const dereferenceEntityType = <
 
   for (const entityType of entityTypeWithAncestors) {
     for (const requiredProp of entityType.schema.required ?? []) {
-      requiredProperties.add(requiredProp as BaseUrl);
+      requiredProperties.add(requiredProp);
     }
 
     /**
@@ -367,7 +369,7 @@ export const dereferenceEntityType = <
      * The first item in the array is the entity type itself.
      */
     if (!labelProperty && entityType.schema.labelProperty) {
-      labelProperty = entityType.schema.labelProperty as BaseUrl;
+      labelProperty = entityType.schema.labelProperty;
     }
 
     for (const propertyRefSchema of Object.values(
@@ -487,7 +489,7 @@ export const dereferenceEntityType = <
               throw new Error(`Could not find simplified title for ${baseUrl}`);
             }
 
-            return simpleTitle;
+            return simpleTitle as BaseUrl;
           })
         : [...requiredProperties],
     ),

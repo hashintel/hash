@@ -1,11 +1,15 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
-import { type Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box, Fade, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
 import type {
@@ -66,15 +70,15 @@ const lastEditedTimeRangesToIcon: Record<LastEditedTimeRanges, ReactNode> = {
 
 export type DraftEntityFilterState = {
   entityTypeBaseUrls: BaseUrl[];
-  sourceAccountIds: AccountId[];
-  webOwnedByIds: OwnedById[];
+  sourceAccountIds: ActorEntityUuid[];
+  webWebIds: WebId[];
   lastEditedTimeRange: LastEditedTimeRanges;
 };
 
 export const getDraftEntityTypeBaseUrls = ({
   draftEntities,
 }: {
-  draftEntities: Entity[];
+  draftEntities: HashEntity[];
 }): BaseUrl[] => {
   const baseUrls = draftEntities.flatMap((draftEntity) =>
     draftEntity.metadata.entityTypeIds.map((entityTypeId) =>
@@ -87,7 +91,7 @@ export const getDraftEntityTypeBaseUrls = ({
 
 const getDraftEntitySources = (params: {
   draftEntitiesWithCreators: {
-    entity: Entity;
+    entity: HashEntity;
     creator: MinimalActor;
   }[];
 }): MinimalActor[] =>
@@ -99,18 +103,16 @@ const getDraftEntitySources = (params: {
         index,
     );
 
-const getDraftEntityWebOwnedByIds = (params: {
-  draftEntities: Entity[];
-}): OwnedById[] =>
+const getDraftEntityWebIds = (params: {
+  draftEntities: HashEntity[];
+}): WebId[] =>
   params.draftEntities
-    .map(({ metadata }) =>
-      extractOwnedByIdFromEntityId(metadata.recordId.entityId),
-    )
-    .filter((webOwnedById, index, all) => all.indexOf(webOwnedById) === index);
+    .map(({ metadata }) => extractWebIdFromEntityId(metadata.recordId.entityId))
+    .filter((webWebId, index, all) => all.indexOf(webWebId) === index);
 
 export const generateDefaultFilterState = (params: {
   draftEntitiesWithCreators: {
-    entity: Entity;
+    entity: HashEntity;
     creator: MinimalActor;
   }[];
 }): DraftEntityFilterState => {
@@ -124,14 +126,14 @@ export const generateDefaultFilterState = (params: {
     draftEntitiesWithCreators,
   });
 
-  const webOwnedByIds = getDraftEntityWebOwnedByIds({
+  const webWebIds = getDraftEntityWebIds({
     draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
   });
 
   return {
     entityTypeBaseUrls,
     sourceAccountIds: sources.map(({ accountId }) => accountId),
-    webOwnedByIds,
+    webWebIds,
     lastEditedTimeRange: "anytime",
   };
 };
@@ -139,7 +141,7 @@ export const generateDefaultFilterState = (params: {
 export const isFilerStateDefaultFilterState =
   (params: {
     draftEntitiesWithCreators: {
-      entity: Entity;
+      entity: HashEntity;
       creator: MinimalActor;
     }[];
   }) =>
@@ -202,7 +204,7 @@ type DraftEntityFilterKind = (typeof draftEntityFilterKinds)[number];
 
 export const filterDraftEntities = (params: {
   draftEntitiesWithCreators: {
-    entity: Entity;
+    entity: HashEntity;
     creator: MinimalActor;
   }[];
   filterState: DraftEntityFilterState;
@@ -221,8 +223,8 @@ export const filterDraftEntities = (params: {
       (omitFilters?.includes("source") ||
         filterState.sourceAccountIds.includes(creator.accountId)) &&
       (omitFilters?.includes("web") ||
-        filterState.webOwnedByIds.includes(
-          extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+        filterState.webWebIds.includes(
+          extractWebIdFromEntityId(entity.metadata.recordId.entityId),
         )) &&
       (omitFilters?.includes("lastEditedBy") ||
         isDateWithinLastEditedTimeRange({
@@ -236,7 +238,7 @@ export const filterDraftEntities = (params: {
 
 export const DraftEntitiesFilters: FunctionComponent<{
   draftEntitiesWithCreators?: {
-    entity: Entity;
+    entity: HashEntity;
     creator: MinimalActor;
   }[];
   draftEntitiesSubgraph?: Subgraph<EntityRootType>;
@@ -270,10 +272,10 @@ export const DraftEntitiesFilters: FunctionComponent<{
     [draftEntitiesWithCreators],
   );
 
-  const webOwnedByIds = useMemo(
+  const webWebIds = useMemo(
     () =>
       draftEntitiesWithCreators
-        ? getDraftEntityWebOwnedByIds({
+        ? getDraftEntityWebIds({
             draftEntities: draftEntitiesWithCreators.map(
               ({ entity }) => entity,
             ),
@@ -286,34 +288,34 @@ export const DraftEntitiesFilters: FunctionComponent<{
   const { users } = useUsers();
 
   const webs = useMemo(() => {
-    if (!orgs || !users || !webOwnedByIds) {
+    if (!orgs || !users || !webWebIds) {
       return undefined;
     }
 
-    return webOwnedByIds.map((webOwnedById) => {
+    return webWebIds.map((webWebId) => {
       const org = orgs.find(
-        ({ accountGroupId }) => accountGroupId === webOwnedById,
+        ({ accountGroupId }) => accountGroupId === webWebId,
       );
 
       if (org) {
         return org;
       }
 
-      if (authenticatedUser.accountId === webOwnedById) {
+      if (authenticatedUser.accountId === webWebId) {
         return authenticatedUser;
       }
 
-      const user = users.find(({ accountId }) => accountId === webOwnedById);
+      const user = users.find(({ accountId }) => accountId === webWebId);
 
       if (user) {
         return user;
       }
 
       throw new Error(
-        `Could not find web of draft entity with ownedById ${webOwnedById}`,
+        `Could not find web of draft entity with webId ${webWebId}`,
       );
     });
-  }, [webOwnedByIds, orgs, users, authenticatedUser]);
+  }, [webWebIds, orgs, users, authenticatedUser]);
 
   const filterSections = useMemo<FilterSectionDefinition[]>(() => {
     /**
@@ -327,7 +329,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
             Record<
               DraftEntityFilterKind,
               {
-                entity: Entity;
+                entity: HashEntity;
                 creator: MinimalActor;
               }[]
             >
@@ -429,7 +431,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 ({ creator }) => creator.accountId === source.accountId,
               ).length,
             })) ?? [],
-        onChange: (updatedAccountIds: AccountId[]) =>
+        onChange: (updatedAccountIds: ActorEntityUuid[]) =>
           setFilterState((prev) =>
             prev
               ? {
@@ -471,28 +473,28 @@ export const DraftEntitiesFilters: FunctionComponent<{
               },
             )
             .map(({ web, label }) => {
-              const webOwnedById = (
+              const webWebId = (
                 web.kind === "user" ? web.accountId : web.accountGroupId
-              ) as OwnedById;
+              ) as WebId;
               return {
                 icon: web.kind === "user" ? <UserIcon /> : <UsersRegularIcon />,
                 label,
-                value: webOwnedById,
-                checked: !!filterState?.webOwnedByIds.includes(webOwnedById),
+                value: webWebId,
+                checked: !!filterState?.webWebIds.includes(webWebId),
                 count: filteredDraftEntitiesExceptForFilter?.web.filter(
                   ({ entity }) =>
-                    extractOwnedByIdFromEntityId(
+                    extractWebIdFromEntityId(
                       entity.metadata.recordId.entityId,
-                    ) === webOwnedById,
+                    ) === webWebId,
                 ).length,
               };
             }) ?? [],
-        onChange: (updatedWebOwnedByIds: OwnedById[]) =>
+        onChange: (updatedWebWebIds: WebId[]) =>
           setFilterState((prev) =>
             prev
               ? {
                   ...prev,
-                  webOwnedByIds: updatedWebOwnedByIds,
+                  webWebIds: updatedWebWebIds,
                 }
               : undefined,
           ),
@@ -558,9 +560,9 @@ export const DraftEntitiesFilters: FunctionComponent<{
   const allWebsSelected = useMemo(
     () =>
       filterState &&
-      webOwnedByIds &&
-      filterState.webOwnedByIds.length === webOwnedByIds.length,
-    [filterState, webOwnedByIds],
+      webWebIds &&
+      filterState.webWebIds.length === webWebIds.length,
+    [filterState, webWebIds],
   );
 
   const isDefaultFilterState = useMemo(

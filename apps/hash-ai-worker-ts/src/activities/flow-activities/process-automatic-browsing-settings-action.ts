@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -31,7 +31,7 @@ export const processAutomaticBrowsingSettingsAction: FlowActionActivity =
         all: [
           {
             equal: [
-              { path: ["ownedById"] },
+              { path: ["webId"] },
               { parameter: userAuthentication.actorId },
             ],
           },
@@ -50,7 +50,7 @@ export const processAutomaticBrowsingSettingsAction: FlowActionActivity =
     }
 
     const automaticInferenceConfig = (
-      userBrowserPluginSettings as Entity<BrowserPluginSettings>
+      userBrowserPluginSettings as HashEntity<BrowserPluginSettings>
     ).properties[
       "https://hash.ai/@h/types/property-type/automatic-inference-configuration/"
     ];

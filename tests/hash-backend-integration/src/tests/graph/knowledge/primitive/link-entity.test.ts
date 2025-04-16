@@ -13,13 +13,12 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -40,9 +39,9 @@ describe("Link entity", () => {
   let testEntityType: EntityTypeWithMetadata;
   let friendLinkEntityType: EntityTypeWithMetadata;
   let acquaintanceLinkEntityType: EntityTypeWithMetadata;
-  let leftEntity: Entity;
-  let friendRightEntity: Entity;
-  let acquaintanceRightEntity: Entity;
+  let leftEntity: HashEntity;
+  let friendRightEntity: HashEntity;
+  let acquaintanceRightEntity: HashEntity;
 
   const createTestEntityType = (
     params: Omit<
@@ -59,7 +58,7 @@ describe("Link entity", () => {
       graphContext,
       { actorId: testUser.accountId },
       {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         schema: generateSystemEntityTypeSchema({
           entityTypeId,
           ...params,
@@ -92,12 +91,12 @@ describe("Link entity", () => {
 
     await Promise.all([
       createEntityType(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         schema: {
           title: "Friends",
           description: "Friend of",
           type: "object",
-          allOf: [{ $ref: linkEntityTypeUrl }],
+          allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
           properties: {},
         },
         relationships: [
@@ -118,12 +117,12 @@ describe("Link entity", () => {
         friendLinkEntityType = linkEntityType;
       }),
       createEntityType(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         schema: {
           title: "Acquaintance",
           description: "Acquainted with",
           type: "object",
-          allOf: [{ $ref: linkEntityTypeUrl }],
+          allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
           properties: {},
         },
         relationships: [
@@ -163,7 +162,7 @@ describe("Link entity", () => {
 
     await Promise.all([
       createEntity(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         entityTypeIds: [testEntityType.schema.$id],
         properties: { value: {} },
         relationships: createDefaultAuthorizationRelationships(authentication),
@@ -171,7 +170,7 @@ describe("Link entity", () => {
         leftEntity = entity;
       }),
       createEntity(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         entityTypeIds: [testEntityType.schema.$id],
         properties: { value: {} },
         relationships: createDefaultAuthorizationRelationships(authentication),
@@ -179,7 +178,7 @@ describe("Link entity", () => {
         friendRightEntity = entity;
       }),
       createEntity(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         entityTypeIds: [testEntityType.schema.$id],
         properties: { value: {} },
         relationships: createDefaultAuthorizationRelationships(authentication),
@@ -197,14 +196,14 @@ describe("Link entity", () => {
     };
   });
 
-  let linkEntityFriend: LinkEntity;
-  let linkEntityAcquaintance: LinkEntity;
+  let linkEntityFriend: HashLinkEntity;
+  let linkEntityAcquaintance: HashLinkEntity;
 
   it("can link entities", async () => {
     const authentication = { actorId: testUser.accountId };
 
     linkEntityFriend = await createLinkEntity(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       properties: { value: {} },
       linkData: {
         leftEntityId: leftEntity.metadata.recordId.entityId,
@@ -218,7 +217,7 @@ describe("Link entity", () => {
       graphContext,
       authentication,
       {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         properties: { value: {} },
         linkData: {
           leftEntityId: leftEntity.metadata.recordId.entityId,

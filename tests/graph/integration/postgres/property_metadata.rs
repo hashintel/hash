@@ -11,20 +11,21 @@ use serde::de::DeserializeOwned;
 use serde_json::json;
 use type_system::{
     knowledge::{
-        Confidence, Value,
+        Confidence, PropertyValue,
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{
-            PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
-            PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
+            PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation, PropertyPath,
+            PropertyPathElement, PropertyValueWithMetadata, PropertyWithMetadata,
             metadata::{
-                ObjectMetadata, PropertyMetadata, PropertyMetadataObject, PropertyProvenance,
+                ObjectMetadata, PropertyMetadata, PropertyObjectMetadata, PropertyProvenance,
+                PropertyValueMetadata,
             },
         },
         value::{ValueMetadata, metadata::ValueProvenance},
     },
     ontology::{BaseUrl, VersionedUrl},
     provenance::{ActorType, OriginProvenance, OriginType},
-    web::OwnedById,
+    web::WebId,
 };
 
 use crate::{DatabaseApi, DatabaseTestWrapper, assert_equal_entities};
@@ -129,7 +130,7 @@ fn edition_provenance() -> ProvidedEntityEditionProvenance {
             "type": "web-app",
             "id": "HASH",
         },
-        "actorType": "human",
+        "actorType": "user",
         "sources": [
             {
                 "type": "webpage",
@@ -155,10 +156,10 @@ async fn initial_metadata() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
-    let entity_property_metadata = PropertyMetadataObject {
+    let entity_property_metadata = PropertyObjectMetadata {
         value: HashMap::from([(
             name_property_type_id(),
-            PropertyMetadata::Value {
+            PropertyMetadata::Value(PropertyValueMetadata {
                 metadata: ValueMetadata {
                     provenance: property_provenance_a(),
                     confidence: Confidence::new(0.5),
@@ -166,7 +167,7 @@ async fn initial_metadata() {
                     original_data_type_id: None,
                     canonical: HashMap::default(),
                 },
-            },
+            }),
         )]),
         metadata: ObjectMetadata {
             provenance: PropertyProvenance::default(),
@@ -178,11 +179,11 @@ async fn initial_metadata() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(
+                properties: PropertyObjectWithMetadata::from_parts(
                     alice(),
                     Some(entity_property_metadata.clone()),
                 )
@@ -192,7 +193,7 @@ async fn initial_metadata() {
                 draft: true,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -204,10 +205,10 @@ async fn initial_metadata() {
     assert_eq!(entity.metadata.confidence, Confidence::new(0.5));
     assert_eq!(
         entity.metadata.properties,
-        PropertyMetadataObject {
+        PropertyObjectMetadata {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadata::Value {
+                PropertyMetadata::Value(PropertyValueMetadata {
                     metadata: ValueMetadata {
                         provenance: property_provenance_a(),
                         confidence: Confidence::new(0.5),
@@ -215,10 +216,10 @@ async fn initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
-                },
+                }),
             )]),
             metadata: ObjectMetadata {
                 provenance: PropertyProvenance::default(),
@@ -237,8 +238,8 @@ async fn initial_metadata() {
                         name_property_type_id(),
                     )))
                     .collect(),
-                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: Value::String("Bob".to_owned()),
+                    property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                        value: PropertyValue::String("Bob".to_owned()),
                         metadata: ValueMetadata {
                             provenance: property_provenance_a(),
                             confidence: Confidence::new(0.6),
@@ -261,10 +262,10 @@ async fn initial_metadata() {
 
     assert_eq!(
         updated_entity.metadata.properties,
-        PropertyMetadataObject {
+        PropertyObjectMetadata {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadata::Value {
+                PropertyMetadata::Value(PropertyValueMetadata {
                     metadata: ValueMetadata {
                         provenance: property_provenance_a(),
                         confidence: Confidence::new(0.6),
@@ -272,10 +273,10 @@ async fn initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Bob".to_owned())
+                            PropertyValue::String("Bob".to_owned())
                         )]),
-                    }
-                }
+                    },
+                }),
             )]),
             metadata: ObjectMetadata {
                 provenance: PropertyProvenance::default(),
@@ -318,18 +319,18 @@ async fn no_initial_metadata() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
                 draft: false,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -341,10 +342,10 @@ async fn no_initial_metadata() {
     assert!(entity.metadata.confidence.is_none());
     assert_eq!(
         entity.metadata.properties,
-        PropertyMetadataObject {
+        PropertyObjectMetadata {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadata::Value {
+                PropertyMetadata::Value(PropertyValueMetadata {
                     metadata: ValueMetadata {
                         provenance: ValueProvenance::default(),
                         confidence: None,
@@ -352,10 +353,10 @@ async fn no_initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
-                },
+                }),
             )]),
             metadata: ObjectMetadata::default(),
         }
@@ -373,7 +374,7 @@ async fn no_initial_metadata() {
                 decision_time: None,
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -396,7 +397,7 @@ async fn no_initial_metadata() {
                 decision_time: None,
                 confidence: Confidence::new(0.5),
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -408,10 +409,10 @@ async fn no_initial_metadata() {
     assert_eq!(updated_entity.metadata.confidence, Confidence::new(0.5));
     assert_eq!(
         entity.metadata.properties,
-        PropertyMetadataObject {
+        PropertyObjectMetadata {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadata::Value {
+                PropertyMetadata::Value(PropertyValueMetadata {
                     metadata: ValueMetadata {
                         provenance: ValueProvenance::default(),
                         confidence: None,
@@ -419,10 +420,10 @@ async fn no_initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
-                },
+                }),
             )]),
             metadata: ObjectMetadata::default(),
         }
@@ -435,8 +436,8 @@ async fn no_initial_metadata() {
                 entity_id: entity.metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: Value::String("Alice".to_owned()),
+                    property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                        value: PropertyValue::String("Alice".to_owned()),
                         metadata: ValueMetadata {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
@@ -452,7 +453,7 @@ async fn no_initial_metadata() {
                 decision_time: None,
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -464,10 +465,10 @@ async fn no_initial_metadata() {
     assert!(updated_entity.metadata.confidence.is_none());
     assert_eq!(
         updated_entity.metadata.properties,
-        PropertyMetadataObject {
+        PropertyObjectMetadata {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadata::Value {
+                PropertyMetadata::Value(PropertyValueMetadata {
                     metadata: ValueMetadata {
                         provenance: ValueProvenance::default(),
                         confidence: Confidence::new(0.5),
@@ -475,10 +476,10 @@ async fn no_initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
-                },
+                }),
             )]),
             metadata: ObjectMetadata::default(),
         }
@@ -504,10 +505,10 @@ async fn no_initial_metadata() {
     assert_eq!(updated_entity.metadata.confidence, Confidence::new(0.5));
     assert_eq!(
         updated_entity.metadata.properties,
-        PropertyMetadataObject {
+        PropertyObjectMetadata {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadata::Value {
+                PropertyMetadata::Value(PropertyValueMetadata {
                     metadata: ValueMetadata {
                         provenance: ValueProvenance::default(),
                         confidence: Confidence::new(0.5),
@@ -515,10 +516,10 @@ async fn no_initial_metadata() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
-                },
+                }),
             )]),
             metadata: ObjectMetadata::default(),
         }
@@ -538,18 +539,18 @@ async fn properties_add() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
                 draft: false,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -569,8 +570,8 @@ async fn properties_add() {
                 entity_type_ids: HashSet::new(),
                 properties: vec![PropertyPatchOperation::Add {
                     path: path.clone(),
-                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: Value::Number(Real::from(30)),
+                    property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                        value: PropertyValue::Number(Real::from(30)),
                         metadata: ValueMetadata {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
@@ -584,7 +585,7 @@ async fn properties_add() {
                 archived: None,
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -595,11 +596,11 @@ async fn properties_add() {
 
     assert_eq!(
         updated_entity.metadata.properties,
-        PropertyMetadataObject {
+        PropertyObjectMetadata {
             value: HashMap::from([
                 (
                     name_property_type_id(),
-                    PropertyMetadata::Value {
+                    PropertyMetadata::Value(PropertyValueMetadata {
                         metadata: ValueMetadata {
                             provenance: ValueProvenance::default(),
                             confidence: None,
@@ -607,14 +608,14 @@ async fn properties_add() {
                             original_data_type_id: Some(text_data_type_id()),
                             canonical: HashMap::from([(
                                 text_data_type_id().base_url,
-                                Value::String("Alice".to_owned())
+                                PropertyValue::String("Alice".to_owned())
                             )]),
                         },
-                    },
+                    }),
                 ),
                 (
                     age_property_type_id(),
-                    PropertyMetadata::Value {
+                    PropertyMetadata::Value(PropertyValueMetadata {
                         metadata: ValueMetadata {
                             provenance: ValueProvenance::default(),
                             confidence: Confidence::new(0.5),
@@ -622,10 +623,10 @@ async fn properties_add() {
                             original_data_type_id: Some(number_data_type_id()),
                             canonical: HashMap::from([(
                                 number_data_type_id().base_url,
-                                Value::Number(Real::from(30))
+                                PropertyValue::Number(Real::from(30))
                             )]),
                         },
-                    },
+                    }),
                 )
             ]),
             metadata: ObjectMetadata::default(),
@@ -643,18 +644,18 @@ async fn properties_remove() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
                 link_data: None,
                 draft: false,
                 relationships: [],
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -684,7 +685,7 @@ async fn properties_remove() {
                     PropertyPatchOperation::Add {
                         path: once(PropertyPathElement::from(interests_property_type_id()))
                             .collect(),
-                        property: PropertyWithMetadata::Object(PropertyWithMetadataObject {
+                        property: PropertyWithMetadata::Object(PropertyObjectWithMetadata {
                             value: HashMap::new(),
                             metadata: ObjectMetadata {
                                 confidence: Confidence::new(0.4),
@@ -694,8 +695,8 @@ async fn properties_remove() {
                     },
                     PropertyPatchOperation::Add {
                         path: film_path.clone(),
-                        property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                            value: Value::String("Fight Club".to_owned()),
+                        property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
+                            value: PropertyValue::String("Fight Club".to_owned()),
                             metadata: ValueMetadata {
                                 confidence: Confidence::new(0.5),
                                 data_type_id: None,
@@ -710,7 +711,7 @@ async fn properties_remove() {
                 archived: None,
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -721,11 +722,11 @@ async fn properties_remove() {
 
     assert_eq!(
         updated_entity.metadata.properties,
-        PropertyMetadataObject {
+        PropertyObjectMetadata {
             value: HashMap::from([
                 (
                     name_property_type_id(),
-                    PropertyMetadata::Value {
+                    PropertyMetadata::Value(PropertyValueMetadata {
                         metadata: ValueMetadata {
                             provenance: ValueProvenance::default(),
                             confidence: None,
@@ -733,17 +734,17 @@ async fn properties_remove() {
                             original_data_type_id: Some(text_data_type_id()),
                             canonical: HashMap::from([(
                                 text_data_type_id().base_url,
-                                Value::String("Alice".to_owned())
+                                PropertyValue::String("Alice".to_owned())
                             )]),
                         },
-                    },
+                    }),
                 ),
                 (
                     interests_property_type_id(),
-                    PropertyMetadata::Object {
+                    PropertyMetadata::Object(PropertyObjectMetadata {
                         value: HashMap::from([(
                             film_property_type_id(),
-                            PropertyMetadata::Value {
+                            PropertyMetadata::Value(PropertyValueMetadata {
                                 metadata: ValueMetadata {
                                     provenance: property_provenance_b(),
                                     confidence: Confidence::new(0.5),
@@ -751,16 +752,16 @@ async fn properties_remove() {
                                     original_data_type_id: Some(text_data_type_id()),
                                     canonical: HashMap::from([(
                                         text_data_type_id().base_url,
-                                        Value::String("Fight Club".to_owned())
+                                        PropertyValue::String("Fight Club".to_owned())
                                     )]),
                                 },
-                            },
+                            }),
                         )]),
                         metadata: ObjectMetadata {
                             provenance: property_provenance_a(),
                             confidence: Confidence::new(0.4),
                         },
-                    }
+                    }),
                 ),
             ]),
             metadata: ObjectMetadata::default(),
@@ -781,7 +782,7 @@ async fn properties_remove() {
                 archived: None,
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
-                    actor_type: ActorType::Human,
+                    actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
@@ -792,10 +793,10 @@ async fn properties_remove() {
 
     assert_eq!(
         updated_entity.metadata.properties,
-        PropertyMetadataObject {
+        PropertyObjectMetadata {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadata::Value {
+                PropertyMetadata::Value(PropertyValueMetadata {
                     metadata: ValueMetadata {
                         provenance: ValueProvenance::default(),
                         confidence: None,
@@ -803,10 +804,10 @@ async fn properties_remove() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            Value::String("Alice".to_owned())
+                            PropertyValue::String("Alice".to_owned())
                         )]),
                     },
-                },
+                }),
             )]),
             metadata: ObjectMetadata::default(),
         }

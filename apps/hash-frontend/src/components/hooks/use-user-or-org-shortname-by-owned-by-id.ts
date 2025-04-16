@@ -1,16 +1,16 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { WebId } from "@blockprotocol/type-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { useMemo } from "react";
 
 import { useUserOrOrg } from "../../shared/use-user-or-org";
 
-export const useUserOrOrgShortnameByOwnedById = (params: {
-  ownedById: OwnedById | null;
+export const useUserOrOrgShortnameByWebId = (params: {
+  webId: WebId | null;
 }) => {
-  const { ownedById } = params;
+  const { webId } = params;
 
   const { userOrOrg, loading } = useUserOrOrg({
-    accountOrAccountGroupId: ownedById ?? undefined,
+    accountOrAccountGroupId: webId ?? undefined,
   });
 
   const shortname = useMemo(() => {

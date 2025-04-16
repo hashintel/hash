@@ -1,18 +1,19 @@
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  ActorGroupId,
+  Entity,
+  EntityId,
+  WebId,
+} from "@blockprotocol/type-system";
+import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityValidationReport } from "@local/hash-graph-types/validation";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -20,7 +21,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import { splitEntityId } from "@local/hash-subgraph";
 import {
   ApolloError,
   ForbiddenError,
@@ -86,7 +86,7 @@ export const createEntityResolver: ResolverFn<
 > = async (
   _,
   {
-    ownedById,
+    webId,
     properties,
     entityTypeIds,
     linkedEntities,
@@ -122,7 +122,7 @@ export const createEntityResolver: ResolverFn<
     ]);
 
     entity = await createLinkEntity(context, authentication, {
-      ownedById: ownedById ?? (user.accountId as OwnedById),
+      webId: webId ?? (user.accountId as WebId),
       properties,
       linkData: {
         leftEntityId,
@@ -136,7 +136,7 @@ export const createEntityResolver: ResolverFn<
     });
   } else {
     entity = await createEntityWithLinks(context, authentication, {
-      ownedById: ownedById ?? (user.accountId as OwnedById),
+      webId: webId ?? (user.accountId as WebId),
       entityTypeIds: mustHaveAtLeastOne(entityTypeIds),
       properties,
       linkedEntities: linkedEntities ?? undefined,
@@ -282,12 +282,12 @@ export const getEntityResolver: ResolverFn<
   graphQLContext,
   info,
 ) => {
-  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
+  const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
   const filter: Filter = {
     all: [
       {
-        equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+        equal: [{ path: ["webId"] }, { parameter: webId }],
       },
       {
         equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
@@ -429,7 +429,7 @@ export const validateEntityResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const response = await Entity.validate(
+  const response = await HashEntity.validate(
     context.graphApi,
     authentication,
     params,
@@ -465,7 +465,7 @@ export const archiveEntitiesResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const archivedEntities: Entity[] = [];
+  const archivedEntities: HashEntity[] = [];
 
   const entitiesThatCouldNotBeArchived: EntityId[] = [];
 
@@ -577,14 +577,14 @@ const parseGqlAuthorizationViewerInput = ({
     if (!viewer) {
       throw new UserInputError("Viewer Account ID must be specified");
     }
-    return { kind: "account", subjectId: viewer as AccountId } as const;
+    return { kind: "account", subjectId: viewer as ActorEntityUuid } as const;
   } else {
     if (!viewer) {
       throw new UserInputError("Viewer Account Group ID must be specified");
     }
     return {
       kind: "accountGroup",
-      subjectId: viewer as AccountGroupId,
+      subjectId: viewer as ActorGroupId,
       subjectSet: "member",
     } as const;
   }

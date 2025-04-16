@@ -1,7 +1,6 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityProperties } from "@local/hash-graph-types/entity";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { PropsWithChildren } from "react";
 import {
   createContext,
@@ -17,7 +16,7 @@ import type { EntityEditorProps } from "../entity-editor";
 export type TableExpandStatus = Record<string, boolean>;
 
 interface Props extends EntityEditorProps {
-  entity: Entity<EntityProperties>;
+  entity: HashEntity;
   isLocalDraftOnly: boolean;
   propertyExpandStatus: TableExpandStatus;
   togglePropertyExpand: (id: string) => void;
@@ -29,7 +28,6 @@ export const EntityEditorContextProvider = ({
   children,
   closedMultiEntityType,
   closedMultiEntityTypesDefinitions,
-  closedMultiEntityTypesMap,
   customEntityLinksColumns,
   defaultOutgoingLinkFilters,
   draftLinksToArchive,
@@ -37,6 +35,7 @@ export const EntityEditorContextProvider = ({
   entityLabel,
   entitySubgraph,
   isDirty,
+  linkAndDestinationEntitiesClosedMultiEntityTypesMap,
   onEntityClick,
   onEntityUpdated,
   onTypeClick,
@@ -111,7 +110,6 @@ export const EntityEditorContextProvider = ({
     () => ({
       closedMultiEntityType,
       closedMultiEntityTypesDefinitions,
-      closedMultiEntityTypesMap,
       customEntityLinksColumns,
       defaultOutgoingLinkFilters,
       draftLinksToArchive,
@@ -124,6 +122,7 @@ export const EntityEditorContextProvider = ({
       isLocalDraftOnly:
         extractEntityUuidFromEntityId(entity.metadata.recordId.entityId) ===
         "draft",
+      linkAndDestinationEntitiesClosedMultiEntityTypesMap,
       onEntityClick,
       onEntityUpdated,
       onTypeClick,
@@ -139,7 +138,6 @@ export const EntityEditorContextProvider = ({
     [
       closedMultiEntityType,
       closedMultiEntityTypesDefinitions,
-      closedMultiEntityTypesMap,
       customEntityLinksColumns,
       defaultOutgoingLinkFilters,
       draftLinksToArchive,
@@ -149,6 +147,7 @@ export const EntityEditorContextProvider = ({
       entitySubgraph,
       handleTypesChange,
       isDirty,
+      linkAndDestinationEntitiesClosedMultiEntityTypesMap,
       onEntityClick,
       onEntityUpdated,
       onTypeClick,

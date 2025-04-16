@@ -1,6 +1,6 @@
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { Filter, GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
@@ -10,11 +10,11 @@ export const getEntityByFilter = async ({
   filter,
   includeDrafts,
 }: {
-  actorId: AccountId;
+  actorId: ActorEntityUuid;
   graphApiClient: GraphApi;
   filter: Filter;
   includeDrafts: boolean;
-}): Promise<Entity | undefined> => {
+}): Promise<HashEntity | undefined> => {
   const matchedEntities = await graphApiClient
     .getEntities(actorId, {
       filter,

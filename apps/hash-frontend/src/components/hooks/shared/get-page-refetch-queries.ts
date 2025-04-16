@@ -1,8 +1,8 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { useCallback } from "react";
 
 import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
@@ -23,7 +23,7 @@ export const useGetPageRefetchQueries = () =>
       {
         query: getEntitySubgraphQuery,
         variables: getAccountPagesVariables({
-          ownedById: extractOwnedByIdFromEntityId(pageEntityId),
+          webId: extractWebIdFromEntityId(pageEntityId),
           // Breadcrumbs use the archived query (since they may be archived)
           includeArchived: true,
         }),
@@ -32,7 +32,7 @@ export const useGetPageRefetchQueries = () =>
         query: getEntitySubgraphQuery,
         variables: getAccountPagesVariables({
           // The page sidebar does not include archived pages
-          ownedById: extractOwnedByIdFromEntityId(pageEntityId),
+          webId: extractWebIdFromEntityId(pageEntityId),
         }),
       },
       {

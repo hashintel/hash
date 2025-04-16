@@ -1,0 +1,8 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/tuple.rs
+description: Parses an empty tuple
+expression: "{\"#tuple\": []}"
+---
+Expr#4294967040@1
+  ExprKind (Tuple)
+    TupleExpr#4294967040@0

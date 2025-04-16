@@ -1,7 +1,7 @@
 import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
+} from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,

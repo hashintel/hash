@@ -18,9 +18,9 @@ import {
   setPageParentPage,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
@@ -62,7 +62,7 @@ describe("Page", () => {
     const authentication = { actorId: testUser.accountId };
 
     const blockData = await createEntity<Text>(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       entityTypeIds: [systemEntityTypes.text.entityTypeId],
       properties: {
         value: {
@@ -76,7 +76,7 @@ describe("Page", () => {
     });
 
     return createBlock(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       componentId: "text",
       blockData,
     });
@@ -88,7 +88,7 @@ describe("Page", () => {
     const authentication = { actorId: testUser.accountId };
 
     testPage = await createPage(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       title: "Test Page",
       type: "document",
     });
@@ -107,7 +107,7 @@ describe("Page", () => {
     ]);
 
     testPage2 = await createPage(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       title: "Test Page 2",
       summary: "Test page 2 summary",
       initialBlocks: [initialBlock1, initialBlock2],
@@ -145,7 +145,7 @@ describe("Page", () => {
       graphContext,
       authentication,
       {
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
       },
     );
 
@@ -170,7 +170,7 @@ describe("Page", () => {
     const authentication = { actorId: testUser.accountId };
 
     parentPage = await createPage(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      webId: testUser.accountId as WebId,
       title: "Test Parent Page",
       summary: "Test page summary",
       type: "document",
@@ -192,13 +192,13 @@ describe("Page", () => {
   });
 
   let testBlock1: Block;
-  let testBlockLink1: LinkEntity<HasIndexedContent>;
+  let testBlockLink1: HashLinkEntity<HasIndexedContent>;
 
   let testBlock2: Block;
-  let testBlockLink2: LinkEntity<HasIndexedContent>;
+  let testBlockLink2: HashLinkEntity<HasIndexedContent>;
 
   let testBlock3: Block;
-  let testBlockLink3: LinkEntity<HasIndexedContent>;
+  let testBlockLink3: HashLinkEntity<HasIndexedContent>;
 
   let firstKey: string;
 
@@ -214,7 +214,7 @@ describe("Page", () => {
       authentication,
       {
         initialBlocks: [firstBlock],
-        ownedById: testUser.accountId as OwnedById,
+        webId: testUser.accountId as WebId,
         title: "Test Page for Block Manipulation",
         type: "document",
       },
@@ -229,7 +229,7 @@ describe("Page", () => {
     expect(existingBlocks).toHaveLength(1);
 
     testBlock1 = existingBlocks[0]!.rightEntity!;
-    testBlockLink1 = new LinkEntity<HasIndexedContent>(
+    testBlockLink1 = new HashLinkEntity<HasIndexedContent>(
       existingBlocks[0]!.linkEntity,
     );
 
@@ -258,7 +258,7 @@ describe("Page", () => {
           },
         },
       },
-    )) as unknown as LinkEntity<HasIndexedContent>;
+    )) as unknown as HashLinkEntity<HasIndexedContent>;
 
     testBlockLink3 = (await addBlockToBlockCollection(
       graphContext,
@@ -279,7 +279,7 @@ describe("Page", () => {
           },
         },
       },
-    )) as unknown as LinkEntity<HasIndexedContent>;
+    )) as unknown as HashLinkEntity<HasIndexedContent>;
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {

@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@blockprotocol/type-system";
 import type { UserPermissions } from "@local/hash-isomorphic-utils/types";
 
 import {

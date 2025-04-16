@@ -1,12 +1,19 @@
 import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import type {
+  BaseUrl,
+  EntityId,
+  PropertyObject,
+  WebId,
+} from "@blockprotocol/type-system";
 import type { ModalProps } from "@hashintel/design-system";
 import { IconButton, Modal } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolEntityTypes,
   blockProtocolLinkEntityTypes,
@@ -17,10 +24,6 @@ import type {
   QueryProperties,
   QueryPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
@@ -82,7 +85,7 @@ export const BlockSelectDataModal: FunctionComponent<
           blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
         ),
       )
-      .map(({ rightEntity }) => rightEntity[0] as Entity<Query>);
+      .map(({ rightEntity }) => rightEntity[0] as HashEntity<Query>);
 
     return existingQueries[0];
   }, [blockSubgraph, blockDataEntity]);
@@ -96,7 +99,7 @@ export const BlockSelectDataModal: FunctionComponent<
   const { authenticatedUser } = useAuthenticatedUser();
 
   const { createEntity } = useBlockProtocolCreateEntity(
-    authenticatedUser.accountId as OwnedById,
+    authenticatedUser.accountId as WebId,
   );
 
   const [updateEntity] = useMutation<

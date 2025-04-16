@@ -1,5 +1,5 @@
+import type { WebId } from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { Box, buttonClasses, styled, Typography } from "@mui/material";
 import type { LoginFlow } from "@ory/client";
@@ -45,7 +45,7 @@ const SigninPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
   const { refetch } = useAuthInfo();
-  const { updateActiveWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { updateActiveWorkspaceWebId } = useContext(WorkspaceContext);
   const { hashInstance } = useHashInstance();
 
   const {
@@ -190,9 +190,7 @@ const SigninPage: NextPageWithLayout = () => {
               );
             }
 
-            updateActiveWorkspaceOwnedById(
-              authenticatedUser.accountId as OwnedById,
-            );
+            updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
 
             void router.push(returnTo ?? flow.return_to ?? "/");
           })

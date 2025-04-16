@@ -1,6 +1,6 @@
+import type { EntityUuid } from "@blockprotocol/type-system";
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import proto from "@temporalio/proto";
 import { ApolloError } from "apollo-server-errors";

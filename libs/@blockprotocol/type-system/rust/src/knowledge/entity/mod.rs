@@ -2,7 +2,7 @@ use error_stack::{Report, ResultExt as _};
 
 use super::property::{
     PatchError, Property, PropertyObject, PropertyPatchOperation, PropertyWithMetadata,
-    metadata::{PropertyMetadata, PropertyMetadataObject},
+    metadata::{PropertyMetadata, PropertyObjectMetadata},
 };
 
 pub mod id;
@@ -79,10 +79,10 @@ impl Entity {
     ) -> Result<(), Report<PatchError>> {
         let mut properties_with_metadata = PropertyWithMetadata::from_parts(
             Property::Object(self.properties.clone()),
-            Some(PropertyMetadata::Object {
+            Some(PropertyMetadata::Object(PropertyObjectMetadata {
                 value: self.metadata.properties.value.clone(),
                 metadata: self.metadata.properties.metadata.clone(),
-            }),
+            })),
         )
         .change_context(PatchError)?;
 
@@ -108,16 +108,16 @@ impl Entity {
 
         let (
             Property::Object(properties),
-            PropertyMetadata::Object {
+            PropertyMetadata::Object(PropertyObjectMetadata {
                 value: metadata_object,
                 metadata,
-            },
+            }),
         ) = properties_with_metadata.into_parts()
         else {
             unreachable!("patching should not change the property type");
         };
         self.properties = properties;
-        self.metadata.properties = PropertyMetadataObject {
+        self.metadata.properties = PropertyObjectMetadata {
             value: metadata_object,
             metadata,
         };
@@ -125,7 +125,6 @@ impl Entity {
         Ok(())
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -503,7 +502,6 @@ mod tests {
                 ],
             );
         }
-
         #[test]
         fn object_nested_object_key_changed() {
             let old = property!({ create_base_url(1): { create_base_url(3): "foo" } });

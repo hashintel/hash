@@ -1,18 +1,19 @@
 import { useApolloClient } from "@apollo/client";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { AccountGroupId } from "@local/hash-graph-types/account";
-import type { Uuid } from "@local/hash-graph-types/branded";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
   intervalForTimestamp,
-} from "@local/hash-subgraph/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import type { ActorGroupId } from "@blockprotocol/type-system";
+import {
+  currentTimestamp,
+  extractEntityUuidFromEntityId,
+} from "@blockprotocol/type-system";
+import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,
@@ -44,7 +45,7 @@ export const AuthInfoContext = createContext<AuthInfoContextValue | undefined>(
 );
 
 type AuthInfoProviderProps = {
-  initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType>;
+  initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType<HashEntity>>;
   children: ReactElement;
 };
 
@@ -72,14 +73,14 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     return getOutgoingLinksForEntity(
       authenticatedUserSubgraph,
       userEntity.metadata.recordId.entityId,
-      intervalForTimestamp(new Date().toISOString() as Timestamp),
+      intervalForTimestamp(currentTimestamp()),
     )
       .filter((linkEntity) =>
         linkEntity.metadata.entityTypeIds.includes(
           systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
         ),
       )
-      .map((linkEntity) => new LinkEntity<IsMemberOf>(linkEntity));
+      .map((linkEntity) => new HashLinkEntity<IsMemberOf>(linkEntity));
   }, [authenticatedUserSubgraph]);
 
   const { orgs: resolvedOrgs, refetch: refetchOrgs } = useOrgsWithLinks({
@@ -88,12 +89,12 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
         (link) =>
           extractEntityUuidFromEntityId(
             link.linkData.rightEntityId,
-          ) as Uuid as AccountGroupId,
+          ) as string as ActorGroupId,
       ) ?? [],
   });
 
   const constructUserValue = useCallback(
-    (subgraph: Subgraph<EntityRootType> | undefined) => {
+    (subgraph: Subgraph<EntityRootType<HashEntity>> | undefined) => {
       if (!subgraph) {
         return undefined;
       }
@@ -137,7 +138,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
           fetchPolicy: "network-only",
         })
         .then(({ data }) =>
-          mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
             data.me.subgraph,
           ),
         )
