@@ -1,66 +1,105 @@
 import type {
   ActorEntityUuid,
   ActorGroupEntityUuid,
-  ActorGroupId,
-  ActorType,
-  TeamId,
+  AiId,
+  MachineId,
+  UserId,
   WebId,
 } from "@blockprotocol/type-system";
 
 import type { ImpureGraphFunction } from "./context-types";
 
-export const addAccountGroupMember: ImpureGraphFunction<
-  { accountId: ActorEntityUuid; accountGroupId: ActorGroupEntityUuid },
+export const addActorGroupMember: ImpureGraphFunction<
+  { actorId: ActorEntityUuid; actorGroupId: ActorGroupEntityUuid },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.assignAccountGroupRole(
+  await graphApi.assignActorGroupRole(
     actorId,
-    params.accountGroupId,
+    params.actorGroupId,
     "member",
-    params.accountId,
+    params.actorId,
   );
 
   return true;
 };
 
-export const removeAccountGroupMember: ImpureGraphFunction<
-  { accountId: ActorEntityUuid; accountGroupId: ActorGroupEntityUuid },
+export const removeActorGroupMember: ImpureGraphFunction<
+  { actorId: ActorEntityUuid; actorGroupId: ActorGroupEntityUuid },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.unassignAccountGroupRole(
+  await graphApi.unassignActorGroupRole(
     actorId,
-    params.accountGroupId,
+    params.actorGroupId,
     "member",
-    params.accountId,
+    params.actorId,
   );
 
   return true;
 };
 
-export const createAccount: ImpureGraphFunction<
+export const createUserActor: ImpureGraphFunction<
   {
-    accountId?: ActorEntityUuid;
-    accountType: ActorType;
+    shortname?: string;
+    registrationComplete: boolean;
   },
-  Promise<ActorEntityUuid>
+  Promise<{ userId: UserId; machineId: MachineId }>
 > = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .createAccount(actorId, params)
-    .then(({ data }) => data.id as ActorEntityUuid);
+  graphApi.createUserActor(actorId, params).then(({ data }) => ({
+    userId: data.userId as UserId,
+    machineId: data.machineId as MachineId,
+  }));
 
-export const createAccountGroup: ImpureGraphFunction<
+export const createAiActor: ImpureGraphFunction<
   {
-    parent: ActorGroupId;
-    teamId?: TeamId;
+    identifier: string;
   },
-  Promise<ActorGroupEntityUuid>
+  Promise<AiId>
 > = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .createAccountGroup(actorId, params)
-    .then(({ data }) => data as ActorGroupEntityUuid);
+  graphApi.createAiActor(actorId, params).then(({ data }) => data as AiId);
 
-export const createWeb: ImpureGraphFunction<
-  { webId?: WebId; administrator: ActorEntityUuid },
-  Promise<WebId>
+export const findWeb: ImpureGraphFunction<
+  {
+    webId: WebId;
+  },
+  Promise<{ webId: WebId; machineId: MachineId; shortname?: string } | null>
+> = async ({ graphApi }, { actorId }, params) => {
+  const { data } = await graphApi.findWeb(actorId, params.webId);
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!data) {
+    throw new Error(`No web found for id "${params.webId}"`);
+  }
+  return {
+    webId: params.webId,
+    machineId: data.machineId as MachineId,
+    shortname: data.shortname,
+  };
+};
+
+export const findWebByShortname: ImpureGraphFunction<
+  {
+    shortname: string;
+  },
+  Promise<{ webId: WebId; machineId: MachineId; shortname: string }>
+> = async ({ graphApi }, { actorId }, params) => {
+  const { data } = await graphApi.findWebByShortname(actorId, params.shortname);
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!data) {
+    throw new Error(`No web found for the shortname "${params.shortname}"`);
+  }
+  return {
+    webId: data.webId as WebId,
+    machineId: data.machineId as MachineId,
+    shortname: params.shortname,
+  };
+};
+
+export const createOrgWeb: ImpureGraphFunction<
+  {
+    shortname: string;
+  },
+  Promise<{ webId: WebId; machineId: MachineId }>
 > = async ({ graphApi }, { actorId }, params) =>
-  graphApi.createWeb(actorId, params).then(({ data }) => data as WebId);
+  graphApi.createOrgWeb(actorId, params).then(({ data }) => ({
+    webId: data.webId as WebId,
+    machineId: data.machineId as MachineId,
+  }));

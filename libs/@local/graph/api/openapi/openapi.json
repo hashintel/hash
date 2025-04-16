@@ -12,56 +12,11 @@
     "version": "0.0.0"
   },
   "paths": {
-    "/account_groups": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Account Group"
-        ],
-        "operationId": "create_account_group",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InsertAccountGroupIdParams"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "The schema of the created account",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ActorGroupEntityUuid"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/account_groups/{account_group_id}/permissions/{permission}": {
+    "/actor_groups/{actor_group_id}/permissions/{permission}": {
       "get": {
         "tags": [
           "Graph",
-          "Account Group"
+          "Actor Group"
         ],
         "operationId": "check_account_group_permission",
         "parameters": [
@@ -75,9 +30,9 @@
             }
           },
           {
-            "name": "account_group_id",
+            "name": "actor_group_id",
             "in": "path",
-            "description": "The ID of the account group to check if the actor has the permission",
+            "description": "The ID of the actor group to check if the actor has the permission",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorGroupEntityUuid"
@@ -110,13 +65,13 @@
         }
       }
     },
-    "/account_groups/{account_group_id}/relations": {
+    "/actor_groups/{actor_group_id}/relations": {
       "get": {
         "tags": [
           "Graph",
-          "Account Group"
+          "Actor Group"
         ],
-        "operationId": "get_account_group_relations",
+        "operationId": "get_actor_group_relations",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -128,9 +83,9 @@
             }
           },
           {
-            "name": "account_group_id",
+            "name": "actor_group_id",
             "in": "path",
-            "description": "The ID of the account group to get relations from",
+            "description": "The ID of the actor group to get relations from",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorGroupEntityUuid"
@@ -139,7 +94,7 @@
         ],
         "responses": {
           "200": {
-            "description": "List of members and administrators of the account group",
+            "description": "List of members and administrators of the actor group",
             "content": {
               "application/json": {
                 "schema": {
@@ -160,13 +115,13 @@
         }
       }
     },
-    "/account_groups/{account_group_id}/{role}/{account_id}": {
+    "/actor_groups/{actor_group_id}/{role}/{actor_id}": {
       "post": {
         "tags": [
           "Graph",
-          "Account Group"
+          "Actor Group"
         ],
-        "operationId": "assign_account_group_role",
+        "operationId": "assign_actor_group_role",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -178,9 +133,9 @@
             }
           },
           {
-            "name": "account_group_id",
+            "name": "actor_group_id",
             "in": "path",
-            "description": "The ID of the account group to add the member to",
+            "description": "The ID of the actor group to add the member to",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorGroupEntityUuid"
@@ -189,16 +144,16 @@
           {
             "name": "role",
             "in": "path",
-            "description": "The role to assign to the account",
+            "description": "The role to assign to the actor",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/RoleName"
             }
           },
           {
-            "name": "account_id",
+            "name": "actor_id",
             "in": "path",
-            "description": "The ID of the account to add to the group",
+            "description": "The ID of the actor to add to the group",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
@@ -207,7 +162,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The account group member was added",
+            "description": "The actor group member was added",
             "content": {
               "application/json": {
                 "schema": {
@@ -227,9 +182,9 @@
       "delete": {
         "tags": [
           "Graph",
-          "Account Group"
+          "Actor Group"
         ],
-        "operationId": "unassign_account_group_role",
+        "operationId": "unassign_actor_group_role",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -241,9 +196,9 @@
             }
           },
           {
-            "name": "account_group_id",
+            "name": "actor_group_id",
             "in": "path",
-            "description": "The ID of the account group to remove the member from",
+            "description": "The ID of the actor group to remove the member from",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorGroupEntityUuid"
@@ -252,16 +207,16 @@
           {
             "name": "role",
             "in": "path",
-            "description": "The role to remove from the account",
+            "description": "The role to remove from the actor",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/RoleName"
             }
           },
           {
-            "name": "account_id",
+            "name": "actor_id",
             "in": "path",
-            "description": "The ID of the account to remove from the group",
+            "description": "The ID of the actor to remove from the group",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
@@ -270,7 +225,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The account group member was removed",
+            "description": "The actor group member was removed",
             "content": {
               "application/json": {
                 "schema": {
@@ -288,13 +243,13 @@
         }
       }
     },
-    "/accounts": {
+    "/actors/ai": {
       "post": {
         "tags": [
           "Graph",
-          "Account"
+          "Actor"
         ],
-        "operationId": "create_account",
+        "operationId": "create_ai_actor",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -310,7 +265,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InsertAccountIdParams"
+                "$ref": "#/components/schemas/CreateAiActorParams"
               }
             }
           },
@@ -318,11 +273,56 @@
         },
         "responses": {
           "200": {
-            "description": "The schema of the created account",
+            "description": "The schema of the created actor",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ActorId"
+                  "$ref": "#/components/schemas/AiId"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/actors/user": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Actor"
+        ],
+        "operationId": "create_user_actor",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserActorParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The schema of the created actor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserActorResponse"
                 }
               }
             }
@@ -3072,20 +3072,71 @@
         }
       }
     },
-    "/system_account": {
+    "/system/actor/{identifier}": {
       "get": {
         "tags": [
           "Graph",
-          "Account"
+          "Actor"
         ],
-        "operationId": "get_or_create_system_account",
+        "operationId": "get_or_create_system_actor",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "description": "The identifier of the actor to get",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "The schema of the created account",
+            "description": "The schema of the created actor",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MachineId"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/system/instance-admins": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "find_instance_admins_team",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The web was retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GetTeamResponse"
+                    }
+                  ],
+                  "nullable": true
                 }
               }
             }
@@ -3102,7 +3153,7 @@
           "Graph",
           "Web"
         ],
-        "operationId": "create_web",
+        "operationId": "create_org_web",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -3118,7 +3169,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InsertWebIdParams"
+                "$ref": "#/components/schemas/CreateOrgWebParams"
               }
             }
           },
@@ -3130,7 +3181,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WebId"
+                  "$ref": "#/components/schemas/CreateWebResponse"
                 }
               }
             }
@@ -3178,6 +3229,104 @@
           },
           "403": {
             "description": "Permission denied"
+          }
+        }
+      }
+    },
+    "/webs/shortname/{shortname}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "find_web_by_shortname",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "shortname",
+            "in": "path",
+            "description": "The shortname of the web to retrieve",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The web was retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GetWebResponse"
+                    }
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/webs/{web_id}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "find_web",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "web_id",
+            "in": "path",
+            "description": "The ID of the web to retrieve",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/WebId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The web was retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GetWebResponse"
+                    }
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
           }
         }
       }
@@ -3824,6 +3973,18 @@
         },
         "additionalProperties": false
       },
+      "CreateAiActorParams": {
+        "type": "object",
+        "required": [
+          "identifier"
+        ],
+        "properties": {
+          "identifier": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateDataTypeRequest": {
         "type": "object",
         "required": [
@@ -3971,6 +4132,18 @@
         },
         "additionalProperties": false
       },
+      "CreateOrgWebParams": {
+        "type": "object",
+        "required": [
+          "shortname"
+        ],
+        "properties": {
+          "shortname": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreatePropertyTypeRequest": {
         "type": "object",
         "required": [
@@ -4001,6 +4174,54 @@
                 }
               }
             ]
+          },
+          "webId": {
+            "$ref": "#/components/schemas/WebId"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateUserActorParams": {
+        "type": "object",
+        "required": [
+          "registrationComplete"
+        ],
+        "properties": {
+          "registrationComplete": {
+            "type": "boolean"
+          },
+          "shortname": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateUserActorResponse": {
+        "type": "object",
+        "required": [
+          "userId",
+          "machineId"
+        ],
+        "properties": {
+          "machineId": {
+            "$ref": "#/components/schemas/MachineId"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/UserId"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateWebResponse": {
+        "type": "object",
+        "required": [
+          "webId",
+          "machineId"
+        ],
+        "properties": {
+          "machineId": {
+            "$ref": "#/components/schemas/MachineId"
           },
           "webId": {
             "$ref": "#/components/schemas/WebId"
@@ -6874,6 +7095,41 @@
           }
         }
       },
+      "GetTeamResponse": {
+        "type": "object",
+        "required": [
+          "teamId",
+          "parentId"
+        ],
+        "properties": {
+          "parentId": {
+            "$ref": "#/components/schemas/ActorGroupId"
+          },
+          "teamId": {
+            "$ref": "#/components/schemas/TeamId"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetWebResponse": {
+        "type": "object",
+        "required": [
+          "webId",
+          "machineId"
+        ],
+        "properties": {
+          "machineId": {
+            "$ref": "#/components/schemas/MachineId"
+          },
+          "shortname": {
+            "type": "string"
+          },
+          "webId": {
+            "$ref": "#/components/schemas/WebId"
+          }
+        },
+        "additionalProperties": false
+      },
       "GraphElementVertexId": {
         "oneOf": [
           {
@@ -6975,51 +7231,6 @@
                 "$ref": "#/components/schemas/Timestamp"
               }
             ]
-          }
-        },
-        "additionalProperties": false
-      },
-      "InsertAccountGroupIdParams": {
-        "type": "object",
-        "required": [
-          "parent"
-        ],
-        "properties": {
-          "parent": {
-            "$ref": "#/components/schemas/ActorGroupId"
-          },
-          "teamId": {
-            "$ref": "#/components/schemas/TeamId"
-          }
-        },
-        "additionalProperties": false
-      },
-      "InsertAccountIdParams": {
-        "type": "object",
-        "required": [
-          "accountType"
-        ],
-        "properties": {
-          "accountId": {
-            "$ref": "#/components/schemas/ActorEntityUuid"
-          },
-          "accountType": {
-            "$ref": "#/components/schemas/ActorType"
-          }
-        },
-        "additionalProperties": false
-      },
-      "InsertWebIdParams": {
-        "type": "object",
-        "required": [
-          "administrator"
-        ],
-        "properties": {
-          "administrator": {
-            "$ref": "#/components/schemas/ActorEntityUuid"
-          },
-          "webId": {
-            "$ref": "#/components/schemas/WebId"
           }
         },
         "additionalProperties": false
@@ -10865,8 +11076,8 @@
       "description": "HASH Graph API"
     },
     {
-      "name": "Account",
-      "description": "Account management API"
+      "name": "Actor",
+      "description": "Actor management API"
     },
     {
       "name": "DataType",

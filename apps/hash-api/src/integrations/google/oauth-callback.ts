@@ -3,7 +3,7 @@ import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
 } from "@local/hash-backend-utils/google";
-import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import type {
   GoogleOAuth2CallbackRequest,
   GoogleOAuth2CallbackResponse,
@@ -74,7 +74,7 @@ export const googleOAuthCallback: RequestHandler<
 
   const authentication = { actorId: req.user.accountId };
 
-  const googleBotAccountId = await getMachineActorId(
+  const googleBotAccountId = await getMachineIdByIdentifier(
     req.context,
     authentication,
     { identifier: "google" },

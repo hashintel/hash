@@ -1,6 +1,6 @@
 import type {
-  ActorEntityUuid,
   ActorGroupEntityUuid,
+  MachineId,
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
@@ -9,20 +9,17 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
   createMachineActorEntity,
-  createWebMachineActor,
-  getMachineActorId,
-  getWebMachineActorId,
+  getMachineIdByIdentifier,
 } from "@local/hash-backend-utils/machine-actors";
 import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
 import { logger } from "../../logger";
 import {
-  addAccountGroupMember,
-  createAccount,
-  createWeb,
+  addActorGroupMember,
+  createAiActor,
+  findWebByShortname,
 } from "../account-permission-management";
 import type { ImpureGraphContext } from "../context-types";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
@@ -31,7 +28,7 @@ import { systemAccountId } from "../system-account";
 export const owningWebs: Record<
   SystemTypeWebShortname,
   {
-    machineActorAccountId?: ActorEntityUuid;
+    machineId?: MachineId;
     webId?: WebId;
     enabled: boolean;
     name: string;
@@ -60,76 +57,43 @@ export const getOrCreateOwningWebId = async (
   webShortname: SystemTypeWebShortname,
 ): Promise<{
   webId: WebId;
-  machineActorId: ActorEntityUuid;
+  machineId: MachineId;
 }> => {
   // We only need to resolve this once for each shortname during the seeding process
   const resolvedWebId = owningWebs[webShortname].webId;
-  const resolvedMachineActorAccountId =
-    owningWebs[webShortname].machineActorAccountId;
+  const resolvedMachineId = owningWebs[webShortname].machineId;
 
   // After this function has been run once, these should exist
-  if (resolvedWebId && resolvedMachineActorAccountId) {
+  if (resolvedWebId && resolvedMachineId) {
     return {
       webId: resolvedWebId,
-      machineActorId: resolvedMachineActorAccountId,
+      machineId: resolvedMachineId,
     };
   }
 
-  try {
-    /**
-     *  If this function is used again after the initial seeding, it's possible that we've created the org in the past.
-     */
-    const foundOrg = await getOrgByShortname(
-      context,
-      { actorId: systemAccountId },
-      {
-        shortname: webShortname,
-      },
-    );
+  /**
+   *  If this function is used again after the initial seeding, it's possible that we've created the org in the past.
+   */
+  const machineId = await context.graphApi
+    .getOrCreateSystemActor(webShortname)
+    .then(({ data }) => data as MachineId);
+  const foundWeb = await findWebByShortname(
+    context,
+    { actorId: systemAccountId },
+    {
+      shortname: webShortname,
+    },
+  );
 
-    if (foundOrg) {
-      const machineActorIdForWeb =
-        foundOrg.entity.metadata.provenance.edition.createdById;
-
-      logger.debug(
-        `Found org entity with shortname ${webShortname}, webId: ${foundOrg.webId}, machine actor accountId: ${machineActorIdForWeb}`,
-      );
-      owningWebs[webShortname].webId = foundOrg.webId;
-      owningWebs[webShortname].machineActorAccountId = machineActorIdForWeb;
-
-      return {
-        webId: foundOrg.webId,
-        machineActorId: machineActorIdForWeb,
-      };
-    }
-  } catch {
-    // No org system type yet, this must be the first migration run in which this web was used
-  }
-
-  const machineActorIdForWeb =
-    webShortname === "h"
-      ? systemAccountId
-      : await createAccount(
-          context,
-          { actorId: systemAccountId },
-          {
-            accountType: "machine",
-          },
-        );
-
-  const authentication = { actorId: machineActorIdForWeb };
-
-  const webId = await createWeb(context, authentication, {
-    administrator: authentication.actorId,
-  });
-
-  logger.info(`Created web with shortname ${webShortname}, webId: ${webId}`);
-  owningWebs[webShortname].webId = webId;
-  owningWebs[webShortname].machineActorAccountId = machineActorIdForWeb;
+  logger.debug(
+    `Found org entity with shortname ${webShortname}, webId: ${foundWeb.webId}, machine actor accountId: ${machineId}`,
+  );
+  owningWebs[webShortname].webId = foundWeb.webId;
+  owningWebs[webShortname].machineId = machineId;
 
   return {
-    webId,
-    machineActorId: machineActorIdForWeb,
+    webId: foundWeb.webId,
+    machineId,
   };
 };
 
@@ -148,13 +112,15 @@ export const ensureSystemWebEntitiesExist = async ({
   machineEntityTypeId?: VersionedUrl;
   organizationEntityTypeId?: VersionedUrl;
 }) => {
-  const { webId, machineActorId: machineActorAccountId } =
-    await getOrCreateOwningWebId(context, webShortname);
+  const { webId, machineId } = await getOrCreateOwningWebId(
+    context,
+    webShortname,
+  );
 
-  const authentication = { actorId: machineActorAccountId };
+  const authentication = { actorId: machineId };
 
   try {
-    await getMachineActorId(context, authentication, {
+    await getMachineIdByIdentifier(context, authentication, {
       identifier: webShortname,
     });
   } catch (error) {
@@ -187,7 +153,7 @@ export const ensureSystemWebEntitiesExist = async ({
        * Linear actions
        */
       await createMachineActorEntity(context, {
-        machineAccountId: machineActorAccountId,
+        machineId,
         identifier: webShortname,
         logger,
         webId,
@@ -247,7 +213,7 @@ export const ensureSystemEntitiesExist = async (params: {
     }
 
     /**
-     *  This should have already been called for 'hash' as part of migration 005.
+     *  This should have already been called for 'h' as part of migration 005.
      *
      *  For other system webs, this may have an effect if it the first migration run the web has been seen/enabled in.
      */
@@ -257,35 +223,6 @@ export const ensureSystemEntitiesExist = async (params: {
       webShortname,
       websiteUrl,
     });
-
-    const { webId, machineActorId: machineActorAccountId } =
-      await getOrCreateOwningWebId(context, webShortname);
-
-    try {
-      await getWebMachineActorId(
-        context,
-        { actorId: machineActorAccountId },
-        {
-          webId,
-        },
-      );
-    } catch (err) {
-      if (err instanceof NotFoundError) {
-        await createWebMachineActor(
-          context,
-          // We have to use an org admin's authority to add the machine to their web
-          { actorId: machineActorAccountId },
-          {
-            webId,
-            logger,
-          },
-        );
-      } else {
-        throw new Error(
-          `Unexpected error attempting to retrieve machine web actor for organization ${webShortname}: ${stringifyError(err)}`,
-        );
-      }
-    }
   }
 
   const authentication = { actorId: systemAccountId };
@@ -294,7 +231,7 @@ export const ensureSystemEntitiesExist = async (params: {
    * Create the HASH _AI_ Machine actor and entity, which is added as needed to webs to run AI-related workflows.
    */
   try {
-    await getMachineActorId(context, authentication, {
+    await getMachineIdByIdentifier(context, authentication, {
       identifier: "hash-ai",
     });
   } catch (error) {
@@ -306,17 +243,18 @@ export const ensureSystemEntitiesExist = async (params: {
         );
       }
 
-      const aiAssistantAccountId = await createAccount(
+      const ai_identifier = "hash-ai";
+      const aiAssistantAccountId = await createAiActor(
         context,
         authentication,
         {
-          accountType: "ai",
+          identifier: ai_identifier,
         },
       );
 
-      await addAccountGroupMember(context, authentication, {
-        accountId: aiAssistantAccountId,
-        accountGroupId: hashWebId as ActorGroupEntityUuid,
+      await addActorGroupMember(context, authentication, {
+        actorId: aiAssistantAccountId,
+        actorGroupId: hashWebId as ActorGroupEntityUuid,
       });
       await context.graphApi.modifyWebAuthorizationRelationships(
         systemAccountId,
@@ -347,9 +285,9 @@ export const ensureSystemEntitiesExist = async (params: {
       );
 
       await createMachineActorEntity(context, {
-        identifier: "hash-ai",
+        identifier: ai_identifier,
         logger,
-        machineAccountId: aiAssistantAccountId,
+        machineId: aiAssistantAccountId,
         webId: hashWebId,
         displayName: "HASH AI",
         systemAccountId,

@@ -12,6 +12,11 @@ pub enum GetSystemAccountError {
     #[display("Creating system account failed")]
     CreateSystemAccountFailed,
 
+    #[display("Creating system web failed")]
+    CreatingSystemWebFailed,
+    #[display("Creating instance admin team failed")]
+    CreatingInstanceAdminTeamFailed,
+
     #[display("Store operation failed")]
     StoreError,
 }
@@ -39,9 +44,11 @@ pub enum WebCreationError {
     #[display("Permission to create web was denied")]
     NotAuthorized,
     #[display("Could not create web role")]
-    WebRoleCreationError,
+    RoleCreationError,
     #[display("Could not assign web role")]
-    WebRoleAssignmentError,
+    RoleAssignmentError,
+    #[display("Could not create web machine")]
+    MachineCreationError,
     #[display("Store operation failed")]
     StoreError,
 }

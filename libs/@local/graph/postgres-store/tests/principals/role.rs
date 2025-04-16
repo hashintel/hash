@@ -377,7 +377,7 @@ async fn create_team_role() -> Result<(), Box<dyn Error>> {
         .await?;
 
     // Create a team
-    let team_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
+    let team_id = client.insert_team(None, ActorGroupId::Web(web_id)).await?;
 
     // Create a role for the team
     let role_id = client

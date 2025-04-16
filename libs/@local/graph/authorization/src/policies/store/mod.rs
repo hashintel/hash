@@ -60,6 +60,17 @@ pub struct CreateUserParameter {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CreateWebParameter {
     pub id: Option<Uuid>,
+    pub administrator: ActorId,
+    pub shortname: Option<String>,
+    pub is_actor_web: bool,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateWebResponse {
+    pub web_id: WebId,
+    pub machine_id: MachineId,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -91,8 +102,9 @@ pub trait LocalPrincipalStore {
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: GetSystemAccountError::StoreError
-    async fn get_or_create_system_account(
+    async fn get_or_create_system_actor(
         &mut self,
+        identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>>;
 
     /// Creates a new web and returns its ID.
@@ -108,7 +120,7 @@ pub trait LocalPrincipalStore {
         &mut self,
         actor: ActorId,
         parameter: CreateWebParameter,
-    ) -> Result<WebId, Report<WebCreationError>>;
+    ) -> Result<CreateWebResponse, Report<WebCreationError>>;
 
     /// Assigns an actor to a role.
     ///

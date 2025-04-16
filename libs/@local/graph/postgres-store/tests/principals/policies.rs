@@ -116,17 +116,39 @@ async fn setup_policy_test_environment(
 
     // Create web teams (top level)
     let web1_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: None,
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
     let web2_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: None,
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
 
     // Create teams with different hierarchies
-    let team_1_id = client.create_team(None, ActorGroupId::Web(web1_id)).await?;
-    let team_2_id = client.create_team(None, ActorGroupId::Web(web1_id)).await?;
+    let team_1_id = client
+        .insert_team(None, ActorGroupId::Web(web1_id), "team-1")
+        .await?;
+    let team_2_id = client
+        .insert_team(None, ActorGroupId::Web(web1_id), "team-2")
+        .await?;
     let nested_team_id = client
-        .create_team(None, ActorGroupId::Team(team_1_id))
+        .insert_team(None, ActorGroupId::Team(team_1_id), "nested-team")
         .await?;
 
     // Create roles for each team
@@ -153,8 +175,8 @@ async fn setup_policy_test_environment(
     // Create actors of different types
     let user1_id = client.create_user(None).await?;
     let user2_id = client.create_user(None).await?;
-    let machine_id = client.create_machine(None).await?;
-    let ai_id = client.create_ai(None).await?;
+    let machine_id = client.create_machine(None, "test-machine").await?;
+    let ai_id = client.create_ai(None, "test-ai").await?;
 
     // Assign roles to actors in different combinations
     client
@@ -494,7 +516,7 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
     );
 
     // Create a machine with web1_role to test actor type constraints
-    let special_machine_id = client.create_machine(None).await?;
+    let special_machine_id = client.create_machine(None, "special-machine").await?;
     client
         .assign_role_by_id(ActorId::Machine(special_machine_id), env.web1_role)
         .await?;
@@ -726,7 +748,15 @@ async fn multiple_actor_roles() -> Result<(), Box<dyn Error>> {
 
     // Create teams and roles
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: None,
+                is_actor_web: false,
+            },
+        )
         .await?;
     let role1_id = client
         .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
@@ -827,18 +857,18 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let team1_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
+    let team1_id = client.insert_team(None, ActorGroupId::Web(web_id)).await?;
     let team2_id = client
-        .create_team(None, ActorGroupId::Team(team1_id))
+        .insert_team(None, ActorGroupId::Team(team1_id))
         .await?;
     let team3_id = client
-        .create_team(None, ActorGroupId::Team(team2_id))
+        .insert_team(None, ActorGroupId::Team(team2_id))
         .await?;
     let team4_id = client
-        .create_team(None, ActorGroupId::Team(team3_id))
+        .insert_team(None, ActorGroupId::Team(team3_id))
         .await?;
     let team5_id = client
-        .create_team(None, ActorGroupId::Team(team4_id))
+        .insert_team(None, ActorGroupId::Team(team4_id))
         .await?;
 
     // Create roles

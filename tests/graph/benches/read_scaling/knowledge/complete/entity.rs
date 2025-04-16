@@ -5,7 +5,7 @@ use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, Sampling
 use criterion_macro::criterion;
 use hash_graph_authorization::{AuthorizationApi, NoAuthorization};
 use hash_graph_store::{
-    account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
+    account::{AccountStore as _, CreateOrgWebParams, CreateUserParams},
     entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitySubgraphParams},
     filter::Filter,
     subgraph::{
@@ -69,7 +69,7 @@ async fn seed_db<A: AuthorizationApi>(
     transaction
         .insert_account_id(
             account_id,
-            InsertAccountIdParams {
+            CreateUserParams {
                 account_id,
                 account_type: ActorType::Machine,
             },
@@ -77,9 +77,9 @@ async fn seed_db<A: AuthorizationApi>(
         .await
         .expect("could not insert account id");
     transaction
-        .insert_web_id(
+        .create_org_web(
             account_id,
-            InsertWebIdParams {
+            CreateOrgWebParams {
                 web_id: WebId::new(account_id),
                 administrator: account_id,
             },

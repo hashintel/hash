@@ -11,8 +11,8 @@ import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-typ
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import {
-  addAccountGroupMember,
-  removeAccountGroupMember,
+  addActorGroupMember,
+  removeActorGroupMember,
 } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
@@ -71,9 +71,9 @@ export const createOrgMembership: ImpureGraphFunction<
   const userActorId = extractWebIdFromEntityId(userEntityId) as ActorEntityUuid;
   const orgWebId = extractWebIdFromEntityId(orgEntityId);
 
-  await addAccountGroupMember(ctx, authentication, {
-    accountId: userActorId,
-    accountGroupId: orgWebId as ActorGroupEntityUuid,
+  await addActorGroupMember(ctx, authentication, {
+    actorId: userActorId,
+    actorGroupId: orgWebId as ActorGroupEntityUuid,
   });
 
   let linkEntity;
@@ -91,9 +91,9 @@ export const createOrgMembership: ImpureGraphFunction<
       }),
     });
   } catch (error) {
-    await removeAccountGroupMember(ctx, authentication, {
-      accountId: userActorId,
-      accountGroupId: orgWebId as ActorGroupEntityUuid,
+    await removeActorGroupMember(ctx, authentication, {
+      actorId: userActorId,
+      actorGroupId: orgWebId as ActorGroupEntityUuid,
     });
 
     throw error;

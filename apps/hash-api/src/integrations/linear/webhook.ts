@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import type { WebId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { tupleIncludes } from "@local/advanced-types/includes";
-import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { supportedLinearTypes } from "@local/hash-backend-utils/temporal-integration-workflow-types";
@@ -84,7 +84,7 @@ export const linearWebhook: RequestHandler<
     return;
   }
 
-  const linearBotAccountId = await getMachineActorId(
+  const linearBotAccountId = await getMachineIdByIdentifier(
     req.context,
     { actorId: systemAccountId },
     { identifier: "linear" },

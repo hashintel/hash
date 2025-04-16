@@ -1,7 +1,7 @@
 import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
 import {
-  getMachineActorId,
-  getWebMachineActorId,
+  getMachineIdByIdentifier,
+  getWebMachineId,
 } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
 
@@ -16,7 +16,7 @@ export const getAiAssistantAccountIdActivity = async (params: {
   let aiAssistantAccountId: ActorEntityUuid;
 
   try {
-    aiAssistantAccountId = await getMachineActorId(
+    aiAssistantAccountId = await getMachineIdByIdentifier(
       { graphApi: graphApiClient },
       authentication,
       { identifier: "hash-ai" },
@@ -36,7 +36,7 @@ export const getAiAssistantAccountIdActivity = async (params: {
 
     if (!aiAssistantHasPermission) {
       /** The AI Assistant does not have permission in the requested web, use the web-scoped bot to grant it */
-      const webMachineActorId = await getWebMachineActorId(
+      const webMachineActorId = await getWebMachineId(
         { graphApi: graphApiClient },
         authentication,
         {

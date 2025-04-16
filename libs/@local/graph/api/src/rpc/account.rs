@@ -16,23 +16,13 @@ use harpc_system::delegate::SubsystemDelegate;
 use harpc_tower::{body::Body, either::Either, request::Request, response::Response};
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use hash_graph_authorization::{
-    AuthorizationApi as _, AuthorizationApiPool,
+    AuthorizationApiPool,
     policies::store::{PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus},
-    schema::{AccountGroupPermission, WebOwnerSubject},
-    zanzibar::Consistency,
 };
-use hash_graph_store::{
-    account::{AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams},
-    pool::StorePool,
-};
+use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    principal::{
-        actor::ActorEntityUuid,
-        actor_group::{ActorGroupEntityUuid, TeamId},
-        role::RoleName,
-    },
+use type_system::principal::{
+    actor::ActorEntityUuid, actor_group::ActorGroupEntityUuid, role::RoleName,
 };
 
 use super::session::Account;
@@ -61,25 +51,6 @@ pub struct AccountError;
 
 pub trait AccountSystem {
     type ExecutionScope;
-
-    async fn create_account(
-        &self,
-        scope: Self::ExecutionScope,
-        params: InsertAccountIdParams,
-    ) -> Result<ActorEntityUuid, Report<AccountError>>;
-
-    async fn create_account_group(
-        &self,
-        scope: Self::ExecutionScope,
-        params: InsertAccountGroupIdParams,
-    ) -> Result<TeamId, Report<AccountError>>;
-
-    async fn check_account_group_permission(
-        &self,
-        scope: Self::ExecutionScope,
-        account_group_id: ActorGroupEntityUuid,
-        permission: AccountGroupPermission,
-    ) -> Result<PermissionResponse, Report<AccountError>>;
 
     async fn assign_actor_group_role(
         &self,
@@ -113,9 +84,6 @@ pub mod meta {
     use crate::rpc::GraphSubsystemId;
 
     pub enum AccountProcedureId {
-        CreateAccount,
-        CreateAccountGroup,
-        CheckAccountGroupPermission,
         AssignActorGroupRole,
         UnassignActorGroupRole,
     }
@@ -125,22 +93,16 @@ pub mod meta {
 
         fn from_id(id: ProcedureId) -> Option<Self> {
             match id.value() {
-                0x00 => Some(Self::CreateAccount),
-                0x01 => Some(Self::CreateAccountGroup),
-                0x02 => Some(Self::CheckAccountGroupPermission),
-                0x03 => Some(Self::AssignActorGroupRole),
-                0x04 => Some(Self::UnassignActorGroupRole),
+                0x00 => Some(Self::AssignActorGroupRole),
+                0x01 => Some(Self::UnassignActorGroupRole),
                 _ => None,
             }
         }
 
         fn into_id(self) -> ProcedureId {
             match self {
-                Self::CreateAccount => ProcedureId::new(0x00),
-                Self::CreateAccountGroup => ProcedureId::new(0x01),
-                Self::CheckAccountGroupPermission => ProcedureId::new(0x02),
-                Self::AssignActorGroupRole => ProcedureId::new(0x03),
-                Self::UnassignActorGroupRole => ProcedureId::new(0x04),
+                Self::AssignActorGroupRole => ProcedureId::new(0x00),
+                Self::UnassignActorGroupRole => ProcedureId::new(0x01),
             }
         }
     }
@@ -150,9 +112,6 @@ pub mod meta {
     impl Subsystem for AccountSystem {
         type ProcedureId = AccountProcedureId;
         type Procedures = HList![
-            ProcedureCreateAccount,
-            ProcedureCreateAccountGroup,
-            ProcedureCheckAccountGroupPermission,
             ProcedureAddAccountGroupMember,
             ProcedureRemoveAccountGroupMember
         ];
@@ -163,32 +122,6 @@ pub mod meta {
             major: 0x00,
             minor: 0x00,
         };
-    }
-
-    pub struct ProcedureCreateAccount;
-
-    impl Procedure for ProcedureCreateAccount {
-        type Subsystem = AccountSystem;
-
-        const ID: <Self::Subsystem as Subsystem>::ProcedureId = AccountProcedureId::CreateAccount;
-    }
-
-    pub struct ProcedureCreateAccountGroup;
-
-    impl Procedure for ProcedureCreateAccountGroup {
-        type Subsystem = AccountSystem;
-
-        const ID: <Self::Subsystem as Subsystem>::ProcedureId =
-            AccountProcedureId::CreateAccountGroup;
-    }
-
-    pub struct ProcedureCheckAccountGroupPermission;
-
-    impl Procedure for ProcedureCheckAccountGroupPermission {
-        type Subsystem = AccountSystem;
-
-        const ID: <Self::Subsystem as Subsystem>::ProcedureId =
-            AccountProcedureId::CheckAccountGroupPermission;
     }
 
     pub struct ProcedureAddAccountGroupMember;
@@ -272,92 +205,6 @@ where
 {
     type ExecutionScope = Session<Account>;
 
-    async fn create_account(
-        &self,
-        scope: Session<Account>,
-        params: InsertAccountIdParams,
-    ) -> Result<ActorEntityUuid, Report<AccountError>> {
-        let actor_id = Self::actor(&scope)?;
-
-        let mut store = self.store().await?;
-
-        let account_id = params.account_id;
-        store
-            .insert_account_id(actor_id, params)
-            .await
-            .change_context(AccountError)?;
-
-        Ok(account_id)
-    }
-
-    async fn create_account_group(
-        &self,
-        scope: Session<Account>,
-        params: InsertAccountGroupIdParams,
-    ) -> Result<TeamId, Report<AccountError>> {
-        let actor_id = Self::actor(&scope)?;
-
-        let mut store = self.store().await?;
-
-        let account = store
-            .identify_subject_id(EntityUuid::new(actor_id))
-            .await
-            .inspect_err(|report| {
-                tracing::error!(error=?report, "Could not identify account");
-            })
-            .change_context(AccountError)?;
-
-        if account != (WebOwnerSubject::Account { id: actor_id }) {
-            tracing::error!("Account does not exist in the graph");
-            return Err(
-                Report::new(AccountNotFoundError { id: actor_id }).change_context(AccountError)
-            );
-        }
-
-        let team_id = params.team_id;
-        store
-            .insert_account_group_id(actor_id, params)
-            .await
-            .inspect_err(|report| {
-                tracing::error!(error=?report, "Could not create account id");
-            })
-            .change_context(AccountError)?;
-
-        Ok(team_id)
-    }
-
-    async fn check_account_group_permission(
-        &self,
-        scope: Session<Account>,
-        account_group_id: ActorGroupEntityUuid,
-        permission: AccountGroupPermission,
-    ) -> Result<PermissionResponse, Report<AccountError>> {
-        let actor_id = Self::actor(&scope)?;
-
-        let auth = self.authorization_api().await?;
-
-        let check = auth
-            .check_account_group_permission(
-                actor_id,
-                permission,
-                account_group_id,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .inspect_err(|error| {
-                tracing::error!(
-                    ?error,
-                    "Could not check if permission on the account group is granted to the \
-                     specified actor"
-                );
-            })
-            .change_context(AccountError)?;
-
-        Ok(PermissionResponse {
-            has_permission: check.has_permission,
-        })
-    }
-
     async fn assign_actor_group_role(
         &self,
         scope: Session<Account>,
@@ -409,9 +256,6 @@ impl<T> AccountDelegate<T> {
 impl<T, C> SubsystemDelegate<C> for AccountDelegate<T>
 where
     T: AccountSystem<
-            create_account(..): Send,
-            create_account_group(..): Send,
-            check_account_group_permission(..): Send,
             assign_actor_group_role(..): Send,
             unassign_actor_group_role(..): Send,
             ExecutionScope: Send,
@@ -444,36 +288,6 @@ where
         // We would instead most likely need to add `+ Sync` to the GAT, which would over-constrain
         // it unnecessarily, but would _in theory_ allow us to remove the `Either` chain.
         match id {
-            meta::AccountProcedureId::CreateAccount => {
-                delegate_call_discrete(request, codec, |params| async move {
-                    self.inner.create_account(scope, params).await
-                })
-                .await
-                .map(|response| response.map_body(Either::Left))
-            }
-            meta::AccountProcedureId::CreateAccountGroup => {
-                delegate_call_discrete(request, codec, |params| async move {
-                    self.inner.create_account_group(scope, params).await
-                })
-                .await
-                .map(|response| response.map_body(Either::Left).map_body(Either::Right))
-            }
-            meta::AccountProcedureId::CheckAccountGroupPermission => delegate_call_discrete(
-                request,
-                codec,
-                |(account_group_id, permission)| async move {
-                    self.inner
-                        .check_account_group_permission(scope, account_group_id, permission)
-                        .await
-                },
-            )
-            .await
-            .map(|response| {
-                response
-                    .map_body(Either::Left)
-                    .map_body(Either::Right)
-                    .map_body(Either::Right)
-            }),
             meta::AccountProcedureId::AssignActorGroupRole => delegate_call_discrete(
                 request,
                 codec,
@@ -484,13 +298,7 @@ where
                 },
             )
             .await
-            .map(|response| {
-                response
-                    .map_body(Either::Left)
-                    .map_body(Either::Right)
-                    .map_body(Either::Right)
-                    .map_body(Either::Right)
-            }),
+            .map(|response| response.map_body(Either::Left)),
             meta::AccountProcedureId::UnassignActorGroupRole => delegate_call_discrete(
                 request,
                 codec,
@@ -501,13 +309,7 @@ where
                 },
             )
             .await
-            .map(|response| {
-                response
-                    .map_body(Either::Right)
-                    .map_body(Either::Right)
-                    .map_body(Either::Right)
-                    .map_body(Either::Right)
-            }),
+            .map(|response| response.map_body(Either::Right)),
         }
     }
 }
@@ -541,45 +343,6 @@ where
     C: harpc_client::connection::ConnectionCodec,
 {
     type ExecutionScope = Connection<S, C>;
-
-    async fn create_account(
-        &self,
-        scope: Connection<S, C>,
-        params: InsertAccountIdParams,
-    ) -> Result<ActorEntityUuid, Report<AccountError>> {
-        invoke_call_discrete(scope, meta::AccountProcedureId::CreateAccount, [params])
-            .await
-            .change_context(AccountError)
-    }
-
-    async fn create_account_group(
-        &self,
-        scope: Connection<S, C>,
-        params: InsertAccountGroupIdParams,
-    ) -> Result<TeamId, Report<AccountError>> {
-        invoke_call_discrete(
-            scope,
-            meta::AccountProcedureId::CreateAccountGroup,
-            [params],
-        )
-        .await
-        .change_context(AccountError)
-    }
-
-    async fn check_account_group_permission(
-        &self,
-        scope: Connection<S, C>,
-        account_group_id: ActorGroupEntityUuid,
-        permission: AccountGroupPermission,
-    ) -> Result<PermissionResponse, Report<AccountError>> {
-        invoke_call_discrete(
-            scope,
-            meta::AccountProcedureId::CheckAccountGroupPermission,
-            [(account_group_id, permission)],
-        )
-        .await
-        .change_context(AccountError)
-    }
 
     async fn assign_actor_group_role(
         &self,

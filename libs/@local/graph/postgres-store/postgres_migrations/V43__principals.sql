@@ -108,7 +108,108 @@ FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, al
 EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- ==========================================
--- TEAM TABLE - INTERMEDIATE LEVEL
+-- CONCRETE ACTOR TABLES - LEAF LEVEL
+-- ==========================================
+
+-- ---------------
+-- user_actor
+-- ---------------
+-- A concrete principal and actor
+-- The relationship chain: user_actor → actor → principal
+CREATE TABLE user_actor (
+    id UUID PRIMARY KEY REFERENCES actor (id) ON DELETE CASCADE
+);
+
+-- user_actor registration trigger - creates actor record when user_actor is created
+CREATE FUNCTION register_user_actor()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Create intermediate actor record with the same ID
+    -- This will automatically create a principal record via the actor_register_trigger
+    INSERT INTO actor (id, principal_type) VALUES (NEW.id, 'user');
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER user_actor_register_trigger
+BEFORE INSERT ON user_actor
+FOR EACH ROW EXECUTE FUNCTION register_user_actor();
+
+-- user_actor deletion trigger - prevents direct deletion from user_actor table
+CREATE TRIGGER user_actor_delete_trigger
+BEFORE DELETE ON user_actor
+FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
+EXECUTE FUNCTION prevent_direct_delete_from_concrete();
+
+-- ---------------
+-- machine_actor
+-- ---------------
+-- A concrete principal and actor
+-- The relationship chain: machine_actor → actor → principal
+CREATE TABLE machine_actor (
+    id UUID PRIMARY KEY REFERENCES actor (id) ON DELETE CASCADE,
+    identifier TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_machine_actor_identifier ON machine_actor (identifier);
+
+-- machine_actor registration trigger - creates actor record when machine_actor is created
+CREATE FUNCTION register_machine_actor()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Create intermediate actor record with the same ID
+    -- This will automatically create a principal record via the actor_register_trigger
+    INSERT INTO actor (id, principal_type) VALUES (NEW.id, 'machine');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER machine_actor_register_trigger
+BEFORE INSERT ON machine_actor
+FOR EACH ROW EXECUTE FUNCTION register_machine_actor();
+
+-- machine_actor deletion trigger - prevents direct deletion from machine_actor table
+CREATE TRIGGER machine_actor_delete_trigger
+BEFORE DELETE ON machine_actor
+FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
+EXECUTE FUNCTION prevent_direct_delete_from_concrete();
+
+-- ---------------
+-- ai_actor
+-- ---------------
+-- A concrete principal and actor
+-- The relationship chain: ai_actor → actor → principal
+CREATE TABLE ai_actor (
+    id UUID PRIMARY KEY REFERENCES actor (id) ON DELETE CASCADE,
+    identifier TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_ai_actor_identifier ON ai_actor (identifier);
+
+-- ai_actor registration trigger - creates actor record when ai_actor is created
+CREATE FUNCTION register_ai_actor()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Create intermediate actor record with the same ID
+    -- This will automatically create a principal record via the actor_register_trigger
+    INSERT INTO actor (id, principal_type) VALUES (NEW.id, 'ai');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER ai_actor_register_trigger
+BEFORE INSERT ON ai_actor
+FOR EACH ROW EXECUTE FUNCTION register_ai_actor();
+
+-- ai_actor deletion trigger - prevents direct deletion from ai_actor table
+CREATE TRIGGER ai_actor_delete_trigger
+BEFORE DELETE ON ai_actor
+FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
+EXECUTE FUNCTION prevent_direct_delete_from_concrete();
+
+-- ==========================================
+-- ACTOR GROUP TABLE - INTERMEDIATE LEVEL
 -- ==========================================
 
 -- Team is a concrete principal that represents a group of users/machines
@@ -153,8 +254,11 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- Web is a specialized actor group that represents a top-level entity in our system
 CREATE TABLE web (
-    id UUID PRIMARY KEY REFERENCES actor_group (id) ON DELETE CASCADE
+    id UUID PRIMARY KEY REFERENCES actor_group (id) ON DELETE CASCADE,
+    shortname TEXT
 );
+
+CREATE UNIQUE INDEX idx_web_shortname ON web (shortname) WHERE shortname IS NOT NULL;
 
 -- Web registration trigger - creates actor group record when web is created
 CREATE FUNCTION register_web()
@@ -183,9 +287,11 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 -- Team is a actor group that must have at least one parent
 CREATE TABLE team (
     id UUID PRIMARY KEY REFERENCES actor_group (id) ON DELETE CASCADE,
-    parent_id UUID NOT NULL REFERENCES actor_group (id) ON DELETE CASCADE
+    parent_id UUID NOT NULL REFERENCES actor_group (id) ON DELETE CASCADE,
+    name TEXT NOT NULL
 );
 
+CREATE UNIQUE INDEX idx_team_parent_name ON team (parent_id, name);
 CREATE UNIQUE INDEX idx_team_id ON team (id);
 
 -- Team registration trigger - creates actor group record when team is created
@@ -209,7 +315,7 @@ FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, al
 EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- ==========================================
--- TEAM HIERARCHY - RELATIONSHIPS
+-- ACTOR GROUP HIERARCHY - RELATIONSHIPS
 -- ==========================================
 
 -- Team hierarchy represents parent-child relationships between teams
@@ -226,101 +332,6 @@ CREATE TABLE team_hierarchy (
 CREATE UNIQUE INDEX idx_team_hierarchy_single_parent ON team_hierarchy (
     child_id
 ) WHERE (depth = 1);
-
--- ==========================================
--- CONCRETE PRINCIPAL TABLES - LEAF LEVEL
--- ==========================================
-
--- ---------------
--- user_actor
--- ---------------
--- A concrete principal and actor
--- The relationship chain: user_actor → actor → principal
-CREATE TABLE user_actor (
-    id UUID PRIMARY KEY REFERENCES actor (id) ON DELETE CASCADE
-);
-
--- user_actor registration trigger - creates actor record when user_actor is created
-CREATE FUNCTION register_user_actor()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Create intermediate actor record with the same ID
-    -- This will automatically create a principal record via the actor_register_trigger
-    INSERT INTO actor (id, principal_type) VALUES (NEW.id, 'user');
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER user_actor_register_trigger
-BEFORE INSERT ON user_actor
-FOR EACH ROW EXECUTE FUNCTION register_user_actor();
-
--- user_actor deletion trigger - prevents direct deletion from user_actor table
-CREATE TRIGGER user_actor_delete_trigger
-BEFORE DELETE ON user_actor
-FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
-EXECUTE FUNCTION prevent_direct_delete_from_concrete();
-
--- ---------------
--- machine_actor
--- ---------------
--- A concrete principal and actor
--- The relationship chain: machine_actor → actor → principal
-CREATE TABLE machine_actor (
-    id UUID PRIMARY KEY REFERENCES actor (id) ON DELETE CASCADE
-);
-
--- machine_actor registration trigger - creates actor record when machine_actor is created
-CREATE FUNCTION register_machine_actor()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Create intermediate actor record with the same ID
-    -- This will automatically create a principal record via the actor_register_trigger
-    INSERT INTO actor (id, principal_type) VALUES (NEW.id, 'machine');
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER machine_actor_register_trigger
-BEFORE INSERT ON machine_actor
-FOR EACH ROW EXECUTE FUNCTION register_machine_actor();
-
--- machine_actor deletion trigger - prevents direct deletion from machine_actor table
-CREATE TRIGGER machine_actor_delete_trigger
-BEFORE DELETE ON machine_actor
-FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
-EXECUTE FUNCTION prevent_direct_delete_from_concrete();
-
--- ---------------
--- AI
--- ---------------
--- A concrete principal and actor
--- The relationship chain: ai_actor → actor → principal
-CREATE TABLE ai_actor (
-    id UUID PRIMARY KEY REFERENCES actor (id) ON DELETE CASCADE
-);
-
--- ai_actor registration trigger - creates actor record when ai_actor is created
-CREATE FUNCTION register_ai_actor()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Create intermediate actor record with the same ID
-    -- This will automatically create a principal record via the actor_register_trigger
-    INSERT INTO actor (id, principal_type) VALUES (NEW.id, 'ai');
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER ai_actor_register_trigger
-BEFORE INSERT ON ai_actor
-FOR EACH ROW EXECUTE FUNCTION register_ai_actor();
-
--- ai_actor deletion trigger - prevents direct deletion from ai_actor table
-CREATE TRIGGER ai_actor_delete_trigger
-BEFORE DELETE ON ai_actor
-FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
-EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- ---------------
 -- Role
@@ -374,8 +385,17 @@ CREATE TABLE actor_role (
 );
 
 
-INSERT INTO web (id)
-SELECT webs.web_id FROM webs;
+INSERT INTO web (id, shortname)
+SELECT
+    webs.web_id,
+    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/shortname/'
+FROM webs
+LEFT OUTER JOIN entity_temporal_metadata
+    ON webs.web_id = entity_temporal_metadata.entity_uuid
+    AND entity_temporal_metadata.decision_time @> now()
+    AND entity_temporal_metadata.transaction_time @> now()
+LEFT OUTER JOIN entity_editions
+    ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id;
 
 INSERT INTO user_actor (id)
 SELECT accounts.account_id
@@ -390,8 +410,11 @@ WHERE entity_temporal_metadata.decision_time @> now()
     AND entity_temporal_metadata.transaction_time @> now()
     AND ontology_ids.base_url = 'https://hash.ai/@h/types/entity-type/user/';
 
-INSERT INTO machine_actor (id)
-SELECT accounts.account_id FROM accounts
+INSERT INTO machine_actor (id, identifier)
+SELECT
+    accounts.account_id,
+    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/'
+FROM accounts
 INNER JOIN entity_temporal_metadata
     ON accounts.account_id = entity_temporal_metadata.entity_uuid
 INNER JOIN entity_is_of_type
@@ -406,8 +429,11 @@ WHERE entity_temporal_metadata.decision_time @> now()
     AND entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/'
     != 'hash-ai';
 
-INSERT INTO ai_actor (id)
-SELECT accounts.account_id FROM accounts
+INSERT INTO ai_actor (id, identifier)
+SELECT
+    accounts.account_id,
+    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/'
+FROM accounts
 INNER JOIN entity_temporal_metadata
     ON accounts.account_id = entity_temporal_metadata.entity_uuid
 INNER JOIN entity_is_of_type
@@ -449,10 +475,11 @@ WITH
             = 'h'
     )
 
-INSERT INTO team (id, parent_id)
+INSERT INTO team (id, parent_id, name)
 SELECT
     system_account.id,
-    system_web.id AS web_id
+    system_web.id AS web_id,
+    'instance-admins' AS name
 FROM system_account, system_web
 WHERE system_account.id IS NOT NULL AND system_web.id IS NOT NULL;
 

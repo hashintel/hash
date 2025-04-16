@@ -1,8 +1,8 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
 import {
-  addAccountGroupMember,
-  removeAccountGroupMember,
+  addActorGroupMember,
+  removeActorGroupMember,
 } from "../../graph/account-permission-management";
 import type {
   EntityAuthorizationSubject,
@@ -23,10 +23,10 @@ import { generatePluralResolver } from "./generation/generate-plural";
 import { isGenerationAvailableResolver } from "./generation/is-generation-available";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
 import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
-import { blocksResolver } from "./knowledge/block/block";
-import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { blockCollectionContents } from "./knowledge/block-collection/block-collection-contents";
 import { updateBlockCollectionContents } from "./knowledge/block-collection/update-block-collection-contents";
+import { blocksResolver } from "./knowledge/block/block";
+import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { commentAuthorResolver } from "./knowledge/comment/author";
 import { createCommentResolver } from "./knowledge/comment/comment";
 import { deleteCommentResolver } from "./knowledge/comment/delete";
@@ -233,14 +233,14 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     ),
 
     addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
-      addAccountGroupMember(context.dataSources, context.authentication, {
-        accountId,
-        accountGroupId,
+      addActorGroupMember(context.dataSources, context.authentication, {
+        actorId: accountId,
+        actorGroupId: accountGroupId,
       }),
     removeAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
-      removeAccountGroupMember(context.dataSources, context.authentication, {
-        accountId,
-        accountGroupId,
+      removeActorGroupMember(context.dataSources, context.authentication, {
+        actorId: accountId,
+        actorGroupId: accountGroupId,
       }),
 
     // Integration

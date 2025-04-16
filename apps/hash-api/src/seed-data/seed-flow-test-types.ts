@@ -8,7 +8,7 @@ import {
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { EntityTypeRelationAndSubject } from "@local/hash-graph-client/dist/api.d";
 import {
@@ -171,7 +171,7 @@ const seedFlowTestTypes = async () => {
 
   const context = { graphApi, provenance };
 
-  const hashBotActorId = await getMachineActorId(
+  const hashBotActorId = await getMachineIdByIdentifier(
     context,
     { actorId: publicUserAccountId },
     { identifier: "h" },

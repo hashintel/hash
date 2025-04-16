@@ -7,7 +7,7 @@ import {
   getGoogleAccountById,
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
-import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -362,7 +362,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     },
   };
 
-  const webBotActorId = await getWebMachineActorId(
+  const webBotActorId = await getWebMachineId(
     { graphApi: graphApiClient },
     { actorId: userAccountId },
     { webId },

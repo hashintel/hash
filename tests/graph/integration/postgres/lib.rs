@@ -45,7 +45,7 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::{
-    account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
+    account::{AccountStore as _, CreateOrgWebParams, CreateUserParams},
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
         GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
@@ -227,7 +227,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
         store
             .insert_account_id(
                 account_id,
-                InsertAccountIdParams {
+                CreateUserParams {
                     account_id,
                     account_type: ActorType::User,
                 },
@@ -235,9 +235,9 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .await
             .expect("could not insert account id");
         store
-            .insert_web_id(
+            .create_org_web(
                 account_id,
-                InsertWebIdParams {
+                CreateOrgWebParams {
                     web_id: WebId::new(account_id),
                     administrator: account_id,
                 },

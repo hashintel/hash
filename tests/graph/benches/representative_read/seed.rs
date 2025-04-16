@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 use hash_graph_authorization::AuthorizationApi;
 use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::{
-    account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
+    account::{AccountStore as _, CreateOrgWebParams, CreateUserParams},
     entity::{CreateEntityParams, EntityStore as _},
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
@@ -140,26 +140,32 @@ async fn seed_db<A: AuthorizationApi>(
     let now = std::time::SystemTime::now();
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
-    transaction
-        .insert_account_id(
-            account_id,
-            InsertAccountIdParams {
+    if !transaction
+        .is_actor(account_id)
+        .await
+        .expect("Should be able to check actor")
+    {
+        transaction
+            .insert_account_id(
                 account_id,
-                account_type: ActorType::Machine,
-            },
-        )
-        .await
-        .expect("could not insert account id");
-    transaction
-        .insert_web_id(
-            account_id,
-            InsertWebIdParams {
-                web_id: WebId::new(account_id),
-                administrator: account_id,
-            },
-        )
-        .await
-        .expect("could not create web id");
+                CreateUserParams {
+                    account_id,
+                    account_type: ActorType::Machine,
+                },
+            )
+            .await
+            .expect("could not insert account id");
+        transaction
+            .create_org_web(
+                account_id,
+                CreateOrgWebParams {
+                    web_id: WebId::new(account_id),
+                    administrator: account_id,
+                },
+            )
+            .await
+            .expect("could not create web id");
+    }
 
     seed(
         &mut transaction,

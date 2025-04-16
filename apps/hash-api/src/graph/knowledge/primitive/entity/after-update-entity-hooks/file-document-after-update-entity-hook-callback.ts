@@ -4,7 +4,7 @@ import {
   isStorageType,
   storageProviderLookup,
 } from "@local/hash-backend-utils/file-storage";
-import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import {
   getDefinedPropertyFromPatchesGetter,
   type HashEntity,
@@ -93,13 +93,9 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
         updatedEntity.metadata.recordId.entityId,
       );
 
-      const webMachineActorId = await getWebMachineActorId(
-        context,
-        authentication,
-        {
-          webId: fileEntityWebId,
-        },
-      );
+      const webMachineActorId = await getWebMachineId(context, authentication, {
+        webId: fileEntityWebId,
+      });
 
       try {
         await temporalClient.workflow.execute<

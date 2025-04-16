@@ -22,7 +22,7 @@ async fn create_team() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let team_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
+    let team_id = client.insert_team(None, ActorGroupId::Web(web_id)).await?;
     assert!(client.is_team(team_id).await?);
 
     let team = client.get_team(team_id).await?.expect("Team should exist");
@@ -42,7 +42,7 @@ async fn create_team_with_id() -> Result<(), Box<dyn Error>> {
         .await?;
     let id = Uuid::new_v4();
     let team_id = client
-        .create_team(Some(id), ActorGroupId::Web(web_id))
+        .insert_team(Some(id), ActorGroupId::Web(web_id))
         .await?;
 
     assert_eq!(Uuid::from(team_id), id);
@@ -60,9 +60,9 @@ async fn delete_team_with_hierarchy() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let mid_team_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
+    let mid_team_id = client.insert_team(None, ActorGroupId::Web(web_id)).await?;
     let bottom_team_id = client
-        .create_team(None, ActorGroupId::Team(mid_team_id))
+        .insert_team(None, ActorGroupId::Team(mid_team_id))
         .await?;
 
     // Verify hierarchy is correctly established
@@ -132,9 +132,9 @@ async fn can_delete_team_with_children() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let parent_team_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
+    let parent_team_id = client.insert_team(None, ActorGroupId::Web(web_id)).await?;
     let child_team_id = client
-        .create_team(None, ActorGroupId::Team(parent_team_id))
+        .insert_team(None, ActorGroupId::Team(parent_team_id))
         .await?;
 
     // Delete the parent team
@@ -160,12 +160,12 @@ async fn create_team_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     // Create a team with a specific ID
     let id = Uuid::new_v4();
     let team_id = client
-        .create_team(Some(id), ActorGroupId::Web(web_id))
+        .insert_team(Some(id), ActorGroupId::Web(web_id))
         .await?;
 
     // Try to create another team with the same ID
     let result = client
-        .create_team(Some(id), ActorGroupId::Web(web_id))
+        .insert_team(Some(id), ActorGroupId::Web(web_id))
         .await;
 
     // The implementation now returns a PrincipalAlreadyExists error
@@ -193,7 +193,7 @@ async fn get_team() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let team_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
+    let team_id = client.insert_team(None, ActorGroupId::Web(web_id)).await?;
 
     // Get the team and verify it matches
     let retrieved = client.get_team(team_id).await?.expect("Team should exist");

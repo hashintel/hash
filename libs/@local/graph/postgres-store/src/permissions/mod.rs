@@ -120,7 +120,8 @@ where
         Ok(())
     }
 
-    /// Creates a new user with the given ID, or generates a new UUID if none is provided.
+    /// Creates a new user with the given ID, or generates a new UUID if none
+    /// is provided.
     ///
     /// # Errors
     ///
@@ -291,11 +292,15 @@ where
     pub async fn create_machine(
         &mut self,
         id: Option<Uuid>,
+        identifier: &str,
     ) -> Result<MachineId, Report<PrincipalError>> {
         let id = MachineId::new(id.unwrap_or_else(Uuid::new_v4));
         if let Err(error) = self
             .as_mut_client()
-            .execute("INSERT INTO machine_actor (id) VALUES ($1)", &[&id])
+            .execute(
+                "INSERT INTO machine_actor (id, identifier) VALUES ($1, $2)",
+                &[&id, &identifier],
+            )
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
@@ -395,11 +400,18 @@ where
     ///
     /// [`PrincipalAlreadyExists`]: PrincipalError::PrincipalAlreadyExists
     /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn create_ai(&mut self, id: Option<Uuid>) -> Result<AiId, Report<PrincipalError>> {
+    pub async fn create_ai(
+        &mut self,
+        id: Option<Uuid>,
+        identifier: &str,
+    ) -> Result<AiId, Report<PrincipalError>> {
         let ai_id = AiId::new(id.unwrap_or_else(Uuid::new_v4));
         if let Err(error) = self
             .as_mut_client()
-            .execute("INSERT INTO ai_actor (id) VALUES ($1)", &[&ai_id])
+            .execute(
+                "INSERT INTO ai_actor (id, identifier) VALUES ($1, $2)",
+                &[&ai_id, &identifier],
+            )
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
@@ -563,10 +575,11 @@ where
     ///
     /// [`PrincipalAlreadyExists`]: PrincipalError::PrincipalAlreadyExists
     /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn create_team(
+    pub async fn insert_team(
         &mut self,
         id: Option<Uuid>,
         parent_id: ActorGroupId,
+        name: &str,
     ) -> Result<TeamId, Report<PrincipalError>> {
         let id = id.unwrap_or_else(Uuid::new_v4);
         let transaction = self
@@ -578,8 +591,8 @@ where
         // First create the team
         transaction
             .execute(
-                "INSERT INTO team (id, parent_id) VALUES ($1, $2)",
-                &[&id, &parent_id],
+                "INSERT INTO team (id, parent_id, name) VALUES ($1, $2, $3)",
+                &[&id, &parent_id, &name],
             )
             .await
             .map_err(Report::new)
@@ -827,9 +840,10 @@ where
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn assign_role_by_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: impl Into<ActorId>,
         role_id: RoleId,
     ) -> Result<RoleAssignmentStatus, Report<PrincipalError>> {
+        let actor_id = actor_id.into();
         // Check if the actor exists
         if !self.is_actor(actor_id).await? {
             return Err(Report::new(PrincipalError::PrincipalNotFound {
@@ -870,9 +884,10 @@ where
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn unassign_role_by_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: impl Into<ActorId>,
         role_id: RoleId,
     ) -> Result<RoleUnassignmentStatus, Report<PrincipalError>> {
+        let actor_id = actor_id.into();
         let num_deleted = self
             .as_mut_client()
             .execute(

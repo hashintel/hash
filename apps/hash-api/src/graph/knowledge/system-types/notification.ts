@@ -4,7 +4,7 @@ import {
 } from "@blockprotocol/graph/stdlib";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
 import type {
   CreateEntityParameters,
@@ -131,11 +131,9 @@ export const createMentionNotification: ImpureGraphFunction<
     webId,
   } = params;
 
-  const webMachineActorId = await getWebMachineActorId(
-    context,
-    userAuthentication,
-    { webId },
-  );
+  const webMachineActorId = await getWebMachineId(context, userAuthentication, {
+    webId,
+  });
   const botAuthentication = { actorId: webMachineActorId };
 
   const { linkEntityRelationships, notificationEntityRelationships } =
@@ -399,11 +397,9 @@ export const createCommentNotification: ImpureGraphFunction<
     webId,
   } = params;
 
-  const webMachineActorId = await getWebMachineActorId(
-    context,
-    userAuthentication,
-    { webId },
-  );
+  const webMachineActorId = await getWebMachineId(context, userAuthentication, {
+    webId,
+  });
   const authentication = { actorId: webMachineActorId };
 
   const { linkEntityRelationships, notificationEntityRelationships } =

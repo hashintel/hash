@@ -14,7 +14,7 @@ import {
   mustHaveAtLeastOne,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
-import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -41,7 +41,7 @@ export const upgradeWebEntities = async ({
   entityTypeBaseUrls,
   migrationState,
   migrateProperties,
-  webWebId,
+  webId,
 }: {
   authentication: { actorId: ActorEntityUuid };
   context: ImpureGraphContext<false, true>;
@@ -53,13 +53,13 @@ export const upgradeWebEntities = async ({
       previousProperties: PropertyObjectWithMetadata,
     ) => PropertyObjectWithMetadata
   >;
-  webWebId: WebId;
+  webId: WebId;
 }) => {
-  const webBotAccountId = await getWebMachineActorId(context, authentication, {
-    webId: webWebId,
+  const webBotAccountId = await getWebMachineId(context, authentication, {
+    webId,
   });
 
-  const webBotAuthentication = { actorId: webBotAccountId };
+  const webBotAuthentication = { actorId: webBotAccountId as ActorEntityUuid };
 
   const { subgraph } = await getEntitySubgraphResponse(
     context,
@@ -89,7 +89,7 @@ export const upgradeWebEntities = async ({
             equal: [
               { path: ["webId"] },
               {
-                parameter: webWebId,
+                parameter: webId,
               },
             ],
           },

@@ -1,4 +1,4 @@
-//! Web routes for CRU operations on accounts.
+//! Web routes for CRU operations on actors.
 
 use alloc::sync::Arc;
 
@@ -19,7 +19,10 @@ use hash_graph_authorization::{
     zanzibar::Consistency,
 };
 use hash_graph_store::{
-    account::{AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams},
+    account::{
+        AccountStore as _, CreateAiActorParams, CreateUserActorParams, CreateUserActorResponse,
+        GetTeamResponse,
+    },
     pool::StorePool,
 };
 use hash_temporal_client::TemporalClient;
@@ -38,14 +41,15 @@ use crate::rest::{
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        create_account,
-        create_account_group,
-        get_or_create_system_account,
+        create_user_actor,
+        create_ai_actor,
+        get_or_create_system_actor,
+        find_instance_admins_team,
 
         check_account_group_permission,
-        assign_account_group_role,
-        unassign_account_group_role,
-        get_account_group_relations,
+        assign_actor_group_role,
+        unassign_actor_group_role,
+        get_actor_group_relations,
     ),
     components(
         schemas(
@@ -57,11 +61,9 @@ use crate::rest::{
             ActorEntityUuid,
             ActorGroupEntityUuid,
             TeamId,
+            GetTeamResponse,
             WebId,
             ActorGroupId,
-            TeamId,
-            WebId,
-            ActorGroupEntityUuid,
             RoleName,
             RoleAssignmentStatus,
             RoleUnassignmentStatus,
@@ -69,19 +71,19 @@ use crate::rest::{
             AccountGroupRelationAndSubject,
             AccountGroupMemberSubject,
             AccountGroupAdministratorSubject,
-
-            InsertAccountIdParams,
-            InsertAccountGroupIdParams,
+            CreateUserActorParams,
+            CreateUserActorResponse,
+            CreateAiActorParams,
         ),
     ),
     tags(
-        (name = "Account", description = "Account management API")
+        (name = "Actor", description = "Actor management API")
     )
 )]
-pub(crate) struct AccountResource;
+pub(crate) struct ActorResource;
 
-impl AccountResource {
-    /// Create routes for interacting with accounts.
+impl ActorResource {
+    /// Create routes for interacting with actors.
     pub(crate) fn routes<S, A>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
@@ -90,36 +92,50 @@ impl AccountResource {
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new()
-            .route("/system_account", get(get_or_create_system_account::<S, A>))
-            .route("/accounts", post(create_account::<S, A>))
             .nest(
-                "/account_groups",
+                "/system",
                 Router::new()
-                    .route("/", post(create_account_group::<S, A>))
-                    .nest(
-                        "/:account_group_id",
-                        Router::new()
-                            .route(
-                                "/permissions/:permission",
-                                get(check_account_group_permission::<A>),
-                            )
-                            .route("/relations", get(get_account_group_relations::<A>))
-                            .route(
-                                "/:role/:account_id",
-                                post(assign_account_group_role::<S, A>)
-                                    .delete(unassign_account_group_role::<S, A>),
-                            ),
-                    ),
+                    .route(
+                        "/actor/:identifier",
+                        get(get_or_create_system_actor::<S, A>),
+                    )
+                    .route("/instance-admins", get(find_instance_admins_team::<S, A>)),
+            )
+            .nest(
+                "/actors",
+                Router::new()
+                    .route("/user", post(create_user_actor::<S, A>))
+                    .route("/ai", post(create_ai_actor::<S, A>)),
+            )
+            .nest(
+                "/actor_groups",
+                Router::new().nest(
+                    "/:actor_group_id",
+                    Router::new()
+                        .route(
+                            "/permissions/:permission",
+                            get(check_account_group_permission::<A>),
+                        )
+                        .route("/relations", get(get_actor_group_relations::<A>))
+                        .route(
+                            "/:role/:actor_id",
+                            post(assign_actor_group_role::<S, A>)
+                                .delete(unassign_actor_group_role::<S, A>),
+                        ),
+                ),
             )
     }
 }
 
 #[utoipa::path(
     get,
-    path = "/system_account",
-    tag = "Account",
+    path = "/system/actor/{identifier}",
+    tag = "Actor",
+    params(
+        ("identifier" = String, Path, description = "The identifier of the actor to get"),
+    ),
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the created account", body = MachineId),
+        (status = 200, content_type = "application/json", description = "The schema of the created actor", body = MachineId),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -128,8 +144,9 @@ impl AccountResource {
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn get_or_create_system_account<S, A>(
+async fn get_or_create_system_actor<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
+    Path(identifier): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
 ) -> Result<Json<MachineId>, Response>
@@ -149,7 +166,7 @@ where
         .map_err(report_to_response)?;
 
     store
-        .get_or_create_system_account()
+        .get_or_create_system_actor(&identifier)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -157,14 +174,14 @@ where
 
 #[utoipa::path(
     post,
-    path = "/accounts",
-    tag = "Account",
-    request_body = InsertAccountIdParams,
+    path = "/actors/user",
+    tag = "Actor",
+    request_body = CreateUserActorParams,
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the created account", body = ActorId),
+        (status = 200, content_type = "application/json", description = "The schema of the created actor", body = CreateUserActorResponse),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -173,46 +190,43 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn create_account<S, A>(
+async fn create_user_actor<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-    Json(params): Json<InsertAccountIdParams>,
-) -> Result<Json<ActorId>, Response>
+    Json(params): Json<CreateUserActorParams>,
+) -> Result<Json<CreateUserActorResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let authorization_api = authorization_api_pool
-        .acquire()
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
         .await
-        .map_err(report_to_response)?;
-
-    let mut store = store_pool
-        .acquire(authorization_api, temporal_client.0)
+        .map_err(report_to_response)?
+        .create_user_actor(actor_id, params)
         .await
-        .map_err(report_to_response)?;
-
-    let actor = ActorId::new(params.account_id, params.account_type);
-    store
-        .insert_account_id(actor_id, params)
-        .await
-        .map_err(report_to_response)?;
-
-    Ok(Json(actor))
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(
     post,
-    path = "/account_groups",
-    tag = "Account Group",
-    request_body = InsertAccountGroupIdParams,
+    path = "/actors/ai",
+    tag = "Actor",
+    request_body = CreateAiActorParams,
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the created account", body = ActorGroupEntityUuid),
+        (status = 200, content_type = "application/json", description = "The schema of the created actor", body = AiId),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -221,16 +235,60 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn create_account_group<S, A>(
+async fn create_ai_actor<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-    Json(params): Json<InsertAccountGroupIdParams>,
-) -> Result<Json<TeamId>, Response>
+    Json(params): Json<CreateAiActorParams>,
+) -> Result<Json<AiId>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
+{
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .create_ai_actor(actor_id, params)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
+}
+
+#[utoipa::path(
+    get,
+    path = "/system/instance-admins",
+    tag = "Web",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = Option<GetTeamResponse>),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn find_instance_admins_team<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
+) -> Result<Json<Option<GetTeamResponse>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
     let authorization_api = authorization_api_pool
         .acquire()
@@ -242,22 +300,20 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let team_id = params.team_id;
     store
-        .insert_account_group_id(actor_id, params)
+        .find_team_by_name(actor_id, "instance-admins")
         .await
-        .map_err(report_to_response)?;
-
-    Ok(Json(team_id))
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(
     get,
-    path = "/account_groups/{account_group_id}/permissions/{permission}",
-    tag = "Account Group",
+    path = "/actor_groups/{actor_group_id}/permissions/{permission}",
+    tag = "Actor Group",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("account_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the account group to check if the actor has the permission"),
+        ("actor_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the actor group to check if the actor has the permission"),
         ("permission" = AccountGroupPermission, Path, description = "The permission to check for"),
     ),
     responses(
@@ -268,8 +324,8 @@ where
 )]
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn check_account_group_permission<A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((account_group_id, permission)): Path<(ActorGroupEntityUuid, AccountGroupPermission)>,
+    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    Path((actor_group_id, permission)): Path<(ActorGroupEntityUuid, AccountGroupPermission)>,
     authorization_api_pool: Extension<Arc<A>>,
     mut query_logger: Option<Extension<QueryLogger>>,
 ) -> Result<Json<PermissionResponse>, Response>
@@ -278,9 +334,9 @@ where
 {
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(
-            actor_id,
+            actor,
             OpenApiQuery::CheckAccountGroupPermission {
-                account_group_id,
+                actor_group_id,
                 permission,
             },
         );
@@ -292,14 +348,14 @@ where
             .await
             .map_err(report_to_response)?
             .check_account_group_permission(
-                actor_id,
+                actor,
                 permission,
-                account_group_id,
+                actor_group_id,
                 Consistency::FullyConsistent,
             )
             .await
             .attach_printable(
-                "Could not check if permission on the account group is granted to the specified \
+                "Could not check if permission on the actor group is granted to the specified \
                  actor",
             )
             .map_err(report_to_response)?
@@ -313,16 +369,16 @@ where
 
 #[utoipa::path(
     post,
-    path = "/account_groups/{account_group_id}/{role}/{account_id}",
-    tag = "Account Group",
+    path = "/actor_groups/{actor_group_id}/{role}/{actor_id}",
+    tag = "Actor Group",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("account_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the account group to add the member to"),
-        ("role" = RoleName, Path, description = "The role to assign to the account"),
-        ("account_id" = ActorEntityUuid, Path, description = "The ID of the account to add to the group"),
+        ("actor_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the actor group to add the member to"),
+        ("role" = RoleName, Path, description = "The role to assign to the actor"),
+        ("actor_id" = ActorEntityUuid, Path, description = "The ID of the actor to add to the group"),
     ),
     responses(
-        (status = 200, body = RoleAssignmentStatus, description = "The account group member was added"),
+        (status = 200, body = RoleAssignmentStatus, description = "The actor group member was added"),
 
         (status = 403, description = "Permission denied"),
         (status = 500, description = "Store error occurred"),
@@ -332,9 +388,9 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn assign_account_group_role<S, A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((account_group_id, role_name, account_id)): Path<(
+async fn assign_actor_group_role<S, A>(
+    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    Path((actor_group_id, role_name, actor_id)): Path<(
         ActorGroupEntityUuid,
         RoleName,
         ActorEntityUuid,
@@ -358,7 +414,7 @@ where
         )
         .await
         .map_err(report_to_response)?
-        .assign_role(actor_id, account_id, account_group_id, role_name)
+        .assign_role(actor, actor_id, actor_group_id, role_name)
         .await
         .map(Json)
         .map_err(report_to_response)
@@ -366,16 +422,16 @@ where
 
 #[utoipa::path(
     delete,
-    path = "/account_groups/{account_group_id}/{role}/{account_id}",
-    tag = "Account Group",
+    path = "/actor_groups/{actor_group_id}/{role}/{actor_id}",
+    tag = "Actor Group",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("account_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the account group to remove the member from"),
-        ("role" = RoleName, Path, description = "The role to remove from the account"),
-        ("account_id" = ActorEntityUuid, Path, description = "The ID of the account to remove from the group")
+        ("actor_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the actor group to remove the member from"),
+        ("role" = RoleName, Path, description = "The role to remove from the actor"),
+        ("actor_id" = ActorEntityUuid, Path, description = "The ID of the actor to remove from the group")
     ),
     responses(
-        (status = 200, body = RoleUnassignmentStatus, description = "The account group member was removed"),
+        (status = 200, body = RoleUnassignmentStatus, description = "The actor group member was removed"),
 
         (status = 403, description = "Permission denied"),
         (status = 500, description = "Store error occurred"),
@@ -385,9 +441,9 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn unassign_account_group_role<S, A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((account_group_id, role_name, account_id)): Path<(
+async fn unassign_actor_group_role<S, A>(
+    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    Path((actor_group_id, role_name, actor_id)): Path<(
         ActorGroupEntityUuid,
         RoleName,
         ActorEntityUuid,
@@ -411,7 +467,7 @@ where
         )
         .await
         .map_err(report_to_response)?
-        .unassign_role(actor_id, account_id, account_group_id, role_name)
+        .unassign_role(actor, actor_id, actor_group_id, role_name)
         .await
         .map(Json)
         .map_err(report_to_response)
@@ -419,22 +475,22 @@ where
 
 #[utoipa::path(
     get,
-    path = "/account_groups/{account_group_id}/relations",
-    tag = "Account Group",
+    path = "/actor_groups/{actor_group_id}/relations",
+    tag = "Actor Group",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("account_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the account group to get relations from"),
+        ("actor_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the actor group to get relations from"),
     ),
     responses(
-        (status = 200, body = Vec<AccountGroupRelationAndSubject>, description = "List of members and administrators of the account group"),
+        (status = 200, body = Vec<AccountGroupRelationAndSubject>, description = "List of members and administrators of the actor group"),
         (status = 403, description = "Permission denied"),
         (status = 500, description = "Internal error occurred"),
     )
 )]
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn get_account_group_relations<A>(
+async fn get_actor_group_relations<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path(account_group_id): Path<ActorGroupEntityUuid>,
+    Path(actor_group_id): Path<ActorGroupEntityUuid>,
     authorization_api_pool: Extension<Arc<A>>,
     mut query_logger: Option<Extension<QueryLogger>>,
 ) -> Result<Json<Vec<AccountGroupRelationAndSubject>>, Response>
@@ -444,7 +500,7 @@ where
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(
             actor_id,
-            OpenApiQuery::GetAccountGroupRelations { account_group_id },
+            OpenApiQuery::GetActorGroupRelations { actor_group_id },
         );
     }
 
@@ -453,11 +509,11 @@ where
         .await
         .map_err(report_to_response)?;
 
-    // Get relations of the account group
+    // Get relations of the actor group
     let result = authorization_api
-        .get_account_group_relations(account_group_id, Consistency::FullyConsistent)
+        .get_account_group_relations(actor_group_id, Consistency::FullyConsistent)
         .await
-        .attach_printable("Could not get account group relations")
+        .attach_printable("Could not get actor group relations")
         .map_err(report_to_response)
         .map(Json);
 
