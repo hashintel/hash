@@ -236,6 +236,15 @@ pub struct SimplifyEnvironment<'env> {
     boundary: RecursionBoundary,
 }
 
+impl<'env> SimplifyEnvironment<'env> {
+    pub fn new(environment: &'env mut Environment) -> Self {
+        Self {
+            environment,
+            boundary: RecursionBoundary::new(),
+        }
+    }
+}
+
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
 // As the unification environment is just a wrapper around the environment with an additional guard.
 impl Deref for SimplifyEnvironment<'_> {
@@ -285,6 +294,15 @@ impl DerefMut for LatticeEnvironment<'_> {
 pub struct TypeAnalysisEnvironment<'env> {
     environment: &'env Environment,
     boundary: RecursionBoundary,
+}
+
+impl<'env> TypeAnalysisEnvironment<'env> {
+    pub fn new(environment: &'env Environment) -> Self {
+        Self {
+            environment,
+            boundary: RecursionBoundary::new(),
+        }
+    }
 }
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
