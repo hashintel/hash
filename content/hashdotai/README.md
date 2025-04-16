@@ -25,8 +25,4 @@ Our resources are written in [MDX], a format which allows for using JSX tags in 
 
 This has the same syntax as Markdown documents, except for special tags we use to highlight certain elements, which you can see examples of in existing documents.
 
-There is currently an issue with code blocks _inside of_ Custom MDX components, eg, `Tabs` or `Hint`. There needs to be a new line before any code block (ie, text preceded by backticks ```) so that the code inside isn't interpreted as JSX by the MDX parser. This issue should be fixed by improvements to the parser documented in the `mdx-js` repo (https://github.com/mdx-js/mdx/issues/1041) which were introduced in MDX v2.
-
-## Future plans
-
-This `hashdotai` directory will be moved to a new dedicated `content` directory in the root of this repository to facilitate easier discovery and user-suggested edits.
+There is currently an issue with code blocks _inside of_ Custom MDX components, eg, `Tabs` or `Hint`. There needs to be a new line before any code block (i.e. text preceded by backticks ```) so that the code inside isn't interpreted as JSX by the MDX parser. This issue should be fixed by improvements to the parser documented in the `mdx-js` repo (https://github.com/mdx-js/mdx/issues/1041) which were introduced in MDX v2.
