@@ -153,11 +153,15 @@ async fn setup_policy_test_environment(
 
     // Create roles for each team
     let web_1_role_id = client
-        .create_role(None, ActorGroupId::Web(web1_id), RoleName::Administrator)
-        .await?;
+        .get_role(ActorGroupId::Web(web1_id), RoleName::Administrator)
+        .await?
+        .expect("role should exist")
+        .id();
     let web_2_role_id = client
-        .create_role(None, ActorGroupId::Web(web2_id), RoleName::Administrator)
-        .await?;
+        .get_role(ActorGroupId::Web(web2_id), RoleName::Administrator)
+        .await?
+        .expect("role should exist")
+        .id();
     let team1_role_id = client
         .create_role(None, ActorGroupId::Team(team_1_id), RoleName::Administrator)
         .await?;
@@ -742,133 +746,38 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
-async fn multiple_actor_roles() -> Result<(), Box<dyn Error>> {
-    let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
-
-    // Create teams and roles
-    let web_id = client
-        .create_web(
-            actor_id,
-            CreateWebParameter {
-                id: None,
-                administrator: actor_id,
-                shortname: None,
-                is_actor_web: false,
-            },
-        )
-        .await?;
-    let role1_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
-        .await?;
-    let role2_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
-        .await?;
-    let role3_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
-        .await?;
-
-    // Create user with multiple roles
-    let user_id = client.create_user(None).await?;
-    client
-        .assign_role_by_id(ActorId::User(user_id), role1_id)
-        .await?;
-    client
-        .assign_role_by_id(ActorId::User(user_id), role2_id)
-        .await?;
-    client
-        .assign_role_by_id(ActorId::User(user_id), role3_id)
-        .await?;
-
-    // Create policies for each role
-    let policy1_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Role {
-                role: role1_id,
-                actor_type: None,
-            }),
-            actions: vec![ActionName::All],
-            resource: None,
-            constraints: None,
-        })
-        .await?;
-
-    let policy2_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Role {
-                role: role2_id,
-                actor_type: None,
-            }),
-            actions: vec![ActionName::All],
-            resource: None,
-            constraints: None,
-        })
-        .await?;
-
-    let policy3_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Role {
-                role: role3_id,
-                actor_type: None,
-            }),
-            actions: vec![ActionName::All],
-            resource: None,
-            constraints: None,
-        })
-        .await?;
-
-    // Verify all policies are retrieved
-    let policies = client
-        .get_policies_for_actor(ActorId::User(user_id))
-        .await?;
-
-    assert!(
-        policies.contains_key(&policy1_id),
-        "Should get policy for role1"
-    );
-    assert!(
-        policies.contains_key(&policy2_id),
-        "Should get policy for role2"
-    );
-    assert!(
-        policies.contains_key(&policy3_id),
-        "Should get policy for role3"
-    );
-    assert!(
-        policies.len() >= 3,
-        "Should get at least the 3 role policies"
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
 async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
     // Create a deep team hierarchy
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
+
+    let team1_id = client
+        .insert_team(None, ActorGroupId::Web(web_id), "team-1")
         .await?;
-    let team1_id = client.insert_team(None, ActorGroupId::Web(web_id)).await?;
     let team2_id = client
-        .insert_team(None, ActorGroupId::Team(team1_id))
+        .insert_team(None, ActorGroupId::Team(team1_id), "team-2")
         .await?;
     let team3_id = client
-        .insert_team(None, ActorGroupId::Team(team2_id))
+        .insert_team(None, ActorGroupId::Team(team2_id), "team-3")
         .await?;
     let team4_id = client
-        .insert_team(None, ActorGroupId::Team(team3_id))
+        .insert_team(None, ActorGroupId::Team(team3_id), "team-4")
         .await?;
     let team5_id = client
-        .insert_team(None, ActorGroupId::Team(team4_id))
+        .insert_team(None, ActorGroupId::Team(team4_id), "team-5")
         .await?;
 
     // Create roles

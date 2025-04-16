@@ -549,12 +549,12 @@ where
             .as_client()
             .query_opt(
                 "SELECT
-                    id,
+                    web.id,
                     shortname,
                     array_agg(role.id) FILTER (WHERE role.id IS NOT NULL)
                 FROM web
                 LEFT OUTER JOIN role ON web.id = role.actor_group_id
-                WHERE id = $1
+                WHERE web.id = $1
                 GROUP BY web.id, web.shortname",
                 &[&id],
             )
@@ -677,22 +677,22 @@ where
             .as_client()
             .query_opt(
                 "SELECT
-                    id,
+                    team.id,
                     parent.principal_type,
                     parent.id,
-                    name,
+                    team.name,
                     array_agg(role.id) FILTER (WHERE role.id IS NOT NULL)
                 FROM team
                 JOIN actor_group AS parent ON parent.id = parent_id
                 LEFT OUTER JOIN role ON team.id = role.actor_group_id
-                WHERE id = $1
-                GROUP BY team.id, team.shortname, team.parent_id",
+                WHERE team.id = $1
+                GROUP BY team.id, parent.principal_type, parent.id, team.name",
                 &[&id],
             )
             .await
             .change_context(PrincipalError::StoreError)?
             .map(|row| {
-                let role_ids = row.get::<_, Option<Vec<TeamRoleId>>>(3).unwrap_or_default();
+                let role_ids = row.get::<_, Option<Vec<TeamRoleId>>>(4).unwrap_or_default();
                 Team {
                     id: row.get(0),
                     parent_id: match row.get(1) {
@@ -702,10 +702,46 @@ where
                             unreachable!("Unexpected principal type {principal_type}")
                         }
                     },
-                    name: row.get(2),
+                    name: row.get(3),
                     roles: role_ids.into_iter().collect(),
                 }
             }))
+    }
+
+    /// Gets all parent actor groups for the given team.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn get_parent_actor_groups(
+        &self,
+        id: TeamId,
+    ) -> Result<Vec<ActorGroupId>, Report<PrincipalError>> {
+        self.as_client()
+            .query_raw(
+                "SELECT
+                    parent.principal_type,
+                    parent.id
+                FROM team_hierarchy
+                JOIN actor_group AS parent ON parent.id = parent_id
+                WHERE child_id = $1
+                ORDER BY depth ASC",
+                &[&id],
+            )
+            .await
+            .change_context(PrincipalError::StoreError)?
+            .map_ok(|row| match row.get(0) {
+                PrincipalType::Web => ActorGroupId::Web(row.get(1)),
+                PrincipalType::Team => ActorGroupId::Team(row.get(1)),
+                principal_type => {
+                    unreachable!("Unexpected principal type {principal_type}")
+                }
+            })
+            .try_collect()
+            .await
+            .change_context(PrincipalError::StoreError)
     }
 
     /// Deletes a team from the system.
