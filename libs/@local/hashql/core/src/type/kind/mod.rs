@@ -111,10 +111,10 @@ impl TypeKind {
             (Self::Union(lhs), Self::Union(rhs)) => lhs.structurally_equivalent(rhs, env),
             (Self::Param(lhs), Self::Param(rhs)) => lhs.structurally_equivalent(rhs),
 
-            (&Self::Link(lhs), &Self::Link(rhs)) => env.structurally_equivalent(lhs, rhs),
+            (&Self::Link(lhs), &Self::Link(rhs)) => env.semantically_equivalent(lhs, rhs),
 
-            (&Self::Link(lhs), _) => env.structurally_equivalent(lhs, other.id),
-            (_, &Self::Link(rhs)) => env.structurally_equivalent(this.id, rhs),
+            (&Self::Link(lhs), _) => env.semantically_equivalent(lhs, other.id),
+            (_, &Self::Link(rhs)) => env.semantically_equivalent(this.id, rhs),
 
             (Self::Never, Self::Never)
             | (Self::Unknown, Self::Unknown)

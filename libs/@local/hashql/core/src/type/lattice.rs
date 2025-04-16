@@ -3,7 +3,8 @@ use smallvec::SmallVec;
 use super::{
     Type, TypeId,
     environment::{
-        EquivalenceEnvironment, LatticeEnvironment, TypeAnalysisEnvironment, UnificationEnvironment,
+        EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+        UnificationEnvironment,
     },
 };
 
@@ -229,5 +230,150 @@ pub trait Lattice {
     /// A new `TypeId` representing the simplified version of the input type.
     /// The simplified type is semantically equivalent to the original but may have
     /// a different structure.
-    fn simplify(self: Type<&Self>) -> TypeId;
+    fn simplify(self: Type<&Self>, env: &mut SimplifyEnvironment) -> TypeId;
+}
+
+#[cfg(test)]
+pub(crate) mod test {
+    use super::Lattice;
+    use crate::r#type::{
+        Type, TypeId,
+        environment::{Environment, EquivalenceEnvironment, LatticeEnvironment},
+        kind::TypeKind,
+    };
+
+    #[track_caller]
+    fn assert_commutativity<T>(
+        env: &mut Environment,
+        convert: impl Fn(Type<&TypeKind>) -> Type<&T>,
+        a: TypeId,
+        b: TypeId,
+    ) where
+        T: Lattice,
+    {
+        let mut env = LatticeEnvironment::new(env);
+
+        let a = env.arena[a].clone();
+        let b = env.arena[b].clone();
+
+        let a = a.as_ref();
+        let b = b.as_ref();
+
+        let a = convert(a);
+        let b = convert(b);
+
+        // TODO: for this to work we need Union/Intersection support first
+
+        // assert_eq!(a.join(b, &mut env), b.join(a, &mut env));
+        // assert_eq!(a.meet(b, &mut env), b.meet(a, &mut env));
+    }
+
+    #[track_caller]
+    fn assert_associativity<T>(
+        env: &mut Environment,
+        convert: impl Fn(Type<&TypeKind>) -> Type<&T>,
+        a: TypeId,
+        b: TypeId,
+        c: TypeId,
+    ) where
+        T: Lattice,
+    {
+        let mut env = LatticeEnvironment::new(env);
+
+        let a = env.arena[a].clone();
+        let b = env.arena[b].clone();
+        let c = env.arena[c].clone();
+
+        let a = a.as_ref();
+        let b = b.as_ref();
+        let c = c.as_ref();
+
+        let a = convert(a);
+        let b = convert(b);
+        let c = convert(c);
+
+        // TODO: for this to work we need Union/Intersection support first
+
+        // assert_eq!(
+        //     a.join(b.join(c, &mut env), &mut env),
+        //     a.join(c.join(b, &mut env), &mut env)
+        // );
+
+        // assert_eq!(
+        //     a.meet(b.meet(c, &mut env), &mut env),
+        //     a.meet(c.meet(b, &mut env), &mut env)
+        // );
+    }
+
+    #[track_caller]
+    fn assert_absorption<T>(
+        env: &mut Environment,
+        convert: impl Fn(Type<&TypeKind>) -> Type<&T>,
+        a: TypeId,
+        b: TypeId,
+    ) where
+        T: Lattice,
+    {
+        let mut env = LatticeEnvironment::new(env);
+
+        let a = env.arena[a].clone();
+        let b = env.arena[b].clone();
+
+        let a = a.as_ref();
+        let b = b.as_ref();
+
+        let a = convert(a);
+        let b = convert(b);
+
+        // TODO: for this to work we need Union/Intersection support first
+
+        // assert_eq!(a.join(a.meet(b, env), env), a);
+        // assert_eq!(a.meet(a.join(b, env), env), a);
+    }
+
+    #[track_caller]
+    fn assert_idempotence<T>(
+        env: &mut Environment,
+        convert: impl Fn(Type<&TypeKind>) -> Type<&T>,
+        a: TypeId,
+    ) where
+        T: Lattice,
+    {
+        let mut env = LatticeEnvironment::new(env);
+
+        let a = env.arena[a].clone();
+
+        let a = a.as_ref();
+
+        let a = convert(a);
+
+        // TODO: for this to work we need Union/Intersection support first
+
+        // assert_eq!(a.join(a, env), a);
+        // assert_eq!(a.meet(a, env), a);
+    }
+
+    /// Assert that the lattice laws are uphold. `a`, `b` and `c` must all be semantically
+    /// different.
+    #[track_caller]
+    pub(crate) fn assert_lattice_laws<T>(
+        env: &mut Environment,
+        convert: impl Fn(Type<&TypeKind>) -> Type<&T>,
+        a: TypeId,
+        b: TypeId,
+        c: TypeId,
+    ) where
+        T: Lattice,
+    {
+        let mut equiv = EquivalenceEnvironment::new(env);
+
+        assert!(!equiv.semantically_equivalent(a, b));
+        assert!(!equiv.semantically_equivalent(b, c));
+        assert!(!equiv.semantically_equivalent(a, c));
+
+        assert_commutativity(env, &convert, a, b);
+        assert_associativity(env, &convert, a, b, c);
+        assert_absorption(env, &convert, a, b);
+        assert_idempotence(env, &convert, a);
+    }
 }

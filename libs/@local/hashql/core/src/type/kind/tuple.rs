@@ -19,7 +19,7 @@ pub struct TupleField {
 
 impl TupleField {
     fn structurally_equivalent(self, other: Self, env: &mut EquivalenceEnvironment) -> bool {
-        env.structurally_equivalent(self.value, other.value)
+        env.semantically_equivalent(self.value, other.value)
     }
 }
 

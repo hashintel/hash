@@ -46,6 +46,7 @@ pub enum Variance {
     Invariant,
 }
 
+#[derive(Debug, Clone)]
 pub struct Environment {
     pub source: SpanId,
     pub arena: TransactionalArena<Type>,
@@ -164,7 +165,7 @@ impl<'env> UnificationEnvironment<'env> {
     pub(crate) fn structurally_equivalent(&self, lhs: TypeId, rhs: TypeId) -> bool {
         let mut environment = EquivalenceEnvironment::new(self.environment);
 
-        environment.structurally_equivalent(lhs, rhs)
+        environment.semantically_equivalent(lhs, rhs)
     }
 
     pub(crate) fn with_variance<T>(
@@ -230,6 +231,72 @@ impl DerefMut for UnificationEnvironment<'_> {
     }
 }
 
+pub struct SimplifyEnvironment<'env> {
+    environment: &'env mut Environment,
+    boundary: RecursionBoundary,
+}
+
+// We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
+// As the unification environment is just a wrapper around the environment with an additional guard.
+impl Deref for SimplifyEnvironment<'_> {
+    type Target = Environment;
+
+    fn deref(&self) -> &Self::Target {
+        self.environment
+    }
+}
+
+impl DerefMut for SimplifyEnvironment<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.environment
+    }
+}
+
+pub struct LatticeEnvironment<'env> {
+    environment: &'env mut Environment,
+    boundary: RecursionBoundary,
+}
+
+impl<'env> LatticeEnvironment<'env> {
+    pub fn new(environment: &'env mut Environment) -> Self {
+        Self {
+            environment,
+            boundary: RecursionBoundary::new(),
+        }
+    }
+}
+
+// We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
+// As the unification environment is just a wrapper around the environment with an additional guard.
+impl Deref for LatticeEnvironment<'_> {
+    type Target = Environment;
+
+    fn deref(&self) -> &Self::Target {
+        self.environment
+    }
+}
+
+impl DerefMut for LatticeEnvironment<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.environment
+    }
+}
+
+pub struct TypeAnalysisEnvironment<'env> {
+    environment: &'env Environment,
+    boundary: RecursionBoundary,
+}
+
+// We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
+// As the unification environment is just a wrapper around the environment with an additional guard.
+impl Deref for TypeAnalysisEnvironment<'_> {
+    type Target = Environment;
+
+    fn deref(&self) -> &Self::Target {
+        self.environment
+    }
+}
+
 pub struct EquivalenceEnvironment<'env> {
     environment: &'env Environment,
     boundary: RecursionBoundary,
@@ -258,7 +325,7 @@ impl<'env> EquivalenceEnvironment<'env> {
     /// # Panics
     ///
     /// If lhs and rhs do not exist in the environment.
-    pub fn structurally_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+    pub fn semantically_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
         let lhs_type = &self.environment.arena[lhs];
         let rhs_type = &self.environment.arena[rhs];
 

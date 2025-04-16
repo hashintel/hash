@@ -25,7 +25,7 @@ pub struct StructField {
 
 impl StructField {
     fn structurally_equivalent(&self, other: &Self, env: &mut EquivalenceEnvironment) -> bool {
-        self.key.value == other.key.value && env.structurally_equivalent(self.value, other.value)
+        self.key.value == other.key.value && env.semantically_equivalent(self.value, other.value)
     }
 }
 

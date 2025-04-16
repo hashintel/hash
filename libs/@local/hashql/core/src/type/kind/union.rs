@@ -29,7 +29,7 @@ impl UnionType {
             other
                 .variants
                 .iter()
-                .any(|&other_variant| env.structurally_equivalent(variant, other_variant))
+                .any(|&other_variant| env.semantically_equivalent(variant, other_variant))
         })
     }
 }

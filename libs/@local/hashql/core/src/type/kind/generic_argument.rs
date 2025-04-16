@@ -33,7 +33,7 @@ pub struct GenericArgument {
 impl GenericArgument {
     fn structurally_equivalent(&self, other: &Self, env: &mut EquivalenceEnvironment) -> bool {
         self.name.value == other.name.value
-            && env.structurally_equivalent(self.r#type, other.r#type)
+            && env.semantically_equivalent(self.r#type, other.r#type)
     }
 }
 

@@ -31,8 +31,8 @@ impl ClosureType {
                 .params
                 .iter()
                 .zip(other.params.iter())
-                .all(|(&lhs, &rhs)| env.structurally_equivalent(lhs, rhs))
-            && env.structurally_equivalent(self.return_type, other.return_type)
+                .all(|(&lhs, &rhs)| env.semantically_equivalent(lhs, rhs))
+            && env.semantically_equivalent(self.return_type, other.return_type)
             && self
                 .arguments
                 .structurally_equivalent(&other.arguments, env)

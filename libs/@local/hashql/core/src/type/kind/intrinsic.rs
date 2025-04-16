@@ -17,7 +17,7 @@ pub struct ListType {
 
 impl ListType {
     fn structurally_equivalent(self, other: Self, env: &mut EquivalenceEnvironment) -> bool {
-        env.structurally_equivalent(self.element, other.element)
+        env.semantically_equivalent(self.element, other.element)
     }
 }
 
@@ -42,8 +42,8 @@ pub struct DictType {
 
 impl DictType {
     fn structurally_equivalent(self, other: Self, env: &mut EquivalenceEnvironment) -> bool {
-        env.structurally_equivalent(self.key, other.key)
-            && env.structurally_equivalent(self.value, other.value)
+        env.semantically_equivalent(self.key, other.key)
+            && env.semantically_equivalent(self.value, other.value)
     }
 }
 

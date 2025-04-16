@@ -1,11 +1,16 @@
 use core::ops::Index;
 
 use pretty::RcDoc;
+use smallvec::SmallVec;
 
 use crate::r#type::{
     Type, TypeId,
-    environment::UnificationEnvironment,
+    environment::{
+        EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+        UnificationEnvironment,
+    },
     error::type_mismatch,
+    lattice::Lattice,
     pretty_print::{BLUE, PrettyPrint},
     recursion::RecursionDepthBoundary,
 };
@@ -18,6 +23,139 @@ pub enum PrimitiveType {
     String,
     Null,
     Boolean,
+}
+
+impl Lattice for PrimitiveType {
+    fn join(
+        self: Type<&Self>,
+        other: Type<&Self>,
+        _: &mut LatticeEnvironment,
+    ) -> SmallVec<TypeId, 4> {
+        if self.kind == other.kind {
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        match (*self.kind, *other.kind) {
+            // `integer <: number`
+            (Self::Number, Self::Integer) => SmallVec::from_slice(&[self.id]),
+            (Self::Integer, Self::Number) => SmallVec::from_slice(&[other.id]),
+
+            _ => SmallVec::from_slice(&[self.id, other.id]),
+        }
+    }
+
+    fn meet(
+        self: Type<&Self>,
+        other: Type<&Self>,
+        _: &mut LatticeEnvironment,
+    ) -> SmallVec<TypeId, 4> {
+        if self.kind == other.kind {
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        match (*self.kind, *other.kind) {
+            // `integer <: number`
+            (Self::Number, Self::Integer) => SmallVec::from_slice(&[other.id]),
+            (Self::Integer, Self::Number) => SmallVec::from_slice(&[self.id]),
+
+            _ => SmallVec::from_slice(&[self.id, other.id]),
+        }
+    }
+
+    fn uninhabited(self: Type<&Self>, _: &mut TypeAnalysisEnvironment) -> bool {
+        false
+    }
+
+    fn semantically_equivalent(
+        self: Type<&Self>,
+        other: Type<&Self>,
+        _: &mut EquivalenceEnvironment,
+    ) -> bool {
+        self.kind == other.kind
+    }
+
+    fn unify(self: Type<&Self>, other: Type<&Self>, env: &mut UnificationEnvironment) {
+        if self.kind == other.kind {
+            return;
+        }
+
+        match (self.kind, other.kind) {
+            // Handle the Integer <: Number subtyping relationship
+            (PrimitiveType::Number, PrimitiveType::Integer) => {
+                // In covariant context: Integer (rhs) is a subtype of Number (lhs).
+                // This is valid - Integer can be used where Number is expected
+            }
+
+            (PrimitiveType::Integer, PrimitiveType::Number) => {
+                // In covariant context: Number (rhs) is NOT a subtype of Integer (lhs)
+                // This is an error - Number cannot be used where Integer is expected
+                let diagnostic = type_mismatch(
+                    env,
+                    &self,
+                    &other,
+                    Some(
+                        "Expected an Integer but found a Number. While all Integers are Numbers, \
+                         not all Numbers are Integers (e.g., decimals like 3.14).",
+                    ),
+                );
+
+                env.record_diagnostic(diagnostic);
+            }
+
+            _ => {
+                // In covariant context: These primitive types have no subtyping relationship
+                // Provide helpful conversion suggestions based on the specific type mismatch
+                let help_message = match (self.kind, other.kind) {
+                    (PrimitiveType::Number | PrimitiveType::Integer, PrimitiveType::String) => {
+                        Some(
+                            "You can convert the number to a string using the \
+                             `::core::number::to_string/1` or `::core::number::to_string/2` \
+                             function",
+                        )
+                    }
+                    (PrimitiveType::String, PrimitiveType::Number | PrimitiveType::Integer) => {
+                        Some(
+                            "You can convert the string to a number using the \
+                             `::core::number::parse/1` or `::core::number::parse/2` function",
+                        )
+                    }
+                    (PrimitiveType::Boolean, PrimitiveType::String) => Some(
+                        "You can convert the boolean to a string using the \
+                         `::core::boolean::to_string/1` function",
+                    ),
+                    (PrimitiveType::String, PrimitiveType::Boolean) => Some(
+                        "You can convert the string to a boolean using the \
+                         `::core::boolean::parse/1` function",
+                    ),
+                    (PrimitiveType::Boolean, PrimitiveType::Number | PrimitiveType::Integer) => {
+                        Some(
+                            "You can convert the boolean to a number using the \
+                             `::core::number::from_boolean/1` function",
+                        )
+                    }
+                    (PrimitiveType::Number | PrimitiveType::Integer, PrimitiveType::Boolean) => {
+                        Some(
+                            "You can convert the number to a boolean using the \
+                             `::core::boolean::from_number/1` function",
+                        )
+                    }
+                    (PrimitiveType::Null, _) | (_, PrimitiveType::Null) => Some(
+                        "Null cannot be combined with other types. Consider using optional types \
+                         or a null check.",
+                    ),
+                    _ => None,
+                };
+
+                // Record a type mismatch diagnostic with helpful conversion suggestions
+                let diagnostic = type_mismatch(env, &lhs, &rhs, help_message);
+                env.record_diagnostic(diagnostic);
+            }
+        }
+    }
+
+    fn simplify(self: Type<&Self>, _: &mut SimplifyEnvironment) -> TypeId {
+        self.id
+    }
 }
 
 impl PrimitiveType {
@@ -60,70 +198,6 @@ pub(crate) fn unify_primitive(
     // If primitives are identical, they're compatible in any variance context
     if lhs.kind == rhs.kind {
         return;
-    }
-
-    match (lhs.kind, rhs.kind) {
-        // Handle the Integer <: Number subtyping relationship
-        (PrimitiveType::Number, PrimitiveType::Integer) => {
-            // In covariant context: Integer (rhs) is a subtype of Number (lhs).
-            // This is valid - Integer can be used where Number is expected
-        }
-
-        (PrimitiveType::Integer, PrimitiveType::Number) => {
-            // In covariant context: Number (rhs) is NOT a subtype of Integer (lhs)
-            // This is an error - Number cannot be used where Integer is expected
-            let diagnostic = type_mismatch(
-                env,
-                &lhs,
-                &rhs,
-                Some(
-                    "Expected an Integer but found a Number. While all Integers are Numbers, not \
-                     all Numbers are Integers (e.g., decimals like 3.14).",
-                ),
-            );
-
-            env.record_diagnostic(diagnostic);
-        }
-
-        _ => {
-            // In covariant context: These primitive types have no subtyping relationship
-            // Provide helpful conversion suggestions based on the specific type mismatch
-            let help_message = match (lhs.kind, rhs.kind) {
-                (PrimitiveType::Number | PrimitiveType::Integer, PrimitiveType::String) => Some(
-                    "You can convert the number to a string using the \
-                     `::core::number::to_string/1` or `::core::number::to_string/2` function",
-                ),
-                (PrimitiveType::String, PrimitiveType::Number | PrimitiveType::Integer) => Some(
-                    "You can convert the string to a number using the `::core::number::parse/1` \
-                     or `::core::number::parse/2` function",
-                ),
-                (PrimitiveType::Boolean, PrimitiveType::String) => Some(
-                    "You can convert the boolean to a string using the \
-                     `::core::boolean::to_string/1` function",
-                ),
-                (PrimitiveType::String, PrimitiveType::Boolean) => Some(
-                    "You can convert the string to a boolean using the `::core::boolean::parse/1` \
-                     function",
-                ),
-                (PrimitiveType::Boolean, PrimitiveType::Number | PrimitiveType::Integer) => Some(
-                    "You can convert the boolean to a number using the \
-                     `::core::number::from_boolean/1` function",
-                ),
-                (PrimitiveType::Number | PrimitiveType::Integer, PrimitiveType::Boolean) => Some(
-                    "You can convert the number to a boolean using the \
-                     `::core::boolean::from_number/1` function",
-                ),
-                (PrimitiveType::Null, _) | (_, PrimitiveType::Null) => Some(
-                    "Null cannot be combined with other types. Consider using optional types or a \
-                     null check.",
-                ),
-                _ => None,
-            };
-
-            // Record a type mismatch diagnostic with helpful conversion suggestions
-            let diagnostic = type_mismatch(env, &lhs, &rhs, help_message);
-            env.record_diagnostic(diagnostic);
-        }
     }
 }
 
