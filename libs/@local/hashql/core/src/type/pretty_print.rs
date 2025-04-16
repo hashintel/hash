@@ -94,3 +94,16 @@ pub(crate) trait PrettyPrint {
             .expect("should never fail as all bytes come from valid UTF-8 strings")
     }
 }
+
+impl<T> PrettyPrint for &T
+where
+    T: PrettyPrint,
+{
+    fn pretty<'a>(
+        &'a self,
+        arena: &'a impl Index<TypeId, Output = Type>,
+        limit: RecursionDepthBoundary,
+    ) -> RcDoc<'a, Style> {
+        T::pretty(self, arena, limit)
+    }
+}

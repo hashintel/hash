@@ -33,3 +33,6 @@ serde = ["dep:serde", "text-size/serde"]
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+test-case = "3.3.1"

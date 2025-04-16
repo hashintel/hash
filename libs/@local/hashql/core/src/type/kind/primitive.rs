@@ -81,12 +81,12 @@ impl Lattice for PrimitiveType {
 
         match (self.kind, other.kind) {
             // Handle the Integer <: Number subtyping relationship
-            (PrimitiveType::Number, PrimitiveType::Integer) => {
+            (Self::Number, Self::Integer) => {
                 // In covariant context: Integer (rhs) is a subtype of Number (lhs).
                 // This is valid - Integer can be used where Number is expected
             }
 
-            (PrimitiveType::Integer, PrimitiveType::Number) => {
+            (Self::Integer, Self::Number) => {
                 // In covariant context: Number (rhs) is NOT a subtype of Integer (lhs)
                 // This is an error - Number cannot be used where Integer is expected
                 let diagnostic = type_mismatch(
@@ -106,40 +106,31 @@ impl Lattice for PrimitiveType {
                 // In covariant context: These primitive types have no subtyping relationship
                 // Provide helpful conversion suggestions based on the specific type mismatch
                 let help_message = match (self.kind, other.kind) {
-                    (PrimitiveType::Number | PrimitiveType::Integer, PrimitiveType::String) => {
-                        Some(
-                            "You can convert the number to a string using the \
-                             `::core::number::to_string/1` or `::core::number::to_string/2` \
-                             function",
-                        )
-                    }
-                    (PrimitiveType::String, PrimitiveType::Number | PrimitiveType::Integer) => {
-                        Some(
-                            "You can convert the string to a number using the \
-                             `::core::number::parse/1` or `::core::number::parse/2` function",
-                        )
-                    }
-                    (PrimitiveType::Boolean, PrimitiveType::String) => Some(
+                    (Self::Number | Self::Integer, Self::String) => Some(
+                        "You can convert the number to a string using the \
+                         `::core::number::to_string/1` or `::core::number::to_string/2` function",
+                    ),
+                    (Self::String, Self::Number | Self::Integer) => Some(
+                        "You can convert the string to a number using the \
+                         `::core::number::parse/1` or `::core::number::parse/2` function",
+                    ),
+                    (Self::Boolean, Self::String) => Some(
                         "You can convert the boolean to a string using the \
                          `::core::boolean::to_string/1` function",
                     ),
-                    (PrimitiveType::String, PrimitiveType::Boolean) => Some(
+                    (Self::String, Self::Boolean) => Some(
                         "You can convert the string to a boolean using the \
                          `::core::boolean::parse/1` function",
                     ),
-                    (PrimitiveType::Boolean, PrimitiveType::Number | PrimitiveType::Integer) => {
-                        Some(
-                            "You can convert the boolean to a number using the \
-                             `::core::number::from_boolean/1` function",
-                        )
-                    }
-                    (PrimitiveType::Number | PrimitiveType::Integer, PrimitiveType::Boolean) => {
-                        Some(
-                            "You can convert the number to a boolean using the \
-                             `::core::boolean::from_number/1` function",
-                        )
-                    }
-                    (PrimitiveType::Null, _) | (_, PrimitiveType::Null) => Some(
+                    (Self::Boolean, Self::Number | Self::Integer) => Some(
+                        "You can convert the boolean to a number using the \
+                         `::core::number::from_boolean/1` function",
+                    ),
+                    (Self::Number | Self::Integer, Self::Boolean) => Some(
+                        "You can convert the number to a boolean using the \
+                         `::core::boolean::from_number/1` function",
+                    ),
+                    (Self::Null, _) | (_, Self::Null) => Some(
                         "Null cannot be combined with other types. Consider using optional types \
                          or a null check.",
                     ),
@@ -147,7 +138,7 @@ impl Lattice for PrimitiveType {
                 };
 
                 // Record a type mismatch diagnostic with helpful conversion suggestions
-                let diagnostic = type_mismatch(env, &lhs, &rhs, help_message);
+                let diagnostic = type_mismatch(env, &self, &other, help_message);
                 env.record_diagnostic(diagnostic);
             }
         }
@@ -195,214 +186,418 @@ pub(crate) fn unify_primitive(
     lhs: Type<PrimitiveType>,
     rhs: Type<PrimitiveType>,
 ) {
-    // If primitives are identical, they're compatible in any variance context
-    if lhs.kind == rhs.kind {
-        return;
-    }
+    unimplemented!("use Lattice::unify instead")
 }
 
 pub(crate) fn intersection_primitive(
     lhs: PrimitiveType,
     rhs: PrimitiveType,
 ) -> Option<PrimitiveType> {
-    if lhs == rhs {
-        return Some(lhs);
-    }
-
-    // subtyping relationship, `Integer <: Number`
-    match (lhs, rhs) {
-        (PrimitiveType::Integer, PrimitiveType::Number)
-        | (PrimitiveType::Number, PrimitiveType::Integer) => Some(PrimitiveType::Integer),
-        _ => None,
-    }
+    unimplemented!("use Latice::meet instead")
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
+    use test_case::test_case;
+
     use super::PrimitiveType;
-    use crate::r#type::{
-        kind::{TypeKind, primitive::unify_primitive},
-        test::{instantiate, setup_unify},
+    use crate::{
+        arena::TransactionalArena,
+        span::SpanId,
+        r#type::{
+            environment::{Environment, LatticeEnvironment},
+            kind::TypeKind,
+            lattice::Lattice as _,
+            test::instantiate,
+        },
     };
 
+    macro_rules! primitive {
+        ($env:expr, $name:ident, $primitive:expr) => {
+            let $name = instantiate(&mut $env, $primitive);
+            let $name = $env.arena[$name].clone();
+            let $name = $name.map(|kind| kind.as_primitive().expect("should be a primitive"));
+            let $name = $name.as_ref();
+        };
+    }
+
+    #[test_case(TypeKind::Primitive(PrimitiveType::Number))]
+    #[test_case(TypeKind::Primitive(PrimitiveType::Integer))]
+    #[test_case(TypeKind::Primitive(PrimitiveType::String))]
+    #[test_case(TypeKind::Primitive(PrimitiveType::Boolean))]
+    #[test_case(TypeKind::Primitive(PrimitiveType::Null))]
+    fn join_identical_primitives(primitive: TypeKind) {
+        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+
+        primitive!(env, a, primitive.clone());
+        primitive!(env, b, primitive.clone());
+
+        let mut lattice_env = LatticeEnvironment::new(&mut env);
+
+        let output = a.join(b, &mut lattice_env);
+        assert_eq!(output.len(), 1);
+
+        let id = output[0];
+        let r#type = env.arena[id].clone();
+
+        assert_eq!(r#type.kind, primitive);
+    }
+
+    #[test_case(TypeKind::Primitive(PrimitiveType::Number))]
+    #[test_case(TypeKind::Primitive(PrimitiveType::Integer))]
+    #[test_case(TypeKind::Primitive(PrimitiveType::String))]
+    #[test_case(TypeKind::Primitive(PrimitiveType::Boolean))]
+    #[test_case(TypeKind::Primitive(PrimitiveType::Null))]
+    fn meet_identical_primitives(primitive: TypeKind) {
+        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+
+        primitive!(env, a, primitive.clone());
+        primitive!(env, b, primitive.clone());
+
+        let mut lattice_env = LatticeEnvironment::new(&mut env);
+
+        let output = a.join(b, &mut lattice_env);
+        assert_eq!(output.len(), 1);
+
+        let id = output[0];
+        let r#type = lattice_env.arena[id].clone();
+
+        assert_eq!(r#type.kind, primitive);
+    }
+
     #[test]
-    fn identical_primitives_unify() {
-        setup_unify!(env);
+    fn join_integer_number_subtyping() {
+        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        let types = [
-            PrimitiveType::Number,
-            PrimitiveType::Integer,
-            PrimitiveType::String,
-            PrimitiveType::Boolean,
-            PrimitiveType::Null,
-        ];
+        primitive!(env, number, TypeKind::Primitive(PrimitiveType::Number));
+        primitive!(env, integer, TypeKind::Primitive(PrimitiveType::Integer));
 
-        for r#type in types {
-            let lhs = instantiate(&mut env, TypeKind::Primitive(r#type));
-            let rhs = instantiate(&mut env, TypeKind::Primitive(r#type));
+        let mut lattice_env = LatticeEnvironment::new(&mut env);
 
-            let lhs = env.arena[lhs]
-                .clone()
-                .map(|kind| kind.as_primitive().expect("type should be a primitive"));
-            let rhs = env.arena[rhs]
-                .clone()
-                .map(|kind| kind.as_primitive().expect("type should be a primitive"));
+        let result = number.join(integer, &mut lattice_env);
+        assert_eq!(result.len(), 1);
 
-            unify_primitive(&mut env, lhs, rhs);
+        let id = result[0];
+        let r#type = lattice_env.arena[id].clone();
 
+        // Number ⊔ Integer = Number
+        assert_eq!(r#type.kind, TypeKind::Primitive(*number.kind));
+
+        let result = integer.join(number, &mut lattice_env);
+        assert_eq!(result.len(), 1);
+
+        let id = result[0];
+        let r#type = lattice_env.arena[id].clone();
+
+        // Integer ⊔ Number = Number
+        assert_eq!(r#type.kind, TypeKind::Primitive(*number.kind));
+    }
+
+    #[test]
+    fn meet_integer_number_subtyping() {
+        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+
+        primitive!(env, number, TypeKind::Primitive(PrimitiveType::Number));
+        primitive!(env, integer, TypeKind::Primitive(PrimitiveType::Integer));
+
+        let mut lattice_env = LatticeEnvironment::new(&mut env);
+
+        let result = number.meet(integer, &mut lattice_env);
+        assert_eq!(result.len(), 1);
+
+        let id = result[0];
+        let r#type = lattice_env.arena[id].clone();
+
+        // Number ⊓ Integer = Integer
+        assert_eq!(r#type.kind, TypeKind::Primitive(*integer.kind));
+
+        let result = integer.meet(number, &mut lattice_env);
+        assert_eq!(result.len(), 1);
+
+        let id = result[0];
+        let r#type = lattice_env.arena[id].clone();
+
+        // Integer ⊓ Number = Integer
+        assert_eq!(r#type.kind, TypeKind::Primitive(*integer.kind));
+    }
+
+    #[test]
+    fn join_unrelated_primitives() {
+        let mut env = Environment::new();
+        let string_id = create_primitive(&mut env, PrimitiveType::String);
+        let boolean_id = create_primitive(&mut env, PrimitiveType::Boolean);
+        let null_id = create_primitive(&mut env, PrimitiveType::Null);
+
+        let mut lattice_env = LatticeEnvironment::new(&mut env);
+
+        // Join of unrelated types should return both types (union)
+        let string = extract_primitive(&lattice_env, string_id);
+        let boolean = extract_primitive(&lattice_env, boolean_id);
+        let null = extract_primitive(&lattice_env, null_id);
+
+        // String ⊔ Boolean = String | Boolean
+        let result = string.join(boolean, &mut lattice_env);
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&string_id));
+        assert!(result.contains(&boolean_id));
+
+        // Boolean ⊔ Null = Boolean | Null
+        let result = boolean.join(null, &mut lattice_env);
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&boolean_id));
+        assert!(result.contains(&null_id));
+
+        // String ⊔ Null = String | Null
+        let result = string.join(null, &mut lattice_env);
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&string_id));
+        assert!(result.contains(&null_id));
+    }
+
+    #[test]
+    fn meet_unrelated_primitives() {
+        let mut env = Environment::new();
+        let string_id = create_primitive(&mut env, PrimitiveType::String);
+        let boolean_id = create_primitive(&mut env, PrimitiveType::Boolean);
+        let null_id = create_primitive(&mut env, PrimitiveType::Null);
+
+        let mut lattice_env = LatticeEnvironment::new(&mut env);
+
+        // Meet of unrelated types should return both types (intersection)
+        let string = extract_primitive(&lattice_env, string_id);
+        let boolean = extract_primitive(&lattice_env, boolean_id);
+        let null = extract_primitive(&lattice_env, null_id);
+
+        // String ⊓ Boolean = String & Boolean
+        let result = string.meet(boolean, &mut lattice_env);
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&string_id));
+        assert!(result.contains(&boolean_id));
+
+        // Boolean ⊓ Null = Boolean & Null
+        let result = boolean.meet(null, &mut lattice_env);
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&boolean_id));
+        assert!(result.contains(&null_id));
+
+        // String ⊓ Null = String & Null
+        let result = string.meet(null, &mut lattice_env);
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&string_id));
+        assert!(result.contains(&null_id));
+    }
+
+    #[test]
+    fn uninhabited() {
+        let mut env = Environment::new();
+        let number_id = create_primitive(&mut env, PrimitiveType::Number);
+        let string_id = create_primitive(&mut env, PrimitiveType::String);
+        let boolean_id = create_primitive(&mut env, PrimitiveType::Boolean);
+        let null_id = create_primitive(&mut env, PrimitiveType::Null);
+        let integer_id = create_primitive(&mut env, PrimitiveType::Integer);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&mut env);
+
+        // No primitive types are uninhabited
+        for &id in &[number_id, string_id, boolean_id, null_id, integer_id] {
+            let prim = extract_primitive(&analysis_env, id);
+            assert!(!prim.uninhabited(&mut analysis_env));
+        }
+    }
+
+    #[test]
+    fn semantic_equivalence() {
+        let mut env = Environment::new();
+        let number_id = create_primitive(&mut env, PrimitiveType::Number);
+        let number_id2 = create_primitive(&mut env, PrimitiveType::Number); // Second Number type
+        let string_id = create_primitive(&mut env, PrimitiveType::String);
+        let boolean_id = create_primitive(&mut env, PrimitiveType::Boolean);
+        let null_id = create_primitive(&mut env, PrimitiveType::Null);
+        let integer_id = create_primitive(&mut env, PrimitiveType::Integer);
+
+        let mut equiv_env = EquivalenceEnvironment::new(&mut env);
+
+        // Same primitive types should be equivalent
+        let number = extract_primitive(&equiv_env, number_id);
+        let number2 = extract_primitive(&equiv_env, number_id2);
+        assert!(number.semantically_equivalent(number2, &mut equiv_env));
+
+        // Different primitive types should not be equivalent
+        let string = extract_primitive(&equiv_env, string_id);
+        let boolean = extract_primitive(&equiv_env, boolean_id);
+        let null = extract_primitive(&equiv_env, null_id);
+        let integer = extract_primitive(&equiv_env, integer_id);
+
+        assert!(!number.semantically_equivalent(string, &mut equiv_env));
+        assert!(!number.semantically_equivalent(boolean, &mut equiv_env));
+        assert!(!number.semantically_equivalent(null, &mut equiv_env));
+        assert!(!number.semantically_equivalent(integer, &mut equiv_env));
+        assert!(!string.semantically_equivalent(boolean, &mut equiv_env));
+    }
+
+    #[test]
+    fn unification_same_type() {
+        let mut env = Environment::new();
+        let number_id = create_primitive(&mut env, PrimitiveType::Number);
+        let string_id = create_primitive(&mut env, PrimitiveType::String);
+        let boolean_id = create_primitive(&mut env, PrimitiveType::Boolean);
+        let null_id = create_primitive(&mut env, PrimitiveType::Null);
+
+        let mut unif_env = UnificationEnvironment::new(&mut env);
+
+        // Unifying same types should succeed without errors
+        for &id in &[number_id, string_id, boolean_id, null_id] {
+            let prim = extract_primitive(&unif_env, id);
+            prim.unify(prim, &mut unif_env);
+            assert!(unif_env.diagnostics.is_empty());
+        }
+    }
+
+    #[test]
+    fn unification_integer_number() {
+        let mut env = Environment::new();
+        let number_id = create_primitive(&mut env, PrimitiveType::Number);
+        let integer_id = create_primitive(&mut env, PrimitiveType::Integer);
+
+        // Case 1: Number <-- Integer (should succeed)
+        {
+            let mut unif_env = UnificationEnvironment::new(&mut env);
+            let number = extract_primitive(&unif_env, number_id);
+            let integer = extract_primitive(&unif_env, integer_id);
+
+            number.unify(integer, &mut unif_env);
             assert!(
-                env.take_diagnostics().is_empty(),
-                "Failed to unify identical {type:?} types"
+                unif_env.diagnostics.is_empty(),
+                "Number <-- Integer should succeed"
+            );
+        }
+
+        // Case 2: Integer <-- Number (should fail)
+        {
+            let mut unif_env = UnificationEnvironment::new(&mut env);
+            let integer = extract_primitive(&unif_env, integer_id);
+            let number = extract_primitive(&unif_env, number_id);
+
+            integer.unify(number, &mut unif_env);
+            assert!(
+                !unif_env.diagnostics.is_empty(),
+                "Integer <-- Number should fail"
             );
 
-            // going back into the arena
-            let lhs = env.arena[lhs.id].clone();
-            let rhs = env.arena[rhs.id].clone();
-
-            assert_eq!(lhs.kind, rhs.kind);
+            // Verify error contains helpful message
+            let error = &unif_env.diagnostics[0];
+            if let TypeErrorData::TypeMismatch {
+                expected,
+                found,
+                help,
+            } = &error.data
+            {
+                assert_eq!(expected.id, integer_id);
+                assert_eq!(found.id, number_id);
+                assert!(
+                    help.as_ref()
+                        .unwrap()
+                        .contains("Expected an Integer but found a Number")
+                );
+            } else {
+                panic!("Expected TypeMismatch error, got: {:?}", error);
+            }
         }
     }
 
     #[test]
-    fn integer_number_promotion() {
-        setup_unify!(env);
+    fn unification_unrelated_types() {
+        let mut env = Environment::new();
+        let number_id = create_primitive(&mut env, PrimitiveType::Number);
+        let string_id = create_primitive(&mut env, PrimitiveType::String);
+        let boolean_id = create_primitive(&mut env, PrimitiveType::Boolean);
+        let null_id = create_primitive(&mut env, PrimitiveType::Null);
 
-        // Test Number as expected type (lhs) with Integer as actual type (rhs)
-        // In covariant context, this should succeed (Integer is a subtype of Number)
-        let num_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-        let int_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
-
-        let num = env.arena[num_id]
-            .as_ref()
-            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
-        let int = env.arena[int_id]
-            .as_ref()
-            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
-
-        unify_primitive(&mut env, num, int);
-
-        assert!(
-            env.take_diagnostics().is_empty(),
-            "Failed to accept Integer where Number was expected"
-        );
-        assert!(
-            matches!(
-                env.arena[int_id].kind,
-                TypeKind::Primitive(PrimitiveType::Integer)
-            ),
-            "Integer was not promoted to Number"
-        );
-    }
-
-    #[test]
-    fn integer_number_mismatch() {
-        // Test Integer as expected type (lhs) with Number as actual type (rhs)
-        // In covariant context, this should fail (Number is not a subtype of Integer)
-        setup_unify!(env);
-        let int_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
-        let num_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-
-        let int = env.arena[int_id]
-            .as_ref()
-            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
-        let num = env.arena[num_id]
-            .as_ref()
-            .map(|kind| kind.as_primitive().expect("type should be a primitive"));
-
-        unify_primitive(&mut env, int, num);
-
-        // Should produce a diagnostic error
-        assert_eq!(
-            env.take_diagnostics().len(),
-            1,
-            "Expected error when using Number where Integer is required"
-        );
-    }
-
-    #[test]
-    fn incompatible_primitives() {
+        // Test unification failures with conversion suggestions
         let test_cases = [
-            (
-                PrimitiveType::String,
-                PrimitiveType::Number,
-                "string and number",
-            ),
-            (
-                PrimitiveType::String,
-                PrimitiveType::Boolean,
-                "string and boolean",
-            ),
-            (
-                PrimitiveType::Number,
-                PrimitiveType::Boolean,
-                "number and boolean",
-            ),
-            (
-                PrimitiveType::Null,
-                PrimitiveType::String,
-                "null and string",
-            ),
-            (
-                PrimitiveType::Null,
-                PrimitiveType::Number,
-                "null and number",
-            ),
-            (
-                PrimitiveType::Null,
-                PrimitiveType::Boolean,
-                "null and boolean",
-            ),
+            // (lhs, rhs, expected help message substring)
+            (number_id, string_id, "convert the number to a string"),
+            (string_id, number_id, "convert the string to a number"),
+            (boolean_id, string_id, "convert the boolean to a string"),
+            (string_id, boolean_id, "convert the string to a boolean"),
+            (boolean_id, number_id, "convert the boolean to a number"),
+            (number_id, boolean_id, "convert the number to a boolean"),
+            (null_id, number_id, "Null cannot be combined"),
+            (number_id, null_id, "Null cannot be combined"),
         ];
 
-        for (lhs_type, rhs_type, description) in test_cases {
-            setup_unify!(env);
+        for (lhs_id, rhs_id, expected_help) in test_cases {
+            let mut unif_env = UnificationEnvironment::new(&mut env);
+            let lhs = extract_primitive(&unif_env, lhs_id);
+            let rhs = extract_primitive(&unif_env, rhs_id);
 
-            let lhs_id = instantiate(&mut env, TypeKind::Primitive(lhs_type));
-            let rhs_id = instantiate(&mut env, TypeKind::Primitive(rhs_type));
+            lhs.unify(rhs, &mut unif_env);
+            assert!(!unif_env.diagnostics.is_empty(), "Unification should fail");
 
-            let lhs = env.arena[lhs_id]
-                .as_ref()
-                .map(|kind| kind.as_primitive().expect("should be primitive"));
-            let rhs = env.arena[rhs_id]
-                .as_ref()
-                .map(|kind| kind.as_primitive().expect("should be primitive"));
-
-            unify_primitive(&mut env, lhs, rhs);
-
-            assert_eq!(
-                env.take_diagnostics().len(),
-                1,
-                "Expected error when unifying {description}"
-            );
+            // Verify error contains helpful message
+            let error = &unif_env.diagnostics[0];
+            if let TypeErrorData::TypeMismatch {
+                expected,
+                found,
+                help,
+            } = &error.data
+            {
+                assert_eq!(expected.id, lhs_id);
+                assert_eq!(found.id, rhs_id);
+                assert!(
+                    help.as_ref().unwrap().contains(expected_help),
+                    "Expected help message to contain '{}', but got: {:?}",
+                    expected_help,
+                    help
+                );
+            } else {
+                panic!("Expected TypeMismatch error, got: {:?}", error);
+            }
         }
     }
 
     #[test]
-    fn error_messages() {
-        setup_unify!(env);
+    fn simplify() {
+        let mut env = Environment::new();
+        let number_id = create_primitive(&mut env, PrimitiveType::Number);
+        let string_id = create_primitive(&mut env, PrimitiveType::String);
+        let boolean_id = create_primitive(&mut env, PrimitiveType::Boolean);
+        let null_id = create_primitive(&mut env, PrimitiveType::Null);
+        let integer_id = create_primitive(&mut env, PrimitiveType::Integer);
 
-        // Test String + Number error message
-        let str_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-        let num_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        let mut simplify_env = SimplifyEnvironment::new(&mut env);
 
-        let str = env.arena[str_id]
-            .as_ref()
-            .map(|kind| kind.as_primitive().expect("should be primitive"));
-        let num = env.arena[num_id]
-            .as_ref()
-            .map(|kind| kind.as_primitive().expect("should be primitive"));
+        // Primitive types should simplify to themselves
+        for &id in &[number_id, string_id, boolean_id, null_id, integer_id] {
+            let prim = extract_primitive(&simplify_env, id);
+            let result = prim.simplify(&mut simplify_env);
+            assert_eq!(result, id);
+        }
+    }
 
-        unify_primitive(&mut env, str, num);
+    #[test]
+    fn lattice_laws() {
+        let mut env = Environment::new();
+        let number_id = create_primitive(&mut env, PrimitiveType::Number);
+        let string_id = create_primitive(&mut env, PrimitiveType::String);
+        let boolean_id = create_primitive(&mut env, PrimitiveType::Boolean);
 
-        let diagnostic = &env.take_diagnostics()[0];
-        assert_eq!(
-            diagnostic
-                .help
-                .as_ref()
-                .expect("help should be present")
-                .message(),
-            "You can convert the string to a number using the `::core::number::parse/1` or \
-             `::core::number::parse/2` function"
-        );
+        // Test that primitive types follow lattice laws
+        assert_lattice_laws(&mut env, as_primitive, number_id, string_id, boolean_id);
+    }
+
+    #[test]
+    fn structurally_equivalent() {
+        // Test the structurally_equivalent method directly
+        assert!(PrimitiveType::Number.structurally_equivalent(PrimitiveType::Number));
+        assert!(PrimitiveType::String.structurally_equivalent(PrimitiveType::String));
+        assert!(PrimitiveType::Boolean.structurally_equivalent(PrimitiveType::Boolean));
+        assert!(PrimitiveType::Null.structurally_equivalent(PrimitiveType::Null));
+        assert!(PrimitiveType::Integer.structurally_equivalent(PrimitiveType::Integer));
+
+        assert!(!PrimitiveType::Number.structurally_equivalent(PrimitiveType::String));
+        assert!(!PrimitiveType::Number.structurally_equivalent(PrimitiveType::Integer));
+        assert!(!PrimitiveType::String.structurally_equivalent(PrimitiveType::Boolean));
+        assert!(!PrimitiveType::Null.structurally_equivalent(PrimitiveType::Boolean));
     }
 }
