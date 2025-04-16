@@ -1,14 +1,16 @@
 import { useMutation, useQuery } from "@apollo/client";
+import type { DataTypeRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
   WebId,
 } from "@blockprotocol/type-system";
-import { extractVersion } from "@blockprotocol/type-system";
+import {
+  extractVersion,
+  versionedUrlFromComponents,
+} from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { getRoots } from "@local/hash-subgraph/stdlib";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
-import type { DataTypeRootType } from "@local/hash-subgraph/types";
 import type { Theme } from "@mui/material";
 import { Box, Container, Stack } from "@mui/material";
 import { GlobalStyles } from "@mui/system";

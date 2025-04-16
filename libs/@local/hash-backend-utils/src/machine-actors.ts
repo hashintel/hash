@@ -6,7 +6,7 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -149,7 +149,7 @@ export const createMachineActorEntity = async (
     },
   };
 
-  await Entity.create<Machine>(
+  await HashEntity.create<Machine>(
     context.graphApi,
     { actorId: machineAccountId },
     {

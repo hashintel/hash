@@ -27,7 +27,7 @@ import {
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import {
-  Entity,
+  HashEntity,
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
@@ -138,7 +138,7 @@ export const createFileEntityFromUrl = async (params: {
 }): Promise<
   | {
       status: "ok";
-      entity: Entity<File>;
+      entity: HashEntity<File>;
     }
   | {
       status: "error-uploading-file";
@@ -241,7 +241,7 @@ export const createFileEntityFromUrl = async (params: {
     },
   };
 
-  const incompleteFileEntity = await Entity.create<File>(
+  const incompleteFileEntity = await HashEntity.create<File>(
     graphApiClient,
     { actorId: webBotActorId },
     {

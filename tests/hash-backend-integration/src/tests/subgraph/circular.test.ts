@@ -2,26 +2,27 @@ import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntitySubgraphResponse } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import type {
+  EntityRootType,
+  GraphResolveDepths,
+  KnowledgeGraphEdgeKind,
+  KnowledgeGraphRootedEdges,
+  Subgraph,
+} from "@blockprotocol/graph";
+import {
+  getEntities as getEntitiesSubgraph,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import {
   type ActorEntityUuid,
+  type Entity,
   ENTITY_ID_DELIMITER,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { GetEntitySubgraphRequest } from "@local/hash-isomorphic-utils/types";
-import type {
-  EntityRootType,
-  GraphResolveDepths,
-  KnowledgeGraphEdgeKind,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
-  getEntities as getEntitiesSubgraph,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../test-server";
@@ -142,7 +143,7 @@ const verticesEquals = (
   subgraph: Subgraph<EntityRootType>,
   entities: Entity[],
 ): boolean => {
-  const vertexIds = getEntitiesSubgraph(subgraph)
+  const vertexIds = getEntitiesSubgraph(subgraph, true)
     .map((vertex) => vertex.metadata.recordId.entityId)
     .sort();
   const entityIds = entities
@@ -171,10 +172,9 @@ const edgesEquals = (
   }
 
   return edges.every(({ source, edges: outwardEdges }) => {
-    const subgraphEdge =
-      subgraph.edges[source.metadata.recordId.entityId]![
-        source.metadata.temporalVersioning.decisionTime.start.limit
-      ]!;
+    const subgraphEdge = (subgraph.edges as KnowledgeGraphRootedEdges)[
+      source.metadata.recordId.entityId
+    ]![source.metadata.temporalVersioning.decisionTime.start.limit]!;
 
     if (outwardEdges.length !== subgraphEdge.length) {
       return false;

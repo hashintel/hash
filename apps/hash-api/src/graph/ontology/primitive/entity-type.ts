@@ -1,3 +1,4 @@
+import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityType,
   EntityTypeMetadata,
@@ -8,7 +9,10 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
+import {
+  ENTITY_TYPE_META_SCHEMA,
+  ontologyTypeRecordIdToVersionedUrl,
+} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
@@ -16,6 +20,7 @@ import type {
   ArchiveEntityTypeParams,
   ClosedMultiEntityTypeMap,
   EntityTypePermission,
+  EntityTypeRelationAndSubject,
   GetClosedMultiEntityTypesParams,
   GetClosedMultiEntityTypesResponse as GetClosedMultiEntityTypesResponseGraphApi,
   GetEntityTypesParams,
@@ -25,10 +30,15 @@ import type {
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import type {
+  EntityTypeAuthorizationRelationship,
+  EntityTypeRelationAndSubjectBranded,
+} from "@local/hash-graph-sdk/branded-authorization";
+import type {
   ClosedEntityTypeWithMetadata,
   EntityTypeResolveDefinitions,
 } from "@local/hash-graph-types/ontology";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   mapGraphApiClosedEntityTypesToClosedEntityTypes,
@@ -40,16 +50,6 @@ import type {
   ConstructEntityTypeParams,
   UserPermissionsOnEntityType,
 } from "@local/hash-isomorphic-utils/types";
-import type {
-  EntityTypeAuthorizationRelationship,
-  EntityTypeRelationAndSubject,
-  EntityTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
-  linkEntityTypeUrl,
-  ontologyTypeRecordIdToVersionedUrl,
-} from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
@@ -62,13 +62,10 @@ export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
   graphApi
     .getEntityTypeAuthorizationRelationships(actorId, params.entityTypeId)
     .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: { kind: "entityType", resourceId: params.entityTypeId },
-            ...relationship,
-          }) as EntityTypeAuthorizationRelationship,
-      ),
+      data.map((relationship) => ({
+        resource: { kind: "entityType", resourceId: params.entityTypeId },
+        ...(relationship as EntityTypeRelationAndSubjectBranded),
+      })),
     );
 
 export const modifyEntityTypeAuthorizationRelationships: ImpureGraphFunction<
@@ -455,7 +452,11 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { allOf } = params;
 
-  if (allOf?.some(({ $ref }) => $ref === linkEntityTypeUrl)) {
+  if (
+    allOf?.some(
+      ({ $ref }) => $ref === blockProtocolEntityTypes.link.entityTypeId,
+    )
+  ) {
     return true;
   }
 

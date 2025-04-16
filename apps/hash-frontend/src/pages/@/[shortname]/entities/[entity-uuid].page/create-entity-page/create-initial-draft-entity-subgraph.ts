@@ -1,32 +1,32 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
   extractWebIdFromEntityId,
   generateTimestamp,
 } from "@blockprotocol/type-system";
-import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  Entity as GraphApiEntity,
+  EntityVertex,
+  EntityVertexId,
+  KnowledgeGraphVertices,
+} from "@local/hash-graph-client";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type {
-  EntityRootType,
-  EntityVertex,
-  EntityVertexId,
-  KnowledgeGraphVertices,
-  Subgraph,
-} from "@local/hash-subgraph";
 
 export const createInitialDraftEntitySubgraph = (
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
-): Subgraph<EntityRootType> => {
+): Subgraph<EntityRootType<HashEntity>> => {
   const now = currentTimestamp();
 
-  const draftEntityVertexId: EntityVertexId = {
+  const draftEntityVertexId = {
     baseId: "draft~draft" as EntityId,
     revisionId: now,
-  };
+  } satisfies EntityVertexId;
+
   const creator = extractWebIdFromEntityId(draftEntityVertexId.baseId);
 
   const serializedEntity: GraphApiEntity = {
@@ -73,7 +73,7 @@ export const createInitialDraftEntitySubgraph = (
     },
   };
 
-  const entity = new Entity(serializedEntity);
+  const entity = new HashEntity(serializedEntity);
 
   return {
     depths: {
@@ -102,7 +102,6 @@ export const createInitialDraftEntitySubgraph = (
         },
       },
     } as const,
-    // @ts-expect-error -- Vertices expects OntologyVertices to be present. @todo overhaul subgraph
     vertices: {
       [draftEntityVertexId.baseId]: {
         [draftEntityVertexId.revisionId]: {

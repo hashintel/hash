@@ -1,5 +1,5 @@
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   PersistedEntities,
   PersistedEntity,
@@ -7,11 +7,11 @@ import type {
 
 export const mapActionInputEntitiesToEntities = (params: {
   inputEntities: (SerializedEntity | PersistedEntity | PersistedEntities)[];
-}): Entity[] =>
+}): HashEntity[] =>
   params.inputEntities.flatMap((inputEntity) => {
     if ("operation" in inputEntity) {
       if (inputEntity.entity) {
-        return new Entity(inputEntity.entity);
+        return new HashEntity(inputEntity.entity);
       } else {
         return [];
       }
@@ -21,12 +21,12 @@ export const mapActionInputEntitiesToEntities = (params: {
       return inputEntity.persistedEntities.flatMap(
         ({ entity, existingEntity }) =>
           entity
-            ? new Entity(entity)
+            ? new HashEntity(entity)
             : existingEntity
-              ? new Entity(existingEntity)
+              ? new HashEntity(existingEntity)
               : [],
       );
     }
 
-    return new Entity(inputEntity);
+    return new HashEntity(inputEntity);
   });

@@ -1,4 +1,15 @@
 import type {
+  DataTypeRootType,
+  EntityTypeRootType,
+  PropertyTypeRootType,
+} from "@blockprotocol/graph";
+import {
+  getDataTypes,
+  getEntities,
+  getEntityTypes,
+  getPropertyTypes,
+} from "@blockprotocol/graph/stdlib";
+import type {
   ActorEntityUuid,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -23,8 +34,10 @@ import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication
 import type {
   CreateEntityParameters,
   SerializedEntity,
+  SerializedEntityRootType,
+  SerializedSubgraph,
 } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
@@ -33,19 +46,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
   serializeSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  DataTypeRootType,
-  EntityTypeRootType,
-  PropertyTypeRootType,
-  SerializedEntityRootType,
-  SerializedSubgraph,
-} from "@local/hash-subgraph";
-import {
-  getDataTypes,
-  getEntities,
-  getEntityTypes,
-  getPropertyTypes,
-} from "@local/hash-subgraph/stdlib";
 
 export type EntityQueryResponse = {
   subgraph: SerializedSubgraph<SerializedEntityRootType>;
@@ -254,8 +254,8 @@ export const createGraphActivities = ({
   async getSubgraphEntities(params: {
     subgraph: SerializedSubgraph;
   }): Promise<SerializedEntity[]> {
-    return getEntities(deserializeSubgraph(params.subgraph)).map((entity) =>
-      entity.toJSON(),
+    return getEntities(deserializeSubgraph(params.subgraph), false).map(
+      (entity) => entity.toJSON(),
     );
   },
 
@@ -263,7 +263,7 @@ export const createGraphActivities = ({
     authentication: AuthenticationContext,
     params: CreateEntityParameters,
   ) {
-    return Entity.create(graphApiClient, authentication, params);
+    return HashEntity.create(graphApiClient, authentication, params);
   },
 
   async getHashInstanceAdminAccountGroupId(authentication: {

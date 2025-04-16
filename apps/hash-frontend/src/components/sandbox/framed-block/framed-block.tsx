@@ -1,7 +1,7 @@
 import "iframe-resizer/js/iframeResizer.contentWindow";
 
 import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type * as Sentry from "@sentry/react";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useState } from "react";
@@ -23,9 +23,9 @@ export const FramedBlock: FunctionComponent = () => {
 
   const initialData = properties ? JSON.parse(properties) : undefined;
 
-  const [blockProperties, setBlockProperties] = useState<Entity | undefined>(
-    initialData,
-  );
+  const [blockProperties, setBlockProperties] = useState<
+    HashEntity | undefined
+  >(initialData);
 
   const _beforeCapture = useCallback(
     (scope: Sentry.Scope) => {
@@ -41,7 +41,7 @@ export const FramedBlock: FunctionComponent = () => {
     const msgHandler = ({ data }: MessageEvent<MessageFromBlockFramer>) => {
       switch (data.type) {
         case "newData":
-          setBlockProperties(data.payload as Entity);
+          setBlockProperties(data.payload as HashEntity);
           break;
         case "response":
           settlePromiseFromResponse(data);

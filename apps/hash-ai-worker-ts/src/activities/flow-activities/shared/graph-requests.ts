@@ -1,3 +1,5 @@
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
   EntityId,
@@ -16,8 +18,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import isEqual from "lodash/isEqual.js";
 
 import type { ExistingEntityForMatching } from "../../shared/match-existing-entity.js";

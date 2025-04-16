@@ -1,3 +1,7 @@
+import {
+  getBreadthFirstEntityTypesAndParents,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
   BaseUrl,
@@ -5,7 +9,11 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import {
+  componentsFromVersionedUrl,
+  mustHaveAtLeastOne,
+  versionedUrlFromComponents,
+} from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
 import {
@@ -18,14 +26,6 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  getBreadthFirstEntityTypesAndParents,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
-import {
-  componentsFromVersionedUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphContext } from "../../../context-types";
 import {

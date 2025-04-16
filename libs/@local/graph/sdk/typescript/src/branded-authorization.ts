@@ -31,50 +31,55 @@ type BrandRelationship<T extends { subject: object }> = {
   [K in keyof T]: K extends "subject" ? BrandSubject<T[K]> : T[K];
 };
 
-export type EntityTypeInstantiatorSubject =
+export type EntityTypeInstantiatorSubjectBranded =
   BrandSubject<EntityTypeInstantiatorSubjectGraph>;
 
-export type WebRelationAndSubject =
+export type WebRelationAndSubjectBranded =
   BrandRelationship<WebRelationAndSubjectGraph>;
+
 export type WebAuthorizationRelationship = {
   resource: {
     kind: "web";
     resourceId: WebId;
   };
-} & WebRelationAndSubject;
+} & WebRelationAndSubjectBranded;
 
-export type EntityRelationAndSubject =
+export type EntityRelationAndSubjectBranded =
   BrandRelationship<EntityRelationAndSubjectGraph>;
+
 export type EntityAuthorizationRelationship = {
   resource: {
     kind: "entity";
     resourceId: EntityId;
   };
-} & EntityRelationAndSubject;
+} & EntityRelationAndSubjectBranded;
 
-export type EntityTypeRelationAndSubject =
+export type EntityTypeRelationAndSubjectBranded =
   BrandRelationship<EntityTypeRelationAndSubjectGraph>;
+
 export type EntityTypeAuthorizationRelationship = {
   resource: {
     kind: "entityType";
     resourceId: VersionedUrl;
   };
-} & EntityTypeRelationAndSubject;
+} & EntityTypeRelationAndSubjectBranded;
 
-export type PropertyTypeRelationAndSubject =
+export type PropertyTypeRelationAndSubjectBranded =
   BrandRelationship<PropertyTypeRelationAndSubjectGraph>;
+
 export type PropertyTypeAuthorizationRelationship = {
   resource: {
     kind: "propertyType";
     resourceId: VersionedUrl;
   };
-} & PropertyTypeRelationAndSubject;
+} & PropertyTypeRelationAndSubjectBranded;
 
-export type DataTypeRelationAndSubject =
+export type DataTypeRelationAndSubjectBranded =
   BrandRelationship<DataTypeRelationAndSubjectGraph>;
+
 export type DataTypeAuthorizationRelationship = {
   resource: {
     kind: "dataType";
     resourceId: VersionedUrl;
   };
-} & DataTypeRelationAndSubject;
+} & DataTypeRelationAndSubjectBranded;

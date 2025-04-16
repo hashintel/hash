@@ -1,5 +1,9 @@
 import type { EntityType } from "@blockprotocol/type-system";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractVersion,
+  versionedUrlFromComponents,
+} from "@blockprotocol/type-system";
 import {
   ArrowUpRightFromSquareRegularIcon,
   ArrowUpRightIcon,
@@ -8,7 +12,6 @@ import {
 } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import { useEntityTypeFormContext } from "@hashintel/type-editor";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 import { Controller } from "react-hook-form";

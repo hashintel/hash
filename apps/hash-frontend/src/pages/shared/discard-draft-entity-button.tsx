@@ -1,14 +1,14 @@
 import { useMutation } from "@apollo/client";
-import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
-import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
-import { AlertModal } from "@hashintel/design-system";
-import { type Entity } from "@local/hash-graph-sdk/entity";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getIncomingLinksForEntity,
   getOutgoingLinksForEntity,
-} from "@local/hash-subgraph/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import type { ClosedMultiEntityType, Entity } from "@blockprotocol/type-system";
+import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
+import { AlertModal } from "@hashintel/design-system";
+import { type HashEntity } from "@local/hash-graph-sdk/entity";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
 
@@ -25,7 +25,7 @@ export const DiscardDraftEntityButton: FunctionComponent<
   {
     closedMultiEntityType: ClosedMultiEntityType;
     draftEntity: Entity;
-    draftEntitySubgraph: Subgraph<EntityRootType>;
+    draftEntitySubgraph: Subgraph<EntityRootType<HashEntity>>;
     onDiscardedEntity?: () => void;
   } & ButtonProps
 > = ({

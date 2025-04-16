@@ -1,8 +1,8 @@
 import type { EntityType } from "@blockprotocol/type-system";
 import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import { TypeCard } from "@hashintel/design-system";
-// eslint-disable-next-line no-restricted-imports -- TODO remove this dependency to make package publishable
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+/* eslint-disable no-restricted-imports */
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
@@ -52,7 +52,9 @@ export const InheritedTypeCard = ({
   };
 
   /** @todo H-3363 take account of inheritance by using closed schema */
-  const isLink = directParentEntityTypeIds.includes(linkEntityTypeUrl);
+  const isLink = directParentEntityTypeIds.includes(
+    blockProtocolEntityTypes.link.entityTypeId,
+  );
 
   return (
     <TypeCard

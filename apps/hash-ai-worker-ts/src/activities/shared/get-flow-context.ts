@@ -11,7 +11,7 @@ import {
 } from "@blockprotocol/type-system";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ManualInferenceTriggerInputName } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
@@ -176,7 +176,7 @@ export const getFlowContext = async (): Promise<FlowContext> => {
   };
 };
 
-export const getProvidedFiles = async (): Promise<Entity<File>[]> => {
+export const getProvidedFiles = async (): Promise<HashEntity<File>[]> => {
   const {
     dataSources: { files },
     flowEntityId,
@@ -190,7 +190,7 @@ export const getProvidedFiles = async (): Promise<Entity<File>[]> => {
   const filesCacheKey = `files-${flowEntityId}`;
   const cache = await getCache();
 
-  const cachedFiles = await cache.get<Entity<File>[]>(filesCacheKey);
+  const cachedFiles = await cache.get<HashEntity<File>[]>(filesCacheKey);
 
   if (cachedFiles) {
     return cachedFiles;
@@ -221,7 +221,7 @@ export const getProvidedFiles = async (): Promise<Entity<File>[]> => {
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: response }) =>
-      response.entities.map((entity) => new Entity<File>(entity)),
+      response.entities.map((entity) => new HashEntity<File>(entity)),
     );
 
   await cache.set(filesCacheKey, entities);
@@ -245,7 +245,7 @@ export const areUrlsTheSameAfterNormalization = (
 
 export const getProvidedFileByUrl = async (
   url: string,
-): Promise<Entity<File> | undefined> => {
+): Promise<HashEntity<File> | undefined> => {
   const files = await getProvidedFiles();
   return files.find((file) => {
     /**

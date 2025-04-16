@@ -1,10 +1,12 @@
 import { useMutation, useQuery } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
-  Entity as EntityClass,
   getClosedMultiEntityTypeFromMap,
+  HashEntity,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
@@ -18,8 +20,6 @@ import {
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import NextErrorComponent from "next/error";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -82,13 +82,13 @@ interface EntityProps {
      * The parent should reroute to the appropriate page, slide etc, with the persisted entityId.
      */
     createFromLocalDraft: (params: {
-      localDraft: EntityClass;
+      localDraft: HashEntity;
       draftLinksToCreate: DraftLinksToCreate;
     }) => Promise<void>;
     /**
      * The initial subgraph of the new draft entity.
      */
-    initialSubgraph: Subgraph<EntityRootType>;
+    initialSubgraph: Subgraph<EntityRootType<HashEntity>>;
     /**
      * The action to take when the user clicks 'discard'.
      * The parent is responsible for rerouting the user to the appropriate page.
@@ -107,7 +107,7 @@ interface EntityProps {
    * Callback allowing the parent to take some action when an entity update is persisted to the database.
    * The form will reflect the changes, so parents need not do anything if the user is supposed to remain on the form.
    */
-  onEntityUpdatedInDb: (updatedEntity: EntityClass) => void | null;
+  onEntityUpdatedInDb: (updatedEntity: HashEntity) => void | null;
   /**
    * Callback for when a remote draft is archived (i.e. rejected).
    * The parent should take some action to reroute the user to another page or component.
@@ -121,12 +121,12 @@ interface EntityProps {
    * If the parent is SURE the entity is not a draft in the db, this can throw an error.
    * e.g. if creating a new entity, it cannot be a draft in the db.
    */
-  onRemoteDraftPublished: (publishedEntity: EntityClass) => void;
+  onRemoteDraftPublished: (publishedEntity: HashEntity) => void;
   /**
    * Optional callback to allow the parent to take some action based on the initial state of the entity,
    * useful for e.g. rerouting to another page if the entity is of a specific type,
    */
-  onEntityLoad?: (entity: EntityClass) => void;
+  onEntityLoad?: (entity: HashEntity) => void;
   /**
    * Optional callback to allow the parent to take some action when the entity's label changes,
    * e.g. if it's displaying it somewhere outside of this component (such as HTML <title>).
@@ -137,7 +137,7 @@ interface EntityProps {
    * If the entity is a Flow proposal, it won't be persisted in the database yet.
    * This mock subgraph allows viewing it in the slide (and will disable attempting to request info from the db on it)
    */
-  proposedEntitySubgraph?: Subgraph<EntityRootType>;
+  proposedEntitySubgraph?: Subgraph<EntityRootType<HashEntity>>;
 }
 
 export const Entity = ({
@@ -171,7 +171,7 @@ export const Entity = ({
     >();
 
   const [draftEntitySubgraph, setDraftEntitySubgraph] = useState<
-    Subgraph<EntityRootType> | undefined
+    Subgraph<EntityRootType<HashEntity>> | undefined
   >(draftLocalEntity?.initialSubgraph ?? proposedEntitySubgraph);
 
   const [draftEntityTypesDetails, setDraftEntityTypesDetails] = useState<
@@ -258,9 +258,9 @@ export const Entity = ({
   >(getEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     onCompleted: (data) => {
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.getEntitySubgraph.subgraph,
-      );
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+        EntityRootType<HashEntity>
+      >(data.getEntitySubgraph.subgraph);
 
       const { definitions, closedMultiEntityTypes } = data.getEntitySubgraph;
 
@@ -406,7 +406,7 @@ export const Entity = ({
   const { validateEntity: validateFn } = useValidateEntity();
 
   const validateEntity = useCallback(
-    async (entityToValidate: EntityClass) => {
+    async (entityToValidate: HashEntity) => {
       const report = await validateFn({
         properties: entityToValidate.propertiesWithMetadata,
         entityTypeIds: entityToValidate.metadata.entityTypeIds,
@@ -485,7 +485,7 @@ export const Entity = ({
           throw new Error("Failed to update entity");
         }
 
-        return new EntityClass(result.data.updateEntity);
+        return new HashEntity(result.data.updateEntity);
       });
 
       await refetch();

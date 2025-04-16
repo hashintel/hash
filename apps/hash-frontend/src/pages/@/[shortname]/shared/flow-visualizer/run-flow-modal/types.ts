@@ -1,6 +1,6 @@
 import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   FormattedText,
   GoogleSheet,
@@ -32,7 +32,7 @@ export const isSupportedPayloadKind = (
   !unsupportedPayloadKinds.includes(kind as UnsupportedPayloadKind);
 
 export type LocalInputValue =
-  | Entity
+  | HashEntity
   | EntityTypeWithMetadata
   | FormattedText
   | GoogleSheet
@@ -45,7 +45,7 @@ export type LocalInputValues = Subtype<
   Record<LocalPayloadKind, LocalInputValue>,
   {
     ActorType: ActorTypeDataType;
-    Entity: Entity;
+    Entity: HashEntity;
     FormattedText: FormattedText;
     GoogleAccountId: string;
     GoogleSheet: GoogleSheet;

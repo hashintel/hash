@@ -1,3 +1,4 @@
+import type { EntityRootType } from "@blockprotocol/graph";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -11,7 +12,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";

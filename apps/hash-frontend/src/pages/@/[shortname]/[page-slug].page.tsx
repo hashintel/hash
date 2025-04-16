@@ -1,16 +1,17 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { SxProps } from "@mui/material";
 import { Box } from "@mui/material";
 import { Router, useRouter } from "next/router";
@@ -240,7 +241,9 @@ const Page: NextPageWithLayout<PageProps> = () => {
   const { subgraph, userPermissionsOnEntities } = data?.getEntitySubgraph ?? {};
 
   const pageSubgraph = subgraph
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(subgraph)
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
+        subgraph,
+      )
     : undefined;
 
   const page = pageSubgraph ? getRoots(pageSubgraph)[0] : undefined;

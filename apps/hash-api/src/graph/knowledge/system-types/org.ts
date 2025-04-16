@@ -4,10 +4,14 @@ import type {
   EntityUuid,
   WebId,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractWebIdFromEntityId,
+  versionedUrlFromComponents,
+} from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -20,9 +24,6 @@ import type {
   OrganizationNamePropertyValueWithMetadata,
   OrganizationPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { ActorGroupEntityId } from "@local/hash-subgraph";
-import { extractActorGroupId } from "@local/hash-subgraph/stdlib";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import { logger } from "../../../logger";
 import {
@@ -50,13 +51,13 @@ export type Org = {
   accountGroupId: ActorGroupId;
   orgName: string;
   shortname: string;
-  entity: Entity<Organization>;
+  entity: HashEntity<Organization>;
 };
 
 function assertOrganizationEntity(
-  entity: Entity,
+  entity: HashEntity,
   permitOlderVersions = false,
-): asserts entity is Entity<Organization> {
+): asserts entity is HashEntity<Organization> {
   if (
     !entity.metadata.entityTypeIds.find((entityTypeId) =>
       permitOlderVersions
@@ -74,7 +75,7 @@ function assertOrganizationEntity(
 }
 
 export const getOrgFromEntity: PureGraphFunction<
-  { entity: Entity; permitOlderVersions?: boolean },
+  { entity: HashEntity; permitOlderVersions?: boolean },
   Org
 > = ({ entity, permitOlderVersions }) => {
   assertOrganizationEntity(entity, permitOlderVersions);
@@ -84,9 +85,9 @@ export const getOrgFromEntity: PureGraphFunction<
   );
 
   return {
-    accountGroupId: extractActorGroupId(
-      entity.metadata.recordId.entityId as ActorGroupEntityId,
-    ),
+    accountGroupId: extractWebIdFromEntityId(
+      entity.metadata.recordId.entityId,
+    ) as ActorGroupId,
     shortname,
     orgName,
     entity,

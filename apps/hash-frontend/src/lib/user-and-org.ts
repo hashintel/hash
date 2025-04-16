@@ -1,4 +1,10 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
+  getIncomingLinksForEntity,
+  getLeftEntityForLinkEntity,
+  getOutgoingLinkAndTargetEntities,
+  getOutgoingLinksForEntity,
+  getRightEntityForLinkEntity,
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
@@ -6,10 +12,14 @@ import type {
   ActorEntityUuid,
   ActorGroupId,
   BaseUrl,
+  Entity,
+  LinkEntity,
   WebId,
 } from "@blockprotocol/type-system";
-import { currentTimestamp } from "@blockprotocol/type-system";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  currentTimestamp,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
@@ -26,21 +36,6 @@ import type {
   ServiceAccount,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
-import type {
-  ActorEntityId,
-  ActorGroupEntityId,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
-  extractActorGroupId,
-  extractActorId,
-  getIncomingLinksForEntity,
-  getLeftEntityForLinkEntity,
-  getOutgoingLinkAndTargetEntities,
-  getOutgoingLinksForEntity,
-  getRightEntityForLinkEntity,
-} from "@local/hash-subgraph/stdlib";
 
 import type { UserPreferences } from "../shared/use-user-preferences";
 
@@ -55,9 +50,9 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entity: orgEntity,
-    accountGroupId: extractActorGroupId(
-      orgEntity.metadata.recordId.entityId as ActorGroupEntityId,
-    ),
+    accountGroupId: extractWebIdFromEntityId(
+      orgEntity.metadata.recordId.entityId,
+    ) as ActorGroupId,
     name: organizationName,
     ...(pinnedEntityTypeBaseUrl !== undefined
       ? {
@@ -104,10 +99,10 @@ export const constructMinimalUser = (params: {
   return {
     kind: "user",
     entity: userEntity,
-    // Cast reason: The EntityUuid of a User's baseId is an AccountId
-    accountId: extractActorId(
-      userEntity.metadata.recordId.entityId as ActorEntityId,
-    ),
+    // Cast reason: The WebId of a User's baseId is an ActorEntityUuid
+    accountId: extractWebIdFromEntityId(
+      userEntity.metadata.recordId.entityId,
+    ) as ActorEntityUuid,
     accountSignupComplete,
     ...simpleProperties,
     enabledFeatureFlags,
@@ -289,7 +284,7 @@ export type User = MinimalUser & {
   hasServiceAccounts: UserServiceAccount[];
   joinedAt: Date;
   memberOf: {
-    linkEntity: Entity<IsMemberOf>;
+    linkEntity: LinkEntity;
     org: Org;
   }[];
   preferences?: UserPreferences;
@@ -505,7 +500,7 @@ export const constructUser = (params: {
 
 export type MinimalOrg = {
   kind: "org";
-  entity: Entity;
+  entity: Entity<Organization>;
   accountGroupId: ActorGroupId;
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   description?: string;

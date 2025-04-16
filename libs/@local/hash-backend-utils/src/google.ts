@@ -1,6 +1,8 @@
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -9,8 +11,6 @@ import {
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { Auth } from "googleapis";
 import { google } from "googleapis";
 
@@ -50,7 +50,7 @@ export const getGoogleAccountById = async ({
   userAccountId: ActorEntityUuid;
   googleAccountId: string;
   graphApiClient: GraphApi;
-}): Promise<Entity<GoogleAccount> | undefined> => {
+}): Promise<HashEntity<GoogleAccount> | undefined> => {
   const entities = await graphApiClient
     .getEntitySubgraph(userAccountId, {
       filter: {
@@ -97,7 +97,7 @@ export const getGoogleAccountById = async ({
 
   const entity = entities[0];
 
-  return entity as Entity<GoogleAccount> | undefined;
+  return entity as HashEntity<GoogleAccount> | undefined;
 };
 
 export const getTokensForGoogleAccount = async ({

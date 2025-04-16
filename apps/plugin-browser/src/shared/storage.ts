@@ -1,4 +1,6 @@
+import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
+  Entity,
   EntityId,
   EntityMetadata,
   EntityTypeWithMetadata,
@@ -6,7 +8,6 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   ExternalInputWebsocketRequestMessage,
   InferenceModelName,
@@ -28,7 +29,6 @@ import type {
   Organization,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 import debounce from "lodash.debounce";
 import browser from "webextension-polyfill";
 

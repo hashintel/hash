@@ -1,18 +1,73 @@
 import type {
   DraftId,
   EntityId,
+  EntityMetadata as RustEntityMetadata,
   EntityUuid,
+  LinkData,
   PropertyArrayMetadata,
   PropertyArrayWithMetadata,
   PropertyMetadata,
+  PropertyObject,
   PropertyObjectMetadata,
   PropertyObjectWithMetadata,
+  PropertyPath,
   PropertyValueMetadata,
   PropertyValueWithMetadata,
   PropertyWithMetadata,
+  VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system-rs";
 import { validate as validateUuid } from "uuid";
+
+export type TypeIdsAndPropertiesForEntity = {
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
+  properties: PropertyObject;
+  propertiesWithMetadata: PropertyObjectWithMetadata;
+};
+
+/**
+ * This redefinition allows for (1) a generic with default, (2) 'at least one' entityTypeId,
+ * both of which the Rust->TS codegen does not support.
+ */
+export type EntityMetadata<
+  TypeIds extends [VersionedUrl, ...VersionedUrl[]] = [
+    VersionedUrl,
+    ...VersionedUrl[],
+  ],
+> = Omit<RustEntityMetadata, "entityTypeIds"> & {
+  entityTypeIds: TypeIds;
+};
+
+export interface Entity<
+  TypeIdsAndProperties extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> {
+  metadata: EntityMetadata;
+
+  entityId: EntityId;
+
+  properties: TypeIdsAndProperties["properties"];
+
+  propertiesWithMetadata: TypeIdsAndProperties["propertiesWithMetadata"];
+
+  propertiesMetadata: PropertyObjectMetadata;
+
+  propertyMetadata: (path: PropertyPath) => PropertyMetadata | undefined;
+
+  flattenedPropertiesMetadata: () => {
+    path: PropertyPath;
+    metadata: PropertyMetadata["metadata"];
+  }[];
+
+  linkData: LinkData | undefined;
+}
+
+export interface LinkEntity<
+  TypeIdsAndProperties extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> extends Entity<TypeIdsAndProperties> {
+  linkData: LinkData;
+}
 
 export const ENTITY_ID_DELIMITER = "~";
 

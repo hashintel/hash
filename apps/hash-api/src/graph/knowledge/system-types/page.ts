@@ -2,8 +2,8 @@ import type { EntityId, WebId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type {
   CreateEntityParameters,
-  Entity,
-  LinkEntity,
+  HashEntity,
+  HashLinkEntity,
 } from "@local/hash-graph-sdk/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
@@ -58,12 +58,12 @@ export type Page = {
   fractionalIndex?: string;
   icon?: string;
   archived?: boolean;
-  entity: Entity<Canvas | Document>;
+  entity: HashEntity<Canvas | Document>;
 };
 
 function assertPageEntity(
-  entity: Entity,
-): asserts entity is Entity<Canvas | Document> {
+  entity: HashEntity,
+): asserts entity is HashEntity<Canvas | Document> {
   if (!includesPageEntityTypeId(entity.metadata.entityTypeIds)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -73,9 +73,10 @@ function assertPageEntity(
   }
 }
 
-export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
-  entity,
-}) => {
+export const getPageFromEntity: PureGraphFunction<
+  { entity: HashEntity },
+  Page
+> = ({ entity }) => {
   assertPageEntity(entity);
 
   const { title, summary, fractionalIndex, icon, archived } =
@@ -479,7 +480,9 @@ export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
   Promise<
     {
-      linkEntity: LinkEntity<HasIndexedContent | HasSpatiallyPositionedContent>;
+      linkEntity: HashLinkEntity<
+        HasIndexedContent | HasSpatiallyPositionedContent
+      >;
       rightEntity: Block;
     }[]
   >,
@@ -498,8 +501,8 @@ export const getPageBlocks: ImpureGraphFunction<
               .linkEntityTypeId,
     },
   )) as
-    | LinkEntity<HasIndexedContent>[]
-    | LinkEntity<HasSpatiallyPositionedContent>[];
+    | HashLinkEntity<HasIndexedContent>[]
+    | HashLinkEntity<HasSpatiallyPositionedContent>[];
 
   return await Promise.all(
     outgoingBlockDataLinks

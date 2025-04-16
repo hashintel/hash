@@ -1,16 +1,16 @@
-import {
-  type Entity,
-  type EntityId,
-  type VersionedUrl,
-} from "@blockprotocol/type-system";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getIncomingLinkAndSourceEntities,
   getLeftEntityForLinkEntity,
   getOutgoingLinkAndTargetEntities,
   getRightEntityForLinkEntity,
   getRoots,
-} from "@local/hash-subgraph/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import {
+  type Entity,
+  type EntityId,
+  type VersionedUrl,
+} from "@blockprotocol/type-system";
 
 const addEntityTypeIdsToSet = (
   uniqueJoinedMultiEntityTypeIds: Set<string>,

@@ -1,9 +1,12 @@
 import { useQuery } from "@apollo/client";
-import { extractBaseUrl, type WebId } from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  isOwnedOntologyElementMetadata,
+  type WebId,
+} from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, Collapse, Fade, Tooltip, Typography } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";

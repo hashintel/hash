@@ -1,8 +1,11 @@
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  Entity,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
-  LinkEntity,
+  HashLinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
@@ -40,7 +43,9 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
   },
   Promise<
     {
-      linkEntity: LinkEntity<HasSpatiallyPositionedContent | HasIndexedContent>;
+      linkEntity: HashLinkEntity<
+        HasSpatiallyPositionedContent | HasIndexedContent
+      >;
       rightEntity: Block;
     }[]
   >
@@ -63,8 +68,8 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
         : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     },
   )) as
-    | LinkEntity<HasSpatiallyPositionedContent>[]
-    | LinkEntity<HasIndexedContent>[];
+    | HashLinkEntity<HasSpatiallyPositionedContent>[]
+    | HashLinkEntity<HasIndexedContent>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
@@ -99,7 +104,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     position: { canvasPosition, indexPosition },
   } = params;
 
-  const linkEntity: LinkEntity = await createLinkEntity<
+  const linkEntity = await createLinkEntity<
     HasSpatiallyPositionedContent | HasIndexedContent
   >(ctx, authentication, {
     // assume that link to block is owned by the same account as the blockCollection
@@ -117,9 +122,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
-  return linkEntity as
-    | Entity<HasSpatiallyPositionedContent>
-    | Entity<HasIndexedContent>;
+  return linkEntity;
 };
 
 /**
@@ -156,7 +159,7 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
         ),
       },
     ],
-    linkEntity: new LinkEntity(linkEntity),
+    linkEntity: new HashLinkEntity(linkEntity),
   });
 };
 

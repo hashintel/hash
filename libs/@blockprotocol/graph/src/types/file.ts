@@ -1,4 +1,8 @@
-import type { Entity } from "@blockprotocol/type-system";
+import type {
+  Entity,
+  PropertyObjectWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 export type FileAtUrlData = {
   // Optionally describe the file
@@ -33,6 +37,11 @@ export type RemoteFileEntityProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": string;
 };
 
-export type RemoteFileEntity = Entity<RemoteFileEntityProperties>;
+// @todo - auto-generate this from File type in blockprotocol.org
+export type RemoteFileEntity = Entity<{
+  properties: RemoteFileEntityProperties;
+  entityTypeIds: [VersionedUrl];
+  propertiesWithMetadata: PropertyObjectWithMetadata;
+}>;
 
 export type UploadFileReturn = RemoteFileEntity;

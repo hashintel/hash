@@ -1,21 +1,21 @@
 import { useLazyQuery } from "@apollo/client";
 import type {
+  EntityRootType,
+  GraphResolveDepths,
+  KnowledgeGraphVertices,
+  Subgraph,
+} from "@blockprotocol/graph";
+import type {
   ActorEntityUuid,
-  Entity as EntityBp,
   EntityEditionId,
   EntityId,
   PropertyObject,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import type {
-  EntityRootType,
-  GraphResolveDepths,
-  KnowledgeGraphVertices,
-  Subgraph,
-} from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import type {
@@ -73,7 +73,7 @@ export const useFetchBlockSubgraph = (): ((
         // @todo some better way of handling this – probably affected by revamped collab.
         //    or could simply not load a new block until the entity is created?
         const now = currentTimestamp();
-        const placeholderEntity: EntityBp = {
+        const placeholderEntity = new HashEntity({
           metadata: {
             recordId: {
               entityId: "placeholder-account~entity-id-not-set" as EntityId,
@@ -115,7 +115,7 @@ export const useFetchBlockSubgraph = (): ((
             },
           },
           properties: fallbackBlockProperties ?? {},
-        } as const;
+        });
 
         const subgraphTemporalAxes = {
           pinned: {
@@ -181,10 +181,9 @@ export const useFetchBlockSubgraph = (): ((
             );
           }
 
-          const subgraph =
-            mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-              data.getEntity.subgraph,
-            );
+          const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+            EntityRootType<HashEntity>
+          >(data.getEntity.subgraph);
 
           return {
             subgraph,

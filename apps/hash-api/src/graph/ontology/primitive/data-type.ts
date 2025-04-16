@@ -1,3 +1,4 @@
+import type { DataTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   Conversions,
@@ -9,7 +10,10 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
+import {
+  DATA_TYPE_META_SCHEMA,
+  ontologyTypeRecordIdToVersionedUrl,
+} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
@@ -20,6 +24,10 @@ import type {
   ModifyRelationshipOperation,
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
+import type {
+  DataTypeAuthorizationRelationship,
+  DataTypeRelationAndSubjectBranded,
+} from "@local/hash-graph-sdk/branded-authorization";
 import type {
   ConstructDataTypeParams,
   DataTypeConversionTargets,
@@ -33,13 +41,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserPermissionsOnDataType } from "@local/hash-isomorphic-utils/types";
-import type {
-  DataTypeAuthorizationRelationship,
-  DataTypeRelationAndSubject,
-  DataTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
@@ -64,7 +65,7 @@ export const createDataType: ImpureGraphFunction<
     webId: WebId;
     schema: ConstructDataTypeParams;
     webShortname?: string;
-    relationships: DataTypeRelationAndSubject[];
+    relationships: DataTypeRelationAndSubjectBranded[];
     provenance?: ProvidedOntologyEditionProvenance;
     conversions?: DataTypeDirectConversionsMap | null;
   },
@@ -219,7 +220,7 @@ export const updateDataType: ImpureGraphFunction<
   {
     dataTypeId: VersionedUrl;
     schema: ConstructDataTypeParams;
-    relationships: DataTypeRelationAndSubject[];
+    relationships: DataTypeRelationAndSubjectBranded[];
     provenance?: ProvidedOntologyEditionProvenance;
     conversions: Record<BaseUrl, Conversions>;
   },
@@ -306,13 +307,10 @@ export const getDataTypeAuthorizationRelationships: ImpureGraphFunction<
   graphApi
     .getDataTypeAuthorizationRelationships(actorId, params.dataTypeId)
     .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: { kind: "dataType", resourceId: params.dataTypeId },
-            ...relationship,
-          }) as DataTypeAuthorizationRelationship,
-      ),
+      data.map((relationship) => ({
+        resource: { kind: "dataType", resourceId: params.dataTypeId },
+        ...(relationship as DataTypeRelationAndSubjectBranded),
+      })),
     );
 
 export const modifyDataTypeAuthorizationRelationships: ImpureGraphFunction<

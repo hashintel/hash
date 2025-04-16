@@ -1,3 +1,9 @@
+import type { Subgraph } from "@blockprotocol/graph";
+import {
+  getDataTypeById,
+  getEntityTypeAndParentsById,
+  getPropertyTypeById,
+} from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   DataType,
@@ -12,19 +18,13 @@ import type {
 } from "@blockprotocol/type-system";
 import {
   atLeastOne,
+  componentsFromVersionedUrl,
   extractBaseUrl,
   extractVersion,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Subgraph } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import {
-  getDataTypeById,
-  getEntityTypeAndParentsById,
-  getPropertyTypeById,
-} from "@local/hash-subgraph/stdlib";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 
@@ -348,7 +348,8 @@ export const dereferenceEntityType = <
   );
 
   const isLink = entityTypeWithAncestors.some(
-    (entityType) => entityType.schema.$id === linkEntityTypeUrl,
+    (entityType) =>
+      entityType.schema.$id === blockProtocolEntityTypes.link.entityTypeId,
   );
 
   let labelProperty: BaseUrl | undefined;

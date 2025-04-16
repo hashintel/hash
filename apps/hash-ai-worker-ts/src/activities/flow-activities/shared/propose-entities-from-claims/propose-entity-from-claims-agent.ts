@@ -10,7 +10,7 @@ import {
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
 import {
-  Entity,
+  HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
@@ -497,7 +497,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
     });
 
     try {
-      await Entity.validate(graphApiClient, userAuthentication, {
+      await HashEntity.validate(graphApiClient, userAuthentication, {
         entityTypes: dereferencedEntityTypes.map((type) => type.$id),
         components: {
           linkData: false,
@@ -581,7 +581,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
           );
 
           try {
-            await Entity.validate(graphApiClient, userAuthentication, {
+            await HashEntity.validate(graphApiClient, userAuthentication, {
               entityTypes: [outgoingLink.entityTypeId],
               components: {
                 linkData: false,

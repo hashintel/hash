@@ -1,6 +1,7 @@
 import { useLazyQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import type {
@@ -68,9 +69,9 @@ export const useBlockProtocolQueryEntities = (): {
         };
       }
 
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        response.queryEntities.subgraph,
-      );
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+        EntityRootType<HashEntity>
+      >(response.queryEntities.subgraph);
 
       return { data: { results: subgraph, operation } };
     },

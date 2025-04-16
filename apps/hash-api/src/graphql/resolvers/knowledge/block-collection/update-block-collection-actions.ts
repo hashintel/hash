@@ -1,4 +1,5 @@
 import type {
+  Entity,
   EntityId,
   PropertyPatchOperation,
   VersionedUrl,
@@ -6,7 +7,6 @@ import type {
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { ApolloError, UserInputError } from "apollo-server-errors";

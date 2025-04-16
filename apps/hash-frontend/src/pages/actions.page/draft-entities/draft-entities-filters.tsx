@@ -1,3 +1,4 @@
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   ActorEntityUuid,
   BaseUrl,
@@ -8,8 +9,7 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box, Fade, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
 import type {
@@ -78,7 +78,7 @@ export type DraftEntityFilterState = {
 export const getDraftEntityTypeBaseUrls = ({
   draftEntities,
 }: {
-  draftEntities: Entity[];
+  draftEntities: HashEntity[];
 }): BaseUrl[] => {
   const baseUrls = draftEntities.flatMap((draftEntity) =>
     draftEntity.metadata.entityTypeIds.map((entityTypeId) =>
@@ -91,7 +91,7 @@ export const getDraftEntityTypeBaseUrls = ({
 
 const getDraftEntitySources = (params: {
   draftEntitiesWithCreators: {
-    entity: Entity;
+    entity: HashEntity;
     creator: MinimalActor;
   }[];
 }): MinimalActor[] =>
@@ -103,8 +103,8 @@ const getDraftEntitySources = (params: {
         index,
     );
 
-const getDraftEntityWebWebIds = (params: {
-  draftEntities: Entity[];
+const getDraftEntityWebIds = (params: {
+  draftEntities: HashEntity[];
 }): WebId[] =>
   params.draftEntities
     .map(({ metadata }) => extractWebIdFromEntityId(metadata.recordId.entityId))
@@ -112,7 +112,7 @@ const getDraftEntityWebWebIds = (params: {
 
 export const generateDefaultFilterState = (params: {
   draftEntitiesWithCreators: {
-    entity: Entity;
+    entity: HashEntity;
     creator: MinimalActor;
   }[];
 }): DraftEntityFilterState => {
@@ -126,7 +126,7 @@ export const generateDefaultFilterState = (params: {
     draftEntitiesWithCreators,
   });
 
-  const webWebIds = getDraftEntityWebWebIds({
+  const webWebIds = getDraftEntityWebIds({
     draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
   });
 
@@ -141,7 +141,7 @@ export const generateDefaultFilterState = (params: {
 export const isFilerStateDefaultFilterState =
   (params: {
     draftEntitiesWithCreators: {
-      entity: Entity;
+      entity: HashEntity;
       creator: MinimalActor;
     }[];
   }) =>
@@ -204,7 +204,7 @@ type DraftEntityFilterKind = (typeof draftEntityFilterKinds)[number];
 
 export const filterDraftEntities = (params: {
   draftEntitiesWithCreators: {
-    entity: Entity;
+    entity: HashEntity;
     creator: MinimalActor;
   }[];
   filterState: DraftEntityFilterState;
@@ -238,7 +238,7 @@ export const filterDraftEntities = (params: {
 
 export const DraftEntitiesFilters: FunctionComponent<{
   draftEntitiesWithCreators?: {
-    entity: Entity;
+    entity: HashEntity;
     creator: MinimalActor;
   }[];
   draftEntitiesSubgraph?: Subgraph<EntityRootType>;
@@ -275,7 +275,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
   const webWebIds = useMemo(
     () =>
       draftEntitiesWithCreators
-        ? getDraftEntityWebWebIds({
+        ? getDraftEntityWebIds({
             draftEntities: draftEntitiesWithCreators.map(
               ({ entity }) => entity,
             ),
@@ -329,7 +329,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
             Record<
               DraftEntityFilterKind,
               {
-                entity: Entity;
+                entity: HashEntity;
                 creator: MinimalActor;
               }[]
             >

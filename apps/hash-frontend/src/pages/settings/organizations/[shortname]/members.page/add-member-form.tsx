@@ -1,5 +1,12 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import {
+  type ActorEntityUuid,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   createOrgMembershipAuthorizationRelationships,
   mapGqlSubgraphFieldsFragmentToSubgraph,
@@ -9,8 +16,6 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { ActorEntityId, EntityRootType } from "@local/hash-subgraph";
-import { extractActorId, getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -106,9 +111,9 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       return;
     }
 
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-      data.queryEntities.subgraph,
-    );
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+      EntityRootType<HashEntity>
+    >(data.queryEntities.subgraph);
 
     const user = getRoots(subgraph)[0];
 
@@ -128,18 +133,18 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
             rightEntityId: org.entity.metadata.recordId.entityId,
           },
           relationships: createOrgMembershipAuthorizationRelationships({
-            memberAccountId: extractActorId(
-              user.metadata.recordId.entityId as ActorEntityId,
-            ),
+            memberAccountId: extractWebIdFromEntityId(
+              user.metadata.recordId.entityId,
+            ) as ActorEntityUuid,
           }),
         },
       }),
       addMemberPermission({
         variables: {
           accountGroupId: org.accountGroupId,
-          accountId: extractActorId(
-            user.metadata.recordId.entityId as ActorEntityId,
-          ),
+          accountId: extractWebIdFromEntityId(
+            user.metadata.recordId.entityId,
+          ) as ActorEntityUuid,
         },
       }),
     ]);

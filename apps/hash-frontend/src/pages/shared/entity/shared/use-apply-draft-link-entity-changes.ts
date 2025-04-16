@@ -1,9 +1,9 @@
 import { useMutation } from "@apollo/client";
 import {
+  type Entity,
   extractDraftIdFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import type {

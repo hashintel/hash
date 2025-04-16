@@ -1,3 +1,5 @@
+import type { EntityTypeRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
   BaseUrl,
@@ -14,7 +16,7 @@ import type {
   CosineDistanceFilter,
   GraphApi,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -27,8 +29,6 @@ import {
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityTypeRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { logger } from "./activity-logger.js";
 import type { DereferencedEntityType } from "./dereference-entity-type.js";
@@ -56,7 +56,7 @@ export const findExistingEntity = async ({
     "entityTypeIds" | "properties" | "propertyMetadata" | "provenance"
   >;
   includeDrafts: boolean;
-}): Promise<MatchedEntityUpdate<Entity> | null> => {
+}): Promise<MatchedEntityUpdate<HashEntity> | null> => {
   const entityTypes: DereferencedEntityType[] =
     dereferencedEntityTypes ??
     (await graphApiClient
@@ -204,7 +204,7 @@ export const findExistingEntity = async ({
       })
       .filter(<T>(filter: T): filter is NonNullable<T> => filter !== null);
 
-  let potentialMatches: Entity[] | undefined;
+  let potentialMatches: HashEntity[] | undefined;
 
   if (semanticDistanceFilters.length > 0) {
     potentialMatches = await graphApiClient
@@ -299,7 +299,7 @@ export const findExistingLinkEntity = async ({
     ProposedEntity,
     "entityTypeIds" | "properties" | "propertyMetadata" | "provenance"
   >;
-}): Promise<MatchedEntityUpdate<Entity> | null> => {
+}): Promise<MatchedEntityUpdate<HashEntity> | null> => {
   const linksWithOverlappingTypes = await graphApiClient
     .getEntities(actorId, {
       filter: {

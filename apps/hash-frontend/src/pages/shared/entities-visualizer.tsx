@@ -19,8 +19,8 @@ import type {
   Ordering,
 } from "@local/hash-graph-client";
 import {
-  type Entity,
   getClosedMultiEntityTypeFromMap,
+  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -485,7 +485,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     }px + ${theme.spacing(5)} + ${theme.spacing(5)})))`;
 
   const isPrimaryEntity = useCallback(
-    (entity: { metadata: Pick<Entity["metadata"], "entityTypeIds"> }) =>
+    (entity: { metadata: Pick<HashEntity["metadata"], "entityTypeIds"> }) =>
       entityTypeBaseUrl
         ? entity.metadata.entityTypeIds.some(
             (typeId) => extractBaseUrl(typeId) === entityTypeBaseUrl,

@@ -8,7 +8,7 @@ import type {
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -151,7 +151,7 @@ export const getLlmResponse = async <T extends LlmParams>(
   ) {
     const { usage } = llmResponse;
 
-    let usageRecordEntity: Entity;
+    let usageRecordEntity: HashEntity;
 
     try {
       usageRecordEntity = await backOff(
@@ -207,7 +207,7 @@ export const getLlmResponse = async <T extends LlmParams>(
       const errors = await Promise.all(
         incurredInEntities.map(async ({ entityId }) => {
           try {
-            await Entity.create<IncurredIn>(
+            await HashEntity.create<IncurredIn>(
               graphApiClient,
               { actorId: aiAssistantAccountId },
               {

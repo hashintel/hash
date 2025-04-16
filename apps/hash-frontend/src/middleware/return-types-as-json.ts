@@ -1,3 +1,4 @@
+import type { OntologyTypeVertexId } from "@blockprotocol/graph";
 import type {
   DataType,
   EntityType,
@@ -8,7 +9,6 @@ import {
   apiGraphQLEndpoint,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
-import type { OntologyTypeVertexId } from "@local/hash-subgraph";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";

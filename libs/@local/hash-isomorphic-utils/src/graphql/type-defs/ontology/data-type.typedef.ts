@@ -18,7 +18,7 @@ export const dataTypeTypedef = gql`
       inheritsFrom: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
       latestOnly: Boolean = true
-    ): Subgraph!
+    ): GqlSubgraph!
 
     """
     Get a subgraph rooted at an data type resolved by its versioned URL.
@@ -27,7 +27,7 @@ export const dataTypeTypedef = gql`
       dataTypeId: VersionedUrl!
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
-    ): Subgraph!
+    ): GqlSubgraph!
 
     getDataTypeConversionTargets(
       dataTypeIds: [VersionedUrl!]!

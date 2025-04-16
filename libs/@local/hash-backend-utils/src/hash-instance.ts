@@ -1,6 +1,6 @@
 import type { ActorEntityUuid, ActorGroupId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -20,13 +20,13 @@ import { EntityTypeMismatchError, NotFoundError } from "./error.js";
 import { getMachineActorId } from "./machine-actors.js";
 
 export type HashInstance = {
-  entity: Entity<HASHInstance>;
+  entity: HashEntity<HASHInstance>;
 } & SimpleProperties<HASHInstanceProperties>;
 
 export const getHashInstanceFromEntity = ({
   entity,
 }: {
-  entity: Entity<HASHInstanceEntity>;
+  entity: HashEntity<HASHInstanceEntity>;
 }): HashInstance => {
   if (
     !entity.metadata.entityTypeIds.includes(

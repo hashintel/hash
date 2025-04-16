@@ -1,15 +1,16 @@
 import { useMutation } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import {
+  getEntityRevision,
+  getIncomingLinksForEntity,
+  getOutgoingLinksForEntity,
+} from "@blockprotocol/graph/stdlib";
 import {
   type EntityId,
   extractDraftIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  getEntityRevision,
-  getIncomingLinksForEntity,
-  getOutgoingLinksForEntity,
-} from "@local/hash-subgraph/stdlib";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box, buttonClasses, Fade, ListItemText, Menu } from "@mui/material";
 import {
   anchorRef,
@@ -37,7 +38,7 @@ import { useDraftEntities } from "./draft-entities-context";
 
 export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
   selectedDraftEntityIds: EntityId[];
-  draftEntitiesWithLinkedDataSubgraph?: Subgraph<EntityRootType>;
+  draftEntitiesWithLinkedDataSubgraph?: Subgraph<EntityRootType<HashEntity>>;
   deselectAllDraftEntities: () => void;
 }> = ({
   selectedDraftEntityIds,

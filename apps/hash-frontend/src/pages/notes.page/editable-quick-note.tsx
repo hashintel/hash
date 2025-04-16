@@ -1,8 +1,9 @@
 import { useMutation, useQuery } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { BaseUrl, WebId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
@@ -18,7 +19,6 @@ import type {
   NoteProperties,
 } from "@local/hash-isomorphic-utils/system-types/note";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
@@ -86,8 +86,8 @@ const parseTextFromTextBlock = ({
 export const EditableQuickNote: FunctionComponent<{
   displayLabel?: boolean;
   displayActionButtons?: boolean;
-  quickNoteEntity: Entity;
-  quickNoteSubgraph?: Subgraph<EntityRootType>;
+  quickNoteEntity: HashEntity;
+  quickNoteSubgraph?: Subgraph<EntityRootType<HashEntity>>;
   refetchQuickNotes?: () => Promise<void>;
   autoFocus?: boolean;
 }> = ({

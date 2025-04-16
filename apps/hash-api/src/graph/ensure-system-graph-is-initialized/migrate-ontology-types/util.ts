@@ -8,6 +8,7 @@ import type {
   DataType,
   DataTypeReference,
   DataTypeWithMetadata,
+  Entity,
   EntityType,
   EntityTypeWithMetadata,
   OneOfSchema,
@@ -24,15 +25,22 @@ import type {
 } from "@blockprotocol/type-system";
 import {
   atLeastOne,
+  componentsFromVersionedUrl,
   DATA_TYPE_META_SCHEMA,
   ENTITY_TYPE_META_SCHEMA,
   extractBaseUrl,
   extractWebIdFromEntityId,
   PROPERTY_TYPE_META_SCHEMA,
+  versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  DataTypeRelationAndSubjectBranded,
+  EntityTypeInstantiatorSubjectBranded,
+  EntityTypeRelationAndSubjectBranded,
+  PropertyTypeRelationAndSubjectBranded,
+} from "@local/hash-graph-sdk/branded-authorization";
 import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
@@ -54,16 +62,6 @@ import {
   generateLinkMapWithConsistentSelfReferences,
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import type {
-  DataTypeRelationAndSubject,
-  EntityTypeInstantiatorSubject,
-  EntityTypeRelationAndSubject,
-  PropertyTypeRelationAndSubject,
-} from "@local/hash-subgraph";
-import {
-  componentsFromVersionedUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getEntities } from "../../knowledge/primitive/entity";
@@ -256,7 +254,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
   const { accountGroupId, machineActorId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
 
-  const relationships: DataTypeRelationAndSubject[] = [
+  const relationships: DataTypeRelationAndSubjectBranded[] = [
     {
       relation: "viewer",
       subject: {
@@ -348,7 +346,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   const { accountGroupId, machineActorId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
 
-  const relationships: PropertyTypeRelationAndSubject[] = [
+  const relationships: PropertyTypeRelationAndSubjectBranded[] = [
     {
       relation: "editor",
       subject: {
@@ -527,7 +525,7 @@ export const generateSystemEntityTypeSchema = (
 export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   {
     entityTypeDefinition: Omit<EntityTypeDefinition, "entityTypeId">;
-    instantiator: EntityTypeInstantiatorSubject | null;
+    instantiator: EntityTypeInstantiatorSubjectBranded | null;
   } & BaseCreateTypeIfNotExistsParameters,
   Promise<EntityTypeWithMetadata>
 > = async (
@@ -569,7 +567,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   const { accountGroupId, machineActorId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
 
-  const relationships: EntityTypeRelationAndSubject[] = [
+  const relationships: EntityTypeRelationAndSubjectBranded[] = [
     {
       relation: "editor",
       subject: {
@@ -972,7 +970,7 @@ export const getEntitiesByType: ImpureGraphFunction<
     temporalAxes: currentTimeInstantTemporalAxes,
   });
 
-export const anyUserInstantiator: EntityTypeInstantiatorSubject = {
+export const anyUserInstantiator: EntityTypeInstantiatorSubjectBranded = {
   kind: "public",
 };
 
