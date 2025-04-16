@@ -41,7 +41,8 @@ The application depends on a suite of constituent services, which are briefly de
 | ------------------------------ | ----------------------------------------------------------------------------- |
 | [hashdotai](hashdotai)         | Content related to our main [hash.ai] website                                 |
 | [hashdotdesign](hashdotdesign) | Source code and content related to our [hash.design] designer-focused website |
-| [hashdotdev](hashdotdev)       | Source code and content related to our [hash.dev] developer-focused website   |
+
+Source code for our other websites (e.g. `hash.ai`, `hash.dev`, etc.) can be found in HASH's `internal` company monorepo.
 
 ## Block Protocol
 
