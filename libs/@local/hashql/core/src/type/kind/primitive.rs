@@ -182,17 +182,14 @@ impl PrettyPrint for PrimitiveType {
 /// For primitives, the main subtyping relationship is Integer <: Number
 /// (Integer is a subtype of Number).
 pub(crate) fn unify_primitive(
-    env: &mut UnificationEnvironment,
-    lhs: Type<PrimitiveType>,
-    rhs: Type<PrimitiveType>,
+    _: &mut UnificationEnvironment,
+    _: Type<PrimitiveType>,
+    _: Type<PrimitiveType>,
 ) {
     unimplemented!("use Lattice::unify instead")
 }
 
-pub(crate) fn intersection_primitive(
-    lhs: PrimitiveType,
-    rhs: PrimitiveType,
-) -> Option<PrimitiveType> {
+pub(crate) fn intersection_primitive(_: PrimitiveType, _: PrimitiveType) -> Option<PrimitiveType> {
     unimplemented!("use Latice::meet instead")
 }
 

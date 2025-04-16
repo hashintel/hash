@@ -1,5 +1,6 @@
 pub mod closure;
 pub mod generic_argument;
+pub mod intersection;
 pub mod intrinsic;
 pub mod opaque;
 pub mod primitive;
@@ -12,8 +13,9 @@ use core::ops::Index;
 use pretty::RcDoc;
 
 use self::{
-    closure::ClosureType, generic_argument::Param, intrinsic::IntrinsicType, opaque::OpaqueType,
-    primitive::PrimitiveType, r#struct::StructType, tuple::TupleType, union::UnionType,
+    closure::ClosureType, generic_argument::Param, intersection::IntersectionType,
+    intrinsic::IntrinsicType, opaque::OpaqueType, primitive::PrimitiveType, r#struct::StructType,
+    tuple::TupleType, union::UnionType,
 };
 use super::{
     Type, TypeId,
@@ -31,6 +33,7 @@ pub enum TypeKind {
     Tuple(TupleType),
     Opaque(OpaqueType),
     Union(UnionType),
+    Intersection(IntersectionType),
     Param(Param),
     Never,
     Unknown,
@@ -109,6 +112,7 @@ impl TypeKind {
             (Self::Tuple(lhs), Self::Tuple(rhs)) => lhs.structurally_equivalent(rhs, env),
             (Self::Opaque(lhs), Self::Opaque(rhs)) => lhs.structurally_equivalent(rhs, env),
             (Self::Union(lhs), Self::Union(rhs)) => lhs.structurally_equivalent(rhs, env),
+            (Self::Intersection(_), Self::Intersection(_)) => unimplemented!(),
             (Self::Param(lhs), Self::Param(rhs)) => lhs.structurally_equivalent(rhs),
 
             (&Self::Link(lhs), &Self::Link(rhs)) => env.semantically_equivalent(lhs, rhs),
@@ -139,6 +143,7 @@ impl PrettyPrint for TypeKind {
             Self::Tuple(tuple) => tuple.pretty(arena, limit),
             Self::Opaque(opaque) => opaque.pretty(arena, limit),
             Self::Union(union) => union.pretty(arena, limit),
+            Self::Intersection(intersection) => intersection.pretty(arena, limit),
             Self::Param(param) => param.pretty(arena, limit),
             Self::Never => RcDoc::text("!").annotate(CYAN),
             Self::Unknown => RcDoc::text("?").annotate(CYAN),
