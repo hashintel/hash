@@ -2,7 +2,7 @@ use core::ops::Index;
 
 use pretty::RcDoc;
 
-use super::{
+use crate::r#type::{
     Type, TypeId,
     environment::UnificationEnvironment,
     error::type_mismatch,
@@ -147,8 +147,7 @@ pub(crate) fn intersection_primitive(
 mod tests {
     use super::PrimitiveType;
     use crate::r#type::{
-        TypeKind,
-        primitive::unify_primitive,
+        kind::{TypeKind, primitive::unify_primitive},
         test::{instantiate, setup_unify},
     };
 

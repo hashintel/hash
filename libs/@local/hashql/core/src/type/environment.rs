@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use super::{
     Type, TypeId, TypeKind,
     error::{TypeCheckDiagnostic, circular_type_reference},
-    generic_argument::GenericArgumentId,
+    kind::generic_argument::GenericArgumentId,
     recursion::RecursionBoundary,
     unify_type_impl,
 };
@@ -294,8 +294,7 @@ mod test {
             Type, TypeId, TypeKind,
             environment::{Environment, UnificationEnvironment, Variance},
             error::type_mismatch,
-            generic_argument::GenericArgumentId,
-            primitive::PrimitiveType,
+            kind::{generic_argument::GenericArgumentId, primitive::PrimitiveType},
         },
     };
 

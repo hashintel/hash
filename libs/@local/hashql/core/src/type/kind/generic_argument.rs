@@ -3,16 +3,16 @@ use core::ops::Index;
 use ecow::EcoVec;
 use pretty::RcDoc;
 
-use super::{
-    Type, TypeId,
-    environment::{Environment, StructuralEquivalenceEnvironment, UnificationEnvironment},
-    error::generic_argument_not_found,
-    pretty_print::{ORANGE, PrettyPrint},
-    recursion::RecursionDepthBoundary,
-};
 use crate::{
     newtype,
     symbol::{Ident, Symbol},
+    r#type::{
+        Type, TypeId,
+        environment::{Environment, StructuralEquivalenceEnvironment, UnificationEnvironment},
+        error::generic_argument_not_found,
+        pretty_print::{ORANGE, PrettyPrint},
+        recursion::RecursionDepthBoundary,
+    },
 };
 
 newtype!(
@@ -253,10 +253,9 @@ mod tests {
     use crate::{
         symbol::Symbol,
         r#type::{
-            TypeKind,
             environment::Environment,
             error::TypeCheckDiagnosticCategory,
-            primitive::PrimitiveType,
+            kind::{TypeKind, primitive::PrimitiveType},
             test::{ident, instantiate, setup_unify},
         },
     };

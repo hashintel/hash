@@ -4,16 +4,18 @@ use std::collections::HashMap;
 use ecow::EcoVec;
 use pretty::RcDoc;
 
-use super::{
-    Type, TypeId,
-    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
-    error::type_mismatch,
-    generic_argument::GenericArguments,
-    intersection_type,
-    pretty_print::PrettyPrint,
-    recursion::RecursionDepthBoundary,
+use super::generic_argument::GenericArguments;
+use crate::{
+    symbol::Ident,
+    r#type::{
+        Type, TypeId,
+        environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
+        error::type_mismatch,
+        intersection_type,
+        pretty_print::PrettyPrint,
+        recursion::RecursionDepthBoundary,
+    },
 };
-use crate::symbol::Ident;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructField {
@@ -211,10 +213,12 @@ pub(crate) fn intersection_struct(
 mod tests {
     use super::{StructField, StructType};
     use crate::r#type::{
-        TypeKind,
-        generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
-        primitive::PrimitiveType,
-        r#struct::unify_struct,
+        kind::{
+            TypeKind,
+            generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+            primitive::PrimitiveType,
+            r#struct::unify_struct,
+        },
         test::{ident, instantiate, setup_unify},
     };
 

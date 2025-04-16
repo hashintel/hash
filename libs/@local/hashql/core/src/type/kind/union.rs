@@ -3,8 +3,9 @@ use core::ops::Index;
 use ecow::EcoVec;
 use pretty::RcDoc;
 
-use super::{
-    Type, TypeId, TypeKind,
+use super::TypeKind;
+use crate::r#type::{
+    Type, TypeId,
     environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
     error::union_variant_mismatch,
     intersection_type_impl,
@@ -231,10 +232,10 @@ pub(crate) fn intersection_with_union(
 mod tests {
     use super::{UnionType, unify_union, unify_union_lhs, unify_union_rhs};
     use crate::r#type::{
-        Type, TypeId, TypeKind,
+        Type, TypeId,
         environment::Environment,
         intersection_type,
-        primitive::PrimitiveType,
+        kind::{TypeKind, primitive::PrimitiveType},
         test::{instantiate, setup_unify},
     };
 

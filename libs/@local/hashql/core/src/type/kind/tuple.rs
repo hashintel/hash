@@ -3,11 +3,11 @@ use core::ops::Index;
 use ecow::EcoVec;
 use pretty::RcDoc;
 
-use super::{
+use super::generic_argument::GenericArguments;
+use crate::r#type::{
     Type, TypeId,
     environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
     error::tuple_length_mismatch,
-    generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
 };
@@ -145,13 +145,14 @@ mod tests {
     use crate::{
         span::SpanId,
         r#type::{
-            Type, TypeId, TypeKind,
+            Type, TypeId,
             environment::Environment,
             error::TypeCheckDiagnosticCategory,
-            generic_argument::GenericArguments,
-            primitive::PrimitiveType,
+            kind::{
+                TypeKind, generic_argument::GenericArguments, primitive::PrimitiveType,
+                tuple::unify_tuple,
+            },
             test::{instantiate, setup_unify},
-            tuple::unify_tuple,
         },
     };
 

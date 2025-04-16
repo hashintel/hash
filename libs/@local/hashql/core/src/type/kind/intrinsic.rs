@@ -2,7 +2,7 @@ use core::ops::Index;
 
 use pretty::RcDoc;
 
-use super::{
+use crate::r#type::{
     Type, TypeId,
     environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
     error::type_mismatch,
@@ -200,9 +200,11 @@ mod tests {
 
     use super::IntrinsicType;
     use crate::r#type::{
-        TypeKind,
-        intrinsic::{DictType, ListType, unify_intrinsic},
-        primitive::PrimitiveType,
+        kind::{
+            TypeKind,
+            intrinsic::{DictType, ListType, unify_intrinsic},
+            primitive::PrimitiveType,
+        },
         test::{instantiate, setup_unify},
     };
 

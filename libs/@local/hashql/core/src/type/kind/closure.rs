@@ -3,11 +3,11 @@ use core::ops::Index;
 use ecow::EcoVec;
 use pretty::RcDoc;
 
-use super::{
+use super::generic_argument::GenericArguments;
+use crate::r#type::{
     Type, TypeId,
     environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
     error::function_parameter_count_mismatch,
-    generic_argument::GenericArguments,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
 };
@@ -136,11 +136,14 @@ mod tests {
     // - Both are unrelated to String
     use super::{ClosureType, unify_closure};
     use crate::r#type::{
-        TypeId, TypeKind,
+        TypeId,
         environment::Environment,
         error::TypeCheckDiagnosticCategory,
-        generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
-        primitive::PrimitiveType,
+        kind::{
+            TypeKind,
+            generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+            primitive::PrimitiveType,
+        },
         test::{ident, instantiate, setup_unify},
     };
 

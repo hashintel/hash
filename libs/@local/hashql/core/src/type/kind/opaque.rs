@@ -3,10 +3,11 @@ use core::ops::Index;
 use ecow::EcoString;
 use pretty::RcDoc;
 
-use super::{
+use super::generic_argument::GenericArguments;
+use crate::r#type::{
     Type, TypeId,
     environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
-    generic_argument::GenericArguments,
+    error::opaque_type_name_mismatch,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
 };
@@ -63,13 +64,8 @@ pub(crate) fn unify_opaque(
     // Opaque types require the same name - this is core to nominal typing
     // Names must match exactly, regardless of variance context
     if lhs.kind.name != rhs.kind.name {
-        let diagnostic = super::error::opaque_type_name_mismatch(
-            env.source,
-            lhs,
-            rhs,
-            &lhs.kind.name,
-            &rhs.kind.name,
-        );
+        let diagnostic =
+            opaque_type_name_mismatch(env.source, lhs, rhs, &lhs.kind.name, &rhs.kind.name);
 
         env.record_diagnostic(diagnostic);
 
@@ -100,11 +96,12 @@ mod tests {
     use crate::{
         span::SpanId,
         r#type::{
-            Type, TypeId, TypeKind,
+            Type, TypeId,
             environment::UnificationEnvironment,
-            generic_argument::GenericArguments,
-            opaque::unify_opaque,
-            primitive::PrimitiveType,
+            kind::{
+                TypeKind, generic_argument::GenericArguments, opaque::unify_opaque,
+                primitive::PrimitiveType,
+            },
             test::{instantiate, setup_unify},
         },
     };

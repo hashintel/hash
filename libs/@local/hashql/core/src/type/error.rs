@@ -10,7 +10,8 @@ use hashql_diagnostics::{
 };
 
 use super::{
-    Type, environment::Environment, generic_argument::GenericArgumentId, pretty_print::PrettyPrint,
+    Type, environment::Environment, kind::generic_argument::GenericArgumentId,
+    pretty_print::PrettyPrint,
 };
 use crate::span::SpanId;
 

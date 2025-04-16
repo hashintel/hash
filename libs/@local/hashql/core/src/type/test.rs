@@ -9,12 +9,14 @@ use crate::{
     span::SpanId,
     symbol::{Ident, IdentKind, Symbol},
     r#type::{
-        generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
         intersection_type,
-        opaque::OpaqueType,
-        primitive::PrimitiveType,
-        r#struct::{StructField, StructType},
-        union::UnionType,
+        kind::{
+            generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+            opaque::OpaqueType,
+            primitive::PrimitiveType,
+            r#struct::{StructField, StructType},
+            union::UnionType,
+        },
     },
 };
 
