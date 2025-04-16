@@ -15,7 +15,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "../../../shared/ui";
-import type { PetriNetEdge } from "./edge-menu";
+import type { PetriNetEdge } from "./types";
 import type { TokenType } from "./token-editor";
 
 // Define the condition interface

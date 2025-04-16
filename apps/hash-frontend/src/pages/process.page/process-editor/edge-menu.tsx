@@ -1,15 +1,8 @@
 import { TextField } from "@hashintel/design-system";
 import { Box, Card, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
-import type { Edge } from "reactflow";
 
 import type { TokenType } from "./token-editor";
-
-export type PetriNetEdge = Edge<{
-  tokenWeights: {
-    [tokenTypeId: string]: number | undefined;
-  };
-}>;
 
 interface EdgeMenuProps {
   edgeId: string;

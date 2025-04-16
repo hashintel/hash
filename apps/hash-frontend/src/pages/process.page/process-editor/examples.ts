@@ -1,6 +1,6 @@
 import type { Node } from "reactflow";
 
-import type { PetriNetEdge } from "./edge-menu";
+import type { PetriNetEdge } from "./types";
 import type { TokenType } from "./token-editor";
 
 export const exampleCPN = {

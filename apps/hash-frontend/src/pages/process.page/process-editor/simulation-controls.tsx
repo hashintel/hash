@@ -143,6 +143,7 @@ export const SimulationControls = ({
             tooltip="Reset simulation"
           />
         </Stack>
+
         {/* Simulation time display */}
         <Box
           sx={{
@@ -165,8 +166,8 @@ export const SimulationControls = ({
         </Box>
       </Stack>
 
-      {/* Speed control */}
       <Stack direction="row" gap={2}>
+        {/* Speed control */}
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography sx={{ minWidth: 50 }} variant="smallTextLabels">
             Speed:
