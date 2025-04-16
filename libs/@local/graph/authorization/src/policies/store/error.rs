@@ -98,10 +98,13 @@ pub enum RoleAssignmentError {
     },
     #[display("Permission to add member to account group was denied")]
     PermissionDenied,
-    #[display("Actor was already assigned to a role in the group")]
+    #[display(
+        "Actor with ID `{actor_id}` is already assigned to group `{group_id}` with role `{name}`"
+    )]
     AlreadyAssigned {
         actor_id: ActorId,
         group_id: ActorGroupId,
+        name: RoleName,
     },
     #[display("Store operation failed")]
     StoreError,

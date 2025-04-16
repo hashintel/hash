@@ -212,7 +212,7 @@ where
         &mut self,
         actor_id: ActorId,
         actor_group_id: ActorGroupId,
-    ) -> Result<bool, Report<RoleAssignmentError>> {
+    ) -> Result<Option<RoleName>, Report<RoleAssignmentError>> {
         self.store.is_assigned(actor_id, actor_group_id).await
     }
 

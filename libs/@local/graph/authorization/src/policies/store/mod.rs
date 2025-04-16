@@ -143,6 +143,8 @@ pub trait LocalPrincipalStore {
 
     /// Checks if the actor is assigned to a role within the specified actor group.
     ///
+    /// If the actor has a role assigned, the [`RoleName`] is returned.
+    ///
     /// # Errors
     ///
     /// - [`ActorNotFound`] if the actor does not exist
@@ -156,7 +158,7 @@ pub trait LocalPrincipalStore {
         &mut self,
         actor_id: ActorId,
         actor_group_id: ActorGroupId,
-    ) -> Result<bool, Report<RoleAssignmentError>>;
+    ) -> Result<Option<RoleName>, Report<RoleAssignmentError>>;
 
     /// Unassigns an actor from a role.
     ///
