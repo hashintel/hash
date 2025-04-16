@@ -1,6 +1,10 @@
+use smallvec::SmallVec;
+
 use super::{
     Type, TypeId,
-    environment::{EquivalenceEnvironment, UnificationEnvironment},
+    environment::{
+        EquivalenceEnvironment, LatticeEnvironment, TypeAnalysisEnvironment, UnificationEnvironment,
+    },
 };
 
 /// A trait that implements properties of a mathematical lattice for types.
@@ -8,6 +12,9 @@ use super::{
 /// In type theory, a lattice structure enables reasoning about the relationships
 /// between types in a type system. The operations defined here allow determining
 /// common supertypes (join) and common subtypes (meet) of types.
+///
+/// These operations form the foundation for type inference, subsumption, and
+/// subtyping relationships in a type system.
 ///
 /// # Mathematical Background
 ///
@@ -22,8 +29,28 @@ use super::{
 ///   implicitly converted to both types. This often corresponds to an **Intersection** type (A &
 ///   B).
 ///
-/// These operations form the foundation for type inference, subsumption, and
-/// subtyping relationships in a type system.
+/// # Lattice Laws
+///
+/// The join and meet operations in a lattice satisfy several important mathematical properties:
+///
+/// 1. **Commutativity**:
+///    - `join(a, b) = join(b, a)` (order doesn't matter)
+///    - `meet(a, b) = meet(b, a)` (order doesn't matter)
+///
+/// 2. **Associativity**:
+///    - `join(a, join(b, c)) = join(join(a, b), c)` (grouping doesn't matter)
+///    - `meet(a, meet(b, c)) = meet(meet(a, b), c)` (grouping doesn't matter)
+///
+/// 3. **Absorption**:
+///    - `join(a, meet(a, b)) = a`
+///    - `meet(a, join(a, b)) = a`
+///
+/// 4. **Idempotence**:
+///    - `join(a, a) = a` (joining with self gives self)
+///    - `meet(a, a) = a` (meeting with self gives self)
+///
+/// These properties ensure that lattice operations behave consistently and predictably
+/// when working with complex type hierarchies.
 pub trait Lattice {
     /// Computes the join (least upper bound) of two types.
     ///
@@ -33,6 +60,11 @@ pub trait Lattice {
     /// This operation is fundamental in type inference for determining the resulting type when
     /// combining expressions of different types (e.g., finding a common type for divergent branches
     /// in an if-expression).
+    ///
+    /// The join operation forms a mathematical semilattice, satisfying the properties of:
+    /// - Commutativity: `join(a, b) = join(b, a)`
+    /// - Associativity: `join(a, join(b, c)) = join(join(a, b), c)`
+    /// - Idempotence: `join(a, a) = a`
     ///
     /// # Variance
     ///
@@ -49,7 +81,11 @@ pub trait Lattice {
     /// A vector of type IDs representing the join result. The interpretation is:
     /// * Multiple elements: The supremum is a Union of the returned types
     /// * Empty vector: The supremum is `Never` (no common supertype exists)
-    fn join(self: Type<&Self>, other: Type<&Self>) -> Vec<TypeId>;
+    fn join(
+        self: Type<&Self>,
+        other: Type<&Self>,
+        env: &mut LatticeEnvironment,
+    ) -> SmallVec<TypeId, 4>;
 
     /// Computes the meet (greatest lower bound) of two types.
     ///
@@ -58,6 +94,11 @@ pub trait Lattice {
     ///
     /// This operation is essential for type intersection operations and determining valid subtypes
     /// that satisfy multiple constraints simultaneously.
+    ///
+    /// The meet operation forms a mathematical semilattice, satisfying the properties of:
+    /// - Commutativity: `meet(a, b) = meet(b, a)`
+    /// - Associativity: `meet(a, meet(b, c)) = meet(meet(a, b), c)`
+    /// - Idempotence: `meet(a, a) = a`
     ///
     /// # Variance
     ///
@@ -74,7 +115,11 @@ pub trait Lattice {
     /// A vector of type IDs representing the meet result. The interpretation is:
     /// * Multiple elements: The infimum is an Intersection of the returned types
     /// * Empty vector: The infimum is `Never` (no common subtype exists)
-    fn meet(self: Type<&Self>, other: Type<&Self>) -> Vec<TypeId>;
+    fn meet(
+        self: Type<&Self>,
+        other: Type<&Self>,
+        env: &mut LatticeEnvironment,
+    ) -> SmallVec<TypeId, 4>;
 
     /// Determines if a type is uninhabited (has no possible values).
     ///
@@ -82,7 +127,7 @@ pub trait Lattice {
     /// cannot have any values constructed for them. They're useful in type systems
     /// to represent computations that don't return normally (e.g., functions that always
     /// panic or never terminate).
-    fn uninhabited(self: Type<&Self>) -> bool;
+    fn uninhabited(self: Type<&Self>, env: &mut TypeAnalysisEnvironment) -> bool;
 
     /// Checks if two types are semantically equivalent.
     ///
