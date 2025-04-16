@@ -221,6 +221,17 @@ mod test {
         };
     }
 
+    macro_rules! assert_kind {
+        ($env:expr, $actual:expr, $expected:expr) => {
+            assert_eq!($actual.len(), $expected.len());
+
+            for (actual, expected) in $actual.into_iter().zip($expected.iter()) {
+                let actual = &$env.arena[actual];
+                assert_eq!(actual.kind, *expected);
+            }
+        };
+    }
+
     #[test_case(TypeKind::Primitive(PrimitiveType::Number))]
     #[test_case(TypeKind::Primitive(PrimitiveType::Integer))]
     #[test_case(TypeKind::Primitive(PrimitiveType::String))]
@@ -256,13 +267,11 @@ mod test {
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
-        let output = a.join(b, &mut lattice_env);
-        assert_eq!(output.len(), 1);
-
-        let id = output[0];
-        let r#type = lattice_env.arena[id].clone();
-
-        assert_eq!(r#type.kind, primitive);
+        assert_kind!(
+            lattice_env,
+            a.meet(b, &mut lattice_env),
+            [primitive.clone()]
+        );
     }
 
     #[test]
@@ -274,23 +283,19 @@ mod test {
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
-        let result = number.join(integer, &mut lattice_env);
-        assert_eq!(result.len(), 1);
-
-        let id = result[0];
-        let r#type = lattice_env.arena[id].clone();
-
         // Number ⊔ Integer = Number
-        assert_eq!(r#type.kind, TypeKind::Primitive(*number.kind));
-
-        let result = integer.join(number, &mut lattice_env);
-        assert_eq!(result.len(), 1);
-
-        let id = result[0];
-        let r#type = lattice_env.arena[id].clone();
+        assert_kind!(
+            lattice_env,
+            number.join(integer, &mut lattice_env),
+            [TypeKind::Primitive(PrimitiveType::Number)]
+        );
 
         // Integer ⊔ Number = Number
-        assert_eq!(r#type.kind, TypeKind::Primitive(*number.kind));
+        assert_kind!(
+            lattice_env,
+            integer.join(number, &mut lattice_env),
+            [TypeKind::Primitive(PrimitiveType::Number)]
+        );
     }
 
     #[test]
@@ -302,23 +307,19 @@ mod test {
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
-        let result = number.meet(integer, &mut lattice_env);
-        assert_eq!(result.len(), 1);
-
-        let id = result[0];
-        let r#type = lattice_env.arena[id].clone();
-
         // Number ⊓ Integer = Integer
-        assert_eq!(r#type.kind, TypeKind::Primitive(*integer.kind));
-
-        let result = integer.meet(number, &mut lattice_env);
-        assert_eq!(result.len(), 1);
-
-        let id = result[0];
-        let r#type = lattice_env.arena[id].clone();
+        assert_kind!(
+            lattice_env,
+            number.meet(integer, &mut lattice_env),
+            [TypeKind::Primitive(PrimitiveType::Integer)]
+        );
 
         // Integer ⊓ Number = Integer
-        assert_eq!(r#type.kind, TypeKind::Primitive(*integer.kind));
+        assert_kind!(
+            lattice_env,
+            integer.meet(number, &mut lattice_env),
+            [TypeKind::Primitive(PrimitiveType::Integer)]
+        );
     }
 
     #[test]
