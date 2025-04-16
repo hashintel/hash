@@ -1,0 +1,188 @@
+use super::{
+    Type, TypeId,
+    environment::{EquivalenceEnvironment, UnificationEnvironment},
+};
+
+/// A trait that implements properties of a mathematical lattice for types.
+///
+/// In type theory, a lattice structure enables reasoning about the relationships
+/// between types in a type system. The operations defined here allow determining
+/// common supertypes (join) and common subtypes (meet) of types.
+///
+/// # Mathematical Background
+///
+/// In mathematics, a lattice is a partially ordered set in which any two elements
+/// have a unique supremum (least upper bound or "join") and a unique infimum
+/// (greatest lower bound or "meet").
+///
+/// In the context of a type system:
+/// - The **join** of two types is their least common supertype - the most specific type that both
+///   types can be implicitly converted to. This often corresponds to a **Union** type (A | B).
+/// - The **meet** of two types is their greatest common subtype - the most general type that can be
+///   implicitly converted to both types. This often corresponds to an **Intersection** type (A &
+///   B).
+///
+/// These operations form the foundation for type inference, subsumption, and
+/// subtyping relationships in a type system.
+pub trait Lattice {
+    /// Computes the join (least upper bound) of two types.
+    ///
+    /// The join represents the most specific common supertype of both input types. This corresponds
+    /// to the union type (A | B).
+    ///
+    /// This operation is fundamental in type inference for determining the resulting type when
+    /// combining expressions of different types (e.g., finding a common type for divergent branches
+    /// in an if-expression).
+    ///
+    /// # Variance
+    ///
+    /// When dealing with generic type constructors, `join` respects variance as follows:
+    /// * **In covariant positions**: `join` is called on the generic arguments directly.
+    /// * **In contravariant positions**: `meet` is called on the generic arguments instead (since
+    ///   contravariance reverses the subtyping relationship).
+    /// * **In invariant positions**: The generic arguments must be semantically equivalent,
+    ///   otherwise the result degenerates to `Never` (since invariant parameters require exact type
+    ///   matching).
+    ///
+    /// # Returns
+    ///
+    /// A vector of type IDs representing the join result. The interpretation is:
+    /// * Multiple elements: The supremum is a Union of the returned types
+    /// * Empty vector: The supremum is `Never` (no common supertype exists)
+    fn join(self: Type<&Self>, other: Type<&Self>) -> Vec<TypeId>;
+
+    /// Computes the meet (greatest lower bound) of two types.
+    ///
+    /// The meet represents the most general common subtype of both input types. This corresponds to
+    /// the intersection type (A & B).
+    ///
+    /// This operation is essential for type intersection operations and determining valid subtypes
+    /// that satisfy multiple constraints simultaneously.
+    ///
+    /// # Variance
+    ///
+    /// When dealing with generic type constructors, `meet` respects variance as follows:
+    /// * **In covariant positions**: `meet` is called on the generic arguments directly.
+    /// * **In contravariant positions**: `join` is called on the generic arguments instead (since
+    ///   contravariance reverses the subtyping relationship).
+    /// * **In invariant positions**: The generic arguments must be semantically equivalent,
+    ///   otherwise the result degenerates to `Never` (since invariant parameters require exact type
+    ///   matching).
+    ///
+    /// # Returns
+    ///
+    /// A vector of type IDs representing the meet result. The interpretation is:
+    /// * Multiple elements: The infimum is an Intersection of the returned types
+    /// * Empty vector: The infimum is `Never` (no common subtype exists)
+    fn meet(self: Type<&Self>, other: Type<&Self>) -> Vec<TypeId>;
+
+    /// Determines if a type is uninhabited (has no possible values).
+    ///
+    /// Uninhabited types (also called "empty types" or "bottom types" in type theory)
+    /// cannot have any values constructed for them. They're useful in type systems
+    /// to represent computations that don't return normally (e.g., functions that always
+    /// panic or never terminate).
+    fn uninhabited(self: Type<&Self>) -> bool;
+
+    /// Checks if two types are semantically equivalent.
+    ///
+    /// Semantic equivalence determines if two types have the same meaning or behavior
+    /// in the type system. This encompasses both structural and potentially nominal aspects:
+    ///
+    /// - **Structural aspects**: Types with the same shape and composition are typically equivalent
+    /// - **Nominal aspects**: In some cases, type identity or declared names may also be considered
+    ///
+    /// Equivalence is primarily determined structurally (by comparing the shape and composition of
+    /// types). Except for opaque types, which are compared nominally.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// // Structural types:
+    /// type A = (x: Number, y: Number);
+    /// type B = (x: Number, y: Number);
+    /// // A and B would be semantically equivalent
+    ///
+    /// // Nominal/opaque types:
+    /// newtype A = (x: Number, y: Number);
+    /// newtype B = (x: Number, y: Number);
+    /// // A and B would NOT be equivalent despite identical structure
+    /// ```
+    fn semantically_equivalent(
+        self: Type<&Self>,
+        other: Type<&Self>,
+        env: &mut EquivalenceEnvironment,
+    ) -> bool;
+
+    /// Unifies two types according to subtyping rules.
+    ///
+    /// Determines if one type can be used in a context where another type is expected, according to
+    /// the subtyping relationship. Unlike `join` and `meet` which compute new types,
+    /// unification checks compatibility between existing types.
+    ///
+    /// In type theory terms, unification checks if `rhs <: lhs` ("rhs is a subtype of lhs"),
+    /// meaning values of type `rhs` can be used where values of type `lhs` are expected.
+    ///
+    /// # Applications
+    ///
+    /// Unification is fundamental to:
+    /// - Type checking function arguments against parameter types
+    /// - Verifying assignment compatibility
+    /// - Implementing polymorphic type systems
+    /// - Resolving type variables in type inference
+    ///
+    /// # Variance
+    ///
+    /// Unification respects variance, which determines how subtyping relationships
+    /// between component types affect subtyping relationships between composite types:
+    ///
+    /// - **Covariant**: Preserves subtyping direction (if A <: B then F<A> <: F<B>)
+    /// - **Contravariant**: Reverses subtyping direction (if A <: B then F<B> <: F<A>)
+    /// - **Invariant**: Requires exact type equality (F<A> <: F<B> only if A = B)
+    ///
+    /// # Behavior
+    ///
+    /// Rather than returning errors directly, this method reports errors through the
+    /// `UnificationEnvironment`. This allows for better error reporting and collection of multiple
+    /// errors during a single unification process.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// // Succeeds because Integer <: Number (Integer is a subtype of Number)
+    /// unify(Number, Integer)
+    ///
+    /// // Fails because Number is not a subtype of Integer
+    /// unify(Integer, Number) // This will report an error through the environment
+    /// ```
+    fn unify(self: Type<&Self>, other: Type<&Self>, env: &mut UnificationEnvironment);
+
+    /// Simplifies a type to its canonical form.
+    ///
+    /// Type simplification transforms a type into an equivalent but simpler representation.
+    /// This process eliminates redundancies, normalizes structure, and applies type-specific
+    /// reduction rules to make types more concise and efficient to work with.
+    ///
+    /// # Common Simplifications
+    ///
+    /// - Flattening nested union/intersection types (e.g., `A | (B | C)` → `A | B | C`)
+    /// - Removing duplicates from union/intersection types (e.g., `A | A | B` → `A | B`)
+    /// - Eliminating redundant types based on subtyping (e.g., `Number | Integer` → `Number`)
+    /// - Normalizing recursive types to their canonical form
+    /// - Removing unreachable branches in union types with uninhabited components
+    ///
+    /// # Benefits
+    ///
+    /// Simplification is essential for:
+    /// - Generating clearer error messages by showing users simplified type representations
+    /// - Improving performance of type checking by working with smaller type representations
+    /// - Enabling more precise type inference
+    /// - Detecting type equivalence more efficiently
+    ///
+    /// # Returns
+    ///
+    /// A new `TypeId` representing the simplified version of the input type.
+    /// The simplified type is semantically equivalent to the original but may have
+    /// a different structure.
+    fn simplify(self: Type<&Self>) -> TypeId;
+}

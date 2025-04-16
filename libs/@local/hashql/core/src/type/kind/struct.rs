@@ -9,7 +9,7 @@ use crate::{
     symbol::Ident,
     r#type::{
         Type, TypeId,
-        environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
+        environment::{EquivalenceEnvironment, UnificationEnvironment},
         error::type_mismatch,
         intersection_type,
         pretty_print::PrettyPrint,
@@ -24,11 +24,7 @@ pub struct StructField {
 }
 
 impl StructField {
-    fn structurally_equivalent(
-        &self,
-        other: &Self,
-        env: &mut StructuralEquivalenceEnvironment,
-    ) -> bool {
+    fn structurally_equivalent(&self, other: &Self, env: &mut EquivalenceEnvironment) -> bool {
         self.key.value == other.key.value && env.structurally_equivalent(self.value, other.value)
     }
 }
@@ -74,7 +70,7 @@ impl StructType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        env: &mut StructuralEquivalenceEnvironment,
+        env: &mut EquivalenceEnvironment,
     ) -> bool {
         // We do not need to sort the fields, because the constructor verifies that they are already
         // sorted

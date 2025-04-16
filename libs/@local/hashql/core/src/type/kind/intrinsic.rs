@@ -4,7 +4,7 @@ use pretty::RcDoc;
 
 use crate::r#type::{
     Type, TypeId,
-    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
+    environment::{EquivalenceEnvironment, UnificationEnvironment},
     error::type_mismatch,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -16,11 +16,7 @@ pub struct ListType {
 }
 
 impl ListType {
-    fn structurally_equivalent(
-        self,
-        other: Self,
-        env: &mut StructuralEquivalenceEnvironment,
-    ) -> bool {
+    fn structurally_equivalent(self, other: Self, env: &mut EquivalenceEnvironment) -> bool {
         env.structurally_equivalent(self.element, other.element)
     }
 }
@@ -45,11 +41,7 @@ pub struct DictType {
 }
 
 impl DictType {
-    fn structurally_equivalent(
-        self,
-        other: Self,
-        env: &mut StructuralEquivalenceEnvironment,
-    ) -> bool {
+    fn structurally_equivalent(self, other: Self, env: &mut EquivalenceEnvironment) -> bool {
         env.structurally_equivalent(self.key, other.key)
             && env.structurally_equivalent(self.value, other.value)
     }
@@ -89,7 +81,7 @@ impl IntrinsicType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        env: &mut StructuralEquivalenceEnvironment,
+        env: &mut EquivalenceEnvironment,
     ) -> bool {
         match (self, other) {
             (&Self::List(lhs), &Self::List(rhs)) => lhs.structurally_equivalent(rhs, env),

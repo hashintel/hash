@@ -17,7 +17,7 @@ use self::{
 };
 use super::{
     Type, TypeId,
-    environment::StructuralEquivalenceEnvironment,
+    environment::EquivalenceEnvironment,
     pretty_print::{CYAN, GRAY, PrettyPrint},
     recursion::RecursionDepthBoundary,
 };
@@ -99,7 +99,7 @@ impl TypeKind {
     pub(super) fn structurally_equivalent(
         this: &Type<Self>,
         other: &Type<Self>,
-        env: &mut StructuralEquivalenceEnvironment,
+        env: &mut EquivalenceEnvironment,
     ) -> bool {
         match (&this.kind, &other.kind) {
             (Self::Closure(lhs), Self::Closure(rhs)) => lhs.structurally_equivalent(rhs, env),

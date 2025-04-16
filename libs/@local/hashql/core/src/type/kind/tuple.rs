@@ -6,7 +6,7 @@ use pretty::RcDoc;
 use super::generic_argument::GenericArguments;
 use crate::r#type::{
     Type, TypeId,
-    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
+    environment::{EquivalenceEnvironment, UnificationEnvironment},
     error::tuple_length_mismatch,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -18,11 +18,7 @@ pub struct TupleField {
 }
 
 impl TupleField {
-    fn structurally_equivalent(
-        self,
-        other: Self,
-        env: &mut StructuralEquivalenceEnvironment,
-    ) -> bool {
+    fn structurally_equivalent(self, other: Self, env: &mut EquivalenceEnvironment) -> bool {
         env.structurally_equivalent(self.value, other.value)
     }
 }
@@ -48,7 +44,7 @@ impl TupleType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        env: &mut StructuralEquivalenceEnvironment,
+        env: &mut EquivalenceEnvironment,
     ) -> bool {
         self.fields.len() == other.fields.len()
             && self

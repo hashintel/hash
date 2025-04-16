@@ -6,7 +6,7 @@ use pretty::RcDoc;
 use super::generic_argument::GenericArguments;
 use crate::r#type::{
     Type, TypeId,
-    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
+    environment::{EquivalenceEnvironment, UnificationEnvironment},
     error::opaque_type_name_mismatch,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -25,7 +25,7 @@ impl OpaqueType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        env: &mut StructuralEquivalenceEnvironment,
+        env: &mut EquivalenceEnvironment,
     ) -> bool {
         // We do not check if the inner type is equivalent because opaque types are nominal
         self.name == other.name

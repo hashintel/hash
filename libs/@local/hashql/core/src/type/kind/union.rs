@@ -6,7 +6,7 @@ use pretty::RcDoc;
 use super::TypeKind;
 use crate::r#type::{
     Type, TypeId,
-    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
+    environment::{EquivalenceEnvironment, UnificationEnvironment},
     error::union_variant_mismatch,
     intersection_type_impl,
     pretty_print::PrettyPrint,
@@ -22,7 +22,7 @@ impl UnionType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        env: &mut StructuralEquivalenceEnvironment,
+        env: &mut EquivalenceEnvironment,
     ) -> bool {
         // go through every variant in self and check if there is a variant matching in other
         self.variants.iter().all(|&variant| {

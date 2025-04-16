@@ -3,15 +3,16 @@
 pub mod environment;
 pub mod error;
 pub mod kind;
+pub mod lattice;
 pub mod pretty_print;
 pub(crate) mod recursion;
 #[cfg(test)]
 pub(crate) mod test;
 
-use core::ops::Index;
+use core::ops::{Index, Receiver};
 
 use self::{
-    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment, Variance},
+    environment::{EquivalenceEnvironment, UnificationEnvironment, Variance},
     error::{expected_never, intersection_coerced_to_never, type_mismatch},
     kind::{
         TypeKind,
@@ -45,11 +46,7 @@ pub struct Type<K = TypeKind> {
 }
 
 impl Type<TypeKind> {
-    fn structurally_equivalent_impl(
-        &self,
-        other: &Self,
-        env: &mut StructuralEquivalenceEnvironment,
-    ) -> bool {
+    fn structurally_equivalent_impl(&self, other: &Self, env: &mut EquivalenceEnvironment) -> bool {
         TypeKind::structurally_equivalent(self, other, env)
     }
 }
@@ -91,6 +88,10 @@ impl HasId for Type {
     fn id(&self) -> Self::Id {
         self.id
     }
+}
+
+impl<K> Receiver for Type<K> {
+    type Target = K;
 }
 
 /// Unifies two types, respecting the current variance context.

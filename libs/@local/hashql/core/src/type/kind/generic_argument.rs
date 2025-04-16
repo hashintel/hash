@@ -8,7 +8,7 @@ use crate::{
     symbol::{Ident, Symbol},
     r#type::{
         Type, TypeId,
-        environment::{Environment, StructuralEquivalenceEnvironment, UnificationEnvironment},
+        environment::{Environment, EquivalenceEnvironment, UnificationEnvironment},
         error::generic_argument_not_found,
         pretty_print::{ORANGE, PrettyPrint},
         recursion::RecursionDepthBoundary,
@@ -31,11 +31,7 @@ pub struct GenericArgument {
 }
 
 impl GenericArgument {
-    fn structurally_equivalent(
-        &self,
-        other: &Self,
-        env: &mut StructuralEquivalenceEnvironment,
-    ) -> bool {
+    fn structurally_equivalent(&self, other: &Self, env: &mut EquivalenceEnvironment) -> bool {
         self.name.value == other.name.value
             && env.structurally_equivalent(self.r#type, other.r#type)
     }
@@ -94,7 +90,7 @@ impl GenericArguments {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        env: &mut StructuralEquivalenceEnvironment,
+        env: &mut EquivalenceEnvironment,
     ) -> bool {
         // We do not need to sort the arguments, because the constructor
         // guarantees that they are in lexicographical order.

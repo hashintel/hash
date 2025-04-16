@@ -6,7 +6,7 @@ use pretty::RcDoc;
 use super::generic_argument::GenericArguments;
 use crate::r#type::{
     Type, TypeId,
-    environment::{StructuralEquivalenceEnvironment, UnificationEnvironment},
+    environment::{EquivalenceEnvironment, UnificationEnvironment},
     error::function_parameter_count_mismatch,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -24,7 +24,7 @@ impl ClosureType {
     pub(crate) fn structurally_equivalent(
         &self,
         other: &Self,
-        env: &mut StructuralEquivalenceEnvironment,
+        env: &mut EquivalenceEnvironment,
     ) -> bool {
         self.params.len() == other.params.len()
             && self

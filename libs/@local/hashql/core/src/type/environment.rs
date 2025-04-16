@@ -162,7 +162,7 @@ impl<'env> UnificationEnvironment<'env> {
     }
 
     pub(crate) fn structurally_equivalent(&self, lhs: TypeId, rhs: TypeId) -> bool {
-        let mut environment = StructuralEquivalenceEnvironment::new(self.environment);
+        let mut environment = EquivalenceEnvironment::new(self.environment);
 
         environment.structurally_equivalent(lhs, rhs)
     }
@@ -230,12 +230,12 @@ impl DerefMut for UnificationEnvironment<'_> {
     }
 }
 
-pub struct StructuralEquivalenceEnvironment<'env> {
+pub struct EquivalenceEnvironment<'env> {
     environment: &'env Environment,
     boundary: RecursionBoundary,
 }
 
-impl<'env> StructuralEquivalenceEnvironment<'env> {
+impl<'env> EquivalenceEnvironment<'env> {
     #[must_use]
     pub fn new(environment: &'env Environment) -> Self {
         Self {
@@ -277,7 +277,7 @@ impl<'env> StructuralEquivalenceEnvironment<'env> {
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
 // As the unification environment is just a wrapper around the environment with an additional guard.
-impl Deref for StructuralEquivalenceEnvironment<'_> {
+impl Deref for EquivalenceEnvironment<'_> {
     type Target = Environment;
 
     fn deref(&self) -> &Self::Target {
