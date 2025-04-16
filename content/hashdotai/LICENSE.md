@@ -7,6 +7,6 @@
 
 The [hash.ai] website contains educational material and general information regarding HASH.
 
-Unlike the vast majority of this repository, the contents of this particular directory are not open-source, but have nevertheless been made available on GitHub so that their provenance and integrity can be confirmed.
+Unlike the vast majority of this repository, the contents of this particular directory are _not_ open-source, but have nevertheless been made available on GitHub so that their provenance and integrity can be confirmed — and user-suggested changes can be accepted [as outlined](../README.md).
 
 For more information about contributing to the HASH public website, see our repo-wide [CONTRIBUTING] guide.
