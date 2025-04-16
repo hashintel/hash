@@ -1,6 +1,10 @@
 import { useApolloClient } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import { getOutgoingLinksForEntity, getRoots, intervalForTimestamp } from "@blockprotocol/graph/stdlib";
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+  intervalForTimestamp,
+} from "@blockprotocol/graph/stdlib";
 import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
