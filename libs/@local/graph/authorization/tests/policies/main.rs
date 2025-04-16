@@ -1,3 +1,4 @@
+#![feature(assert_matches)]
 #![expect(
     clippy::panic_in_result_fn,
     reason = "Tests use assertions that may panic"
@@ -8,7 +9,7 @@ extern crate alloc;
 mod definitions;
 
 use alloc::borrow::Cow;
-use core::{error::Error, str::FromStr as _};
+use core::{assert_matches::assert_matches, error::Error, str::FromStr as _};
 use std::sync::LazyLock;
 
 use hash_graph_authorization::policies::{
@@ -267,7 +268,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
     println!("system_web_machine_policy_set:\n{system_web_machine_policy_set:?}");
 
     // Only the system machine can instantiate a machine
-    assert!(matches!(
+    assert_matches!(
         system_web_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.web.machine.id),
@@ -280,8 +281,8 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.machine.id),
@@ -294,9 +295,9 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.machine.id),
@@ -309,8 +310,8 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.machine.id),
@@ -323,7 +324,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
+    );
 
     Ok(())
 }
@@ -386,7 +387,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
 
     eprintln!("context:\n{context:?}");
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -399,8 +400,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -413,8 +414,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -427,9 +428,9 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -440,8 +441,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(user.web.machine.id),
@@ -452,8 +453,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.machine.id),
@@ -464,9 +465,9 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -477,8 +478,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(user.web.machine.id),
@@ -489,8 +490,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.machine.id),
@@ -501,7 +502,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
+    );
 
     Ok(())
 }
@@ -562,7 +563,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         .with_policies(policy_store.get_policies(ActorId::Machine(system.machine.id))?)?;
     println!("system_machine_policy_set:\n{system_machine_policy_set:?}");
 
-    assert!(matches!(
+    assert_matches!(
         org_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(org_web.machine.id),
@@ -573,9 +574,9 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -586,8 +587,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         org_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(org_web.machine.id),
@@ -598,8 +599,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(user.web.machine.id),
@@ -610,8 +611,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.web.machine.id),
@@ -622,9 +623,9 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -635,8 +636,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         org_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(org_web.machine.id),
@@ -647,8 +648,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(user.web.machine.id),
@@ -659,8 +660,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.web.machine.id),
@@ -671,7 +672,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
+    );
 
     Ok(())
 }
@@ -693,7 +694,7 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
         PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
     println!("user_policy_set:\n{user_policy_set:?}");
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -706,8 +707,8 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -720,7 +721,7 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
+    );
 
     Ok(())
 }
@@ -746,7 +747,7 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
         PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
     println!("user_policy_set:\n{user_policy_set:?}");
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -759,8 +760,8 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -773,7 +774,7 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
+    );
 
     Ok(())
 }

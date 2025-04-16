@@ -15,7 +15,7 @@ use type_system::principal::actor_group::WebId;
 
 use crate::snapshot::{SnapshotRestoreError, SnapshotWeb, web::WebBatch};
 
-/// A sink to insert [`Web`]s.
+/// A sink to insert [`SnapshotWeb`]s.
 ///
 /// An `WebSender` with the corresponding [`WebReceiver`] are created using the [`channel`]
 /// function.
