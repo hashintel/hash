@@ -7,8 +7,10 @@ import type {
   EntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system/dist/cjs";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import {
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 export const getParentIds = (
   entityType: Pick<EntityType, "allOf">,
@@ -47,7 +49,7 @@ export const isSpecialEntityType = (
       systemEntityTypes.imageFile.entityTypeBaseUrl
     : false;
 
-  let isLink = entityType.$id === linkEntityTypeUrl;
+  let isLink = entityType.$id === blockProtocolEntityTypes.link.entityTypeId;
 
   for (const id of parentIds) {
     if (extractBaseUrl(id) === systemEntityTypes.file.entityTypeBaseUrl) {
@@ -56,7 +58,10 @@ export const isSpecialEntityType = (
     if (extractBaseUrl(id) === systemEntityTypes.imageFile.entityTypeBaseUrl) {
       isImage = true;
     }
-    if (extractBaseUrl(id) === extractBaseUrl(linkEntityTypeUrl)) {
+    if (
+      extractBaseUrl(id) ===
+      extractBaseUrl(blockProtocolEntityTypes.link.entityTypeId)
+    ) {
       isLink = true;
     }
   }

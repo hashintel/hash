@@ -1,4 +1,9 @@
 import {
+  getEntityTypeById,
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import {
   extractBaseUrl,
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -10,11 +15,6 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import {
-  getEntityTypeById,
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { Box, Popover, styled, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useMemo, useRef, useState } from "react";

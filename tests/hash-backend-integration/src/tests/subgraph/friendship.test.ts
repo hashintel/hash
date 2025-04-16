@@ -22,8 +22,22 @@ import {
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import type {
+  KnowledgeGraphRootedEdges,
+  OntologyVertices,
+} from "@blockprotocol/graph";
+import {
+  getEntityTypes as getEntityTypesFromSubgraph,
+  getIncomingLinksForEntity,
+  getLeftEntityForLinkEntity,
+  getOutgoingLinkAndTargetEntities,
+  getOutgoingLinksForEntity,
+  getRightEntityForLinkEntity,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import type {
   ActorEntityUuid,
   BaseUrl,
+  Entity,
   EntityTypeWithMetadata,
   Timestamp,
   VersionedUrl,
@@ -33,24 +47,14 @@ import type {
   GetEntitySubgraphRequest,
   GetEntityTypesParams,
   GetPropertyTypesParams,
+  QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { QueryTemporalAxesUnresolved } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import {
-  getEntityTypes as getEntityTypesFromSubgraph,
-  getIncomingLinksForEntity,
-  getLeftEntityForLinkEntity,
-  getOutgoingLinkAndTargetEntities,
-  getOutgoingLinksForEntity,
-  getRightEntityForLinkEntity,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../test-server";
@@ -131,7 +135,7 @@ const linkFilter: GetEntitySubgraphRequest["filter"] = {
       path: ["type", "inheritsFrom", "*", "versionedUrl"],
     },
     {
-      parameter: linkEntityTypeUrl,
+      parameter: blockProtocolEntityTypes.link.entityTypeId,
     },
   ],
 };
@@ -768,14 +772,17 @@ describe("non-zero, simple resolve depths", () => {
     const friendshipEntity = getRoots(subgraph)[0]!;
     expect(friendshipEntity).toStrictEqual(linkEntities[0]);
     expect(
-      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!)
-        .length,
+      Object.keys(
+        subgraph.edges[friendshipEntity.metadata.recordId.entityId] ?? {},
+      ).length,
     ).toEqual(1);
     expect(
       Object.keys(
-        subgraph.edges[friendshipEntity.metadata.recordId.entityId]![
+        (subgraph.edges as KnowledgeGraphRootedEdges)[
+          friendshipEntity.metadata.recordId.entityId
+        ]![
           friendshipEntity.metadata.temporalVersioning.decisionTime.start.limit
-        ]!,
+        ] ?? {},
       ).length,
     ).toEqual(2);
 
@@ -825,14 +832,18 @@ describe("non-zero, simple resolve depths", () => {
     const friendshipEntity = getRoots(subgraph)[0]!;
     expect(friendshipEntity).toStrictEqual(linkEntities[0]);
     expect(
-      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!)
-        .length,
+      Object.keys(
+        subgraph.edges[friendshipEntity.metadata.recordId.entityId] ?? {},
+      ).length,
     ).toEqual(1);
+
     expect(
       Object.keys(
-        subgraph.edges[friendshipEntity.metadata.recordId.entityId]![
+        (subgraph.edges as KnowledgeGraphRootedEdges)[
+          friendshipEntity.metadata.recordId.entityId
+        ]![
           friendshipEntity.metadata.temporalVersioning.decisionTime.start.limit
-        ]!,
+        ] ?? {},
       ).length,
     ).toEqual(2);
 
@@ -1052,17 +1063,19 @@ describe("complex resolve depths", () => {
     const aliceEntity = roots[0]!;
     expect(aliceEntity).toStrictEqual(aliceEntities[aliceEntities.length - 1]);
 
-    const personTypes = subgraph.edges[aliceEntity.metadata.recordId.entityId]![
-      aliceEntity.metadata.temporalVersioning.decisionTime.start.limit
-    ]!.filter((edge) => edge.kind === "IS_OF_TYPE").map(
-      (edge) => edge.rightEndpoint,
-    );
+    const personTypes = (subgraph.edges as KnowledgeGraphRootedEdges)
+      [aliceEntity.metadata.recordId.entityId]![
+        aliceEntity.metadata.temporalVersioning.decisionTime.start.limit
+      ]!.filter((edge) => edge.kind === "IS_OF_TYPE")
+      .map((edge) => edge.rightEndpoint);
+
     expect(personTypes.length).toEqual(1);
     const personType = personTypes[0]!;
 
     expect(
-      subgraph.vertices[personType.baseId]![personType.revisionId]!.inner
-        .metadata.recordId.baseUrl,
+      (subgraph.vertices as OntologyVertices)[personType.baseId]![
+        personType.revisionId
+      ]!.inner.metadata.recordId.baseUrl,
     ).toStrictEqual(personTypeBaseId);
 
     const links = getOutgoingLinksForEntity(
@@ -1072,17 +1085,19 @@ describe("complex resolve depths", () => {
     expect(links.length).toEqual(1);
     const link = links[0]!;
 
-    const linkTypes = subgraph.edges[link.metadata.recordId.entityId]![
-      link.metadata.temporalVersioning.decisionTime.start.limit
-    ]!.filter((edge) => edge.kind === "IS_OF_TYPE").map(
-      (edge) => edge.rightEndpoint,
-    );
+    const linkTypes = (subgraph.edges as KnowledgeGraphRootedEdges)
+      [link.metadata.recordId.entityId]![
+        link.metadata.temporalVersioning.decisionTime.start.limit
+      ]!.filter((edge) => edge.kind === "IS_OF_TYPE")
+      .map((edge) => edge.rightEndpoint);
+
     expect(linkTypes.length).toEqual(1);
     const linkType = linkTypes[0]!;
 
     expect(
-      subgraph.vertices[linkType.baseId]![linkType.revisionId]!.inner.metadata
-        .recordId.baseUrl,
+      (subgraph.vertices as OntologyVertices)[linkType.baseId]![
+        linkType.revisionId
+      ]!.inner.metadata.recordId.baseUrl,
     ).toStrictEqual(friendshipTypeBaseId);
   });
 });

@@ -1,4 +1,4 @@
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
 import type { MigrationFunction } from "../types";
@@ -599,7 +599,7 @@ const migrate: MigrationFunction = async ({
   const belongsToOrganizationLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Belongs To Organization",
         description: "The organization the user belongs to.",
         properties: [],
@@ -685,7 +685,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Creator",
         description: "The user who created something.",
         properties: [],
@@ -825,7 +825,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Assignee",
         description: "The user to whom the issue is assigned to.",
         properties: [],
@@ -925,7 +925,7 @@ const migrate: MigrationFunction = async ({
   const _associatedWithCycleLinkEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Associated With Cycle",
         description: "The cycle that the issue is associated with.",
         properties: [],
@@ -1025,7 +1025,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Parent",
         description: "The parent of the issue.",
         properties: [],
@@ -1082,7 +1082,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Snoozed By",
         description: "The user who snoozed the issue.",
         properties: [],
@@ -1156,7 +1156,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "State",
         description: "The workflow state that the issue is associated with.",
         properties: [],
@@ -1184,7 +1184,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Subscriber",
         description: "A user who is subscribed to the issue.",
         properties: [],
@@ -1436,7 +1436,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Belongs To Issue",
         description: "The issue this attachment belongs to.",
       },

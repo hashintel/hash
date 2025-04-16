@@ -16,6 +16,7 @@ import type {
   KnowledgeGraphVertex,
   KnowledgeGraphVertices,
   Subgraph,
+  SubgraphRootType,
 } from "../../../types/subgraph.js";
 import { isEntityVertex } from "../../../types/subgraph/vertices.js";
 import { mustBeDefined } from "../../../util.js";
@@ -33,7 +34,13 @@ import {
  * @param subgraph
  * @param latest - whether or not to only return the latest revisions of each entity
  */
-export const getEntities = (subgraph: Subgraph, latest: boolean): Entity[] => {
+export const getEntities = <
+  RootType extends SubgraphRootType,
+  EntityImpl extends Entity,
+>(
+  subgraph: Subgraph<RootType, EntityImpl>,
+  latest: boolean,
+): EntityImpl[] => {
   return typedValues(subgraph.vertices).flatMap((revisions) => {
     if (latest) {
       const revisionVersions = Object.keys(
@@ -42,7 +49,7 @@ export const getEntities = (subgraph: Subgraph, latest: boolean): Entity[] => {
 
       const lastIndex = revisionVersions.length - 1;
       const vertex = (
-        revisions as Record<EntityRevisionId, KnowledgeGraphVertex>
+        revisions as Record<EntityRevisionId, KnowledgeGraphVertex<EntityImpl>>
       )[revisionVersions[lastIndex]!]!;
       return isEntityVertex(vertex) ? [vertex.inner] : [];
     } else {

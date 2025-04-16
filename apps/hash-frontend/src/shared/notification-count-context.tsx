@@ -1,6 +1,9 @@
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -14,8 +17,6 @@ import type {
   Notification,
   ReadAtPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
@@ -182,7 +183,7 @@ export const NotificationCountContextProvider: FunctionComponent<
       }
 
       const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<Notification>
+        EntityRootType<HashEntity<Notification>>
       >(relatedNotificationData.data.getEntitySubgraph.subgraph);
 
       const notifications = getRoots(subgraph);

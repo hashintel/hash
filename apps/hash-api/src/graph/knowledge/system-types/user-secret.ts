@@ -11,13 +11,13 @@ import type {
 } from "@local/hash-backend-utils/vault";
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 import type { Auth } from "googleapis";
 
 import { createEntity } from "../primitive/entity";
@@ -118,7 +118,7 @@ export const createUserSecret = async <
    * The user themselves can read the secret.
    * No other account requires access to it.
    */
-  const botEditorUserViewerOnly: EntityRelationAndSubject[] = [
+  const botEditorUserViewerOnly: EntityRelationAndSubjectBranded[] = [
     {
       relation: "editor",
       subject: {

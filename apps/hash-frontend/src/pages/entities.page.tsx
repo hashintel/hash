@@ -13,9 +13,11 @@ import {
   EyeSolidIcon,
   PenToSquareSolidIcon,
 } from "@hashintel/design-system";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
@@ -79,7 +81,9 @@ export const CreateButtons: FunctionComponent<{
       entityType
         ? (isSpecialEntityTypeLookup?.[entityType.schema.$id] ?? {
             isFile: false,
-            isLink: entityType.schema.$id === linkEntityTypeUrl,
+            isLink:
+              entityType.schema.$id ===
+              blockProtocolEntityTypes.link.entityTypeId,
           })
         : { isFile: false, isLink: false },
     [isSpecialEntityTypeLookup, entityType],
@@ -277,9 +281,11 @@ const EntitiesPage: NextPageWithLayout = () => {
               /**
                * @todo H-3363 use closed schema to take account of indirectly inherited link status
                */
-              entityType.schema.$id === linkEntityTypeUrl ||
+              entityType.schema.$id ===
+                blockProtocolEntityTypes.link.entityTypeId ||
               !!entityType.schema.allOf?.some(
-                (allOf) => allOf.$ref === linkEntityTypeUrl,
+                (allOf) =>
+                  allOf.$ref === blockProtocolEntityTypes.link.entityTypeId,
               )
             }
           />
@@ -323,9 +329,12 @@ const EntitiesPage: NextPageWithLayout = () => {
                     /**
                      * @todo H-3363 use closed schema to take account of indirectly inherited link status
                      */
-                    entityType?.schema.$id === linkEntityTypeUrl ||
+                    entityType?.schema.$id ===
+                      blockProtocolEntityTypes.link.entityTypeId ||
                     !!entityType?.schema.allOf?.some(
-                      (allOf) => allOf.$ref === linkEntityTypeUrl,
+                      (allOf) =>
+                        allOf.$ref ===
+                        blockProtocolEntityTypes.link.entityTypeId,
                     )
                   }
                 />

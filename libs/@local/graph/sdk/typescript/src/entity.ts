@@ -1,8 +1,20 @@
 import type {
+  DataTypeRootType,
+  Edges,
+  EntityRevisionId,
+  EntityTypeRootType,
+  EntityVertexId,
+  GraphResolveDepths,
+  OntologyVertices,
+  PropertyTypeRootType,
+  SubgraphTemporalAxes,
+} from "@blockprotocol/graph";
+import type {
   ActorEntityUuid,
   BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
+  Entity,
   EntityId,
   EntityMetadata,
   EntityUuid,
@@ -20,6 +32,8 @@ import type {
   PropertyValueWithMetadata,
   PropertyWithMetadata,
   ProvidedEntityEditionProvenance,
+  Timestamp,
+  TypeIdsAndPropertiesForEntity,
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
@@ -29,15 +43,16 @@ import {
   isObjectMetadata,
   isValueMetadata,
 } from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
+  DiffEntityParams,
   Entity as GraphApiEntity,
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
-import type { EntityProperties } from "@local/hash-graph-types/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
@@ -45,6 +60,43 @@ import type {
 import type { EntityValidationReport } from "@local/hash-graph-types/validation";
 
 import type { AuthenticationContext } from "./authentication-context.js";
+
+export type SerializedEntityVertex = {
+  kind: "entity";
+  inner: SerializedEntity;
+};
+
+export type SerializedKnowledgeGraphVertex = SerializedEntityVertex;
+
+export type SerializedKnowledgeGraphVertices = {
+  [entityId: EntityId]: {
+    [revisionId: EntityRevisionId]: SerializedKnowledgeGraphVertex;
+  };
+};
+
+export type SerializedVertices = OntologyVertices &
+  SerializedKnowledgeGraphVertices;
+
+export type SerializedEntityRootType = {
+  vertexId: EntityVertexId;
+  element: SerializedEntity;
+};
+
+export type SerializedSubgraphRootType =
+  | DataTypeRootType
+  | PropertyTypeRootType
+  | EntityTypeRootType
+  | SerializedEntityRootType;
+
+export type SerializedSubgraph<
+  RootType extends SerializedSubgraphRootType = SerializedSubgraphRootType,
+> = {
+  roots: RootType["vertexId"][];
+  vertices: SerializedVertices;
+  edges: Edges;
+  depths: GraphResolveDepths;
+  temporalAxes: SubgraphTemporalAxes;
+};
 
 /**
  * Types used in getEntitySubgraph response to indicate the count of these in the whole result set,
@@ -56,7 +108,7 @@ export type TypeTitlesMap = Record<VersionedUrl, string>;
 export type WebIdsMap = Record<WebId, number>;
 
 export type CreateEntityParameters<
-  T extends EntityProperties = EntityProperties,
+  T extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > = Omit<
   GraphApiCreateEntityRequest,
   "decisionTime" | "entityTypeIds" | "draft" | "properties" | "provenance"
@@ -78,6 +130,18 @@ export type PatchEntityParameters = Omit<
   provenance: ProvidedEntityEditionProvenance;
 };
 
+export type DiffEntityInput = Subtype<
+  DiffEntityParams,
+  {
+    firstEntityId: EntityId;
+    firstTransactionTime: Timestamp | null;
+    firstDecisionTime: Timestamp | null;
+    secondEntityId: EntityId;
+    secondDecisionTime: Timestamp | null;
+    secondTransactionTime: Timestamp | null;
+  }
+>;
+
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
 );
@@ -91,7 +155,10 @@ export interface SerializedEntity<
   [typeId]: TypeId;
 }
 
-type EntityData<Properties extends EntityProperties = EntityProperties> = {
+type EntityData<
+  Properties extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> = {
   metadata: EntityMetadata<Properties["entityTypeIds"]>;
   properties: Properties["properties"];
   linkData?: LinkData;
@@ -101,8 +168,8 @@ type EntityInput<Properties extends PropertyObject> =
   | GraphApiEntity
   | SerializedEntity<Properties>;
 
-const isSerializedEntity = <Properties extends EntityProperties>(
-  entity: EntityInput<EntityProperties["properties"]>,
+const isSerializedEntity = <Properties extends TypeIdsAndPropertiesForEntity>(
+  entity: EntityInput<TypeIdsAndPropertiesForEntity["properties"]>,
 ): entity is SerializedEntity => {
   return (
     "entityTypeId" in
@@ -110,8 +177,8 @@ const isSerializedEntity = <Properties extends EntityProperties>(
   );
 };
 
-const isGraphApiEntity = <Properties extends EntityProperties>(
-  entity: EntityInput<EntityProperties["properties"]>,
+const isGraphApiEntity = <Properties extends TypeIdsAndPropertiesForEntity>(
+  entity: EntityInput<TypeIdsAndPropertiesForEntity["properties"]>,
 ): entity is GraphApiEntity => {
   return (
     "entityTypeIds" in
@@ -390,7 +457,9 @@ export const mergePropertiesAndMetadata = (
  * Merge a property object with property metadata
  * – this creates the format the Graph API requires for create and validate calls.
  */
-export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
+export const mergePropertyObjectAndMetadata = <
+  T extends TypeIdsAndPropertiesForEntity,
+>(
   property: T["properties"],
   metadata?: PropertyObjectMetadata,
 ): T["propertiesWithMetadata"] => {
@@ -771,7 +840,11 @@ export const generateChangedPropertyMetadataObject = (
   return clonedMetadata;
 };
 
-export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
+export class HashEntity<
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> implements Entity<PropertyMap>
+{
   #entity: EntityData<PropertyMap>;
 
   constructor(entity: EntityInput<PropertyMap["properties"]>) {
@@ -784,21 +857,21 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     }
   }
 
-  public static async create<T extends EntityProperties>(
+  public static async create<T extends TypeIdsAndPropertiesForEntity>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
     params: CreateEntityParameters<T>,
-  ): Promise<Entity<T>> {
+  ): Promise<HashEntity<T>> {
     return (
-      await Entity.createMultiple<[T]>(graphAPI, authentication, [params])
+      await HashEntity.createMultiple<[T]>(graphAPI, authentication, [params])
     )[0];
   }
 
-  public static async createMultiple<T extends EntityProperties[]>(
+  public static async createMultiple<T extends TypeIdsAndPropertiesForEntity[]>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
     params: { [I in keyof T]: CreateEntityParameters<T[I]> },
-  ): Promise<{ [I in keyof T]: Entity<T[I]> }> {
+  ): Promise<{ [I in keyof T]: HashEntity<T[I]> }> {
     return graphAPI
       .createEntities(
         authentication.actorId,
@@ -813,8 +886,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
           // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           entities.map((entity, index) => {
-            return new Entity<T[typeof index]>(entity);
-          }) as { [I in keyof T]: Entity<T[I]> },
+            return new HashEntity<T[typeof index]>(entity);
+          }) as { [I in keyof T]: HashEntity<T[I]> },
       );
   }
 
@@ -852,7 +925,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
         properties: propertyPatches,
         ...params,
       })
-      .then(({ data }) => new Entity(data) as this);
+      .then(({ data }) => new HashEntity(data) as this);
   }
 
   public async archive(
@@ -947,11 +1020,12 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   }
 }
 
-export class LinkEntity<
-  Properties extends EntityProperties = EntityProperties,
-> extends Entity<Properties> {
-  constructor(entity: EntityInput<Properties> | Entity) {
-    const input = (entity instanceof Entity ? entity.toJSON() : entity) as
+export class HashLinkEntity<
+  Properties extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> extends HashEntity<Properties> {
+  constructor(entity: EntityInput<Properties> | HashEntity) {
+    const input = (entity instanceof HashEntity ? entity.toJSON() : entity) as
       | GraphApiEntity
       | EntityData<Properties>;
 
@@ -964,13 +1038,13 @@ export class LinkEntity<
     super(input as EntityInput<Properties>);
   }
 
-  public static async createMultiple<T extends EntityProperties[]>(
+  public static async createMultiple<T extends TypeIdsAndPropertiesForEntity[]>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
     params: {
       [I in keyof T]: CreateEntityParameters<T[I]> & { linkData: LinkData };
     },
-  ): Promise<{ [I in keyof T]: LinkEntity<T[I]> }> {
+  ): Promise<{ [I in keyof T]: HashLinkEntity<T[I]> }> {
     return graphAPI
       .createEntities(
         authentication.actorId,
@@ -982,19 +1056,21 @@ export class LinkEntity<
       )
       .then(
         ({ data: entities }) =>
-          entities.map((entity) => new LinkEntity(entity)) as {
-            [I in keyof T]: LinkEntity<T[I]>;
+          entities.map((entity) => new HashLinkEntity(entity)) as {
+            [I in keyof T]: HashLinkEntity<T[I]>;
           },
       );
   }
 
-  public static async create<T extends EntityProperties>(
+  public static async create<T extends TypeIdsAndPropertiesForEntity>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
     params: CreateEntityParameters<T> & { linkData: LinkData },
-  ): Promise<LinkEntity<T>> {
+  ): Promise<HashLinkEntity<T>> {
     return (
-      await LinkEntity.createMultiple<[T]>(graphAPI, authentication, [params])
+      await HashLinkEntity.createMultiple<[T]>(graphAPI, authentication, [
+        params,
+      ])
     )[0];
   }
 
@@ -1010,7 +1086,7 @@ export class LinkEntity<
         properties: propertyPatches,
         ...params,
       })
-      .then(({ data }) => new LinkEntity(data) as this);
+      .then(({ data }) => new HashLinkEntity(data) as this);
   }
 
   public get linkData(): LinkData {

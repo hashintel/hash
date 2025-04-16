@@ -1,5 +1,5 @@
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 
@@ -11,7 +11,7 @@ import { Link } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { DraftEntityChip } from "./draft-entity-chip";
 
-export const DraftEntityWeb: FunctionComponent<{ entity: Entity }> = ({
+export const DraftEntityWeb: FunctionComponent<{ entity: HashEntity }> = ({
   entity,
 }) => {
   const webId = useMemo(

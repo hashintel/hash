@@ -1,11 +1,19 @@
-import type { GraphResolveDepths } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  GraphResolveDepths,
+  QueryTemporalAxesUnresolved,
+  SubgraphRootType,
+} from "@blockprotocol/graph";
 import type {
   ActorEntityUuid,
   EntityId,
   Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { splitEntityId } from "@blockprotocol/type-system";
+import {
+  componentsFromVersionedUrl,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import type {
   DataTypeQueryToken,
   EntityQueryToken,
@@ -15,14 +23,12 @@ import type {
   Selector,
 } from "@local/hash-graph-client";
 import type {
-  DataTypeRelationAndSubject,
-  EntityRelationAndSubject,
-  EntityTypeRelationAndSubject,
-  PropertyTypeRelationAndSubject,
-  QueryTemporalAxesUnresolved,
-  SubgraphRootType,
-} from "@local/hash-subgraph";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+  DataTypeRelationAndSubjectBranded,
+  EntityRelationAndSubjectBranded,
+  EntityTypeRelationAndSubjectBranded,
+  PropertyTypeRelationAndSubjectBranded,
+} from "@local/hash-graph-sdk/branded-authorization";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
 import {
@@ -279,14 +285,16 @@ export const pageOrNotificationNotArchivedFilter: Filter = {
 };
 
 export const mapGqlSubgraphFieldsFragmentToSubgraph = <
-  RootType extends SubgraphRootType,
+  RootType extends
+    | Exclude<SubgraphRootType, EntityRootType>
+    | EntityRootType<HashEntity>,
 >(
   subgraph: SubgraphFieldsFragment,
 ) => deserializeSubgraph<RootType>(subgraph);
 
 export const createDefaultAuthorizationRelationships = (params: {
   actorId: ActorEntityUuid;
-}): EntityRelationAndSubject[] => [
+}): EntityRelationAndSubjectBranded[] => [
   {
     relation: "administrator",
     subject: {
@@ -321,7 +329,7 @@ export const createOrgMembershipAuthorizationRelationships = ({
   memberAccountId,
 }: {
   memberAccountId: ActorEntityUuid;
-}): EntityRelationAndSubject[] => [
+}): EntityRelationAndSubjectBranded[] => [
   {
     relation: "setting",
     subject: {
@@ -344,7 +352,7 @@ export const createOrgMembershipAuthorizationRelationships = ({
   },
 ];
 
-export const defaultPropertyTypeAuthorizationRelationships: PropertyTypeRelationAndSubject[] =
+export const defaultPropertyTypeAuthorizationRelationships: PropertyTypeRelationAndSubjectBranded[] =
   [
     {
       relation: "setting",
@@ -361,7 +369,7 @@ export const defaultPropertyTypeAuthorizationRelationships: PropertyTypeRelation
     },
   ];
 
-export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndSubject[] =
+export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndSubjectBranded[] =
   [
     {
       relation: "setting",
@@ -384,7 +392,7 @@ export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndS
     },
   ];
 
-export const defaultDataTypeAuthorizationRelationships: DataTypeRelationAndSubject[] =
+export const defaultDataTypeAuthorizationRelationships: DataTypeRelationAndSubjectBranded[] =
   [
     {
       relation: "setting",

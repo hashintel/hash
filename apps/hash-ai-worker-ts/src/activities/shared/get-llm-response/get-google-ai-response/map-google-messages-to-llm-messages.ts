@@ -1,5 +1,5 @@
 import type { Content } from "@google-cloud/vertexai";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import type { LlmMessage } from "../llm-message.js";
@@ -7,7 +7,7 @@ import { getFileEntityFromGcpStorageUri } from "./google-cloud-storage.js";
 
 export const mapGoogleMessagesToLlmMessages = (params: {
   messages: Content[];
-  fileEntities: Pick<Entity<File>, "entityId" | "properties">[];
+  fileEntities: Pick<HashEntity<File>, "entityId" | "properties">[];
 }): LlmMessage[] => {
   const { messages, fileEntities } = params;
 

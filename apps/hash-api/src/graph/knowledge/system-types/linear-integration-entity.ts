@@ -1,6 +1,12 @@
+import type { EntityRootType } from "@blockprotocol/graph";
+import {
+  getRightEntityForLinkEntity,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
   BaseUrl,
+  Entity,
   EntityId,
 } from "@blockprotocol/type-system";
 import {
@@ -8,7 +14,7 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -30,11 +36,6 @@ import type {
   SyncLinearDataWith,
   SyncLinearDataWithProperties,
 } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  getRightEntityForLinkEntity,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 
 import type {
   ImpureGraphFunction,
@@ -194,8 +195,8 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
   { linearIntegrationEntityId: EntityId; includeDrafts?: boolean },
   Promise<
     {
-      syncLinearDataWithLinkEntity: Entity;
-      workspaceEntity: Entity;
+      syncLinearDataWithLinkEntity: HashEntity;
+      workspaceEntity: HashEntity;
     }[]
   >
 > = async (
@@ -234,11 +235,9 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
       includeDrafts,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        null,
-        true,
-      );
+      const subgraph = mapGraphApiSubgraphToSubgraph<
+        EntityRootType<HashEntity>
+      >(data.subgraph, null, true);
 
       const syncLinearDataWithLinkEntities = getRoots(subgraph);
 
@@ -247,7 +246,7 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
           const workspaceEntity = getRightEntityForLinkEntity(
             subgraph,
             syncLinearDataWithLinkEntity.metadata.recordId.entityId,
-          )![0]!;
+          )![0]! as HashEntity;
 
           return { syncLinearDataWithLinkEntity, workspaceEntity };
         },

@@ -1,4 +1,10 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import {
+  getEntityTypeById,
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   EntityId,
@@ -11,7 +17,7 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -27,12 +33,6 @@ import {
   includesPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import type { FunctionComponent } from "react";
 import {
@@ -101,8 +101,8 @@ export interface MentionSuggesterProps {
 
 type EntitiesByType = {
   entityType: EntityTypeWithMetadata;
-  displayedEntities: Entity[];
-  allEntities: Entity[];
+  displayedEntities: HashEntity[];
+  allEntities: HashEntity[];
 }[];
 
 const numberOfEntitiesDisplayedPerSection = 4;
@@ -191,7 +191,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   const entitiesSubgraph = data
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
         data.getEntitySubgraph.subgraph,
       )
     : undefined;
@@ -497,7 +497,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   const handleSubmit = useCallback(
-    (params?: { entity?: Entity; subMenuIndex?: number }) => {
+    (params?: { entity?: HashEntity; subMenuIndex?: number }) => {
       const { subMenuIndex } = params ?? {};
       if (!searchedEntities) {
         return;

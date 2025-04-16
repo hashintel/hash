@@ -7,8 +7,8 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import {
-  Entity,
-  LinkEntity,
+  HashEntity,
+  HashLinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import type {
@@ -93,8 +93,8 @@ type FileUploadRequestData = {
 };
 
 type FileUploadEntities = {
-  fileEntity: Entity<FileEntity>;
-  linkEntity?: LinkEntity;
+  fileEntity: HashEntity<FileEntity>;
+  linkEntity?: HashLinkEntity;
 };
 
 type FileUploadStatus =
@@ -272,7 +272,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             throw new Error(errors?.[0]?.message ?? "unknown error");
           }
 
-          fileEntity = new Entity<FileEntity>(data.createFileFromUrl);
+          fileEntity = new HashEntity<FileEntity>(data.createFileFromUrl);
 
           if (makePublic) {
             /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -334,7 +334,9 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
               throw new Error(errors?.[0]?.message ?? "unknown error");
             }
 
-            fileEntity = new Entity<FileEntity>(data.requestFileUpload.entity);
+            fileEntity = new HashEntity<FileEntity>(
+              data.requestFileUpload.entity,
+            );
 
             if (makePublic) {
               /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -522,7 +524,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           throw new Error(errors?.[0]?.message ?? "unknown error");
         }
 
-        const linkEntity = new LinkEntity(data.createEntity);
+        const linkEntity = new HashLinkEntity(data.createEntity);
 
         if (makePublic) {
           /** @todo: make entity public as part of `createEntity` query once this is supported */

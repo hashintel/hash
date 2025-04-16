@@ -2,7 +2,7 @@ import { useLazyQuery, useQuery } from "@apollo/client";
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { Callout, TextField } from "@hashintel/design-system";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
@@ -264,22 +264,24 @@ export const CreateEntityTypeForm = ({
         })}
         spacing={3}
       >
-        {parentType && parentType.schema.$id !== linkEntityTypeUrl && (
-          <Callout
-            type={potentiallyUndesiredCrossWebAction ? "warning" : "info"}
-            sx={{ width: { md: inModal ? "100%" : formItemWidth } }}
-          >
-            You are extending the <strong>{parentType.schema.title}</strong>{" "}
-            entity type from <strong>@{parentWebName}</strong>
-            {" to create a new entity type within "}
-            {crossWebAction ? (
-              <strong>@{activeWorkspace.shortname}</strong>
-            ) : (
-              "the same web"
-            )}
-            .
-          </Callout>
-        )}
+        {parentType &&
+          parentType.schema.$id !==
+            blockProtocolEntityTypes.link.entityTypeId && (
+            <Callout
+              type={potentiallyUndesiredCrossWebAction ? "warning" : "info"}
+              sx={{ width: { md: inModal ? "100%" : formItemWidth } }}
+            >
+              You are extending the <strong>{parentType.schema.title}</strong>{" "}
+              entity type from <strong>@{parentWebName}</strong>
+              {" to create a new entity type within "}
+              {crossWebAction ? (
+                <strong>@{activeWorkspace.shortname}</strong>
+              ) : (
+                "the same web"
+              )}
+              .
+            </Callout>
+          )}
         <Stack
           direction="row"
           alignItems="center"

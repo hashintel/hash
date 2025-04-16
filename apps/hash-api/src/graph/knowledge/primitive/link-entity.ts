@@ -1,33 +1,37 @@
 import type {
   LinkData,
   PropertyPatchOperation,
+  TypeIdsAndPropertiesForEntity,
 } from "@blockprotocol/type-system";
 import type {
   CreateEntityParameters,
-  Entity,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityProperties } from "@local/hash-graph-types/entity";
+import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getLatestEntityById } from "./entity";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 
-export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
-  !!entity.linkData;
+export const isEntityLinkEntity = (
+  entity: HashEntity,
+): entity is HashLinkEntity => !!entity.linkData;
 
-type CreateLinkEntityFunction<Properties extends EntityProperties> =
-  ImpureGraphFunction<
-    Omit<CreateEntityParameters<Properties>, "provenance"> & {
-      linkData: LinkData;
-    },
-    Promise<LinkEntity<Properties>>
-  >;
+type CreateLinkEntityFunction<
+  Properties extends TypeIdsAndPropertiesForEntity,
+> = ImpureGraphFunction<
+  Omit<CreateEntityParameters<Properties>, "provenance"> & {
+    linkData: LinkData;
+  },
+  Promise<HashLinkEntity<Properties>>
+>;
 
 /**
  * Create an entity.
  */
-export const createLinkEntity = async <Properties extends EntityProperties>(
+export const createLinkEntity = async <
+  Properties extends TypeIdsAndPropertiesForEntity,
+>(
   ...args: Parameters<CreateLinkEntityFunction<Properties>>
 ): ReturnType<CreateLinkEntityFunction<Properties>> => {
   const [context, authentication, params] = args;
@@ -41,7 +45,7 @@ export const createLinkEntity = async <Properties extends EntityProperties>(
     confidence,
   } = params;
 
-  const linkEntity = await LinkEntity.create<Properties>(
+  const linkEntity = await HashLinkEntity.create<Properties>(
     context.graphApi,
     authentication,
     {
@@ -80,11 +84,11 @@ export const createLinkEntity = async <Properties extends EntityProperties>(
  */
 export const updateLinkEntity: ImpureGraphFunction<
   {
-    linkEntity: LinkEntity;
+    linkEntity: HashLinkEntity;
     propertyPatches?: PropertyPatchOperation[];
     draft?: boolean;
   },
-  Promise<LinkEntity>
+  Promise<HashLinkEntity>
 > = async ({ graphApi, provenance }, { actorId }, params) => {
   const { linkEntity, propertyPatches } = params;
 
@@ -105,8 +109,8 @@ export const updateLinkEntity: ImpureGraphFunction<
  * @param params.linkEntity - the link entity
  */
 export const getLinkEntityRightEntity: ImpureGraphFunction<
-  { linkEntity: LinkEntity },
-  Promise<Entity>
+  { linkEntity: HashLinkEntity },
+  Promise<HashEntity>
 > = async (ctx, authentication, { linkEntity }) => {
   const rightEntity = await getLatestEntityById(ctx, authentication, {
     entityId: linkEntity.linkData.rightEntityId,
@@ -121,8 +125,8 @@ export const getLinkEntityRightEntity: ImpureGraphFunction<
  * @param params.linkEntity - the link entity
  */
 export const getLinkEntityLeftEntity: ImpureGraphFunction<
-  { linkEntity: LinkEntity },
-  Promise<Entity>
+  { linkEntity: HashLinkEntity },
+  Promise<HashEntity>
 > = async (ctx, authentication, { linkEntity }) => {
   const leftEntity = await getLatestEntityById(ctx, authentication, {
     entityId: linkEntity.linkData.leftEntityId,

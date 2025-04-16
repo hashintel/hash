@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import type {
   ActorEntityUuid,
+  Entity,
   EntityId,
   EntityUuid,
   WebId,
@@ -9,7 +10,6 @@ import type {
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { LinearClient } from "@linear/sdk";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   apiOrigin,
   frontendUrl,

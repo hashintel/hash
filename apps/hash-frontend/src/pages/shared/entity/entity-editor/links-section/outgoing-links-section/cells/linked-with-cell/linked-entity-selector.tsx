@@ -5,7 +5,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { PaperProps } from "@mui/material";
@@ -29,7 +29,7 @@ import { useEntityEditor } from "../../../../entity-editor-context";
 
 interface LinkedEntitySelectorProps {
   includeDrafts: boolean;
-  onSelect: (option: Entity, entityLabel: string) => void;
+  onSelect: (option: HashEntity, entityLabel: string) => void;
   onFinishedEditing: () => void;
   expectedEntityTypes: Pick<EntityType, "$id">[];
   entityIdsToFilterOut?: EntityId[];
@@ -145,7 +145,7 @@ export const LinkedEntitySelector = ({
             ] ??
             "File";
 
-          onSelect(upload.createdEntities.fileEntity as Entity, label);
+          onSelect(upload.createdEntities.fileEntity as HashEntity, label);
         },
         webId: activeWorkspaceWebId,
         /**
@@ -181,7 +181,7 @@ export const LinkedEntitySelector = ({
     [isImage, onFilesProvided],
   );
 
-  const highlightedRef = useRef<null | Entity>(null);
+  const highlightedRef = useRef<null | HashEntity>(null);
 
   return (
     <FileCreationContext.Provider value={fileCreationContextValue}>

@@ -7,7 +7,7 @@ import {
   type WebId,
 } from "@blockprotocol/type-system";
 import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { isEntity } from "@local/hash-isomorphic-utils/entity-store";
 import {
   Box,
@@ -63,7 +63,7 @@ import { MenuItem } from "../ui";
 
 export const BulkActionsDropdown: FunctionComponent<{
   selectedItems: (
-    | Entity
+    | HashEntity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata

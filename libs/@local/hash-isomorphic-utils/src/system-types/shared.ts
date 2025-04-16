@@ -8,7 +8,7 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 /**
  * Someone or something that can perform actions in the system
@@ -154,7 +154,7 @@ export type BlockCollectionPropertiesWithMetadata = {
   value: {};
 };
 
-export type BlockHasDataLink = { linkEntity: HasData; rightEntity: Entity };
+export type BlockHasDataLink = { linkEntity: HasData; rightEntity: HashEntity };
 
 export type BlockOutgoingLinkAndTarget = BlockHasDataLink;
 

@@ -1,3 +1,4 @@
+import type { PropertyTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   OntologyTemporalMetadata,
   OntologyTypeRecordId,
@@ -7,7 +8,10 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import { PROPERTY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
+import {
+  ontologyTypeRecordIdToVersionedUrl,
+  PROPERTY_TYPE_META_SCHEMA,
+} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   ArchivePropertyTypeParams,
@@ -15,9 +19,14 @@ import type {
   GetPropertyTypeSubgraphParams,
   ModifyRelationshipOperation,
   PropertyTypePermission,
+  PropertyTypeRelationAndSubject,
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
+import type {
+  PropertyTypeAuthorizationRelationship,
+  PropertyTypeRelationAndSubjectBranded,
+} from "@local/hash-graph-sdk/branded-authorization";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -25,13 +34,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
-import type {
-  PropertyTypeAuthorizationRelationship,
-  PropertyTypeRelationAndSubject,
-  PropertyTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
@@ -281,16 +283,13 @@ export const getPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
   graphApi
     .getPropertyTypeAuthorizationRelationships(actorId, params.propertyTypeId)
     .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: {
-              kind: "propertyType",
-              resourceId: params.propertyTypeId,
-            },
-            ...relationship,
-          }) as PropertyTypeAuthorizationRelationship,
-      ),
+      data.map((relationship) => ({
+        resource: {
+          kind: "propertyType",
+          resourceId: params.propertyTypeId,
+        },
+        ...(relationship as PropertyTypeRelationAndSubjectBranded),
+      })),
     );
 
 export const modifyPropertyTypeAuthorizationRelationships: ImpureGraphFunction<

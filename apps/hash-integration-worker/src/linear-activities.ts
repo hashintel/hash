@@ -17,7 +17,8 @@ import type {
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
-  Entity,
+  HashEntity,
+  HashLinkEntity,
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
@@ -56,40 +57,45 @@ const createHashEntity = async (params: {
 }): Promise<void> => {
   const { graphApiClient, webId } = params;
 
-  const entity = await Entity.create(graphApiClient, params.authentication, {
-    webId,
-    draft: false,
-    relationships: [
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: params.authentication.actorId,
+  const entity = await HashEntity.create(
+    graphApiClient,
+    params.authentication,
+    {
+      webId,
+      draft: false,
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: params.authentication.actorId,
+          },
         },
-      },
-      {
-        relation: "setting",
-        subject: { kind: "setting", subjectId: "administratorFromWeb" },
-      },
-      {
-        relation: "setting",
-        subject: { kind: "setting", subjectId: "updateFromWeb" },
-      },
-      {
-        relation: "setting",
-        subject: { kind: "setting", subjectId: "viewFromWeb" },
-      },
-    ],
-    properties: mergePropertyObjectAndMetadata(
-      (params.partialEntity.properties as Entity["properties"] | undefined) ??
-        {},
-      undefined,
-    ),
-    provenance,
-    entityTypeIds: [params.partialEntity.entityTypeId],
-  });
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "administratorFromWeb" },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "updateFromWeb" },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "viewFromWeb" },
+        },
+      ],
+      properties: mergePropertyObjectAndMetadata(
+        (params.partialEntity.properties as
+          | HashEntity["properties"]
+          | undefined) ?? {},
+        undefined,
+      ),
+      provenance,
+      entityTypeIds: [params.partialEntity.entityTypeId],
+    },
+  );
 
-  await Entity.createMultiple(
+  await HashEntity.createMultiple(
     graphApiClient,
     { actorId: params.authentication.actorId },
     params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => ({
@@ -198,7 +204,7 @@ const createOrUpdateHashEntity = async (params: {
         }),
       ),
       ...addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
-        Entity.create(graphApiClient, params.authentication, {
+        HashLinkEntity.create(graphApiClient, params.authentication, {
           entityTypeIds: [linkEntityTypeId],
           linkData: {
             leftEntityId: existingEntity.metadata.recordId.entityId,
@@ -442,7 +448,7 @@ export const createLinearIntegrationActivities = ({
       graphApiClient,
       authentication,
       linearType: mapping.linearType,
-      entity: new Entity(entity),
+      entity: new HashEntity(entity),
     });
 
     if (Object.entries(linearUpdateInput).length > 0) {

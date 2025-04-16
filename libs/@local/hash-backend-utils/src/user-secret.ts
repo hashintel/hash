@@ -1,7 +1,9 @@
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getEntityRevision, getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -14,8 +16,6 @@ import {
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 
 export const getSecretEntitiesForIntegration = async ({
   authentication,
@@ -29,8 +29,8 @@ export const getSecretEntitiesForIntegration = async ({
   integrationEntityId: EntityId;
 }): Promise<
   {
-    usesUserSecretLink: Entity<UsesUserSecret>;
-    userSecret: Entity<UserSecret>;
+    usesUserSecretLink: HashEntity<UsesUserSecret>;
+    userSecret: HashEntity<UserSecret>;
   }[]
 > => {
   return await graphApiClient
@@ -78,8 +78,8 @@ export const getSecretEntitiesForIntegration = async ({
       const linkEntities = getRoots(subgraph);
 
       const linkAndSecretPairs: {
-        usesUserSecretLink: Entity<UsesUserSecret>;
-        userSecret: Entity<UserSecret>;
+        usesUserSecretLink: HashEntity<UsesUserSecret>;
+        userSecret: HashEntity<UserSecret>;
       }[] = [];
 
       for (const link of linkEntities) {
@@ -118,8 +118,8 @@ export const getSecretEntitiesForIntegration = async ({
         }
 
         linkAndSecretPairs.push({
-          usesUserSecretLink: link as Entity<UsesUserSecret>,
-          userSecret: target as Entity<UserSecret>,
+          usesUserSecretLink: link as HashEntity<UsesUserSecret>,
+          userSecret: target as HashEntity<UserSecret>,
         });
       }
 

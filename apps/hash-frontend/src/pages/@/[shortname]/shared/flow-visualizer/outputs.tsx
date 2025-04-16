@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import { buildSubgraph } from "@blockprotocol/graph/stdlib";
 import type {
   EntityEditionId,
@@ -19,7 +20,7 @@ import type {
   Entity as GraphApiEntity,
   Filter,
 } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
@@ -33,7 +34,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
@@ -85,7 +85,7 @@ export const getDeliverables = (
       if (!payload.value.entity) {
         continue;
       }
-      const entity = new Entity(payload.value.entity);
+      const entity = new HashEntity(payload.value.entity);
 
       const { displayName, fileName, fileUrl } = getFileProperties(
         entity.properties,
@@ -236,7 +236,7 @@ const SectionTabButton = ({
 
 const mockEntityFromProposedEntity = (
   proposedEntity: ProposedEntityOutput,
-): Entity => {
+): HashEntity => {
   const editionId = new Date().toISOString() as EntityEditionId;
 
   const temporalInterval: LeftClosedTemporalInterval = {
@@ -246,7 +246,7 @@ const mockEntityFromProposedEntity = (
 
   const { sourceEntityId, targetEntityId } = proposedEntity;
 
-  return new Entity({
+  return new HashEntity({
     linkData:
       sourceEntityId && targetEntityId
         ? {
@@ -338,7 +338,7 @@ export const Outputs = ({
             return null;
           }
 
-          const entity = new Entity(persistedEntity.entity);
+          const entity = new HashEntity(persistedEntity.entity);
           return {
             equal: [
               { path: ["uuid"] },
@@ -441,13 +441,13 @@ export const Outputs = ({
   const persistedEntitiesSubgraph = useMemo(() => {
     if (!persistedEntitiesSubgraphData) {
       return previousPersistedEntitiesSubgraphData
-        ? deserializeSubgraph<EntityRootType>(
+        ? deserializeSubgraph<EntityRootType<HashEntity>>(
             previousPersistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
           )
         : undefined;
     }
 
-    return deserializeSubgraph<EntityRootType>(
+    return deserializeSubgraph<EntityRootType<HashEntity>>(
       persistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
     );
   }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
@@ -502,7 +502,8 @@ export const Outputs = ({
       const persistedEntity = persistedEntities.find(
         ({ entity }) =>
           entity &&
-          new Entity(entity).metadata.recordId.entityId === selectedEntityId,
+          new HashEntity(entity).metadata.recordId.entityId ===
+            selectedEntityId,
       );
 
       // If it's a persisted entity, no need to modify the slide item. The slide will get it from the database.
@@ -569,7 +570,7 @@ export const Outputs = ({
             },
           },
         },
-      ) as unknown as Subgraph<EntityRootType>;
+      ) as unknown as Subgraph<EntityRootType<HashEntity>>;
 
       return {
         ...item,
@@ -593,7 +594,7 @@ export const Outputs = ({
         if (!entity) {
           continue;
         }
-        entities.push(new Entity(entity));
+        entities.push(new HashEntity(entity));
       }
       return entities;
     }

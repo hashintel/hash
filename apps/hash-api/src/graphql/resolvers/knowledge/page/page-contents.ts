@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@blockprotocol/type-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";

@@ -1,4 +1,9 @@
-import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  Entity,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { PresignedPutUpload } from "@local/hash-backend-utils/file-storage";
@@ -7,7 +12,7 @@ import {
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
@@ -41,7 +46,7 @@ const generateCommonParameters = async (
   >,
   filename: string,
 ): Promise<{
-  existingEntity: Entity<File> | null;
+  existingEntity: HashEntity<File> | null;
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   mimeType: string;
   webId: WebId;
@@ -58,7 +63,7 @@ const generateCommonParameters = async (
   if (fileEntityUpdateInput) {
     const existingEntity = (await getLatestEntityById(ctx, authentication, {
       entityId: fileEntityUpdateInput.existingFileEntityId,
-    })) as Entity<File>;
+    })) as HashEntity<File>;
 
     return {
       existingEntity,
@@ -131,7 +136,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   MutationRequestFileUploadArgs,
   Promise<{
     presignedPut: PresignedPutUpload;
-    entity: Entity<File>;
+    entity: HashEntity<File>;
   }>,
   true,
   true
@@ -388,7 +393,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
               property,
             })),
         })
-      : await createEntity(ctx, authentication, {
+      : await createEntity<File>(ctx, authentication, {
           webId,
           properties,
           entityTypeIds: entityTypeIds as File["entityTypeIds"],

@@ -1,5 +1,8 @@
 import { useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -8,8 +11,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import { useUsers } from "../components/hooks/use-users";
@@ -85,9 +86,9 @@ export const useActors = (params: {
       return;
     }
 
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-      machineActorsData.getEntitySubgraph.subgraph,
-    );
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+      EntityRootType<HashEntity>
+    >(machineActorsData.getEntitySubgraph.subgraph);
 
     const machineActors = getRoots(subgraph).map((entity) => {
       return {

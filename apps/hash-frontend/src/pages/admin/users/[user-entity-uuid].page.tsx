@@ -1,7 +1,8 @@
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
@@ -44,7 +45,9 @@ const AdminUserPage: NextPageWithLayout = () => {
     } = await refetch();
 
     const [rootEntity] = getRoots(
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(refetchedSubgraph),
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
+        refetchedSubgraph,
+      ),
     );
 
     if (!rootEntity || !isEntityUserEntity(rootEntity)) {

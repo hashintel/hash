@@ -1,6 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { Entity, VersionedUrl } from "@blockprotocol/type-system";
 
 export type CustomEntityLinksColumn = {
   id: string;

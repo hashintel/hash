@@ -1,7 +1,12 @@
-import { intervalForTimestamp } from "@blockprotocol/graph/stdlib";
-import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+  intervalForTimestamp,
+} from "@blockprotocol/graph/stdlib";
+import type { Entity, EntityId, WebId } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -16,11 +21,6 @@ import type {
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
 
 import type { MeQuery, MeQueryVariables } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
@@ -31,7 +31,7 @@ import type { LocalStorage } from "./storage";
 import { getFromLocalStorage, setInLocalStorage } from "./storage";
 
 const getAvatarForEntity = (
-  subgraph: Subgraph<EntityRootType>,
+  subgraph: Subgraph<EntityRootType<HashEntity>>,
   entityId: EntityId,
 ): Entity<ImageFile> | undefined => {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
@@ -49,10 +49,9 @@ const getAvatarForEntity = (
 };
 
 /**
- * Ideally we would use {@link extractWebIdFromEntityId} from @local/hash-subgraph here,
+ * Ideally we would use {@link extractWebIdFromEntityId} from @blockprotocol/type-system/slim here,
  * but importing it causes WASM-related functions to end up in the bundle,
- * even when imports in that package only come from `@blockprotocol/type-system/slim`,
- * which isn't supposed to have WASM.
+ * even when imports from that path (/slim) aren't supposed to include the WASM
  *
  * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package
  *    or in the plugin-browser webpack config.
@@ -63,9 +62,9 @@ export const getWebIdFromEntityId = (entityId: EntityId) =>
 export const getUser = (): Promise<LocalStorage["user"] | null> => {
   return queryGraphQlApi<MeQuery, MeQueryVariables>(meQuery)
     .then(async ({ data }) => {
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.me.subgraph,
-      );
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+        EntityRootType<HashEntity>
+      >(data.me.subgraph);
 
       const user = getRoots(subgraph)[0]!;
 

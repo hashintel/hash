@@ -1,12 +1,12 @@
 import { useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
@@ -20,7 +20,7 @@ import { usePollInterval } from "../../shared/use-poll-interval";
 import { useAuthInfo } from "../shared/auth-info-context";
 
 export type DraftEntitiesContextValue = {
-  draftEntities?: Entity[];
+  draftEntities?: HashEntity[];
   draftEntitiesSubgraph?: Subgraph<EntityRootType>;
   loading: boolean;
   refetch: () => Promise<void>;
@@ -94,7 +94,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
   const draftEntitiesSubgraph = useMemo(
     () =>
       (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
             (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
               .getEntitySubgraph.subgraph,
           )

@@ -1,11 +1,18 @@
+import {
+  type EntityRootType,
+  isEntityVertex,
+  type Subgraph,
+} from "@blockprotocol/graph";
 import type {
   ActorEntityUuid,
   ActorGroupEntityUuid,
   BaseUrl,
+  Entity,
   EntityId,
   LinkData,
   PropertyObject,
   PropertyPatchOperation,
+  TypeIdsAndPropertiesForEntity,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -27,9 +34,13 @@ import type {
   GraphResolveDepths,
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
-import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityProperties } from "@local/hash-graph-types/entity";
+import type { EntityAuthorizationRelationship } from "@local/hash-graph-sdk/branded-authorization";
+import {
+  type CreateEntityParameters,
+  type DiffEntityInput,
+  HashEntity,
+} from "@local/hash-graph-sdk/entity";
+import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -46,13 +57,6 @@ import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
-import {
-  type DiffEntityInput,
-  type EntityAuthorizationRelationship,
-  type EntityRootType,
-  isEntityVertex,
-  type Subgraph,
-} from "@local/hash-subgraph";
 import { ApolloError } from "apollo-server-errors";
 
 import type {
@@ -73,7 +77,7 @@ import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 /** @todo: potentially directly export this from the subgraph package */
 export type PropertyValue = PropertyObject[BaseUrl];
 
-type CreateEntityFunction<Properties extends EntityProperties> =
+type CreateEntityFunction<Properties extends TypeIdsAndPropertiesForEntity> =
   ImpureGraphFunction<
     Omit<CreateEntityParameters<Properties>, "linkData" | "provenance"> & {
       outgoingLinks?: (Omit<
@@ -83,23 +87,26 @@ type CreateEntityFunction<Properties extends EntityProperties> =
         linkData: Omit<LinkData, "leftEntityId">;
       })[];
     },
-    Promise<Entity<Properties>>
+    Promise<HashEntity<Properties>>
   >;
 
-type CreateEntityWithLinksFunction<Properties extends EntityProperties> =
-  ImpureGraphFunction<
-    Omit<CreateEntityParameters<Properties>, "linkData" | "provenance"> & {
-      linkedEntities?: LinkedEntityDefinition[];
-    },
-    Promise<Entity<Properties>>,
-    false,
-    true
-  >;
+type CreateEntityWithLinksFunction<
+  Properties extends TypeIdsAndPropertiesForEntity,
+> = ImpureGraphFunction<
+  Omit<CreateEntityParameters<Properties>, "linkData" | "provenance"> & {
+    linkedEntities?: LinkedEntityDefinition[];
+  },
+  Promise<HashEntity<Properties>>,
+  false,
+  true
+>;
 
 /**
  * Create an entity.
  */
-export const createEntity = async <Properties extends EntityProperties>(
+export const createEntity = async <
+  Properties extends TypeIdsAndPropertiesForEntity,
+>(
   ...args: Parameters<CreateEntityFunction<Properties>>
 ): ReturnType<CreateEntityFunction<Properties>> => {
   const [context, authentication, params] = args;
@@ -123,7 +130,7 @@ export const createEntity = async <Properties extends EntityProperties>(
     }
   }
 
-  const entity = await Entity.create<Properties>(
+  const entity = await HashEntity.create<Properties>(
     graphApi,
     { actorId },
     {
@@ -158,7 +165,7 @@ export const createEntity = async <Properties extends EntityProperties>(
 
 export const getEntities: ImpureGraphFunction<
   GetEntitiesRequest & { temporalClient?: TemporalClient },
-  Promise<Entity[]>
+  Promise<HashEntity[]>
 > = async ({ graphApi, temporalClient }, { actorId }, params) => {
   await rewriteSemanticFilter(params.filter, temporalClient);
 
@@ -190,7 +197,7 @@ export const getEntitySubgraphResponse: ImpureGraphFunction<
     Omit<
       GetEntitySubgraphResponse,
       "userPermissionsOnEntities" | "subgraph"
-    > & { subgraph: Subgraph<EntityRootType> }
+    > & { subgraph: Subgraph<EntityRootType<HashEntity>> }
   >
 > = async ({ graphApi, temporalClient }, { actorId }, params) => {
   await rewriteSemanticFilter(params.filter, temporalClient);
@@ -211,7 +218,7 @@ export const getEntitySubgraphResponse: ImpureGraphFunction<
       ...rest
     } = data;
 
-    const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+    const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType<HashEntity>>(
       unfilteredSubgraph,
       actorId,
       isRequesterAdmin,
@@ -274,7 +281,7 @@ export const getLatestEntityById: ImpureGraphFunction<
   {
     entityId: EntityId;
   },
-  Promise<Entity>
+  Promise<HashEntity>
 > = async (context, authentication, params) => {
   const { entityId } = params;
 
@@ -417,7 +424,7 @@ export const canUserReadEntity: ImpureGraphFunction<
  * Create an entity along with any new/existing entities specified through links.
  */
 export const createEntityWithLinks = async <
-  Properties extends EntityProperties,
+  Properties extends TypeIdsAndPropertiesForEntity,
 >(
   ...args: Parameters<CreateEntityWithLinksFunction<Properties>>
 ): ReturnType<CreateEntityWithLinksFunction<Properties>> => {
@@ -468,7 +475,7 @@ export const createEntityWithLinks = async <
       const entity = existingEntityId
         ? ((await getLatestEntityById(context, authentication, {
             entityId: existingEntityId,
-          })) as Entity<Properties>)
+          })) as HashEntity<Properties>)
         : await createEntity<Properties>(context, authentication, {
             ...createParams,
             properties: definition.entityProperties!,
@@ -488,7 +495,7 @@ export const createEntityWithLinks = async <
     }),
   );
 
-  let rootEntity: Entity<Properties>;
+  let rootEntity: HashEntity<Properties>;
   if (entities[0]) {
     // First element will be the root entity.
     rootEntity = entities[0].entity;
@@ -528,15 +535,15 @@ export const createEntityWithLinks = async <
   return rootEntity;
 };
 
-type UpdateEntityFunction<Properties extends EntityProperties> =
+type UpdateEntityFunction<Properties extends TypeIdsAndPropertiesForEntity> =
   ImpureGraphFunction<
     {
-      entity: Entity<Properties>;
+      entity: HashEntity<Properties>;
       entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
       propertyPatches?: PropertyPatchOperation[];
       draft?: boolean;
     },
-    Promise<Entity<Properties>>,
+    Promise<HashEntity<Properties>>,
     false,
     true
   >;
@@ -544,7 +551,9 @@ type UpdateEntityFunction<Properties extends EntityProperties> =
 /**
  * Update an entity.
  */
-export const updateEntity = async <Properties extends EntityProperties>(
+export const updateEntity = async <
+  Properties extends TypeIdsAndPropertiesForEntity,
+>(
   ...args: Parameters<UpdateEntityFunction<Properties>>
 ): ReturnType<UpdateEntityFunction<Properties>> => {
   const [context, authentication, params] = args;
@@ -602,7 +611,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     linkEntityTypeId?: VersionedUrl;
     includeDrafts?: boolean;
   },
-  Promise<LinkEntity[]>
+  Promise<HashLinkEntity[]>
 > = async (context, authentication, params) => {
   const { entityId, includeDrafts = false } = params;
   const filter: Filter = {
@@ -670,7 +679,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     rightEntityId?: EntityId;
     includeDrafts?: boolean;
   },
-  Promise<LinkEntity[]>
+  Promise<HashLinkEntity[]>
 > = async (context, authentication, params) => {
   const {
     entityId,
@@ -746,7 +755,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
           `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
         );
       }
-      return new LinkEntity(linkEntity);
+      return new HashLinkEntity(linkEntity);
     }),
   );
 };
@@ -922,9 +931,12 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
 
   const entities: Entity[] = [];
   for (const editionMap of Object.values(subgraph.vertices)) {
-    const latestEditionTimestamp = Object.keys(editionMap).sort().pop()!;
-    // @ts-expect-error -- subgraph needs revamping to make typing less annoying
+    const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
     const latestEdition = editionMap[latestEditionTimestamp];
+
+    if (!latestEdition) {
+      throw new Error("No latest edition found");
+    }
 
     if (isEntityVertex(latestEdition)) {
       entities.push(latestEdition.inner);

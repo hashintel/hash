@@ -39,7 +39,7 @@ export const subgraphTypedef = gql`
     hasRightEntity: EdgeResolveDepths!
   }
 
-  type Subgraph {
+  type GqlSubgraph {
     roots: [GraphElementVertexId!]!
     vertices: SerializedVertices!
     edges: Edges!

@@ -1,4 +1,4 @@
-import type { EntityId } from "@blockprotocol/type-system";
+import type { Entity, EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -6,7 +6,7 @@ import {
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type {
   CreateEntityParameters,
-  Entity,
+  HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import {
   createDefaultAuthorizationRelationships,
@@ -46,12 +46,12 @@ import { getCommentFromEntity } from "./comment";
 
 export type Block = {
   componentId: string;
-  entity: Entity<BlockEntity>;
+  entity: HashEntity<BlockEntity>;
 };
 
 function assertBlockEntity(
-  entity: Entity,
-): asserts entity is Entity<BlockEntity> {
+  entity: HashEntity,
+): asserts entity is HashEntity<BlockEntity> {
   if (
     !entity.metadata.entityTypeIds.includes(
       systemEntityTypes.block.entityTypeId,
@@ -66,7 +66,7 @@ function assertBlockEntity(
 }
 
 export const getBlockFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: HashEntity },
   Block
 > = ({ entity }) => {
   assertBlockEntity(entity);
@@ -148,7 +148,7 @@ export const createBlock: ImpureGraphFunction<
  */
 export const getBlockData: ImpureGraphFunction<
   { block: Block },
-  Promise<Entity>
+  Promise<HashEntity>
 > = async (ctx, authentication, { block }) => {
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(
     ctx,
@@ -272,7 +272,7 @@ export const getBlockComments: ImpureGraphFunction<
  */
 export const getBlockCollectionByBlock: ImpureGraphFunction<
   { block: Block; includeDrafts?: boolean },
-  Promise<Entity | null>
+  Promise<HashEntity | null>
 > = async (context, authentication, params) => {
   const { block, includeDrafts = false } = params;
 

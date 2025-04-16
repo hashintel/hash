@@ -1,8 +1,8 @@
+import { getEntityTypes } from "@blockprotocol/graph/stdlib";
 import type {
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { getEntityTypes } from "@local/hash-subgraph/stdlib";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolQueryEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";

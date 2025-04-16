@@ -8,7 +8,7 @@ import {
   extractDraftIdFromEntityId,
 } from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
@@ -38,8 +38,8 @@ export const createDraftLinkEntity = ({
   rightEntityId: EntityId;
   leftEntityId: EntityId;
   linkEntityTypeId: VersionedUrl;
-}): Entity =>
-  new Entity({
+}): HashEntity =>
+  new HashEntity({
     properties: {},
     linkData: { rightEntityId, leftEntityId },
     metadata: {
@@ -97,7 +97,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
   const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
 
-  const onSelect = (selectedEntity: Entity, entityLabel: string) => {
+  const onSelect = (selectedEntity: HashEntity, entityLabel: string) => {
     const alreadyLinked = linkAndTargetEntities.find(
       ({ rightEntity }) =>
         rightEntity.metadata.recordId.entityId ===

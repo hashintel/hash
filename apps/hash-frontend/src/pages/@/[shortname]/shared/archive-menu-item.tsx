@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback } from "react";
@@ -21,7 +21,7 @@ import {
 } from "../../../shared/top-context-bar";
 
 export const ArchiveMenuItem: FunctionComponent<{
-  item: Entity | EntityTypeWithMetadata;
+  item: HashEntity | EntityTypeWithMetadata;
   onItemChange: () => void;
 }> = ({ item, onItemChange }) => {
   const refetchEntityTypes = useFetchEntityTypes();

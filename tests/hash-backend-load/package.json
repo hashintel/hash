@@ -36,7 +36,6 @@
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-graph-types": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
-    "@local/hash-subgraph": "0.0.0-private",
     "@opentelemetry/api": "1.9.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "0.57.2",
     "@opentelemetry/resources": "1.30.1",
@@ -58,7 +57,7 @@
     "@types/dotenv-flow": "3.3.3",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
-    "rollup": "4.39.0",
+    "rollup": "4.40.0",
     "typescript": "5.7.3"
   }
 }

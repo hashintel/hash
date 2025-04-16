@@ -1,4 +1,7 @@
-import type { WebId } from "@blockprotocol/type-system";
+import {
+  type ActorEntityUuid,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
 import {
@@ -8,8 +11,6 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { ActorEntityId } from "@local/hash-subgraph";
-import { extractActorIdFromActorEntityId } from "@local/hash-subgraph/stdlib";
 import { ForbiddenError } from "apollo-server-express";
 
 import { getEntities } from "../../../../graph/knowledge/primitive/entity";
@@ -60,15 +61,15 @@ export const getUsageRecordsResolver: ResolverFn<
   for (const user of users) {
     const { shortname } = simplifyProperties(user.properties as UserProperties);
 
-    const userAccountId = extractActorIdFromActorEntityId(
-      user.metadata.recordId.entityId as ActorEntityId,
+    const userAccountId = extractWebIdFromEntityId(
+      user.metadata.recordId.entityId,
     );
 
     const usageRecords = await getWebServiceUsage(
       { graphApi: dataSources.graphApi },
       {
-        userAccountId,
-        webId: userAccountId as WebId,
+        userAccountId: userAccountId as ActorEntityUuid,
+        webId: userAccountId,
       },
     );
     records.push({ shortname: shortname ?? "NO SHORTNAME", usageRecords });

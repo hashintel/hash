@@ -1,5 +1,6 @@
 import type {
   ActorEntityUuid,
+  Entity,
   EntityId,
   WebId,
 } from "@blockprotocol/type-system";
@@ -12,7 +13,6 @@ import {
   NotFoundError,
 } from "@local/hash-backend-utils/error";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,

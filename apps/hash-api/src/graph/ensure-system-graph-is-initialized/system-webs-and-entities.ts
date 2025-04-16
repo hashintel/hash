@@ -4,6 +4,7 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
+import { componentsFromVersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
@@ -15,7 +16,6 @@ import {
 import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
 import { logger } from "../../logger";

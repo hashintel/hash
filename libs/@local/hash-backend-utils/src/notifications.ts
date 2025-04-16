@@ -6,7 +6,8 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -15,7 +16,6 @@ import type {
   GraphChangeNotification,
   OccurredInEntity,
 } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
-import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 import { getWebMachineActorId } from "./machine-actors.js";
 
@@ -24,8 +24,8 @@ export const createNotificationEntityPermissions = ({
 }: {
   machineActorId: ActorEntityUuid;
 }): {
-  linkEntityRelationships: EntityRelationAndSubject[];
-  notificationEntityRelationships: EntityRelationAndSubject[];
+  linkEntityRelationships: EntityRelationAndSubjectBranded[];
+  notificationEntityRelationships: EntityRelationAndSubjectBranded[];
 } => ({
   linkEntityRelationships: [
     {
@@ -109,7 +109,7 @@ export const createGraphChangeNotification = async (
   /**
    * We create the notification entity with the user's web bot, as we know it has the necessary permissions in the user's web
    */
-  const notificationEntity = await Entity.create<GraphChangeNotification>(
+  const notificationEntity = await HashEntity.create<GraphChangeNotification>(
     graphApi,
     { actorId: webMachineActorId },
     {
@@ -132,7 +132,7 @@ export const createGraphChangeNotification = async (
     },
   );
 
-  await Entity.create<OccurredInEntity>(
+  await HashEntity.create<OccurredInEntity>(
     graphApi,
     /**
      * We use the user's authority to create the link to the entity because it might be in a different web, e.g. an org's,

@@ -3,10 +3,11 @@ import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type {
   ModifyRelationshipOperation,
   WebPermission,
+  WebRelationAndSubject,
 } from "@local/hash-graph-client";
+import type { WebAuthorizationRelationship } from "@local/hash-graph-sdk/branded-authorization";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
-import type { WebAuthorizationRelationship } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getOrgById } from "../../knowledge/system-types/org";
@@ -56,19 +57,11 @@ export const getWebShortname: ImpureGraphFunction<
 
 export const getWebAuthorizationRelationships: ImpureGraphFunction<
   { webId: WebId },
-  Promise<WebAuthorizationRelationship[]>
+  Promise<WebRelationAndSubject[]>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
     .getWebAuthorizationRelationships(actorId, params.webId)
-    .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: { kind: "web", resourceId: params.webId },
-            ...relationship,
-          }) as WebAuthorizationRelationship,
-      ),
-    );
+    .then(({ data }) => data);
 
 export const modifyWebAuthorizationRelationships: ImpureGraphFunction<
   {

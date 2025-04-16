@@ -9,7 +9,11 @@
 import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import type {
   CreateResourceError,
+  DataTypeRootType,
+  EntityTypeRootType,
+  PropertyTypeRootType,
   ReadOrModifyResourceError,
+  Subgraph,
 } from "@blockprotocol/graph";
 import type {
   EntityType,
@@ -19,12 +23,6 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { EmptyObject } from "@local/hash-isomorphic-utils/util";
-import type {
-  DataTypeRootType,
-  EntityTypeRootType,
-  PropertyTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
 
 type SystemDefinedOntologyTypeProperties = "$id" | "kind" | "$schema";
 
