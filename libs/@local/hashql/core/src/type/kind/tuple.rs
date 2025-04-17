@@ -20,13 +20,6 @@ use crate::{
     },
 };
 
-// EcoVec -> SmallVec<T; N> where N is semi-arbitrarily chosen per type
-// WE NEVER MODIFY THE TYPES
-// TupleType -> TupleData
-// TupleData is interned in a `DashMap`(?)
-// pros: TypeKind becomes Copy, which means we can use ena for unification
-// cons: lifetimes - although we can just use our `Heap`
-// The problem is - how do we get a TypeId this way(?). We would need a separate counter for that
 const INLINE: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -38,8 +31,8 @@ pub struct TupleType<'heap> {
 
 impl Lattice for TupleType<'_> {
     fn join(
-        self: Type<&Self>,
-        other: Type<&Self>,
+        self: Type<Self>,
+        other: Type<Self>,
         env: &mut LatticeEnvironment,
     ) -> SmallVec<TypeId, 4> {
         if self.kind.fields.len() != other.kind.fields.len() {
@@ -76,8 +69,8 @@ impl Lattice for TupleType<'_> {
     }
 
     fn meet(
-        self: Type<&Self>,
-        other: Type<&Self>,
+        self: Type<Self>,
+        other: Type<Self>,
         env: &mut LatticeEnvironment,
     ) -> SmallVec<TypeId, 4> {
         if self.kind.fields.len() != other.kind.fields.len() {
@@ -113,14 +106,14 @@ impl Lattice for TupleType<'_> {
         SmallVec::from_slice(&[id])
     }
 
-    fn uninhabited(self: Type<&Self>, env: &mut TypeAnalysisEnvironment) -> bool {
+    fn uninhabited(self: Type<Self>, env: &mut TypeAnalysisEnvironment) -> bool {
         // uninhabited if any of the fields are uninhabited
         self.kind.fields.iter().any(|&field| env.uninhabited(field))
     }
 
     fn semantically_equivalent(
-        self: Type<&Self>,
-        other: Type<&Self>,
+        self: Type<Self>,
+        other: Type<Self>,
         env: &mut EquivalenceEnvironment,
     ) -> bool {
         self.kind.fields.len() == other.kind.fields.len()
@@ -141,7 +134,7 @@ impl Lattice for TupleType<'_> {
     /// In a covariant context:
     /// - Both tuples must have the same number of fields (tuples are invariant in length)
     /// - Each corresponding field must be covariant
-    fn unify(self: Type<&Self>, other: Type<&Self>, env: &mut UnificationEnvironment) {
+    fn unify(self: Type<Self>, other: Type<Self>, env: &mut UnificationEnvironment) {
         // Tuples must have the same number of fields
         if self.kind.fields.len() != other.kind.fields.len() {
             let diagnostic = tuple_length_mismatch(
@@ -174,7 +167,7 @@ impl Lattice for TupleType<'_> {
         other.kind.arguments.exit_scope(env);
     }
 
-    fn simplify(self: Type<&Self>, env: &mut SimplifyEnvironment) -> TypeId {
+    fn simplify(self: Type<Self>, env: &mut SimplifyEnvironment) -> TypeId {
         let mut fields = EcoVec::with_capacity(self.kind.fields.len());
 
         for &field in &self.kind.fields {
@@ -227,19 +220,6 @@ impl PrettyPrint for TupleType {
 
         self.arguments.pretty(arena, limit).append(inner).group()
     }
-}
-
-/// Unifies tuple types
-///
-/// In a covariant context:
-/// - Both tuples must have the same number of fields (tuples are invariant in length)
-/// - Each corresponding field must be covariant
-pub(crate) fn unify_tuple(
-    _: &mut UnificationEnvironment,
-    _: &Type<TupleType>,
-    _: &Type<TupleType>,
-) {
-    unimplemented!("use Lattice::join instead")
 }
 
 #[cfg(test)]

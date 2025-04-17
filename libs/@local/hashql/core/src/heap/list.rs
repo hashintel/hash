@@ -8,7 +8,7 @@ use core::{
     hash::{Hash, Hasher},
     mem::MaybeUninit,
     ops::Index,
-    ptr,
+    ptr, slice,
 };
 use std::fmt;
 
@@ -110,12 +110,16 @@ impl<T, const N: usize> InlineVec<T, N> {
         }
     }
 
+    fn iter(&self) -> slice::Iter<T> {
+        self.as_slice().iter()
+    }
+
     /// Returns the number of elements in the vector.
-    fn len(&self) -> usize {
+    const fn len(&self) -> usize {
         self.len
     }
 
-    fn is_empty(&self) -> bool {
+    const fn is_empty(&self) -> bool {
         self.len == 0
     }
 }
@@ -226,6 +230,24 @@ impl<'heap, T, const CAPACITY: usize> List<'heap, T, CAPACITY> {
         };
 
         Self { inner }
+    }
+
+    pub fn iter(&self) -> slice::Iter<T> {
+        match self.inner {
+            ListInner::Inline(ref vec) => vec.iter(),
+            ListInner::Spilled(ref slice) => slice.iter(),
+        }
+    }
+
+    pub const fn len(&self) -> usize {
+        match self.inner {
+            ListInner::Inline(ref vec) => vec.len(),
+            ListInner::Spilled(ref slice) => slice.len(),
+        }
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 

@@ -176,23 +176,6 @@ impl PrettyPrint for PrimitiveType {
     }
 }
 
-/// Unifies primitive types
-///
-/// In a covariant context, this checks if `rhs` is a subtype of `lhs`.
-/// For primitives, the main subtyping relationship is Integer <: Number
-/// (Integer is a subtype of Number).
-pub(crate) fn unify_primitive(
-    _: &mut UnificationEnvironment,
-    _: Type<PrimitiveType>,
-    _: Type<PrimitiveType>,
-) {
-    unimplemented!("use Lattice::unify instead")
-}
-
-pub(crate) fn intersection_primitive(_: PrimitiveType, _: PrimitiveType) -> Option<PrimitiveType> {
-    unimplemented!("use Latice::meet instead")
-}
-
 #[cfg(test)]
 mod test {
     #![expect(clippy::min_ident_chars)]

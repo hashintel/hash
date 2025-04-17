@@ -1,9 +1,7 @@
 // HashQL type system
 
-pub mod arena;
 pub mod environment;
 pub mod error;
-pub mod intern;
 pub mod kind;
 pub mod lattice;
 pub mod pretty_print;
@@ -22,9 +20,7 @@ use self::{
         generic_argument::{unify_param, unify_param_lhs, unify_param_rhs},
         intrinsic::unify_intrinsic,
         opaque::unify_opaque,
-        primitive::{intersection_primitive, unify_primitive},
         r#struct::{intersection_struct, unify_struct},
-        tuple::unify_tuple,
         union::{
             intersection_union, intersection_with_union, unify_union, unify_union_lhs,
             unify_union_rhs,
