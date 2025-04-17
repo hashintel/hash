@@ -261,12 +261,13 @@ mod test {
         arena::TransactionalArena,
         span::SpanId,
         r#type::{
-            environment::{Environment, LatticeEnvironment},
+            environment::{Environment, EquivalenceEnvironment, LatticeEnvironment},
             kind::{
                 TypeKind,
                 generic_argument::GenericArguments,
                 primitive::PrimitiveType,
-                test::{primitive, tuple},
+                test::{assert_equiv, primitive, tuple, union},
+                union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             test::instantiate,
@@ -277,97 +278,141 @@ mod test {
     fn join_identical_tuples() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        // Create fields for the tuple
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, string, PrimitiveType::String);
-        let fields = EcoVec::from_iter([number.id, string.id]);
+        tuple!(
+            env,
+            a,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
-        // Create two identical tuples
-        tuple!(env, a, fields.clone());
-        tuple!(env, b, fields.clone());
+        tuple!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
         // Join identical tuples should result in the same tuple
-        let output = a.join(b, &mut lattice_env);
-        assert_eq!(output.len(), 1);
-
-        let id = output[0];
-        let r#type = env.arena[id].clone();
-        match r#type.kind {
-            TypeKind::Tuple(tuple) => {
-                assert_eq!(tuple.fields.len(), 2);
-                assert_eq!(tuple.fields[0], number.id);
-                assert_eq!(tuple.fields[1], string.id);
-            }
-            _ => panic!("Expected tuple type"),
-        }
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [tuple!(
+                env,
+                [],
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )]
+        );
     }
 
     #[test]
     fn join_different_length_tuples() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        // Create tuples of different lengths
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, string, PrimitiveType::String);
-
-        let fields_a = EcoVec::from_iter([number.id]);
-        let fields_b = EcoVec::from_iter([number.id, string.id]);
-
-        tuple!(env, a, fields_a);
-        tuple!(env, b, fields_b);
+        tuple!(
+            env,
+            a,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        tuple!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
         // Joining tuples of different lengths should return both tuples
-        let output = a.join(b, &mut lattice_env);
-        assert_eq!(output.len(), 2);
-        assert_eq!(output[0], a.id);
-        assert_eq!(output[1], b.id);
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [
+                tuple!(
+                    env,
+                    [],
+                    [
+                        primitive!(env, PrimitiveType::Number),
+                        primitive!(env, PrimitiveType::String)
+                    ]
+                ),
+                tuple!(
+                    env,
+                    [],
+                    [
+                        primitive!(env, PrimitiveType::Number),
+                        primitive!(env, PrimitiveType::String),
+                        primitive!(env, PrimitiveType::String)
+                    ]
+                )
+            ]
+        );
     }
 
     #[test]
     fn join_tuples_with_different_field_types() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        // Create tuples with same length but different field types
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, integer, PrimitiveType::Integer);
-        primitive!(env, string, PrimitiveType::String);
-        primitive!(env, boolean, PrimitiveType::Boolean);
-
-        let fields_a = EcoVec::from_iter([number.id, string.id]);
-        let fields_b = EcoVec::from_iter([integer.id, boolean.id]);
-
-        tuple!(env, a, fields_a);
-        tuple!(env, b, fields_b);
+        tuple!(
+            env,
+            a,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        tuple!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Integer),
+                primitive!(env, PrimitiveType::Boolean)
+            ]
+        );
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
         // Join should result in a new tuple with joined fields
-        let output = a.join(b, &mut lattice_env);
-        assert_eq!(output.len(), 1);
-
-        let id = output[0];
-        let r#type = env.arena[id].clone();
-        match r#type.kind {
-            TypeKind::Tuple(tuple) => {
-                assert_eq!(tuple.fields.len(), 2);
-
-                // First field: number ⊔ integer = number (number is supertype of integer)
-                let field0_type = &env.arena[tuple.fields[0]].kind;
-                assert_eq!(*field0_type, TypeKind::Primitive(PrimitiveType::Number));
-
-                // Second field: string ⊔ boolean should result in a union type
-                let field1 = tuple.fields[1];
-                // The exact representation depends on how joins of unrelated types are handled
-                // We expect two primitive types (string and boolean)
-                let field1_join_result = lattice_env.arena[field1].clone();
-                assert!(matches!(field1_join_result.kind, TypeKind::Primitive(_)));
-            }
-            _ => panic!("Expected tuple type"),
-        }
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [tuple!(
+                env,
+                [],
+                [
+                    // Number ⊔ Integer = Number (number is supertype of integer)
+                    primitive!(env, PrimitiveType::Number),
+                    // String ⊔ Boolean = String | Boolean (unrelated)
+                    union!(
+                        env,
+                        [
+                            primitive!(env, PrimitiveType::String),
+                            primitive!(env, PrimitiveType::Boolean)
+                        ]
+                    )
+                ]
+            )]
+        );
     }
 
     #[test]
