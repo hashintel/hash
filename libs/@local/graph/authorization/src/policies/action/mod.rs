@@ -43,6 +43,10 @@ pub enum ActionName {
 }
 
 impl ActionName {
+    pub fn all() -> impl Iterator<Item = Self> {
+        enum_iterator::all::<Self>()
+    }
+
     #[must_use]
     pub const fn parent(self) -> Option<Self> {
         match self {
@@ -287,7 +291,7 @@ mod tests {
             .action_ids()
             .map(|action_id| ActionName::from_euid(action_id.name()).map(|name| (name, action_id)))
             .collect::<Result<HashMap<_, _>, _>>()?;
-        for action in enum_iterator::all::<ActionName>() {
+        for action in ActionName::all() {
             let action_id = action.to_euid();
             for parent in action.parents() {
                 assert!(

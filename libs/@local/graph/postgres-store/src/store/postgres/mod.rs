@@ -14,10 +14,19 @@ use error_stack::{Report, ReportSink, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
-    policies::store::{
-        CreateWebParameter, CreateWebResponse, PrincipalStore, RoleAssignmentStatus,
-        RoleUnassignmentStatus,
-        error::{GetSystemAccountError, RoleAssignmentError, WebCreationError},
+    policies::{
+        Authorized, Effect, PartialResourceId, Policy, PolicyId, PolicySet, Request,
+        RequestContext,
+        action::ActionName,
+        principal::PrincipalConstraint,
+        store::{
+            CreateWebParameter, CreateWebResponse, PrincipalStore, RoleAssignmentStatus,
+            RoleUnassignmentStatus,
+            error::{
+                EnsureSystemPoliciesError, GetSystemAccountError, RoleAssignmentError,
+                WebCreationError,
+            },
+        },
     },
     schema::{
         AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupPermission,
@@ -99,6 +108,56 @@ pub struct PostgresStore<C, A> {
     pub settings: PostgresStoreSettings,
 }
 
+impl<C, A> PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi + Send + Sync,
+{
+    async fn ensure_system_policies_impl(
+        &mut self,
+        system_machine_actor: ActorId,
+    ) -> Result<(), Report<EnsureSystemPoliciesError>> {
+        tracing::info!("Seeding system policies");
+        for (policy_id, policy) in self
+            .get_policies_for_actor(system_machine_actor)
+            .await
+            .change_context(EnsureSystemPoliciesError::ReadPoliciesFailed)?
+        {
+            match policy.principal {
+                Some(PrincipalConstraint::Actor { actor }) if actor == system_machine_actor => {
+                    // TODO: Implement logic for handling removal of old policies to avoid
+                    //       that we re-create policies that are already present.
+                    self.remove_policy(policy_id)
+                        .await
+                        .change_context(EnsureSystemPoliciesError::RemoveOldPolicyFailed)?;
+                }
+                _ => {
+                    // We don't want to remove policies that are not for the system machine actor
+                }
+            }
+        }
+
+        self.synchronize_actions()
+            .await
+            .change_context(EnsureSystemPoliciesError::SynchronizeActions)?;
+
+        self.create_policy(Policy {
+            id: PolicyId::new(Uuid::new_v4()),
+            effect: Effect::Permit,
+            principal: Some(PrincipalConstraint::Actor {
+                actor: system_machine_actor,
+            }),
+            actions: vec![ActionName::CreateWeb],
+            resource: None,
+            constraints: None,
+        })
+        .await
+        .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?;
+
+        Ok(())
+    }
+}
+
 impl<C, A> PrincipalStore for PostgresStore<C, A>
 where
     C: AsClient,
@@ -140,6 +199,13 @@ where
                 %identifier,
                 "Created new system account"
             );
+
+            // We need to create the system web for the system machine actor, so the system machine
+            // needs to be allowed to create webs.
+            transaction
+                .ensure_system_policies_impl(ActorId::Machine(system_machine_id))
+                .await
+                .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
             let web_creation = transaction
                 .create_web(
@@ -186,52 +252,61 @@ where
         }
     }
 
+    async fn ensure_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
+        let system_machine_actor = Box::pin(self.get_or_create_system_actor("h"))
+            .await
+            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
+            .map(ActorId::Machine)?;
+
+        self.ensure_system_policies_impl(system_machine_actor)
+            .await
+            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
+    }
+
     #[expect(
         clippy::too_many_lines,
         reason = "The majority is SpiceDB and its error handling which will be removed soon"
     )]
     async fn create_web(
         &mut self,
-        _actor: ActorId,
+        actor: ActorId,
         parameter: CreateWebParameter,
     ) -> Result<CreateWebResponse, Report<WebCreationError>> {
-        // TODO: Implement this once we have implemented the new policy model.
-
-        // let context = self
-        //     .build_principal_context(actor)
-        //     .await
-        //     .change_context(WebCreationError::StoreError)?;
-        // let policies = self
-        //     .get_policies_for_actor(actor)
-        //     .await
-        //     .change_context(WebCreationError::StoreError)?;
+        let context = self
+            .build_principal_context(actor)
+            .await
+            .change_context(WebCreationError::StoreError)?;
+        let policies = self
+            .get_policies_for_actor(actor)
+            .await
+            .change_context(WebCreationError::StoreError)?;
 
         let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
 
-        // let policy_set = PolicySet::default()
-        //     .with_policies(policies.values())
-        //     .change_context(WebCreationError::StoreError)?;
-        // match policy_set
-        //     .evaluate(
-        //         &Request {
-        //             actor,
-        //             action: ActionName::CreateWeb,
-        //             resource: Some(&PartialResourceId::Web(Some(web_id))),
-        //             context: RequestContext::default(),
-        //         },
-        //         &context,
-        //     )
-        //     .change_context(WebCreationError::StoreError)?
-        // {
-        //     Authorized::Always => {}
-        //     Authorized::Never => {
-        //         return Err(Report::new(WebCreationError::NotAuthorized))
-        //             .attach_printable(StatusCode::PermissionDenied);
-        //     }
-        //     Authorized::Partial(_) => {
-        //         unimplemented!("Web creation is not supported for partial authorization");
-        //     }
-        // }
+        let policy_set = PolicySet::default()
+            .with_policies(policies.values())
+            .change_context(WebCreationError::StoreError)?;
+        match policy_set
+            .evaluate(
+                &Request {
+                    actor,
+                    action: ActionName::CreateWeb,
+                    resource: Some(&PartialResourceId::Web(Some(web_id))),
+                    context: RequestContext::default(),
+                },
+                &context,
+            )
+            .change_context(WebCreationError::StoreError)?
+        {
+            Authorized::Always => {}
+            Authorized::Never => {
+                return Err(Report::new(WebCreationError::NotAuthorized))
+                    .attach_printable(StatusCode::PermissionDenied);
+            }
+            Authorized::Partial(_) => {
+                unimplemented!("Web creation is not supported for partial authorization");
+            }
+        }
 
         let mut transaction = self
             .transaction()
@@ -1678,13 +1753,22 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
             .await
             .change_context(WebInsertionError)?;
 
+        let administrator = if let Some(administrator) = params.administrator {
+            transaction
+                .determine_actor(administrator)
+                .await
+                .change_context(WebInsertionError)?
+        } else {
+            actor_id
+        };
+
         let response = transaction
             .create_web(
                 actor_id,
                 CreateWebParameter {
                     id: None,
                     shortname: Some(params.shortname),
-                    administrator: actor_id,
+                    administrator,
                     is_actor_web: false,
                 },
             )
@@ -1917,6 +2001,16 @@ where
         &mut self,
         actor_id: ActorEntityUuid,
     ) -> Result<(), Report<DeletionError>> {
+        self.as_client()
+            .client()
+            .simple_query("DELETE FROM policy;")
+            .await
+            .change_context(DeletionError)?;
+        self.as_client()
+            .client()
+            .simple_query("DELETE FROM action;")
+            .await
+            .change_context(DeletionError)?;
         self.as_client()
             .client()
             .simple_query("DELETE FROM principal;")

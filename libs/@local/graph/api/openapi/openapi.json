@@ -292,7 +292,7 @@
       "post": {
         "tags": [
           "Graph",
-          "Actor"
+          "Policies"
         ],
         "operationId": "create_user_actor",
         "parameters": [
@@ -3145,6 +3145,23 @@
         }
       }
     },
+    "/system/policies/seed": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Actor"
+        ],
+        "operationId": "ensure_system_policies",
+        "responses": {
+          "204": {
+            "description": "The system policies were created successfully"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/webs": {
       "post": {
         "tags": [
@@ -4132,6 +4149,14 @@
           "shortname"
         ],
         "properties": {
+          "administrator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActorEntityUuid"
+              }
+            ],
+            "nullable": true
+          },
           "shortname": {
             "type": "string"
           }

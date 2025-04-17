@@ -27,6 +27,7 @@ use hash_graph_store::{
 };
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
+use http::StatusCode;
 use type_system::principal::{
     actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
     actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
@@ -47,6 +48,7 @@ use crate::rest::{
         create_ai_actor,
         get_or_create_system_actor,
         get_instance_admins_team,
+        ensure_system_policies,
 
         check_account_group_permission,
         assign_actor_group_role,
@@ -101,6 +103,7 @@ impl ActorResource {
                         "/actor/:identifier",
                         get(get_or_create_system_actor::<S, A>),
                     )
+                    .route("/policies/seed", get(ensure_system_policies::<S, A>))
                     .route("/instance-admins", get(get_instance_admins_team::<S, A>)),
             )
             .nest(
@@ -175,9 +178,49 @@ where
 }
 
 #[utoipa::path(
+    get,
+    path = "/system/policies/seed",
+    tag = "Actor",
+    responses(
+        (status = 204, content_type = "application/json", description = "The system policies were created successfully"),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn ensure_system_policies<S, A>(
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
+) -> Result<StatusCode, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+{
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .ensure_system_policies()
+        .await
+        .map_err(report_to_response)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
     post,
     path = "/actors/user",
-    tag = "Actor",
+    tag = "Policies",
     request_body = CreateUserActorParams,
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
