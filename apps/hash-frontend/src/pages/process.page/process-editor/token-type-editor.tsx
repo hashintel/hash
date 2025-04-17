@@ -4,126 +4,55 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   Stack,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
-import { HexColorPicker } from "react-colorful";
+import { useState } from "react";
 
 import { Button } from "../../../shared/ui";
+import { useEditorContext } from "./editor-context";
+import type { TokenType } from "./types";
 
-// Token type definition
-export interface TokenType {
-  id: string;
-  name: string;
-  color: string;
-}
-
-// Color options for token types
-export const colorOptions = [
-  "#3498db", // Blue
-  "#e74c3c", // Red
-  "#2ecc71", // Green
-  "#f39c12", // Orange
-  "#9b59b6", // Purple
-  "#1abc9c", // Teal
-  "#34495e", // Dark Blue
-  "#e67e22", // Dark Orange
-  "#27ae60", // Dark Green
-  "#c0392b", // Dark Red
-] as const;
-
-// Default token types
 export const defaultTokenTypes: TokenType[] = [
   { id: "default", name: "Default", color: "#3498db" },
 ];
 
-interface TokenTypeEditorProps {
+type TokenTypeEditorProps = {
   open: boolean;
   onClose: () => void;
-  tokenTypes: TokenType[];
-  setTokenTypes: (tokenTypes: TokenType[]) => void;
-}
+};
 
-export const TokenTypeEditor = ({
-  open,
-  onClose,
-  tokenTypes,
-  setTokenTypes,
-}: TokenTypeEditorProps) => {
-  // Local state for token types
-  const [localTokenTypes, setLocalTokenTypes] = useState<TokenType[]>([]);
+export const TokenTypeEditor = ({ open, onClose }: TokenTypeEditorProps) => {
+  const { tokenTypes, setTokenTypes } = useEditorContext();
 
-  // State for new token name
+  const [localTokenTypes, setLocalTokenTypes] =
+    useState<TokenType[]>(tokenTypes);
+
   const [newTokenName, setNewTokenName] = useState("");
+  const [newTokenColor, setNewTokenColor] = useState("#3498db");
 
-  // State for selected token for editing
-  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
-
-  // State for color picker
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [currentColor, setCurrentColor] = useState("#3498db");
-
-  // Initialize local state from props
-  useEffect(() => {
-    setLocalTokenTypes([...tokenTypes]);
-  }, [tokenTypes]);
-
-  // Handle adding a new token
   const handleAddToken = () => {
     if (newTokenName.trim()) {
       const newToken: TokenType = {
         id: `token-${Date.now()}`,
         name: newTokenName.trim(),
-        color: currentColor,
+        color: newTokenColor,
       };
 
       setLocalTokenTypes([...localTokenTypes, newToken]);
       setNewTokenName("");
-      setCurrentColor("#3498db");
+      setNewTokenColor("#3498db");
     }
   };
 
-  // Handle deleting a token
   const handleDeleteToken = (id: string) => {
-    // Prevent deleting the last token
     if (localTokenTypes.length <= 1) {
       return;
     }
 
     setLocalTokenTypes(localTokenTypes.filter((token) => token.id !== id));
-
-    // If the deleted token was selected, clear selection
-    if (selectedTokenId === id) {
-      setSelectedTokenId(null);
-      setShowColorPicker(false);
-    }
   };
 
-  // Handle updating a token's color
-  const handleColorChange = (color: string) => {
-    setCurrentColor(color);
-
-    if (selectedTokenId) {
-      setLocalTokenTypes(
-        localTokenTypes.map((token) =>
-          token.id === selectedTokenId ? { ...token, color } : token,
-        ),
-      );
-    }
-  };
-
-  // Handle selecting a token for editing
-  const handleSelectToken = (id: string) => {
-    setSelectedTokenId(id);
-    const foundToken = localTokenTypes.find((token) => token.id === id);
-    if (foundToken) {
-      setCurrentColor(foundToken.color);
-    }
-  };
-
-  // Handle token name change
   const handleTokenNameChange = (id: string, name: string) => {
     setLocalTokenTypes(
       localTokenTypes.map((token) =>
@@ -132,7 +61,6 @@ export const TokenTypeEditor = ({
     );
   };
 
-  // Handle save and close
   const handleSave = () => {
     setTokenTypes(localTokenTypes);
     onClose();
@@ -140,83 +68,61 @@ export const TokenTypeEditor = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        <Typography fontWeight="bold">Token Editor</Typography>
-      </DialogTitle>
-
       <DialogContent>
         <Stack spacing={3}>
-          {/* Add new token */}
-          <Box>
-            <Typography fontWeight="bold" sx={{ marginBottom: 1 }}>
-              Add New Token Type
-            </Typography>
-            <Stack direction="row" spacing={1} alignItems="flex-start">
-              <TextField
-                value={newTokenName}
-                onChange={(event) => setNewTokenName(event.target.value)}
-                placeholder="Token name"
-                size="small"
-                sx={{ flex: 1 }}
-              />
-              <Box
-                sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 1,
-                  backgroundColor: currentColor,
-                  cursor: "pointer",
-                  border: "1px solid #ccc",
-                }}
-                onClick={() => {
-                  setSelectedTokenId(null);
-                  setShowColorPicker(!showColorPicker);
-                }}
-              />
-              <Button onClick={handleAddToken}>Add</Button>
-            </Stack>
-          </Box>
-
-          {/* Color picker */}
-          {showColorPicker && (
-            <Box sx={{ width: "100%" }}>
-              <HexColorPicker
-                color={currentColor}
-                onChange={handleColorChange}
-              />
-            </Box>
-          )}
-
-          {/* Token list */}
           <Box>
             <Typography fontWeight="bold" sx={{ marginBottom: 1 }}>
               Token Types
             </Typography>
             <Stack spacing={1}>
               {localTokenTypes.map((token) => (
-                <Box
+                <Stack
                   key={token.id}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: 1,
-                    borderRadius: 1,
-                    border: "1px solid #eee",
-                    backgroundColor:
-                      selectedTokenId === token.id ? "#f5f5f5" : "transparent",
-                  }}
-                  onClick={() => handleSelectToken(token.id)}
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
                 >
                   <Box
                     sx={{
+                      position: "relative",
                       width: 24,
                       height: 24,
-                      borderRadius: "50%",
-                      backgroundColor: token.color,
                       marginRight: 1,
-                      border: "1px solid #ccc",
                     }}
-                  />
+                  >
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        backgroundColor: token.color,
+                        cursor: "pointer",
+                      }}
+                    />
+                    <Box
+                      component="input"
+                      type="color"
+                      value={token.color}
+                      onChange={(event) => {
+                        setLocalTokenTypes(
+                          localTokenTypes.map((tok) =>
+                            tok.id === token.id
+                              ? { ...tok, color: event.currentTarget.value }
+                              : tok,
+                          ),
+                        );
+                      }}
+                      sx={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        opacity: 0,
+                        cursor: "pointer",
+                      }}
+                    />
+                  </Box>
                   <TextField
                     value={token.name}
                     onChange={(event) =>
@@ -234,19 +140,70 @@ export const TokenTypeEditor = ({
                     disabled={
                       localTokenTypes.length <= 1 || token.id === "default"
                     }
+                    size="xs"
+                    variant="tertiary"
                   >
                     Delete
                   </Button>
-                </Box>
+                </Stack>
               ))}
+            </Stack>
+          </Box>
+          <Box>
+            <Typography fontWeight="bold" sx={{ marginBottom: 1 }}>
+              Add New Token Type
+            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <TextField
+                value={newTokenName}
+                onChange={(event) => setNewTokenName(event.target.value)}
+                placeholder="Token name"
+                size="small"
+                sx={{ flex: 1 }}
+              />
+              <Box sx={{ position: "relative", width: 36, height: 36 }}>
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 1,
+                    backgroundColor: newTokenColor,
+                    cursor: "pointer",
+                  }}
+                />
+                <Box
+                  component="input"
+                  type="color"
+                  value={newTokenColor}
+                  onChange={(event) =>
+                    setNewTokenColor(event.currentTarget.value)
+                  }
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    opacity: 0,
+                    cursor: "pointer",
+                  }}
+                />
+              </Box>
+              <Button onClick={handleAddToken} size="xs">
+                Add
+              </Button>
             </Stack>
           </Box>
         </Stack>
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave}>Save</Button>
+        <Button onClick={onClose} size="small" variant="tertiary">
+          Cancel
+        </Button>
+        <Button onClick={handleSave} size="small">
+          Save
+        </Button>
       </DialogActions>
     </Dialog>
   );

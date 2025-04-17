@@ -1,15 +1,15 @@
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { useCallback, useEffect, useState } from "react";
-import { getBezierPath, type Position, useReactFlow } from "reactflow";
+import { getBezierPath, type Position } from "reactflow";
 
-import { defaultTokenTypes, type TokenType } from "./token-type-editor";
+import { useEditorContext } from "./editor-context";
+import { useSimulation } from "./simulation-context";
+import { tokenAnimationTimeMs } from "./styling";
+import { type TokenType } from "./types";
 
 type AnimatingToken = {
   id: string;
   tokenTypeId: string;
-  progress: number;
-  startTime: number;
-  steps: number[];
-  currentStep: number;
 };
 
 export const Arc = ({
@@ -35,17 +35,9 @@ export const Arc = ({
     };
   };
 }) => {
-  const { tokenTypes } = useReactFlow()
-    .getNodes()
-    .reduce<{ tokenTypes: TokenType[] }>(
-      (acc, node) => {
-        if (node.type === "place" && node.data.tokenTypes) {
-          return { tokenTypes: node.data.tokenTypes };
-        }
-        return acc;
-      },
-      { tokenTypes: defaultTokenTypes },
-    );
+  const { tokenTypes } = useEditorContext();
+
+  const { simulationSpeed } = useSimulation();
 
   const [animatingTokens, setAnimatingTokens] = useState<AnimatingToken[]>([]);
   const [arcPath, labelX, labelY] = getBezierPath({
@@ -57,70 +49,23 @@ export const Arc = ({
     targetPosition,
   });
 
-  // Animation effect
-  useEffect(() => {
-    let animationFrameId: number;
-    const animate = () => {
-      const now = performance.now();
-
-      setAnimatingTokens((currentTokens) => {
-        // Update each token's progress through steps
-        return currentTokens
-          .map((token) => {
-            const elapsed = now - token.startTime;
-            const stepDuration = 500; // 500ms per step
-            const currentStepTime = elapsed % stepDuration;
-            const shouldAdvanceStep = currentStepTime < 16; // Check if we should move to next step (16ms is roughly one frame)
-
-            if (
-              shouldAdvanceStep &&
-              token.currentStep < token.steps.length - 1
-            ) {
-              return {
-                ...token,
-                currentStep: token.currentStep + 1,
-                progress: token.steps[token.currentStep + 1],
-              };
-            }
-
-            // Remove token if it has completed all steps
-            if (token.currentStep >= token.steps.length - 1) {
-              return null;
-            }
-
-            return token;
-          })
-          .filter(Boolean) as AnimatingToken[];
-      });
-
-      animationFrameId = requestAnimationFrame(animate);
-    };
-
-    animationFrameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, []);
-
   const addAnimatingToken = useCallback((tokenTypeId: string) => {
-    const steps = Array.from({ length: 20 }, (_, i) => i / 19);
-
     const newToken: AnimatingToken = {
-      id: Math.random().toString(),
+      id: generateUuid(),
       tokenTypeId,
-      progress: 0,
-      startTime: performance.now(),
-      steps,
-      currentStep: 0,
     };
+
     setAnimatingTokens((current) => [...current, newToken]);
   }, []);
 
-  // Listen for transition firings
+  /**
+   * Handle the event fired from SimulationContext to animate a token along the arcs of enabled transitions.
+   */
   useEffect(() => {
     const handleTransitionFired = (
       event: CustomEvent<{
         arcId: string;
         tokenTypeId: string;
-        isInput?: boolean;
       }>,
     ) => {
       const { arcId, tokenTypeId } = event.detail;
@@ -130,12 +75,13 @@ export const Arc = ({
     };
 
     window.addEventListener(
-      "transitionFired",
+      "animateTokenAlongArc",
       handleTransitionFired as EventListener,
     );
+
     return () => {
       window.removeEventListener(
-        "transitionFired",
+        "animateTokenAlongArc",
         handleTransitionFired as EventListener,
       );
     };
@@ -185,7 +131,7 @@ export const Arc = ({
       <style>
         {`
             .animating-token {
-              animation: moveToken 500ms linear forwards;
+              animation: moveToken ${simulationSpeed / 2}ms linear forwards;
             }
             @keyframes moveToken {
               0% {

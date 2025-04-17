@@ -2,6 +2,8 @@ import { Box, Stack } from "@mui/material";
 import type { DragEvent } from "react";
 import { useCallback } from "react";
 
+import { placeStyling, transitionStyling } from "./styling";
+
 export const Sidebar = () => {
   const onDragStart = useCallback(
     (event: DragEvent<HTMLDivElement>, nodeType: "place" | "transition") => {
@@ -15,47 +17,39 @@ export const Sidebar = () => {
 
   return (
     <Stack
+      alignItems="center"
       component="aside"
       gap={2}
       sx={{
         p: 2,
-        width: 140,
         borderRight: "1px solid #ccc",
       }}
     >
       <Box
-        sx={({ palette }) => ({
-          background: palette.gray[30],
-          borderRadius: "50%", // Circle preview for places
-          p: 1,
-          textAlign: "center",
-          cursor: "grab",
-          width: 100,
-          height: 100,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          fontSize: "1rem",
-        })}
+        sx={[
+          placeStyling,
+          {
+            cursor: "grab",
+            width: 80,
+            height: 80,
+            fontSize: 14,
+          },
+        ]}
         draggable
         onDragStart={(event) => onDragStart(event, "place")}
       >
         Place
       </Box>
       <Box
-        sx={({ palette }) => ({
-          background: palette.gray[30],
-          borderRadius: 0, // Rectangle preview for transitions
-          p: 1,
-          textAlign: "center",
-          cursor: "grab",
-          width: 100,
-          height: 50,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          fontSize: "1rem",
-        })}
+        sx={[
+          transitionStyling,
+          {
+            cursor: "grab",
+            width: 100,
+            height: 50,
+            fontSize: 14,
+          },
+        ]}
         draggable
         onDragStart={(event) => onDragStart(event, "transition")}
       >

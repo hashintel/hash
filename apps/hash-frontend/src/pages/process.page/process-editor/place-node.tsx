@@ -1,44 +1,24 @@
 import { Box } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
-import { nodeDimensions } from "./node-dimensions";
-import type { TokenCounts } from "./place-editor";
-import type { TokenType } from "./token-type-editor";
+import { useEditorContext } from "./editor-context";
+import { placeStyling } from "./styling";
+import type { TokenCounts } from "./types";
 
 export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
   const tokenCounts: TokenCounts = data.tokenCounts || {};
-  const tokenTypes: TokenType[] = data.tokenTypes || [];
+
+  const { tokenTypes } = useEditorContext();
 
   return (
-    <div
-      style={{
-        position: "relative",
-        background: "transparent",
-      }}
-    >
+    <div>
       <Handle
         type="target"
         position={Position.Left}
         isConnectable={isConnectable}
         style={{ background: "#555" }}
       />
-      <Box
-        sx={({ palette }) => ({
-          padding: 1,
-          borderRadius: "50%", // Circle for places
-          width: nodeDimensions.place.width,
-          height: nodeDimensions.place.height,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          background: palette.gray[20],
-          border: `2px solid ${palette.gray[50]}`,
-          fontSize: "1rem",
-          boxSizing: "border-box",
-          position: "relative",
-          textAlign: "center",
-        })}
-      >
+      <Box sx={placeStyling}>
         {data.label}
 
         {/* Token counts in different positions */}
@@ -47,7 +27,6 @@ export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
             return null;
           }
 
-          // Calculate position based on index
           const positions = [
             { top: "0", left: "50%", transform: "translateX(-50%)" }, // Top
             { top: "50%", right: "0", transform: "translateY(-50%)" }, // Right

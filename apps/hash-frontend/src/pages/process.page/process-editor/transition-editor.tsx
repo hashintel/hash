@@ -15,23 +15,19 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "../../../shared/ui";
-import type { TokenType } from "./token-type-editor";
-import type { ArcType } from "./types";
+import type { ArcType, TokenType } from "./types";
 
 type TransitionCondition = {
   id: string;
   name: string;
   probability: number;
-  outputEdgeIds: string[]; // IDs of edges to activate when this condition is met
+  outputEdgeId: string;
 };
 
 type TransitionData = {
   label: string;
-  delay?: number; // Processing time in hours for each token type
   description?: string;
-
-  hasConditions?: boolean; // Whether this transition has conditional outputs
-  conditions?: TransitionCondition[]; // Array of possible conditions
+  conditions?: TransitionCondition[];
 };
 
 type TransitionEditorProps = {
@@ -57,41 +53,41 @@ export const TransitionEditor = ({
   outgoingEdges,
   onUpdateTransition,
 }: TransitionEditorProps) => {
-  // Local state for editing
-  const [editedData, setEditedData] = useState<TransitionData>({
+  const [localData, setEditedData] = useState<TransitionData>({
     label: "",
-    delay: undefined,
     description: "",
-    hasConditions: false,
     conditions: [],
   });
 
-  // Initialize form when opened
+  const [hasConditions, setHasConditions] = useState(
+    transitionData.conditions && transitionData.conditions.length > 0,
+  );
+
   useEffect(() => {
     if (open) {
       setEditedData({
         label: transitionData.label,
-        delay: transitionData.delay,
         description: transitionData.description ?? "",
-        hasConditions: transitionData.hasConditions ?? false,
         conditions: transitionData.conditions ?? [],
       });
 
-      // If no conditions exist yet, initialize with a default condition
       if (
         !transitionData.conditions ||
         transitionData.conditions.length === 0
       ) {
         setEditedData((prev) => ({
           ...prev,
-          conditions: [
-            {
-              id: `condition-${Date.now()}`,
-              name: "Default",
-              probability: 100,
-              outputEdgeIds: outgoingEdges.map((edge) => edge.id),
-            },
-          ],
+          conditions:
+            outgoingEdges.length > 0
+              ? [
+                  {
+                    id: `condition-${Date.now()}`,
+                    name: "Default",
+                    probability: 100,
+                    outputEdgeId: outgoingEdges[0]!.id,
+                  },
+                ]
+              : [],
         }));
       }
     }
@@ -131,10 +127,9 @@ export const TransitionEditor = ({
   // New handlers for conditional logic
   const handleHasConditionsChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const hasConditions = event.target.checked;
+      setHasConditions(event.target.checked);
       setEditedData((prev) => ({
         ...prev,
-        hasConditions,
         // If enabling conditions and none exist, create a default one
         conditions:
           hasConditions && (!prev.conditions || prev.conditions.length === 0)
@@ -143,13 +138,13 @@ export const TransitionEditor = ({
                   id: `condition-${Date.now()}`,
                   name: "Default",
                   probability: 100,
-                  outputEdgeIds: outgoingEdges.map((edge) => edge.id),
+                  outputEdgeId: outgoingEdges[0]!.id,
                 },
               ]
             : prev.conditions,
       }));
     },
-    [outgoingEdges],
+    [outgoingEdges, hasConditions],
   );
 
   const handleAddCondition = useCallback(() => {
@@ -162,7 +157,7 @@ export const TransitionEditor = ({
           id: `condition-${Date.now()}`,
           name: "Condition 1",
           probability: 100,
-          outputEdgeIds: [],
+          outputEdgeId: outgoingEdges[0]!.id,
         };
 
         return {
@@ -182,7 +177,7 @@ export const TransitionEditor = ({
           id: condition.id,
           name: condition.name,
           probability: targetProbability + (index === 0 ? remainder : 0),
-          outputEdgeIds: condition.outputEdgeIds,
+          outputEdgeId: condition.outputEdgeId,
         };
       });
 
@@ -190,7 +185,7 @@ export const TransitionEditor = ({
         id: `condition-${Date.now()}`,
         name: `Condition ${newConditionCount}`,
         probability: targetProbability,
-        outputEdgeIds: [],
+        outputEdgeId: outgoingEdges[0]!.id,
       };
 
       return {
@@ -198,7 +193,7 @@ export const TransitionEditor = ({
         conditions: [...adjustedConditions, newCondition],
       };
     });
-  }, []);
+  }, [outgoingEdges]);
 
   const handleRemoveCondition = useCallback((conditionId: string) => {
     setEditedData((prev) => {
@@ -236,7 +231,7 @@ export const TransitionEditor = ({
           id: condition.id,
           name: condition.name,
           probability: 100,
-          outputEdgeIds: condition.outputEdgeIds,
+          outputEdgeId: condition.outputEdgeId,
         };
 
         return {
@@ -265,7 +260,7 @@ export const TransitionEditor = ({
           probability: Math.round(
             condition.probability * (1 + distributionFactor),
           ),
-          outputEdgeIds: condition.outputEdgeIds,
+          outputEdgeId: condition.outputEdgeId,
         };
       });
 
@@ -282,7 +277,7 @@ export const TransitionEditor = ({
             id: firstCondition.id,
             name: firstCondition.name,
             probability: firstCondition.probability + (100 - newTotal),
-            outputEdgeIds: firstCondition.outputEdgeIds,
+            outputEdgeId: firstCondition.outputEdgeId,
           };
         }
       }
@@ -322,7 +317,7 @@ export const TransitionEditor = ({
             id: condition.id,
             name: condition.name,
             probability: 100,
-            outputEdgeIds: condition.outputEdgeIds,
+            outputEdgeId: condition.outputEdgeId,
           };
 
           return {
@@ -390,20 +385,9 @@ export const TransitionEditor = ({
         ...prev,
         conditions: (prev.conditions ?? []).map((condition) => {
           if (condition.id === conditionId) {
-            const outputEdgeIds = [...condition.outputEdgeIds];
-            const edgeIndex = outputEdgeIds.indexOf(edgeId);
-
-            if (edgeIndex >= 0) {
-              // Remove edge if already included
-              outputEdgeIds.splice(edgeIndex, 1);
-            } else {
-              // Add edge if not included
-              outputEdgeIds.push(edgeId);
-            }
-
             return {
               ...condition,
-              outputEdgeIds,
+              outputEdgeId: edgeId,
             };
           }
           return condition;
@@ -415,13 +399,9 @@ export const TransitionEditor = ({
 
   const handleSave = useCallback(() => {
     // Ensure conditions sum to 100% before saving
-    const dataToSave = { ...editedData };
+    const dataToSave = { ...localData };
 
-    if (
-      dataToSave.hasConditions &&
-      dataToSave.conditions &&
-      dataToSave.conditions.length > 0
-    ) {
+    if (dataToSave.conditions && dataToSave.conditions.length > 0) {
       const totalProbability = dataToSave.conditions.reduce(
         (sum, condition) => sum + condition.probability,
         0,
@@ -436,7 +416,7 @@ export const TransitionEditor = ({
               id: condition.id,
               name: condition.name,
               probability: 100,
-              outputEdgeIds: condition.outputEdgeIds,
+              outputEdgeId: condition.outputEdgeId,
             };
           }
         } else {
@@ -446,7 +426,7 @@ export const TransitionEditor = ({
             id: condition.id,
             name: condition.name,
             probability: Math.round(condition.probability * factor),
-            outputEdgeIds: condition.outputEdgeIds,
+            outputEdgeId: condition.outputEdgeId,
           }));
 
           // Fix any rounding errors by adjusting the first condition
@@ -462,7 +442,7 @@ export const TransitionEditor = ({
                 id: firstCondition.id,
                 name: firstCondition.name,
                 probability: firstCondition.probability + (100 - newTotal),
-                outputEdgeIds: firstCondition.outputEdgeIds,
+                outputEdgeId: firstCondition.outputEdgeId,
               };
             }
           }
@@ -472,15 +452,15 @@ export const TransitionEditor = ({
 
     onUpdateTransition(transitionId, dataToSave);
     onClose();
-  }, [transitionId, editedData, onUpdateTransition, onClose]);
+  }, [transitionId, localData, onUpdateTransition, onClose]);
 
   // Calculate total probability
   const totalProbability = useMemo(() => {
-    return (editedData.conditions ?? []).reduce(
+    return (localData.conditions ?? []).reduce(
       (sum, condition) => sum + condition.probability,
       0,
     );
-  }, [editedData.conditions]);
+  }, [localData.conditions]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -490,14 +470,14 @@ export const TransitionEditor = ({
           {/* Basic transition properties */}
           <TextField
             label="Transition Name"
-            value={editedData.label}
+            value={localData.label}
             onChange={handleLabelChange}
             fullWidth
           />
 
           <TextField
             label="Description"
-            value={editedData.description}
+            value={localData.description}
             onChange={handleDescriptionChange}
             fullWidth
             multiline
@@ -534,7 +514,7 @@ export const TransitionEditor = ({
                   <TextField
                     label="Processing Time (hours)"
                     type="number"
-                    value={editedData.delay ?? 0}
+                    value={localData.delay ?? 0}
                     onChange={(event) => handleProcessingTimeChange(event)}
                     inputProps={{ min: 0, step: 0.1 }}
                     sx={{ width: 200 }}
@@ -555,14 +535,14 @@ export const TransitionEditor = ({
             <FormControlLabel
               control={
                 <Switch
-                  checked={editedData.hasConditions}
+                  checked={localData.hasConditions}
                   onChange={handleHasConditionsChange}
                 />
               }
               label="This transition has multiple possible outcomes"
             />
 
-            {editedData.hasConditions && (
+            {localData.hasConditions && (
               <Box sx={{ mt: 2 }}>
                 <Typography color="text.secondary" sx={{ mb: 2 }}>
                   Define different conditions that determine which outputs are
@@ -589,7 +569,7 @@ export const TransitionEditor = ({
                     size="small"
                     onClick={handleAddCondition}
                     disabled={
-                      editedData.conditions?.length === outgoingEdges.length
+                      localData.conditions?.length === outgoingEdges.length
                     }
                   >
                     Add Condition
@@ -598,7 +578,7 @@ export const TransitionEditor = ({
 
                 {/* Conditions list */}
                 <Stack spacing={3} sx={{ mt: 2 }}>
-                  {(editedData.conditions ?? []).map((condition) => (
+                  {(localData.conditions ?? []).map((condition) => (
                     <Box
                       key={condition.id}
                       sx={{
@@ -610,7 +590,7 @@ export const TransitionEditor = ({
                       }}
                     >
                       {/* Only show remove button if there's more than one condition */}
-                      {(editedData.conditions?.length ?? 0) > 1 && (
+                      {(localData.conditions?.length ?? 0) > 1 && (
                         <IconButton
                           size="small"
                           sx={{ position: "absolute", top: 8, right: 8 }}
@@ -712,7 +692,7 @@ export const TransitionEditor = ({
         <Button
           onClick={handleSave}
           variant="primary"
-          disabled={editedData.hasConditions && totalProbability !== 100}
+          disabled={hasConditions && totalProbability !== 100}
         >
           Save
         </Button>

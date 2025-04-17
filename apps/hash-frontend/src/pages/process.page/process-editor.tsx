@@ -19,36 +19,34 @@ import ReactFlow, {
   ReactFlowProvider,
   useReactFlow,
 } from "reactflow";
-import { useLocalstorageState } from "rooks";
 
 import { Button } from "../../shared/ui";
 import { Arc } from "./process-editor/arc";
-import { ArcMenu } from "./process-editor/arc-menu";
+import { ArcEditor } from "./process-editor/arc-editor";
+import {
+  EditorContextProvider,
+  useEditorContext,
+} from "./process-editor/editor-context";
 import { exampleCPN } from "./process-editor/examples";
-import { nodeDimensions } from "./process-editor/node-dimensions";
 import { PlaceEditor } from "./process-editor/place-editor";
 import { PlaceNode } from "./process-editor/place-node";
 import { Sidebar } from "./process-editor/sidebar";
-import { SimulationControls } from "./process-editor/simulation-controls";
 import {
-  defaultTokenTypes,
-  type TokenType,
-  TokenTypeEditor,
-} from "./process-editor/token-type-editor";
+  SimulationContextProvider,
+  useSimulation,
+} from "./process-editor/simulation-context";
+import { SimulationControls } from "./process-editor/simulation-controls";
+import { nodeDimensions } from "./process-editor/styling";
+import { TokenTypeEditor } from "./process-editor/token-type-editor";
 import { TransitionEditor } from "./process-editor/transition-editor";
 import { TransitionNode } from "./process-editor/transition-node";
 import {
   type ArcData,
   type ArcType,
   type NodeData,
-  type NodeType,
   type PlaceNodeType,
   type TokenCounts,
 } from "./process-editor/types";
-import {
-  SimulationContextProvider,
-  useSimulation,
-} from "./process-editor/use-simulate";
 
 const FlowCanvas = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -57,17 +55,10 @@ const FlowCanvas = () => {
     ArcData
   > | null>(null);
 
-  const [nodes, setNodes] = useLocalstorageState<NodeType[]>(
-    "petri-net-nodes",
-    [],
-  );
-  const [arcs, setArcs] = useLocalstorageState<ArcType[]>("petri-net-arcs", []);
+  const { nodes, setNodes, arcs, setArcs, tokenTypes, setTokenTypes } =
+    useEditorContext();
 
   const [tokenTypeEditorOpen, setTokenTypeEditorOpen] = useState(false);
-  const [tokenTypes, setTokenTypes] = useLocalstorageState<TokenType[]>(
-    "petri-net-token-types",
-    defaultTokenTypes,
-  );
 
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [tokenMenuPosition, setTokenMenuPosition] = useState<{
@@ -321,29 +312,7 @@ const FlowCanvas = () => {
     setSelectedArc(null);
   }, []);
 
-  // For demonstration, we log out the current diagram JSON
-  const handleSave = () => {
-    const processJson = {
-      nodes,
-      edges: arcs,
-      tokenTypes,
-    };
-    // eslint-disable-next-line no-console
-    console.log("Process JSON:", processJson);
-    alert("Check console for the process JSON");
-  };
-
-  const {
-    globalClock,
-    isSimulating,
-    resetSimulation,
-    setIsSimulating,
-    setSimulationSpeed,
-    setTimeStepSize,
-    simulationSpeed,
-    stepSimulation,
-    timeStepSize,
-  } = useSimulation();
+  const { resetSimulation, simulationLogs } = useSimulation();
 
   // Reset everything (clear nodes and edges)
   const handleResetAll = useCallback(() => {
@@ -537,21 +506,9 @@ const FlowCanvas = () => {
           </Button>
         </Box>
 
-        <SimulationControls
-          isSimulating={isSimulating}
-          onStartSimulation={() => setIsSimulating(true)}
-          onStopSimulation={() => setIsSimulating(false)}
-          onSimulationStep={() => stepSimulation()}
-          onReset={handleReset}
-          timeStep={timeStepSize}
-          setTimeStep={setTimeStepSize}
-          simulationSpeed={simulationSpeed}
-          setSimulationSpeed={setSimulationSpeed}
-          globalClock={globalClock}
-        />
+        <SimulationControls onReset={handleReset} />
       </Stack>
 
-      {/* File operations */}
       <Stack
         direction="row"
         spacing={2}
@@ -563,16 +520,11 @@ const FlowCanvas = () => {
         <Button onClick={handleResetAll} size="xs">
           New
         </Button>
-        {/* <Button onClick={handleSave} size="xs">
-            Save
-          </Button> */}
       </Stack>
 
       <TokenTypeEditor
         open={tokenTypeEditorOpen}
         onClose={() => setTokenTypeEditorOpen(false)}
-        tokenTypes={tokenTypes}
-        setTokenTypes={setTokenTypes}
       />
 
       {/* Transition Editor Dialog */}
@@ -582,9 +534,8 @@ const FlowCanvas = () => {
           onClose={() => setSelectedTransition(null)}
           transitionId={selectedTransition}
           transitionData={
-            nodes.find((node) => node.id === selectedTransition)?.data || {
+            nodes.find((node) => node.id === selectedTransition)?.data ?? {
               label: "",
-              processTimes: {},
             }
           }
           tokenTypes={tokenTypes}
@@ -616,13 +567,12 @@ const FlowCanvas = () => {
       )}
 
       {selectedArc && (
-        <ArcMenu
+        <ArcEditor
           arcId={selectedArc.id}
           tokenWeights={selectedArc.data?.tokenWeights ?? {}}
           position={selectedArc.position}
           onClose={() => setSelectedArc(null)}
           onUpdateWeights={handleUpdateEdgeWeight}
-          tokenTypes={tokenTypes}
         />
       )}
 
@@ -645,11 +595,9 @@ const FlowCanvas = () => {
         snapGrid={[15, 15]}
         connectionLineType={ConnectionLineType.SmoothStep}
       >
-        {/* <Controls /> */}
         <Background gap={15} size={1} />
       </ReactFlow>
 
-      {/* Simulation Logs */}
       {/* {simulationLogs.length > 0 && (
         <Box
           sx={{
@@ -695,12 +643,14 @@ const FlowCanvas = () => {
 export const ProcessEditor = () => {
   return (
     <ReactFlowProvider>
-      <SimulationContextProvider>
-        <Box sx={{ display: "flex", height: "100%" }}>
-          <Sidebar />
-          <FlowCanvas />
-        </Box>
-      </SimulationContextProvider>
+      <EditorContextProvider>
+        <SimulationContextProvider>
+          <Box sx={{ display: "flex", height: "100%" }}>
+            <Sidebar />
+            <FlowCanvas />
+          </Box>
+        </SimulationContextProvider>
+      </EditorContextProvider>
     </ReactFlowProvider>
   );
 };

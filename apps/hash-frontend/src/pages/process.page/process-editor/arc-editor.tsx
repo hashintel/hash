@@ -3,7 +3,7 @@ import { Box, Card, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { useReactFlow } from "reactflow";
 
-import type { TokenType } from "./token-type-editor";
+import { useEditorContext } from "./editor-context";
 
 interface ArcMenuProps {
   arcId: string;
@@ -16,22 +16,22 @@ interface ArcMenuProps {
     arcId: string,
     tokenWeights: { [tokenTypeId: string]: number | undefined },
   ) => void;
-  tokenTypes: TokenType[];
 }
 
-export const ArcMenu = ({
+export const ArcEditor = ({
   arcId,
   tokenWeights,
   position,
   onClose: _onClose,
   onUpdateWeights,
-  tokenTypes,
 }: ArcMenuProps) => {
   const [localWeights, setLocalWeights] = useState<{
     [tokenTypeId: string]: number | undefined;
   }>(tokenWeights);
 
   const { getNodes, getEdges } = useReactFlow();
+
+  const { tokenTypes } = useEditorContext();
 
   const direction = useMemo(() => {
     const arc = getEdges().find((edge) => edge.id === arcId);

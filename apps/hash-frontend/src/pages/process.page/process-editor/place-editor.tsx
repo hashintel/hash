@@ -2,8 +2,7 @@ import { TextField } from "@hashintel/design-system";
 import { Box, Card, Stack, Typography } from "@mui/material";
 
 import { Button } from "../../../shared/ui";
-import type { TokenType } from "./token-type-editor";
-import type { PlaceNodeType, TokenCounts } from "./types";
+import type { PlaceNodeType, TokenCounts, TokenType } from "./types";
 
 export type PlaceEditorProps = {
   selectedPlace: PlaceNodeType;

@@ -1,5 +1,4 @@
-import type { TokenType } from "./token-type-editor";
-import type { ArcType, NodeType } from "./types";
+import type { ArcType, NodeType, TokenType } from "./types";
 
 export const exampleCPN = {
   tokenTypes: [
@@ -17,17 +16,11 @@ export const exampleCPN = {
         type: "place",
         label: "Plant A Supply",
         tokenCounts: {
-          precursor_a: 5,
+          precursor_a: 10,
           precursor_b: 0,
           drug: 0,
           failed_drug: 0,
         },
-        tokenTypes: [
-          { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
-          { id: "drug", name: "Drug", color: "#2ecc71" },
-          { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
-        ],
       },
     },
     {
@@ -39,16 +32,10 @@ export const exampleCPN = {
         label: "Plant B Supply",
         tokenCounts: {
           precursor_a: 0,
-          precursor_b: 5,
+          precursor_b: 10,
           drug: 0,
           failed_drug: 0,
         },
-        tokenTypes: [
-          { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
-          { id: "drug", name: "Drug", color: "#2ecc71" },
-          { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
-        ],
       },
     },
     {
@@ -64,12 +51,6 @@ export const exampleCPN = {
           drug: 0,
           failed_drug: 0,
         },
-        tokenTypes: [
-          { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
-          { id: "drug", name: "Drug", color: "#2ecc71" },
-          { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
-        ],
       },
     },
     {
@@ -85,12 +66,6 @@ export const exampleCPN = {
           drug: 0,
           failed_drug: 0,
         },
-        tokenTypes: [
-          { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
-          { id: "drug", name: "Drug", color: "#2ecc71" },
-          { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
-        ],
       },
     },
     {
@@ -106,12 +81,6 @@ export const exampleCPN = {
           drug: 0,
           failed_drug: 0,
         },
-        tokenTypes: [
-          { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
-          { id: "drug", name: "Drug", color: "#2ecc71" },
-          { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
-        ],
       },
     },
     {
@@ -127,12 +96,6 @@ export const exampleCPN = {
           drug: 0,
           failed_drug: 0,
         },
-        tokenTypes: [
-          { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
-          { id: "drug", name: "Drug", color: "#2ecc71" },
-          { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
-        ],
       },
     },
     {
@@ -148,12 +111,6 @@ export const exampleCPN = {
           drug: 0,
           failed_drug: 0,
         },
-        tokenTypes: [
-          { id: "precursor_a", name: "Precursor A", color: "#3498db" },
-          { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },
-          { id: "drug", name: "Drug", color: "#2ecc71" },
-          { id: "failed_drug", name: "Failed Drug", color: "#e74c3c" },
-        ],
       },
     },
     {
@@ -187,19 +144,18 @@ export const exampleCPN = {
         label: "Quality Check",
         delay: 2,
         description: "Quality assurance with conditional outputs",
-        hasConditions: true,
         conditions: [
           {
             id: "condition-pass",
             name: "Pass",
-            probability: 75,
-            outputEdgeIds: ["transition_2-place_5"],
+            probability: 80,
+            outputEdgeId: "transition_2-place_5",
           },
           {
             id: "condition-fail",
             name: "Fail",
-            probability: 25,
-            outputEdgeIds: ["transition_2-place_4"],
+            probability: 20,
+            outputEdgeId: "transition_2-place_4",
           },
         ],
       },
