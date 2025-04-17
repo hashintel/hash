@@ -141,7 +141,7 @@ async fn seed_db<A: AuthorizationApi>(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     if !transaction
-        .is_actor(account_id)
+        .is_web(account_id)
         .await
         .expect("Should be able to check actor")
     {
@@ -371,7 +371,7 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
         .as_client()
         .query_one(
             "
-            SELECT EXISTS(SELECT 1 FROM actor WHERE id=$1)
+            SELECT EXISTS(SELECT 1 FROM web WHERE id=$1)
             ",
             &[&account_id],
         )
@@ -379,7 +379,7 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
         .expect("failed to check if account id exists")
         .get(0);
 
-    if !(already_seeded) {
+    if !already_seeded {
         seed_db(account_id, store_wrapper).await;
     }
 
