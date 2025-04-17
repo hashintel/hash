@@ -103,8 +103,8 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
 pub(crate) fn type_mismatch<K>(
     context: &Environment,
 
-    lhs: &Type<K>,
-    rhs: &Type<K>,
+    lhs: Type<K>,
+    rhs: Type<K>,
 
     help: Option<&str>,
 ) -> TypeCheckDiagnostic
@@ -154,8 +154,8 @@ where
 /// Creates a circular type reference diagnostic
 pub(crate) fn circular_type_reference<K>(
     span: SpanId,
-    lhs: &Type<K>,
-    rhs: &Type<K>,
+    lhs: Type<K>,
+    rhs: Type<K>,
 ) -> TypeCheckDiagnostic
 where
     K: PrettyPrint,
@@ -231,8 +231,8 @@ where
 /// Creates a diagnostic for when tuple types have a different number of fields
 pub(crate) fn tuple_length_mismatch<K>(
     span: SpanId,
-    lhs: &Type<K>,
-    rhs: &Type<K>,
+    lhs: Type<K>,
+    rhs: Type<K>,
     lhs_len: usize,
     rhs_len: usize,
 ) -> TypeCheckDiagnostic
@@ -288,8 +288,10 @@ where
 /// Creates a diagnostic for when opaque types have different names
 pub(crate) fn opaque_type_name_mismatch<K>(
     span: SpanId,
-    lhs: &Type<K>,
-    rhs: &Type<K>,
+
+    lhs: Type<K>,
+    rhs: Type<K>,
+
     lhs_name: &str,
     rhs_name: &str,
 ) -> TypeCheckDiagnostic
@@ -334,7 +336,7 @@ where
 /// Creates a diagnostic for when a generic argument is not found in the current scope
 pub(crate) fn generic_argument_not_found<K>(
     span: SpanId,
-    param_type: &Type<K>,
+    param_type: Type<K>,
     argument_id: GenericArgumentId,
 ) -> TypeCheckDiagnostic
 where
@@ -440,8 +442,10 @@ where
 /// which is an invariant property of function types.
 pub(crate) fn function_parameter_count_mismatch<K>(
     span: SpanId,
-    lhs: &Type<K>,
-    rhs: &Type<K>,
+
+    lhs: Type<K>,
+    rhs: Type<K>,
+
     lhs_param_count: usize,
     rhs_param_count: usize,
 ) -> TypeCheckDiagnostic
@@ -496,8 +500,10 @@ where
 
 pub(crate) fn intersection_coerced_to_never<K1, K2>(
     env: &Environment,
-    lhs: &Type<K1>,
-    rhs: &Type<K2>,
+
+    lhs: Type<K1>,
+    rhs: Type<K2>,
+
     reason: &str,
 ) -> TypeCheckDiagnostic
 where

@@ -1888,20 +1888,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dashmap"
-version = "6.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
-dependencies = [
- "cfg-if",
- "crossbeam-utils",
- "hashbrown 0.14.5",
- "lock_api",
- "once_cell",
- "parking_lot_core",
-]
-
-[[package]]
 name = "dashu-base"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3742,7 +3728,6 @@ dependencies = [
  "anstyle",
  "archery",
  "bumpalo",
- "dashmap",
  "ecow",
  "foldhash",
  "hashbrown 0.15.2",
@@ -3750,12 +3735,12 @@ dependencies = [
  "orx-concurrent-vec",
  "pretty",
  "rpds",
+ "scc",
  "serde",
  "simple-mermaid",
  "smallvec 2.0.0-alpha.11",
  "test-case",
  "text-size",
- "tinyvec",
 ]
 
 [[package]]

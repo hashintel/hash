@@ -9,6 +9,7 @@ use crate::{arena::concurrent::ConcurrentArena, heap::Heap};
 pub struct Interner<'heap> {
     kinds: HashSet<&'heap TypeKind, foldhash::fast::RandomState>,
     types: ConcurrentArena<Type<'heap>>,
+    heap: &'heap Heap,
 }
 
 impl<'heap> Interner<'heap> {

@@ -1,18 +1,16 @@
-use core::ops::{Deref, DerefMut};
-use std::collections::HashMap;
+use core::ops::Deref;
+
+use scc::HashSet;
 
 use super::{
     Type, TypeId, TypeKind,
     error::{TypeCheckDiagnostic, circular_type_reference},
-    kind::{generic_argument::GenericArgumentId, intersection::IntersectionType, union::UnionType},
+    kind::{intersection::IntersectionType, primitive::PrimitiveType, union::UnionType},
     lattice::Lattice as _,
     recursion::RecursionBoundary,
     unify_type_impl,
 };
-use crate::{
-    arena::transaction::{Checkpoint, TransactionalArena},
-    span::SpanId,
-};
+use crate::{arena::concurrent::ConcurrentArena, heap::Heap, span::SpanId};
 
 /// Represents the type relationship variance used in generic type checking.
 ///
@@ -47,114 +45,140 @@ pub enum Variance {
     Invariant,
 }
 
-#[derive(Debug, Clone)]
-pub struct Environment {
-    pub source: SpanId,
-    pub arena: TransactionalArena<Type>,
-
-    diagnostics: Vec<TypeCheckDiagnostic>,
-    fatal_diagnostics: usize,
-
-    // The arguments currently in scope
-    arguments: HashMap<GenericArgumentId, TypeId, foldhash::fast::RandomState>,
+pub struct Diagnostics {
+    inner: Vec<TypeCheckDiagnostic>,
+    fatal: usize,
 }
 
-impl Environment {
-    #[must_use]
-    pub fn new(source: SpanId, arena: TransactionalArena<Type>) -> Self {
+impl Diagnostics {
+    pub fn new() -> Self {
         Self {
-            source,
-            arena,
-            diagnostics: Vec::new(),
-            fatal_diagnostics: 0,
-            arguments: HashMap::default(),
+            inner: Vec::new(),
+            fatal: 0,
         }
     }
 
-    pub fn take_diagnostics(&mut self) -> Vec<TypeCheckDiagnostic> {
-        core::mem::take(&mut self.diagnostics)
+    pub fn take(&mut self) -> Vec<TypeCheckDiagnostic> {
+        std::mem::take(&mut self.inner)
     }
 
-    pub(crate) fn replace_diagnostics(&mut self, diagnostics: Vec<TypeCheckDiagnostic>) {
-        self.diagnostics = diagnostics;
+    pub fn replace(&mut self, diagnostics: Vec<TypeCheckDiagnostic>) {
+        self.fatal = diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.severity.is_fatal())
+            .count();
+
+        self.inner = diagnostics;
     }
 
-    pub(crate) fn record_diagnostic(&mut self, diagnostic: TypeCheckDiagnostic) {
+    pub fn fatal(&mut self) -> usize {
+        self.fatal
+    }
+
+    pub fn push(&mut self, diagnostic: TypeCheckDiagnostic) {
         if diagnostic.severity.is_fatal() {
-            self.fatal_diagnostics += 1;
+            self.fatal += 1;
         }
-        self.diagnostics.push(diagnostic);
-    }
 
-    pub(crate) const fn fatal_diagnostics(&self) -> usize {
-        self.fatal_diagnostics
-    }
-
-    #[track_caller]
-    pub(crate) fn update_kind(&mut self, id: TypeId, kind: TypeKind) {
-        self.arena.update_with(id, |r#type| r#type.kind = kind);
-    }
-
-    pub(crate) fn enter_generic_argument_scope(&mut self, id: GenericArgumentId, r#type: TypeId) {
-        self.arguments.insert(id, r#type);
-    }
-
-    pub(crate) fn exit_generic_argument_scope(&mut self, id: GenericArgumentId) {
-        self.arguments.remove(&id);
-    }
-
-    pub(crate) fn generic_argument(&self, id: GenericArgumentId) -> Option<TypeId> {
-        self.arguments.get(&id).copied()
-    }
-
-    fn begin_transaction(&self) -> (Checkpoint<Type>, usize, usize) {
-        let checkpoint = self.arena.checkpoint();
-        let length = self.diagnostics.len();
-        let fatal = self.fatal_diagnostics;
-
-        (checkpoint, length, fatal)
-    }
-
-    fn end_transaction(
-        &mut self,
-        success: bool,
-        checkpoint: Checkpoint<Type>,
-        length: usize,
-        fatal: usize,
-    ) {
-        if !success {
-            self.arena.restore(checkpoint);
-            self.diagnostics.truncate(length);
-            self.fatal_diagnostics = fatal;
-        }
+        self.inner.push(diagnostic);
     }
 }
 
-pub struct UnificationEnvironment<'env> {
-    environment: &'env mut Environment,
+#[derive(Debug, Clone)]
+pub struct Environment<'heap> {
+    pub source: SpanId,
+
+    pub heap: &'heap Heap,
+    kinds: HashSet<&'heap TypeKind, foldhash::fast::RandomState>,
+    types: ConcurrentArena<Type<'heap>>,
+}
+
+impl<'heap> Environment<'heap> {
+    #[must_use]
+    pub fn new(source: SpanId, heap: &'heap Heap) -> Self {
+        let this = Self {
+            source,
+
+            heap,
+            kinds: HashSet::default(),
+            types: ConcurrentArena::new(),
+        };
+
+        this.prefill();
+
+        this
+    }
+
+    fn prefill(&self) {
+        self.kinds
+            .insert(self.heap.alloc(TypeKind::Never))
+            .expect("never should be unique");
+        self.kinds
+            .insert(self.heap.alloc(TypeKind::Unknown))
+            .expect("unknown should be unique");
+        self.kinds
+            .insert(self.heap.alloc(TypeKind::Infer))
+            .expect("infer should be unique");
+
+        self.kinds
+            .insert(self.heap.alloc(TypeKind::Primitive(PrimitiveType::Number)))
+            .expect("number should be unique");
+        self.kinds
+            .insert(self.heap.alloc(TypeKind::Primitive(PrimitiveType::Integer)))
+            .expect("integer should be unique");
+        self.kinds
+            .insert(self.heap.alloc(TypeKind::Primitive(PrimitiveType::String)))
+            .expect("string should be unique");
+        self.kinds
+            .insert(self.heap.alloc(TypeKind::Primitive(PrimitiveType::Boolean)))
+            .expect("boolean should be unique");
+        self.kinds
+            .insert(self.heap.alloc(TypeKind::Primitive(PrimitiveType::Null)))
+            .expect("null should be unique");
+    }
+
+    pub fn intern(&self, kind: TypeKind) -> &'heap TypeKind {
+        if let Some(kind) = self.kinds.read(&kind, |kind| *kind) {
+            kind
+        } else {
+            let kind = self.heap.alloc(kind);
+            self.kinds.insert(kind);
+            kind
+        }
+    }
+
+    pub fn alloc(&self, with: impl FnOnce(TypeId) -> Type<'heap>) -> TypeId {
+        self.types.push_with(with)
+    }
+}
+
+pub struct UnificationEnvironment<'env, 'heap> {
+    environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
 
     pub variance: Variance,
+    pub diagnostics: Diagnostics,
 }
 
-impl<'env> UnificationEnvironment<'env> {
-    pub fn new(environment: &'env mut Environment) -> Self {
+impl<'env, 'heap> UnificationEnvironment<'env, 'heap> {
+    pub fn new(environment: &'env Environment<'heap>) -> Self {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
             variance: Variance::default(),
+            diagnostics: Diagnostics::new(),
         }
     }
 
     pub fn unify_type(&mut self, lhs: TypeId, rhs: TypeId) {
         if !self.boundary.enter(lhs, rhs) {
             // We've detected a circular reference in the type graph
-            let lhs_type = &self.environment.arena[lhs];
-            let rhs_type = &self.environment.arena[rhs];
+            let lhs_type = self.environment.types[lhs].copied();
+            let rhs_type = self.environment.types[rhs].copied();
 
             let diagnostic = circular_type_reference(self.environment.source, lhs_type, rhs_type);
 
-            self.environment.record_diagnostic(diagnostic);
+            self.diagnostics.push(diagnostic);
             return;
         }
 
@@ -206,39 +230,25 @@ impl<'env> UnificationEnvironment<'env> {
     pub(crate) fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
         self.with_variance(Variance::Invariant, closure)
     }
-
-    pub(crate) fn in_transaction(&mut self, closure: impl FnOnce(&mut Self) -> bool) {
-        let (checkpoint, length, fatal) = self.begin_transaction();
-
-        let result = closure(self);
-
-        self.end_transaction(result, checkpoint, length, fatal);
-    }
 }
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
 // As the unification environment is just a wrapper around the environment with an additional guard.
-impl Deref for UnificationEnvironment<'_> {
-    type Target = Environment;
+impl<'heap> Deref for UnificationEnvironment<'_, 'heap> {
+    type Target = Environment<'heap>;
 
     fn deref(&self) -> &Self::Target {
         self.environment
     }
 }
 
-impl DerefMut for UnificationEnvironment<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.environment
-    }
-}
-
-pub struct SimplifyEnvironment<'env> {
-    environment: &'env mut Environment,
+pub struct SimplifyEnvironment<'env, 'heap> {
+    environment: &'env mut Environment<'heap>,
     boundary: RecursionBoundary,
 }
 
-impl<'env> SimplifyEnvironment<'env> {
-    pub fn new(environment: &'env mut Environment) -> Self {
+impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
+    pub fn new(environment: &'env mut Environment<'heap>) -> Self {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
@@ -246,35 +256,29 @@ impl<'env> SimplifyEnvironment<'env> {
     }
 
     pub fn simplify(&mut self, id: TypeId) -> TypeId {
-        let r#type = self.environment.arena[id].clone();
+        let r#type = self.environment.types[id].copied();
 
-        r#type.as_ref().simplify(self)
+        r#type.simplify(self)
     }
 }
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
 // As the unification environment is just a wrapper around the environment with an additional guard.
-impl Deref for SimplifyEnvironment<'_> {
-    type Target = Environment;
+impl<'heap> Deref for SimplifyEnvironment<'_, 'heap> {
+    type Target = Environment<'heap>;
 
     fn deref(&self) -> &Self::Target {
         self.environment
     }
 }
 
-impl DerefMut for SimplifyEnvironment<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.environment
-    }
-}
-
-pub struct LatticeEnvironment<'env> {
-    environment: &'env mut Environment,
+pub struct LatticeEnvironment<'env, 'heap> {
+    environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
 }
 
-impl<'env> LatticeEnvironment<'env> {
-    pub fn new(environment: &'env mut Environment) -> Self {
+impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
+    pub fn new(environment: &'env Environment<'heap>) -> Self {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
@@ -282,51 +286,61 @@ impl<'env> LatticeEnvironment<'env> {
     }
 
     pub fn join(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
-        let lhs = self.environment.arena[lhs].clone();
-        let rhs = self.environment.arena[rhs].clone();
+        let lhs = self.environment.types[lhs].copied();
+        let rhs = self.environment.types[rhs].copied();
 
-        let variants = lhs.as_ref().join(rhs.as_ref(), self);
+        let variants = lhs.join(rhs, self);
 
         if variants.is_empty() {
-            self.environment.arena.push_with(|id| Type {
+            let kind = self.environment.intern(TypeKind::Never);
+
+            self.environment.alloc(|id| Type {
                 id,
                 span: lhs.span,
-                kind: TypeKind::Never,
+                kind,
             })
         } else if variants.len() == 1 {
             variants[0]
         } else {
-            self.environment.arena.push_with(|id| Type {
+            let kind = self.environment.intern(TypeKind::Union(UnionType {
+                variants: variants.into_iter().collect(),
+            }));
+
+            self.environment.alloc(|id| Type {
                 id,
                 span: lhs.span,
-                kind: TypeKind::Union(UnionType {
-                    variants: variants.into_iter().collect(),
-                }),
+                kind,
             })
         }
     }
 
     pub fn meet(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
-        let lhs = self.environment.arena[lhs].clone();
-        let rhs = self.environment.arena[rhs].clone();
+        let lhs = self.environment.types[lhs].copied();
+        let rhs = self.environment.types[rhs].copied();
 
-        let variants = lhs.as_ref().meet(rhs.as_ref(), self);
+        let variants = lhs.meet(rhs, self);
 
         if variants.is_empty() {
-            self.environment.arena.push_with(|id| Type {
+            let kind = self.environment.intern(TypeKind::Never);
+
+            self.environment.alloc(|id| Type {
                 id,
                 span: lhs.span,
-                kind: TypeKind::Never,
+                kind,
             })
         } else if variants.len() == 1 {
             variants[0]
         } else {
-            self.environment.arena.push_with(|id| Type {
+            let kind = self
+                .environment
+                .intern(TypeKind::Intersection(IntersectionType {
+                    variants: variants.into_iter().collect(),
+                }));
+
+            self.environment.alloc(|id| Type {
                 id,
                 span: lhs.span,
-                kind: TypeKind::Intersection(IntersectionType {
-                    variants: variants.into_iter().collect(),
-                }),
+                kind,
             })
         }
     }
@@ -334,28 +348,22 @@ impl<'env> LatticeEnvironment<'env> {
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
 // As the unification environment is just a wrapper around the environment with an additional guard.
-impl Deref for LatticeEnvironment<'_> {
-    type Target = Environment;
+impl<'heap> Deref for LatticeEnvironment<'_, 'heap> {
+    type Target = Environment<'heap>;
 
     fn deref(&self) -> &Self::Target {
         self.environment
     }
 }
 
-impl DerefMut for LatticeEnvironment<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.environment
-    }
-}
-
-pub struct TypeAnalysisEnvironment<'env> {
-    environment: &'env Environment,
+pub struct TypeAnalysisEnvironment<'env, 'heap> {
+    environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
 }
 
-impl<'env> TypeAnalysisEnvironment<'env> {
+impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
     #[must_use]
-    pub fn new(environment: &'env Environment) -> Self {
+    pub fn new(environment: &'env Environment<'heap>) -> Self {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
@@ -363,7 +371,7 @@ impl<'env> TypeAnalysisEnvironment<'env> {
     }
 
     pub fn uninhabited(&mut self, id: TypeId) -> bool {
-        let r#type = self.environment.arena[id].as_ref();
+        let r#type = self.environment.types[id].copied();
 
         r#type.uninhabited(self)
     }
@@ -371,22 +379,22 @@ impl<'env> TypeAnalysisEnvironment<'env> {
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
 // As the unification environment is just a wrapper around the environment with an additional guard.
-impl Deref for TypeAnalysisEnvironment<'_> {
-    type Target = Environment;
+impl<'heap> Deref for TypeAnalysisEnvironment<'_, 'heap> {
+    type Target = Environment<'heap>;
 
     fn deref(&self) -> &Self::Target {
         self.environment
     }
 }
 
-pub struct EquivalenceEnvironment<'env> {
-    environment: &'env Environment,
+pub struct EquivalenceEnvironment<'env, 'heap> {
+    environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
 }
 
-impl<'env> EquivalenceEnvironment<'env> {
+impl<'env, 'heap> EquivalenceEnvironment<'env, 'heap> {
     #[must_use]
-    pub fn new(environment: &'env Environment) -> Self {
+    pub fn new(environment: &'env Environment<'heap>) -> Self {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
@@ -408,15 +416,15 @@ impl<'env> EquivalenceEnvironment<'env> {
     ///
     /// If lhs and rhs do not exist in the environment.
     pub fn semantically_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        let lhs_type = &self.environment.arena[lhs];
-        let rhs_type = &self.environment.arena[rhs];
+        let lhs_type = self.environment.types[lhs].copied();
+        let rhs_type = self.environment.types[rhs].copied();
 
         if !self.boundary.enter(lhs, rhs) {
             // In case of recursion the result is true
             return true;
         }
 
-        let result = lhs_type.structurally_equivalent_impl(rhs_type, self);
+        let result = lhs_type.semantically_equivalent(rhs_type, self);
 
         self.boundary.exit(lhs, rhs);
 
@@ -426,8 +434,8 @@ impl<'env> EquivalenceEnvironment<'env> {
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
 // As the unification environment is just a wrapper around the environment with an additional guard.
-impl Deref for EquivalenceEnvironment<'_> {
-    type Target = Environment;
+impl<'heap> Deref for EquivalenceEnvironment<'_, 'heap> {
+    type Target = Environment<'heap>;
 
     fn deref(&self) -> &Self::Target {
         self.environment
@@ -443,7 +451,7 @@ mod test {
             Type, TypeId, TypeKind,
             environment::{Environment, UnificationEnvironment, Variance},
             error::type_mismatch,
-            kind::{generic_argument::GenericArgumentId, primitive::PrimitiveType},
+            kind::primitive::PrimitiveType,
         },
     };
 
@@ -496,29 +504,6 @@ mod test {
 
         // Test variance after all scopes (should restore to default)
         assert_eq!(env.variance, Variance::Covariant);
-    }
-
-    #[test]
-    fn generic_argument_scope() {
-        let (arena, id1, _) = setup_arena();
-        let mut context = Environment::new(SpanId::SYNTHETIC, arena);
-
-        let arg_id = GenericArgumentId::new(42);
-
-        // Initially no argument is in scope
-        assert_eq!(context.generic_argument(arg_id), None);
-
-        // Enter scope
-        context.enter_generic_argument_scope(arg_id, id1);
-
-        // Check argument is now in scope
-        assert_eq!(context.generic_argument(arg_id), Some(id1));
-
-        // Exit scope
-        context.exit_generic_argument_scope(arg_id);
-
-        // Check argument is no longer in scope
-        assert_eq!(context.generic_argument(arg_id), None);
     }
 
     #[test]
