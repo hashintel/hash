@@ -1,3 +1,4 @@
+use core::str::FromStr as _;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, ensure};
@@ -1133,6 +1134,51 @@ where
         Ok(row.get(0))
     }
 
+    /// Removes all actions which are not known to the system and adds any missing actions.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`StoreError`]: ActionError::StoreError
+    pub async fn synchronize_actions(&mut self) -> Result<(), Report<ActionError>> {
+        let mut actions = ActionName::all().collect::<HashSet<_>>();
+
+        let actions_to_be_removed = self
+            .as_client()
+            .query("SELECT name FROM action", &[])
+            .await
+            .change_context(ActionError::StoreError)?
+            .into_iter()
+            .filter_map(|row| {
+                let action_name = row.get::<_, &str>(0);
+                ActionName::from_str(action_name).map_or_else(
+                    |_| Some(action_name.to_owned()),
+                    |action_name| {
+                        actions.remove(&action_name);
+                        None
+                    },
+                )
+            })
+            .collect::<Vec<String>>();
+
+        self.as_client()
+            .query(
+                "DELETE FROM action WHERE name = ANY($1)",
+                &[&actions_to_be_removed],
+            )
+            .await
+            .change_context(ActionError::StoreError)?;
+
+        for action in ActionName::all() {
+            if actions.contains(&action) {
+                self.register_action(action).await?;
+            }
+        }
+
+        Ok(())
+    }
+
     /// Gets all parent actions for a given action.
     ///
     /// # Errors
@@ -1302,6 +1348,29 @@ where
         Ok(policy_id)
     }
 
+    /// Creates a new policy in the database.
+    ///
+    /// # Errors
+    ///
+    /// - [`PolicyNotFound`] if the policy with the given ID doesn't exist
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`PolicyNotFound`]: PolicyError::PolicyNotFound
+    /// [`StoreError`]: PolicyError::StoreError
+    pub async fn remove_policy(&mut self, policy_id: PolicyId) -> Result<(), Report<PolicyError>> {
+        let num_deleted = self
+            .as_mut_client()
+            .execute("DELETE FROM policy WHERE id = $1", &[&policy_id])
+            .await
+            .change_context(PolicyError::StoreError)?;
+
+        if num_deleted > 0 {
+            Ok(())
+        } else {
+            Err(Report::new(PolicyError::PolicyNotFound { id: policy_id }))
+        }
+    }
+
     /// Builds a context used to evaluate policies for an actor.
     ///
     /// # Errors
@@ -1362,7 +1431,7 @@ where
                  JOIN groups ON team.id = groups.id
                  JOIN actor_group parent ON team.parent_id = parent.id
 
-                 UNION ALL
+                 UNION
 
                  SELECT
                     'web'::PRINCIPAL_TYPE,

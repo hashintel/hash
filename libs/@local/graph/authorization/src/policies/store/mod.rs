@@ -19,9 +19,9 @@ use type_system::{
 use uuid::Uuid;
 
 use self::error::{
-    ActorCreationError, ContextCreationError, GetPoliciesError, GetSystemAccountError,
-    PolicyStoreError, RoleAssignmentError, TeamCreationError, TeamRoleCreationError,
-    WebCreationError, WebRoleCreationError,
+    ActorCreationError, ContextCreationError, EnsureSystemPoliciesError, GetPoliciesError,
+    GetSystemAccountError, PolicyStoreError, RoleAssignmentError, TeamCreationError,
+    TeamRoleCreationError, WebCreationError, WebRoleCreationError,
 };
 use super::{ContextBuilder, Policy, PolicyId, principal::PrincipalConstraint};
 
@@ -106,6 +106,27 @@ pub trait LocalPrincipalStore {
         &mut self,
         identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>>;
+
+    /// Ensures that the system actor policies are present.
+    ///
+    /// This includes:
+    /// - Creating the system machine "h" if it does not exist
+    /// - Ensuring that the necessary policies for the system actor are present
+    ///
+    /// # Errors
+    ///
+    /// - [`CreatingSystemMachineFailed`] if the system machine could not be created
+    /// - [`SynchronizeActions`] if the actions could not be synchronized
+    /// - [`ReadPoliciesFailed`] if the policies could not be read
+    /// - [`AddRequiredPoliciesFailed`] if a required policies could not be added
+    /// - [`RemoveOldPolicyFailed`] if an old policy could not be removed
+    ///
+    /// [`CreatingSystemMachineFailed`]: EnsureSystemPoliciesError::CreatingSystemMachineFailed
+    /// [`SynchronizeActions`]: EnsureSystemPoliciesError::SynchronizeActions
+    /// [`ReadPoliciesFailed`]: EnsureSystemPoliciesError::ReadPoliciesFailed
+    /// [`AddRequiredPoliciesFailed`]: EnsureSystemPoliciesError::AddRequiredPoliciesFailed
+    /// [`RemoveOldPolicyFailed`]: EnsureSystemPoliciesError::RemoveOldPolicyFailed
+    async fn ensure_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>>;
 
     /// Creates a new web and returns its ID.
     ///
