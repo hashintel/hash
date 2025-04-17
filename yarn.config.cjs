@@ -17,7 +17,6 @@ const enforcedDevDependencies = {
 
 const ignoredDependencies = ["@blockprotocol/graph", "@sentry/webpack-plugin"];
 const ignoredWorkspaces = [
-  "@apps/hashdotdev",
   "@blocks/embed",
   "@blocks/person",
 ];
