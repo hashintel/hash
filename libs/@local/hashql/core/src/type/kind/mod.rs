@@ -44,8 +44,6 @@ pub enum TypeKind {
     Never,
     Unknown,
     Infer,
-    // This type is linked / the same type as another, only happens on infer chains
-    Link(TypeId),
 }
 
 impl TypeKind {

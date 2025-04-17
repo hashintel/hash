@@ -5,16 +5,19 @@ use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::{TypeKind, generic_argument::GenericArguments};
-use crate::r#type::{
-    Type, TypeId,
-    environment::{
-        EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        UnificationEnvironment,
+use crate::{
+    heap,
+    r#type::{
+        Type, TypeId,
+        environment::{
+            EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
+            TypeAnalysisEnvironment, UnificationEnvironment,
+        },
+        error::tuple_length_mismatch,
+        lattice::Lattice,
+        pretty_print::PrettyPrint,
+        recursion::RecursionDepthBoundary,
     },
-    error::tuple_length_mismatch,
-    lattice::Lattice,
-    pretty_print::PrettyPrint,
-    recursion::RecursionDepthBoundary,
 };
 
 // EcoVec -> SmallVec<T; N> where N is semi-arbitrarily chosen per type
@@ -24,33 +27,16 @@ use crate::r#type::{
 // pros: TypeKind becomes Copy, which means we can use ena for unification
 // cons: lifetimes - although we can just use our `Heap`
 // The problem is - how do we get a TypeId this way(?). We would need a separate counter for that
+const INLINE: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TupleType {
-    pub fields: EcoVec<TypeId>,
+pub struct TupleType<'heap> {
+    pub fields: heap::List<'heap, TypeId, INLINE>,
 
     pub arguments: GenericArguments,
 }
 
-impl TupleType {
-    pub(crate) fn structurally_equivalent(
-        &self,
-        other: &Self,
-        env: &mut EquivalenceEnvironment,
-    ) -> bool {
-        self.fields.len() == other.fields.len()
-            && self
-                .fields
-                .iter()
-                .zip(other.fields.iter())
-                .all(|(&lhs, &rhs)| env.semantically_equivalent(lhs, rhs))
-            && self
-                .arguments
-                .semantically_equivalent(&other.arguments, env)
-    }
-}
-
-impl Lattice for TupleType {
+impl Lattice for TupleType<'_> {
     fn join(
         self: Type<&Self>,
         other: Type<&Self>,

@@ -1,3 +1,4 @@
+pub mod concurrent;
 pub mod linear;
 pub mod transaction;
 

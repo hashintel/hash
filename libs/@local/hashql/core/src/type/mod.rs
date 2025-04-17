@@ -1,7 +1,9 @@
 // HashQL type system
 
+pub mod arena;
 pub mod environment;
 pub mod error;
+pub mod intern;
 pub mod kind;
 pub mod lattice;
 pub mod pretty_print;
@@ -33,56 +35,58 @@ use self::{
 };
 use crate::{id::HasId, newtype, span::SpanId};
 
+// TODO: consider interning types to reduce memory usage
+// TODO: see https://github.com/rust-lang/rust/blob/94015d3cd4b48d098abd0f3e44af97dab2b713b4/compiler/rustc_data_structures/src/intern.rs#L26 and https://github.com/rust-lang/rust/blob/94015d3cd4b48d098abd0f3e44af97dab2b713b4/compiler/rustc_data_structures/src/sharded.rs#L204
+
 newtype!(
     pub struct TypeId(u32 is 0..=0xFFFF_FF00)
 );
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Type<K = TypeKind> {
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Type<'heap, K = TypeKind> {
     id: TypeId,
     span: SpanId,
 
-    kind: K,
+    kind: &'heap K,
 }
 
-impl Type<TypeKind> {
+impl<'heap, K> Copy for Type<'heap, K> {}
+impl<'heap, K> Clone for Type<'heap, K> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl Type<'_, TypeKind> {
     fn structurally_equivalent_impl(&self, other: &Self, env: &mut EquivalenceEnvironment) -> bool {
         TypeKind::structurally_equivalent(self, other, env)
     }
 }
 
-impl<K> Type<K> {
-    pub fn map<K2>(self, closure: impl FnOnce(K) -> K2) -> Type<K2> {
+impl<'heap, K> Type<'heap, K> {
+    pub fn map<K2>(self, closure: impl FnOnce(&'heap K) -> &'heap K2) -> Type<'heap, K2> {
         Type {
             id: self.id,
             span: self.span,
             kind: closure(self.kind),
         }
     }
-
-    pub const fn as_ref(&self) -> Type<&K> {
-        Type {
-            id: self.id,
-            span: self.span,
-            kind: &self.kind,
-        }
-    }
 }
 
-impl<K> PrettyPrint for Type<K>
+impl<'heap, K> PrettyPrint for Type<'heap, K>
 where
     K: PrettyPrint,
 {
     fn pretty<'a>(
         &'a self,
-        arena: &'a impl Index<TypeId, Output = Type>,
+        arena: &'a impl Index<TypeId, Output = Type<'heap>>,
         limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'a, anstyle::Style> {
         self.kind.pretty(arena, limit)
     }
 }
 
-impl HasId for Type {
+impl<'heap, K> HasId for Type<'heap, K> {
     type Id = TypeId;
 
     fn id(&self) -> Self::Id {
@@ -90,7 +94,7 @@ impl HasId for Type {
     }
 }
 
-impl<K> Receiver for Type<K> {
+impl<'heap, K> Receiver for Type<'heap, K> {
     type Target = K;
 }
 

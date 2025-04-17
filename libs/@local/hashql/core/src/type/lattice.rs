@@ -83,8 +83,8 @@ pub trait Lattice {
     /// * Multiple elements: The supremum is a Union of the returned types
     /// * Empty vector: The supremum is `Never` (no common supertype exists)
     fn join(
-        self: Type<&Self>,
-        other: Type<&Self>,
+        self: Type<Self>,
+        other: Type<Self>,
         env: &mut LatticeEnvironment,
     ) -> SmallVec<TypeId, 4>;
 
@@ -117,8 +117,8 @@ pub trait Lattice {
     /// * Multiple elements: The infimum is an Intersection of the returned types
     /// * Empty vector: The infimum is `Never` (no common subtype exists)
     fn meet(
-        self: Type<&Self>,
-        other: Type<&Self>,
+        self: Type<Self>,
+        other: Type<Self>,
         env: &mut LatticeEnvironment,
     ) -> SmallVec<TypeId, 4>;
 
@@ -128,7 +128,7 @@ pub trait Lattice {
     /// cannot have any values constructed for them. They're useful in type systems
     /// to represent computations that don't return normally (e.g., functions that always
     /// panic or never terminate).
-    fn uninhabited(self: Type<&Self>, env: &mut TypeAnalysisEnvironment) -> bool;
+    fn uninhabited(self: Type<Self>, env: &mut TypeAnalysisEnvironment) -> bool;
 
     /// Checks if two types are semantically equivalent.
     ///
@@ -155,8 +155,8 @@ pub trait Lattice {
     /// // A and B would NOT be equivalent despite identical structure
     /// ```
     fn semantically_equivalent(
-        self: Type<&Self>,
-        other: Type<&Self>,
+        self: Type<Self>,
+        other: Type<Self>,
         env: &mut EquivalenceEnvironment,
     ) -> bool;
 
@@ -201,7 +201,7 @@ pub trait Lattice {
     /// // Fails because Number is not a subtype of Integer
     /// unify(Integer, Number) // This will report an error through the environment
     /// ```
-    fn unify(self: Type<&Self>, other: Type<&Self>, env: &mut UnificationEnvironment);
+    fn unify(self: Type<Self>, other: Type<Self>, env: &mut UnificationEnvironment);
 
     /// Simplifies a type to its canonical form.
     ///
@@ -230,7 +230,7 @@ pub trait Lattice {
     /// A new `TypeId` representing the simplified version of the input type.
     /// The simplified type is semantically equivalent to the original but may have
     /// a different structure.
-    fn simplify(self: Type<&Self>, env: &mut SimplifyEnvironment) -> TypeId;
+    fn simplify(self: Type<Self>, env: &mut SimplifyEnvironment) -> TypeId;
 }
 
 #[cfg(test)]

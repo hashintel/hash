@@ -23,11 +23,13 @@ text-size = { workspace = true, public = true }
 anstyle            = { workspace = true }
 archery            = { workspace = true }
 bumpalo            = { workspace = true, features = ["allocator_api"] }
+dashmap            = "6.1.0"
 orx-concurrent-vec = { workspace = true }
 pretty             = { workspace = true }
 rpds               = { workspace = true }
 serde              = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid     = { workspace = true }
+tinyvec            = "1.9.0"
 
 
 [features]

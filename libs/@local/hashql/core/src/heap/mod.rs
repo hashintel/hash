@@ -36,9 +36,13 @@
 //! - `heap::Vec<'heap, T>`: A vector allocated on the heap
 //! - `heap::VecDeque<'heap, T>`: A double-ended queue allocated on the heap
 //! - `heap::HashMap<'heap, K, V, S>`: A hash map allocated on the heap
+pub mod list;
+
 use core::alloc::Allocator;
 
 use bumpalo::Bump;
+
+pub use self::list::List;
 
 /// A boxed value allocated on the `Heap`.
 ///
@@ -95,6 +99,26 @@ impl Heap {
         Self {
             bump: Bump::with_capacity(capacity),
         }
+    }
+
+    pub fn alloc<T>(&self, value: T) -> &mut T {
+        const { assert!(!core::mem::needs_drop::<T>()) };
+
+        self.bump.alloc(value)
+    }
+
+    pub fn slice<T>(&self, slice: &[T]) -> &mut [T]
+    where
+        T: Copy,
+    {
+        self.bump.alloc_slice_copy(slice)
+    }
+
+    pub fn list<T, const N: usize>(&self, slice: &[T]) -> List<T, N>
+    where
+        T: Copy,
+    {
+        List::from_slice(slice, self)
     }
 
     /// Creates a new vector allocated on this heap.
