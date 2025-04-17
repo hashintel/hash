@@ -1,13 +1,11 @@
-use core::ops::Index;
-
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use crate::r#type::{
     Type, TypeId,
     environment::{
-        EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        UnificationEnvironment,
+        Environment, EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
+        TypeAnalysisEnvironment, UnificationEnvironment,
     },
     error::type_mismatch,
     lattice::Lattice,
@@ -47,7 +45,7 @@ impl Lattice for PrimitiveType {
     fn meet<'heap>(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut LatticeEnvironment<'_, 'heap>,
+        _: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         if self.kind == other.kind {
             return SmallVec::from_slice(&[self.id]);
@@ -169,11 +167,11 @@ impl PrimitiveType {
 }
 
 impl PrettyPrint for PrimitiveType {
-    fn pretty(
+    fn pretty<'heap>(
         &self,
-        _: &impl Index<TypeId, Output = Type>,
+        _: &Environment<'heap>,
         _: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<anstyle::Style> {
+    ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(self.as_str()).annotate(BLUE)
     }
 }
@@ -186,7 +184,7 @@ mod test {
 
     use super::PrimitiveType;
     use crate::{
-        arena::TransactionalArena,
+        heap::Heap,
         span::SpanId,
         r#type::{
             environment::{
@@ -208,7 +206,8 @@ mod test {
     #[test_case(PrimitiveType::Boolean)]
     #[test_case(PrimitiveType::Null)]
     fn join_identical_primitives(primitive: PrimitiveType) {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, a, primitive);
         primitive!(env, b, primitive);
@@ -219,7 +218,7 @@ mod test {
         assert_eq!(output.len(), 1);
 
         let id = output[0];
-        let r#type = env.arena[id].clone();
+        let r#type = env.types[id].copied();
 
         assert_eq!(r#type.kind, TypeKind::Primitive(primitive));
     }
@@ -230,7 +229,8 @@ mod test {
     #[test_case(PrimitiveType::Boolean)]
     #[test_case(PrimitiveType::Null)]
     fn meet_identical_primitives(primitive: PrimitiveType) {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, a, primitive);
         primitive!(env, b, primitive);
@@ -241,14 +241,15 @@ mod test {
         assert_eq!(output.len(), 1);
 
         let id = output[0];
-        let r#type = env.arena[id].clone();
+        let r#type = env.types[id].copied();
 
         assert_eq!(r#type.kind, TypeKind::Primitive(primitive));
     }
 
     #[test]
     fn join_integer_number_subtyping() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, integer, PrimitiveType::Integer);
@@ -272,7 +273,8 @@ mod test {
 
     #[test]
     fn meet_integer_number_subtyping() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, integer, PrimitiveType::Integer);
@@ -296,7 +298,8 @@ mod test {
 
     #[test]
     fn join_unrelated_primitives() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, string, PrimitiveType::String);
         primitive!(env, boolean, PrimitiveType::Boolean);
@@ -337,7 +340,8 @@ mod test {
 
     #[test]
     fn meet_unrelated_primitives() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, string, PrimitiveType::String);
         primitive!(env, boolean, PrimitiveType::Boolean);
@@ -378,7 +382,8 @@ mod test {
 
     #[test]
     fn uninhabited() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, string, PrimitiveType::String);
@@ -398,7 +403,8 @@ mod test {
 
     #[test]
     fn semantic_equivalence() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, number2, PrimitiveType::Number); // Second Number type
@@ -426,7 +432,8 @@ mod test {
     #[test_case(PrimitiveType::Boolean)]
     #[test_case(PrimitiveType::Null)]
     fn unification_same_type(primitive: PrimitiveType) {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, a, primitive);
         primitive!(env, b, primitive);
@@ -435,12 +442,13 @@ mod test {
 
         // Unifying same types should succeed without errors
         a.unify(b, &mut unif_env);
-        assert!(unif_env.take_diagnostics().is_empty());
+        assert!(unif_env.diagnostics.take().is_empty());
     }
 
     #[test]
     fn unification_integer_number() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, integer, PrimitiveType::Integer);
@@ -449,14 +457,15 @@ mod test {
 
         number.unify(integer, &mut unif_env);
         assert!(
-            unif_env.take_diagnostics().is_empty(),
+            unif_env.diagnostics.take().is_empty(),
             "Number <-- Integer should succeed"
         );
     }
 
     #[test]
     fn unification_number_integer() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, integer, PrimitiveType::Integer);
         primitive!(env, number, PrimitiveType::Number);
@@ -465,7 +474,7 @@ mod test {
 
         integer.unify(number, &mut unif_env);
 
-        let diagnostics = unif_env.take_diagnostics();
+        let diagnostics = unif_env.diagnostics.take();
 
         assert!(!diagnostics.is_empty(), "Integer <-- Number should fail");
 
@@ -531,7 +540,8 @@ mod test {
         "convert the number to a null"
     )]
     fn unification_unrelated_types(lhs: PrimitiveType, rhs: PrimitiveType) {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, lhs, lhs);
         primitive!(env, rhs, rhs);
@@ -540,7 +550,7 @@ mod test {
 
         lhs.unify(rhs, &mut unif_env);
 
-        let diagnostics = unif_env.take_diagnostics();
+        let diagnostics = unif_env.diagnostics.take();
 
         assert!(!diagnostics.is_empty(), "Unification should fail");
     }
@@ -551,7 +561,8 @@ mod test {
     #[test_case(PrimitiveType::Boolean)]
     #[test_case(PrimitiveType::Null)]
     fn simplify(primitive: PrimitiveType) {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, a, primitive);
 
@@ -559,14 +570,15 @@ mod test {
 
         // Primitive types should simplify to themselves
         let result = a.simplify(&mut simplify_env);
-        let result_type = &env.arena[result];
+        let result_type = env.types[result].copied();
 
         assert_eq!(result_type.kind, TypeKind::Primitive(primitive));
     }
 
     #[test]
     fn lattice_laws() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, string, PrimitiveType::String);
@@ -587,20 +599,5 @@ mod test {
             string.id,
             boolean.id,
         );
-    }
-
-    #[test]
-    fn structurally_equivalent() {
-        // Test the structurally_equivalent method directly
-        assert!(PrimitiveType::Number.structurally_equivalent(PrimitiveType::Number));
-        assert!(PrimitiveType::String.structurally_equivalent(PrimitiveType::String));
-        assert!(PrimitiveType::Boolean.structurally_equivalent(PrimitiveType::Boolean));
-        assert!(PrimitiveType::Null.structurally_equivalent(PrimitiveType::Null));
-        assert!(PrimitiveType::Integer.structurally_equivalent(PrimitiveType::Integer));
-
-        assert!(!PrimitiveType::Number.structurally_equivalent(PrimitiveType::String));
-        assert!(!PrimitiveType::Number.structurally_equivalent(PrimitiveType::Integer));
-        assert!(!PrimitiveType::String.structurally_equivalent(PrimitiveType::Boolean));
-        assert!(!PrimitiveType::Null.structurally_equivalent(PrimitiveType::Boolean));
     }
 }

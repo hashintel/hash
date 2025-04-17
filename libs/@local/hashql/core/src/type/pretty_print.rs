@@ -1,10 +1,9 @@
-use core::ops::Index;
 use std::io;
 
 use anstyle::{AnsiColor, Color, Style};
 use pretty::{RcDoc, Render, RenderAnnotated};
 
-use super::{Type, TypeId, recursion::RecursionDepthBoundary};
+use super::{environment::Environment, recursion::RecursionDepthBoundary};
 
 pub(crate) const BLUE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Blue)));
 pub(crate) const CYAN: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Cyan)));
@@ -67,18 +66,18 @@ where
 }
 
 pub(crate) trait PrettyPrint {
-    fn pretty<'a>(
-        &'a self,
-        arena: &'a impl Index<TypeId, Output = Type>,
+    fn pretty<'heap>(
+        &self,
+        env: &Environment<'heap>,
         limit: RecursionDepthBoundary,
-    ) -> RcDoc<'a, Style>;
+    ) -> RcDoc<'heap, Style>;
 
-    fn pretty_print(&self, arena: &impl Index<TypeId, Output = Type>, width: usize) -> String {
+    fn pretty_print(&self, env: &Environment, width: usize) -> String {
         let mut output = Vec::new();
         let mut writer = WriteColored::new(&mut output);
 
         self.pretty(
-            arena,
+            env,
             RecursionDepthBoundary {
                 depth: 0,
                 limit: 32,
@@ -99,11 +98,11 @@ impl<T> PrettyPrint for &T
 where
     T: PrettyPrint,
 {
-    fn pretty<'a>(
-        &'a self,
-        arena: &'a impl Index<TypeId, Output = Type>,
+    fn pretty<'heap>(
+        &self,
+        env: &Environment<'heap>,
         limit: RecursionDepthBoundary,
-    ) -> RcDoc<'a, Style> {
-        T::pretty(self, arena, limit)
+    ) -> RcDoc<'heap, Style> {
+        T::pretty(self, env, limit)
     }
 }

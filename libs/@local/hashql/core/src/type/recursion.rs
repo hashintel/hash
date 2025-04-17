@@ -1,9 +1,7 @@
-use core::ops::Index;
-
 use archery::RcK;
 use pretty::RcDoc;
 
-use super::{Type, TypeId, pretty_print::PrettyPrint};
+use super::{TypeId, environment::Environment, pretty_print::PrettyPrint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct RecursionDepthBoundary {
@@ -12,18 +10,18 @@ pub(crate) struct RecursionDepthBoundary {
 }
 
 impl RecursionDepthBoundary {
-    pub(crate) fn pretty<'a, T>(
+    pub(crate) fn pretty<'heap, T>(
         self,
-        node: &'a T,
-        arena: &'a impl Index<TypeId, Output = Type>,
-    ) -> RcDoc<'a, anstyle::Style>
+        env: &Environment<'heap>,
+        id: TypeId,
+    ) -> RcDoc<'heap, anstyle::Style>
     where
         T: PrettyPrint,
     {
         if self.depth >= self.limit {
             RcDoc::text("...")
         } else {
-            node.pretty(arena, self.enter())
+            env.types[id].copied().pretty(env, self.enter())
         }
     }
 

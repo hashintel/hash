@@ -5,15 +5,14 @@ macro_rules! primitive {
 
     ($env:expr, $name:ident, $primitive:expr) => {
         let $name = primitive!($env, $primitive);
-        let $name = $env.arena[$name].clone();
-        let $name = $name.map(|kind| kind.as_primitive().expect("should be a primitive"));
-        let $name = $name.as_ref();
+        let $name = $env.types[$name].copied();
+        let $name = $name.map(|kind| kind.primitive().expect("should be a primitive"));
     };
 }
 
 macro_rules! tuple {
     ($env:expr, $arguments:expr, $fields:expr) => {{
-        let fields = $fields.into_iter().collect();
+        let fields = $env.heap.list(&$fields);
 
         instantiate(
             &mut $env,
@@ -26,15 +25,14 @@ macro_rules! tuple {
 
     ($env:expr, $name:ident, $fields:expr, $arguments:expr) => {
         let $name = tuple!($env, $fields, $arguments);
-        let $name = $env.arena[$name].clone();
-        let $name = $name.map(|kind| kind.into_tuple().expect("should be a tuple"));
-        let $name = $name.as_ref();
+        let $name = $env.types[$name].copied();
+        let $name = $name.map(|kind| kind.tuple().expect("should be a tuple"));
     };
 }
 
 macro_rules! union {
     ($env:expr, $variants:expr) => {{
-        let variants = $variants.into_iter().collect();
+        let variants = $env.heap.list(&$variants);
 
         instantiate(&mut $env, TypeKind::Union(UnionType { variants }))
     }};
@@ -52,7 +50,7 @@ macro_rules! assert_kind {
         assert_eq!($actual.len(), $expected.len());
 
         for (actual, expected) in $actual.into_iter().zip($expected.iter()) {
-            let actual = &$env.arena[actual];
+            let actual = &$env.types[actual].copied();
             assert_eq!(actual.kind, *expected);
         }
     };
