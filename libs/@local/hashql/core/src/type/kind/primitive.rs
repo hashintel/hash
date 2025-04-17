@@ -208,42 +208,25 @@ mod test {
                 Environment, EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
                 TypeAnalysisEnvironment, UnificationEnvironment,
             },
-            kind::TypeKind,
+            kind::{
+                TypeKind,
+                test::{assert_kind, primitive},
+            },
             lattice::{Lattice as _, test::assert_lattice_laws},
             test::instantiate,
         },
     };
 
-    macro_rules! primitive {
-        ($env:expr, $name:ident, $primitive:expr) => {
-            let $name = instantiate(&mut $env, $primitive);
-            let $name = $env.arena[$name].clone();
-            let $name = $name.map(|kind| kind.as_primitive().expect("should be a primitive"));
-            let $name = $name.as_ref();
-        };
-    }
-
-    macro_rules! assert_kind {
-        ($env:expr, $actual:expr, $expected:expr) => {
-            assert_eq!($actual.len(), $expected.len());
-
-            for (actual, expected) in $actual.into_iter().zip($expected.iter()) {
-                let actual = &$env.arena[actual];
-                assert_eq!(actual.kind, *expected);
-            }
-        };
-    }
-
-    #[test_case(TypeKind::Primitive(PrimitiveType::Number))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Integer))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::String))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Boolean))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Null))]
-    fn join_identical_primitives(primitive: TypeKind) {
+    #[test_case(PrimitiveType::Number)]
+    #[test_case(PrimitiveType::Integer)]
+    #[test_case(PrimitiveType::String)]
+    #[test_case(PrimitiveType::Boolean)]
+    #[test_case(PrimitiveType::Null)]
+    fn join_identical_primitives(primitive: PrimitiveType) {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, a, primitive.clone());
-        primitive!(env, b, primitive.clone());
+        primitive!(env, a, primitive);
+        primitive!(env, b, primitive);
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
@@ -253,19 +236,19 @@ mod test {
         let id = output[0];
         let r#type = env.arena[id].clone();
 
-        assert_eq!(r#type.kind, primitive);
+        assert_eq!(r#type.kind, TypeKind::Primitive(primitive));
     }
 
-    #[test_case(TypeKind::Primitive(PrimitiveType::Number))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Integer))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::String))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Boolean))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Null))]
-    fn meet_identical_primitives(primitive: TypeKind) {
+    #[test_case(PrimitiveType::Number)]
+    #[test_case(PrimitiveType::Integer)]
+    #[test_case(PrimitiveType::String)]
+    #[test_case(PrimitiveType::Boolean)]
+    #[test_case(PrimitiveType::Null)]
+    fn meet_identical_primitives(primitive: PrimitiveType) {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, a, primitive.clone());
-        primitive!(env, b, primitive.clone());
+        primitive!(env, a, primitive);
+        primitive!(env, b, primitive);
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
@@ -275,15 +258,15 @@ mod test {
         let id = output[0];
         let r#type = env.arena[id].clone();
 
-        assert_eq!(r#type.kind, primitive);
+        assert_eq!(r#type.kind, TypeKind::Primitive(primitive));
     }
 
     #[test]
     fn join_integer_number_subtyping() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, number, TypeKind::Primitive(PrimitiveType::Number));
-        primitive!(env, integer, TypeKind::Primitive(PrimitiveType::Integer));
+        primitive!(env, number, PrimitiveType::Number);
+        primitive!(env, integer, PrimitiveType::Integer);
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
@@ -306,8 +289,8 @@ mod test {
     fn meet_integer_number_subtyping() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, number, TypeKind::Primitive(PrimitiveType::Number));
-        primitive!(env, integer, TypeKind::Primitive(PrimitiveType::Integer));
+        primitive!(env, number, PrimitiveType::Number);
+        primitive!(env, integer, PrimitiveType::Integer);
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
@@ -330,9 +313,9 @@ mod test {
     fn join_unrelated_primitives() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, string, TypeKind::Primitive(PrimitiveType::String));
-        primitive!(env, boolean, TypeKind::Primitive(PrimitiveType::Boolean));
-        primitive!(env, null, TypeKind::Primitive(PrimitiveType::Null));
+        primitive!(env, string, PrimitiveType::String);
+        primitive!(env, boolean, PrimitiveType::Boolean);
+        primitive!(env, null, PrimitiveType::Null);
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
@@ -371,9 +354,9 @@ mod test {
     fn meet_unrelated_primitives() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, string, TypeKind::Primitive(PrimitiveType::String));
-        primitive!(env, boolean, TypeKind::Primitive(PrimitiveType::Boolean));
-        primitive!(env, null, TypeKind::Primitive(PrimitiveType::Null));
+        primitive!(env, string, PrimitiveType::String);
+        primitive!(env, boolean, PrimitiveType::Boolean);
+        primitive!(env, null, PrimitiveType::Null);
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
@@ -412,11 +395,11 @@ mod test {
     fn uninhabited() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, number, TypeKind::Primitive(PrimitiveType::Number));
-        primitive!(env, string, TypeKind::Primitive(PrimitiveType::String));
-        primitive!(env, boolean, TypeKind::Primitive(PrimitiveType::Boolean));
-        primitive!(env, null, TypeKind::Primitive(PrimitiveType::Null));
-        primitive!(env, integer, TypeKind::Primitive(PrimitiveType::Integer));
+        primitive!(env, number, PrimitiveType::Number);
+        primitive!(env, string, PrimitiveType::String);
+        primitive!(env, boolean, PrimitiveType::Boolean);
+        primitive!(env, null, PrimitiveType::Null);
+        primitive!(env, integer, PrimitiveType::Integer);
 
         let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
@@ -432,12 +415,12 @@ mod test {
     fn semantic_equivalence() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, number, TypeKind::Primitive(PrimitiveType::Number));
-        primitive!(env, number2, TypeKind::Primitive(PrimitiveType::Number)); // Second Number type
-        primitive!(env, string, TypeKind::Primitive(PrimitiveType::String));
-        primitive!(env, boolean, TypeKind::Primitive(PrimitiveType::Boolean));
-        primitive!(env, null, TypeKind::Primitive(PrimitiveType::Null));
-        primitive!(env, integer, TypeKind::Primitive(PrimitiveType::Integer));
+        primitive!(env, number, PrimitiveType::Number);
+        primitive!(env, number2, PrimitiveType::Number); // Second Number type
+        primitive!(env, string, PrimitiveType::String);
+        primitive!(env, boolean, PrimitiveType::Boolean);
+        primitive!(env, null, PrimitiveType::Null);
+        primitive!(env, integer, PrimitiveType::Integer);
 
         let mut equiv_env = EquivalenceEnvironment::new(&env);
 
@@ -452,15 +435,15 @@ mod test {
         assert!(!string.semantically_equivalent(boolean, &mut equiv_env));
     }
 
-    #[test_case(TypeKind::Primitive(PrimitiveType::Number))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Integer))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::String))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Boolean))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Null))]
-    fn unification_same_type(primitive: TypeKind) {
+    #[test_case(PrimitiveType::Number)]
+    #[test_case(PrimitiveType::Integer)]
+    #[test_case(PrimitiveType::String)]
+    #[test_case(PrimitiveType::Boolean)]
+    #[test_case(PrimitiveType::Null)]
+    fn unification_same_type(primitive: PrimitiveType) {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, a, primitive.clone());
+        primitive!(env, a, primitive);
         primitive!(env, b, primitive);
 
         let mut unif_env = UnificationEnvironment::new(&mut env);
@@ -474,8 +457,8 @@ mod test {
     fn unification_integer_number() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, number, TypeKind::Primitive(PrimitiveType::Number));
-        primitive!(env, integer, TypeKind::Primitive(PrimitiveType::Integer));
+        primitive!(env, number, PrimitiveType::Number);
+        primitive!(env, integer, PrimitiveType::Integer);
 
         let mut unif_env = UnificationEnvironment::new(&mut env);
 
@@ -490,8 +473,8 @@ mod test {
     fn unification_number_integer() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, integer, TypeKind::Primitive(PrimitiveType::Integer));
-        primitive!(env, number, TypeKind::Primitive(PrimitiveType::Number));
+        primitive!(env, integer, PrimitiveType::Integer);
+        primitive!(env, number, PrimitiveType::Number);
 
         let mut unif_env = UnificationEnvironment::new(&mut env);
 
@@ -565,8 +548,8 @@ mod test {
     fn unification_unrelated_types(lhs: PrimitiveType, rhs: PrimitiveType) {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, lhs, TypeKind::Primitive(lhs));
-        primitive!(env, rhs, TypeKind::Primitive(rhs));
+        primitive!(env, lhs, lhs);
+        primitive!(env, rhs, rhs);
 
         let mut unif_env = UnificationEnvironment::new(&mut env);
 
@@ -577,15 +560,15 @@ mod test {
         assert!(!diagnostics.is_empty(), "Unification should fail");
     }
 
-    #[test_case(TypeKind::Primitive(PrimitiveType::Number))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Integer))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::String))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Boolean))]
-    #[test_case(TypeKind::Primitive(PrimitiveType::Null))]
-    fn simplify(primitive: TypeKind) {
+    #[test_case(PrimitiveType::Number)]
+    #[test_case(PrimitiveType::Integer)]
+    #[test_case(PrimitiveType::String)]
+    #[test_case(PrimitiveType::Boolean)]
+    #[test_case(PrimitiveType::Null)]
+    fn simplify(primitive: PrimitiveType) {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, a, primitive.clone());
+        primitive!(env, a, primitive);
 
         let mut simplify_env = SimplifyEnvironment::new(&mut env);
 
@@ -593,16 +576,16 @@ mod test {
         let result = a.simplify(&mut simplify_env);
         let result_type = &env.arena[result];
 
-        assert_eq!(result_type.kind, primitive);
+        assert_eq!(result_type.kind, TypeKind::Primitive(primitive));
     }
 
     #[test]
     fn lattice_laws() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        primitive!(env, number, TypeKind::Primitive(PrimitiveType::Number));
-        primitive!(env, string, TypeKind::Primitive(PrimitiveType::String));
-        primitive!(env, boolean, TypeKind::Primitive(PrimitiveType::Boolean));
+        primitive!(env, number, PrimitiveType::Number);
+        primitive!(env, string, PrimitiveType::String);
+        primitive!(env, boolean, PrimitiveType::Boolean);
 
         assert_lattice_laws(
             &mut env,

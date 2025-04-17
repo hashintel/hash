@@ -5,6 +5,8 @@ pub mod intrinsic;
 pub mod opaque;
 pub mod primitive;
 pub mod r#struct;
+#[cfg(test)]
+pub(crate) mod test;
 pub mod tuple;
 pub mod union;
 
