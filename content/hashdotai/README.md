@@ -8,6 +8,12 @@
 [hash.ai/integrations]: https://hash.ai/integrations?utm_medium=organic&utm_source=github_readme_hashdotai
 [license determination instructions]: https://github.com/hashintel/hash/blob/main/LICENSE.md#1-license-determination
 
+<!-- markdownlint-disable link-fragments -->
+
+[github_star]: https://github.com/hashintel/hash#
+
+[![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
+
 # `hash.ai` content
 
 ## Overview
