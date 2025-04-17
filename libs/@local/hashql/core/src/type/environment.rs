@@ -90,7 +90,7 @@ pub struct Environment<'heap> {
 
     pub heap: &'heap Heap,
     kinds: HashSet<&'heap TypeKind, foldhash::fast::RandomState>,
-    types: ConcurrentArena<Type<'heap>>,
+    pub types: ConcurrentArena<Type<'heap>>,
 }
 
 impl<'heap> Environment<'heap> {

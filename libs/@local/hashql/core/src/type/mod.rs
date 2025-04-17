@@ -39,7 +39,7 @@ newtype!(
 );
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct Type<'heap, K = TypeKind> {
+pub struct Type<'heap, K: ?Sized = TypeKind> {
     id: TypeId,
     span: SpanId,
 
@@ -90,7 +90,7 @@ impl<'heap, K> HasId for Type<'heap, K> {
     }
 }
 
-impl<'heap, K> Receiver for Type<'heap, K> {
+impl<'heap, K: ?Sized> Receiver for Type<'heap, K> {
     type Target = K;
 }
 
@@ -142,31 +142,31 @@ fn unify_type_invariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: Type
     }
 
     // Keep track of diagnostics count to detect unification failures
-    let old_diagnostics_len = env.fatal_diagnostics();
+    let old_diagnostics_len = env.diagnostics.fatal();
 
     // First check covariant compatibility: can `rhs` be used where `lhs` is expected?
     unify_type_covariant(env, lhs, rhs);
 
     // If the first unification failed, we're done - types aren't compatible at all
-    if env.fatal_diagnostics() > old_diagnostics_len {
+    if env.diagnostics.fatal() > old_diagnostics_len {
         return;
     }
 
     // Preserve any existing diagnostics
-    let diagnostics = env.take_diagnostics();
+    let diagnostics = env.diagnostics.take();
 
     // Now check contravariant compatibility: can `lhs` be used where `rhs` is expected?
     unify_type_covariant(env, rhs, lhs);
 
     // Get any new diagnostics from the reverse direction check
-    let new_diagnostics = env.take_diagnostics();
-    env.replace_diagnostics(diagnostics);
+    let new_diagnostics = env.diagnostics.take();
+    env.diagnostics.replace(diagnostics);
 
     // If there were errors in the reverse direction, the types are compatible
     // in one direction but not both, meaning they're not invariant
     if !new_diagnostics.is_empty() {
-        let lhs_type = &env.arena[lhs];
-        let rhs_type = &env.arena[rhs];
+        let lhs_type = env.types[lhs].copied();
+        let rhs_type = env.types[rhs].copied();
 
         let diagnostic = error::type_mismatch(
             env,
@@ -178,7 +178,7 @@ fn unify_type_invariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: Type
             ),
         );
 
-        env.record_diagnostic(diagnostic);
+        env.diagnostics.push(diagnostic);
     }
 }
 
@@ -198,8 +198,8 @@ fn unify_type_invariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: Type
 /// combination.
 #[expect(clippy::too_many_lines)]
 fn unify_type_covariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: TypeId) {
-    let lhs = &env.arena[lhs];
-    let rhs = &env.arena[rhs];
+    let lhs = env.types[lhs].copied();
+    let rhs = env.types[rhs].copied();
 
     let lhs_id = lhs.id;
     let rhs_id = rhs.id;
@@ -212,21 +212,8 @@ fn unify_type_covariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: Type
     // combinations. In a covariant context, we're checking if `rhs` is a subtype of `lhs`
     // (`rhs <: lhs`).
     #[expect(clippy::match_same_arms, reason = "makes the intent clear")]
-    match (&lhs.kind, &rhs.kind) {
-        // Links are references to other types - follow them to their targets for unification
-        (&TypeKind::Link(lhs_id), &TypeKind::Link(rhs_id)) => {
-            // Both types are links - unify the target types
-            env.unify_type(lhs_id, rhs_id);
-        }
-        (&TypeKind::Link(lhs_id), _) => {
-            // The lhs is a link - follow it and unify with rhs
-            env.unify_type(lhs_id, rhs.id);
-        }
-        (_, &TypeKind::Link(rhs_id)) => {
-            // The rhs is a link - follow it and unify with lhs
-            env.unify_type(lhs.id, rhs_id);
-        }
-
+    match (lhs.kind, rhs.kind) {
+        // TODO: for infer we need to actually get the type
         // Inference variables are special cases that can be refined during unification
         // Their handling is independent of variance since they represent "unknown yet" types
         (TypeKind::Infer, TypeKind::Infer) => {
@@ -349,7 +336,7 @@ fn unify_type_covariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: Type
                 ),
             );
 
-            env.record_diagnostic(diagnostic);
+            env.diagnostics.push(diagnostic);
         }
 
         // Never is the bottom type - it's a subtype of all other types
@@ -368,7 +355,7 @@ fn unify_type_covariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: Type
             // This is an error - we expected lhs but got a Never
             let diagnostic = expected_never(env, lhs);
 
-            env.record_diagnostic(diagnostic);
+            env.diagnostics.push(diagnostic);
         }
 
         // Fallback case for any type combination not handled by the above cases
@@ -387,7 +374,7 @@ fn unify_type_covariant(env: &mut UnificationEnvironment, lhs: TypeId, rhs: Type
 
             let diagnostic = type_mismatch(env, lhs, rhs, Some(help_message));
 
-            env.record_diagnostic(diagnostic);
+            env.diagnostics.push(diagnostic);
         }
     }
 }

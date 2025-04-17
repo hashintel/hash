@@ -82,10 +82,10 @@ pub trait Lattice {
     /// A vector of type IDs representing the join result. The interpretation is:
     /// * Multiple elements: The supremum is a Union of the returned types
     /// * Empty vector: The supremum is `Never` (no common supertype exists)
-    fn join(
-        self: Type<Self>,
-        other: Type<Self>,
-        env: &mut LatticeEnvironment,
+    fn join<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4>;
 
     /// Computes the meet (greatest lower bound) of two types.
@@ -116,10 +116,10 @@ pub trait Lattice {
     /// A vector of type IDs representing the meet result. The interpretation is:
     /// * Multiple elements: The infimum is an Intersection of the returned types
     /// * Empty vector: The infimum is `Never` (no common subtype exists)
-    fn meet(
-        self: Type<Self>,
-        other: Type<Self>,
-        env: &mut LatticeEnvironment,
+    fn meet<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4>;
 
     /// Determines if a type is uninhabited (has no possible values).
@@ -128,7 +128,10 @@ pub trait Lattice {
     /// cannot have any values constructed for them. They're useful in type systems
     /// to represent computations that don't return normally (e.g., functions that always
     /// panic or never terminate).
-    fn uninhabited(self: Type<Self>, env: &mut TypeAnalysisEnvironment) -> bool;
+    fn uninhabited<'heap>(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool;
 
     /// Checks if two types are semantically equivalent.
     ///
@@ -154,10 +157,10 @@ pub trait Lattice {
     /// newtype B = (x: Number, y: Number);
     /// // A and B would NOT be equivalent despite identical structure
     /// ```
-    fn semantically_equivalent(
-        self: Type<Self>,
-        other: Type<Self>,
-        env: &mut EquivalenceEnvironment,
+    fn semantically_equivalent<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut EquivalenceEnvironment<'_, 'heap>,
     ) -> bool;
 
     /// Unifies two types according to subtyping rules.
@@ -201,7 +204,11 @@ pub trait Lattice {
     /// // Fails because Number is not a subtype of Integer
     /// unify(Integer, Number) // This will report an error through the environment
     /// ```
-    fn unify(self: Type<Self>, other: Type<Self>, env: &mut UnificationEnvironment);
+    fn unify<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut UnificationEnvironment<'_, 'heap>,
+    );
 
     /// Simplifies a type to its canonical form.
     ///
@@ -230,7 +237,8 @@ pub trait Lattice {
     /// A new `TypeId` representing the simplified version of the input type.
     /// The simplified type is semantically equivalent to the original but may have
     /// a different structure.
-    fn simplify(self: Type<Self>, env: &mut SimplifyEnvironment) -> TypeId;
+    fn simplify<'heap>(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>)
+    -> TypeId;
 }
 
 #[cfg(test)]
@@ -243,21 +251,18 @@ pub(crate) mod test {
     };
 
     #[track_caller]
-    fn assert_commutativity<T>(
-        env: &mut Environment,
-        convert: impl Fn(Type<&TypeKind>) -> Type<&T>,
+    fn assert_commutativity<'heap, T>(
+        env: &mut Environment<'heap>,
+        convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
         a: TypeId,
         b: TypeId,
     ) where
-        T: Lattice,
+        T: Lattice + 'heap,
     {
         let mut env = LatticeEnvironment::new(env);
 
-        let a = env.arena[a].clone();
-        let b = env.arena[b].clone();
-
-        let a = a.as_ref();
-        let b = b.as_ref();
+        let a = env.types[a].copied();
+        let b = env.types[b].copied();
 
         let a = convert(a);
         let b = convert(b);
@@ -269,24 +274,20 @@ pub(crate) mod test {
     }
 
     #[track_caller]
-    fn assert_associativity<T>(
-        env: &mut Environment,
-        convert: impl Fn(Type<&TypeKind>) -> Type<&T>,
+    fn assert_associativity<'heap, T>(
+        env: &mut Environment<'heap>,
+        convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
         a: TypeId,
         b: TypeId,
         c: TypeId,
     ) where
-        T: Lattice,
+        T: Lattice + 'heap,
     {
         let mut env = LatticeEnvironment::new(env);
 
-        let a = env.arena[a].clone();
-        let b = env.arena[b].clone();
-        let c = env.arena[c].clone();
-
-        let a = a.as_ref();
-        let b = b.as_ref();
-        let c = c.as_ref();
+        let a = env.types[a].copied();
+        let b = env.types[b].copied();
+        let c = env.types[c].copied();
 
         let a = convert(a);
         let b = convert(b);
@@ -306,21 +307,18 @@ pub(crate) mod test {
     }
 
     #[track_caller]
-    fn assert_absorption<T>(
-        env: &mut Environment,
-        convert: impl Fn(Type<&TypeKind>) -> Type<&T>,
+    fn assert_absorption<'heap, T>(
+        env: &mut Environment<'heap>,
+        convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
         a: TypeId,
         b: TypeId,
     ) where
-        T: Lattice,
+        T: Lattice + 'heap,
     {
         let mut env = LatticeEnvironment::new(env);
 
-        let a = env.arena[a].clone();
-        let b = env.arena[b].clone();
-
-        let a = a.as_ref();
-        let b = b.as_ref();
+        let a = env.types[a].copied();
+        let b = env.types[b].copied();
 
         let a = convert(a);
         let b = convert(b);
@@ -332,18 +330,16 @@ pub(crate) mod test {
     }
 
     #[track_caller]
-    fn assert_idempotence<T>(
-        env: &mut Environment,
-        convert: impl Fn(Type<&TypeKind>) -> Type<&T>,
+    fn assert_idempotence<'heap, T>(
+        env: &mut Environment<'heap>,
+        convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
         a: TypeId,
     ) where
-        T: Lattice,
+        T: Lattice + 'heap,
     {
         let mut env = LatticeEnvironment::new(env);
 
-        let a = env.arena[a].clone();
-
-        let a = a.as_ref();
+        let a = env.types[a].copied();
 
         let a = convert(a);
 
@@ -356,14 +352,14 @@ pub(crate) mod test {
     /// Assert that the lattice laws are uphold. `a`, `b` and `c` must all be semantically
     /// different.
     #[track_caller]
-    pub(crate) fn assert_lattice_laws<T>(
-        env: &mut Environment,
-        convert: impl Fn(Type<&TypeKind>) -> Type<&T>,
+    pub(crate) fn assert_lattice_laws<'heap, T>(
+        env: &mut Environment<'heap>,
+        convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
         a: TypeId,
         b: TypeId,
         c: TypeId,
     ) where
-        T: Lattice,
+        T: Lattice + 'heap,
     {
         let mut equiv = EquivalenceEnvironment::new(env);
 
