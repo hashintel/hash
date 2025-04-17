@@ -246,9 +246,9 @@ impl PrettyPrint for TupleType {
 /// - Both tuples must have the same number of fields (tuples are invariant in length)
 /// - Each corresponding field must be covariant
 pub(crate) fn unify_tuple(
-    env: &mut UnificationEnvironment,
-    lhs: &Type<TupleType>,
-    rhs: &Type<TupleType>,
+    _: &mut UnificationEnvironment,
+    _: &Type<TupleType>,
+    _: &Type<TupleType>,
 ) {
     unimplemented!("use Lattice::join instead")
 }
