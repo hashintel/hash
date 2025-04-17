@@ -354,6 +354,7 @@ pub struct TypeAnalysisEnvironment<'env> {
 }
 
 impl<'env> TypeAnalysisEnvironment<'env> {
+    #[must_use]
     pub fn new(environment: &'env Environment) -> Self {
         Self {
             environment,

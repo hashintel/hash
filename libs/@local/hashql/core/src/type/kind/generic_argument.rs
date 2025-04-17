@@ -66,6 +66,10 @@ impl GenericArguments {
         Self(EcoVec::new())
     }
 
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &GenericArgument> {
+        self.0.iter()
+    }
+
     pub fn merge(&mut self, other: Self) {
         // We can merge without de-duplication, because every argument has a unique ID.
         // What we need to do tho, is to re-sort them, so that the invariants are maintained.

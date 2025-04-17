@@ -52,8 +52,6 @@ impl Lattice for TupleType {
             return SmallVec::from_slice(&[self.id, other.id]);
         }
 
-        // TODO: we need to put the arguments into scope
-
         // join pointwise
         let mut fields = EcoVec::with_capacity(self.kind.fields.len());
         for (&lhs, &rhs) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
@@ -91,8 +89,6 @@ impl Lattice for TupleType {
         if self.kind.fields.len() != other.kind.fields.len() {
             return SmallVec::new();
         }
-
-        // TODO: we need to put the arguments into scope
 
         // meet pointwise
         let mut fields = EcoVec::with_capacity(self.kind.fields.len());
