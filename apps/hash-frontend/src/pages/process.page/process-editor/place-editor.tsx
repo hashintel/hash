@@ -1,83 +1,52 @@
 import { TextField } from "@hashintel/design-system";
 import { Box, Card, Stack, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
 
 import { Button } from "../../../shared/ui";
-import type { TokenType } from "./token-editor";
+import type { TokenType } from "./token-type-editor";
+import type { PlaceNodeType, TokenCounts } from "./types";
 
-// Interface for token counts by type
-export interface TokenCounts {
-  [tokenTypeId: string]: number;
-}
-
-export interface NodeMenuProps {
-  nodeId: string;
-  nodeName: string;
+export type PlaceEditorProps = {
+  selectedPlace: PlaceNodeType;
   position: { x: number; y: number };
   tokenTypes: TokenType[];
-  tokenCounts: TokenCounts;
   onClose: () => void;
   onUpdateTokens: (nodeId: string, tokenCounts: TokenCounts) => void;
   onUpdateNodeLabel: (nodeId: string, label: string) => void;
-}
+};
 
-export const NodeMenu = ({
-  nodeId,
-  nodeName,
+export const PlaceEditor = ({
+  selectedPlace,
   position,
   tokenTypes,
-  tokenCounts,
   onClose,
   onUpdateTokens,
   onUpdateNodeLabel,
-}: NodeMenuProps) => {
-  // Local state for token counts
-  const [localTokenCounts, setLocalTokenCounts] = useState<TokenCounts>({});
+}: PlaceEditorProps) => {
+  const { data, id: placeId } = selectedPlace;
+  const { label: nodeName, tokenCounts } = data;
 
-  // Local state for node name
-  const [localNodeName, setLocalNodeName] = useState(nodeName);
-
-  // Initialize local state from props
-  useEffect(() => {
-    setLocalTokenCounts({ ...tokenCounts });
-  }, [tokenCounts]);
-
-  useEffect(() => {
-    setLocalNodeName(nodeName);
-  }, [nodeName]);
-
-  // Handle token count change
   const handleTokenCountChange = (tokenTypeId: string, value: string) => {
     const numValue = parseInt(value, 10);
     const newCount = Number.isNaN(numValue) ? 0 : Math.max(0, numValue);
 
     const newTokenCounts = {
-      ...localTokenCounts,
+      ...tokenCounts,
       [tokenTypeId]: newCount,
     };
-    setLocalTokenCounts(newTokenCounts);
-    onUpdateTokens(nodeId, newTokenCounts); // Update immediately
+
+    onUpdateTokens(placeId, newTokenCounts);
   };
 
-  // Handle node name change
   const handleNodeNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newName = event.target.value;
-    setLocalNodeName(newName);
-    onUpdateNodeLabel(nodeId, newName); // Update immediately
+    onUpdateNodeLabel(placeId, newName);
   };
 
-  // Remove the separate update handlers since we're updating immediately
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       (event.target as HTMLInputElement).blur();
     }
   };
-
-  // Calculate total tokens
-  const totalTokens = Object.values(localTokenCounts).reduce(
-    (sum, count) => sum + count,
-    0,
-  );
 
   return (
     <Card
@@ -95,7 +64,7 @@ export const NodeMenu = ({
         <Box>
           <Typography fontWeight="bold">Node Name</Typography>
           <TextField
-            value={localNodeName}
+            value={nodeName}
             onChange={handleNodeNameChange}
             onKeyDown={handleKeyDown}
             fullWidth
@@ -130,7 +99,7 @@ export const NodeMenu = ({
                   </Box>
                   <TextField
                     type="number"
-                    value={localTokenCounts[tokenType.id] ?? 0}
+                    value={tokenCounts[tokenType.id] ?? 0}
                     onChange={(event) =>
                       handleTokenCountChange(tokenType.id, event.target.value)
                     }
@@ -142,10 +111,6 @@ export const NodeMenu = ({
                   />
                 </Box>
               ))}
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography fontWeight="bold">Total:</Typography>
-                <Typography fontWeight="bold">{totalTokens}</Typography>
-              </Box>
             </Stack>
           </Box>
         )}

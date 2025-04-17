@@ -39,19 +39,19 @@ export const defaultTokenTypes: TokenType[] = [
   { id: "default", name: "Default", color: "#3498db" },
 ];
 
-interface TokenEditorProps {
+interface TokenTypeEditorProps {
   open: boolean;
   onClose: () => void;
   tokenTypes: TokenType[];
   setTokenTypes: (tokenTypes: TokenType[]) => void;
 }
 
-export const TokenEditor = ({
+export const TokenTypeEditor = ({
   open,
   onClose,
   tokenTypes,
   setTokenTypes,
-}: TokenEditorProps) => {
+}: TokenTypeEditorProps) => {
   // Local state for token types
   const [localTokenTypes, setLocalTokenTypes] = useState<TokenType[]>([]);
 

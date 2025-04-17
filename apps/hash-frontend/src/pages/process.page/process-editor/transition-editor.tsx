@@ -15,44 +15,38 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "../../../shared/ui";
-import type { PetriNetEdge } from "./types";
-import type { TokenType } from "./token-editor";
+import type { TokenType } from "./token-type-editor";
+import type { ArcType } from "./types";
 
-// Define the condition interface
-interface TransitionCondition {
+type TransitionCondition = {
   id: string;
   name: string;
   probability: number;
   outputEdgeIds: string[]; // IDs of edges to activate when this condition is met
-}
+};
 
-// Define the transition data interface
-interface TransitionData {
+type TransitionData = {
   label: string;
-  processTimes?: {
-    [tokenTypeId: string]: number; // Processing time in hours for each token type
-  };
+  delay?: number; // Processing time in hours for each token type
   description?: string;
-  priority?: number;
 
-  // New fields for conditional logic
   hasConditions?: boolean; // Whether this transition has conditional outputs
   conditions?: TransitionCondition[]; // Array of possible conditions
-}
+};
 
-interface TransitionEditorProps {
+type TransitionEditorProps = {
   open: boolean;
   onClose: () => void;
   transitionId: string;
   transitionData: TransitionData;
   tokenTypes: TokenType[];
   outgoingEdges: Array<
-    PetriNetEdge & {
+    ArcType & {
       targetLabel: string;
     }
   >;
   onUpdateTransition: (transitionId: string, data: TransitionData) => void;
-}
+};
 
 export const TransitionEditor = ({
   open,
@@ -66,9 +60,8 @@ export const TransitionEditor = ({
   // Local state for editing
   const [editedData, setEditedData] = useState<TransitionData>({
     label: "",
-    processTimes: {},
+    delay: undefined,
     description: "",
-    priority: 1,
     hasConditions: false,
     conditions: [],
   });
@@ -78,9 +71,8 @@ export const TransitionEditor = ({
     if (open) {
       setEditedData({
         label: transitionData.label,
-        processTimes: transitionData.processTimes ?? {},
+        delay: transitionData.delay,
         description: transitionData.description ?? "",
-        priority: transitionData.priority ?? 1,
         hasConditions: transitionData.hasConditions ?? false,
         conditions: transitionData.conditions ?? [],
       });
@@ -125,29 +117,12 @@ export const TransitionEditor = ({
     [],
   );
 
-  const handlePriorityChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value = parseInt(event.target.value, 10);
-      setEditedData((prev) => ({
-        ...prev,
-        priority: Number.isNaN(value) ? 1 : value,
-      }));
-    },
-    [],
-  );
-
   const handleProcessingTimeChange = useCallback(
-    (
-      tokenTypeId: string,
-      event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    ) => {
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const value = parseFloat(event.target.value);
       setEditedData((prev) => ({
         ...prev,
-        processTimes: {
-          ...prev.processTimes,
-          [tokenTypeId]: Number.isNaN(value) ? 0 : value,
-        },
+        delay: Number.isNaN(value) ? undefined : value,
       }));
     },
     [],
@@ -529,16 +504,6 @@ export const TransitionEditor = ({
             rows={2}
           />
 
-          <TextField
-            label="Priority"
-            type="number"
-            value={editedData.priority}
-            onChange={handlePriorityChange}
-            fullWidth
-            helperText="Higher priority transitions fire first when multiple are enabled"
-            inputProps={{ min: 1 }}
-          />
-
           {/* Processing times section */}
           <Box>
             <Typography fontWeight="bold" sx={{ mb: 1 }}>
@@ -569,10 +534,8 @@ export const TransitionEditor = ({
                   <TextField
                     label="Processing Time (hours)"
                     type="number"
-                    value={editedData.processTimes?.[tokenType.id] ?? 0}
-                    onChange={(event) =>
-                      handleProcessingTimeChange(tokenType.id, event)
-                    }
+                    value={editedData.delay ?? 0}
+                    onChange={(event) => handleProcessingTimeChange(event)}
                     inputProps={{ min: 0, step: 0.1 }}
                     sx={{ width: 200 }}
                   />

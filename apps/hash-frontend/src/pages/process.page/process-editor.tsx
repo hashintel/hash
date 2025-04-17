@@ -22,66 +22,66 @@ import ReactFlow, {
 import { useLocalstorageState } from "rooks";
 
 import { Button } from "../../shared/ui";
-import { EdgeMenu } from "./process-editor/edge-menu";
+import { Arc } from "./process-editor/arc";
+import { ArcMenu } from "./process-editor/arc-menu";
 import { exampleCPN } from "./process-editor/examples";
 import { nodeDimensions } from "./process-editor/node-dimensions";
-import { NodeMenu, type TokenCounts } from "./process-editor/node-menu";
+import { PlaceEditor } from "./process-editor/place-editor";
 import { PlaceNode } from "./process-editor/place-node";
 import { Sidebar } from "./process-editor/sidebar";
 import { SimulationControls } from "./process-editor/simulation-controls";
 import {
   defaultTokenTypes,
-  TokenEditor,
   type TokenType,
-} from "./process-editor/token-editor";
+  TokenTypeEditor,
+} from "./process-editor/token-type-editor";
 import { TransitionEditor } from "./process-editor/transition-editor";
 import { TransitionNode } from "./process-editor/transition-node";
-import { type PetriNetEdge } from "./process-editor/types";
+import {
+  type ArcData,
+  type ArcType,
+  type NodeData,
+  type NodeType,
+  type PlaceNodeType,
+  type TokenCounts,
+} from "./process-editor/types";
 import {
   SimulationContextProvider,
   useSimulation,
 } from "./process-editor/use-simulate";
-import { WeightedEdge } from "./process-editor/weighted-edge";
 
 const FlowCanvas = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [reactFlowInstance, setReactFlowInstance] =
-    useState<ReactFlowInstance | null>(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
+    NodeData,
+    ArcData
+  > | null>(null);
 
-  const [nodes, setNodes] = useLocalstorageState<Node[]>("petri-net-nodes", []);
-  const [edges, setEdges] = useLocalstorageState<PetriNetEdge[]>(
-    "petri-net-edges",
+  const [nodes, setNodes] = useLocalstorageState<NodeType[]>(
+    "petri-net-nodes",
     [],
   );
+  const [arcs, setArcs] = useLocalstorageState<ArcType[]>("petri-net-arcs", []);
+
+  const [tokenTypeEditorOpen, setTokenTypeEditorOpen] = useState(false);
   const [tokenTypes, setTokenTypes] = useLocalstorageState<TokenType[]>(
     "petri-net-token-types",
     defaultTokenTypes,
   );
 
-  const [selectedTokenType, setSelectedTokenType] = useState<string>("default");
-  const [tokenEditorOpen, setTokenEditorOpen] = useState(false);
-
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [tokenMenuPosition, setTokenMenuPosition] = useState<{
     x: number;
     y: number;
   } | null>(null);
 
-  const [transitionEditorOpen, setTransitionEditorOpen] = useState(false);
   const [selectedTransition, setSelectedTransition] = useState<string | null>(
     null,
   );
 
-  const [selectedEdge, setSelectedEdge] = useState<
-    (PetriNetEdge & { position: { x: number; y: number } }) | null
+  const [selectedArc, setSelectedArc] = useState<
+    (ArcType & { position: { x: number; y: number } }) | null
   >(null);
-
-  const currentTokenType = useMemo((): TokenType => {
-    const foundToken = tokenTypes.find(
-      (token) => token.id === selectedTokenType,
-    );
-    return (foundToken ?? tokenTypes[0] ?? defaultTokenTypes[0]) as TokenType;
-  }, [tokenTypes, selectedTokenType]);
 
   const nodeTypes = useMemo(
     () => ({
@@ -93,7 +93,7 @@ const FlowCanvas = () => {
 
   const edgeTypes = useMemo(
     () => ({
-      default: WeightedEdge,
+      default: Arc,
     }),
     [],
   );
@@ -113,9 +113,9 @@ const FlowCanvas = () => {
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
-      setEdges((eds) => applyEdgeChanges(changes, eds));
+      setArcs((currentArcs) => applyEdgeChanges(changes, currentArcs));
     },
-    [setEdges],
+    [setArcs],
   );
 
   const isValidConnection = useCallback(
@@ -136,7 +136,7 @@ const FlowCanvas = () => {
   const onConnect = useCallback(
     (connection: Connection) => {
       if (isValidConnection(connection)) {
-        const newEdge: PetriNetEdge = {
+        const newEdge: ArcType = {
           ...connection,
           id: `${connection.source}-${connection.target}`,
           source: connection.source ?? "",
@@ -147,24 +147,22 @@ const FlowCanvas = () => {
           },
           interactionWidth: 8,
         };
-        setEdges((existingEdges) => addEdge(newEdge, existingEdges));
+        setArcs((currentArcs) => addEdge(newEdge, currentArcs));
       }
     },
-    [isValidConnection, setEdges, tokenTypes],
+    [isValidConnection, setArcs, tokenTypes],
   );
 
   const onInit = useCallback((instance: ReactFlowInstance) => {
     setReactFlowInstance(instance);
   }, []);
 
-  // Allow dropping elements onto the canvas
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     // eslint-disable-next-line no-param-reassign
     event.dataTransfer.dropEffect = "move";
   }, []);
 
-  // When something is dropped, create a new node at drop coords
   const onDrop = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
@@ -178,12 +176,6 @@ const FlowCanvas = () => {
         | "place"
         | "transition";
 
-      // Check if nodeType is valid
-      if (!["place", "transition"].includes(nodeType)) {
-        return;
-      }
-
-      // Get node dimensions from our constants
       const { width, height } = nodeDimensions[nodeType];
 
       // Compute drop position inside the canvas
@@ -199,10 +191,9 @@ const FlowCanvas = () => {
         position,
         data: {
           label: `${nodeType} ${nodes.length + 1}`,
-          // For places, initialize with token counts and types
           ...(nodeType === "place"
             ? {
-                tokenCounts: { [currentTokenType.id]: 0 },
+                tokenCounts: {},
                 tokenTypes,
               }
             : {}),
@@ -211,42 +202,20 @@ const FlowCanvas = () => {
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [reactFlowInstance, nodes, currentTokenType, tokenTypes, setNodes],
+    [reactFlowInstance, nodes, tokenTypes, setNodes],
   );
 
-  // Handle node click to show token menu for places
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      // If clicking the same node that's already selected, keep the menu open
-      if (selectedNode && selectedNode.id === node.id) {
+      if (selectedPlaceId && selectedPlaceId === node.id) {
         return;
       }
 
-      // Close any open token menu
-      setSelectedNode(null);
+      setSelectedPlaceId(null);
       setTokenMenuPosition(null);
-      setSelectedEdge(null);
+      setSelectedArc(null);
 
-      // Handle different node types
       if (node.type === "place") {
-        // Initialize token counts if not present
-        if (!node.data.tokenCounts) {
-          setNodes((currentNodes) =>
-            currentNodes.map((currentNode) => {
-              if (currentNode.id === node.id) {
-                return {
-                  ...currentNode,
-                  data: {
-                    ...currentNode.data,
-                    tokenCounts: { [currentTokenType.id]: 0 },
-                  },
-                };
-              }
-              return currentNode;
-            }),
-          );
-        }
-
         // Get the node's DOM element
         const nodeElement = event.target as HTMLElement;
         const nodeBounds = nodeElement
@@ -260,16 +229,15 @@ const FlowCanvas = () => {
             y: nodeBounds.top, // Align with the top of the node
           };
 
-          setSelectedNode(node);
+          setSelectedPlaceId(node.id);
           setTokenMenuPosition(menuPosition);
         }
       } else if (node.type === "transition") {
         // Open transition editor for transition nodes
         setSelectedTransition(node.id);
-        setTransitionEditorOpen(true);
       }
     },
-    [currentTokenType, selectedNode, setNodes],
+    [selectedPlaceId],
   );
 
   // Update token counts for a node
@@ -283,7 +251,7 @@ const FlowCanvas = () => {
               data: {
                 ...node.data,
                 tokenCounts,
-                tokenTypes, // Always include current token types
+                tokenTypes,
               },
             };
           }
@@ -315,24 +283,20 @@ const FlowCanvas = () => {
     [setNodes],
   );
 
-  // Close the token menu
   const handleCloseTokenMenu = useCallback(() => {
-    setSelectedNode(null);
+    setSelectedPlaceId(null);
     setTokenMenuPosition(null);
   }, []);
 
   // Handle edge click
-  const onEdgeClick = useCallback(
-    (event: React.MouseEvent, edge: PetriNetEdge) => {
-      event.stopPropagation();
+  const onEdgeClick = useCallback((event: React.MouseEvent, edge: ArcType) => {
+    event.stopPropagation();
 
-      setSelectedEdge({
-        ...edge,
-        position: { x: event.clientX, y: event.clientY },
-      });
-    },
-    [],
-  );
+    setSelectedArc({
+      ...edge,
+      position: { x: event.clientX, y: event.clientY },
+    });
+  }, []);
 
   // Handle edge weight update
   const handleUpdateEdgeWeight = useCallback(
@@ -340,28 +304,28 @@ const FlowCanvas = () => {
       edgeId: string,
       tokenWeights: { [tokenTypeId: string]: number | undefined },
     ) => {
-      setEdges((eds) =>
-        eds.map((edge) =>
-          edge.id === edgeId
-            ? { ...edge, data: { ...edge.data, tokenWeights } }
-            : edge,
+      setArcs((currentArcs) =>
+        currentArcs.map((arc) =>
+          arc.id === edgeId
+            ? { ...arc, data: { ...arc.data, tokenWeights } }
+            : arc,
         ),
       );
     },
-    [setEdges],
+    [setArcs],
   );
 
-  // Handle pane click to close menus
   const handlePaneClick = useCallback(() => {
-    setSelectedNode(null);
-    setSelectedEdge(null);
+    setSelectedPlaceId(null);
+    setSelectedTransition(null);
+    setSelectedArc(null);
   }, []);
 
   // For demonstration, we log out the current diagram JSON
   const handleSave = () => {
     const processJson = {
       nodes,
-      edges,
+      edges: arcs,
       tokenTypes,
     };
     // eslint-disable-next-line no-console
@@ -384,9 +348,9 @@ const FlowCanvas = () => {
   // Reset everything (clear nodes and edges)
   const handleResetAll = useCallback(() => {
     setNodes([]);
-    setEdges([]);
+    setArcs([]);
     resetSimulation();
-  }, [setNodes, setEdges, resetSimulation]);
+  }, [setNodes, setArcs, resetSimulation]);
 
   // Add load example button
   const handleLoadExample = useCallback(() => {
@@ -394,7 +358,7 @@ const FlowCanvas = () => {
 
     // Add initialTokenCounts to each place node in the example
     const nodesWithInitialCounts = exampleCPN.nodes.map((node) => {
-      if (node.type === "place") {
+      if (node.data.type === "place") {
         return {
           ...node,
           data: {
@@ -407,10 +371,10 @@ const FlowCanvas = () => {
     });
 
     setNodes(nodesWithInitialCounts);
-    setEdges(exampleCPN.edges);
+    setArcs(exampleCPN.arcs);
     // Reset the global clock
     resetSimulation();
-  }, [setTokenTypes, setNodes, setEdges, resetSimulation]);
+  }, [setTokenTypes, setNodes, setArcs, resetSimulation]);
 
   // Add a new reset button that preserves the network but resets tokens and clock
   const handleReset = useCallback(() => {
@@ -452,7 +416,7 @@ const FlowCanvas = () => {
   useEffect(() => {
     setNodes((currentNodes) =>
       currentNodes.map((node) => {
-        if (node.type === "place" && !node.data.initialTokenCounts) {
+        if (node.data.type === "place" && !node.data.initialTokenCounts) {
           return {
             ...node,
             data: {
@@ -495,6 +459,23 @@ const FlowCanvas = () => {
     [setNodes],
   );
 
+  const selectedPlace = useMemo(() => {
+    if (!selectedPlaceId) {
+      return null;
+    }
+
+    const place = nodes.find(
+      (node): node is PlaceNodeType =>
+        node.id === selectedPlaceId && node.data.type === "place",
+    );
+
+    if (!place) {
+      throw new Error(`Cannot find place with id ${selectedPlaceId}`);
+    }
+
+    return place;
+  }, [nodes, selectedPlaceId]);
+
   return (
     <Box
       sx={{ flex: 1, height: "100%", position: "relative" }}
@@ -533,12 +514,7 @@ const FlowCanvas = () => {
               sx={{
                 cursor: "pointer",
                 borderRadius: 1,
-                bgcolor:
-                  selectedTokenType === token.id
-                    ? "action.hover"
-                    : "transparent",
               }}
-              onClick={() => setSelectedTokenType(token.id)}
             >
               <Box
                 sx={{
@@ -556,7 +532,7 @@ const FlowCanvas = () => {
             </Stack>
           ))}
 
-          <Button size="xs" onClick={() => setTokenEditorOpen(true)}>
+          <Button size="xs" onClick={() => setTokenTypeEditorOpen(true)}>
             Edit Types
           </Button>
         </Box>
@@ -592,10 +568,9 @@ const FlowCanvas = () => {
           </Button> */}
       </Stack>
 
-      {/* Token Editor Dialog */}
-      <TokenEditor
-        open={tokenEditorOpen}
-        onClose={() => setTokenEditorOpen(false)}
+      <TokenTypeEditor
+        open={tokenTypeEditorOpen}
+        onClose={() => setTokenTypeEditorOpen(false)}
         tokenTypes={tokenTypes}
         setTokenTypes={setTokenTypes}
       />
@@ -603,8 +578,8 @@ const FlowCanvas = () => {
       {/* Transition Editor Dialog */}
       {selectedTransition && (
         <TransitionEditor
-          open={transitionEditorOpen}
-          onClose={() => setTransitionEditorOpen(false)}
+          open
+          onClose={() => setSelectedTransition(null)}
           transitionId={selectedTransition}
           transitionData={
             nodes.find((node) => node.id === selectedTransition)?.data || {
@@ -613,7 +588,7 @@ const FlowCanvas = () => {
             }
           }
           tokenTypes={tokenTypes}
-          outgoingEdges={edges
+          outgoingEdges={arcs
             .filter((edge) => edge.source === selectedTransition)
             .map((edge) => {
               const targetNode = nodes.find((node) => node.id === edge.target);
@@ -621,7 +596,7 @@ const FlowCanvas = () => {
                 id: edge.id,
                 source: edge.source,
                 target: edge.target,
-                targetLabel: targetNode?.data?.label ?? "Unknown",
+                targetLabel: targetNode?.data.label ?? "Unknown",
                 tokenWeights: edge.data?.tokenWeights ?? {},
               };
             })}
@@ -629,26 +604,23 @@ const FlowCanvas = () => {
         />
       )}
 
-      {/* Node Token Menu */}
-      {selectedNode && tokenMenuPosition && (
-        <NodeMenu
-          nodeId={selectedNode.id}
-          nodeName={selectedNode.data.label}
+      {selectedPlace && tokenMenuPosition && (
+        <PlaceEditor
+          selectedPlace={selectedPlace}
           position={tokenMenuPosition}
           tokenTypes={tokenTypes}
-          tokenCounts={selectedNode.data.tokenCounts || {}}
           onClose={handleCloseTokenMenu}
           onUpdateTokens={handleUpdateTokens}
           onUpdateNodeLabel={handleUpdateNodeLabel}
         />
       )}
 
-      {selectedEdge && (
-        <EdgeMenu
-          edgeId={selectedEdge.id}
-          tokenWeights={selectedEdge.data?.tokenWeights ?? {}}
-          position={selectedEdge.position}
-          onClose={() => setSelectedEdge(null)}
+      {selectedArc && (
+        <ArcMenu
+          arcId={selectedArc.id}
+          tokenWeights={selectedArc.data?.tokenWeights ?? {}}
+          position={selectedArc.position}
+          onClose={() => setSelectedArc(null)}
           onUpdateWeights={handleUpdateEdgeWeight}
           tokenTypes={tokenTypes}
         />
@@ -656,7 +628,7 @@ const FlowCanvas = () => {
 
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={arcs}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
@@ -724,7 +696,7 @@ export const ProcessEditor = () => {
   return (
     <ReactFlowProvider>
       <SimulationContextProvider>
-        <Box sx={{ display: "flex", height: "100vh" }}>
+        <Box sx={{ display: "flex", height: "100%" }}>
           <Sidebar />
           <FlowCanvas />
         </Box>

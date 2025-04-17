@@ -1,34 +1,49 @@
 import { TextField } from "@hashintel/design-system";
 import { Box, Card, Stack, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useReactFlow } from "reactflow";
 
-import type { TokenType } from "./token-editor";
+import type { TokenType } from "./token-type-editor";
 
-interface EdgeMenuProps {
-  edgeId: string;
+interface ArcMenuProps {
+  arcId: string;
   tokenWeights: {
     [tokenTypeId: string]: number | undefined;
   };
   position: { x: number; y: number };
   onClose: () => void;
   onUpdateWeights: (
-    edgeId: string,
+    arcId: string,
     tokenWeights: { [tokenTypeId: string]: number | undefined },
   ) => void;
   tokenTypes: TokenType[];
 }
 
-export const EdgeMenu = ({
-  edgeId,
+export const ArcMenu = ({
+  arcId,
   tokenWeights,
   position,
   onClose: _onClose,
   onUpdateWeights,
   tokenTypes,
-}: EdgeMenuProps) => {
+}: ArcMenuProps) => {
   const [localWeights, setLocalWeights] = useState<{
     [tokenTypeId: string]: number | undefined;
   }>(tokenWeights);
+
+  const { getNodes, getEdges } = useReactFlow();
+
+  const direction = useMemo(() => {
+    const arc = getEdges().find((edge) => edge.id === arcId);
+
+    const targetNode = getNodes().find((node) => node.id === arc?.target);
+
+    if (!targetNode) {
+      return "in";
+    }
+
+    return targetNode.type === "transition" ? "in" : "out";
+  }, [arcId, getEdges, getNodes]);
 
   useEffect(() => {
     setLocalWeights(tokenWeights);
@@ -43,14 +58,8 @@ export const EdgeMenu = ({
       [tokenTypeId]: newWeight,
     };
     setLocalWeights(newWeights);
-    onUpdateWeights(edgeId, newWeights);
+    onUpdateWeights(arcId, newWeights);
   };
-
-  // Calculate total weight (excluding zero weights)
-  const totalWeight = Object.values(localWeights).reduce(
-    (weight, sum) => (sum ?? 0) + (weight ?? 0),
-    0,
-  );
 
   return (
     <Card
@@ -64,7 +73,9 @@ export const EdgeMenu = ({
       }}
     >
       <Stack spacing={2}>
-        <Typography fontWeight="bold">Edge Requirements</Typography>
+        <Typography fontWeight="bold">
+          {direction === "in" ? "Tokens Required" : "Tokens Produced"}
+        </Typography>
         <Stack spacing={1}>
           {tokenTypes.map((tokenType) => (
             <Box
@@ -101,10 +112,6 @@ export const EdgeMenu = ({
               />
             </Box>
           ))}
-          <Box sx={{ display: "flex", justifyContent: "space-between", pt: 1 }}>
-            <Typography fontWeight="bold">Total:</Typography>
-            <Typography fontWeight="bold">{totalWeight}</Typography>
-          </Box>
         </Stack>
       </Stack>
     </Card>

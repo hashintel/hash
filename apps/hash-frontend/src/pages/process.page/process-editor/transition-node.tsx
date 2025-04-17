@@ -1,41 +1,18 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
-import { useMemo } from "react";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { nodeDimensions } from "./node-dimensions";
+import type { TransitionNodeData } from "./types";
 
-export const TransitionNode = ({ data, isConnectable }: NodeProps) => {
-  const isTimed = useMemo(() => {
-    return (
-      data.processTimes &&
-      Object.values(data.processTimes as Record<string, number>).some(
-        (time) => time > 0,
-      )
-    );
-  }, [data.processTimes]);
-
-  // Get the average processing time for display
-  const avgProcessingTime = useMemo(() => {
-    if (!data.processTimes) {
-      return 0;
-    }
-
-    const times = Object.values(data.processTimes as Record<string, number>);
-    if (times.length === 0) {
-      return 0;
-    }
-
-    const sum = times.reduce((acc: number, time: number) => acc + time, 0);
-    return sum / times.length;
-  }, [data.processTimes]);
+export const TransitionNode = ({
+  data,
+  isConnectable,
+}: NodeProps<TransitionNodeData>) => {
+  const isTimed = !!data.delay;
 
   // Check if transition is in progress
   const inProgress = data.inProgress === true;
   const progress = data.progress || 0;
-
-  // Check if this is a quality check transition
-  const isQualityCheck = data.isQualityCheck === true;
-  const failureProbability = data.failureProbability || 0;
 
   return (
     <div
@@ -141,30 +118,6 @@ export const TransitionNode = ({ data, isConnectable }: NodeProps) => {
           </Box>
         )}
 
-        {/* Display QA badge for quality check transitions */}
-        {isQualityCheck && (
-          <Box
-            sx={{
-              position: "absolute",
-              top: -8,
-              left: -8,
-              backgroundColor: "error.main",
-              color: "white",
-              borderRadius: "50%",
-              width: 24,
-              height: 24,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "0.75rem",
-              fontWeight: "bold",
-            }}
-            title={`Quality check with ${failureProbability}% failure probability`}
-          >
-            QA
-          </Box>
-        )}
-
         {/* Show description if available */}
         {data.description && !inProgress && (
           <Typography
@@ -176,21 +129,6 @@ export const TransitionNode = ({ data, isConnectable }: NodeProps) => {
             }}
           >
             {data.description}
-          </Typography>
-        )}
-
-        {/* Show failure probability for quality check transitions */}
-        {isQualityCheck && !inProgress && (
-          <Typography
-            sx={{
-              fontSize: "0.75rem",
-              color: "error.main",
-              mt: 0.5,
-              textAlign: "center",
-              fontWeight: "bold",
-            }}
-          >
-            Failure rate: {failureProbability}%
           </Typography>
         )}
 

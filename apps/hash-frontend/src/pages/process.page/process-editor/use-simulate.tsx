@@ -8,12 +8,12 @@ import {
 } from "react";
 import { type Node, useReactFlow } from "reactflow";
 
-import type { PetriNetEdge } from "./types";
+import type { ArcType } from "./types";
 
 const checkTransitionEnabled = (
   transitionId: string,
   nodes: Node[],
-  edges: PetriNetEdge[],
+  edges: ArcType[],
 ): boolean => {
   const incomingEdges = edges.filter((edge) => edge.target === transitionId);
 
@@ -76,12 +76,11 @@ export const SimulationContextProvider = ({
     setGlobalClock(0);
   }, []);
 
-  // ... existing handleFireTransition implementation ...
   const handleFireTransition = useCallback(
     (
       transitionId: string,
       currentNodes: Node[],
-      currentEdges: PetriNetEdge[],
+      currentEdges: ArcType[],
       currentTime: number,
     ): { nodes: Node[]; nextEventTime: number } => {
       const outgoingEdges = currentEdges.filter(
@@ -188,10 +187,7 @@ export const SimulationContextProvider = ({
     [globalClock],
   );
 
-  // ... existing handleSimulationStep implementation ...
   const handleSimulationStep = useCallback(() => {
-    // ... existing implementation ...
-    // Advance the global clock by the time step size
     const newClockTime = globalClock + timeStepSize;
     setGlobalClock(newClockTime);
 

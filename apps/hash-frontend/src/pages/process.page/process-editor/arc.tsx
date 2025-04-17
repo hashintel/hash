@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getBezierPath, type Position, useReactFlow } from "reactflow";
 
-import { defaultTokenTypes, type TokenType } from "./token-editor";
+import { defaultTokenTypes, type TokenType } from "./token-type-editor";
 
 type AnimatingToken = {
   id: string;
@@ -12,7 +12,7 @@ type AnimatingToken = {
   currentStep: number;
 };
 
-export const WeightedEdge = ({
+export const Arc = ({
   id,
   sourceX,
   sourceY,
@@ -48,7 +48,7 @@ export const WeightedEdge = ({
     );
 
   const [animatingTokens, setAnimatingTokens] = useState<AnimatingToken[]>([]);
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const [arcPath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
     sourcePosition,
@@ -100,9 +100,7 @@ export const WeightedEdge = ({
     return () => cancelAnimationFrame(animationFrameId);
   }, []);
 
-  // Function to add a new animating token
   const addAnimatingToken = useCallback((tokenTypeId: string) => {
-    // Create array of 20 steps for smoother animation
     const steps = Array.from({ length: 20 }, (_, i) => i / 19);
 
     const newToken: AnimatingToken = {
@@ -120,13 +118,13 @@ export const WeightedEdge = ({
   useEffect(() => {
     const handleTransitionFired = (
       event: CustomEvent<{
-        edgeId: string;
+        arcId: string;
         tokenTypeId: string;
         isInput?: boolean;
       }>,
     ) => {
-      const { edgeId, tokenTypeId } = event.detail;
-      if (edgeId === id) {
+      const { arcId, tokenTypeId } = event.detail;
+      if (arcId === id) {
         addAnimatingToken(tokenTypeId);
       }
     };
@@ -148,7 +146,7 @@ export const WeightedEdge = ({
       <path
         id={id}
         className="react-flow__edge-path"
-        d={edgePath}
+        d={arcPath}
         fill="none"
         strokeWidth={20}
         stroke="#555"
@@ -160,13 +158,12 @@ export const WeightedEdge = ({
       <path
         id={`${id}-visible`}
         className="react-flow__edge-path"
-        d={edgePath}
+        d={arcPath}
         fill="none"
         strokeWidth={2}
         stroke="#555"
         style={{ pointerEvents: "none" }}
       />
-      {/* Animating tokens */}
       {animatingTokens.map((token) => {
         const tokenType = tokenTypes.find(
           (tt: TokenType) => tt.id === token.tokenTypeId,
@@ -178,7 +175,7 @@ export const WeightedEdge = ({
               fill={tokenType?.color ?? "#3498db"}
               className="animating-token"
               style={{
-                offsetPath: `path("${edgePath}")`,
+                offsetPath: `path("${arcPath}")`,
                 offsetDistance: "0%",
               }}
             />
@@ -206,21 +203,20 @@ export const WeightedEdge = ({
           `}
       </style>
       <g transform={`translate(${labelX}, ${labelY})`}>
-        {/* Token weights */}
+        {/* Show tokens required or produced */}
         {Object.entries(data?.tokenWeights ?? {})
-          .filter(([_, weight]) => weight > 0) // First filter out zero weights
+          .filter(([_, weight]) => weight > 0)
           .map(([tokenTypeId, weight], index, nonZeroWeights) => {
-            // Find the token type from the global token types
             const tokenType = tokenTypes.find(
               (tt: TokenType) => tt.id === tokenTypeId,
             );
+
             if (!tokenType) {
               throw new Error(
-                `Token type with ID '${tokenTypeId}' not found for edge '${id}'`,
+                `Token type with ID '${tokenTypeId}' not found for arc '${id}'`,
               );
             }
 
-            // Calculate vertical offset based on non-zero weights
             const yOffset = (index - (nonZeroWeights.length - 1) / 2) * 20;
 
             return (

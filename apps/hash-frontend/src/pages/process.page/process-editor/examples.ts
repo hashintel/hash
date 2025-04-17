@@ -1,7 +1,5 @@
-import type { Node } from "reactflow";
-
-import type { PetriNetEdge } from "./types";
-import type { TokenType } from "./token-editor";
+import type { TokenType } from "./token-type-editor";
+import type { ArcType, NodeType } from "./types";
 
 export const exampleCPN = {
   tokenTypes: [
@@ -16,6 +14,7 @@ export const exampleCPN = {
       type: "place",
       position: { x: 20, y: 120 },
       data: {
+        type: "place",
         label: "Plant A Supply",
         tokenCounts: {
           precursor_a: 5,
@@ -36,6 +35,7 @@ export const exampleCPN = {
       type: "place",
       position: { x: 20, y: 600 },
       data: {
+        type: "place",
         label: "Plant B Supply",
         tokenCounts: {
           precursor_a: 0,
@@ -56,6 +56,7 @@ export const exampleCPN = {
       type: "place",
       position: { x: 300, y: 300 },
       data: {
+        type: "place",
         label: "Manufacturing Plant",
         tokenCounts: {
           precursor_a: 0,
@@ -76,6 +77,7 @@ export const exampleCPN = {
       type: "place",
       position: { x: 700, y: 350 },
       data: {
+        type: "place",
         label: "QA Queue",
         tokenCounts: {
           precursor_a: 0,
@@ -96,6 +98,7 @@ export const exampleCPN = {
       type: "place",
       position: { x: 1100, y: 600 },
       data: {
+        type: "place",
         label: "Disposal",
         tokenCounts: {
           precursor_a: 0,
@@ -116,6 +119,7 @@ export const exampleCPN = {
       type: "place",
       position: { x: 1000, y: 200 },
       data: {
+        type: "place",
         label: "Dispatch",
         tokenCounts: {
           precursor_a: 0,
@@ -136,6 +140,7 @@ export const exampleCPN = {
       type: "place",
       position: { x: 1300, y: 380 },
       data: {
+        type: "place",
         label: "Hospital",
         tokenCounts: {
           precursor_a: 0,
@@ -156,15 +161,10 @@ export const exampleCPN = {
       type: "transition",
       position: { x: 100, y: 400 },
       data: {
+        type: "transition",
         label: "Deliver to Plant",
         description: "Transport precursors to manufacturing plant",
-        processTimes: {
-          precursor_a: 2,
-          precursor_b: 2,
-          drug: 0,
-          failed_drug: 0,
-        },
-        priority: 1,
+        delay: 2,
       },
     },
     {
@@ -172,15 +172,10 @@ export const exampleCPN = {
       type: "transition",
       position: { x: 490, y: 350 },
       data: {
+        type: "transition",
         label: "Manufacture",
         description: "Combine precursors to create drug",
-        processTimes: {
-          precursor_a: 2,
-          precursor_b: 3,
-          drug: 0,
-          failed_drug: 0,
-        },
-        priority: 1,
+        delay: 3,
       },
     },
     {
@@ -188,8 +183,9 @@ export const exampleCPN = {
       type: "transition",
       position: { x: 870, y: 400 },
       data: {
+        type: "transition",
         label: "Quality Check",
-        processTimes: { drug: 2 },
+        delay: 2,
         description: "Quality assurance with conditional outputs",
         hasConditions: true,
         conditions: [
@@ -206,7 +202,6 @@ export const exampleCPN = {
             outputEdgeIds: ["transition_2-place_4"],
           },
         ],
-        priority: 2,
       },
     },
     {
@@ -214,19 +209,14 @@ export const exampleCPN = {
       type: "transition",
       position: { x: 1150, y: 280 },
       data: {
+        type: "transition",
         label: "Ship",
         description: "Ship drugs to hospital",
-        processTimes: {
-          precursor_a: 0,
-          precursor_b: 0,
-          drug: 3,
-          failed_drug: 0,
-        },
-        priority: 1,
+        delay: 3,
       },
     },
-  ] satisfies Node[],
-  edges: [
+  ] satisfies NodeType[],
+  arcs: [
     {
       id: "place_0-transition_0",
       source: "place_0",
@@ -377,5 +367,5 @@ export const exampleCPN = {
         },
       },
     },
-  ] satisfies PetriNetEdge[],
+  ] satisfies ArcType[],
 };

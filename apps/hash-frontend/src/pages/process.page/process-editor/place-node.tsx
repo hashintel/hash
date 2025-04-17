@@ -2,8 +2,8 @@ import { Box } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { nodeDimensions } from "./node-dimensions";
-import type { TokenCounts } from "./node-menu";
-import type { TokenType } from "./token-editor";
+import type { TokenCounts } from "./place-editor";
+import type { TokenType } from "./token-type-editor";
 
 export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
   const tokenCounts: TokenCounts = data.tokenCounts || {};
