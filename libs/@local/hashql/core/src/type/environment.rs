@@ -256,9 +256,18 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     }
 
     pub fn simplify(&mut self, id: TypeId) -> TypeId {
+        // TODO: recursion boundary
         let r#type = self.environment.types[id].copied();
 
         r#type.simplify(self)
+    }
+
+    pub fn uninhabited(&mut self, id: TypeId) -> bool {
+        let r#type = self.environment.types[id].copied();
+
+        let mut env = TypeAnalysisEnvironment::new(self.environment);
+
+        r#type.uninhabited(&mut env)
     }
 }
 

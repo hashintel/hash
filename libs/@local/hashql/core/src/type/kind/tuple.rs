@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 
 use super::{TypeKind, generic_argument::GenericArguments};
 use crate::{
-    heap,
+    heap::{self, List},
     r#type::{
         Type, TypeId,
         environment::{
@@ -30,27 +30,27 @@ pub struct TupleType<'heap> {
 }
 
 impl Lattice for TupleType<'_> {
-    fn join(
-        self: Type<Self>,
-        other: Type<Self>,
-        env: &mut LatticeEnvironment,
+    fn join<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         if self.kind.fields.len() != other.kind.fields.len() {
             return SmallVec::from_slice(&[self.id, other.id]);
         }
 
         // join pointwise
-        let mut fields = EcoVec::with_capacity(self.kind.fields.len());
+        let mut fields = Vec::with_capacity(self.kind.fields.len());
         for (&lhs, &rhs) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
             fields.push(env.join(lhs, rhs));
         }
 
         // Check if we can opt-out into allocating a new type
-        if fields == self.kind.fields {
+        if self.kind.fields == fields {
             return SmallVec::from_slice(&[self.id]);
         }
 
-        if fields == other.kind.fields {
+        if other.kind.fields == fields {
             return SmallVec::from_slice(&[other.id]);
         }
 
@@ -59,36 +59,41 @@ impl Lattice for TupleType<'_> {
         let mut arguments = self.kind.arguments.clone();
         arguments.merge(other.kind.arguments.clone());
 
-        let id = env.arena.push_with(|id| Type {
+        let kind = env.intern(TypeKind::Tuple(Self {
+            fields: env.heap.list(&fields),
+            arguments,
+        }));
+
+        let id = env.alloc(|id| Type {
             id,
             span: self.span,
-            kind: TypeKind::Tuple(Self { fields, arguments }),
+            kind,
         });
 
         SmallVec::from_slice(&[id])
     }
 
-    fn meet(
-        self: Type<Self>,
-        other: Type<Self>,
-        env: &mut LatticeEnvironment,
+    fn meet<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         if self.kind.fields.len() != other.kind.fields.len() {
             return SmallVec::new();
         }
 
         // meet pointwise
-        let mut fields = EcoVec::with_capacity(self.kind.fields.len());
+        let mut fields = Vec::with_capacity(self.kind.fields.len());
         for (&lhs, &rhs) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
             fields.push(env.meet(lhs, rhs));
         }
 
         // Check if we can opt-out into allocating a new type
-        if fields == self.kind.fields {
+        if self.kind.fields == fields {
             return SmallVec::from_slice(&[self.id]);
         }
 
-        if fields == other.kind.fields {
+        if other.kind.fields == fields {
             return SmallVec::from_slice(&[other.id]);
         }
 
@@ -97,24 +102,32 @@ impl Lattice for TupleType<'_> {
         let mut arguments = self.kind.arguments.clone();
         arguments.merge(other.kind.arguments.clone());
 
-        let id = env.arena.push_with(|id| Type {
+        let kind = env.intern(TypeKind::Tuple(Self {
+            fields: env.heap.list(&fields),
+            arguments,
+        }));
+
+        let id = env.alloc(|id| Type {
             id,
             span: self.span,
-            kind: TypeKind::Tuple(Self { fields, arguments }),
+            kind,
         });
 
         SmallVec::from_slice(&[id])
     }
 
-    fn uninhabited(self: Type<Self>, env: &mut TypeAnalysisEnvironment) -> bool {
+    fn uninhabited<'heap>(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
         // uninhabited if any of the fields are uninhabited
         self.kind.fields.iter().any(|&field| env.uninhabited(field))
     }
 
-    fn semantically_equivalent(
-        self: Type<Self>,
-        other: Type<Self>,
-        env: &mut EquivalenceEnvironment,
+    fn semantically_equivalent<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut EquivalenceEnvironment<'_, 'heap>,
     ) -> bool {
         self.kind.fields.len() == other.kind.fields.len()
             && self
@@ -134,18 +147,22 @@ impl Lattice for TupleType<'_> {
     /// In a covariant context:
     /// - Both tuples must have the same number of fields (tuples are invariant in length)
     /// - Each corresponding field must be covariant
-    fn unify(self: Type<Self>, other: Type<Self>, env: &mut UnificationEnvironment) {
+    fn unify<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut UnificationEnvironment<'_, 'heap>,
+    ) {
         // Tuples must have the same number of fields
         if self.kind.fields.len() != other.kind.fields.len() {
             let diagnostic = tuple_length_mismatch(
                 env.source,
-                &self,
-                &other,
+                self,
+                other,
                 self.kind.fields.len(),
                 other.kind.fields.len(),
             );
 
-            env.record_diagnostic(diagnostic);
+            env.diagnostics.push(diagnostic);
 
             return;
         }
@@ -168,25 +185,45 @@ impl Lattice for TupleType<'_> {
     }
 
     fn simplify(self: Type<Self>, env: &mut SimplifyEnvironment) -> TypeId {
-        let mut fields = EcoVec::with_capacity(self.kind.fields.len());
+        let mut fields = Vec::with_capacity(self.kind.fields.len());
 
         for &field in &self.kind.fields {
             fields.push(env.simplify(field));
         }
 
-        // Check if we can opt-out into having to allocate a new type
-        if fields.len() == self.kind.fields.len() {
+        // Check if we can skip the creation of a new type if all the fields are identical
+        if self
+            .kind
+            .fields
+            .iter()
+            .zip(fields.iter())
+            .all(|(&lhs, &rhs)| lhs == rhs)
+        {
             return self.id;
         }
 
+        // Check if any of the fields are uninhabited, if that is the case we simplify down to an
+        // uninhabited type
+        if fields.iter().any(|&field| env.uninhabited(field)) {
+            let kind = env.intern(TypeKind::Never);
+
+            return env.alloc(|id| Type {
+                id,
+                span: self.span,
+                kind,
+            });
+        }
+
+        let kind = env.intern(TypeKind::Tuple(Self {
+            fields: env.heap.list(&fields),
+            arguments: self.kind.arguments.clone(),
+        }));
+
         // ... we can't so we need to allocate a new type
-        env.arena.push_with(|id| Type {
+        env.alloc(|id| Type {
             id,
             span: self.span,
-            kind: TypeKind::Tuple(Self {
-                fields,
-                arguments: self.kind.arguments.clone(),
-            }),
+            kind,
         })
     }
 }

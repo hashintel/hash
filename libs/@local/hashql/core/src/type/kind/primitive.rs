@@ -26,10 +26,10 @@ pub enum PrimitiveType {
 }
 
 impl Lattice for PrimitiveType {
-    fn join(
-        self: Type<Self>,
-        other: Type<Self>,
-        _: &mut LatticeEnvironment,
+    fn join<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        _: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         if self.kind == other.kind {
             return SmallVec::from_slice(&[self.id]);
@@ -44,10 +44,10 @@ impl Lattice for PrimitiveType {
         }
     }
 
-    fn meet(
-        self: Type<Self>,
-        other: Type<Self>,
-        _: &mut LatticeEnvironment,
+    fn meet<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         if self.kind == other.kind {
             return SmallVec::from_slice(&[self.id]);
@@ -62,19 +62,26 @@ impl Lattice for PrimitiveType {
         }
     }
 
-    fn uninhabited(self: Type<Self>, _: &mut TypeAnalysisEnvironment) -> bool {
+    fn uninhabited<'heap>(
+        self: Type<'heap, Self>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
         false
     }
 
-    fn semantically_equivalent(
-        self: Type<Self>,
-        other: Type<Self>,
-        _: &mut EquivalenceEnvironment,
+    fn semantically_equivalent<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        _: &mut EquivalenceEnvironment<'_, 'heap>,
     ) -> bool {
         self.kind == other.kind
     }
 
-    fn unify(self: Type<Self>, other: Type<Self>, env: &mut UnificationEnvironment) {
+    fn unify<'heap>(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut UnificationEnvironment<'_, 'heap>,
+    ) {
         if self.kind == other.kind {
             return;
         }
@@ -150,11 +157,6 @@ impl Lattice for PrimitiveType {
 }
 
 impl PrimitiveType {
-    #[must_use]
-    pub(crate) fn structurally_equivalent(self, other: Self) -> bool {
-        self == other
-    }
-
     const fn as_str(self) -> &'static str {
         match self {
             Self::Number => "Number",

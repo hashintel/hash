@@ -7,7 +7,7 @@ use core::{
     fmt::Debug,
     hash::{Hash, Hasher},
     mem::MaybeUninit,
-    ops::Index,
+    ops::{Deref, Index},
     ptr, slice,
 };
 use std::fmt;
@@ -101,6 +101,18 @@ impl<T, const N: usize> InlineVec<T, N> {
         this
     }
 
+    fn push(&mut self, value: T) -> Result<(), T> {
+        const { Self::ASSERT_T_IS_NOT_DROP };
+
+        if self.len == N {
+            Err(value)
+        } else {
+            self.buf[self.len].write(value);
+            self.len += 1;
+            Ok(())
+        }
+    }
+
     /// Returns a reference to the vector as a slice.
     fn as_slice(&self) -> &[T] {
         #[expect(unsafe_code)]
@@ -145,35 +157,7 @@ where
     }
 }
 
-impl<T, const N: usize> PartialEq for InlineVec<T, N>
-where
-    T: PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.as_slice() == other.as_slice()
-    }
-}
-
-impl<T, const N: usize> Eq for InlineVec<T, N> where T: Eq {}
-
-impl<T, const N: usize> Hash for InlineVec<T, N>
-where
-    T: Hash,
-{
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.as_slice().hash(state);
-    }
-}
-
-impl<T, const N: usize> Index<usize> for InlineVec<T, N> {
-    type Output = T;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.as_slice()[index]
-    }
-}
-
-#[derive(Debug, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy)]
 enum ListInner<'heap, T, const N: usize> {
     Inline(InlineVec<T, N>),
     Spilled(&'heap [T]),
@@ -197,9 +181,10 @@ where
 ///   reference.
 ///
 /// Once initialized it is not possible to further modify the list.
-#[derive(Debug, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy)]
 pub struct List<'heap, T, const CAPACITY: usize> {
     inner: ListInner<'heap, T, CAPACITY>,
+    heap: &'heap Heap,
 }
 
 impl<'heap, T, const CAPACITY: usize> List<'heap, T, CAPACITY> {
@@ -229,13 +214,20 @@ impl<'heap, T, const CAPACITY: usize> List<'heap, T, CAPACITY> {
             ListInner::Spilled(heap.slice(slice))
         };
 
-        Self { inner }
+        Self { inner, heap }
     }
 
     pub fn iter(&self) -> slice::Iter<T> {
         match self.inner {
             ListInner::Inline(ref vec) => vec.iter(),
             ListInner::Spilled(ref slice) => slice.iter(),
+        }
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        match self.inner {
+            ListInner::Inline(ref vec) => vec.as_slice(),
+            ListInner::Spilled(ref slice) => slice,
         }
     }
 
@@ -251,11 +243,61 @@ impl<'heap, T, const CAPACITY: usize> List<'heap, T, CAPACITY> {
     }
 }
 
+impl<'this, 'heap, T, const CAPACITY: usize> IntoIterator for &'this List<'heap, T, CAPACITY> {
+    type IntoIter = std::slice::Iter<'this, T>;
+    type Item = &'this T;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match &self.inner {
+            ListInner::Inline(vec) => vec.iter(),
+            ListInner::Spilled(slice) => slice.iter(),
+        }
+    }
+}
+
 impl<'heap, T, const CAPACITY: usize> Clone for List<'heap, T, CAPACITY>
 where
     T: Copy,
 {
     fn clone(&self) -> Self {
         *self
+    }
+}
+
+impl<'heap, T, const CAPACITY: usize> PartialEq for List<'heap, T, CAPACITY>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        *self.as_slice() == *other.as_slice()
+    }
+}
+
+impl<'heap, T, const CAPACITY: usize> Eq for List<'heap, T, CAPACITY> where T: PartialEq {}
+
+impl<'heap, T, const CAPACITY: usize> Hash for List<'heap, T, CAPACITY>
+where
+    T: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_slice().hash(state);
+    }
+}
+
+impl<'heap, T, const CAPACITY: usize, U> PartialEq<U> for List<'heap, T, CAPACITY>
+where
+    T: Copy + PartialEq,
+    U: Deref<Target = [T]>,
+{
+    fn eq(&self, other: &U) -> bool {
+        *self.as_slice() == **other
+    }
+}
+
+impl<'heap, T, const CAPACITY: usize> Index<usize> for List<'heap, T, CAPACITY> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.as_slice()[index]
     }
 }
