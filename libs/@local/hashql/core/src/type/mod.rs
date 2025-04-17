@@ -14,18 +14,7 @@ use core::ops::{Index, Receiver};
 use self::{
     environment::{EquivalenceEnvironment, UnificationEnvironment, Variance},
     error::{expected_never, intersection_coerced_to_never, type_mismatch},
-    kind::{
-        TypeKind,
-        closure::unify_closure,
-        generic_argument::{unify_param, unify_param_lhs, unify_param_rhs},
-        intrinsic::unify_intrinsic,
-        opaque::unify_opaque,
-        r#struct::{intersection_struct, unify_struct},
-        union::{
-            intersection_union, intersection_with_union, unify_union, unify_union_lhs,
-            unify_union_rhs,
-        },
-    },
+    kind::TypeKind,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
 };
@@ -69,16 +58,16 @@ impl<'heap, K> Type<'heap, K> {
     }
 }
 
-impl<'heap, K> PrettyPrint for Type<'heap, K>
+impl<K> PrettyPrint for Type<'_, K>
 where
     K: PrettyPrint,
 {
-    fn pretty<'a>(
-        &'a self,
-        arena: &'a impl Index<TypeId, Output = Type<'heap>>,
+    fn pretty<'heap>(
+        &self,
+        env: &environment::Environment<'heap>,
         limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'a, anstyle::Style> {
-        self.kind.pretty(arena, limit)
+    ) -> pretty::RcDoc<'heap, anstyle::Style> {
+        self.kind.pretty(env, limit)
     }
 }
 
@@ -107,6 +96,8 @@ impl<'heap, K: ?Sized> Receiver for Type<'heap, K> {
 ///
 /// This is the main entry point for type unification that respects variance.
 fn unify_type_impl(env: &mut UnificationEnvironment, lhs: TypeId, rhs: TypeId) {
+    todo!("to be replaced");
+
     match env.variance {
         Variance::Covariant => {
             // In covariant context: can `rhs` be used where `lhs` is expected?

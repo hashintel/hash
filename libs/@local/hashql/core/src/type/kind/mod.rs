@@ -162,3 +162,10 @@ impl PrettyPrint for TypeKind<'_> {
         todo!()
     }
 }
+
+const _: () = {
+    assert!(
+        !core::mem::needs_drop::<TypeKind<'static>>(),
+        "TypeKind cannot contain a `Drop` constructor, as it would likely cause a memory leak"
+    );
+};

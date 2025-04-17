@@ -1,6 +1,3 @@
-use core::ops::Index;
-
-use ecow::EcoVec;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
@@ -228,25 +225,23 @@ impl Lattice for TupleType<'_> {
     }
 }
 
-impl PrettyPrint for TupleType {
-    fn pretty<'a>(
-        &'a self,
-        arena: &'a impl Index<TypeId, Output = Type>,
+impl PrettyPrint for TupleType<'_> {
+    fn pretty<'heap>(
+        &self,
+        env: &crate::r#type::environment::Environment<'heap>,
         limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'a, anstyle::Style> {
+    ) -> RcDoc<'heap, anstyle::Style> {
         let inner = if self.fields.is_empty() {
             RcDoc::text("()")
         } else if self.fields.len() == 1 {
             RcDoc::text("(")
-                .append(limit.pretty(&arena[self.fields[0]], arena))
+                .append(limit.pretty(env, self.fields[0]))
                 .append(RcDoc::text(",)"))
         } else {
             RcDoc::text("(")
                 .append(
                     RcDoc::intersperse(
-                        self.fields
-                            .iter()
-                            .map(|&field| limit.pretty(&arena[field], arena)),
+                        self.fields.iter().map(|&field| limit.pretty(env, field)),
                         RcDoc::text(",").append(RcDoc::line()),
                     )
                     .nest(1)
@@ -255,7 +250,7 @@ impl PrettyPrint for TupleType {
                 .append(RcDoc::text(")"))
         };
 
-        self.arguments.pretty(arena, limit).append(inner).group()
+        self.arguments.pretty(env, limit).append(inner).group()
     }
 }
 
@@ -267,6 +262,7 @@ mod test {
     use super::TupleType;
     use crate::{
         arena::TransactionalArena,
+        heap::Heap,
         span::SpanId,
         r#type::{
             environment::{
@@ -287,7 +283,8 @@ mod test {
 
     #[test]
     fn join_identical_tuples() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         tuple!(
             env,
@@ -328,7 +325,8 @@ mod test {
 
     #[test]
     fn join_different_length_tuples() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         tuple!(
             env,

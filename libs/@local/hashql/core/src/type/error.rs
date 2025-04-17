@@ -9,10 +9,7 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-use super::{
-    Type, environment::Environment, kind::generic_argument::GenericArgumentId,
-    pretty_print::PrettyPrint,
-};
+use super::{Type, environment::Environment, pretty_print::PrettyPrint};
 use crate::span::SpanId;
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
@@ -331,11 +328,12 @@ where
 pub(crate) fn generic_argument_not_found<K>(
     span: SpanId,
     param_type: Type<K>,
-    argument_id: GenericArgumentId,
+    // argument_id: GenericArgumentId,
 ) -> TypeCheckDiagnostic
 where
     K: PrettyPrint,
 {
+    let argument_id = 12;
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::GenericArgumentNotFound,
         Severity::ERROR,

@@ -5,7 +5,7 @@ use scc::HashSet;
 use super::{
     Type, TypeId, TypeKind,
     error::{TypeCheckDiagnostic, circular_type_reference},
-    kind::{intersection::IntersectionType, primitive::PrimitiveType, union::UnionType},
+    kind::primitive::PrimitiveType,
     lattice::Lattice as _,
     recursion::RecursionBoundary,
     unify_type_impl,
@@ -89,7 +89,7 @@ pub struct Environment<'heap> {
     pub source: SpanId,
 
     pub heap: &'heap Heap,
-    kinds: HashSet<&'heap TypeKind, foldhash::fast::RandomState>,
+    kinds: HashSet<&'heap TypeKind<'heap>, foldhash::fast::RandomState>,
     pub types: ConcurrentArena<Type<'heap>>,
 }
 
@@ -137,7 +137,7 @@ impl<'heap> Environment<'heap> {
             .expect("null should be unique");
     }
 
-    pub fn intern(&self, kind: TypeKind) -> &'heap TypeKind {
+    pub fn intern(&self, kind: TypeKind<'heap>) -> &'heap TypeKind<'heap> {
         if let Some(kind) = self.kinds.read(&kind, |kind| *kind) {
             kind
         } else {
@@ -311,15 +311,17 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         } else if variants.len() == 1 {
             variants[0]
         } else {
-            let kind = self.environment.intern(TypeKind::Union(UnionType {
-                variants: variants.into_iter().collect(),
-            }));
+            todo!()
 
-            self.environment.alloc(|id| Type {
-                id,
-                span: lhs.span,
-                kind,
-            })
+            // let kind = self.environment.intern(TypeKind::Union(UnionType {
+            //     variants: variants.into_iter().collect(),
+            // }));
+
+            // self.environment.alloc(|id| Type {
+            //     id,
+            //     span: lhs.span,
+            //     kind,
+            // })
         }
     }
 
@@ -340,17 +342,18 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         } else if variants.len() == 1 {
             variants[0]
         } else {
-            let kind = self
-                .environment
-                .intern(TypeKind::Intersection(IntersectionType {
-                    variants: variants.into_iter().collect(),
-                }));
+            todo!()
+            // let kind = self
+            //     .environment
+            //     .intern(TypeKind::Intersection(IntersectionType {
+            //         variants: variants.into_iter().collect(),
+            //     }));
 
-            self.environment.alloc(|id| Type {
-                id,
-                span: lhs.span,
-                kind,
-            })
+            // self.environment.alloc(|id| Type {
+            //     id,
+            //     span: lhs.span,
+            //     kind,
+            // })
         }
     }
 }
@@ -454,39 +457,16 @@ impl<'heap> Deref for EquivalenceEnvironment<'_, 'heap> {
 #[cfg(test)]
 mod test {
     use crate::{
-        arena::transaction::TransactionalArena,
+        heap::Heap,
         span::SpanId,
-        r#type::{
-            Type, TypeId, TypeKind,
-            environment::{Environment, UnificationEnvironment, Variance},
-            error::type_mismatch,
-            kind::primitive::PrimitiveType,
-        },
+        r#type::environment::{Environment, UnificationEnvironment, Variance},
     };
-
-    fn create_test_type(arena: &mut TransactionalArena<Type>, kind: TypeKind) -> TypeId {
-        arena.push_with(|id| Type {
-            id,
-            kind,
-            span: SpanId::SYNTHETIC,
-        })
-    }
-
-    fn setup_arena() -> (TransactionalArena<Type>, TypeId, TypeId) {
-        let mut arena = TransactionalArena::new();
-
-        // Create a few test types
-        let type1 = create_test_type(&mut arena, TypeKind::Primitive(PrimitiveType::Null));
-        let type2 = create_test_type(&mut arena, TypeKind::Primitive(PrimitiveType::Boolean));
-
-        (arena, type1, type2)
-    }
 
     #[test]
     fn variance_context() {
-        let (arena, _, _) = setup_arena();
-        let mut environment = Environment::new(SpanId::SYNTHETIC, arena);
-        let mut env = UnificationEnvironment::new(&mut environment);
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut env = UnificationEnvironment::new(&environment);
 
         // Default should be covariant
         assert_eq!(env.variance, Variance::Covariant);
@@ -513,25 +493,5 @@ mod test {
 
         // Test variance after all scopes (should restore to default)
         assert_eq!(env.variance, Variance::Covariant);
-    }
-
-    #[test]
-    fn diagnostics() {
-        let (arena, id1, id2) = setup_arena();
-        let mut context = Environment::new(SpanId::SYNTHETIC, arena);
-
-        // Initially no diagnostics
-        assert!(context.take_diagnostics().is_empty());
-
-        // Add a diagnostic
-        let diagnostic = type_mismatch(&context, &context.arena[id1], &context.arena[id2], None);
-        context.record_diagnostic(diagnostic);
-
-        // Take diagnostics should return the recorded diagnostic and clear
-        let diagnostics = context.take_diagnostics();
-        assert_eq!(diagnostics.len(), 1);
-
-        // Should be empty after taking
-        assert!(context.take_diagnostics().is_empty());
     }
 }
