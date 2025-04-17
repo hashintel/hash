@@ -559,7 +559,7 @@ describe("Entity CRU", () => {
           value: {
             "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
               {
-                value: "Test-Machine",
+                value: "Test-User",
                 metadata: {
                   dataTypeId: blockProtocolDataTypes.text.dataTypeId,
                 },
