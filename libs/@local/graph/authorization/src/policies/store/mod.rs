@@ -121,11 +121,11 @@ pub trait LocalPrincipalStore {
     /// - [`AddRequiredPoliciesFailed`] if a required policies could not be added
     /// - [`RemoveOldPolicyFailed`] if an old policy could not be removed
     ///
-    /// [`CreatingSystemMachineFailed`]: EnsureSystemPolicies::CreatingSystemMachineFailed
-    /// [`SynchronizeActions`]: EnsureSystemPolicies::SynchronizeActions
-    /// [`ReadPoliciesFailed`]: EnsureSystemPolicies::ReadPoliciesFailed
-    /// [`AddRequiredPoliciesFailed`]: EnsureSystemPolicies::AddRequiredPoliciesFailed
-    /// [`RemoveOldPolicyFailed`]: EnsureSystemPolicies::RemoveOldPolicyFailed
+    /// [`CreatingSystemMachineFailed`]: EnsureSystemPoliciesError::CreatingSystemMachineFailed
+    /// [`SynchronizeActions`]: EnsureSystemPoliciesError::SynchronizeActions
+    /// [`ReadPoliciesFailed`]: EnsureSystemPoliciesError::ReadPoliciesFailed
+    /// [`AddRequiredPoliciesFailed`]: EnsureSystemPoliciesError::AddRequiredPoliciesFailed
+    /// [`RemoveOldPolicyFailed`]: EnsureSystemPoliciesError::RemoveOldPolicyFailed
     async fn ensure_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>>;
 
     /// Creates a new web and returns its ID.
