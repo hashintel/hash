@@ -1,6 +1,6 @@
 macro_rules! primitive {
     ($env:expr, $primitive:expr) => {
-        instantiate(&mut $env, TypeKind::Primitive($primitive))
+        instantiate(&$env, TypeKind::Primitive($primitive))
     };
 
     ($env:expr, $name:ident, $primitive:expr) => {
@@ -12,13 +12,14 @@ macro_rules! primitive {
 
 macro_rules! tuple {
     ($env:expr, $arguments:expr, $fields:expr) => {{
-        let fields = $env.heap.list(&$fields);
+        let fields = $env.intern_type_ids(&$fields);
+        let arguments = $env.intern_generic_arguments(&$arguments);
 
         instantiate(
             &mut $env,
             TypeKind::Tuple(TupleType {
                 fields,
-                arguments: $arguments.into_iter().collect(),
+                arguments: GenericArguments::from_slice(arguments),
             }),
         )
     }};
@@ -51,7 +52,7 @@ macro_rules! assert_kind {
 
         for (actual, expected) in $actual.into_iter().zip($expected.iter()) {
             let actual = &$env.types[actual].copied();
-            assert_eq!(actual.kind, *expected);
+            assert_eq!(*actual.kind, *expected);
         }
     };
 }

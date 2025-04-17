@@ -52,7 +52,7 @@ use super::{
 ///
 /// These properties ensure that lattice operations behave consistently and predictably
 /// when working with complex type hierarchies.
-pub trait Lattice {
+pub trait Lattice<'heap> {
     /// Computes the join (least upper bound) of two types.
     ///
     /// The join represents the most specific common supertype of both input types. This corresponds
@@ -82,7 +82,7 @@ pub trait Lattice {
     /// A vector of type IDs representing the join result. The interpretation is:
     /// * Multiple elements: The supremum is a Union of the returned types
     /// * Empty vector: The supremum is `Never` (no common supertype exists)
-    fn join<'heap>(
+    fn join(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
@@ -116,7 +116,7 @@ pub trait Lattice {
     /// A vector of type IDs representing the meet result. The interpretation is:
     /// * Multiple elements: The infimum is an Intersection of the returned types
     /// * Empty vector: The infimum is `Never` (no common subtype exists)
-    fn meet<'heap>(
+    fn meet(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
@@ -128,10 +128,7 @@ pub trait Lattice {
     /// cannot have any values constructed for them. They're useful in type systems
     /// to represent computations that don't return normally (e.g., functions that always
     /// panic or never terminate).
-    fn uninhabited<'heap>(
-        self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
-    ) -> bool;
+    fn uninhabited(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
 
     /// Checks if two types are semantically equivalent.
     ///
@@ -157,7 +154,7 @@ pub trait Lattice {
     /// newtype B = (x: Number, y: Number);
     /// // A and B would NOT be equivalent despite identical structure
     /// ```
-    fn semantically_equivalent<'heap>(
+    fn semantically_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut EquivalenceEnvironment<'_, 'heap>,
@@ -204,7 +201,7 @@ pub trait Lattice {
     /// // Fails because Number is not a subtype of Integer
     /// unify(Integer, Number) // This will report an error through the environment
     /// ```
-    fn unify<'heap>(
+    fn unify(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut UnificationEnvironment<'_, 'heap>,
@@ -237,8 +234,7 @@ pub trait Lattice {
     /// A new `TypeId` representing the simplified version of the input type.
     /// The simplified type is semantically equivalent to the original but may have
     /// a different structure.
-    fn simplify<'heap>(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>)
-    -> TypeId;
+    fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId;
 }
 
 #[cfg(test)]
@@ -257,7 +253,7 @@ pub(crate) mod test {
         a: TypeId,
         b: TypeId,
     ) where
-        T: Lattice + 'heap,
+        T: Lattice<'heap> + 'heap,
     {
         let mut env = LatticeEnvironment::new(env);
 
@@ -281,7 +277,7 @@ pub(crate) mod test {
         b: TypeId,
         c: TypeId,
     ) where
-        T: Lattice + 'heap,
+        T: Lattice<'heap> + 'heap,
     {
         let mut env = LatticeEnvironment::new(env);
 
@@ -313,7 +309,7 @@ pub(crate) mod test {
         a: TypeId,
         b: TypeId,
     ) where
-        T: Lattice + 'heap,
+        T: Lattice<'heap> + 'heap,
     {
         let mut env = LatticeEnvironment::new(env);
 
@@ -335,7 +331,7 @@ pub(crate) mod test {
         convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
         a: TypeId,
     ) where
-        T: Lattice + 'heap,
+        T: Lattice<'heap> + 'heap,
     {
         let mut env = LatticeEnvironment::new(env);
 
@@ -359,7 +355,7 @@ pub(crate) mod test {
         b: TypeId,
         c: TypeId,
     ) where
-        T: Lattice + 'heap,
+        T: Lattice<'heap> + 'heap,
     {
         let mut equiv = EquivalenceEnvironment::new(env);
 

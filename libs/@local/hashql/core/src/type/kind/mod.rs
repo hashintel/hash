@@ -106,8 +106,8 @@ impl TypeKind<'_> {
     // }
 }
 
-impl Lattice for TypeKind<'_> {
-    fn join<'heap>(
+impl<'heap> Lattice<'heap> for TypeKind<'heap> {
+    fn join(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
@@ -115,7 +115,7 @@ impl Lattice for TypeKind<'_> {
         todo!()
     }
 
-    fn meet<'heap>(
+    fn meet(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
@@ -123,14 +123,11 @@ impl Lattice for TypeKind<'_> {
         todo!()
     }
 
-    fn uninhabited<'heap>(
-        self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
-    ) -> bool {
+    fn uninhabited(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         todo!()
     }
 
-    fn semantically_equivalent<'heap>(
+    fn semantically_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut EquivalenceEnvironment<'_, 'heap>,
@@ -138,7 +135,7 @@ impl Lattice for TypeKind<'_> {
         todo!()
     }
 
-    fn unify<'heap>(
+    fn unify(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut UnificationEnvironment<'_, 'heap>,
@@ -146,20 +143,17 @@ impl Lattice for TypeKind<'_> {
         todo!()
     }
 
-    fn simplify<'heap>(
-        self: Type<'heap, Self>,
-        env: &mut SimplifyEnvironment<'_, 'heap>,
-    ) -> TypeId {
+    fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         todo!()
     }
 }
 
 impl PrettyPrint for TypeKind<'_> {
-    fn pretty<'heap>(
-        &self,
-        env: &Environment<'heap>,
+    fn pretty<'this>(
+        &'this self,
+        env: &'this Environment,
         limit: RecursionDepthBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
+    ) -> RcDoc<'this, anstyle::Style> {
         todo!()
     }
 }

@@ -1,5 +1,3 @@
-use core::assert_matches::assert_matches;
-
 use super::{
     Type, TypeId, TypeKind,
     environment::{Environment, UnificationEnvironment},
@@ -8,7 +6,6 @@ use crate::{
     heap::Heap,
     span::SpanId,
     symbol::{Ident, IdentKind, Symbol},
-    r#type::{intersection_type, kind::primitive::PrimitiveType},
 };
 
 pub(crate) macro setup_unify($name:ident) {
@@ -18,8 +15,8 @@ pub(crate) macro setup_unify($name:ident) {
     let mut $name = UnificationEnvironment::new(&environment);
 }
 
-pub(crate) fn instantiate(env: &mut Environment, kind: TypeKind) -> TypeId {
-    let kind = env.intern(kind);
+pub(crate) fn instantiate<'heap>(env: &Environment<'heap>, kind: TypeKind<'heap>) -> TypeId {
+    let kind = env.intern_kind(kind);
 
     env.alloc(|id| Type {
         id,
@@ -40,8 +37,8 @@ pub(crate) fn ident(value: &str) -> Ident {
 fn unify_never_types() {
     setup_unify!(env);
 
-    let never1 = instantiate(&mut env, TypeKind::Never);
-    let never2 = instantiate(&mut env, TypeKind::Never);
+    let never1 = instantiate(&env, TypeKind::Never);
+    let never2 = instantiate(&env, TypeKind::Never);
 
     env.unify_type(never1, never2);
 
@@ -53,8 +50,8 @@ fn unify_never_types() {
 fn never_with_other_type() {
     setup_unify!(env);
 
-    let never = instantiate(&mut env, TypeKind::Never);
-    let other = instantiate(&mut env, TypeKind::Unknown);
+    let never = instantiate(&env, TypeKind::Never);
+    let other = instantiate(&env, TypeKind::Unknown);
 
     env.unify_type(never, other);
 
@@ -71,8 +68,8 @@ fn never_with_other_type() {
 fn unify_unknown_types() {
     setup_unify!(env);
 
-    let unknown1 = instantiate(&mut env, TypeKind::Unknown);
-    let unknown2 = instantiate(&mut env, TypeKind::Unknown);
+    let unknown1 = instantiate(&env, TypeKind::Unknown);
+    let unknown2 = instantiate(&env, TypeKind::Unknown);
 
     env.unify_type(unknown1, unknown2);
 
@@ -90,8 +87,8 @@ fn unify_unknown_types() {
 fn unknown_with_other_type() {
     setup_unify!(env);
 
-    let unknown = instantiate(&mut env, TypeKind::Unknown);
-    let never = instantiate(&mut env, TypeKind::Never);
+    let unknown = instantiate(&env, TypeKind::Unknown);
+    let never = instantiate(&env, TypeKind::Never);
 
     env.unify_type(unknown, never);
 

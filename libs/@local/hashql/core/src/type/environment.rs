@@ -14,12 +14,7 @@ use super::{
     recursion::RecursionBoundary,
     unify_type_impl,
 };
-use crate::{
-    arena::concurrent::ConcurrentArena,
-    heap::{self, Heap},
-    span::SpanId,
-    symbol::Symbol,
-};
+use crate::{arena::concurrent::ConcurrentArena, heap::Heap, span::SpanId};
 
 /// Represents the type relationship variance used in generic type checking.
 ///
@@ -97,6 +92,9 @@ impl Diagnostics {
 pub struct Interner<'heap> {
     heap: &'heap Heap,
 
+    // There are some interesting optimizations that can be done here, refer to
+    // https://github.com/rust-lang/rust/blob/master/compiler/rustc_middle/src/ty/list.rs#L31
+    // for more information.
     kinds: HashSet<&'heap TypeKind<'heap>, foldhash::fast::RandomState>,
     type_ids: HashSet<&'heap [TypeId], foldhash::fast::RandomState>,
     generic_arguments: HashSet<&'heap [GenericArgument], foldhash::fast::RandomState>,
@@ -206,7 +204,7 @@ pub struct Environment<'heap> {
 
     pub heap: &'heap Heap,
     pub types: ConcurrentArena<Type<'heap>>,
-    pub interner: Interner<'heap>,
+    interner: Interner<'heap>,
 
     pub auxiliary: AuxiliaryData,
 }
@@ -229,6 +227,21 @@ impl<'heap> Environment<'heap> {
 
     pub fn alloc(&self, with: impl FnOnce(TypeId) -> Type<'heap>) -> TypeId {
         self.types.push_with(with)
+    }
+
+    pub fn intern_kind(&self, kind: TypeKind<'heap>) -> &'heap TypeKind<'heap> {
+        self.interner.intern_kind(kind)
+    }
+
+    pub fn intern_type_ids(&self, ids: &[TypeId]) -> &'heap [TypeId] {
+        self.interner.intern_type_ids(ids)
+    }
+
+    pub fn intern_generic_arguments(
+        &self,
+        arguments: &[GenericArgument],
+    ) -> &'heap [GenericArgument] {
+        self.interner.intern_generic_arguments(arguments)
     }
 }
 
@@ -362,7 +375,7 @@ impl<'heap> Deref for SimplifyEnvironment<'_, 'heap> {
 }
 
 pub struct LatticeEnvironment<'env, 'heap> {
-    environment: &'env Environment<'heap>,
+    pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
 }
 
@@ -381,7 +394,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         let variants = lhs.join(rhs, self);
 
         if variants.is_empty() {
-            let kind = self.environment.intern(TypeKind::Never);
+            let kind = self.environment.intern_kind(TypeKind::Never);
 
             self.environment.alloc(|id| Type {
                 id,
@@ -412,7 +425,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         let variants = lhs.meet(rhs, self);
 
         if variants.is_empty() {
-            let kind = self.environment.intern(TypeKind::Never);
+            let kind = self.environment.intern_kind(TypeKind::Never);
 
             self.environment.alloc(|id| Type {
                 id,

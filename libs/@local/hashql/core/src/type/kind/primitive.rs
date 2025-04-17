@@ -23,8 +23,8 @@ pub enum PrimitiveType {
     Boolean,
 }
 
-impl Lattice for PrimitiveType {
-    fn join<'heap>(
+impl<'heap> Lattice<'heap> for PrimitiveType {
+    fn join(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         _: &mut LatticeEnvironment<'_, 'heap>,
@@ -42,7 +42,7 @@ impl Lattice for PrimitiveType {
         }
     }
 
-    fn meet<'heap>(
+    fn meet(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         _: &mut LatticeEnvironment<'_, 'heap>,
@@ -60,14 +60,11 @@ impl Lattice for PrimitiveType {
         }
     }
 
-    fn uninhabited<'heap>(
-        self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
-    ) -> bool {
+    fn uninhabited(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         false
     }
 
-    fn semantically_equivalent<'heap>(
+    fn semantically_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         _: &mut EquivalenceEnvironment<'_, 'heap>,
@@ -75,7 +72,7 @@ impl Lattice for PrimitiveType {
         self.kind == other.kind
     }
 
-    fn unify<'heap>(
+    fn unify(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut UnificationEnvironment<'_, 'heap>,
@@ -149,7 +146,7 @@ impl Lattice for PrimitiveType {
         }
     }
 
-    fn simplify(self: Type<Self>, _: &mut SimplifyEnvironment) -> TypeId {
+    fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         self.id
     }
 }
@@ -167,11 +164,11 @@ impl PrimitiveType {
 }
 
 impl PrettyPrint for PrimitiveType {
-    fn pretty<'heap>(
+    fn pretty<'env>(
         &self,
-        _: &Environment<'heap>,
-        _: RecursionDepthBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
+        env: &'env Environment,
+        limit: RecursionDepthBoundary,
+    ) -> RcDoc<'env, anstyle::Style> {
         RcDoc::text(self.as_str()).annotate(BLUE)
     }
 }
@@ -220,7 +217,7 @@ mod test {
         let id = output[0];
         let r#type = env.types[id].copied();
 
-        assert_eq!(r#type.kind, TypeKind::Primitive(primitive));
+        assert_eq!(*r#type.kind, TypeKind::Primitive(primitive));
     }
 
     #[test_case(PrimitiveType::Number)]
@@ -243,7 +240,7 @@ mod test {
         let id = output[0];
         let r#type = env.types[id].copied();
 
-        assert_eq!(r#type.kind, TypeKind::Primitive(primitive));
+        assert_eq!(*r#type.kind, TypeKind::Primitive(primitive));
     }
 
     #[test]

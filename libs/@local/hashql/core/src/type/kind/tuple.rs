@@ -2,32 +2,27 @@ use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::{TypeKind, generic_argument::GenericArguments};
-use crate::{
-    heap::{self, List},
-    r#type::{
-        Type, TypeId,
-        environment::{
-            EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
-            TypeAnalysisEnvironment, UnificationEnvironment,
-        },
-        error::tuple_length_mismatch,
-        lattice::Lattice,
-        pretty_print::PrettyPrint,
-        recursion::RecursionDepthBoundary,
+use crate::r#type::{
+    Type, TypeId,
+    environment::{
+        Environment, EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
+        TypeAnalysisEnvironment, UnificationEnvironment,
     },
+    error::tuple_length_mismatch,
+    lattice::Lattice,
+    pretty_print::PrettyPrint,
+    recursion::RecursionDepthBoundary,
 };
-
-const INLINE: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TupleType<'heap> {
-    pub fields: heap::List<'heap, TypeId, INLINE>,
+    pub fields: &'heap [TypeId],
 
-    pub arguments: GenericArguments,
+    pub arguments: GenericArguments<'heap>,
 }
 
-impl Lattice for TupleType<'_> {
-    fn join<'heap>(
+impl<'heap> Lattice<'heap> for TupleType<'heap> {
+    fn join(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
@@ -52,13 +47,13 @@ impl Lattice for TupleType<'_> {
         }
 
         // ... we can't so we need to allocate a new type
-        // merge the two arguments together, as some of the fields may refer to either
-        let mut arguments = self.kind.arguments.clone();
-        arguments.merge(other.kind.arguments.clone());
-
-        let kind = env.intern(TypeKind::Tuple(Self {
-            fields: env.heap.list(&fields),
-            arguments,
+        let kind = env.intern_kind(TypeKind::Tuple(Self {
+            fields: env.intern_type_ids(&fields),
+            // merge the two arguments together, as some of the fields may refer to either
+            arguments: self
+                .kind
+                .arguments
+                .merge(&other.kind.arguments, env.environment),
         }));
 
         let id = env.alloc(|id| Type {
@@ -70,7 +65,7 @@ impl Lattice for TupleType<'_> {
         SmallVec::from_slice(&[id])
     }
 
-    fn meet<'heap>(
+    fn meet(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
@@ -95,13 +90,10 @@ impl Lattice for TupleType<'_> {
         }
 
         // ... we can't so we need to allocate a new type
-        // merge the two arguments together, as some of the fields may refer to either
-        let mut arguments = self.kind.arguments.clone();
-        arguments.merge(other.kind.arguments.clone());
-
-        let kind = env.intern(TypeKind::Tuple(Self {
-            fields: env.heap.list(&fields),
-            arguments,
+        let kind = env.intern_kind(TypeKind::Tuple(Self {
+            fields: env.intern_type_ids(&fields),
+            // merge the two arguments together, as some of the fields may refer to either
+            arguments: self.kind.arguments.merge(&other.kind.arguments, env),
         }));
 
         let id = env.alloc(|id| Type {
@@ -113,15 +105,12 @@ impl Lattice for TupleType<'_> {
         SmallVec::from_slice(&[id])
     }
 
-    fn uninhabited<'heap>(
-        self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
-    ) -> bool {
+    fn uninhabited(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         // uninhabited if any of the fields are uninhabited
         self.kind.fields.iter().any(|&field| env.uninhabited(field))
     }
 
-    fn semantically_equivalent<'heap>(
+    fn semantically_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut EquivalenceEnvironment<'_, 'heap>,
@@ -136,7 +125,7 @@ impl Lattice for TupleType<'_> {
             && self
                 .kind
                 .arguments
-                .semantically_equivalent(&other.kind.arguments, env)
+                .semantically_equivalent(&other.kind.arguments)
     }
 
     /// Unifies tuple types
@@ -144,7 +133,7 @@ impl Lattice for TupleType<'_> {
     /// In a covariant context:
     /// - Both tuples must have the same number of fields (tuples are invariant in length)
     /// - Each corresponding field must be covariant
-    fn unify<'heap>(
+    fn unify(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut UnificationEnvironment<'_, 'heap>,
@@ -164,10 +153,6 @@ impl Lattice for TupleType<'_> {
             return;
         }
 
-        // Enter generic argument scope for both tuples
-        self.kind.arguments.enter_scope(env);
-        other.kind.arguments.enter_scope(env);
-
         // Unify corresponding fields in each tuple
         for (&lhs_field, &rhs_field) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
             // Fields are covariant
@@ -175,16 +160,12 @@ impl Lattice for TupleType<'_> {
                 env.unify_type(lhs_field, rhs_field);
             });
         }
-
-        // Exit generic argument scope
-        self.kind.arguments.exit_scope(env);
-        other.kind.arguments.exit_scope(env);
     }
 
-    fn simplify(self: Type<Self>, env: &mut SimplifyEnvironment) -> TypeId {
+    fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         let mut fields = Vec::with_capacity(self.kind.fields.len());
 
-        for &field in &self.kind.fields {
+        for &field in self.kind.fields {
             fields.push(env.simplify(field));
         }
 
@@ -202,7 +183,7 @@ impl Lattice for TupleType<'_> {
         // Check if any of the fields are uninhabited, if that is the case we simplify down to an
         // uninhabited type
         if fields.iter().any(|&field| env.uninhabited(field)) {
-            let kind = env.intern(TypeKind::Never);
+            let kind = env.intern_kind(TypeKind::Never);
 
             return env.alloc(|id| Type {
                 id,
@@ -211,9 +192,9 @@ impl Lattice for TupleType<'_> {
             });
         }
 
-        let kind = env.intern(TypeKind::Tuple(Self {
-            fields: env.heap.list(&fields),
-            arguments: self.kind.arguments.clone(),
+        let kind = env.intern_kind(TypeKind::Tuple(Self {
+            fields: env.intern_type_ids(&fields),
+            arguments: self.kind.arguments,
         }));
 
         // ... we can't so we need to allocate a new type
@@ -226,11 +207,11 @@ impl Lattice for TupleType<'_> {
 }
 
 impl PrettyPrint for TupleType<'_> {
-    fn pretty<'heap>(
+    fn pretty<'env>(
         &self,
-        env: &crate::r#type::environment::Environment<'heap>,
+        env: &'env Environment,
         limit: RecursionDepthBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
+    ) -> RcDoc<'env, anstyle::Style> {
         let inner = if self.fields.is_empty() {
             RcDoc::text("()")
         } else if self.fields.len() == 1 {
@@ -274,7 +255,6 @@ mod test {
                 generic_argument::GenericArguments,
                 primitive::PrimitiveType,
                 test::{assert_equiv, primitive, tuple, union},
-                union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             test::instantiate,
