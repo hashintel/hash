@@ -36,10 +36,7 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
 {
    "shortname": "test-group",
-   "administrator": {
-     "actorType": "user",
-     "id": "{{user_id}}"
-   }
+   "administrator": "{{user_id}}"
 }
 
 > {%
