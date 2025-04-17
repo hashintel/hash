@@ -1,6 +1,10 @@
 [`blockprotocol/blockprotocol`]: https://github.com/blockprotocol/blockprotocol
 [mdx]: https://mdxjs.com/?utm_source=hash&utm_medium=github&utm_id=hashdotai&utm_content=readme-file
 
+<!-- markdownlint-disable link-fragments -->
+
+[github_star]: https://github.com/hashintel/hash#
+
 [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
 
 # Content
