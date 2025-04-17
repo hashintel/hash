@@ -3,6 +3,12 @@
 [`internal` monorepo]: https://github.com/hashintel/internal
 [license determination instructions]: https://github.com/hashintel/hash/blob/main/LICENSE.md#1-license-determination
 
+<!-- markdownlint-disable link-fragments -->
+
+[github_star]: https://github.com/hashintel/hash#
+
+[![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
+
 # `hash.dev` content
 
 ## Overview
