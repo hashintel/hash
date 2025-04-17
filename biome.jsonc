@@ -25,7 +25,6 @@
       // see: https://github.com/biomejs/biome/issues/2312
       "@local/graph/api/openapi/**",
       "@local/graph/client/typescript/*.ts",
-      "apps/hashdotdev/sitemap.json"
     ]
   },
   "organizeImports": {
