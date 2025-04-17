@@ -8,7 +8,9 @@ use hash_graph_authorization::{
     policies::store::{
         CreateWebParameter, CreateWebResponse, PrincipalStore, RoleAssignmentStatus,
         RoleUnassignmentStatus,
-        error::{GetSystemAccountError, RoleAssignmentError, WebCreationError},
+        error::{
+            EnsureSystemPoliciesError, GetSystemAccountError, RoleAssignmentError, WebCreationError,
+        },
     },
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
@@ -186,6 +188,10 @@ where
         identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>> {
         self.store.get_or_create_system_actor(identifier).await
+    }
+
+    async fn ensure_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
+        self.store.ensure_system_policies().await
     }
 
     async fn create_web(

@@ -128,9 +128,14 @@ export const createOrg: ImpureGraphFunction<
   if (params.webId) {
     orgWebId = params.webId;
   } else {
-    orgWebId = await createOrgWeb(ctx, authentication, {
-      shortname,
-    }).then(({ webId }) => webId);
+    orgWebId = await createOrgWeb(
+      ctx,
+      { actorId: systemAccountId },
+      {
+        shortname,
+        administrator: authentication.actorId,
+      },
+    ).then(({ webId }) => webId);
   }
 
   const properties: OrganizationPropertiesWithMetadata = {

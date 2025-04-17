@@ -32,10 +32,14 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
 ### Create account group web
 POST http://127.0.0.1:4000/webs
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
 {
-   "shortname": "test-group"
+   "shortname": "test-group",
+   "administrator": {
+     "actorType": "user",
+     "id": "{{user_id}}"
+   }
 }
 
 > {%
