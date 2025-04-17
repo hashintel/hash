@@ -17,6 +17,14 @@ use crate::r#type::{
     recursion::RecursionDepthBoundary,
 };
 
+// EcoVec -> SmallVec<T; N> where N is semi-arbitrarily chosen per type
+// WE NEVER MODIFY THE TYPES
+// TupleType -> TupleData
+// TupleData is interned in a `DashMap`(?)
+// pros: TypeKind becomes Copy, which means we can use ena for unification
+// cons: lifetimes - although we can just use our `Heap`
+// The problem is - how do we get a TypeId this way(?). We would need a separate counter for that
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TupleType {
     pub fields: EcoVec<TypeId>,
