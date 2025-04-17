@@ -1,16 +1,25 @@
 use core::ops::Deref;
 
+use hashbrown::HashMap;
 use scc::HashSet;
 
 use super::{
     Type, TypeId, TypeKind,
     error::{TypeCheckDiagnostic, circular_type_reference},
-    kind::primitive::PrimitiveType,
+    kind::{
+        generic_argument::{GenericArgument, GenericArgumentData, GenericArgumentId},
+        primitive::PrimitiveType,
+    },
     lattice::Lattice as _,
     recursion::RecursionBoundary,
     unify_type_impl,
 };
-use crate::{arena::concurrent::ConcurrentArena, heap::Heap, span::SpanId};
+use crate::{
+    arena::concurrent::ConcurrentArena,
+    heap::{self, Heap},
+    span::SpanId,
+    symbol::Symbol,
+};
 
 /// Represents the type relationship variance used in generic type checking.
 ///
@@ -84,24 +93,22 @@ impl Diagnostics {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Environment<'heap> {
-    pub source: SpanId,
+#[derive(Debug)]
+pub struct Interner<'heap> {
+    heap: &'heap Heap,
 
-    pub heap: &'heap Heap,
     kinds: HashSet<&'heap TypeKind<'heap>, foldhash::fast::RandomState>,
-    pub types: ConcurrentArena<Type<'heap>>,
+    type_ids: HashSet<&'heap [TypeId], foldhash::fast::RandomState>,
+    generic_arguments: HashSet<&'heap [GenericArgument], foldhash::fast::RandomState>,
 }
 
-impl<'heap> Environment<'heap> {
-    #[must_use]
-    pub fn new(source: SpanId, heap: &'heap Heap) -> Self {
+impl<'heap> Interner<'heap> {
+    pub fn new(heap: &'heap Heap) -> Self {
         let this = Self {
-            source,
-
             heap,
             kinds: HashSet::default(),
-            types: ConcurrentArena::new(),
+            type_ids: HashSet::default(),
+            generic_arguments: HashSet::default(),
         };
 
         this.prefill();
@@ -137,7 +144,7 @@ impl<'heap> Environment<'heap> {
             .expect("null should be unique");
     }
 
-    pub fn intern(&self, kind: TypeKind<'heap>) -> &'heap TypeKind<'heap> {
+    pub fn intern_kind(&self, kind: TypeKind<'heap>) -> &'heap TypeKind<'heap> {
         if let Some(kind) = self.kinds.read(&kind, |kind| *kind) {
             kind
         } else {
@@ -145,6 +152,79 @@ impl<'heap> Environment<'heap> {
             self.kinds.insert(kind);
             kind
         }
+    }
+
+    pub fn intern_type_ids(&self, ids: &[TypeId]) -> &'heap [TypeId] {
+        // This is fine, because `TypeId` is `!Drop`.
+        const { assert!(!core::mem::needs_drop::<TypeId>()) };
+
+        if let Some(ids) = self.type_ids.read(ids, |ids| *ids) {
+            ids
+        } else {
+            let ids = self.heap.slice(ids);
+            self.type_ids.insert(ids);
+            ids
+        }
+    }
+
+    pub fn intern_generic_arguments(
+        &self,
+        arguments: &[GenericArgument],
+    ) -> &'heap [GenericArgument] {
+        // This is fine, because `GenericArgument` is `!Drop`.
+        const { assert!(!core::mem::needs_drop::<GenericArgument>()) };
+
+        if let Some(arguments) = self
+            .generic_arguments
+            .read(arguments, |arguments| *arguments)
+        {
+            arguments
+        } else {
+            let arguments = self.heap.slice(arguments);
+            self.generic_arguments.insert(arguments);
+            arguments
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct AuxiliaryData {
+    pub arguments: HashMap<GenericArgumentId, GenericArgumentData, foldhash::fast::RandomState>,
+}
+
+impl AuxiliaryData {
+    pub fn new() -> Self {
+        Self {
+            arguments: HashMap::default(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Environment<'heap> {
+    pub source: SpanId,
+
+    pub heap: &'heap Heap,
+    pub types: ConcurrentArena<Type<'heap>>,
+    pub interner: Interner<'heap>,
+
+    pub auxiliary: AuxiliaryData,
+}
+
+impl<'heap> Environment<'heap> {
+    #[must_use]
+    pub fn new(source: SpanId, heap: &'heap Heap) -> Self {
+        let this = Self {
+            source,
+
+            heap,
+            types: ConcurrentArena::new(),
+            interner: Interner::new(heap),
+
+            auxiliary: AuxiliaryData::new(),
+        };
+
+        this
     }
 
     pub fn alloc(&self, with: impl FnOnce(TypeId) -> Type<'heap>) -> TypeId {

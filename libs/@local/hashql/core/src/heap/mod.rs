@@ -142,6 +142,16 @@ impl Heap {
         target
     }
 
+    pub fn vec_from_slice<T>(&self, slice: &[T]) -> Vec<T>
+    where
+        T: Copy,
+    {
+        let mut target = Vec::with_capacity_in(slice.len(), self);
+        target.extend_from_slice(slice);
+
+        target
+    }
+
     /// Creates a new hash map allocated on this heap.
     ///
     /// The capacity is an optional initial capacity for the hash map, a value of [`None`] indicates

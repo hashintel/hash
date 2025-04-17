@@ -1,14 +1,11 @@
-use core::ops::Index;
-
-use ecow::EcoVec;
 use pretty::RcDoc;
 
 use crate::{
     newtype,
-    symbol::{Ident, Symbol},
+    symbol::Symbol,
     r#type::{
         Type, TypeId,
-        environment::{Environment, EquivalenceEnvironment, UnificationEnvironment},
+        environment::{Environment, UnificationEnvironment},
         error::generic_argument_not_found,
         pretty_print::{ORANGE, PrettyPrint},
         recursion::RecursionDepthBoundary,
@@ -20,36 +17,34 @@ newtype!(
 );
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GenericArgument {
-    pub id: GenericArgumentId,
-    pub name: Ident,
-
-    // The initial type constraint (if present), only used during instantiation and pretty-printing
-    pub constraint: Option<TypeId>,
-
-    pub r#type: TypeId,
+pub struct GenericArgumentData {
+    pub name: Symbol,
 }
 
-impl GenericArgument {
-    fn structurally_equivalent(&self, other: &Self, env: &mut EquivalenceEnvironment) -> bool {
-        self.name.value == other.name.value
-            && env.semantically_equivalent(self.r#type, other.r#type)
-    }
+// The name is stored in the environment, to allow for `!Drop`
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct GenericArgument {
+    pub id: GenericArgumentId,
+
+    // The initial type constraint (if present)
+    pub constraint: Option<TypeId>,
 }
 
 impl PrettyPrint for GenericArgument {
-    fn pretty<'a>(
-        &'a self,
-        arena: &'a impl Index<TypeId, Output = Type>,
+    fn pretty<'this>(
+        &'this self,
+        env: &'this Environment,
         limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'a, anstyle::Style> {
-        let mut doc = RcDoc::text(self.name.value.as_str()).annotate(ORANGE);
+    ) -> RcDoc<'this, anstyle::Style> {
+        let name = &env.auxiliary.arguments[&self.id].name;
+
+        let mut doc = RcDoc::text(name.as_str()).annotate(ORANGE);
 
         if let Some(constraint) = self.constraint {
             doc = doc.append(
                 RcDoc::text(":")
                     .append(RcDoc::line())
-                    .append(limit.pretty(&arena[constraint], arena)),
+                    .append(limit.pretty(env, constraint)),
             );
         }
 
@@ -57,79 +52,50 @@ impl PrettyPrint for GenericArgument {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GenericArguments(EcoVec<GenericArgument>);
+// self.name.value == other.name.value
+//     && env.semantically_equivalent(self.r#type, other.r#type)
 
-impl GenericArguments {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct GenericArguments<'heap>(&'heap [GenericArgument]);
+
+impl<'heap> GenericArguments<'heap> {
     #[must_use]
-    pub const fn new() -> Self {
-        Self(EcoVec::new())
+    pub const fn from_slice(slice: &'heap [GenericArgument]) -> Self {
+        Self(slice)
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &GenericArgument> {
         self.0.iter()
     }
 
-    pub fn merge(&mut self, other: Self) {
+    pub fn merge(self, other: Self, env: &Environment<'heap>) -> Self {
         // We can merge without de-duplication, because every argument has a unique ID.
         // What we need to do tho, is to re-sort them, so that the invariants are maintained.
-        self.0.extend(other.0);
+        let mut vec = Vec::with_capacity(self.0.len() + other.0.len());
 
-        let slice = self.0.make_mut();
-        slice.sort_by(|lhs, rhs| lhs.name.value.cmp(&rhs.name.value));
-    }
+        vec.extend_from_slice(self.0);
+        vec.extend_from_slice(other.0);
 
-    pub fn enter_scope(&self, env: &mut Environment) {
-        for argument in &self.0 {
-            env.enter_generic_argument_scope(argument.id, argument.r#type);
-        }
-    }
+        vec.sort_by(|lhs, rhs| lhs.id.cmp(&rhs.id));
 
-    pub fn exit_scope(&self, env: &mut Environment) {
-        for argument in &self.0 {
-            env.exit_generic_argument_scope(argument.id);
-        }
-    }
-
-    pub(crate) fn semantically_equivalent(
-        &self,
-        other: &Self,
-        env: &mut EquivalenceEnvironment,
-    ) -> bool {
-        // We do not need to sort the arguments, because the constructor
-        // guarantees that they are in lexicographical order.
-
-        self.0.len() == other.0.len()
-            && self
-                .0
-                .iter()
-                .zip(other.0.iter())
-                .all(|(lhs, rhs)| lhs.structurally_equivalent(rhs, env))
+        let arguments = env.interner.intern_generic_arguments(&vec);
+        Self::from_slice(arguments)
     }
 }
 
-impl FromIterator<GenericArgument> for GenericArguments {
-    fn from_iter<T: IntoIterator<Item = GenericArgument>>(iter: T) -> Self {
-        let mut vec = Vec::from_iter(iter);
-        vec.sort_by(|lhs, rhs| lhs.name.value.cmp(&rhs.name.value));
-
-        Self(EcoVec::from(vec))
-    }
-}
-
-impl PrettyPrint for GenericArguments {
-    fn pretty<'a>(
-        &'a self,
-        arena: &'a impl Index<TypeId, Output = Type>,
+impl PrettyPrint for GenericArguments<'_> {
+    fn pretty<'this>(
+        &'this self,
+        env: &'this Environment,
         limit: RecursionDepthBoundary,
-    ) -> RcDoc<'a, anstyle::Style> {
+    ) -> RcDoc<'this, anstyle::Style> {
         if self.0.is_empty() {
             RcDoc::nil()
         } else {
             RcDoc::text("<")
                 .append(
                     RcDoc::intersperse(
-                        self.0.iter().map(|argument| argument.pretty(arena, limit)),
+                        self.0.iter().map(|argument| argument.pretty(env, limit)),
                         RcDoc::text(",").append(RcDoc::line()),
                     )
                     .nest(1)
@@ -140,32 +106,26 @@ impl PrettyPrint for GenericArguments {
     }
 }
 
-impl Default for GenericArguments {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Param {
     pub argument: GenericArgumentId,
-
-    pub name: Symbol,
 }
 
 impl Param {
-    pub(crate) fn structurally_equivalent(&self, other: &Self) -> bool {
-        self.argument == other.argument && self.name == other.name
+    pub(crate) fn semantically_equivalent(&self, other: &Self) -> bool {
+        self.argument == other.argument
     }
 }
 
 impl PrettyPrint for Param {
-    fn pretty<'a>(
-        &'a self,
-        _: &'a impl Index<TypeId, Output = Type>,
+    fn pretty<'this>(
+        &'this self,
+        env: &'this Environment,
         _: RecursionDepthBoundary,
-    ) -> RcDoc<'a, anstyle::Style> {
-        RcDoc::text(self.name.as_str())
+    ) -> RcDoc<'this, anstyle::Style> {
+        let name = &env.auxiliary.arguments[&self.argument].name;
+
+        RcDoc::text(name.as_str())
     }
 }
 

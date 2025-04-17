@@ -66,11 +66,11 @@ where
 }
 
 pub(crate) trait PrettyPrint {
-    fn pretty<'heap>(
-        &self,
-        env: &Environment<'heap>,
+    fn pretty<'this>(
+        &'this self,
+        env: &'this Environment,
         limit: RecursionDepthBoundary,
-    ) -> RcDoc<'heap, Style>;
+    ) -> RcDoc<'this, Style>;
 
     fn pretty_print(&self, env: &Environment, width: usize) -> String {
         let mut output = Vec::new();

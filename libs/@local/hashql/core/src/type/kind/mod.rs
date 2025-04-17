@@ -5,6 +5,7 @@
 // pub mod opaque;
 pub mod primitive;
 // pub mod r#struct;
+pub mod generic_argument;
 #[cfg(test)]
 pub(crate) mod test;
 pub mod tuple;
@@ -166,6 +167,7 @@ impl PrettyPrint for TypeKind<'_> {
 const _: () = {
     assert!(
         !core::mem::needs_drop::<TypeKind<'static>>(),
-        "TypeKind cannot contain a `Drop` constructor, as it would likely cause a memory leak"
+        "TypeKind cannot contain a `Drop` constructor, as it would cause a memory leak on heap \
+         reset, as `Drop` won't be run."
     );
 };

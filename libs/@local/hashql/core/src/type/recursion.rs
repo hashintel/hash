@@ -10,14 +10,11 @@ pub(crate) struct RecursionDepthBoundary {
 }
 
 impl RecursionDepthBoundary {
-    pub(crate) fn pretty<'heap, T>(
+    pub(crate) fn pretty<'this>(
         self,
-        env: &Environment<'heap>,
+        env: &'this Environment,
         id: TypeId,
-    ) -> RcDoc<'heap, anstyle::Style>
-    where
-        T: PrettyPrint,
-    {
+    ) -> RcDoc<'this, anstyle::Style> {
         if self.depth >= self.limit {
             RcDoc::text("...")
         } else {
