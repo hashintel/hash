@@ -12,7 +12,6 @@ use super::{
     },
     lattice::Lattice as _,
     recursion::RecursionBoundary,
-    unify_type_impl,
 };
 use crate::{arena::concurrent::ConcurrentArena, heap::Heap, span::SpanId};
 
@@ -275,7 +274,8 @@ impl<'env, 'heap> UnificationEnvironment<'env, 'heap> {
             return;
         }
 
-        unify_type_impl(self, lhs, rhs);
+        // unify_type_impl(self, lhs, rhs);
+        todo!("Implement type unification");
 
         self.boundary.exit(lhs, rhs);
     }

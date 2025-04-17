@@ -146,7 +146,7 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         }
     }
 
-    fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+    fn simplify(self: Type<'heap, Self>, _: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         self.id
     }
 }
@@ -166,8 +166,8 @@ impl PrimitiveType {
 impl PrettyPrint for PrimitiveType {
     fn pretty<'env>(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
+        _: &'env Environment,
+        _: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
         RcDoc::text(self.as_str()).annotate(BLUE)
     }
@@ -380,7 +380,7 @@ mod test {
     #[test]
     fn uninhabited() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, string, PrimitiveType::String);
@@ -401,7 +401,7 @@ mod test {
     #[test]
     fn semantic_equivalence() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, number2, PrimitiveType::Number); // Second Number type
@@ -569,7 +569,7 @@ mod test {
         let result = a.simplify(&mut simplify_env);
         let result_type = env.types[result].copied();
 
-        assert_eq!(result_type.kind, TypeKind::Primitive(primitive));
+        assert_eq!(*result_type.kind, TypeKind::Primitive(primitive));
     }
 
     #[test]

@@ -3729,6 +3729,7 @@ dependencies = [
  "archery",
  "bumpalo",
  "ecow",
+ "ena",
  "foldhash",
  "hashbrown 0.15.2",
  "hashql-diagnostics",

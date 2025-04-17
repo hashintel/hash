@@ -55,6 +55,10 @@ impl PrettyPrint for GenericArgument {
 pub struct GenericArguments<'heap>(&'heap [GenericArgument]);
 
 impl<'heap> GenericArguments<'heap> {
+    pub const fn empty() -> Self {
+        Self(&[])
+    }
+
     #[must_use]
     pub const fn from_slice(slice: &'heap [GenericArgument]) -> Self {
         Self(slice)

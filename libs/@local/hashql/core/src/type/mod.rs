@@ -50,16 +50,16 @@ impl<K> PrettyPrint for Type<'_, K>
 where
     K: PrettyPrint,
 {
-    fn pretty<'this>(
-        &'this self,
-        env: &'this environment::Environment,
+    fn pretty<'env>(
+        &self,
+        env: &'env environment::Environment,
         limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'this, anstyle::Style> {
+    ) -> pretty::RcDoc<'env, anstyle::Style> {
         self.kind.pretty(env, limit)
     }
 }
 
-impl<'heap, K> HasId for Type<'heap, K> {
+impl<K> HasId for Type<'_, K> {
     type Id = TypeId;
 
     fn id(&self) -> Self::Id {
@@ -67,7 +67,7 @@ impl<'heap, K> HasId for Type<'heap, K> {
     }
 }
 
-impl<'heap, K: ?Sized> Receiver for Type<'heap, K> {
+impl<K: ?Sized> Receiver for Type<'_, K> {
     type Target = K;
 }
 

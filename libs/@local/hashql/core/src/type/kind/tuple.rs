@@ -238,11 +238,8 @@ impl PrettyPrint for TupleType<'_> {
 #[cfg(test)]
 mod test {
     #![expect(clippy::min_ident_chars)]
-    use ecow::EcoVec;
-
     use super::TupleType;
     use crate::{
-        arena::TransactionalArena,
         heap::Heap,
         span::SpanId,
         r#type::{
@@ -358,7 +355,8 @@ mod test {
 
     #[test]
     fn join_tuples_with_different_field_types() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         tuple!(
             env,
@@ -406,7 +404,8 @@ mod test {
 
     #[test]
     fn meet_identical_tuples() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         tuple!(
             env,
@@ -447,7 +446,8 @@ mod test {
 
     #[test]
     fn meet_different_length_tuples() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples of different lengths
         tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
@@ -470,7 +470,8 @@ mod test {
 
     #[test]
     fn meet_tuples_with_different_field_types() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples with same length but different field types
         tuple!(
@@ -505,7 +506,7 @@ mod test {
                     // Number ⊓ Integer = Integer (Integer is subtype of number)
                     primitive!(env, PrimitiveType::Integer),
                     // String ⊓ Boolean = Never
-                    instantiate(&mut env, TypeKind::Never)
+                    instantiate(&env, TypeKind::Never)
                 ]
             )]
         );
@@ -513,7 +514,8 @@ mod test {
 
     #[test]
     fn uninhabited_tuples() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a normal tuple with inhabited types
         tuple!(
@@ -535,7 +537,7 @@ mod test {
             [],
             [
                 primitive!(env, PrimitiveType::Number),
-                instantiate(&mut env, TypeKind::Never),
+                instantiate(&env, TypeKind::Never),
                 primitive!(env, PrimitiveType::String)
             ]
         );
@@ -554,7 +556,8 @@ mod test {
 
     #[test]
     fn semantic_equivalence() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples with same structure but different TypeIds
         tuple!(
@@ -605,7 +608,8 @@ mod test {
 
     #[test]
     fn unification_same_structure() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create two tuples with compatible types
         // (Number, String) and (Integer, String) are compatible because Integer <: Number
@@ -634,14 +638,15 @@ mod test {
         // Unifying compatible tuples should succeed without errors
         a.unify(b, &mut unif_env);
         assert!(
-            unif_env.take_diagnostics().is_empty(),
+            unif_env.diagnostics.take().is_empty(),
             "Unification of compatible tuples should succeed"
         );
     }
 
     #[test]
     fn unification_different_length() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples of different lengths
         tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
@@ -660,7 +665,7 @@ mod test {
 
         // Unifying tuples of different lengths should produce a diagnostic
         a.unify(b, &mut unif_env);
-        let diagnostics = unif_env.take_diagnostics();
+        let diagnostics = unif_env.diagnostics.take();
         assert!(
             !diagnostics.is_empty(),
             "Unification of tuples with different lengths should fail"
@@ -669,7 +674,8 @@ mod test {
 
     #[test]
     fn unification_incompatible_field_types() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples with incompatible field types
         // Number and Boolean are incompatible types
@@ -697,7 +703,7 @@ mod test {
 
         // Unifying tuples with incompatible field types should produce diagnostics
         a.unify(b, &mut unif_env);
-        let diagnostics = unif_env.take_diagnostics();
+        let diagnostics = unif_env.diagnostics.take();
         assert!(
             !diagnostics.is_empty(),
             "Unification of tuples with incompatible fields should fail"
@@ -706,7 +712,8 @@ mod test {
 
     #[test]
     fn simplify_tuple() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a tuple with fields
         tuple!(
@@ -731,7 +738,8 @@ mod test {
 
     #[test]
     fn lattice_laws() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+        let heap = Heap::new();
+        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create three distinct single-element tuples for testing lattice laws
         // We need these to have different element types for proper lattice testing
@@ -755,49 +763,5 @@ mod test {
             b,
             c,
         );
-    }
-
-    #[test]
-    fn structurally_equivalent() {
-        let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
-
-        // First create type IDs for our field types
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, string, PrimitiveType::String);
-        primitive!(env, boolean, PrimitiveType::Boolean);
-
-        // Test the structurally_equivalent method directly with identical tuples
-        let tuple_a = TupleType {
-            fields: EcoVec::from_iter([number.id, string.id]),
-            arguments: GenericArguments::default(),
-        };
-
-        let tuple_b = TupleType {
-            fields: EcoVec::from_iter([number.id, string.id]),
-            arguments: GenericArguments::default(),
-        };
-
-        let mut equiv_env = EquivalenceEnvironment::new(&env);
-
-        // Identical tuples should be structurally equivalent
-        assert!(tuple_a.structurally_equivalent(&tuple_b, &mut equiv_env));
-
-        // Test with different field types
-        let tuple_c = TupleType {
-            fields: EcoVec::from_iter([number.id, boolean.id]),
-            arguments: GenericArguments::default(),
-        };
-
-        // Tuples with different field types should not be equivalent
-        assert!(!tuple_a.structurally_equivalent(&tuple_c, &mut equiv_env));
-
-        // Test with different length
-        let tuple_d = TupleType {
-            fields: EcoVec::from_iter([number.id]),
-            arguments: GenericArguments::default(),
-        };
-
-        // Tuples with different lengths should not be equivalent
-        assert!(!tuple_a.structurally_equivalent(&tuple_d, &mut equiv_env));
     }
 }

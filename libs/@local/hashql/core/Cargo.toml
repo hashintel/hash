@@ -23,6 +23,7 @@ text-size = { workspace = true, public = true }
 anstyle            = { workspace = true }
 archery            = { workspace = true }
 bumpalo            = { workspace = true, features = ["allocator_api"] }
+ena                = "0.14.3"
 orx-concurrent-vec = { workspace = true }
 pretty             = { workspace = true }
 rpds               = { workspace = true }

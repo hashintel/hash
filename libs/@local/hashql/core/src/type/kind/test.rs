@@ -33,9 +33,10 @@ macro_rules! tuple {
 
 macro_rules! union {
     ($env:expr, $variants:expr) => {{
-        let variants = $env.heap.list(&$variants);
+        let variants = $env.intern_type_ids(&$variants);
 
-        instantiate(&mut $env, TypeKind::Union(UnionType { variants }))
+        unimplemented!()
+        // instantiate(&mut $env, TypeKind::Union(UnionType { variants }))
     }};
 
     ($env:expr, $name:ident, $variants:expr) => {

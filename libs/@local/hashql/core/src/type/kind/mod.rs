@@ -149,11 +149,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 }
 
 impl PrettyPrint for TypeKind<'_> {
-    fn pretty<'this>(
-        &'this self,
-        env: &'this Environment,
+    fn pretty<'env>(
+        &self,
+        env: &'env Environment,
         limit: RecursionDepthBoundary,
-    ) -> RcDoc<'this, anstyle::Style> {
+    ) -> RcDoc<'env, anstyle::Style> {
         todo!()
     }
 }
