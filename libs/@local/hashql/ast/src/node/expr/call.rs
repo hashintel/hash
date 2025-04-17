@@ -1,7 +1,7 @@
-use hashql_core::{span::SpanId, symbol::Ident};
+use hashql_core::{heap, span::SpanId, symbol::Ident};
 
 use super::Expr;
-use crate::{heap, node::id::NodeId};
+use crate::node::id::NodeId;
 
 /// An argument passed to a function call.
 ///

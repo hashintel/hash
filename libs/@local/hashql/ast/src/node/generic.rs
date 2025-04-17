@@ -1,7 +1,6 @@
-use hashql_core::{span::SpanId, symbol::Ident};
+use hashql_core::{heap, span::SpanId, symbol::Ident};
 
 use super::{id::NodeId, r#type::Type};
-use crate::heap;
 
 /// A concrete type argument for a generic type.
 ///

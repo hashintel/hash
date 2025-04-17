@@ -1,10 +1,7 @@
-use hashql_core::{span::SpanId, symbol::Ident};
+use hashql_core::{heap, span::SpanId, symbol::Ident};
 
 use super::Expr;
-use crate::{
-    heap,
-    node::{id::NodeId, r#type::Type},
-};
+use crate::node::{id::NodeId, r#type::Type};
 
 /// A new type definition expression in the HashQL Abstract Syntax Tree.
 ///

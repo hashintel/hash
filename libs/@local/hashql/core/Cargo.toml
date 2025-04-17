@@ -12,6 +12,8 @@ hashql-diagnostics = { workspace = true, public = true }
 
 # Public third-party dependencies
 ecow      = { workspace = true, public = true }
+foldhash  = { workspace = true, public = true }
+hashbrown = { workspace = true, features = ["nightly"], public = true }
 smallvec  = { version = "2.0.0-alpha.11", public = true }
 text-size = { workspace = true, public = true }
 
@@ -20,7 +22,7 @@ text-size = { workspace = true, public = true }
 # Private third-party dependencies
 anstyle            = { workspace = true }
 archery            = { workspace = true }
-foldhash           = { workspace = true }
+bumpalo            = { workspace = true, features = ["allocator_api"] }
 orx-concurrent-vec = { workspace = true }
 pretty             = { workspace = true }
 rpds               = { workspace = true }

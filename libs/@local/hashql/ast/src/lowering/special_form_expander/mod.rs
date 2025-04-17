@@ -5,7 +5,11 @@ use core::{
     mem,
 };
 
-use hashql_core::{span::SpanId, symbol::Ident};
+use hashql_core::{
+    heap::{self, Heap},
+    span::SpanId,
+    symbol::Ident,
+};
 
 use self::error::{
     BindingMode, InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic,
@@ -18,7 +22,6 @@ use self::error::{
     use_imports_with_type_annotation, use_path_with_generics,
 };
 use crate::{
-    heap::{self, Heap},
     node::{
         expr::{
             CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr, IsExpr,

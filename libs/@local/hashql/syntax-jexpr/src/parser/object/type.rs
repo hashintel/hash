@@ -1,7 +1,5 @@
-use hashql_ast::{
-    heap,
-    node::{expr::Expr, r#type::Type},
-};
+use hashql_ast::node::{expr::Expr, r#type::Type};
+use hashql_core::heap;
 use text_size::TextRange;
 
 use super::{

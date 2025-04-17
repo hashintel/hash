@@ -1,10 +1,10 @@
-//! Memory management utilities for the HashQL Abstract Syntax Tree.
+//! Memory management utilities for HashQL.
 //!
-//! This module provides arena-based allocation for AST nodes through a custom `Heap`
+//! This module provides arena-based allocation through a custom `Heap`
 //! implementation. Arena allocation is an efficient memory management strategy that
 //! significantly improves performance for AST construction.
 //!
-//! The benefits of arena allocation for AST nodes include:
+//! The benefits of arena allocation include:
 //!
 //! 1. Reducing allocation overhead by batch-allocating memory
 //! 2. Eliminating individual deallocation calls
@@ -13,7 +13,7 @@
 //!
 //! ## Usage
 //!
-//! AST nodes and collections are parameterized with a `'heap` lifetime that references
+//! Types are parameterized with a `'heap` lifetime that references
 //! the memory region where they are allocated.
 //!
 //! ```

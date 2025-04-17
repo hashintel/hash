@@ -1,7 +1,6 @@
-use hashql_core::{span::SpanId, symbol::Ident};
+use hashql_core::{heap, span::SpanId, symbol::Ident};
 
 use super::{id::NodeId, path::Path};
-use crate::heap;
 
 /// A field definition in a struct type.
 ///

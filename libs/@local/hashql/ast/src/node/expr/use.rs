@@ -1,10 +1,7 @@
-use hashql_core::{span::SpanId, symbol::Ident};
+use hashql_core::{heap, span::SpanId, symbol::Ident};
 
 use super::Expr;
-use crate::{
-    heap,
-    node::{id::NodeId, path::Path},
-};
+use crate::node::{id::NodeId, path::Path};
 
 /// A binding for an imported symbol.
 ///

@@ -9,8 +9,8 @@ use error_stack::{
     Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, TryReportTupleExt as _,
 };
 use guppy::graph::PackageMetadata;
-use hashql_ast::{heap::Heap, node::expr::Expr};
-use hashql_core::span::storage::SpanStorage;
+use hashql_ast::node::expr::Expr;
+use hashql_core::{heap::Heap, span::storage::SpanStorage};
 use hashql_syntax_jexpr::{Parser, span::Span};
 use line_index::LineIndex;
 use nextest_filtering::{BinaryQuery, EvalContext, Filterset, TestQuery};
