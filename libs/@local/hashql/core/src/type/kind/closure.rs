@@ -35,7 +35,7 @@ impl ClosureType {
             && env.semantically_equivalent(self.return_type, other.return_type)
             && self
                 .arguments
-                .structurally_equivalent(&other.arguments, env)
+                .semantically_equivalent(&other.arguments, env)
     }
 }
 

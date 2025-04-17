@@ -87,7 +87,7 @@ impl GenericArguments {
         }
     }
 
-    pub(crate) fn structurally_equivalent(
+    pub(crate) fn semantically_equivalent(
         &self,
         other: &Self,
         env: &mut EquivalenceEnvironment,

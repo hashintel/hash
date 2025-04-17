@@ -19,7 +19,11 @@ use self::{
 };
 use super::{
     Type, TypeId,
-    environment::EquivalenceEnvironment,
+    environment::{
+        EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+        UnificationEnvironment,
+    },
+    lattice::Lattice,
     pretty_print::{CYAN, GRAY, PrettyPrint},
     recursion::RecursionDepthBoundary,
 };
@@ -126,6 +130,44 @@ impl TypeKind {
 
             _ => false,
         }
+    }
+}
+
+impl Lattice for TypeKind {
+    fn join(
+        self: Type<&Self>,
+        other: Type<&Self>,
+        env: &mut LatticeEnvironment,
+    ) -> smallvec::SmallVec<TypeId, 4> {
+        todo!()
+    }
+
+    fn meet(
+        self: Type<&Self>,
+        other: Type<&Self>,
+        env: &mut LatticeEnvironment,
+    ) -> smallvec::SmallVec<TypeId, 4> {
+        todo!()
+    }
+
+    fn uninhabited(self: Type<&Self>, env: &mut TypeAnalysisEnvironment) -> bool {
+        todo!()
+    }
+
+    fn semantically_equivalent(
+        self: Type<&Self>,
+        other: Type<&Self>,
+        env: &mut EquivalenceEnvironment,
+    ) -> bool {
+        todo!()
+    }
+
+    fn unify(self: Type<&Self>, other: Type<&Self>, env: &mut UnificationEnvironment) {
+        todo!()
+    }
+
+    fn simplify(self: Type<&Self>, env: &mut SimplifyEnvironment) -> TypeId {
+        todo!()
     }
 }
 

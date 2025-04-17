@@ -82,7 +82,7 @@ impl StructType {
                 .all(|(lhs, rhs)| lhs.structurally_equivalent(rhs, env))
             && self
                 .arguments
-                .structurally_equivalent(&other.arguments, env)
+                .semantically_equivalent(&other.arguments, env)
     }
 }
 

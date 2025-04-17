@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use super::{
     Type, TypeId, TypeKind,
     error::{TypeCheckDiagnostic, circular_type_reference},
-    kind::generic_argument::GenericArgumentId,
+    kind::{generic_argument::GenericArgumentId, union::UnionType},
+    lattice::Lattice as _,
     recursion::RecursionBoundary,
     unify_type_impl,
 };
@@ -243,6 +244,12 @@ impl<'env> SimplifyEnvironment<'env> {
             boundary: RecursionBoundary::new(),
         }
     }
+
+    pub fn simplify(&mut self, id: TypeId) -> TypeId {
+        let r#type = self.environment.arena[id].clone();
+
+        r#type.as_ref().simplify(self)
+    }
 }
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
@@ -271,6 +278,31 @@ impl<'env> LatticeEnvironment<'env> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
+        }
+    }
+
+    pub fn join(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
+        let lhs = self.environment.arena[lhs].clone();
+        let rhs = self.environment.arena[rhs].clone();
+
+        let variants = lhs.as_ref().join(rhs.as_ref(), self);
+
+        if variants.len() == 0 {
+            self.environment.arena.push_with(|id| Type {
+                id,
+                span: lhs.span,
+                kind: TypeKind::Never,
+            })
+        } else if variants.len() == 1 {
+            variants[0]
+        } else {
+            self.environment.arena.push_with(|id| Type {
+                id,
+                span: lhs.span,
+                kind: TypeKind::Union(UnionType {
+                    variants: variants.into_iter().collect(),
+                }),
+            })
         }
     }
 }
@@ -302,6 +334,12 @@ impl<'env> TypeAnalysisEnvironment<'env> {
             environment,
             boundary: RecursionBoundary::new(),
         }
+    }
+
+    pub fn uninhabited(&mut self, id: TypeId) -> bool {
+        let r#type = self.environment.arena[id].as_ref();
+
+        r#type.uninhabited(self)
     }
 }
 

@@ -31,7 +31,7 @@ impl OpaqueType {
         self.name == other.name
             && self
                 .arguments
-                .structurally_equivalent(&other.arguments, env)
+                .semantically_equivalent(&other.arguments, env)
     }
 }
 
