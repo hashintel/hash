@@ -24,8 +24,7 @@
       // Biome 1 doesn't support nested gitignores yet (Biome 2 will gain support)
       // see: https://github.com/biomejs/biome/issues/2312
       "@local/graph/api/openapi/**",
-      "@local/graph/client/typescript/*.ts",
-      "apps/hashdotdev/sitemap.json"
+      "@local/graph/client/typescript/*.ts"
     ]
   },
   "organizeImports": {

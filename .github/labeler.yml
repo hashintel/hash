@@ -7,11 +7,6 @@ area/apps > hash*:
       - any-glob-to-any-file: apps/hash-*/**
       - any-glob-to-any-file: libs/@local/hash-*/**
 
-area/apps > hash.ai:
-  - changed-files:
-      - any-glob-to-any-file: apps/hashdotai/docs/**
-      - any-glob-to-any-file: apps/hashdotai/glossary/**
-
 area/apps > hash-api:
   - changed-files:
       - any-glob-to-any-file: apps/hash-api/**
@@ -19,10 +14,6 @@ area/apps > hash-api:
 area/apps > hash.design:
   - changed-files:
       - any-glob-to-any-file: apps/hashdotdesign/**
-
-area/apps > hash.dev:
-  - changed-files:
-      - any-glob-to-any-file: apps/hashdotdev/**
 
 area/apps > hash-graph:
   - changed-files:
@@ -39,6 +30,14 @@ area/apps > hash-search-loader:
 area/blocks:
   - changed-files:
       - any-glob-to-any-file: blocks/**
+
+area/content > hash.ai:
+  - changed-files:
+      - any-glob-to-any-file: apps/hashdotai/**
+
+area/content > hash.dev:
+  - changed-files:
+      - any-glob-to-any-file: content/hashdotdev/**
 
 area/deps:
   - changed-files:
