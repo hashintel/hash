@@ -45,7 +45,7 @@ use type_system::{
         },
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::ActorEntityUuid,
+    principal::actor::ActorEntityUuid,
 };
 
 use crate::store::{

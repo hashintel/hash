@@ -6,8 +6,8 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
     policies::store::{
-        CreateWebParameter, PrincipalStore,
-        error::{GetSystemAccountError, WebCreationError},
+        CreateWebParameter, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
+        error::{GetSystemAccountError, RoleAssignmentError, WebCreationError},
     },
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
@@ -65,7 +65,10 @@ use tarpc::context;
 use tokio::net::ToSocketAddrs;
 use tracing::Instrument as _;
 use type_system::{
-    knowledge::{Entity, entity::EntityId},
+    knowledge::{
+        Entity,
+        entity::{EntityId, id::EntityUuid},
+    },
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference, OntologyTypeSchema,
         VersionedUrl,
@@ -75,8 +78,12 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{
+        actor::{ActorEntityUuid, ActorId, ActorType, MachineId},
+        actor_group::{ActorGroupEntityUuid, WebId},
+        role::RoleName,
+    },
+    provenance::{OriginProvenance, OriginType},
 };
 
 use crate::fetcher::{FetchedOntologyType, FetcherClient};
@@ -184,6 +191,30 @@ where
         parameter: CreateWebParameter,
     ) -> Result<WebId, Report<WebCreationError>> {
         self.store.create_web(actor, parameter).await
+    }
+
+    async fn assign_role(
+        &mut self,
+        actor: ActorEntityUuid,
+        actor_to_assign: ActorEntityUuid,
+        actor_group_id: ActorGroupEntityUuid,
+        name: RoleName,
+    ) -> Result<RoleAssignmentStatus, Report<RoleAssignmentError>> {
+        self.store
+            .assign_role(actor, actor_to_assign, actor_group_id, name)
+            .await
+    }
+
+    async fn unassign_role(
+        &mut self,
+        actor: ActorEntityUuid,
+        actor_to_unassign: ActorEntityUuid,
+        actor_group_id: ActorGroupEntityUuid,
+        name: RoleName,
+    ) -> Result<RoleUnassignmentStatus, Report<RoleAssignmentError>> {
+        self.store
+            .unassign_role(actor, actor_to_unassign, actor_group_id, name)
+            .await
     }
 }
 
@@ -848,11 +879,11 @@ where
         self.store.insert_web_id(actor_id, params).await
     }
 
-    async fn identify_web_id(
+    async fn identify_subject_id(
         &self,
-        web_id: WebId,
+        subject_id: EntityUuid,
     ) -> Result<WebOwnerSubject, Report<QueryWebError>> {
-        self.store.identify_web_id(web_id).await
+        self.store.identify_subject_id(subject_id).await
     }
 }
 

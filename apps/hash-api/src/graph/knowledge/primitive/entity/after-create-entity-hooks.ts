@@ -106,7 +106,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
           context,
           { actorId: pageAuthor.accountId },
           {
-            webId: pageAuthor.accountId as WebId,
+            webId: pageAuthor.accountId,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
             occurredInEntity,
@@ -170,7 +170,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
           context,
           { actorId: parentCommentAuthor.accountId },
           {
-            webId: parentCommentAuthor.accountId as WebId,
+            webId: parentCommentAuthor.accountId,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
             occurredInEntity,
@@ -258,7 +258,7 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
             /** @todo: use authentication of machine user instead */
             { actorId: mentionedUser.accountId },
             {
-              webId: mentionedUser.accountId as WebId,
+              webId: mentionedUser.accountId,
               occurredInEntity,
               occurredInBlock,
               occurredInComment,

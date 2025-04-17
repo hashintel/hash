@@ -272,7 +272,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
     [draftEntitiesWithCreators],
   );
 
-  const webWebIds = useMemo(
+  const webIds = useMemo(
     () =>
       draftEntitiesWithCreators
         ? getDraftEntityWebIds({
@@ -288,34 +288,30 @@ export const DraftEntitiesFilters: FunctionComponent<{
   const { users } = useUsers();
 
   const webs = useMemo(() => {
-    if (!orgs || !users || !webWebIds) {
+    if (!orgs || !users || !webIds) {
       return undefined;
     }
 
-    return webWebIds.map((webWebId) => {
-      const org = orgs.find(
-        ({ accountGroupId }) => accountGroupId === webWebId,
-      );
+    return webIds.map((webId) => {
+      const org = orgs.find(({ webId: idToFind }) => idToFind === webId);
 
       if (org) {
         return org;
       }
 
-      if (authenticatedUser.accountId === webWebId) {
+      if (authenticatedUser.accountId === webId) {
         return authenticatedUser;
       }
 
-      const user = users.find(({ accountId }) => accountId === webWebId);
+      const user = users.find(({ accountId }) => accountId === webId);
 
       if (user) {
         return user;
       }
 
-      throw new Error(
-        `Could not find web of draft entity with webId ${webWebId}`,
-      );
+      throw new Error(`Could not find web of draft entity with webId ${webId}`);
     });
-  }, [webWebIds, orgs, users, authenticatedUser]);
+  }, [webIds, orgs, users, authenticatedUser]);
 
   const filterSections = useMemo<FilterSectionDefinition[]>(() => {
     /**
@@ -474,7 +470,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
             )
             .map(({ web, label }) => {
               const webWebId = (
-                web.kind === "user" ? web.accountId : web.accountGroupId
+                web.kind === "user" ? web.accountId : web.webId
               ) as WebId;
               return {
                 icon: web.kind === "user" ? <UserIcon /> : <UsersRegularIcon />,
@@ -559,10 +555,8 @@ export const DraftEntitiesFilters: FunctionComponent<{
 
   const allWebsSelected = useMemo(
     () =>
-      filterState &&
-      webWebIds &&
-      filterState.webWebIds.length === webWebIds.length,
-    [filterState, webWebIds],
+      filterState && webIds && filterState.webWebIds.length === webIds.length,
+    [filterState, webIds],
   );
 
   const isDefaultFilterState = useMemo(

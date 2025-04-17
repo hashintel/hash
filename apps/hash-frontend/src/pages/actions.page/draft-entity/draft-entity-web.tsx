@@ -28,7 +28,7 @@ export const DraftEntityWeb: FunctionComponent<{ entity: HashEntity }> = ({
       return undefined;
     }
 
-    const org = orgs.find(({ accountGroupId }) => accountGroupId === webId);
+    const org = orgs.find(({ webId: idToFind }) => webId === idToFind);
 
     if (org) {
       return org;

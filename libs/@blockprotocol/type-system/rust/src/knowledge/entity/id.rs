@@ -10,10 +10,18 @@ use serde::{
 use utoipa::{ToSchema, openapi};
 use uuid::Uuid;
 
-use crate::web::WebId;
+use crate::principal::actor_group::WebId;
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::Display,
 )]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
@@ -25,29 +33,27 @@ pub struct EntityUuid(
 
 impl EntityUuid {
     #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-
-    #[must_use]
-    pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
-    }
-
-    #[must_use]
-    pub const fn into_uuid(self) -> Uuid {
-        self.0
+    pub fn new(uuid: impl Into<Uuid>) -> Self {
+        Self(uuid.into())
     }
 }
 
-impl fmt::Display for EntityUuid {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
+impl From<EntityUuid> for Uuid {
+    fn from(value: EntityUuid) -> Self {
+        value.0
     }
 }
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::Display,
 )]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
@@ -59,28 +65,18 @@ pub struct DraftId(
 
 impl DraftId {
     #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-
-    #[must_use]
-    pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
-    }
-
-    #[must_use]
-    pub const fn into_uuid(self) -> Uuid {
-        self.0
+    pub fn new(uuid: impl Into<Uuid>) -> Self {
+        Self(uuid.into())
     }
 }
 
-impl fmt::Display for DraftId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
+impl From<DraftId> for Uuid {
+    fn from(value: DraftId) -> Self {
+        value.0
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct EntityId {
     pub web_id: WebId,
     pub entity_uuid: EntityUuid,

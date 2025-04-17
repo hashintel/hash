@@ -1,6 +1,6 @@
 import type {
   ActorEntityUuid,
-  ActorGroupId,
+  ActorGroupEntityUuid,
   Entity,
   EntityId,
   WebId,
@@ -584,7 +584,7 @@ const parseGqlAuthorizationViewerInput = ({
     }
     return {
       kind: "accountGroup",
-      subjectId: viewer as ActorGroupId,
+      subjectId: viewer as ActorGroupEntityUuid,
       subjectSet: "member",
     } as const;
   }

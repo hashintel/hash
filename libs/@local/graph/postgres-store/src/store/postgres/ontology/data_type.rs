@@ -51,7 +51,7 @@ use type_system::{
         json_schema::OntologyTypeResolver,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::ActorEntityUuid,
+    principal::actor::ActorEntityUuid,
 };
 
 use crate::store::{

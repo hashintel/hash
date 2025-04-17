@@ -10,12 +10,10 @@
 //! These components work together to create a complete provenance record for ontology types,
 //! enabling traceability and attribution throughout the type system.
 
-mod actor;
 mod origin;
 mod source;
 
 pub use self::{
-    actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
     origin::{OriginProvenance, OriginType},
     source::{Location, SourceProvenance, SourceType},
 };

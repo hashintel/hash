@@ -1,6 +1,7 @@
 use core::error::Error;
 
-use hash_graph_authorization::policies::{PolicyId, action::ActionName, principal::PrincipalId};
+use hash_graph_authorization::policies::{PolicyId, action::ActionName};
+use type_system::principal::{PrincipalId, actor_group::ActorGroupId, role::RoleName};
 
 /// Errors that can occur during principal management operations.
 #[derive(Debug, derive_more::Display)]
@@ -9,6 +10,11 @@ pub enum PrincipalError {
     PrincipalAlreadyExists { id: PrincipalId },
     #[display("Principal with ID {id} doesn't exist")]
     PrincipalNotFound { id: PrincipalId },
+    #[display("{name} role in {actor_group_id} doesn't exist")]
+    RoleNotFound {
+        actor_group_id: ActorGroupId,
+        name: RoleName,
+    },
 
     #[display("Context builder error")]
     ContextBuilderError,

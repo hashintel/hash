@@ -110,7 +110,7 @@ pub enum DataTypeQueryPath<'p> {
     /// ```
     ///
     /// [`DataType`]: type_system::ontology::data_type::DataType
-    /// [`WebId`]: type_system::web::WebId
+    /// [`WebId`]: type_system::principal::actor_group::WebId
     /// [`DataTypeMetadata`]: type_system::ontology::data_type::DataTypeMetadata
     WebId,
     /// Corresponds to [`DataType::title`].

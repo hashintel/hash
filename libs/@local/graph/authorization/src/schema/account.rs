@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use type_system::provenance::ActorEntityUuid;
+use type_system::principal::actor::ActorEntityUuid;
 
 use crate::zanzibar::types::{Resource, Subject};
 

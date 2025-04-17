@@ -1,4 +1,7 @@
-import type { ActorEntityUuid, ActorGroupId } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  ActorGroupEntityUuid,
+} from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
@@ -137,7 +140,7 @@ export const isUserHashInstanceAdmin = async (
 export const getHashInstanceAdminAccountGroupId = async (
   ctx: { graphApi: GraphApi },
   authentication: { actorId: ActorEntityUuid },
-): Promise<ActorGroupId> => {
+): Promise<ActorGroupEntityUuid> => {
   const hashInstance = await getHashInstance(ctx, authentication);
 
   const systemAccountId = await getMachineActorId(
@@ -167,5 +170,5 @@ export const getHashInstanceAdminAccountGroupId = async (
     );
   }
 
-  return entityAdmin.subjectId as ActorGroupId;
+  return entityAdmin.subjectId as ActorGroupEntityUuid;
 };

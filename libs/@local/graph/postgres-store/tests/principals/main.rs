@@ -27,7 +27,7 @@ use hash_graph_postgres_store::{
 use hash_graph_store::pool::StorePool;
 use hash_tracing::logging::env_filter;
 use tokio_postgres::NoTls;
-use type_system::provenance::ActorId;
+use type_system::principal::actor::ActorId;
 use uuid::Uuid;
 
 pub fn init_logging() {

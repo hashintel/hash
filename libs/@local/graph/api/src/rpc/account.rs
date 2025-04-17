@@ -30,8 +30,8 @@ use hash_graph_store::{
 };
 use hash_temporal_client::TemporalClient;
 use type_system::{
-    provenance::ActorEntityUuid,
-    web::{ActorGroupId, WebId},
+    knowledge::entity::id::EntityUuid,
+    principal::{actor::ActorEntityUuid, actor_group::ActorGroupEntityUuid},
 };
 
 use super::session::Account;
@@ -71,26 +71,26 @@ pub trait AccountSystem {
         &self,
         scope: Self::ExecutionScope,
         params: InsertAccountGroupIdParams,
-    ) -> Result<ActorGroupId, Report<AccountError>>;
+    ) -> Result<ActorGroupEntityUuid, Report<AccountError>>;
 
     async fn check_account_group_permission(
         &self,
         scope: Self::ExecutionScope,
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>>;
 
     async fn add_account_group_member(
         &self,
         scope: Self::ExecutionScope,
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
         account_id: ActorEntityUuid,
     ) -> Result<(), Report<AccountError>>;
 
     async fn remove_account_group_member(
         &self,
         scope: Self::ExecutionScope,
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
         account_id: ActorEntityUuid,
     ) -> Result<(), Report<AccountError>>;
 }
@@ -290,13 +290,13 @@ where
         &self,
         scope: Session<Account>,
         params: InsertAccountGroupIdParams,
-    ) -> Result<ActorGroupId, Report<AccountError>> {
+    ) -> Result<ActorGroupEntityUuid, Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
 
         let mut store = self.store().await?;
 
         let account = store
-            .identify_web_id(WebId::from(actor_id))
+            .identify_subject_id(EntityUuid::new(actor_id))
             .await
             .inspect_err(|report| {
                 tracing::error!(error=?report, "Could not identify account");
@@ -325,7 +325,7 @@ where
     async fn check_account_group_permission(
         &self,
         scope: Session<Account>,
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
@@ -357,7 +357,7 @@ where
     async fn add_account_group_member(
         &self,
         scope: Session<Account>,
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
         account_id: ActorEntityUuid,
     ) -> Result<(), Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
@@ -409,7 +409,7 @@ where
     async fn remove_account_group_member(
         &self,
         scope: Session<Account>,
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
         account_id: ActorEntityUuid,
     ) -> Result<(), Report<AccountError>> {
         let actor_id = Self::actor(&scope)?;
@@ -626,7 +626,7 @@ where
         &self,
         scope: Connection<S, C>,
         params: InsertAccountGroupIdParams,
-    ) -> Result<ActorGroupId, Report<AccountError>> {
+    ) -> Result<ActorGroupEntityUuid, Report<AccountError>> {
         invoke_call_discrete(
             scope,
             meta::AccountProcedureId::CreateAccountGroup,
@@ -639,7 +639,7 @@ where
     async fn check_account_group_permission(
         &self,
         scope: Connection<S, C>,
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>> {
         invoke_call_discrete(
@@ -654,7 +654,7 @@ where
     async fn add_account_group_member(
         &self,
         scope: Connection<S, C>,
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
         account_id: ActorEntityUuid,
     ) -> Result<(), Report<AccountError>> {
         invoke_call_discrete(
@@ -669,7 +669,7 @@ where
     async fn remove_account_group_member(
         &self,
         scope: Connection<S, C>,
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
         account_id: ActorEntityUuid,
     ) -> Result<(), Report<AccountError>> {
         invoke_call_discrete(

@@ -1,8 +1,10 @@
 use core::error::Error;
 
-use type_system::{provenance::ActorId, web::WebId};
-
-use crate::policies::principal::{group::TeamId, role::RoleId};
+use type_system::principal::{
+    actor::ActorId,
+    actor_group::{ActorGroupId, TeamId, WebId},
+    role::RoleName,
+};
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not get system account: {_variant}")]
@@ -36,6 +38,10 @@ pub enum WebCreationError {
     AlreadyExists { web_id: WebId },
     #[display("Permission to create web was denied")]
     NotAuthorized,
+    #[display("Could not create web role")]
+    WebRoleCreationError,
+    #[display("Could not assign web role")]
+    WebRoleAssignmentError,
     #[display("Store operation failed")]
     StoreError,
 }
@@ -78,8 +84,13 @@ impl Error for TeamRoleCreationError {}
 pub enum RoleAssignmentError {
     #[display("Actor with ID `{actor_id}` does not exist")]
     ActorNotFound { actor_id: ActorId },
-    #[display("Role with ID `{role_id}` does not exist")]
-    RoleNotFound { role_id: RoleId },
+    #[display("{name} role for `{actor_group_id}` does not exist")]
+    RoleNotFound {
+        actor_group_id: ActorGroupId,
+        name: RoleName,
+    },
+    #[display("Permission to add member to account group was denied")]
+    PermissionDenied,
     #[display("Store operation failed")]
     StoreError,
 }

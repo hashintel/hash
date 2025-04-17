@@ -146,7 +146,7 @@ export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
               /** @todo: use authentication of machine user instead */
               { actorId: addedMentionedUser.accountId },
               {
-                webId: addedMentionedUser.accountId as WebId,
+                webId: addedMentionedUser.accountId,
                 occurredInEntity,
                 occurredInBlock,
                 occurredInComment,

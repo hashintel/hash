@@ -2,7 +2,7 @@ import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { ActorGroupId } from "@blockprotocol/type-system";
+import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -26,7 +26,7 @@ import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 export const useOrgsWithLinks = ({
   orgAccountGroupIds,
 }: {
-  orgAccountGroupIds?: ActorGroupId[];
+  orgAccountGroupIds?: ActorGroupEntityUuid[];
 }): {
   loading: boolean;
   orgs?: Org[];

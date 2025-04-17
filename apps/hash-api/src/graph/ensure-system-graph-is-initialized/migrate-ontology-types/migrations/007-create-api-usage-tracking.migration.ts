@@ -1,4 +1,4 @@
-import type { Entity, WebId } from "@blockprotocol/type-system";
+import type { Entity } from "@blockprotocol/type-system";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { ServiceFeature } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -370,7 +370,7 @@ const migrate: MigrationFunction = async ({
       "Org with shortname 'hash' does not exist by migration 007, but it should.",
     );
   }
-  const hashWebId = hashOrg.accountGroupId;
+  const hashWebId = hashOrg.webId;
 
   const existingServiceFeatureEntities = (await getEntitiesByType(
     context,
@@ -462,7 +462,7 @@ const migrate: MigrationFunction = async ({
           },
         },
       },
-      webId: hashWebId as WebId,
+      webId: hashWebId,
       relationships: [
         {
           // Let the system account administer the service entities

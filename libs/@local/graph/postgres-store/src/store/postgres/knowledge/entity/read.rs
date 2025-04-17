@@ -18,7 +18,7 @@ use tracing::Instrument as _;
 use type_system::{
     knowledge::entity::id::{EntityEditionId, EntityId, EntityUuid},
     ontology::id::{BaseUrl, OntologyTypeUuid},
-    web::WebId,
+    principal::actor_group::WebId,
 };
 
 use crate::store::postgres::{

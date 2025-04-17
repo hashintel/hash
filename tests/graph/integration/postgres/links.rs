@@ -24,8 +24,8 @@ use type_system::{
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    provenance::{ActorType, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{actor::ActorType, actor_group::WebId},
+    provenance::{OriginProvenance, OriginType},
 };
 
 use crate::DatabaseTestWrapper;
@@ -75,7 +75,7 @@ async fn insert() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -99,7 +99,7 @@ async fn insert() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -130,7 +130,7 @@ async fn insert() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id.into_uuid()),
+            web_id: WebId::new(api.account_id),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([friend_of_type_id.clone()]),
@@ -172,12 +172,7 @@ async fn insert() {
                         }),
                         Some(FilterExpression::Parameter {
                             parameter: Parameter::Uuid(
-                                alice_entity
-                                    .metadata
-                                    .record_id
-                                    .entity_id
-                                    .entity_uuid
-                                    .into_uuid(),
+                                alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
                             ),
                             convert: None,
                         }),
@@ -192,7 +187,7 @@ async fn insert() {
                         }),
                         Some(FilterExpression::Parameter {
                             parameter: Parameter::Uuid(
-                                alice_entity.metadata.record_id.entity_id.web_id.into_uuid(),
+                                alice_entity.metadata.record_id.entity_id.web_id.into(),
                             ),
                             convert: None,
                         }),
@@ -331,7 +326,7 @@ async fn get_entity_links() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -355,7 +350,7 @@ async fn get_entity_links() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -379,7 +374,7 @@ async fn get_entity_links() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -402,7 +397,7 @@ async fn get_entity_links() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id.into_uuid()),
+            web_id: WebId::new(api.account_id),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([friend_link_type_id.clone()]),
@@ -432,7 +427,7 @@ async fn get_entity_links() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id.into_uuid()),
+            web_id: WebId::new(api.account_id),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([acquaintance_entity_link_type_id.clone()]),
@@ -473,12 +468,7 @@ async fn get_entity_links() {
                     }),
                     Some(FilterExpression::Parameter {
                         parameter: Parameter::Uuid(
-                            alice_entity
-                                .metadata
-                                .record_id
-                                .entity_id
-                                .entity_uuid
-                                .into_uuid(),
+                            alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
                         ),
                         convert: None,
                     }),
@@ -591,7 +581,7 @@ async fn remove_link() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -615,7 +605,7 @@ async fn remove_link() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -639,7 +629,7 @@ async fn remove_link() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([friend_link_type_id.clone()]),
@@ -681,12 +671,7 @@ async fn remove_link() {
                         }),
                         Some(FilterExpression::Parameter {
                             parameter: Parameter::Uuid(
-                                alice_entity
-                                    .metadata
-                                    .record_id
-                                    .entity_id
-                                    .entity_uuid
-                                    .into_uuid(),
+                                alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
                             ),
                             convert: None,
                         }),
@@ -748,12 +733,7 @@ async fn remove_link() {
                         }),
                         Some(FilterExpression::Parameter {
                             parameter: Parameter::Uuid(
-                                alice_entity
-                                    .metadata
-                                    .record_id
-                                    .entity_id
-                                    .entity_uuid
-                                    .into_uuid(),
+                                alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
                             ),
                             convert: None,
                         }),

@@ -1,10 +1,12 @@
+import type {
+  EntityId,
+  EntityUuid,
+  UserId,
+  WebId,
+} from "@blockprotocol/type-system";
 import {
-  type ActorEntityUuid,
-  type EntityId,
-  type EntityUuid,
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
-  type WebId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
@@ -55,7 +57,7 @@ import {
 } from "./org-membership";
 
 export type User = {
-  accountId: ActorEntityUuid;
+  accountId: UserId;
   kratosIdentityId: string;
   emails: string[];
   shortname?: string;
@@ -96,7 +98,7 @@ export const getUserFromEntity: PureGraphFunction<
   return {
     accountId: extractWebIdFromEntityId(
       entity.metadata.recordId.entityId,
-    ) as ActorEntityUuid,
+    ) as UserId,
     shortname,
     displayName,
     isAccountSignupComplete,
@@ -288,15 +290,15 @@ export const createUser: ImpureGraphFunction<
 
   const userShouldHavePermissionsOnWeb = shortname && displayName;
 
-  const userAccountId = await createAccount(ctx, authentication, {
+  const userAccountId = (await createAccount(ctx, authentication, {
     accountType: "user",
-  });
+  })) as UserId;
 
   await createWeb(
     ctx,
     { actorId: systemAccountId },
     {
-      webId: userAccountId as WebId,
+      webId: userAccountId,
       owner: {
         kind: "account",
         /**

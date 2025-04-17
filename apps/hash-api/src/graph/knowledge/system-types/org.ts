@@ -1,9 +1,4 @@
-import type {
-  ActorGroupId,
-  EntityId,
-  EntityUuid,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractWebIdFromEntityId,
@@ -48,7 +43,7 @@ import {
 } from "./account.fields";
 
 export type Org = {
-  accountGroupId: ActorGroupId;
+  webId: WebId;
   orgName: string;
   shortname: string;
   entity: HashEntity<Organization>;
@@ -85,9 +80,7 @@ export const getOrgFromEntity: PureGraphFunction<
   );
 
   return {
-    accountGroupId: extractWebIdFromEntityId(
-      entity.metadata.recordId.entityId,
-    ) as ActorGroupId,
+    webId: extractWebIdFromEntityId(entity.metadata.recordId.entityId),
     shortname,
     orgName,
     entity,
@@ -108,7 +101,7 @@ export const createOrg: ImpureGraphFunction<
   {
     shortname: string;
     name: string;
-    orgAccountGroupId?: ActorGroupId;
+    webId?: WebId;
     websiteUrl?: string | null;
     entityTypeVersion?: number;
     bypassShortnameValidation?: boolean;
@@ -136,19 +129,19 @@ export const createOrg: ImpureGraphFunction<
     );
   }
 
-  let orgAccountGroupId: ActorGroupId;
-  if (params.orgAccountGroupId) {
-    orgAccountGroupId = params.orgAccountGroupId;
+  let orgWebId: WebId;
+  if (params.webId) {
+    orgWebId = params.webId;
   } else {
-    orgAccountGroupId = await createAccountGroup(ctx, authentication, {});
+    orgWebId = (await createAccountGroup(ctx, authentication, {})) as WebId;
 
     await createWeb(ctx, authentication, {
-      webId: orgAccountGroupId as WebId,
-      owner: { kind: "accountGroup", subjectId: orgAccountGroupId },
+      webId: orgWebId,
+      owner: { kind: "accountGroup", subjectId: orgWebId },
     });
 
     await createWebMachineActor(ctx, authentication, {
-      webId: orgAccountGroupId as WebId,
+      webId: orgWebId,
       logger,
     });
   }
@@ -213,10 +206,10 @@ export const createOrg: ImpureGraphFunction<
     );
 
     const entity = await createEntity(ctx, authentication, {
-      webId: orgAccountGroupId as WebId,
+      webId: orgWebId,
       properties,
       entityTypeIds: [entityTypeId],
-      entityUuid: orgAccountGroupId as string as EntityUuid,
+      entityUuid: orgWebId,
       relationships: [
         {
           relation: "viewer",

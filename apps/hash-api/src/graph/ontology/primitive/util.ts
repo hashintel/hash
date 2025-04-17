@@ -1,10 +1,4 @@
-import type {
-  ActorEntityUuid,
-  ActorGroupId,
-  EntityUuid,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type {
   ModifyRelationshipOperation,
@@ -40,14 +34,14 @@ export const getWebShortname: ImpureGraphFunction<
   const namespace = (
     (await getUserById(ctx, authentication, {
       entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId as ActorEntityUuid as WebId,
-        params.accountOrAccountGroupId as ActorEntityUuid,
+        params.accountOrAccountGroupId,
+        params.accountOrAccountGroupId,
       ),
     }).catch(() => undefined)) ??
     (await getOrgById(ctx, authentication, {
       entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId as ActorGroupId as WebId,
-        params.accountOrAccountGroupId as string as EntityUuid,
+        params.accountOrAccountGroupId,
+        params.accountOrAccountGroupId,
       ),
     }).catch(() => undefined))
   )?.shortname;

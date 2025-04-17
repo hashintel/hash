@@ -1,6 +1,6 @@
 import type {
   ActorEntityUuid,
-  ActorGroupId,
+  ActorGroupEntityUuid,
   EntityId,
   VersionedUrl,
   WebId,
@@ -18,7 +18,7 @@ type ReplaceAccount<T extends { kind: "account" }> = {
   [P in keyof T]: P extends "subjectId" ? ActorEntityUuid : T[P];
 };
 type ReplaceAccountGroup<T extends { kind: "accountGroup" }> = {
-  [P in keyof T]: P extends "subjectId" ? ActorGroupId : T[P];
+  [P in keyof T]: P extends "subjectId" ? ActorGroupEntityUuid : T[P];
 };
 
 type BrandSubject<T extends object> = T extends { kind: "account" }

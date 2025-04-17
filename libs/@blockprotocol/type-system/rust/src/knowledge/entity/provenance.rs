@@ -7,7 +7,10 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 
-use crate::provenance::{ActorEntityUuid, ActorType, OriginProvenance, SourceProvenance};
+use crate::{
+    principal::actor::{ActorEntityUuid, ActorType},
+    provenance::{OriginProvenance, SourceProvenance},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]

@@ -14,8 +14,11 @@ use type_system::{
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::{VersionedUrl, entity_type::EntityType},
-    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::WebId,
+    },
+    provenance::{OriginProvenance, OriginType},
 };
 use uuid::Uuid;
 
@@ -151,7 +154,7 @@ async fn seed_db<A: AuthorizationApi>(
         .insert_web_id(
             account_id,
             InsertWebIdParams {
-                web_id: WebId::new(account_id.into_uuid()),
+                web_id: WebId::new(account_id),
                 owner: WebOwnerSubject::Account { id: account_id },
             },
         )
@@ -182,7 +185,7 @@ async fn seed_db<A: AuthorizationApi>(
                 account_id,
                 repeat_n(
                     CreateEntityParams {
-                        web_id: WebId::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id),
                         entity_uuid: None,
                         decision_time: None,
                         entity_type_ids: HashSet::from([entity_type_id]),
@@ -221,7 +224,7 @@ async fn seed_db<A: AuthorizationApi>(
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
                     .map(|(left_entity, right_entity)| CreateEntityParams {
-                        web_id: WebId::new(account_id.into_uuid()),
+                        web_id: WebId::new(account_id),
                         entity_uuid: None,
                         decision_time: None,
                         entity_type_ids: HashSet::from([entity_type_id.clone()]),
@@ -329,7 +332,7 @@ async fn get_samples<A: AuthorizationApi>(
                 panic!("failed to sample entities for entity type `{entity_type_id}`: {err}");
             })
             .into_iter()
-            .map(|row| EntityUuid::new(row.get(0)));
+            .map(|row| row.get::<_, EntityUuid>(0));
 
         match sample_map.entry(entity_type_id) {
             Entry::Occupied(mut entry_slot) => entry_slot.get_mut().extend(sample_entity_uuids),
@@ -350,9 +353,9 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
     //
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(EntityUuid::new(
+    let account_id = ActorEntityUuid::new(
         Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"),
-    ));
+    );
 
     // We use the existence of the account ID as a marker for if the DB has been seeded already
     let already_seeded: bool = store_wrapper

@@ -20,8 +20,11 @@ use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use time::OffsetDateTime;
 
 use crate::{
-    provenance::{ActorEntityUuid, ActorType, OriginProvenance, SourceProvenance},
-    web::WebId,
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::WebId,
+    },
+    provenance::{OriginProvenance, SourceProvenance},
 };
 
 /// Specifies whether an ontology type is owned locally or fetched from a remote source.
@@ -50,14 +53,22 @@ pub enum OntologyOwnership {
         fetched_at: OffsetDateTime,
     },
 }
+/// Provenance information for an ontology type.
+///
+/// Contains tracking information about the creation, modification, and origin of an ontology type.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OntologyProvenance {
+    /// The edition-specific provenance information
     pub edition: OntologyEditionProvenance,
 }
 
+/// User-provided provenance information for an ontology type edition.
+///
+/// Contains information provided by the client about the creation context,
+/// including the acting entity's type and the origin of the creation action.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -69,6 +80,10 @@ pub struct ProvidedOntologyEditionProvenance {
     pub origin: OriginProvenance,
 }
 
+/// Provenance information for a specific edition of an ontology type.
+///
+/// Contains comprehensive tracking of who created and potentially archived this
+/// edition, along with user-provided context about the creation process.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

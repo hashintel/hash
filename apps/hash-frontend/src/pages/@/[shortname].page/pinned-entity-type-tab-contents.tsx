@@ -141,7 +141,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
   const [sortOrder, setSortOrder] = useState<SortOrder>("updated-at-desc");
 
   const webId = (
-    profile.kind === "user" ? profile.accountId : profile.accountGroupId
+    profile.kind === "user" ? profile.accountId : profile.webId
   ) as WebId;
 
   const { lastRootPageIndex } = useAccountPages(webId);

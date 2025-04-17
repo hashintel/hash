@@ -13,15 +13,19 @@ mod validation;
 use alloc::{borrow::Cow, collections::BTreeMap, sync::Arc};
 use core::fmt;
 
-use cedar::CedarEntityId as _;
+use cedar::FromCedarEntityId as _;
 use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
-use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorId, web::WebId};
+use type_system::{
+    knowledge::entity::id::EntityUuid,
+    principal::{actor::ActorId, actor_group::WebId},
+};
 use uuid::Uuid;
 
 pub(crate) use self::cedar::cedar_resource_type;
 use self::{
     action::ActionName,
+    cedar::{FromCedarEntityUId as _, ToCedarEntityId as _},
     principal::PrincipalConstraint,
     resource::{EntityTypeId, ResourceConstraint},
 };
@@ -373,21 +377,22 @@ mod tests {
         use type_system::{
             knowledge::entity::id::EntityUuid,
             ontology::VersionedUrl,
-            provenance::{ActorEntityUuid, ActorId, UserId},
-            web::WebId,
+            principal::{
+                actor::{ActorId, User, UserId},
+                actor_group::WebId,
+            },
         };
 
         use super::*;
         use crate::policies::{
             ActionName, Authorized, ContextBuilder, Effect, PartialResourceId, PolicyId,
             PrincipalConstraint, Request, RequestContext, ResourceConstraint,
-            principal::actor::User,
             resource::{EntityResource, EntityResourceConstraint},
         };
 
         #[test]
         fn user_can_view_entity_uuid() -> Result<(), Box<dyn Error>> {
-            let user_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+            let user_id = UserId::new(Uuid::new_v4());
             let entity_uuid = EntityUuid::new(Uuid::new_v4());
 
             let policy = Policy {
@@ -436,7 +441,7 @@ mod tests {
                 roles: HashSet::new(),
             };
             let user_entity = EntityResource {
-                web_id: WebId::new(user_id.into_uuid()),
+                web_id: WebId::from(user_id),
                 id: entity_uuid,
                 entity_type: Cow::Owned(vec![
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,

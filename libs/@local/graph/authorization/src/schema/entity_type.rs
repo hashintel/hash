@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::entity_type::EntityTypeUuid,
-    provenance::ActorEntityUuid,
-    web::{ActorGroupId, WebId},
+    principal::{
+        actor::ActorEntityUuid,
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
-use uuid::Uuid;
 
 use crate::{
     schema::{
@@ -83,7 +84,7 @@ pub enum EntityTypeSubject {
     Setting(EntityTypeSetting),
     Public,
     Account(ActorEntityUuid),
-    AccountGroup(ActorGroupId),
+    AccountGroup(ActorGroupEntityUuid),
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -110,7 +111,7 @@ pub enum EntityTypeSubjectNamespace {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum EntityTypeSubjectId {
-    Uuid(Uuid),
+    Uuid(EntityUuid),
     Setting(EntityTypeSetting),
     Asteriks(PublicAccess),
 }
@@ -131,11 +132,11 @@ impl Resource for EntityTypeSubject {
                 EntityTypeSubjectNamespace::Account,
                 EntityTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
-            (EntityTypeSubjectNamespace::Account, EntityTypeSubjectId::Uuid(id)) => {
-                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
+            (EntityTypeSubjectNamespace::Account, EntityTypeSubjectId::Uuid(uuid)) => {
+                Self::Account(ActorEntityUuid::new(uuid))
             }
-            (EntityTypeSubjectNamespace::AccountGroup, EntityTypeSubjectId::Uuid(id)) => {
-                Self::AccountGroup(ActorGroupId::new(id))
+            (EntityTypeSubjectNamespace::AccountGroup, EntityTypeSubjectId::Uuid(uuid)) => {
+                Self::AccountGroup(ActorGroupEntityUuid::new(uuid))
             }
             (
                 EntityTypeSubjectNamespace::Web
@@ -153,7 +154,7 @@ impl Resource for EntityTypeSubject {
         match self {
             Self::Web(web_id) => (
                 EntityTypeSubjectNamespace::Web,
-                EntityTypeSubjectId::Uuid(web_id.into_uuid()),
+                EntityTypeSubjectId::Uuid(web_id.into()),
             ),
             Self::Setting(setting) => (
                 EntityTypeSubjectNamespace::Setting,
@@ -165,11 +166,11 @@ impl Resource for EntityTypeSubject {
             ),
             Self::Account(id) => (
                 EntityTypeSubjectNamespace::Account,
-                EntityTypeSubjectId::Uuid(id.into_uuid()),
+                EntityTypeSubjectId::Uuid(id.into()),
             ),
             Self::AccountGroup(id) => (
                 EntityTypeSubjectNamespace::AccountGroup,
-                EntityTypeSubjectId::Uuid(id.into_uuid()),
+                EntityTypeSubjectId::Uuid(id.into()),
             ),
         }
     }
@@ -209,7 +210,7 @@ pub enum EntityTypeEditorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: ActorGroupEntityUuid,
         #[serde(skip)]
         set: EntityTypeSubjectSet,
     },
@@ -233,7 +234,7 @@ pub enum EntityTypeInstantiatorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: ActorGroupEntityUuid,
         #[serde(skip)]
         set: EntityTypeSubjectSet,
     },

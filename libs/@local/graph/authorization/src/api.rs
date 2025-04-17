@@ -7,8 +7,10 @@ use type_system::{
     ontology::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
-    provenance::ActorEntityUuid,
-    web::{ActorGroupId, WebId},
+    principal::{
+        actor::ActorEntityUuid,
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
 
 use crate::{
@@ -36,13 +38,13 @@ pub trait AuthorizationApi: Send + Sync {
         &self,
         actor: ActorEntityUuid,
         permission: AccountGroupPermission,
-        account_group: ActorGroupId,
+        account_group: ActorGroupEntityUuid,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
     fn get_account_group_relations(
         &self,
-        account_group: ActorGroupId,
+        account_group: ActorGroupEntityUuid,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>>> + Send;
 
@@ -51,7 +53,7 @@ pub trait AuthorizationApi: Send + Sync {
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                ActorGroupId,
+                ActorGroupEntityUuid,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,
@@ -288,7 +290,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         actor: ActorEntityUuid,
         permission: AccountGroupPermission,
-        account_group: ActorGroupId,
+        account_group: ActorGroupEntityUuid,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         (**self)
@@ -298,7 +300,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 
     async fn get_account_group_relations(
         &self,
-        account_group: ActorGroupId,
+        account_group: ActorGroupEntityUuid,
         consistency: Consistency<'_>,
     ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
         (**self)
@@ -311,7 +313,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                ActorGroupId,
+                ActorGroupEntityUuid,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,

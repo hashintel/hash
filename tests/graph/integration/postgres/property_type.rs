@@ -16,8 +16,8 @@ use type_system::{
         property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorType, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{actor::ActorType, actor_group::WebId},
+    provenance::{OriginProvenance, OriginType},
 };
 
 use crate::{DatabaseTestWrapper, property_type_relationships};
@@ -38,7 +38,7 @@ async fn insert() {
         CreatePropertyTypeParams {
             schema: age_pt,
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
             },
             relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -69,7 +69,7 @@ async fn query() {
         CreatePropertyTypeParams {
             schema: favorite_quote_pt.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
             },
             relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -137,7 +137,7 @@ async fn update() {
         CreatePropertyTypeParams {
             schema: user_id_pt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
             },
             relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,

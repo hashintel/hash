@@ -13,11 +13,8 @@ import {
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/ontology/primitive/util";
-import {
-  type DataTypeWithMetadata,
-  isOwnedOntologyElementMetadata,
-  type WebId,
-} from "@blockprotocol/type-system";
+import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
+import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
@@ -85,7 +82,7 @@ beforeAll(async () => {
       relationship: {
         resource: {
           kind: "web",
-          resourceId: testOrg.accountGroupId as WebId,
+          resourceId: testOrg.webId,
         },
         relation: "owner",
         subject: {
@@ -115,7 +112,7 @@ describe("Data type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     createdDataType = await createDataType(graphContext, authentication, {
-      webId: testOrg.accountGroupId as WebId,
+      webId: testOrg.webId,
       schema: dataTypeSchema,
       relationships: [
         { relation: "viewer", subject: { kind: "public" } },

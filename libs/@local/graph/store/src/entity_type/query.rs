@@ -105,7 +105,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    /// [`WebId`]: type_system::web::WebId
+    /// [`WebId`]: type_system::principal::actor_group::WebId
     /// [`EntityTypeMetadata`]: type_system::ontology::entity_type::EntityTypeMetadata
     WebId,
     /// Corresponds to [`EntityType::title()`].

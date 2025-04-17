@@ -1,72 +1,60 @@
 mod team;
 mod web;
 
+use alloc::sync::Arc;
+
 use cedar_policy_core::ast;
-use type_system::web::WebId;
-use uuid::Uuid;
+use error_stack::{Report, ResultExt as _};
+use type_system::principal::actor_group::{ActorGroup, ActorGroupId, TeamId, WebId};
 
-pub use self::{
-    team::{Team, TeamId},
-    web::Web,
+use crate::policies::{
+    cedar::{FromCedarEntityId as _, FromCedarEntityUId, ToCedarEntity, ToCedarEntityId},
+    error::FromCedarRefernceError,
 };
-use crate::policies::cedar::CedarEntityId as _;
 
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    serde::Serialize,
-    serde::Deserialize,
-    derive_more::Display,
-)]
-#[serde(tag = "actorGroupType", content = "id", rename_all = "lowercase")]
-pub enum ActorGroupId {
-    Web(WebId),
-    Team(TeamId),
-}
-
-impl ActorGroupId {
-    #[must_use]
-    pub const fn into_uuid(self) -> Uuid {
-        match self {
-            Self::Web(id) => id.into_uuid(),
-            Self::Team(id) => id.into_uuid(),
-        }
-    }
-
-    #[must_use]
-    pub const fn as_uuid(&self) -> &Uuid {
-        match self {
-            Self::Web(id) => id.as_uuid(),
-            Self::Team(id) => id.as_uuid(),
-        }
-    }
-
-    pub(crate) fn to_euid(self) -> ast::EntityUID {
-        match self {
-            Self::Web(id) => id.to_euid(),
-            Self::Team(id) => id.to_euid(),
+impl FromCedarEntityUId for ActorGroupId {
+    fn from_euid(euid: &ast::EntityUID) -> Result<Self, Report<FromCedarRefernceError>> {
+        if *euid.entity_type() == **WebId::entity_type() {
+            WebId::from_eid(euid.eid())
+                .change_context(FromCedarRefernceError::InvalidCedarEntityId)
+                .map(Self::Web)
+        } else if *euid.entity_type() == **TeamId::entity_type() {
+            TeamId::from_eid(euid.eid())
+                .change_context(FromCedarRefernceError::InvalidCedarEntityId)
+                .map(Self::Team)
+        } else {
+            Err(Report::new(FromCedarRefernceError::UnexpectedEntityType {
+                actual: euid.entity_type().clone(),
+            }))
         }
     }
 }
 
-#[derive(Debug)]
-pub enum ActorGroup {
-    Web(Web),
-    Team(Team),
-}
-
-impl ActorGroup {
-    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+impl ToCedarEntityId for ActorGroupId {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
         match self {
-            Self::Web(web) => web.to_cedar_entity(),
-            Self::Team(team) => team.to_cedar_entity(),
+            Self::Web(web_role_id) => web_role_id.to_cedar_entity_type(),
+            Self::Team(team_role_id) => team_role_id.to_cedar_entity_type(),
+        }
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        match self {
+            Self::Web(web_role_id) => web_role_id.to_eid(),
+            Self::Team(team_role_id) => team_role_id.to_eid(),
         }
     }
 }
+
+impl ToCedarEntity for ActorGroup {
+    fn to_cedar_entity(&self) -> ast::Entity {
+        match self {
+            Self::Web(web_role) => web_role.to_cedar_entity(),
+            Self::Team(team_role) => team_role.to_cedar_entity(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use core::error::Error;

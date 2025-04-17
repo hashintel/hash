@@ -13,8 +13,8 @@ use type_system::{
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::VersionedUrl,
-    provenance::{ActorType, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{actor::ActorType, actor_group::WebId},
+    provenance::{OriginProvenance, OriginType},
 };
 use uuid::Uuid;
 
@@ -49,7 +49,7 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    let web_id = WebId::new(api.account_id.into_uuid());
+    let web_id = WebId::new(api.account_id);
 
     let alice_id = EntityUuid::new(Uuid::new_v4());
     let alice_entity = CreateEntityParams {
@@ -102,7 +102,7 @@ async fn insert() {
     };
 
     let friendship_entity = CreateEntityParams {
-        web_id: WebId::new(api.account_id.into_uuid()),
+        web_id: WebId::new(api.account_id),
         entity_uuid: None,
         decision_time: None,
         entity_type_ids: HashSet::from([VersionedUrl::from_str(

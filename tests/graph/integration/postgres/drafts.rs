@@ -15,8 +15,8 @@ use type_system::{
         },
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    provenance::{ActorType, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{actor::ActorType, actor_group::WebId},
+    provenance::{OriginProvenance, OriginType},
 };
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
@@ -91,7 +91,7 @@ async fn initial_draft() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -276,7 +276,7 @@ async fn no_initial_draft() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -463,7 +463,7 @@ async fn multiple_drafts() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),

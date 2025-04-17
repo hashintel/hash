@@ -46,7 +46,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ActorGroupId"
+                  "$ref": "#/components/schemas/ActorGroupEntityUuid"
                 }
               }
             }
@@ -80,7 +80,7 @@
             "description": "The ID of the account group to add the member to",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
             }
           },
           {
@@ -127,7 +127,7 @@
             "description": "The ID of the account group to remove the member from",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
             }
           },
           {
@@ -176,7 +176,7 @@
             "description": "The ID of the account group to check if the actor has the permission",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
             }
           },
           {
@@ -229,7 +229,7 @@
             "description": "The ID of the account group to get relations from",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ActorGroupId"
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
             }
           }
         ],
@@ -1474,7 +1474,7 @@
         }
       }
     },
-    "/entities/{entity_id}/administrators/{administrator}": {
+    "/entities/{entity_id}/administrators/{subject_id}": {
       "post": {
         "tags": [
           "Graph",
@@ -1501,12 +1501,12 @@
             }
           },
           {
-            "name": "administrator",
+            "name": "subject_id",
             "in": "path",
             "description": "The administrator to add to the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/WebId"
+              "$ref": "#/components/schemas/EntityUuid"
             }
           }
         ],
@@ -1545,12 +1545,12 @@
             }
           },
           {
-            "name": "administrator",
+            "name": "subject_id",
             "in": "path",
             "description": "The administrator to remove from the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/WebId"
+              "$ref": "#/components/schemas/EntityUuid"
             }
           }
         ],
@@ -1564,7 +1564,7 @@
         }
       }
     },
-    "/entities/{entity_id}/editors/{editor}": {
+    "/entities/{entity_id}/editors/{subject_id}": {
       "post": {
         "tags": [
           "Graph",
@@ -1591,12 +1591,12 @@
             }
           },
           {
-            "name": "editor",
+            "name": "subject_id",
             "in": "path",
             "description": "The editor to add to the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/WebId"
+              "$ref": "#/components/schemas/EntityUuid"
             }
           }
         ],
@@ -1635,12 +1635,12 @@
             }
           },
           {
-            "name": "editor",
+            "name": "subject_id",
             "in": "path",
             "description": "The editor to remove from the entity",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/WebId"
+              "$ref": "#/components/schemas/EntityUuid"
             }
           }
         ],
@@ -3093,8 +3093,15 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": "The web was created successfully"
+          "200": {
+            "description": "The web was created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebId"
+                }
+              }
+            }
           },
           "500": {
             "description": "Store error occurred"
@@ -3349,9 +3356,52 @@
       "ActorEntityUuid": {
         "$ref": "#/components/schemas/EntityUuid"
       },
+      "ActorGroupEntityUuid": {
+        "$ref": "#/components/schemas/EntityUuid"
+      },
       "ActorGroupId": {
-        "type": "string",
-        "format": "uuid"
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "actorGroupType",
+              "id"
+            ],
+            "properties": {
+              "actorGroupType": {
+                "type": "string",
+                "enum": [
+                  "web"
+                ]
+              },
+              "id": {
+                "$ref": "#/components/schemas/WebId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "actorGroupType",
+              "id"
+            ],
+            "properties": {
+              "actorGroupType": {
+                "type": "string",
+                "enum": [
+                  "team"
+                ]
+              },
+              "id": {
+                "$ref": "#/components/schemas/TeamId"
+              }
+            }
+          }
+        ],
+        "description": "Type-safe identifier for an actor group in the system.\n\nWraps specific actor group ID types ([`WebId`], [`TeamId`]) in a tagged enumeration,\nallowing different actor group types to be handled uniformly while preserving type information.",
+        "discriminator": {
+          "propertyName": "actorGroupType"
+        }
       },
       "ActorId": {
         "oneOf": [
@@ -3410,12 +3460,14 @@
             }
           }
         ],
+        "description": "Type-safe identifier for an actor in the system.\n\nWraps specific actor ID types ([`UserId`], [`MachineId`], [`AiId`]) in a tagged enumeration,\nallowing different actor types to be handled uniformly while preserving type information.",
         "discriminator": {
           "propertyName": "actorType"
         }
       },
       "ActorType": {
         "type": "string",
+        "description": "Types of individual actors in the system.\n\nRepresents the different categories of entities that can perform actions.",
         "enum": [
           "user",
           "machine",
@@ -4065,7 +4117,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -4593,7 +4645,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -4669,7 +4721,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -5095,7 +5147,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -5210,7 +5262,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -5682,7 +5734,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               },
               "subjectSet": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
@@ -6899,7 +6951,7 @@
         "type": "object",
         "properties": {
           "accountGroupId": {
-            "$ref": "#/components/schemas/ActorGroupId"
+            "$ref": "#/components/schemas/ActorGroupEntityUuid"
           }
         },
         "additionalProperties": false
@@ -6922,7 +6974,6 @@
       "InsertWebIdParams": {
         "type": "object",
         "required": [
-          "webId",
           "owner"
         ],
         "properties": {
@@ -7941,7 +7992,8 @@
               }
             }
           }
-        ]
+        ],
+        "description": "Provenance information for a specific edition of an ontology type.\n\nContains comprehensive tracking of who created and potentially archived this\nedition, along with user-provided context about the creation process."
       },
       "OntologyOutwardEdge": {
         "oneOf": [
@@ -7989,6 +8041,7 @@
       },
       "OntologyProvenance": {
         "type": "object",
+        "description": "Provenance information for an ontology type.\n\nContains tracking information about the creation, modification, and origin of an ontology type.",
         "required": [
           "edition"
         ],
@@ -8922,7 +8975,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -9409,6 +9462,7 @@
       },
       "ProvidedOntologyEditionProvenance": {
         "type": "object",
+        "description": "User-provided provenance information for an ontology type edition.\n\nContains information provided by the client about the creation context,\nincluding the acting entity's type and the origin of the creation action.",
         "required": [
           "actorType",
           "origin"
@@ -9768,6 +9822,9 @@
             "$ref": "#/components/schemas/QueryTemporalAxes"
           }
         }
+      },
+      "TeamId": {
+        "$ref": "#/components/schemas/ActorGroupEntityUuid"
       },
       "TemporalBound": {
         "oneOf": [
@@ -10405,7 +10462,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -10448,7 +10505,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -10523,7 +10580,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }
@@ -10533,8 +10590,7 @@
         }
       },
       "WebId": {
-        "type": "string",
-        "format": "uuid"
+        "$ref": "#/components/schemas/ActorGroupEntityUuid"
       },
       "WebOwnerSubject": {
         "oneOf": [
@@ -10570,7 +10626,7 @@
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupId"
+                "$ref": "#/components/schemas/ActorGroupEntityUuid"
               }
             }
           }

@@ -2,7 +2,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{backend::ZanzibarBackend, schema::WebRelationAndSubject};
 use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient as _;
-use type_system::web::WebId;
+use type_system::principal::actor_group::WebId;
 
 use crate::{
     snapshot::WriteBatch,

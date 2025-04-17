@@ -11,7 +11,7 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use hash_graph_authorization::schema::WebRelationAndSubject;
-use type_system::web::WebId;
+use type_system::principal::actor_group::WebId;
 
 use crate::{
     snapshot::{SnapshotRestoreError, Web, web::WebBatch},
@@ -47,9 +47,7 @@ impl Sink<Web> for WebSender {
 
     fn start_send(mut self: Pin<&mut Self>, web: Web) -> StdResult<(), Self::Error> {
         self.webs
-            .start_send_unpin(WebRow {
-                web_id: WebId::new(web.id.into_uuid()),
-            })
+            .start_send_unpin(WebRow { web_id: web.id })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send webs")?;
         for relation_and_subject in web.relations {

@@ -87,20 +87,23 @@ mod tests {
                 ProvidedOntologyEditionProvenance,
             },
         },
-        provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-        web::WebId,
+        principal::{
+            actor::{ActorEntityUuid, ActorType},
+            actor_group::WebId,
+        },
+        provenance::{OriginProvenance, OriginType},
     };
     use uuid::Uuid;
 
     use super::*;
 
     fn generate_data_type_metadata(schema: DataType) -> DataTypeWithMetadata {
-        let actor = ActorEntityUuid::new(EntityUuid::new(Uuid::nil()));
+        let actor = EntityUuid::new(Uuid::nil());
         DataTypeWithMetadata {
             metadata: DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(schema.id.clone()),
                 ownership: OntologyOwnership::Local {
-                    web_id: WebId::new(actor.into_uuid()),
+                    web_id: WebId::new(actor),
                 },
                 temporal_versioning: OntologyTemporalMetadata {
                     transaction_time: Interval::new(
@@ -110,7 +113,7 @@ mod tests {
                 },
                 provenance: OntologyProvenance {
                     edition: OntologyEditionProvenance {
-                        created_by_id: actor,
+                        created_by_id: ActorEntityUuid::new(actor),
                         archived_by_id: None,
                         user_defined: ProvidedOntologyEditionProvenance {
                             actor_type: ActorType::User,

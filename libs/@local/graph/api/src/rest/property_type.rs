@@ -50,7 +50,7 @@ use type_system::{
         },
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    web::WebId,
+    principal::actor_group::WebId,
 };
 use utoipa::{OpenApi, ToSchema};
 

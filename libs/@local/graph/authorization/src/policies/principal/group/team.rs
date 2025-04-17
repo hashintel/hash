@@ -1,57 +1,21 @@
 use alloc::sync::Arc;
 use core::{iter, str::FromStr as _};
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
+use type_system::principal::actor_group::{ActorGroupId, Team, TeamId};
 use uuid::Uuid;
 
-use super::ActorGroupId;
-use crate::policies::{cedar::CedarEntityId, principal::role::TeamRoleId};
+use crate::policies::cedar::{FromCedarEntityId, ToCedarEntity, ToCedarEntityId};
 
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    serde::Serialize,
-    serde::Deserialize,
-    derive_more::Display,
-)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[repr(transparent)]
-pub struct TeamId(Uuid);
-
-impl TeamId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-
-    #[must_use]
-    pub const fn into_uuid(self) -> Uuid {
-        self.0
-    }
-
-    #[must_use]
-    pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
-    }
-}
-
-impl CedarEntityId for TeamId {
+impl FromCedarEntityId for TeamId {
     type Error = Report<uuid::Error>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
-        static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
+        pub(crate) static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Team"]));
         &ENTITY_TYPE
-    }
-
-    fn to_eid(&self) -> ast::Eid {
-        ast::Eid::new(self.as_uuid().to_string())
     }
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
@@ -59,27 +23,26 @@ impl CedarEntityId for TeamId {
     }
 }
 
-#[derive(Debug)]
-pub struct Team {
-    pub id: TeamId,
-    pub parents: Vec<ActorGroupId>,
-    pub roles: HashSet<TeamRoleId>,
+impl ToCedarEntityId for TeamId {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        Self::entity_type()
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        ast::Eid::new(self.to_string())
+    }
 }
 
-impl Team {
-    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+impl ToCedarEntity for Team {
+    fn to_cedar_entity(&self) -> ast::Entity {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
-            self.parents
-                .iter()
-                .copied()
-                .map(ActorGroupId::to_euid)
-                .collect(),
+            self.parents.iter().map(ActorGroupId::to_euid).collect(),
             iter::empty(),
             Extensions::none(),
         )
-        .expect("team should be a valid Cedar entity")
+        .expect("Team should be a valid Cedar entity")
     }
 }
 
@@ -88,19 +51,16 @@ mod tests {
     use core::error::Error;
 
     use serde_json::json;
+    use type_system::principal::actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId};
     use uuid::Uuid;
 
-    use super::TeamId;
     use crate::{
-        policies::{
-            PrincipalConstraint,
-            principal::{group::ActorGroupId, tests::check_principal},
-        },
+        policies::{PrincipalConstraint, principal::tests::check_principal},
         test_utils::check_deserialization_error,
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let team_id = TeamId::new(Uuid::new_v4());
+        let team_id = TeamId::new(ActorGroupEntityUuid::new(Uuid::new_v4()));
         check_principal(
             PrincipalConstraint::ActorGroup {
                 actor_type: None,

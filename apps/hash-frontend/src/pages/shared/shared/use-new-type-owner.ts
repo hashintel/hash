@@ -23,7 +23,7 @@ export const useNewTypeOwner = (startingTypeId: VersionedUrl) => {
       startingTypeWebId &&
       (authenticatedUser?.accountId === startingTypeWebId ||
         authenticatedUser?.memberOf.some(
-          (memberOf) => memberOf.org.accountGroupId === startingTypeWebId,
+          (memberOf) => memberOf.org.webId === startingTypeWebId,
         ));
 
     /**

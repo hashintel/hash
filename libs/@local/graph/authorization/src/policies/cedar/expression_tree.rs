@@ -7,10 +7,11 @@ use smol_str::SmolStr;
 use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::{BaseUrl, VersionedUrl, id::OntologyTypeVersion},
-    web::WebId,
+    principal::actor_group::WebId,
 };
 
-use crate::policies::{PartialResourceId, cedar::CedarEntityId as _, resource::EntityTypeId};
+use super::FromCedarEntityUId as _;
+use crate::policies::{PartialResourceId, cedar::FromCedarEntityId as _, resource::EntityTypeId};
 
 #[derive(Debug)]
 pub enum PolicyExpressionTree {

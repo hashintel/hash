@@ -8,8 +8,6 @@ mod property_type;
 mod settings;
 mod web;
 
-use type_system::web::ActorGroupId;
-
 pub use self::{
     account::{AccountNamespace, ActorIdOrPublic, PublicAccess},
     account_group::{
