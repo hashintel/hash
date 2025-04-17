@@ -27,8 +27,8 @@ pub enum PrimitiveType {
 
 impl Lattice for PrimitiveType {
     fn join(
-        self: Type<&Self>,
-        other: Type<&Self>,
+        self: Type<Self>,
+        other: Type<Self>,
         _: &mut LatticeEnvironment,
     ) -> SmallVec<TypeId, 4> {
         if self.kind == other.kind {
@@ -45,8 +45,8 @@ impl Lattice for PrimitiveType {
     }
 
     fn meet(
-        self: Type<&Self>,
-        other: Type<&Self>,
+        self: Type<Self>,
+        other: Type<Self>,
         _: &mut LatticeEnvironment,
     ) -> SmallVec<TypeId, 4> {
         if self.kind == other.kind {
@@ -62,19 +62,19 @@ impl Lattice for PrimitiveType {
         }
     }
 
-    fn uninhabited(self: Type<&Self>, _: &mut TypeAnalysisEnvironment) -> bool {
+    fn uninhabited(self: Type<Self>, _: &mut TypeAnalysisEnvironment) -> bool {
         false
     }
 
     fn semantically_equivalent(
-        self: Type<&Self>,
-        other: Type<&Self>,
+        self: Type<Self>,
+        other: Type<Self>,
         _: &mut EquivalenceEnvironment,
     ) -> bool {
         self.kind == other.kind
     }
 
-    fn unify(self: Type<&Self>, other: Type<&Self>, env: &mut UnificationEnvironment) {
+    fn unify(self: Type<Self>, other: Type<Self>, env: &mut UnificationEnvironment) {
         if self.kind == other.kind {
             return;
         }
@@ -91,15 +91,15 @@ impl Lattice for PrimitiveType {
                 // This is an error - Number cannot be used where Integer is expected
                 let diagnostic = type_mismatch(
                     env,
-                    &self,
-                    &other,
+                    self,
+                    other,
                     Some(
                         "Expected an Integer but found a Number. While all Integers are Numbers, \
                          not all Numbers are Integers (e.g., decimals like 3.14).",
                     ),
                 );
 
-                env.record_diagnostic(diagnostic);
+                env.diagnostics.push(diagnostic);
             }
 
             _ => {
@@ -138,13 +138,13 @@ impl Lattice for PrimitiveType {
                 };
 
                 // Record a type mismatch diagnostic with helpful conversion suggestions
-                let diagnostic = type_mismatch(env, &self, &other, help_message);
-                env.record_diagnostic(diagnostic);
+                let diagnostic = type_mismatch(env, self, other, help_message);
+                env.diagnostics.push(diagnostic);
             }
         }
     }
 
-    fn simplify(self: Type<&Self>, _: &mut SimplifyEnvironment) -> TypeId {
+    fn simplify(self: Type<Self>, _: &mut SimplifyEnvironment) -> TypeId {
         self.id
     }
 }
