@@ -96,7 +96,7 @@ export const constructMinimalUser = (params: {
   return {
     kind: "user",
     entity: userEntity,
-    // Cast reason: The EntityUuid of a User's baseId is an AccountId
+    // Cast reason: A user web's `WebId` is also their `UserId`
     accountId: extractWebIdFromEntityId(
       userEntity.metadata.recordId.entityId,
     ) as UserId,
