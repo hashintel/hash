@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use super::{
     Type, TypeId, TypeKind,
     error::{TypeCheckDiagnostic, circular_type_reference},
-    kind::{generic_argument::GenericArgumentId, union::UnionType},
+    kind::{generic_argument::GenericArgumentId, intersection::IntersectionType, union::UnionType},
     lattice::Lattice as _,
     recursion::RecursionBoundary,
     unify_type_impl,
@@ -287,7 +287,7 @@ impl<'env> LatticeEnvironment<'env> {
 
         let variants = lhs.as_ref().join(rhs.as_ref(), self);
 
-        if variants.len() == 0 {
+        if variants.is_empty() {
             self.environment.arena.push_with(|id| Type {
                 id,
                 span: lhs.span,
@@ -300,6 +300,31 @@ impl<'env> LatticeEnvironment<'env> {
                 id,
                 span: lhs.span,
                 kind: TypeKind::Union(UnionType {
+                    variants: variants.into_iter().collect(),
+                }),
+            })
+        }
+    }
+
+    pub fn meet(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
+        let lhs = self.environment.arena[lhs].clone();
+        let rhs = self.environment.arena[rhs].clone();
+
+        let variants = lhs.as_ref().meet(rhs.as_ref(), self);
+
+        if variants.is_empty() {
+            self.environment.arena.push_with(|id| Type {
+                id,
+                span: lhs.span,
+                kind: TypeKind::Never,
+            })
+        } else if variants.len() == 1 {
+            variants[0]
+        } else {
+            self.environment.arena.push_with(|id| Type {
+                id,
+                span: lhs.span,
+                kind: TypeKind::Intersection(IntersectionType {
                     variants: variants.into_iter().collect(),
                 }),
             })
