@@ -195,7 +195,7 @@ pub(crate) fn intersection_primitive(_: PrimitiveType, _: PrimitiveType) -> Opti
 
 #[cfg(test)]
 mod test {
-    #![expect(clippy::min_ident_chars, clippy::needless_pass_by_value)]
+    #![expect(clippy::min_ident_chars)]
     use hashql_diagnostics::help::Help;
     use test_case::test_case;
 

@@ -254,6 +254,7 @@ pub(crate) fn unify_tuple(
 
 #[cfg(test)]
 mod test {
+    #![expect(clippy::min_ident_chars)]
     use ecow::EcoVec;
 
     use super::TupleType;
@@ -261,7 +262,10 @@ mod test {
         arena::TransactionalArena,
         span::SpanId,
         r#type::{
-            environment::{Environment, EquivalenceEnvironment, LatticeEnvironment},
+            environment::{
+                Environment, EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
+                TypeAnalysisEnvironment, UnificationEnvironment,
+            },
             kind::{
                 TypeKind,
                 generic_argument::GenericArguments,
@@ -419,31 +423,41 @@ mod test {
     fn meet_identical_tuples() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        // Create fields for the tuple
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, string, PrimitiveType::String);
-        let fields = EcoVec::from_iter([number.id, string.id]);
+        tuple!(
+            env,
+            a,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
-        // Create two identical tuples
-        tuple!(env, a, fields.clone());
-        tuple!(env, b, fields.clone());
+        tuple!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
         // Meet identical tuples should result in the same tuple
-        let output = a.meet(b, &mut lattice_env);
-        assert_eq!(output.len(), 1);
-
-        let id = output[0];
-        let r#type = env.arena[id].clone();
-        match r#type.kind {
-            TypeKind::Tuple(tuple) => {
-                assert_eq!(tuple.fields.len(), 2);
-                assert_eq!(tuple.fields[0], number);
-                assert_eq!(tuple.fields[1], string);
-            }
-            _ => panic!("Expected tuple type"),
-        }
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [tuple!(
+                env,
+                [],
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )]
+        );
     }
 
     #[test]
@@ -451,24 +465,22 @@ mod test {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
         // Create tuples of different lengths
-        let number = primitive_id!(env, PrimitiveType::Number);
-        let string = primitive_id!(env, PrimitiveType::String);
+        tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
 
-        let fields_a = EcoVec::from_iter([number]);
-        let fields_b = EcoVec::from_iter([number, string]);
-
-        tuple!(env, a, fields_a);
-        tuple!(env, b, fields_b);
+        tuple!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
         // Meeting tuples of different lengths should return empty result
-        let output = a.meet(b, &mut lattice_env);
-        assert_eq!(
-            output.len(),
-            0,
-            "Meeting tuples of different lengths should return empty result"
-        );
+        assert_equiv!(env, a.meet(b, &mut lattice_env), []);
     }
 
     #[test]
@@ -476,38 +488,42 @@ mod test {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
         // Create tuples with same length but different field types
-        let number = primitive_id!(env, PrimitiveType::Number);
-        let integer = primitive_id!(env, PrimitiveType::Integer);
-        let string = primitive_id!(env, PrimitiveType::String);
-        let boolean = primitive_id!(env, PrimitiveType::Boolean);
+        tuple!(
+            env,
+            a,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
-        let fields_a = EcoVec::from_iter([number, string]);
-        let fields_b = EcoVec::from_iter([integer, boolean]);
-
-        tuple!(env, a, fields_a);
-        tuple!(env, b, fields_b);
+        tuple!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Integer),
+                primitive!(env, PrimitiveType::Boolean)
+            ]
+        );
 
         let mut lattice_env = LatticeEnvironment::new(&mut env);
 
-        // Meet should result in a new tuple with meet of fields
-        let output = a.meet(b, &mut lattice_env);
-        assert_eq!(output.len(), 1);
-
-        let id = output[0];
-        let r#type = env.arena[id].clone();
-        match r#type.kind {
-            TypeKind::Tuple(tuple) => {
-                assert_eq!(tuple.fields.len(), 2);
-
-                // First field: number ⊓ integer = integer (integer is subtype of number)
-                let field0_type = &env.arena[tuple.fields[0]].kind;
-                assert_eq!(*field0_type, TypeKind::Primitive(PrimitiveType::Integer));
-
-                // Second field: string ⊓ boolean should be empty or result in intersection type
-                // The exact representation depends on how meets of unrelated types are handled
-            }
-            _ => panic!("Expected tuple type"),
-        }
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [tuple!(
+                env,
+                [],
+                [
+                    // Number ⊓ Integer = Integer (Integer is subtype of number)
+                    primitive!(env, PrimitiveType::Integer),
+                    // String ⊓ Boolean = Never
+                    instantiate(&mut env, TypeKind::Never)
+                ]
+            )]
+        );
     }
 
     #[test]
@@ -515,28 +531,40 @@ mod test {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
         // Create a normal tuple with inhabited types
-        let number = primitive_id!(env, PrimitiveType::Number);
-        let string = primitive_id!(env, PrimitiveType::String);
-        let normal_fields = EcoVec::from_iter([number, string]);
-        tuple!(env, normal_tuple, normal_fields);
+        tuple!(
+            env,
+            normal_tuple,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
-        // We need an uninhabited type for testing
-        // For simplicity, let's create an empty tuple (a tuple with no elements)
-        // which is considered inhabited, and then we'll manually check the implementation.
-        let empty_fields = EcoVec::new();
-        tuple!(env, empty_tuple, empty_fields);
+        // Create an empty tuple (which is considered inhabited)
+        tuple!(env, empty_tuple, [], []);
+
+        tuple!(
+            env,
+            never_tuple,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                instantiate(&mut env, TypeKind::Never),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
         let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
-        // Empty tuple should be inhabited
+        // Empty tuple should be inhabited (not uninhabited)
         assert!(!empty_tuple.uninhabited(&mut analysis_env));
 
-        // Normal tuple should be inhabited
+        // Normal tuple should be inhabited (not uninhabited)
         assert!(!normal_tuple.uninhabited(&mut analysis_env));
 
-        // The uninhabited method checks if any field is uninhabited
-        // Since we can't easily create an uninhabited type in this test context,
-        // we've verified the logic is correct by code inspection.
+        // Tuple with a never field should be uninhabited
+        assert!(never_tuple.uninhabited(&mut analysis_env));
     }
 
     #[test]
@@ -544,25 +572,39 @@ mod test {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
         // Create tuples with same structure but different TypeIds
-        let number1 = primitive_id!(env, PrimitiveType::Number);
-        let string1 = primitive_id!(env, PrimitiveType::String);
-        let fields1 = EcoVec::from_iter([number1, string1]);
+        tuple!(
+            env,
+            a,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
-        let number2 = primitive_id!(env, PrimitiveType::Number);
-        let string2 = primitive_id!(env, PrimitiveType::String);
-        let fields2 = EcoVec::from_iter([number2, string2]);
-
-        tuple!(env, a, fields1);
-        tuple!(env, b, fields2);
+        tuple!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
         // Create a tuple with different structure
-        let boolean = primitive_id!(env, PrimitiveType::Boolean);
-        let fields3 = EcoVec::from_iter([number1, boolean]);
-        tuple!(env, c, fields3);
+        tuple!(
+            env,
+            c,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::Boolean)
+            ]
+        );
 
         // Create a tuple with different length
-        let fields4 = EcoVec::from_iter([number1]);
-        tuple!(env, d, fields4);
+        tuple!(env, d, [], [primitive!(env, PrimitiveType::Number)]);
 
         let mut equiv_env = EquivalenceEnvironment::new(&env);
 
@@ -581,20 +623,30 @@ mod test {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
         // Create two tuples with compatible types
-        let number = primitive_id!(env, PrimitiveType::Number);
-        let integer = primitive_id!(env, PrimitiveType::Integer);
-        let string = primitive_id!(env, PrimitiveType::String);
+        // (Number, String) and (Integer, String) are compatible because Integer <: Number
+        tuple!(
+            env,
+            a,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
-        let fields_a = EcoVec::from_iter([number, string]);
-        let fields_b = EcoVec::from_iter([integer, string]);
-
-        tuple!(env, a, fields_a);
-        tuple!(env, b, fields_b);
+        tuple!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Integer),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
         let mut unif_env = UnificationEnvironment::new(&mut env);
 
         // Unifying compatible tuples should succeed without errors
-        // Here (Number, String) and (Integer, String) are compatible because Integer <: Number
         a.unify(b, &mut unif_env);
         assert!(
             unif_env.take_diagnostics().is_empty(),
@@ -607,14 +659,17 @@ mod test {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
         // Create tuples of different lengths
-        let number = primitive_id!(env, PrimitiveType::Number);
-        let string = primitive_id!(env, PrimitiveType::String);
+        tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
 
-        let fields_a = EcoVec::from_iter([number]);
-        let fields_b = EcoVec::from_iter([number, string]);
-
-        tuple!(env, a, fields_a);
-        tuple!(env, b, fields_b);
+        tuple!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
         let mut unif_env = UnificationEnvironment::new(&mut env);
 
@@ -632,15 +687,26 @@ mod test {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
         // Create tuples with incompatible field types
-        let number = primitive_id!(env, PrimitiveType::Number);
-        let boolean = primitive_id!(env, PrimitiveType::Boolean);
-        let string = primitive_id!(env, PrimitiveType::String);
+        // Number and Boolean are incompatible types
+        tuple!(
+            env,
+            a,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
-        let fields_a = EcoVec::from_iter([number, string]);
-        let fields_b = EcoVec::from_iter([boolean, string]);
-
-        tuple!(env, a, fields_a);
-        tuple!(env, b, fields_b);
+        tuple!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Boolean),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
         let mut unif_env = UnificationEnvironment::new(&mut env);
 
@@ -658,15 +724,19 @@ mod test {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
         // Create a tuple with fields
-        let number = primitive_id!(env, PrimitiveType::Number);
-        let string = primitive_id!(env, PrimitiveType::String);
-        let fields = EcoVec::from_iter([number, string]);
-
-        tuple!(env, tuple, fields);
+        tuple!(
+            env,
+            tuple,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
 
         let mut simplify_env = SimplifyEnvironment::new(&mut env);
 
-        // Simplifying a tuple should return the same tuple if fields don't need simplification
+        // Simplifying a tuple with already simplified fields should return the same tuple
         let result = tuple.simplify(&mut simplify_env);
         assert_eq!(
             result, tuple.id,
@@ -678,39 +748,13 @@ mod test {
     fn lattice_laws() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        // Create tuples for testing lattice laws
-        let number = primitive_id!(env, PrimitiveType::Number);
-        let integer = primitive_id!(env, PrimitiveType::Integer);
-        let string = primitive_id!(env, PrimitiveType::String);
+        // Create three distinct single-element tuples for testing lattice laws
+        // We need these to have different element types for proper lattice testing
+        let a = tuple!(env, [], [primitive!(env, PrimitiveType::Number)]);
+        let b = tuple!(env, [], [primitive!(env, PrimitiveType::Integer)]);
+        let c = tuple!(env, [], [primitive!(env, PrimitiveType::String)]);
 
-        let fields_a = EcoVec::from_iter([number]);
-        let fields_b = EcoVec::from_iter([integer]);
-        let fields_c = EcoVec::from_iter([string]);
-
-        let tuple_a = instantiate(
-            &mut env,
-            TypeKind::Tuple(TupleType {
-                fields: fields_a,
-                arguments: GenericArguments::default(),
-            }),
-        );
-
-        let tuple_b = instantiate(
-            &mut env,
-            TypeKind::Tuple(TupleType {
-                fields: fields_b,
-                arguments: GenericArguments::default(),
-            }),
-        );
-
-        let tuple_c = instantiate(
-            &mut env,
-            TypeKind::Tuple(TupleType {
-                fields: fields_c,
-                arguments: GenericArguments::default(),
-            }),
-        );
-
+        // Test that tuple types satisfy lattice laws (associativity, commutativity, absorption)
         assert_lattice_laws(
             &mut env,
             |r#type| {
@@ -722,9 +766,9 @@ mod test {
                     tuple
                 })
             },
-            tuple_a,
-            tuple_b,
-            tuple_c,
+            a,
+            b,
+            c,
         );
     }
 
@@ -732,45 +776,43 @@ mod test {
     fn structurally_equivalent() {
         let mut env = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
 
-        // Create tuples with same structure
-        let number = primitive_id!(env, PrimitiveType::Number);
-        let string = primitive_id!(env, PrimitiveType::String);
+        // First create type IDs for our field types
+        primitive!(env, number, PrimitiveType::Number);
+        primitive!(env, string, PrimitiveType::String);
+        primitive!(env, boolean, PrimitiveType::Boolean);
 
-        let fields_a = EcoVec::from_iter([number, string]);
-        let fields_b = EcoVec::from_iter([number, string]);
-
-        // Test the structurally_equivalent method directly
+        // Test the structurally_equivalent method directly with identical tuples
         let tuple_a = TupleType {
-            fields: fields_a,
+            fields: EcoVec::from_iter([number.id, string.id]),
             arguments: GenericArguments::default(),
         };
 
         let tuple_b = TupleType {
-            fields: fields_b,
+            fields: EcoVec::from_iter([number.id, string.id]),
             arguments: GenericArguments::default(),
         };
 
         let mut equiv_env = EquivalenceEnvironment::new(&env);
 
+        // Identical tuples should be structurally equivalent
         assert!(tuple_a.structurally_equivalent(&tuple_b, &mut equiv_env));
 
-        // Test with different structure
-        let boolean = primitive_id!(env, PrimitiveType::Boolean);
-        let fields_c = EcoVec::from_iter([number, boolean]);
+        // Test with different field types
         let tuple_c = TupleType {
-            fields: fields_c,
+            fields: EcoVec::from_iter([number.id, boolean.id]),
             arguments: GenericArguments::default(),
         };
 
+        // Tuples with different field types should not be equivalent
         assert!(!tuple_a.structurally_equivalent(&tuple_c, &mut equiv_env));
 
         // Test with different length
-        let fields_d = EcoVec::from_iter([number]);
         let tuple_d = TupleType {
-            fields: fields_d,
+            fields: EcoVec::from_iter([number.id]),
             arguments: GenericArguments::default(),
         };
 
+        // Tuples with different lengths should not be equivalent
         assert!(!tuple_a.structurally_equivalent(&tuple_d, &mut equiv_env));
     }
 }
