@@ -218,13 +218,13 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 let lhs_variants = lhs.unnest(env);
                 let rhs_variants = [other.id];
 
-                IntersectionType::join_variants(&lhs_variants, &rhs_variants, env)
+                IntersectionType::join_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
             (TypeKind::Primitive(_) | TypeKind::Tuple(_), TypeKind::Intersection(rhs)) => {
                 let lhs_variants = [self.id];
                 let rhs_variants = rhs.unnest(env);
 
-                IntersectionType::join_variants(&lhs_variants, &rhs_variants, env)
+                IntersectionType::join_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
         }
     }
@@ -288,7 +288,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 let lhs_variants = lhs.unnest(env);
                 let rhs_variants = [other.id];
 
-                UnionType::meet_variants(&lhs_variants, &rhs_variants, env)
+                UnionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
             (
                 TypeKind::Primitive(_) | TypeKind::Tuple(_) | TypeKind::Intersection(_),
@@ -297,7 +297,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 let lhs_variants = [self.id];
                 let rhs_variants = rhs.unnest(env);
 
-                UnionType::meet_variants(&lhs_variants, &rhs_variants, env)
+                UnionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
 
             (TypeKind::Intersection(lhs), TypeKind::Intersection(rhs)) => {

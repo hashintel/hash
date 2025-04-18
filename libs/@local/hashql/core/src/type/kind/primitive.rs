@@ -650,20 +650,6 @@ mod test {
         primitive!(env, string, PrimitiveType::String);
         primitive!(env, boolean, PrimitiveType::Boolean);
 
-        assert_lattice_laws(
-            &env,
-            |r#type| {
-                r#type.map(|kind| {
-                    let TypeKind::Primitive(primitive) = kind else {
-                        unreachable!()
-                    };
-
-                    primitive
-                })
-            },
-            number.id,
-            string.id,
-            boolean.id,
-        );
+        assert_lattice_laws(&env, number.id, string.id, boolean.id);
     }
 }

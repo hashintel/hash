@@ -42,6 +42,7 @@ impl<'heap> IntersectionType<'heap> {
     }
 
     pub(crate) fn join_variants(
+        lhs_span: SpanId,
         lhs_variants: &[TypeId],
         rhs_variants: &[TypeId],
         env: &mut LatticeEnvironment<'_, 'heap>,
@@ -49,7 +50,8 @@ impl<'heap> IntersectionType<'heap> {
         // `join` over an intersection is a distribution, e.g.
         // (A ∩ B) ∨ (C ∩ D)
         // = (A ∨ C) ∩ (A ∨ D) ∩ (B ∨ C) ∩ (B ∨ D)
-        let mut variants = SmallVec::with_capacity(lhs_variants.len() * rhs_variants.len());
+        let mut variants =
+            SmallVec::<_, 16>::with_capacity(lhs_variants.len() * rhs_variants.len());
 
         for &lhs in lhs_variants {
             for &rhs in rhs_variants {
@@ -60,7 +62,17 @@ impl<'heap> IntersectionType<'heap> {
         variants.sort_unstable();
         variants.dedup();
 
-        variants
+        // We need to wrap this in an explicit `Union`, as a `join` with multiple returned values
+        // turns into a union.
+        let id = env.alloc(|id| Type {
+            id,
+            span: lhs_span,
+            kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                variants: env.intern_type_ids(&variants),
+            })),
+        });
+
+        SmallVec::from_slice(&[id])
     }
 
     pub(crate) fn meet_variants(
@@ -213,7 +225,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         let lhs_variants = self.kind.unnest(env);
         let rhs_variants = other.kind.unnest(env);
 
-        Self::join_variants(&lhs_variants, &rhs_variants, env)
+        Self::join_variants(self.span, &lhs_variants, &rhs_variants, env)
     }
 
     fn meet(

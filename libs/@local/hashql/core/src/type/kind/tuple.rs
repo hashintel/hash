@@ -733,21 +733,7 @@ mod test {
         let c = tuple!(env, [], [primitive!(env, PrimitiveType::String)]);
 
         // Test that tuple types satisfy lattice laws (associativity, commutativity, absorption)
-        assert_lattice_laws(
-            &env,
-            |r#type| {
-                r#type.map(|kind| {
-                    let TypeKind::Tuple(tuple) = kind else {
-                        unreachable!()
-                    };
-
-                    tuple
-                })
-            },
-            a,
-            b,
-            c,
-        );
+        assert_lattice_laws(&env, a, b, c);
     }
 
     #[test]

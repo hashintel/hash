@@ -221,133 +221,138 @@ pub trait Lattice<'heap> {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use super::Lattice;
+    #![expect(clippy::min_ident_chars)]
     use crate::r#type::{
-        Type, TypeId,
+        TypeId,
         environment::{Environment, LatticeEnvironment, TypeAnalysisEnvironment},
-        kind::TypeKind,
+        pretty_print::PrettyPrint as _,
     };
 
     #[track_caller]
-    fn assert_commutativity<'heap, T>(
-        env: &Environment<'heap>,
-        convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
-        a: TypeId,
-        b: TypeId,
-    ) where
-        T: Lattice<'heap> + 'heap,
-    {
-        let mut env = LatticeEnvironment::new(env);
+    fn assert_idempotence(env: &Environment<'_>, a: TypeId) {
+        let mut lattice = LatticeEnvironment::new(env);
 
-        let a = env.types[a].copied();
-        let b = env.types[b].copied();
+        let mut analysis = TypeAnalysisEnvironment::new(env);
 
-        let a = convert(a);
-        let b = convert(b);
+        let join1 = lattice.join(a, a);
 
-        // TODO: for this to work we need Union/Intersection support first
+        assert!(
+            analysis.is_equivalent(join1, a),
+            "{} != {}",
+            env.types[join1].copied().pretty_print(env, 80),
+            env.types[a].copied().pretty_print(env, 80)
+        );
 
-        // assert_eq!(a.join(b, &mut env), b.join(a, &mut env));
-        // assert_eq!(a.meet(b, &mut env), b.meet(a, &mut env));
+        let meet1 = lattice.meet(a, a);
+
+        assert!(
+            analysis.is_equivalent(meet1, a),
+            "{} != {}",
+            env.types[meet1].copied().pretty_print(env, 80),
+            env.types[a].copied().pretty_print(env, 80)
+        );
     }
 
     #[track_caller]
-    fn assert_associativity<'heap, T>(
-        env: &Environment<'heap>,
-        convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
-        a: TypeId,
-        b: TypeId,
-        c: TypeId,
-    ) where
-        T: Lattice<'heap> + 'heap,
-    {
-        let mut env = LatticeEnvironment::new(env);
+    fn assert_commutativity(env: &Environment<'_>, a: TypeId, b: TypeId) {
+        let mut lattice = LatticeEnvironment::new(env);
 
-        let a = env.types[a].copied();
-        let b = env.types[b].copied();
-        let c = env.types[c].copied();
+        let mut analysis = TypeAnalysisEnvironment::new(env);
 
-        let a = convert(a);
-        let b = convert(b);
-        let c = convert(c);
+        let join1 = lattice.join(a, b);
+        let join2 = lattice.join(b, a);
 
-        // TODO: for this to work we need Union/Intersection support first
+        assert!(
+            analysis.is_equivalent(join1, join2),
+            "{} != {}",
+            env.types[join1].copied().pretty_print(env, 80),
+            env.types[join2].copied().pretty_print(env, 80)
+        );
 
-        // assert_eq!(
-        //     a.join(b.join(c, &mut env), &mut env),
-        //     a.join(c.join(b, &mut env), &mut env)
-        // );
+        let meet1 = lattice.meet(a, b);
+        let meet2 = lattice.meet(b, a);
 
-        // assert_eq!(
-        //     a.meet(b.meet(c, &mut env), &mut env),
-        //     a.meet(c.meet(b, &mut env), &mut env)
-        // );
+        assert!(
+            analysis.is_equivalent(meet1, meet2),
+            "{} != {}",
+            env.types[meet1].copied().pretty_print(env, 80),
+            env.types[meet2].copied().pretty_print(env, 80)
+        );
     }
 
     #[track_caller]
-    fn assert_absorption<'heap, T>(
-        env: &Environment<'heap>,
-        convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
-        a: TypeId,
-        b: TypeId,
-    ) where
-        T: Lattice<'heap> + 'heap,
-    {
-        let mut env = LatticeEnvironment::new(env);
+    fn assert_associativity(env: &Environment<'_>, a: TypeId, b: TypeId, c: TypeId) {
+        let mut lattice = LatticeEnvironment::new(env);
 
-        let a = env.types[a].copied();
-        let b = env.types[b].copied();
+        let mut analysis = TypeAnalysisEnvironment::new(env);
 
-        let a = convert(a);
-        let b = convert(b);
+        let join1_bc = lattice.join(b, c);
+        let join1 = lattice.join(a, join1_bc);
 
-        // TODO: for this to work we need Union/Intersection support first
+        let join2_ab = lattice.join(a, b);
+        let join2 = lattice.join(join2_ab, c);
 
-        // assert_eq!(a.join(a.meet(b, env), env), a);
-        // assert_eq!(a.meet(a.join(b, env), env), a);
+        assert!(
+            analysis.is_equivalent(join1, join2),
+            "{} != {}",
+            env.types[join1].copied().pretty_print(env, 80),
+            env.types[join2].copied().pretty_print(env, 80)
+        );
+
+        let meet1_bc = lattice.meet(b, c);
+        let meet1 = lattice.meet(a, meet1_bc);
+
+        let meet2_ab = lattice.meet(a, b);
+        let meet2 = lattice.meet(meet2_ab, c);
+
+        assert!(
+            analysis.is_equivalent(meet1, meet2),
+            "{} != {}",
+            env.types[meet1].copied().pretty_print(env, 80),
+            env.types[meet2].copied().pretty_print(env, 80)
+        );
     }
 
     #[track_caller]
-    fn assert_idempotence<'heap, T>(
-        env: &Environment<'heap>,
-        convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
-        a: TypeId,
-    ) where
-        T: Lattice<'heap> + 'heap,
-    {
-        let mut env = LatticeEnvironment::new(env);
+    fn assert_absorption(env: &Environment<'_>, a: TypeId, b: TypeId) {
+        let mut lattice = LatticeEnvironment::new(env);
 
-        let a = env.types[a].copied();
+        let mut analysis = TypeAnalysisEnvironment::new(env);
 
-        let a = convert(a);
+        let meet1 = lattice.meet(a, b); // String and Integer => Never
+        let join1 = lattice.join(a, meet1); // Number or Never => Number
 
-        // TODO: for this to work we need Union/Intersection support first
+        assert!(
+            analysis.is_equivalent(join1, a),
+            "{} != {}",
+            env.types[join1].copied().pretty_print(env, 80),
+            env.types[a].copied().pretty_print(env, 80)
+        );
 
-        // assert_eq!(a.join(a, env), a);
-        // assert_eq!(a.meet(a, env), a);
+        let join2 = lattice.join(a, b); // Number or String => Number or String
+        let meet2 = lattice.meet(a, join2); // Number and (Number or String) => Number
+
+        assert!(
+            analysis.is_equivalent(meet2, a),
+            "{} != {}",
+            env.types[meet2].copied().pretty_print(env, 80),
+            env.types[a].copied().pretty_print(env, 80)
+        );
     }
 
     /// Assert that the lattice laws are uphold. `a`, `b` and `c` must all be semantically
     /// different.
     #[track_caller]
-    pub(crate) fn assert_lattice_laws<'heap, T>(
-        env: &Environment<'heap>,
-        convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
-        a: TypeId,
-        b: TypeId,
-        c: TypeId,
-    ) where
-        T: Lattice<'heap> + 'heap,
-    {
+    pub(crate) fn assert_lattice_laws(env: &Environment<'_>, a: TypeId, b: TypeId, c: TypeId) {
         let mut equiv = TypeAnalysisEnvironment::new(env);
 
         assert!(!equiv.is_equivalent(a, b));
         assert!(!equiv.is_equivalent(b, c));
         assert!(!equiv.is_equivalent(a, c));
 
-        assert_commutativity(env, &convert, a, b);
-        assert_associativity(env, &convert, a, b, c);
-        assert_absorption(env, &convert, a, b);
-        assert_idempotence(env, &convert, a);
+        assert_commutativity(env, a, b);
+        assert_associativity(env, a, b, c);
+        assert_absorption(env, a, b);
+        assert_idempotence(env, a);
     }
 }

@@ -1,16 +1,22 @@
 use core::ops::ControlFlow;
+use std::env::vars;
 
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::TypeKind;
-use crate::r#type::{
-    Type, TypeId,
-    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
-    error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
-    lattice::Lattice,
-    pretty_print::PrettyPrint,
-    recursion::RecursionDepthBoundary,
+use crate::{
+    span::SpanId,
+    r#type::{
+        Type, TypeId,
+        environment::{
+            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+        },
+        error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
+        lattice::Lattice,
+        pretty_print::PrettyPrint,
+        recursion::RecursionDepthBoundary,
+    },
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -60,6 +66,7 @@ impl<'heap> UnionType<'heap> {
     }
 
     pub(crate) fn meet_variants(
+        lhs_span: SpanId,
         lhs_variants: &[TypeId],
         rhs_variants: &[TypeId],
         env: &mut LatticeEnvironment<'_, 'heap>,
@@ -67,8 +74,8 @@ impl<'heap> UnionType<'heap> {
         // `meet` over a union is a distribution, e.g.
         // (A ∪ B) ∧ (C ∪ D)
         // = (A ∧ C) ∪ (A ∧ D) ∪ (B ∧ C) ∪ (B ∧ D)
-
-        let mut variants = SmallVec::with_capacity(lhs_variants.len() * rhs_variants.len());
+        let mut variants =
+            SmallVec::<_, 16>::with_capacity(lhs_variants.len() * rhs_variants.len());
 
         for &lhs in lhs_variants {
             for &rhs in rhs_variants {
@@ -79,7 +86,17 @@ impl<'heap> UnionType<'heap> {
         variants.sort_unstable();
         variants.dedup();
 
-        variants
+        // We need to wrap this in an explicit `Union`, as a `meet` with multiple returned values
+        // turns into an intersection.
+        let id = env.alloc(|id| Type {
+            id,
+            span: lhs_span,
+            kind: env.intern_kind(TypeKind::Union(UnionType {
+                variants: env.intern_type_ids(&variants),
+            })),
+        });
+
+        SmallVec::from_slice(&[id])
     }
 
     pub(crate) fn is_subtype_of_variants<T, U>(
@@ -208,7 +225,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         let lhs_variants = self.kind.unnest(env);
         let rhs_variants = other.kind.unnest(env);
 
-        Self::meet_variants(&lhs_variants, &rhs_variants, env)
+        Self::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
