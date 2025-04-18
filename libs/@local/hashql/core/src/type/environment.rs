@@ -4,7 +4,7 @@ use hashbrown::HashMap;
 
 use super::{
     Type, TypeId, TypeKind,
-    error::TypeCheckDiagnostic,
+    error::{TypeCheckDiagnostic, circular_type_reference},
     intern::Interner,
     kind::{
         generic_argument::{GenericArgument, GenericArgumentData, GenericArgumentId},
@@ -110,6 +110,12 @@ impl AuxiliaryData {
     }
 }
 
+impl Default for AuxiliaryData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug)]
 pub struct Environment<'heap> {
     pub source: SpanId,
@@ -159,17 +165,6 @@ impl<'heap> Environment<'heap> {
     }
 }
 
-// if !self.boundary.enter(lhs, rhs) {
-//     // We've detected a circular reference in the type graph
-//     let lhs_type = self.environment.types[lhs].copied();
-//     let rhs_type = self.environment.types[rhs].copied();
-
-//     let diagnostic = circular_type_reference(self.environment.source, lhs_type, rhs_type);
-
-//     self.diagnostics.push(diagnostic);
-//     return;
-// }
-
 pub struct SimplifyEnvironment<'env, 'heap> {
     environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
@@ -196,19 +191,25 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         self.analysis.is_subtype_of(subtype, supertype)
     }
 
-    pub fn simplify(&mut self, id: TypeId) -> TypeId {
-        // TODO: recursion boundary
-        let r#type = self.environment.types[id].copied();
-
-        r#type.simplify(self)
-    }
-
     pub fn is_bottom(&mut self, id: TypeId) -> bool {
         self.analysis.is_bottom(id)
     }
 
     pub fn is_top(&mut self, id: TypeId) -> bool {
         self.analysis.is_top(id)
+    }
+
+    pub fn simplify(&mut self, id: TypeId) -> TypeId {
+        if !self.boundary.enter(id, id) {
+            // We have discovered a recursive type, as such we stop simplification
+            return id;
+        }
+
+        let r#type = self.environment.types[id].copied();
+        let result = r#type.simplify(self);
+
+        self.boundary.exit(id, id);
+        result
     }
 }
 
@@ -225,6 +226,7 @@ impl<'heap> Deref for SimplifyEnvironment<'_, 'heap> {
 pub struct LatticeEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
+    diagnostics: Diagnostics,
 
     simplify: SimplifyEnvironment<'env, 'heap>,
 }
@@ -234,19 +236,31 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
+            diagnostics: Diagnostics::new(),
             simplify: SimplifyEnvironment::new(environment),
         }
     }
 
     pub fn join(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
-        // TODO: recursion boundary
-
         let lhs = self.environment.types[lhs].copied();
         let rhs = self.environment.types[rhs].copied();
 
+        if !self.boundary.enter(lhs.id, rhs.id) {
+            // We have a recursive type, do not attempt to stop any join outside forcefully, instead
+            // return `Never` and record a fatal diagnostic.
+            self.diagnostics
+                .push(circular_type_reference(self.source, lhs, rhs));
+
+            return self.environment.alloc(|id| Type {
+                id,
+                span: lhs.span,
+                kind: self.environment.intern_kind(TypeKind::Never),
+            });
+        }
+
         let variants = lhs.join(rhs, self);
 
-        if variants.is_empty() {
+        let result = if variants.is_empty() {
             let kind = self.environment.intern_kind(TypeKind::Never);
 
             self.environment.alloc(|id| Type {
@@ -268,18 +282,32 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             });
 
             self.simplify.simplify(id)
-        }
+        };
+
+        self.boundary.exit(lhs.id, rhs.id);
+        result
     }
 
     pub fn meet(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
-        // TODO: recursion boundary
-
         let lhs = self.environment.types[lhs].copied();
         let rhs = self.environment.types[rhs].copied();
 
+        if !self.boundary.enter(lhs.id, rhs.id) {
+            // We have detected a recursive type, do not attempt to join any other meet forcefully,
+            // instead return `Unknown` and record a diagnostic.
+            self.diagnostics
+                .push(circular_type_reference(self.source, lhs, rhs));
+
+            return self.environment.alloc(|id| Type {
+                id,
+                span: lhs.span,
+                kind: self.environment.intern_kind(TypeKind::Unknown),
+            });
+        }
+
         let variants = lhs.meet(rhs, self);
 
-        if variants.is_empty() {
+        let result = if variants.is_empty() {
             // No common variant, therefore `Never`.
             let kind = self.environment.intern_kind(TypeKind::Never);
 
@@ -304,7 +332,10 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             });
 
             self.simplify.simplify(id)
-        }
+        };
+
+        self.boundary.exit(lhs.id, rhs.id);
+        result
     }
 }
 
@@ -336,22 +367,47 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         }
     }
 
+    pub fn with_diagnostics(&mut self) -> &mut Self {
+        self.diagnostics = Some(Diagnostics::new());
+
+        self
+    }
+
+    pub fn take_diagnostics(&mut self) -> Vec<TypeCheckDiagnostic> {
+        self.diagnostics
+            .as_mut()
+            .map_or_else(Vec::new, Diagnostics::take)
+    }
+
     pub fn is_bottom(&mut self, id: TypeId) -> bool {
-        // TODO: recursion guard
+        if !self.boundary.enter(id, id) {
+            // We have found a recursive type, meaning it can't be bottom
+            return false;
+        }
 
         let r#type = self.environment.types[id].copied();
+        let result = r#type.is_bottom(self);
 
-        r#type.is_bottom(self)
+        self.boundary.exit(id, id);
+
+        result
     }
 
     pub fn is_top(&mut self, id: TypeId) -> bool {
-        // TODO: recursion guard
+        if !self.boundary.enter(id, id) {
+            // We have found a recursive type, meaning it can't be top
+            return false;
+        }
 
         let r#type = self.environment.types[id].copied();
+        let result = r#type.is_top(self);
 
-        r#type.is_top(self)
+        self.boundary.exit(id, id);
+
+        result
     }
 
+    #[must_use]
     pub const fn is_fail_fast(&self) -> bool {
         self.diagnostics.is_none()
     }
@@ -412,6 +468,14 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         let subtype = self.environment.types[subtype].copied();
         let supertype = self.environment.types[supertype].copied();
 
+        if !self.boundary.enter(subtype.id, supertype.id) {
+            // We have discovered a recursive type
+            let _: ControlFlow<()> = self
+                .record_diagnostic(|env| circular_type_reference(env.source, subtype, supertype));
+
+            return false;
+        }
+
         if let Some(result) = Self::is_quick_subtype(&subtype, &supertype) {
             return result;
         }
@@ -436,12 +500,15 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         let lhs = self.environment.types[lhs].copied();
         let rhs = self.environment.types[rhs].copied();
 
-        if core::ptr::eq(lhs.kind, rhs.kind) {
-            return true;
+        if !self.boundary.enter(lhs.id, rhs.id) {
+            // A recursive type cannot be equivalent to another type
+            let _: ControlFlow<()> =
+                self.record_diagnostic(|env| circular_type_reference(env.source, lhs, rhs));
+
+            return false;
         }
 
-        if !self.boundary.enter(lhs.id, rhs.id) {
-            // In case of recursion the result is true
+        if core::ptr::eq(lhs.kind, rhs.kind) {
             return true;
         }
 

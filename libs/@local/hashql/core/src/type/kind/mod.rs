@@ -28,14 +28,18 @@ use super::{
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {
-    // Closure(ClosureType),
+    // Opaque(OpaqueType),
     Primitive(PrimitiveType),
     // Intrinsic(IntrinsicType),
+
     // Struct(StructType),
     Tuple(TupleType<'heap>),
-    // Opaque(OpaqueType),
+
     Union(UnionType<'heap>),
     Intersection(IntersectionType<'heap>),
+
+    // Closure(ClosureType),
+
     // Param(Param),
     Never,
     Unknown,
@@ -43,9 +47,9 @@ pub enum TypeKind<'heap> {
 }
 
 impl TypeKind<'_> {
-    // pub fn closure(&self) -> Option<&ClosureType> {
+    // pub fn opaque(&self) -> Option<&OpaqueType> {
     //     match self {
-    //         Self::Closure(r#type) => Some(r#type),
+    //         Self::Opaque(r#type) => Some(r#type),
     //         _ => None,
     //     }
     // }
@@ -80,9 +84,9 @@ impl TypeKind<'_> {
         }
     }
 
-    // pub fn opaque(&self) -> Option<&OpaqueType> {
+    // pub fn closure(&self) -> Option<&ClosureType> {
     //     match self {
-    //         Self::Opaque(r#type) => Some(r#type),
+    //         Self::Closure(r#type) => Some(r#type),
     //         _ => None,
     //     }
     // }
@@ -95,7 +99,8 @@ impl TypeKind<'_> {
         }
     }
 
-    pub fn intersection(&self) -> Option<&IntersectionType> {
+    #[must_use]
+    pub const fn intersection(&self) -> Option<&IntersectionType> {
         match self {
             Self::Intersection(r#type) => Some(r#type),
             _ => None,
