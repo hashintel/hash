@@ -55,6 +55,7 @@ impl PrettyPrint for GenericArgument {
 pub struct GenericArguments<'heap>(&'heap [GenericArgument]);
 
 impl<'heap> GenericArguments<'heap> {
+    #[must_use]
     pub const fn empty() -> Self {
         Self(&[])
     }
@@ -68,6 +69,7 @@ impl<'heap> GenericArguments<'heap> {
         self.0.iter()
     }
 
+    #[must_use]
     pub fn merge(&self, other: &Self, env: &Environment<'heap>) -> Self {
         // We can merge without de-duplication, because every argument has a unique ID.
         // What we need to do tho, is to re-sort them, so that the invariants are maintained.
@@ -80,15 +82,6 @@ impl<'heap> GenericArguments<'heap> {
 
         let arguments = env.intern_generic_arguments(&vec);
         Self::from_slice(arguments)
-    }
-
-    pub(crate) fn semantically_equivalent(&self, other: &Self) -> bool {
-        self.0.len() == other.0.len()
-            && self
-                .0
-                .iter()
-                .zip(other.0)
-                .all(|(lhs, rhs)| lhs.id == rhs.id)
     }
 }
 
@@ -118,12 +111,6 @@ impl PrettyPrint for GenericArguments<'_> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Param {
     pub argument: GenericArgumentId,
-}
-
-impl Param {
-    pub(crate) fn semantically_equivalent(&self, other: &Self) -> bool {
-        self.argument == other.argument
-    }
 }
 
 impl PrettyPrint for Param {

@@ -143,10 +143,6 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
                 .iter()
                 .zip(other.kind.fields.iter())
                 .all(|(&lhs, &rhs)| env.is_equivalent(lhs, rhs))
-            && self
-                .kind
-                .arguments
-                .semantically_equivalent(&other.kind.arguments)
     }
 
     /// Unifies tuple types

@@ -50,7 +50,8 @@ impl TypeKind<'_> {
     //     }
     // }
 
-    pub fn primitive(&self) -> Option<&PrimitiveType> {
+    #[must_use]
+    pub const fn primitive(&self) -> Option<&PrimitiveType> {
         match self {
             Self::Primitive(r#type) => Some(r#type),
             _ => None,
@@ -71,7 +72,8 @@ impl TypeKind<'_> {
     //     }
     // }
 
-    pub fn tuple(&self) -> Option<&TupleType> {
+    #[must_use]
+    pub const fn tuple(&self) -> Option<&TupleType> {
         match self {
             Self::Tuple(r#type) => Some(r#type),
             _ => None,
@@ -85,7 +87,8 @@ impl TypeKind<'_> {
     //     }
     // }
 
-    pub fn union(&self) -> Option<&UnionType> {
+    #[must_use]
+    pub const fn union(&self) -> Option<&UnionType> {
         match self {
             Self::Union(r#type) => Some(r#type),
             _ => None,
