@@ -1,10 +1,14 @@
 pub mod auxiliary;
 pub mod diagnostics;
+pub mod substitution;
 pub mod variance;
 
 use core::ops::{ControlFlow, Deref};
 
-use self::{auxiliary::AuxiliaryData, diagnostics::Diagnostics, variance::Variance};
+use self::{
+    auxiliary::AuxiliaryData, diagnostics::Diagnostics, substitution::Substitution,
+    variance::Variance,
+};
 use super::{
     Type, TypeId, TypeKind,
     error::{TypeCheckDiagnostic, circular_type_reference},
@@ -24,6 +28,7 @@ pub struct Environment<'heap> {
     interner: Interner<'heap>,
 
     pub auxiliary: AuxiliaryData,
+    pub substitution: Substitution,
 }
 
 impl<'heap> Environment<'heap> {
@@ -37,6 +42,7 @@ impl<'heap> Environment<'heap> {
             interner: Interner::new(heap),
 
             auxiliary: AuxiliaryData::new(),
+            substitution: Substitution::new(),
         }
     }
 
@@ -125,7 +131,7 @@ impl<'heap> Deref for SimplifyEnvironment<'_, 'heap> {
 pub struct LatticeEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
-    diagnostics: Diagnostics,
+    pub diagnostics: Diagnostics,
 
     simplify: SimplifyEnvironment<'env, 'heap>,
 }

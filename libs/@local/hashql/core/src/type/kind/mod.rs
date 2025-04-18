@@ -13,7 +13,10 @@ pub mod tuple;
 pub mod union;
 // pub mod union;
 
+use core::ops::ControlFlow;
+
 use pretty::RcDoc;
+use smallvec::SmallVec;
 
 use self::{
     intersection::IntersectionType, primitive::PrimitiveType, tuple::TupleType, union::UnionType,
@@ -21,6 +24,7 @@ use self::{
 use super::{
     Type, TypeId,
     environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
+    error::no_type_inference,
     lattice::Lattice,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -117,11 +121,89 @@ impl TypeKind<'_> {
 
 impl<'heap> Lattice<'heap> for TypeKind<'heap> {
     fn join(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
+        mut self: Type<'heap, Self>,
+        mut other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        todo!()
+        if *self.kind == TypeKind::Infer {
+            let Some(infer) = env.substitution.infer(self.id) else {
+                env.diagnostics.push(no_type_inference(env, self));
+
+                return SmallVec::new();
+            };
+
+            self = env.types[infer].copied();
+        }
+
+        if *other.kind == TypeKind::Infer {
+            let Some(infer) = env.substitution.infer(other.id) else {
+                env.diagnostics.push(no_type_inference(env, other));
+
+                return SmallVec::new();
+            };
+
+            other = env.types[infer].copied();
+        }
+
+        #[expect(clippy::match_same_arms)]
+        match (self.kind, other.kind) {
+            // T ∨ Never <=> T
+            (_, TypeKind::Never) => SmallVec::from_slice(&[self.id]),
+            // Never ∨ T <=> T
+            (TypeKind::Never, _) => SmallVec::from_slice(&[other.id]),
+
+            // T ∨ Unknown <=> Unknown
+            (_, TypeKind::Unknown) => SmallVec::from_slice(&[other.id]),
+            // Unknown ∨ T <=> Unknown
+            (TypeKind::Unknown, _) => SmallVec::from_slice(&[self.id]),
+
+            // Infer ∨ _ <=> unreachable!()
+            // _ ∨ Infer <=> unreachable!()
+            (TypeKind::Infer, _) | (_, TypeKind::Infer) => {
+                unreachable!("infer should've been resolved prior to this")
+            }
+
+            (TypeKind::Primitive(lhs), TypeKind::Primitive(rhs)) => {
+                self.map(|_| lhs).join(other.map(|_| rhs), env)
+            }
+            (TypeKind::Primitive(_), TypeKind::Tuple(_)) => {
+                SmallVec::from_slice(&[self.id, other.id])
+            }
+
+            (TypeKind::Tuple(lhs), TypeKind::Tuple(rhs)) => {
+                self.map(|_| lhs).join(other.map(|_| rhs), env)
+            }
+            (TypeKind::Tuple(_), TypeKind::Primitive(_)) => {
+                SmallVec::from_slice(&[self.id, other.id])
+            }
+
+            (TypeKind::Union(lhs), TypeKind::Union(rhs)) => {
+                self.map(|_| lhs).join(other.map(|_| rhs), env)
+            }
+            (
+                TypeKind::Union(lhs),
+                TypeKind::Primitive(_) | TypeKind::Tuple(_) | TypeKind::Intersection(_),
+            ) => {
+                let variants = [other.id];
+                let rhs = UnionType {
+                    variants: &variants,
+                };
+
+                self.map(|_| lhs).join(other.map(|_| &rhs), env)
+            }
+            (
+                TypeKind::Primitive(_) | TypeKind::Tuple(_) | TypeKind::Intersection(_),
+                TypeKind::Union(rhs),
+            ) => {
+                todo!()
+            }
+
+            (TypeKind::Intersection(lhs), TypeKind::Intersection(rhs)) => {
+                self.map(|_| lhs).join(other.map(|_| rhs), env)
+            }
+            (TypeKind::Intersection(lhs), TypeKind::Primitive(_) | TypeKind::Tuple(_)) => todo!(),
+            (TypeKind::Primitive(_) | TypeKind::Tuple(_), TypeKind::Intersection(_)) => todo!(),
+        }
     }
 
     fn meet(
@@ -133,11 +215,49 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
-        todo!()
+        match self.kind {
+            TypeKind::Primitive(primitive_type) => self.map(|_| primitive_type).is_bottom(env),
+            TypeKind::Tuple(tuple_type) => self.map(|_| tuple_type).is_bottom(env),
+            TypeKind::Union(union_type) => self.map(|_| union_type).is_bottom(env),
+            TypeKind::Intersection(intersection_type) => {
+                self.map(|_| intersection_type).is_bottom(env)
+            }
+            TypeKind::Never => true,
+            TypeKind::Unknown => false,
+            TypeKind::Infer => {
+                let Some(substitution) = env.substitution.infer(self.id) else {
+                    let _: ControlFlow<()> =
+                        env.record_diagnostic(|env| no_type_inference(env, self));
+
+                    return false;
+                };
+
+                env.is_bottom(substitution)
+            }
+        }
     }
 
     fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
-        todo!()
+        match self.kind {
+            TypeKind::Primitive(primitive_type) => self.map(|_| primitive_type).is_top(env),
+            TypeKind::Tuple(tuple_type) => self.map(|_| tuple_type).is_top(env),
+            TypeKind::Union(union_type) => self.map(|_| union_type).is_top(env),
+            TypeKind::Intersection(intersection_type) => {
+                self.map(|_| intersection_type).is_top(env)
+            }
+            TypeKind::Never => false,
+            TypeKind::Unknown => true,
+            TypeKind::Infer => {
+                let Some(substitution) = env.substitution.infer(self.id) else {
+                    let _: ControlFlow<()> =
+                        env.record_diagnostic(|env| no_type_inference(env, self));
+
+                    return false;
+                };
+
+                env.is_top(substitution)
+            }
+        }
     }
 
     fn is_equivalent(

@@ -59,6 +59,11 @@ const INTERSECTION_VARIANT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagno
     name: "Intersection variant mismatch",
 };
 
+const NO_TYPE_INFERENCE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "no-type-inference",
+    name: "No type inference substitution",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -70,6 +75,7 @@ pub enum TypeCheckDiagnosticCategory {
     UnionVariantMismatch,
     FunctionParameterCountMismatch,
     IntersectionVariantMismatch,
+    NoTypeInference,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -92,6 +98,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::UnionVariantMismatch => Some(&UNION_VARIANT_MISMATCH),
             Self::FunctionParameterCountMismatch => Some(&FUNCTION_PARAMETER_COUNT_MISMATCH),
             Self::IntersectionVariantMismatch => Some(&INTERSECTION_VARIANT_MISMATCH),
+            Self::NoTypeInference => Some(&NO_TYPE_INFERENCE),
         }
     }
 }
@@ -137,6 +144,51 @@ where
 
     diagnostic.note = Some(Note::new(
         "Types in expressions must be compatible according to the language's type system",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when there's no substitution available for an inference variable
+///
+/// This error occurs when type inference cannot determine a concrete type for a variable
+/// because it wasn't constrained by any usage in the code.
+pub(crate) fn no_type_inference<K>(env: &Environment, infer_type: Type<K>) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::NoTypeInference,
+        // This is a compiler bug, as we should've encountered the `Infer` at an earlier stage
+        Severity::COMPILER_BUG,
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            infer_type.span,
+            "cannot infer the type of this expression; it is unconstrained",
+        )
+        .with_order(1),
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            env.source,
+            "no constraints were generated for this type variable",
+        )
+        .with_order(2),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "This error occurs when the type system cannot determine a specific type for an \
+         expression. Add explicit type annotations to help the compiler understand your intent.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Type inference requires sufficient context to determine types. When a type variable has \
+         no constraints from usage, the compiler cannot choose an appropriate type. Consider \
+         adding an explicit type annotation or using the expression in a context that provides \
+         more type information.",
     ));
 
     diagnostic
