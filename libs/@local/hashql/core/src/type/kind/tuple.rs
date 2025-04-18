@@ -139,14 +139,10 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         // Unify corresponding fields in each tuple
         for (&lhs_field, &rhs_field) in self.kind.fields.iter().zip(supertype.kind.fields.iter()) {
             // Fields are covariant
-            let is_valid = env.in_covariant(|env| env.is_subtype_of(lhs_field, rhs_field));
+            compatible &= env.in_covariant(|env| env.is_subtype_of(lhs_field, rhs_field));
 
-            if !is_valid && env.is_fail_fast() {
+            if !compatible && env.is_fail_fast() {
                 return false;
-            }
-
-            if !is_valid {
-                compatible = false;
             }
         }
 
@@ -158,13 +154,36 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         other: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        self.kind.fields.len() == other.kind.fields.len()
-            && self
-                .kind
-                .fields
-                .iter()
-                .zip(other.kind.fields.iter())
-                .all(|(&lhs, &rhs)| env.is_equivalent(lhs, rhs))
+        // Tuples must have the same number of fields for equivalence
+        if self.kind.fields.len() != other.kind.fields.len() {
+            // We always fail-fast here
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                tuple_length_mismatch(
+                    env.source,
+                    self,
+                    other,
+                    self.kind.fields.len(),
+                    other.kind.fields.len(),
+                )
+            });
+
+            return false;
+        }
+
+        let mut equivalent = true;
+
+        // Each field in the subtype must be a subtype of the corresponding field in the supertype
+        // Unify corresponding fields in each tuple
+        for (&lhs_field, &rhs_field) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
+            // Fields are covariant
+            equivalent &= env.in_covariant(|env| env.is_equivalent(lhs_field, rhs_field));
+
+            if !equivalent && env.is_fail_fast() {
+                return false;
+            }
+        }
+
+        equivalent
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {

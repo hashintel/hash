@@ -4,9 +4,12 @@ use hashbrown::HashMap;
 
 use super::{
     Type, TypeId, TypeKind,
-    error::{TypeCheckDiagnostic, circular_type_reference},
+    error::TypeCheckDiagnostic,
     intern::Interner,
-    kind::generic_argument::{GenericArgument, GenericArgumentData, GenericArgumentId},
+    kind::{
+        generic_argument::{GenericArgument, GenericArgumentData, GenericArgumentId},
+        union::UnionType,
+    },
     lattice::Lattice as _,
     recursion::RecursionBoundary,
 };
@@ -155,60 +158,22 @@ impl<'heap> Environment<'heap> {
     }
 }
 
-pub struct UnificationEnvironment<'env, 'heap> {
-    environment: &'env Environment<'heap>,
-    boundary: RecursionBoundary,
-    analysis: TypeAnalysisEnvironment<'env, 'heap>,
+// if !self.boundary.enter(lhs, rhs) {
+//     // We've detected a circular reference in the type graph
+//     let lhs_type = self.environment.types[lhs].copied();
+//     let rhs_type = self.environment.types[rhs].copied();
 
-    pub variance: Variance,
-    pub diagnostics: Diagnostics,
-}
+//     let diagnostic = circular_type_reference(self.environment.source, lhs_type, rhs_type);
 
-impl<'env, 'heap> UnificationEnvironment<'env, 'heap> {
-    pub fn new(environment: &'env Environment<'heap>) -> Self {
-        Self {
-            environment,
-            boundary: RecursionBoundary::new(),
-            analysis: TypeAnalysisEnvironment::new(environment),
-            variance: Variance::default(),
-            diagnostics: Diagnostics::new(),
-        }
-    }
-
-    pub fn unify_type(&mut self, lhs: TypeId, rhs: TypeId) {
-        if !self.boundary.enter(lhs, rhs) {
-            // We've detected a circular reference in the type graph
-            let lhs_type = self.environment.types[lhs].copied();
-            let rhs_type = self.environment.types[rhs].copied();
-
-            let diagnostic = circular_type_reference(self.environment.source, lhs_type, rhs_type);
-
-            self.diagnostics.push(diagnostic);
-            return;
-        }
-
-        // unify_type_impl(self, lhs, rhs);
-        todo!("Implement type unification");
-
-        self.boundary.exit(lhs, rhs);
-    }
-}
-
-// We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
-// As the unification environment is just a wrapper around the environment with an additional guard.
-impl<'heap> Deref for UnificationEnvironment<'_, 'heap> {
-    type Target = Environment<'heap>;
-
-    fn deref(&self) -> &Self::Target {
-        self.environment
-    }
-}
+//     self.diagnostics.push(diagnostic);
+//     return;
+// }
 
 pub struct SimplifyEnvironment<'env, 'heap> {
     environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
 
-    lattice: LatticeEnvironment<'env, 'heap>,
+    // lattice: LatticeEnvironment<'env, 'heap>,
     analysis: TypeAnalysisEnvironment<'env, 'heap>,
 }
 
@@ -217,7 +182,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
-            lattice: LatticeEnvironment::new(environment),
+            // lattice: LatticeEnvironment::new(environment),
             analysis: TypeAnalysisEnvironment::new(environment),
         }
     }
@@ -240,9 +205,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     pub fn uninhabited(&mut self, id: TypeId) -> bool {
         let r#type = self.environment.types[id].copied();
 
-        let mut env = TypeAnalysisEnvironment::new(self.environment);
-
-        r#type.is_uninhabited(&mut env)
+        r#type.is_uninhabited(&mut self.analysis)
     }
 }
 
@@ -259,6 +222,8 @@ impl<'heap> Deref for SimplifyEnvironment<'_, 'heap> {
 pub struct LatticeEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
+
+    simplify: SimplifyEnvironment<'env, 'heap>,
 }
 
 impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
@@ -266,10 +231,13 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
+            simplify: SimplifyEnvironment::new(environment),
         }
     }
 
     pub fn join(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
+        // TODO: variance and recursion boundary
+
         let lhs = self.environment.types[lhs].copied();
         let rhs = self.environment.types[rhs].copied();
 
@@ -286,21 +254,23 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         } else if variants.len() == 1 {
             variants[0]
         } else {
-            todo!()
+            let kind = self.environment.intern_kind(TypeKind::Union(UnionType {
+                variants: self.intern_type_ids(&variants),
+            }));
 
-            // let kind = self.environment.intern(TypeKind::Union(UnionType {
-            //     variants: variants.into_iter().collect(),
-            // }));
+            let id = self.environment.alloc(|id| Type {
+                id,
+                span: lhs.span,
+                kind,
+            });
 
-            // self.environment.alloc(|id| Type {
-            //     id,
-            //     span: lhs.span,
-            //     kind,
-            // })
+            self.simplify.simplify(id)
         }
     }
 
     pub fn meet(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
+        // TODO: variance and recursion boundary
+
         let lhs = self.environment.types[lhs].copied();
         let rhs = self.environment.types[rhs].copied();
 
@@ -521,14 +491,14 @@ mod test {
     use crate::{
         heap::Heap,
         span::SpanId,
-        r#type::environment::{Environment, UnificationEnvironment, Variance},
+        r#type::environment::{Environment, TypeAnalysisEnvironment, Variance},
     };
 
     #[test]
     fn variance_context() {
         let heap = Heap::new();
         let environment = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut env = UnificationEnvironment::new(&environment);
+        let mut env = TypeAnalysisEnvironment::new(&environment);
 
         // Default should be covariant
         assert_eq!(env.variance, Variance::Covariant);

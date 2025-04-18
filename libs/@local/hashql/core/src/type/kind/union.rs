@@ -211,6 +211,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         variants.dedup();
         variants.retain(|&variant| !env.uninhabited(variant));
 
+        // TODO: Test - what happens on `Number | Integer`, what happens on `Number | Number`
         // Drop subtypes of other variants
         let backup = variants.clone();
         variants.retain(|&subtype| {

@@ -1,25 +1,24 @@
-use core::ops::Index;
-
-use ecow::EcoVec;
 use pretty::RcDoc;
 
-use crate::r#type::{Type, TypeId, pretty_print::PrettyPrint, recursion::RecursionDepthBoundary};
+use crate::r#type::{
+    TypeId, environment::Environment, pretty_print::PrettyPrint, recursion::RecursionDepthBoundary,
+};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct IntersectionType {
-    pub variants: EcoVec<TypeId>,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct IntersectionType<'heap> {
+    pub variants: &'heap [TypeId],
 }
 
-impl PrettyPrint for IntersectionType {
-    fn pretty<'a>(
-        &'a self,
-        arena: &'a impl Index<TypeId, Output = Type>,
+impl PrettyPrint for IntersectionType<'_> {
+    fn pretty<'env>(
+        &self,
+        env: &'env Environment,
         limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'a, anstyle::Style> {
+    ) -> pretty::RcDoc<'env, anstyle::Style> {
         RcDoc::intersperse(
             self.variants
                 .iter()
-                .map(|&variant| limit.pretty(&arena[variant], arena)),
+                .map(|&variant| limit.pretty(env, variant)),
             RcDoc::line()
                 .append(RcDoc::text("&"))
                 .append(RcDoc::space()),

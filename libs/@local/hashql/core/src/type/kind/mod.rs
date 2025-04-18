@@ -6,6 +6,7 @@
 pub mod primitive;
 // pub mod r#struct;
 pub mod generic_argument;
+pub mod intersection;
 #[cfg(test)]
 pub(crate) mod test;
 pub mod tuple;
@@ -14,7 +15,9 @@ pub mod union;
 
 use pretty::RcDoc;
 
-use self::{primitive::PrimitiveType, tuple::TupleType, union::UnionType};
+use self::{
+    intersection::IntersectionType, primitive::PrimitiveType, tuple::TupleType, union::UnionType,
+};
 use super::{
     Type, TypeId,
     environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
@@ -32,7 +35,7 @@ pub enum TypeKind<'heap> {
     Tuple(TupleType<'heap>),
     // Opaque(OpaqueType),
     Union(UnionType<'heap>),
-    // Intersection(IntersectionType),
+    Intersection(IntersectionType<'heap>),
     // Param(Param),
     Never,
     Unknown,
@@ -92,12 +95,12 @@ impl TypeKind<'_> {
         }
     }
 
-    // pub fn intersection(&self) -> Option<&IntersectionType> {
-    //     match self {
-    //         Self::Intersection(r#type) => Some(r#type),
-    //         _ => None,
-    //     }
-    // }
+    pub fn intersection(&self) -> Option<&IntersectionType> {
+        match self {
+            Self::Intersection(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
 
     // pub fn param(&self) -> Option<&Param> {
     //     match self {
