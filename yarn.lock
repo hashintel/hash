@@ -782,7 +782,7 @@ __metadata:
     "@types/lodash.debounce": "npm:4.0.9"
     "@types/react": "npm:19.1.2"
     "@types/react-dom": "npm:19.1.2"
-    "@types/webextension-polyfill": "npm:0.12.2"
+    "@types/webextension-polyfill": "npm:0.12.3"
     "@types/ws": "npm:8.18.1"
     babel-loader: "npm:9.2.1"
     babel-preset-react-app: "npm:10.1.0"
@@ -18308,10 +18308,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/webextension-polyfill@npm:0.12.2":
-  version: 0.12.2
-  resolution: "@types/webextension-polyfill@npm:0.12.2"
-  checksum: 10c0/16ba180c3e214d555c42f69fa14a10762746900f7391120ac462881ece7fe32f10c3f213e0a7fa26f5d33ae515d060bc109638998119e3733ee49837e881f667
+"@types/webextension-polyfill@npm:0.12.3":
+  version: 0.12.3
+  resolution: "@types/webextension-polyfill@npm:0.12.3"
+  checksum: 10c0/0f0cea5ab70a3958f7eca61168b8b431288c35ee7e8f052f5b3bf6a6aa101183aa760addd4dcf408027d558731aa8a8f107e47a373bb7c347cb7cba807fe46e6
   languageName: node
   linkType: hard
 
