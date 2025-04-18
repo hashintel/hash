@@ -370,8 +370,8 @@ where
 /// union type
 pub(crate) fn union_variant_mismatch<K1, K2>(
     env: &Environment,
-    variant_type: &Type<K1>,
-    expected_union_type: &Type<K2>,
+    bad_variant: Type<K1>,
+    expected_union: Type<K2>,
 ) -> TypeCheckDiagnostic
 where
     K1: PrettyPrint,
@@ -382,48 +382,34 @@ where
         Severity::ERROR,
     );
 
-    diagnostic.labels.push(
-        Label::new(
-            env.source,
-            "This union type contains an incompatible variant",
-        )
-        .with_order(3),
-    );
+    // Primary: point at the failing variant
+    diagnostic.labels.push(Label::new(
+        bad_variant.span,
+        format!(
+            "the variant `{}` does not fit into the expected union",
+            bad_variant.kind.pretty_print(env, 80)
+        ),
+    ));
 
-    diagnostic.labels.push(
-        Label::new(
-            variant_type.span,
-            format!(
-                "This variant of type `{}` is not compatible with any variant in the expected \
-                 union",
-                variant_type.kind.pretty_print(&env, 80)
-            ),
-        )
-        .with_order(1),
-    );
-
-    diagnostic.labels.push(
-        Label::new(
-            expected_union_type.span,
-            format!(
-                "Expected a variant compatible with this union type `{}`",
-                expected_union_type.kind.pretty_print(&env, 80)
-            ),
-        )
-        .with_order(2),
-    );
+    // Secondary: point at the union we tried to match against
+    diagnostic.labels.push(Label::new(
+        expected_union.span,
+        format!(
+            "expected this to include a variant compatible with `{}`",
+            bad_variant.kind.pretty_print(env, 80)
+        ),
+    ));
 
     diagnostic.help = Some(Help::new(
-        "For a union type to be compatible with another, each of its variants must be compatible \
-         with at least one variant in the other union. Check that the problematic variant matches \
-         the expected type structure.",
+        "Every variant of a `A | B | …` must be a subtype of at least one arm of the expected \
+         union.",
     ));
 
-    diagnostic.note = Some(Note::new(
-        "Union types follow subtyping rules where (A | B) <: C if and only if A <: C and B <: C. \
-         This means each variant in the provided union must be a subtype of at least one variant \
-         in the expected union.",
-    ));
+    diagnostic.note = Some(Note::new(format!(
+        "expected union `{}`\nfound variant `{}` which has no matching arm",
+        expected_union.kind.pretty_print(env, 80),
+        bad_variant.kind.pretty_print(env, 80),
+    )));
 
     diagnostic
 }

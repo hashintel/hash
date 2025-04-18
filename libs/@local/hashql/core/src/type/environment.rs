@@ -1,4 +1,4 @@
-use core::ops::Deref;
+use core::ops::{ControlFlow, Deref};
 
 use hashbrown::HashMap;
 
@@ -158,6 +158,7 @@ impl<'heap> Environment<'heap> {
 pub struct UnificationEnvironment<'env, 'heap> {
     environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
+    analysis: TypeAnalysisEnvironment<'env, 'heap>,
 
     pub variance: Variance,
     pub diagnostics: Diagnostics,
@@ -168,6 +169,7 @@ impl<'env, 'heap> UnificationEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
+            analysis: TypeAnalysisEnvironment::new(environment),
             variance: Variance::default(),
             diagnostics: Diagnostics::new(),
         }
@@ -189,44 +191,6 @@ impl<'env, 'heap> UnificationEnvironment<'env, 'heap> {
         todo!("Implement type unification");
 
         self.boundary.exit(lhs, rhs);
-    }
-
-    pub(crate) fn with_variance<T>(
-        &mut self,
-        variance: Variance,
-        closure: impl FnOnce(&mut Self) -> T,
-    ) -> T {
-        let old_variance = self.variance;
-
-        // Apply variance composition rules
-        self.variance = match (old_variance, variance) {
-            // When going from covariant to contravariant context or vice versa, flip to
-            // contravariant
-            (Variance::Covariant, Variance::Contravariant)
-            | (Variance::Contravariant, Variance::Covariant) => Variance::Contravariant,
-
-            // When either context is invariant, the result is invariant
-            (Variance::Invariant, _) | (_, Variance::Invariant) => Variance::Invariant,
-
-            // Otherwise preserve the context
-            _ => variance,
-        };
-
-        let result = closure(self);
-        self.variance = old_variance;
-        result
-    }
-
-    pub(crate) fn in_contravariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Contravariant, closure)
-    }
-
-    pub(crate) fn in_covariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Covariant, closure)
-    }
-
-    pub(crate) fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Invariant, closure)
     }
 }
 
@@ -382,6 +346,8 @@ impl<'heap> Deref for LatticeEnvironment<'_, 'heap> {
 pub struct TypeAnalysisEnvironment<'env, 'heap> {
     environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
+    diagnostics: Option<Diagnostics>,
+    variance: Variance,
 }
 
 impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
@@ -390,6 +356,8 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
+            diagnostics: None,
+            variance: Variance::Covariant,
         }
     }
 
@@ -399,7 +367,25 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         r#type.is_uninhabited(self)
     }
 
-    fn is_quick_subtype(&self, subtype: &Type<'heap>, supertype: &Type<'heap>) -> Option<bool> {
+    pub fn record_diagnostic(
+        &mut self,
+        diagnostic: impl FnOnce(&Environment<'heap>) -> TypeCheckDiagnostic,
+    ) -> ControlFlow<()> {
+        let Some(diagnostics) = self.diagnostics.as_mut() else {
+            // Fail-fast mode: No diagnostics storage available
+            // (typical for equivalence checks where we just need a yes/no answer)
+            return ControlFlow::Break(());
+        };
+
+        // Record the diagnostic in fail-slow mode
+        diagnostics.push(diagnostic(self.environment));
+
+        // Return indication to continue processing
+        // (used in type checking/unification to collect multiple errors)
+        ControlFlow::Continue(())
+    }
+
+    fn is_quick_subtype(subtype: &Type<'heap>, supertype: &Type<'heap>) -> Option<bool> {
         if subtype.id == supertype.id {
             return Some(true);
         }
@@ -428,10 +414,16 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
+        let (subtype, supertype) = match self.variance {
+            Variance::Covariant => (subtype, supertype),
+            Variance::Contravariant => (supertype, subtype),
+            Variance::Invariant => return self.is_equivalent(subtype, supertype),
+        };
+
         let subtype = self.environment.types[subtype].copied();
         let supertype = self.environment.types[supertype].copied();
 
-        if let Some(result) = self.is_quick_subtype(&subtype, &supertype) {
+        if let Some(result) = Self::is_quick_subtype(&subtype, &supertype) {
             return result;
         }
 
@@ -469,6 +461,44 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         self.boundary.exit(lhs.id, rhs.id);
 
         result
+    }
+
+    pub(crate) fn with_variance<T>(
+        &mut self,
+        variance: Variance,
+        closure: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        let old_variance = self.variance;
+
+        // Apply variance composition rules
+        self.variance = match (old_variance, variance) {
+            // When going from covariant to contravariant context or vice versa, flip to
+            // contravariant
+            (Variance::Covariant, Variance::Contravariant)
+            | (Variance::Contravariant, Variance::Covariant) => Variance::Contravariant,
+
+            // When either context is invariant, the result is invariant
+            (Variance::Invariant, _) | (_, Variance::Invariant) => Variance::Invariant,
+
+            // Otherwise preserve the context
+            _ => variance,
+        };
+
+        let result = closure(self);
+        self.variance = old_variance;
+        result
+    }
+
+    pub(crate) fn in_contravariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+        self.with_variance(Variance::Contravariant, closure)
+    }
+
+    pub(crate) fn in_covariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+        self.with_variance(Variance::Covariant, closure)
+    }
+
+    pub(crate) fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+        self.with_variance(Variance::Invariant, closure)
     }
 }
 

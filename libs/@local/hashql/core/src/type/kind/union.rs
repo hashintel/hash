@@ -8,6 +8,7 @@ use crate::r#type::{
         Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
         UnificationEnvironment,
     },
+    error::union_variant_mismatch,
     lattice::Lattice,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -94,7 +95,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
     ) -> bool {
         // Unnest the variants to handle nested unions correctly
         let self_variants = self.kind.unnest(env);
-        let supertype_variants = supertype.kind.unnest(env);
+        let super_variants = supertype.kind.unnest(env);
 
         // Empty union (corresponds to the Never type) is a subtype of any union type
         if self_variants.is_empty() {
@@ -102,19 +103,45 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         }
 
         // If the supertype is empty, only an empty subtype can be a subtype of it
-        if supertype_variants.is_empty() {
+        if super_variants.is_empty() {
+            // TODO: record issue
+
             return false; // We already checked that self is not empty
         }
 
+        let mut compatible = true;
+
         // A union type is a subtype of another union type if every variant in the subtype
         // is a subtype of at least one variant in the supertype
-        self_variants.iter().all(|&subtype_variant| {
+        for self_variant in self_variants {
             // For each variant in the subtype, check if it's a subtype of any variant in the
             // supertype
-            supertype_variants
-                .iter()
-                .any(|&supertype_variant| env.is_subtype_of(subtype_variant, supertype_variant))
-        })
+
+            // try to find at least one match in the super‐variants
+            let mut found = false;
+            for &super_variant in &super_variants {
+                if env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant)) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if !found {
+                // no match for this self_var → emit exactly one diagnostic
+                let should_break = env
+                    .record_diagnostic(|env| {
+                        union_variant_mismatch(env, env.types[self_variant].copied(), supertype)
+                    })
+                    .is_break();
+
+                compatible = false;
+                if should_break {
+                    return false;
+                }
+            }
+        }
+
+        compatible
     }
 
     fn is_equivalent(
@@ -142,7 +169,9 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut UnificationEnvironment<'_, 'heap>,
     ) {
-        todo!()
+        // For each variant in `other` (the provided type), check if it's a subtype of at least one
+        // variant in `self`
+        //
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
