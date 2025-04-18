@@ -98,6 +98,21 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         self.kind.variants.iter().any(|&id| env.is_top(id))
     }
 
+    /// Checks if this union type is a subtype of the given supertype.
+    ///
+    /// In type theory, a union type `A | B` represents a type that has *either* the properties
+    /// of `A` or `B`. A value of this type must satisfy the constraints of at least one of the
+    /// component types.
+    ///
+    /// Unions decompose in the following way:
+    /// ```ignore
+    /// (A | B) <: (C | D)
+    ///   <=> A <: (C | D) ∧ B <: (C | D)
+    ///   <=> (A <: C ∨ A <: D) ∧ (B <: C ∨ B <: D)
+    /// ```
+    ///
+    /// This means that for each variant in the subtype union, there must exist at least one
+    /// variant in the supertype union that is a supertype of it.
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
@@ -122,13 +137,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
         let mut compatible = true;
 
-        // A union type is a subtype of another union type if every variant in the subtype
-        // is a subtype of at least one variant in the supertype
         for self_variant in self_variants {
-            // For each variant in the subtype, check if it's a subtype of any variant in the
-            // supertype
-
-            // Try to find at least one match in the super‐variants
             let found = super_variants.iter().any(|&super_variant| {
                 env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant))
             });
@@ -220,6 +229,15 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         variants.sort_unstable();
         variants.dedup();
         variants.retain(|&variant| !env.is_bottom(variant));
+
+        // Propagate top type
+        if variants.iter().any(|&variant| env.is_top(variant)) {
+            return env.alloc(|id| Type {
+                id,
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Unknown),
+            });
+        }
 
         // TODO: Test - what happens on `Number | Integer`, what happens on `Number | Number`
         // Drop subtypes of other variants

@@ -59,6 +59,11 @@ const INTERSECTION_COERCION: TerminalDiagnosticCategory = TerminalDiagnosticCate
     name: "Intersection coercion to Never",
 };
 
+const INTERSECTION_VARIANT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "intersection-variant-mismatch",
+    name: "Intersection variant mismatch",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -70,6 +75,7 @@ pub enum TypeCheckDiagnosticCategory {
     UnionVariantMismatch,
     FunctionParameterCountMismatch,
     IntersectionCoercion,
+    IntersectionVariantMismatch,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -92,6 +98,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::UnionVariantMismatch => Some(&UNION_VARIANT_MISMATCH),
             Self::FunctionParameterCountMismatch => Some(&FUNCTION_PARAMETER_COUNT_MISMATCH),
             Self::IntersectionCoercion => Some(&INTERSECTION_COERCION),
+            Self::IntersectionVariantMismatch => Some(&INTERSECTION_VARIANT_MISMATCH),
         }
     }
 }
@@ -386,7 +393,7 @@ where
     diagnostic.labels.push(Label::new(
         bad_variant.span,
         format!(
-            "the variant `{}` does not fit into the expected union",
+            "variant `{}` must be a subtype of at least one variant in the expected union",
             bad_variant.kind.pretty_print(env, 80)
         ),
     ));
@@ -395,18 +402,19 @@ where
     diagnostic.labels.push(Label::new(
         expected_union.span,
         format!(
-            "expected this to include a variant compatible with `{}`",
+            "expected union containing at least one supertype variant for `{}`",
             bad_variant.kind.pretty_print(env, 80)
         ),
     ));
 
     diagnostic.help = Some(Help::new(
-        "Every variant of a `A | B | …` must be a subtype of at least one arm of the expected \
-         union.",
+        "For a type `A | B` to be a subtype of `C | D`, every variant (A, B) must be a subtype of \
+         at least one variant in the expected union (C, D).\nIn other words: (A <: C \u{2228} A \
+         <: D) \u{2227} (B <: C \u{2228} B <: D)",
     ));
 
     diagnostic.note = Some(Note::new(format!(
-        "expected union `{}`\nfound variant `{}` which has no matching arm",
+        "expected union: `{}`\nfound variant: `{}` which is not a subtype of any expected variants",
         expected_union.kind.pretty_print(env, 80),
         bad_variant.kind.pretty_print(env, 80),
     )));
@@ -599,6 +607,54 @@ where
          encompasses all values. It can be a supertype of any type, but only `?` can be a \
          supertype of `?`.",
     ));
+
+    diagnostic
+}
+
+pub(crate) fn intersection_variant_mismatch<K1, K2>(
+    env: &Environment,
+    variant: Type<K1>,
+    expected_intersection: Type<K2>,
+) -> TypeCheckDiagnostic
+where
+    K1: PrettyPrint,
+    K2: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::IntersectionVariantMismatch,
+        Severity::ERROR,
+    );
+
+    // Primary: point at the failing variant
+    diagnostic.labels.push(Label::new(
+        variant.span,
+        format!(
+            "variant `{}` must be a subtype of all variants in the expected intersection",
+            variant.kind.pretty_print(env, 80)
+        ),
+    ));
+
+    // Secondary: point at the intersection we tried to match against
+    diagnostic.labels.push(Label::new(
+        expected_intersection.span,
+        format!(
+            "expected intersection containing incompatible variants for `{}`",
+            variant.kind.pretty_print(env, 80)
+        ),
+    ));
+
+    diagnostic.help = Some(Help::new(
+        "For a type `A & B` to be a subtype of `C & D`, every variant (A, B) must be a subtype of \
+         every variant in the expected intersection (C, D).\nIn other words: (A <: C) \u{2227} (A \
+         <: D) \u{2227} (B <: C) \u{2227} (B <: D)",
+    ));
+
+    diagnostic.note = Some(Note::new(format!(
+        "expected intersection: `{}`\nfound variant: `{}` which is not a subtype of all expected \
+         variants",
+        expected_intersection.kind.pretty_print(env, 80),
+        variant.kind.pretty_print(env, 80),
+    )));
 
     diagnostic
 }

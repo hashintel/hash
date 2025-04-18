@@ -7,7 +7,7 @@ use super::TypeKind;
 use crate::r#type::{
     Type, TypeId,
     environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
-    error::cannot_be_supertype_of_unknown,
+    error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch},
     lattice::Lattice,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -108,6 +108,19 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         self.kind.variants.is_empty()
     }
 
+    /// Checks if this intersection type is a subtype of the given supertype.
+    ///
+    /// In type theory, an intersection type `A & B` represents a type that has *all* the properties
+    /// of both `A` and `B`. A value of this type must satisfy all constraints of both component
+    /// types.
+    ///
+    /// Intersection types decompose in the following way:
+    ///
+    /// ```ignore
+    /// (A & B) <: (C & D)
+    ///   <=> A <: (C & D) ∧ B <: (C & D)
+    ///   <=> (A <: C ∧ A <: D) ∧ (B <: C ∧ B <: D)
+    /// ```
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
@@ -132,8 +145,6 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
         let mut compatible = true;
 
-        // An intersection is a subtype of another intersection if all of its variants are subtypes
-        // of the other intersection's variants.
         for &self_variant in &self_variants {
             let found = supertype_variants.iter().all(|&super_variant| {
                 env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant))
@@ -145,7 +156,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
             if env
                 .record_diagnostic(|env| {
-                    todo!("implement intersection variant mismatch diagnostic")
+                    intersection_variant_mismatch(env, env.types[self_variant].copied(), supertype)
                 })
                 .is_break()
             {
@@ -186,6 +197,15 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         variants.dedup();
         variants.retain(|&variant| !env.is_top(variant));
 
+        // Propagate bottom type
+        if variants.iter().any(|&variant| env.is_bottom(variant)) {
+            return env.alloc(|id| Type {
+                id,
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Unknown),
+            });
+        }
+
         // Drop supertypes of other variants
         let backup = variants.clone();
         variants.retain(|&supertype| {
@@ -199,7 +219,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
             0 => env.alloc(|id| Type {
                 id,
                 span: self.span,
-                kind: env.intern_kind(TypeKind::Never),
+                kind: env.intern_kind(TypeKind::Unknown),
             }),
             1 => variants[0],
             _ if variants.as_slice() == self.kind.variants => self.id,
