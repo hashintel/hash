@@ -250,16 +250,75 @@ impl<'heap> Deref for UnificationEnvironment<'_, 'heap> {
 }
 
 pub struct SimplifyEnvironment<'env, 'heap> {
-    environment: &'env mut Environment<'heap>,
+    environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
+
+    lattice: LatticeEnvironment<'env, 'heap>,
+    equivalence: EquivalenceEnvironment<'env, 'heap>,
 }
 
 impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
-    pub fn new(environment: &'env mut Environment<'heap>) -> Self {
+    pub fn new(environment: &'env Environment<'heap>) -> Self {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
+            lattice: LatticeEnvironment::new(environment),
+            equivalence: EquivalenceEnvironment::new(environment),
         }
+    }
+
+    pub fn semantically_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        if lhs == rhs {
+            return true;
+        }
+
+        let lhs = self.environment.types[lhs].copied();
+        let rhs = self.environment.types[rhs].copied();
+
+        lhs.semantically_equivalent(rhs, &mut self.equivalence)
+    }
+
+    fn is_quick_subtype(&self, subtype: &Type<'heap>, supertype: &Type<'heap>) -> Option<bool> {
+        if subtype.id == supertype.id {
+            return Some(true);
+        }
+
+        if *subtype.kind == TypeKind::Never {
+            return Some(true);
+        }
+
+        if *supertype.kind == TypeKind::Never {
+            return Some(false);
+        }
+
+        if *subtype.kind == TypeKind::Unknown {
+            return Some(true);
+        }
+
+        if *supertype.kind == TypeKind::Unknown {
+            return Some(false);
+        }
+
+        None
+    }
+
+    pub fn is_subtype(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
+        let subtype = self.environment.types[subtype].copied();
+        let supertype = self.environment.types[supertype].copied();
+
+        // 1) Reflexivity & holes
+        if let Some(result) = self.is_quick_subtype(&subtype, &supertype) {
+            return result;
+        }
+
+        // 2) α‐equivalence shortcut
+        if self.semantically_equivalent(subtype.id, supertype.id) {
+            return true;
+        }
+
+        // 3) Lattice check: sub ∧ sup == sub
+        let variants = subtype.meet(supertype, &mut self.lattice);
+        variants.len() == 1 && variants[0] == subtype.id
     }
 
     pub fn simplify(&mut self, id: TypeId) -> TypeId {
@@ -435,8 +494,16 @@ impl<'env, 'heap> EquivalenceEnvironment<'env, 'heap> {
     ///
     /// If lhs and rhs do not exist in the environment.
     pub fn semantically_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        if lhs == rhs {
+            return true;
+        }
+
         let lhs_type = self.environment.types[lhs].copied();
         let rhs_type = self.environment.types[rhs].copied();
+
+        if core::ptr::eq(lhs_type.kind, rhs_type.kind) {
+            return true;
+        }
 
         if !self.boundary.enter(lhs, rhs) {
             // In case of recursion the result is true

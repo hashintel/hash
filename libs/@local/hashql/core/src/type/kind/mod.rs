@@ -34,7 +34,7 @@ pub enum TypeKind<'heap> {
     // Struct(StructType),
     Tuple(TupleType<'heap>),
     // Opaque(OpaqueType),
-    Union(UnionType),
+    Union(UnionType<'heap>),
     // Intersection(IntersectionType),
     // Param(Param),
     Never,
@@ -85,12 +85,12 @@ impl TypeKind<'_> {
     //     }
     // }
 
-    // pub fn union(&self) -> Option<&UnionType> {
-    //     match self {
-    //         Self::Union(r#type) => Some(r#type),
-    //         _ => None,
-    //     }
-    // }
+    pub fn union(&self) -> Option<&UnionType> {
+        match self {
+            Self::Union(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
 
     // pub fn intersection(&self) -> Option<&IntersectionType> {
     //     match self {

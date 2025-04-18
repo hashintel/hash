@@ -13,8 +13,28 @@ use crate::r#type::{
     recursion::RecursionDepthBoundary,
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct UnionType<'heap> {
     pub variants: &'heap [TypeId],
+}
+
+impl UnionType<'_> {
+    fn unnest(&self, env: &Environment) -> Vec<TypeId> {
+        let mut variants = Vec::with_capacity(self.variants.len());
+
+        for &variant in self.variants {
+            if let TypeKind::Union(union) = env.types[variant].copied().kind {
+                variants.extend(union.unnest(env));
+            } else {
+                variants.push(variant);
+            }
+        }
+
+        variants.sort_unstable();
+        variants.dedup();
+
+        variants
+    }
 }
 
 impl<'heap> Lattice<'heap> for UnionType<'heap> {
@@ -72,7 +92,19 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut EquivalenceEnvironment<'_, 'heap>,
     ) -> bool {
-        todo!()
+        let lhs_variants = self.kind.unnest(env);
+        let rhs_variants = other.kind.unnest(env);
+
+        if lhs_variants.len() != rhs_variants.len() {
+            return false;
+        }
+
+        // For every variant x in lhs_variants, there exists a y in rhs_variants where x ≡ y
+        lhs_variants.iter().all(|&x| {
+            rhs_variants
+                .iter()
+                .any(|&y| env.semantically_equivalent(x, y))
+        })
     }
 
     fn unify(
@@ -84,63 +116,47 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        // Gather + flatten + simplify
         let mut variants = Vec::with_capacity(self.kind.variants.len());
-        variants.extend_from_slice(&self.kind.variants);
+        for &variant in self.kind.variants {
+            let variant = env.simplify(variant);
 
-        // Deduplicate variants
-        variants.sort_unstable();
-        variants.dedup();
-
-        // Simplify each variant
-        for variant in &mut variants {
-            *variant = env.simplify(*variant);
-        }
-
-        // Flatten any nested unions
-        let mut flattened = Vec::with_capacity(variants.len());
-        for variant in variants {
-            if let &TypeKind::Union(UnionType { variants }) = env.types[variant].copied().kind {
-                flattened.extend_from_slice(variants);
+            if let Some(UnionType { variants: nested }) = env.types[variant].copied().kind.union() {
+                variants.extend_from_slice(nested);
             } else {
-                flattened.push(variant);
+                variants.push(variant);
             }
         }
 
-        let mut variants = flattened;
-
-        // Deduplicate variants again after simplification and flattening
+        // Sort, dedupe, drop bottom
         variants.sort_unstable();
         variants.dedup();
-
-        // Remove any uninhabited variants
         variants.retain(|&variant| !env.uninhabited(variant));
 
-        if variants.is_empty() {
-            let kind = env.intern_kind(TypeKind::Never);
+        // Drop supertypes of other variants
+        let backup = variants.clone();
+        variants.retain(|&v| {
+            // keep v only if *no* other distinct u is a subtype of v
+            !backup.iter().any(|&u| env.is_subtype(u, v))
+        });
 
-            return env.alloc(|id| Type {
+        // Collapse empty or singleton
+        match variants.len() {
+            0 => env.alloc(|id| Type {
                 id,
                 span: self.span,
-                kind,
-            });
+                kind: env.intern_kind(TypeKind::Never),
+            }),
+            1 => variants[0],
+            _ if variants.as_slice() == self.kind.variants => self.id,
+            _ => env.alloc(|id| Type {
+                id,
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Union(UnionType {
+                    variants: env.intern_type_ids(&variants),
+                })),
+            }),
         }
-
-        if variants.len() == 1 {
-            return variants[0];
-        }
-
-        // ... if for some reason, the type returned is the same as the original type, return it
-        if variants == self.kind.variants {
-            return self.id;
-        }
-
-        env.alloc(|id| Type {
-            id,
-            span: self.span,
-            kind: env.intern_kind(TypeKind::Union(UnionType {
-                variants: env.intern_type_ids(&variants),
-            })),
-        })
     }
 }
 
