@@ -1,120 +1,19 @@
+pub mod auxiliary;
+pub mod diagnostics;
+pub mod variance;
+
 use core::ops::{ControlFlow, Deref};
 
-use hashbrown::HashMap;
-
+use self::{auxiliary::AuxiliaryData, diagnostics::Diagnostics, variance::Variance};
 use super::{
     Type, TypeId, TypeKind,
     error::{TypeCheckDiagnostic, circular_type_reference},
     intern::Interner,
-    kind::{
-        generic_argument::{GenericArgument, GenericArgumentData, GenericArgumentId},
-        intersection::IntersectionType,
-        union::UnionType,
-    },
+    kind::{generic_argument::GenericArgument, intersection::IntersectionType, union::UnionType},
     lattice::Lattice as _,
     recursion::RecursionBoundary,
 };
 use crate::{arena::concurrent::ConcurrentArena, heap::Heap, span::SpanId};
-
-/// Represents the type relationship variance used in generic type checking.
-///
-/// Variance defines how subtyping relationships between generic parameter types
-/// affect subtyping relationships between the resulting parameterized types.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
-pub enum Variance {
-    /// Covariance
-    ///
-    /// Covariance preserves the ordering of types, suppose `A` and `B` are types, and `I` is a type
-    /// constructor. If `I` is covariant, and `A <: B` (A is a subtype of B), then `I<A> <: I<B>`.
-    ///
-    /// Example: If `Cat <: Animal`, then `List<Cat> <: List<Animal>` in a covariant position.
-    #[default]
-    Covariant,
-    /// Contravariance
-    ///
-    /// Contravariance reverses the ordering of types, suppose `A` and `B` are types, and `I` is a
-    /// type constructor. If `I` is contravariant, and `A <: B` (A is a subtype of B), then
-    /// `I<B> <: I<A>`.
-    ///
-    /// Example: If `Cat <: Animal`, then `fn(Animal) -> Null <: fn(Cat) -> Void`
-    /// for parameter types in a contravariant position.
-    Contravariant,
-    /// Invariance
-    ///
-    /// Invariance requires exact match of types, suppose `A` and `B` are types, and `I` is a type
-    /// constructor. If `I` is invariant, then `I<A> <: I<B>` if and only if `A = B`.
-    ///
-    /// Example: `Dict<Integer, String> <: Dict<Number, String>` is not a subtype
-    /// of the other, even though `Integer <: Number`.
-    Invariant,
-}
-
-pub struct Diagnostics {
-    inner: Vec<TypeCheckDiagnostic>,
-    fatal: usize,
-}
-
-impl Diagnostics {
-    #[must_use]
-    pub const fn new() -> Self {
-        Self {
-            inner: Vec::new(),
-            fatal: 0,
-        }
-    }
-
-    pub fn take(&mut self) -> Vec<TypeCheckDiagnostic> {
-        core::mem::take(&mut self.inner)
-    }
-
-    pub fn replace(&mut self, diagnostics: Vec<TypeCheckDiagnostic>) {
-        self.fatal = diagnostics
-            .iter()
-            .filter(|diagnostic| diagnostic.severity.is_fatal())
-            .count();
-
-        self.inner = diagnostics;
-    }
-
-    #[must_use]
-    pub const fn fatal(&self) -> usize {
-        self.fatal
-    }
-
-    pub fn push(&mut self, diagnostic: TypeCheckDiagnostic) {
-        if diagnostic.severity.is_fatal() {
-            self.fatal += 1;
-        }
-
-        self.inner.push(diagnostic);
-    }
-}
-
-impl Default for Diagnostics {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(Debug)]
-pub struct AuxiliaryData {
-    pub arguments: HashMap<GenericArgumentId, GenericArgumentData, foldhash::fast::RandomState>,
-}
-
-impl AuxiliaryData {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            arguments: HashMap::default(),
-        }
-    }
-}
-
-impl Default for AuxiliaryData {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 #[derive(Debug)]
 pub struct Environment<'heap> {
