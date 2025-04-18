@@ -7,7 +7,7 @@ use super::TypeKind;
 use crate::r#type::{
     Type, TypeId,
     environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
-    error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch},
+    error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
     lattice::Lattice,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -174,7 +174,50 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        todo!()
+        let lhs_variants = self.kind.unnest(env);
+        let rhs_variants = other.kind.unnest(env);
+
+        if lhs_variants.len() != rhs_variants.len() {
+            // We always fail-fast here
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                let help = if lhs_variants.is_empty() || rhs_variants.is_empty() {
+                    "The Unknown type (empty intersection) can only be equivalent to itself. A \
+                     non-empty intersection cannot be equivalent to Unknown."
+                } else {
+                    "Intersection types must have the same number of variants to be equivalent."
+                };
+
+                type_mismatch(env, self, other, Some(help))
+            });
+
+            return false;
+        }
+
+        let mut equivalent = true;
+
+        // For every variant x in lhs_variants, there exists a y in rhs_variants where x ≡ y
+        for &lhs_variant in &lhs_variants {
+            let found = rhs_variants
+                .iter()
+                .any(|&rhs_variant| env.is_equivalent(lhs_variant, rhs_variant));
+
+            if found {
+                continue;
+            }
+
+            if env
+                .record_diagnostic(|env| {
+                    intersection_variant_mismatch(env, env.types[lhs_variant].copied(), other)
+                })
+                .is_break()
+            {
+                return false;
+            }
+
+            equivalent = false;
+        }
+
+        equivalent
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {

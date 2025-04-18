@@ -8,6 +8,7 @@ use super::{
     intern::Interner,
     kind::{
         generic_argument::{GenericArgument, GenericArgumentData, GenericArgumentId},
+        intersection::IntersectionType,
         union::UnionType,
     },
     lattice::Lattice as _,
@@ -238,7 +239,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     }
 
     pub fn join(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
-        // TODO: variance and recursion boundary
+        // TODO: recursion boundary
 
         let lhs = self.environment.types[lhs].copied();
         let rhs = self.environment.types[rhs].copied();
@@ -271,7 +272,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     }
 
     pub fn meet(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
-        // TODO: variance and recursion boundary
+        // TODO: recursion boundary
 
         let lhs = self.environment.types[lhs].copied();
         let rhs = self.environment.types[rhs].copied();
@@ -290,18 +291,19 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         } else if variants.len() == 1 {
             variants[0]
         } else {
-            todo!()
-            // let kind = self
-            //     .environment
-            //     .intern(TypeKind::Intersection(IntersectionType {
-            //         variants: variants.into_iter().collect(),
-            //     }));
+            let kind = self
+                .environment
+                .intern_kind(TypeKind::Intersection(IntersectionType {
+                    variants: self.intern_type_ids(&variants),
+                }));
 
-            // self.environment.alloc(|id| Type {
-            //     id,
-            //     span: lhs.span,
-            //     kind,
-            // })
+            let id = self.environment.alloc(|id| Type {
+                id,
+                span: lhs.span,
+                kind,
+            });
+
+            self.simplify.simplify(id)
         }
     }
 }
@@ -350,7 +352,7 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         r#type.is_top(self)
     }
 
-    pub fn is_fail_fast(&mut self) -> bool {
+    pub const fn is_fail_fast(&self) -> bool {
         self.diagnostics.is_none()
     }
 
