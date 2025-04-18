@@ -277,6 +277,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         let variants = lhs.meet(rhs, self);
 
         if variants.is_empty() {
+            // No common variant, therefore `Never`.
             let kind = self.environment.intern_kind(TypeKind::Never);
 
             self.environment.alloc(|id| Type {
@@ -331,7 +332,7 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         }
     }
 
-    pub fn uninhabited(&mut self, id: TypeId) -> bool {
+    pub fn is_uninhabited(&mut self, id: TypeId) -> bool {
         let r#type = self.environment.types[id].copied();
 
         r#type.is_uninhabited(self)

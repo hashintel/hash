@@ -2,9 +2,7 @@ use smallvec::SmallVec;
 
 use super::{
     Type, TypeId,
-    environment::{
-        LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment, UnificationEnvironment,
-    },
+    environment::{LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
 };
 
 /// A trait that implements properties of a mathematical lattice for types.

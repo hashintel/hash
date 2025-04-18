@@ -109,7 +109,10 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         // uninhabited if any of the fields are uninhabited
-        self.kind.fields.iter().any(|&field| env.uninhabited(field))
+        self.kind
+            .fields
+            .iter()
+            .any(|&field| env.is_uninhabited(field))
     }
 
     fn is_subtype_of(
