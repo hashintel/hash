@@ -182,7 +182,7 @@ num-traits               = { version = "=0.2.19", default-features = false }
 opentelemetry            = { version = "=0.29.1", default-features = false }
 opentelemetry-otlp       = { version = "=0.29.0", default-features = false }
 opentelemetry_sdk        = { version = "=0.29.0", default-features = false }
-orx-concurrent-vec       = { version = "=3.5.0", default-features = false }
+orx-concurrent-vec       = { version = "=3.6.0", default-features = false }
 owo-colors               = { version = "=4.2.0", default-features = false }
 paste                    = { version = "=1.0.15", default-features = false }
 pdfium-render            = { version = "=0.8.26" }
