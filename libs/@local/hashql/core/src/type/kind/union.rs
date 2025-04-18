@@ -18,8 +18,8 @@ pub struct UnionType<'heap> {
     pub variants: &'heap [TypeId],
 }
 
-impl UnionType<'_> {
-    fn unnest(&self, env: &Environment) -> SmallVec<TypeId, 16> {
+impl<'heap> UnionType<'heap> {
+    pub(crate) fn unnest(&self, env: &Environment) -> SmallVec<TypeId, 16> {
         let mut variants = SmallVec::with_capacity(self.variants.len());
 
         for &variant in self.variants {
@@ -35,28 +35,22 @@ impl UnionType<'_> {
 
         variants
     }
-}
 
-impl<'heap> Lattice<'heap> for UnionType<'heap> {
-    fn join(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
-        env: &mut LatticeEnvironment<'_, 'heap>,
-    ) -> smallvec::SmallVec<TypeId, 4> {
-        if self.kind.variants.is_empty() {
-            return SmallVec::from_slice(other.kind.variants);
+    pub(crate) fn join_variants(
+        lhs_variants: &[TypeId],
+        rhs_variants: &[TypeId],
+    ) -> SmallVec<TypeId, 4> {
+        if lhs_variants.is_empty() {
+            return SmallVec::from_slice(rhs_variants);
         }
 
-        if other.kind.variants.is_empty() {
-            return SmallVec::from_slice(self.kind.variants);
+        if rhs_variants.is_empty() {
+            return SmallVec::from_slice(lhs_variants);
         }
-
-        let lhs_variants = self.kind.unnest(env);
-        let rhs_variants = other.kind.unnest(env);
 
         let mut variants = SmallVec::with_capacity(lhs_variants.len() + rhs_variants.len());
-        variants.extend_from_slice(&lhs_variants);
-        variants.extend_from_slice(&rhs_variants);
+        variants.extend_from_slice(lhs_variants);
+        variants.extend_from_slice(rhs_variants);
 
         // Order by the id, as a union is a set and therefore is irrespective of order
         variants.sort_unstable();
@@ -65,21 +59,19 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         variants
     }
 
-    fn meet(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
+    pub(crate) fn meet_variants(
+        lhs_variants: &[TypeId],
+        rhs_variants: &[TypeId],
         env: &mut LatticeEnvironment<'_, 'heap>,
-    ) -> smallvec::SmallVec<TypeId, 4> {
+    ) -> SmallVec<TypeId, 4> {
         // `meet` over a union is a distribution, e.g.
         // (A ∪ B) ∧ (C ∪ D)
         // = (A ∧ C) ∪ (A ∧ D) ∪ (B ∧ C) ∪ (B ∧ D)
-        let lhs_variants = self.kind.unnest(env);
-        let rhs_variants = other.kind.unnest(env);
 
         let mut variants = SmallVec::with_capacity(lhs_variants.len() * rhs_variants.len());
 
-        for &lhs in &lhs_variants {
-            for &rhs in &rhs_variants {
+        for &lhs in lhs_variants {
+            for &rhs in rhs_variants {
                 variants.push(env.meet(lhs, rhs));
             }
         }
@@ -88,6 +80,135 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         variants.dedup();
 
         variants
+    }
+
+    pub(crate) fn is_subtype_of_variants<T, U>(
+        actual: Type<'heap, T>,
+        expected: Type<'heap, U>,
+        self_variants: &[TypeId],
+        super_variants: &[TypeId],
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool
+    where
+        T: PrettyPrint,
+        U: PrettyPrint,
+    {
+        // Empty union (corresponds to the Never type) is a subtype of any union type
+        if self_variants.is_empty() {
+            return true;
+        }
+
+        // If the supertype is empty, only an empty subtype can be a subtype of it
+        if super_variants.is_empty() {
+            // We always fail-fast here
+            let _: ControlFlow<()> =
+                env.record_diagnostic(|env| cannot_be_subtype_of_never(env, actual));
+
+            return false;
+        }
+
+        let mut compatible = true;
+
+        for &self_variant in self_variants {
+            let found = super_variants.iter().any(|&super_variant| {
+                env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant))
+            });
+
+            if found {
+                continue;
+            }
+
+            if env
+                .record_diagnostic(|env| {
+                    union_variant_mismatch(env, env.types[self_variant].copied(), expected)
+                })
+                .is_break()
+            {
+                return false;
+            }
+
+            compatible = false;
+        }
+
+        compatible
+    }
+
+    pub(crate) fn is_equivalent_variants<T, U>(
+        lhs: Type<'heap, T>,
+        rhs: Type<'heap, U>,
+        lhs_variants: &[TypeId],
+        rhs_variants: &[TypeId],
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool
+    where
+        T: PrettyPrint,
+        U: PrettyPrint,
+    {
+        if lhs_variants.len() != rhs_variants.len() {
+            // We always fail-fast here
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                let help = if lhs_variants.is_empty() || rhs_variants.is_empty() {
+                    "The Never type (empty union) can only be equivalent to itself. A non-empty \
+                     union cannot be equivalent to Never."
+                } else {
+                    "Union types must have the same number of variants to be equivalent."
+                };
+
+                type_mismatch(env, lhs, rhs, Some(help))
+            });
+
+            return false;
+        }
+
+        let mut equivalent = true;
+
+        // For every variant x in lhs_variants, there exists a y in rhs_variants where x ≡ y
+        for &lhs_variant in lhs_variants {
+            let found = rhs_variants
+                .iter()
+                .any(|&rhs_variant| env.is_equivalent(lhs_variant, rhs_variant));
+
+            if found {
+                continue;
+            }
+
+            if env
+                .record_diagnostic(|env| {
+                    union_variant_mismatch(env, env.types[lhs_variant].copied(), rhs)
+                })
+                .is_break()
+            {
+                return false;
+            }
+
+            equivalent = false;
+        }
+
+        equivalent
+    }
+}
+
+impl<'heap> Lattice<'heap> for UnionType<'heap> {
+    fn join(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> smallvec::SmallVec<TypeId, 4> {
+        let lhs_variants = self.kind.unnest(env);
+        let rhs_variants = other.kind.unnest(env);
+
+        Self::join_variants(&lhs_variants, &rhs_variants)
+    }
+
+    fn meet(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> smallvec::SmallVec<TypeId, 4> {
+        let lhs_variants = self.kind.unnest(env);
+        let rhs_variants = other.kind.unnest(env);
+
+        Self::meet_variants(&lhs_variants, &rhs_variants, env)
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
@@ -121,44 +242,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         let self_variants = self.kind.unnest(env);
         let super_variants = supertype.kind.unnest(env);
 
-        // Empty union (corresponds to the Never type) is a subtype of any union type
-        if self_variants.is_empty() {
-            return true;
-        }
-
-        // If the supertype is empty, only an empty subtype can be a subtype of it
-        if super_variants.is_empty() {
-            // We always fail-fast here
-            let _: ControlFlow<()> =
-                env.record_diagnostic(|env| cannot_be_subtype_of_never(env, self));
-
-            return false;
-        }
-
-        let mut compatible = true;
-
-        for self_variant in self_variants {
-            let found = super_variants.iter().any(|&super_variant| {
-                env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant))
-            });
-
-            if found {
-                continue;
-            }
-
-            if env
-                .record_diagnostic(|env| {
-                    union_variant_mismatch(env, env.types[self_variant].copied(), supertype)
-                })
-                .is_break()
-            {
-                return false;
-            }
-
-            compatible = false;
-        }
-
-        compatible
+        Self::is_subtype_of_variants(self, supertype, &self_variants, &super_variants, env)
     }
 
     fn is_equivalent(
@@ -169,47 +253,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         let lhs_variants = self.kind.unnest(env);
         let rhs_variants = other.kind.unnest(env);
 
-        if lhs_variants.len() != rhs_variants.len() {
-            // We always fail-fast here
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
-                let help = if lhs_variants.is_empty() || rhs_variants.is_empty() {
-                    "The Never type (empty union) can only be equivalent to itself. A non-empty \
-                     union cannot be equivalent to Never."
-                } else {
-                    "Union types must have the same number of variants to be equivalent."
-                };
-
-                type_mismatch(env, self, other, Some(help))
-            });
-
-            return false;
-        }
-
-        let mut equivalent = true;
-
-        // For every variant x in lhs_variants, there exists a y in rhs_variants where x ≡ y
-        for &lhs_variant in &lhs_variants {
-            let found = rhs_variants
-                .iter()
-                .any(|&rhs_variant| env.is_equivalent(lhs_variant, rhs_variant));
-
-            if found {
-                continue;
-            }
-
-            if env
-                .record_diagnostic(|env| {
-                    union_variant_mismatch(env, env.types[lhs_variant].copied(), other)
-                })
-                .is_break()
-            {
-                return false;
-            }
-
-            equivalent = false;
-        }
-
-        equivalent
+        Self::is_equivalent_variants(self, other, &lhs_variants, &rhs_variants, env)
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {

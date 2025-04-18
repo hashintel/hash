@@ -184,34 +184,130 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 TypeKind::Union(lhs),
                 TypeKind::Primitive(_) | TypeKind::Tuple(_) | TypeKind::Intersection(_),
             ) => {
-                let variants = [other.id];
-                let rhs = UnionType {
-                    variants: &variants,
-                };
+                let lhs_variants = lhs.unnest(env);
+                let rhs_variants = [other.id];
 
-                self.map(|_| lhs).join(other.map(|_| &rhs), env)
+                UnionType::join_variants(&lhs_variants, &rhs_variants)
             }
             (
                 TypeKind::Primitive(_) | TypeKind::Tuple(_) | TypeKind::Intersection(_),
                 TypeKind::Union(rhs),
             ) => {
-                todo!()
+                let lhs_variants = [self.id];
+                let rhs_variants = rhs.unnest(env);
+
+                UnionType::join_variants(&lhs_variants, &rhs_variants)
             }
 
             (TypeKind::Intersection(lhs), TypeKind::Intersection(rhs)) => {
                 self.map(|_| lhs).join(other.map(|_| rhs), env)
             }
-            (TypeKind::Intersection(lhs), TypeKind::Primitive(_) | TypeKind::Tuple(_)) => todo!(),
-            (TypeKind::Primitive(_) | TypeKind::Tuple(_), TypeKind::Intersection(_)) => todo!(),
+            (TypeKind::Intersection(lhs), TypeKind::Primitive(_) | TypeKind::Tuple(_)) => {
+                let lhs_variants = lhs.unnest(env);
+                let rhs_variants = [other.id];
+
+                IntersectionType::join_variants(&lhs_variants, &rhs_variants, env)
+            }
+            (TypeKind::Primitive(_) | TypeKind::Tuple(_), TypeKind::Intersection(rhs)) => {
+                let lhs_variants = [self.id];
+                let rhs_variants = rhs.unnest(env);
+
+                IntersectionType::join_variants(&lhs_variants, &rhs_variants, env)
+            }
         }
     }
 
     fn meet(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
+        mut self: Type<'heap, Self>,
+        mut other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        todo!()
+        if *self.kind == TypeKind::Infer {
+            let Some(infer) = env.substitution.infer(self.id) else {
+                env.diagnostics.push(no_type_inference(env, self));
+
+                return SmallVec::new();
+            };
+
+            self = env.types[infer].copied();
+        }
+
+        if *other.kind == TypeKind::Infer {
+            let Some(infer) = env.substitution.infer(other.id) else {
+                env.diagnostics.push(no_type_inference(env, other));
+
+                return SmallVec::new();
+            };
+
+            other = env.types[infer].copied();
+        }
+
+        #[expect(clippy::match_same_arms)]
+        match (self.kind, other.kind) {
+            // T ∧ Never <=> Never
+            (_, TypeKind::Never) => SmallVec::from_slice(&[other.id]),
+            // Never ∧ T <=> Never
+            (TypeKind::Never, _) => SmallVec::from_slice(&[self.id]),
+
+            // T ∧ Unknown <=> T
+            (_, TypeKind::Unknown) => SmallVec::from_slice(&[self.id]),
+            // Unknown ∧ T <=> T
+            (TypeKind::Unknown, _) => SmallVec::from_slice(&[other.id]),
+
+            // Infer ∨ _ <=> unreachable!()
+            // _ ∨ Infer <=> unreachable!()
+            (TypeKind::Infer, _) | (_, TypeKind::Infer) => {
+                unreachable!("infer should've been resolved prior to this")
+            }
+
+            (TypeKind::Primitive(lhs), TypeKind::Primitive(rhs)) => {
+                self.map(|_| lhs).meet(other.map(|_| rhs), env)
+            }
+            (TypeKind::Primitive(_), TypeKind::Tuple(_)) => SmallVec::new(),
+
+            (TypeKind::Tuple(lhs), TypeKind::Tuple(rhs)) => {
+                self.map(|_| lhs).meet(other.map(|_| rhs), env)
+            }
+            (TypeKind::Tuple(_), TypeKind::Primitive(_)) => SmallVec::new(),
+
+            (TypeKind::Union(lhs), TypeKind::Union(rhs)) => {
+                self.map(|_| lhs).meet(other.map(|_| rhs), env)
+            }
+            (
+                TypeKind::Union(lhs),
+                TypeKind::Primitive(_) | TypeKind::Tuple(_) | TypeKind::Intersection(_),
+            ) => {
+                let lhs_variants = lhs.unnest(env);
+                let rhs_variants = [other.id];
+
+                UnionType::meet_variants(&lhs_variants, &rhs_variants, env)
+            }
+            (
+                TypeKind::Primitive(_) | TypeKind::Tuple(_) | TypeKind::Intersection(_),
+                TypeKind::Union(rhs),
+            ) => {
+                let lhs_variants = [self.id];
+                let rhs_variants = rhs.unnest(env);
+
+                UnionType::meet_variants(&lhs_variants, &rhs_variants, env)
+            }
+
+            (TypeKind::Intersection(lhs), TypeKind::Intersection(rhs)) => {
+                self.map(|_| lhs).meet(other.map(|_| rhs), env)
+            }
+            (TypeKind::Intersection(lhs), TypeKind::Primitive(_) | TypeKind::Tuple(_)) => {
+                let lhs_variants = lhs.unnest(env);
+                let rhs_variants = [other.id];
+
+                IntersectionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
+            }
+            (TypeKind::Primitive(_) | TypeKind::Tuple(_), TypeKind::Intersection(rhs)) => {
+                let lhs_variants = [self.id];
+                let rhs_variants = rhs.unnest(env);
+
+                IntersectionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
+            }
+        }
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
@@ -277,7 +373,15 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
-        todo!()
+        match self.kind {
+            TypeKind::Primitive(primitive_type) => self.map(|_| primitive_type).simplify(env),
+            TypeKind::Tuple(tuple_type) => self.map(|_| tuple_type).simplify(env),
+            TypeKind::Union(union_type) => self.map(|_| union_type).simplify(env),
+            TypeKind::Intersection(intersection_type) => {
+                self.map(|_| intersection_type).simplify(env)
+            }
+            TypeKind::Never | TypeKind::Unknown | TypeKind::Infer => self.id,
+        }
     }
 }
 

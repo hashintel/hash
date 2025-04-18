@@ -4,13 +4,18 @@ use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::TypeKind;
-use crate::r#type::{
-    Type, TypeId,
-    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
-    error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
-    lattice::Lattice,
-    pretty_print::PrettyPrint,
-    recursion::RecursionDepthBoundary,
+use crate::{
+    span::SpanId,
+    r#type::{
+        Type, TypeId,
+        environment::{
+            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+        },
+        error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
+        lattice::Lattice,
+        pretty_print::PrettyPrint,
+        recursion::RecursionDepthBoundary,
+    },
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -18,8 +23,8 @@ pub struct IntersectionType<'heap> {
     pub variants: &'heap [TypeId],
 }
 
-impl IntersectionType<'_> {
-    fn unnest(&self, env: &Environment) -> SmallVec<TypeId, 16> {
+impl<'heap> IntersectionType<'heap> {
+    pub(crate) fn unnest(&self, env: &Environment) -> SmallVec<TypeId, 16> {
         let mut variants = SmallVec::with_capacity(self.variants.len());
 
         for &variant in self.variants {
@@ -35,24 +40,19 @@ impl IntersectionType<'_> {
 
         variants
     }
-}
 
-impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
-    fn join(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
+    pub(crate) fn join_variants(
+        lhs_variants: &[TypeId],
+        rhs_variants: &[TypeId],
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         // `join` over an intersection is a distribution, e.g.
         // (A ∩ B) ∨ (C ∩ D)
         // = (A ∨ C) ∩ (A ∨ D) ∩ (B ∨ C) ∩ (B ∨ D)
-        let lhs_variants = self.kind.unnest(env);
-        let rhs_variants = other.kind.unnest(env);
-
         let mut variants = SmallVec::with_capacity(lhs_variants.len() * rhs_variants.len());
 
-        for &lhs in &lhs_variants {
-            for &rhs in &rhs_variants {
+        for &lhs in lhs_variants {
+            for &rhs in rhs_variants {
                 variants.push(env.join(lhs, rhs));
             }
         }
@@ -63,41 +63,168 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         variants
     }
 
-    fn meet(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
-        env: &mut LatticeEnvironment<'_, 'heap>,
+    pub(crate) fn meet_variants(
+        lhs_span: SpanId,
+        lhs_variants: &[TypeId],
+        rhs_variants: &[TypeId],
+        env: &LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         // 1) Top ∧ Top = Top
-        if self.kind.variants.is_empty() && other.kind.variants.is_empty() {
+        if lhs_variants.is_empty() && rhs_variants.is_empty() {
             return SmallVec::from_slice(&[env.alloc(|id| Type {
                 id,
-                span: self.span,
+                span: lhs_span,
                 kind: env.intern_kind(TypeKind::Unknown),
             })]);
         }
 
         // 2) Top ∧ X = X
-        if self.kind.variants.is_empty() {
-            return SmallVec::from_slice(other.kind.variants);
+        if lhs_variants.is_empty() {
+            return SmallVec::from_slice(rhs_variants);
         }
 
         // 3) X ∧ Top = X
-        if other.kind.variants.is_empty() {
-            return SmallVec::from_slice(self.kind.variants);
+        if rhs_variants.is_empty() {
+            return SmallVec::from_slice(lhs_variants);
         }
 
-        let lhs_variants = self.kind.unnest(env);
-        let rhs_variants = other.kind.unnest(env);
-
         let mut variants = SmallVec::with_capacity(lhs_variants.len() + rhs_variants.len());
-        variants.extend_from_slice(&lhs_variants);
-        variants.extend_from_slice(&rhs_variants);
+        variants.extend_from_slice(lhs_variants);
+        variants.extend_from_slice(rhs_variants);
 
         variants.sort_unstable();
         variants.dedup();
 
         variants
+    }
+
+    pub(crate) fn is_subtype_of_variants<T, U>(
+        actual: Type<'heap, T>,
+        expected: Type<'heap, U>,
+        self_variants: &[TypeId],
+        supertype_variants: &[TypeId],
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool
+    where
+        T: PrettyPrint,
+        U: PrettyPrint,
+    {
+        // Empty intersection (corresponds to the Unknown/top type) is a supertype of everything
+        if supertype_variants.is_empty() {
+            return true;
+        }
+
+        // If the subtype is empty (Unknown), only the top type can be a supertype
+        if self_variants.is_empty() {
+            // We always fail-fast here
+            let _: ControlFlow<()> =
+                env.record_diagnostic(|env| cannot_be_supertype_of_unknown(env, actual));
+
+            return false;
+        }
+
+        let mut compatible = true;
+
+        for &self_variant in self_variants {
+            let found = supertype_variants.iter().all(|&super_variant| {
+                env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant))
+            });
+
+            if found {
+                continue;
+            }
+
+            if env
+                .record_diagnostic(|env| {
+                    intersection_variant_mismatch(env, env.types[self_variant].copied(), expected)
+                })
+                .is_break()
+            {
+                return false;
+            }
+
+            compatible = false;
+        }
+
+        compatible
+    }
+
+    pub(crate) fn is_equivalent_variants<T, U>(
+        lhs: Type<'heap, T>,
+        rhs: Type<'heap, U>,
+        lhs_variants: &[TypeId],
+        rhs_variants: &[TypeId],
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool
+    where
+        T: PrettyPrint,
+        U: PrettyPrint,
+    {
+        if lhs_variants.len() != rhs_variants.len() {
+            // We always fail-fast here
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                let help = if lhs_variants.is_empty() || rhs_variants.is_empty() {
+                    "The Unknown type (empty intersection) can only be equivalent to itself. A \
+                     non-empty intersection cannot be equivalent to Unknown."
+                } else {
+                    "Intersection types must have the same number of variants to be equivalent."
+                };
+
+                type_mismatch(env, lhs, rhs, Some(help))
+            });
+
+            return false;
+        }
+
+        let mut equivalent = true;
+
+        // For every variant x in lhs_variants, there exists a y in rhs_variants where x ≡ y
+        for &lhs_variant in lhs_variants {
+            let found = rhs_variants
+                .iter()
+                .any(|&rhs_variant| env.is_equivalent(lhs_variant, rhs_variant));
+
+            if found {
+                continue;
+            }
+
+            if env
+                .record_diagnostic(|env| {
+                    intersection_variant_mismatch(env, env.types[lhs_variant].copied(), rhs)
+                })
+                .is_break()
+            {
+                return false;
+            }
+
+            equivalent = false;
+        }
+
+        equivalent
+    }
+}
+
+impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
+    fn join(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 4> {
+        let lhs_variants = self.kind.unnest(env);
+        let rhs_variants = other.kind.unnest(env);
+
+        Self::join_variants(&lhs_variants, &rhs_variants, env)
+    }
+
+    fn meet(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 4> {
+        let lhs_variants = self.kind.unnest(env);
+        let rhs_variants = other.kind.unnest(env);
+
+        Self::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
@@ -129,44 +256,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         let self_variants = self.kind.unnest(env);
         let supertype_variants = supertype.kind.unnest(env);
 
-        // Empty intersection (corresponds to the Unknown/top type) is a supertype of everything
-        if supertype_variants.is_empty() {
-            return true;
-        }
-
-        // If the subtype is empty (Unknown), only the top type can be a supertype
-        if self_variants.is_empty() {
-            // We always fail-fast here
-            let _: ControlFlow<()> =
-                env.record_diagnostic(|env| cannot_be_supertype_of_unknown(env, self));
-
-            return false;
-        }
-
-        let mut compatible = true;
-
-        for &self_variant in &self_variants {
-            let found = supertype_variants.iter().all(|&super_variant| {
-                env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant))
-            });
-
-            if found {
-                continue;
-            }
-
-            if env
-                .record_diagnostic(|env| {
-                    intersection_variant_mismatch(env, env.types[self_variant].copied(), supertype)
-                })
-                .is_break()
-            {
-                return false;
-            }
-
-            compatible = false;
-        }
-
-        compatible
+        Self::is_subtype_of_variants(self, supertype, &self_variants, &supertype_variants, env)
     }
 
     fn is_equivalent(
@@ -177,47 +267,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         let lhs_variants = self.kind.unnest(env);
         let rhs_variants = other.kind.unnest(env);
 
-        if lhs_variants.len() != rhs_variants.len() {
-            // We always fail-fast here
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
-                let help = if lhs_variants.is_empty() || rhs_variants.is_empty() {
-                    "The Unknown type (empty intersection) can only be equivalent to itself. A \
-                     non-empty intersection cannot be equivalent to Unknown."
-                } else {
-                    "Intersection types must have the same number of variants to be equivalent."
-                };
-
-                type_mismatch(env, self, other, Some(help))
-            });
-
-            return false;
-        }
-
-        let mut equivalent = true;
-
-        // For every variant x in lhs_variants, there exists a y in rhs_variants where x ≡ y
-        for &lhs_variant in &lhs_variants {
-            let found = rhs_variants
-                .iter()
-                .any(|&rhs_variant| env.is_equivalent(lhs_variant, rhs_variant));
-
-            if found {
-                continue;
-            }
-
-            if env
-                .record_diagnostic(|env| {
-                    intersection_variant_mismatch(env, env.types[lhs_variant].copied(), other)
-                })
-                .is_break()
-            {
-                return false;
-            }
-
-            equivalent = false;
-        }
-
-        equivalent
+        Self::is_equivalent_variants(self, other, &lhs_variants, &rhs_variants, env)
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
@@ -245,7 +295,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
             return env.alloc(|id| Type {
                 id,
                 span: self.span,
-                kind: env.intern_kind(TypeKind::Unknown),
+                kind: env.intern_kind(TypeKind::Never),
             });
         }
 

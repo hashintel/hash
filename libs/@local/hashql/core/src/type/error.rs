@@ -104,16 +104,17 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
 }
 
 /// Creates a type mismatch diagnostic with specific labels for the left and right types
-pub(crate) fn type_mismatch<K>(
+pub(crate) fn type_mismatch<T, U>(
     env: &Environment,
 
-    lhs: Type<K>,
-    rhs: Type<K>,
+    lhs: Type<T>,
+    rhs: Type<U>,
 
     help: Option<&str>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint,
+    T: PrettyPrint,
+    U: PrettyPrint,
 {
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::ERROR);
