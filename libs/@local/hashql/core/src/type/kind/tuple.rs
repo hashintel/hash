@@ -269,6 +269,7 @@ mod test {
                 generic_argument::GenericArguments,
                 primitive::PrimitiveType,
                 test::{assert_equiv, primitive, tuple, union},
+                union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             test::instantiate,
@@ -278,7 +279,7 @@ mod test {
     #[test]
     fn join_identical_tuples() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         tuple!(
             env,
@@ -300,7 +301,7 @@ mod test {
             ]
         );
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         // Join identical tuples should result in the same tuple
         assert_equiv!(
@@ -320,7 +321,7 @@ mod test {
     #[test]
     fn join_different_length_tuples() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         tuple!(
             env,
@@ -342,7 +343,7 @@ mod test {
             ]
         );
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         // Joining tuples of different lengths should return both tuples
         assert_equiv!(
@@ -373,7 +374,7 @@ mod test {
     #[test]
     fn join_tuples_with_different_field_types() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         tuple!(
             env,
@@ -394,7 +395,7 @@ mod test {
             ]
         );
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         // Join should result in a new tuple with joined fields
         assert_equiv!(
@@ -422,7 +423,7 @@ mod test {
     #[test]
     fn meet_identical_tuples() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         tuple!(
             env,
@@ -444,7 +445,7 @@ mod test {
             ]
         );
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         // Meet identical tuples should result in the same tuple
         assert_equiv!(
@@ -464,7 +465,7 @@ mod test {
     #[test]
     fn meet_different_length_tuples() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples of different lengths
         tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
@@ -479,7 +480,7 @@ mod test {
             ]
         );
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         // Meeting tuples of different lengths should return empty result
         assert_equiv!(env, a.meet(b, &mut lattice_env), []);
@@ -488,7 +489,7 @@ mod test {
     #[test]
     fn meet_tuples_with_different_field_types() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples with same length but different field types
         tuple!(
@@ -511,7 +512,7 @@ mod test {
             ]
         );
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         assert_equiv!(
             env,
@@ -662,7 +663,7 @@ mod test {
     #[test]
     fn unification_same_structure() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create two tuples with compatible types
         // (Number, String) and (Integer, String) are compatible because Integer <: Number
@@ -686,7 +687,7 @@ mod test {
             ]
         );
 
-        let mut unif_env = UnificationEnvironment::new(&mut env);
+        let mut unif_env = UnificationEnvironment::new(&env);
 
         // Unifying compatible tuples should succeed without errors
         a.unify(b, &mut unif_env);
@@ -699,7 +700,7 @@ mod test {
     #[test]
     fn unification_different_length() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples of different lengths
         tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
@@ -714,7 +715,7 @@ mod test {
             ]
         );
 
-        let mut unif_env = UnificationEnvironment::new(&mut env);
+        let mut unif_env = UnificationEnvironment::new(&env);
 
         // Unifying tuples of different lengths should produce a diagnostic
         a.unify(b, &mut unif_env);
@@ -728,7 +729,7 @@ mod test {
     #[test]
     fn unification_incompatible_field_types() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples with incompatible field types
         // Number and Boolean are incompatible types
@@ -752,7 +753,7 @@ mod test {
             ]
         );
 
-        let mut unif_env = UnificationEnvironment::new(&mut env);
+        let mut unif_env = UnificationEnvironment::new(&env);
 
         // Unifying tuples with incompatible field types should produce diagnostics
         a.unify(b, &mut unif_env);
@@ -766,7 +767,7 @@ mod test {
     #[test]
     fn simplify_tuple() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a tuple with fields
         tuple!(
@@ -779,7 +780,7 @@ mod test {
             ]
         );
 
-        let mut simplify_env = SimplifyEnvironment::new(&mut env);
+        let mut simplify_env = SimplifyEnvironment::new(&env);
 
         // Simplifying a tuple with already simplified fields should return the same tuple
         let result = tuple.simplify(&mut simplify_env);
@@ -792,7 +793,7 @@ mod test {
     #[test]
     fn lattice_laws() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create three distinct single-element tuples for testing lattice laws
         // We need these to have different element types for proper lattice testing
@@ -802,7 +803,7 @@ mod test {
 
         // Test that tuple types satisfy lattice laws (associativity, commutativity, absorption)
         assert_lattice_laws(
-            &mut env,
+            &env,
             |r#type| {
                 r#type.map(|kind| {
                     let TypeKind::Tuple(tuple) = kind else {

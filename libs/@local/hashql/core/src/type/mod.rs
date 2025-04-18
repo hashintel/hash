@@ -30,8 +30,8 @@ pub struct Type<'heap, K: ?Sized = TypeKind<'heap>> {
     kind: &'heap K,
 }
 
-impl<'heap, K: ?Sized> Copy for Type<'heap, K> {}
-impl<'heap, K: ?Sized> Clone for Type<'heap, K> {
+impl<K: ?Sized> Copy for Type<'_, K> {}
+impl<K: ?Sized> Clone for Type<'_, K> {
     fn clone(&self) -> Self {
         *self
     }

@@ -35,8 +35,7 @@ macro_rules! union {
     ($env:expr, $variants:expr) => {{
         let variants = $env.intern_type_ids(&$variants);
 
-        unimplemented!()
-        // instantiate(&mut $env, TypeKind::Union(UnionType { variants }))
+        instantiate(&$env, TypeKind::Union(UnionType { variants }))
     }};
 
     ($env:expr, $name:ident, $variants:expr) => {

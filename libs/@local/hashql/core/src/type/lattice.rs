@@ -258,7 +258,7 @@ pub(crate) mod test {
 
     #[track_caller]
     fn assert_commutativity<'heap, T>(
-        env: &mut Environment<'heap>,
+        env: &Environment<'heap>,
         convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
         a: TypeId,
         b: TypeId,
@@ -281,7 +281,7 @@ pub(crate) mod test {
 
     #[track_caller]
     fn assert_associativity<'heap, T>(
-        env: &mut Environment<'heap>,
+        env: &Environment<'heap>,
         convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
         a: TypeId,
         b: TypeId,
@@ -314,7 +314,7 @@ pub(crate) mod test {
 
     #[track_caller]
     fn assert_absorption<'heap, T>(
-        env: &mut Environment<'heap>,
+        env: &Environment<'heap>,
         convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
         a: TypeId,
         b: TypeId,
@@ -337,7 +337,7 @@ pub(crate) mod test {
 
     #[track_caller]
     fn assert_idempotence<'heap, T>(
-        env: &mut Environment<'heap>,
+        env: &Environment<'heap>,
         convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
         a: TypeId,
     ) where
@@ -359,7 +359,7 @@ pub(crate) mod test {
     /// different.
     #[track_caller]
     pub(crate) fn assert_lattice_laws<'heap, T>(
-        env: &mut Environment<'heap>,
+        env: &Environment<'heap>,
         convert: impl Fn(Type<'heap, TypeKind>) -> Type<'heap, T>,
         a: TypeId,
         b: TypeId,

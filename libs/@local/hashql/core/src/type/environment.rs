@@ -1,16 +1,12 @@
 use core::ops::Deref;
 
 use hashbrown::HashMap;
-use scc::HashSet;
 
 use super::{
     Type, TypeId, TypeKind,
     error::{TypeCheckDiagnostic, circular_type_reference},
     intern::Interner,
-    kind::{
-        generic_argument::{GenericArgument, GenericArgumentData, GenericArgumentId},
-        primitive::PrimitiveType,
-    },
+    kind::generic_argument::{GenericArgument, GenericArgumentData, GenericArgumentId},
     lattice::Lattice as _,
     recursion::RecursionBoundary,
 };
@@ -102,6 +98,7 @@ pub struct AuxiliaryData {
 }
 
 impl AuxiliaryData {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             arguments: HashMap::default(),

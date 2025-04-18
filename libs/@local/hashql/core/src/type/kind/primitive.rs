@@ -66,16 +66,16 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
 
     fn is_subtype_of(
         self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
         _: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         // If types are identical, they are always subtypes of each other
-        if self.kind == other.kind {
+        if self.kind == supertype.kind {
             return true;
         }
 
         // Handle known subtyping relationships
-        match (*self.kind, *other.kind) {
+        match (*self.kind, *supertype.kind) {
             // `Integer <: Number`
             (Self::Integer, Self::Number) => true,
 
@@ -224,12 +224,12 @@ mod test {
     #[test_case(PrimitiveType::Null)]
     fn join_identical_primitives(primitive: PrimitiveType) {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, a, primitive);
         primitive!(env, b, primitive);
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         let output = a.join(b, &mut lattice_env);
         assert_eq!(output.len(), 1);
@@ -247,12 +247,12 @@ mod test {
     #[test_case(PrimitiveType::Null)]
     fn meet_identical_primitives(primitive: PrimitiveType) {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, a, primitive);
         primitive!(env, b, primitive);
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         let output = a.meet(b, &mut lattice_env);
         assert_eq!(output.len(), 1);
@@ -266,12 +266,12 @@ mod test {
     #[test]
     fn join_integer_number_subtyping() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, integer, PrimitiveType::Integer);
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         // Number ⊔ Integer = Number
         assert_kind!(
@@ -291,12 +291,12 @@ mod test {
     #[test]
     fn meet_integer_number_subtyping() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, integer, PrimitiveType::Integer);
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         // Number ⊓ Integer = Integer
         assert_kind!(
@@ -316,13 +316,13 @@ mod test {
     #[test]
     fn join_unrelated_primitives() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, string, PrimitiveType::String);
         primitive!(env, boolean, PrimitiveType::Boolean);
         primitive!(env, null, PrimitiveType::Null);
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         // String ⊔ Boolean = String | Boolean
         assert_kind!(
@@ -358,13 +358,13 @@ mod test {
     #[test]
     fn meet_unrelated_primitives() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, string, PrimitiveType::String);
         primitive!(env, boolean, PrimitiveType::Boolean);
         primitive!(env, null, PrimitiveType::Null);
 
-        let mut lattice_env = LatticeEnvironment::new(&mut env);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
         // String ⊓ Boolean = String & Boolean
         assert_kind!(
@@ -494,12 +494,12 @@ mod test {
     #[test_case(PrimitiveType::Null)]
     fn unification_same_type(primitive: PrimitiveType) {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, a, primitive);
         primitive!(env, b, primitive);
 
-        let mut unif_env = UnificationEnvironment::new(&mut env);
+        let mut unif_env = UnificationEnvironment::new(&env);
 
         // Unifying same types should succeed without errors
         a.unify(b, &mut unif_env);
@@ -509,12 +509,12 @@ mod test {
     #[test]
     fn unification_integer_number() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, integer, PrimitiveType::Integer);
 
-        let mut unif_env = UnificationEnvironment::new(&mut env);
+        let mut unif_env = UnificationEnvironment::new(&env);
 
         number.unify(integer, &mut unif_env);
         assert!(
@@ -526,12 +526,12 @@ mod test {
     #[test]
     fn unification_number_integer() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, integer, PrimitiveType::Integer);
         primitive!(env, number, PrimitiveType::Number);
 
-        let mut unif_env = UnificationEnvironment::new(&mut env);
+        let mut unif_env = UnificationEnvironment::new(&env);
 
         integer.unify(number, &mut unif_env);
 
@@ -602,12 +602,12 @@ mod test {
     )]
     fn unification_unrelated_types(lhs: PrimitiveType, rhs: PrimitiveType) {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, lhs, lhs);
         primitive!(env, rhs, rhs);
 
-        let mut unif_env = UnificationEnvironment::new(&mut env);
+        let mut unif_env = UnificationEnvironment::new(&env);
 
         lhs.unify(rhs, &mut unif_env);
 
@@ -623,11 +623,11 @@ mod test {
     #[test_case(PrimitiveType::Null)]
     fn simplify(primitive: PrimitiveType) {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, a, primitive);
 
-        let mut simplify_env = SimplifyEnvironment::new(&mut env);
+        let mut simplify_env = SimplifyEnvironment::new(&env);
 
         // Primitive types should simplify to themselves
         let result = a.simplify(&mut simplify_env);
@@ -639,14 +639,14 @@ mod test {
     #[test]
     fn lattice_laws() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         primitive!(env, number, PrimitiveType::Number);
         primitive!(env, string, PrimitiveType::String);
         primitive!(env, boolean, PrimitiveType::Boolean);
 
         assert_lattice_laws(
-            &mut env,
+            &env,
             |r#type| {
                 r#type.map(|kind| {
                     let TypeKind::Primitive(primitive) = kind else {
