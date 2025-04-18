@@ -65,10 +65,10 @@ macro_rules! assert_equiv {
 
         assert_eq!(actual.len(), expected.len());
 
-        let mut equiv_env = EquivalenceEnvironment::new(&$env);
+        let mut equiv_env = TypeAnalysisEnvironment::new(&$env);
 
         for (&actual, &expected) in actual.iter().zip(expected.iter()) {
-            assert!(equiv_env.semantically_equivalent(actual, expected));
+            assert!(equiv_env.is_equivalent(actual, expected));
         }
     };
 }

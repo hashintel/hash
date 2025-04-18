@@ -4,8 +4,8 @@ use smallvec::SmallVec;
 use crate::r#type::{
     Type, TypeId,
     environment::{
-        Environment, EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
-        TypeAnalysisEnvironment, UnificationEnvironment,
+        Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+        UnificationEnvironment,
     },
     error::type_mismatch,
     lattice::Lattice,
@@ -60,14 +60,34 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         }
     }
 
-    fn uninhabited(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_uninhabited(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         false
     }
 
-    fn semantically_equivalent(
+    fn is_subtype_of(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        _: &mut EquivalenceEnvironment<'_, 'heap>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
+        // If types are identical, they are always subtypes of each other
+        if self.kind == other.kind {
+            return true;
+        }
+
+        // Handle known subtyping relationships
+        match (*self.kind, *other.kind) {
+            // `Integer <: Number`
+            (Self::Integer, Self::Number) => true,
+
+            // No other subtyping relationships exist between primitive types
+            _ => false,
+        }
+    }
+
+    fn is_equivalent(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         self.kind == other.kind
     }
@@ -185,8 +205,8 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
-                TypeAnalysisEnvironment, UnificationEnvironment,
+                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                UnificationEnvironment,
             },
             kind::{
                 TypeKind,
@@ -391,15 +411,15 @@ mod test {
         let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
         // No primitive types are uninhabited
-        assert!(!number.uninhabited(&mut analysis_env));
-        assert!(!string.uninhabited(&mut analysis_env));
-        assert!(!boolean.uninhabited(&mut analysis_env));
-        assert!(!null.uninhabited(&mut analysis_env));
-        assert!(!integer.uninhabited(&mut analysis_env));
+        assert!(!number.is_uninhabited(&mut analysis_env));
+        assert!(!string.is_uninhabited(&mut analysis_env));
+        assert!(!boolean.is_uninhabited(&mut analysis_env));
+        assert!(!null.is_uninhabited(&mut analysis_env));
+        assert!(!integer.is_uninhabited(&mut analysis_env));
     }
 
     #[test]
-    fn semantic_equivalence() {
+    fn equivalent() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -410,17 +430,61 @@ mod test {
         primitive!(env, null, PrimitiveType::Null);
         primitive!(env, integer, PrimitiveType::Integer);
 
-        let mut equiv_env = EquivalenceEnvironment::new(&env);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
         // Same primitive types should be equivalent
-        assert!(number.semantically_equivalent(number2, &mut equiv_env));
+        assert!(number.is_equivalent(number2, &mut analysis_env));
 
         // Different primitive types should not be equivalent
-        assert!(!number.semantically_equivalent(string, &mut equiv_env));
-        assert!(!number.semantically_equivalent(boolean, &mut equiv_env));
-        assert!(!number.semantically_equivalent(null, &mut equiv_env));
-        assert!(!number.semantically_equivalent(integer, &mut equiv_env));
-        assert!(!string.semantically_equivalent(boolean, &mut equiv_env));
+        assert!(!number.is_equivalent(string, &mut analysis_env));
+        assert!(!number.is_equivalent(boolean, &mut analysis_env));
+        assert!(!number.is_equivalent(null, &mut analysis_env));
+        assert!(!number.is_equivalent(integer, &mut analysis_env));
+        assert!(!string.is_equivalent(boolean, &mut analysis_env));
+    }
+
+    #[test]
+    fn subtype_relationship() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        primitive!(env, number, PrimitiveType::Number);
+        primitive!(env, integer, PrimitiveType::Integer);
+        primitive!(env, string, PrimitiveType::String);
+        primitive!(env, boolean, PrimitiveType::Boolean);
+        primitive!(env, null, PrimitiveType::Null);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Every type is a subtype of itself (reflexivity)
+        assert!(number.is_subtype_of(number, &mut analysis_env));
+        assert!(integer.is_subtype_of(integer, &mut analysis_env));
+        assert!(string.is_subtype_of(string, &mut analysis_env));
+        assert!(boolean.is_subtype_of(boolean, &mut analysis_env));
+        assert!(null.is_subtype_of(null, &mut analysis_env));
+
+        // Integer is a subtype of Number (Integer <: Number)
+        assert!(integer.is_subtype_of(number, &mut analysis_env));
+
+        // Number is not a subtype of Integer (!(Number <: Integer))
+        assert!(!number.is_subtype_of(integer, &mut analysis_env));
+
+        // No other subtyping relationships between primitive types
+        assert!(!number.is_subtype_of(string, &mut analysis_env));
+        assert!(!number.is_subtype_of(boolean, &mut analysis_env));
+        assert!(!number.is_subtype_of(null, &mut analysis_env));
+
+        assert!(!string.is_subtype_of(number, &mut analysis_env));
+        assert!(!string.is_subtype_of(boolean, &mut analysis_env));
+        assert!(!string.is_subtype_of(null, &mut analysis_env));
+
+        assert!(!boolean.is_subtype_of(number, &mut analysis_env));
+        assert!(!boolean.is_subtype_of(string, &mut analysis_env));
+        assert!(!boolean.is_subtype_of(null, &mut analysis_env));
+
+        assert!(!null.is_subtype_of(number, &mut analysis_env));
+        assert!(!null.is_subtype_of(string, &mut analysis_env));
+        assert!(!null.is_subtype_of(boolean, &mut analysis_env));
     }
 
     #[test_case(PrimitiveType::Number)]

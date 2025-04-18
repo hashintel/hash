@@ -194,12 +194,6 @@ impl<'env, 'heap> UnificationEnvironment<'env, 'heap> {
         self.boundary.exit(lhs, rhs);
     }
 
-    pub(crate) fn structurally_equivalent(&self, lhs: TypeId, rhs: TypeId) -> bool {
-        let mut environment = EquivalenceEnvironment::new(self.environment);
-
-        environment.semantically_equivalent(lhs, rhs)
-    }
-
     pub(crate) fn with_variance<T>(
         &mut self,
         variance: Variance,
@@ -254,7 +248,7 @@ pub struct SimplifyEnvironment<'env, 'heap> {
     boundary: RecursionBoundary,
 
     lattice: LatticeEnvironment<'env, 'heap>,
-    equivalence: EquivalenceEnvironment<'env, 'heap>,
+    analysis: TypeAnalysisEnvironment<'env, 'heap>,
 }
 
 impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
@@ -263,62 +257,16 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
             environment,
             boundary: RecursionBoundary::new(),
             lattice: LatticeEnvironment::new(environment),
-            equivalence: EquivalenceEnvironment::new(environment),
+            analysis: TypeAnalysisEnvironment::new(environment),
         }
     }
 
-    pub fn semantically_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        if lhs == rhs {
-            return true;
-        }
-
-        let lhs = self.environment.types[lhs].copied();
-        let rhs = self.environment.types[rhs].copied();
-
-        lhs.semantically_equivalent(rhs, &mut self.equivalence)
+    pub fn is_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        self.analysis.is_equivalent(lhs, rhs)
     }
 
-    fn is_quick_subtype(&self, subtype: &Type<'heap>, supertype: &Type<'heap>) -> Option<bool> {
-        if subtype.id == supertype.id {
-            return Some(true);
-        }
-
-        if *subtype.kind == TypeKind::Never {
-            return Some(true);
-        }
-
-        if *supertype.kind == TypeKind::Never {
-            return Some(false);
-        }
-
-        if *subtype.kind == TypeKind::Unknown {
-            return Some(true);
-        }
-
-        if *supertype.kind == TypeKind::Unknown {
-            return Some(false);
-        }
-
-        None
-    }
-
-    pub fn is_subtype(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
-        let subtype = self.environment.types[subtype].copied();
-        let supertype = self.environment.types[supertype].copied();
-
-        // 1) Reflexivity & holes
-        if let Some(result) = self.is_quick_subtype(&subtype, &supertype) {
-            return result;
-        }
-
-        // 2) α‐equivalence shortcut
-        if self.semantically_equivalent(subtype.id, supertype.id) {
-            return true;
-        }
-
-        // 3) Lattice check: sub ∧ sup == sub
-        let variants = subtype.meet(supertype, &mut self.lattice);
-        variants.len() == 1 && variants[0] == subtype.id
+    pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
+        self.analysis.is_subtype_of(subtype, supertype)
     }
 
     pub fn simplify(&mut self, id: TypeId) -> TypeId {
@@ -333,7 +281,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
 
         let mut env = TypeAnalysisEnvironment::new(self.environment);
 
-        r#type.uninhabited(&mut env)
+        r#type.is_uninhabited(&mut env)
     }
 }
 
@@ -451,68 +399,77 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
     pub fn uninhabited(&mut self, id: TypeId) -> bool {
         let r#type = self.environment.types[id].copied();
 
-        r#type.uninhabited(self)
-    }
-}
-
-// We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
-// As the unification environment is just a wrapper around the environment with an additional guard.
-impl<'heap> Deref for TypeAnalysisEnvironment<'_, 'heap> {
-    type Target = Environment<'heap>;
-
-    fn deref(&self) -> &Self::Target {
-        self.environment
-    }
-}
-
-pub struct EquivalenceEnvironment<'env, 'heap> {
-    environment: &'env Environment<'heap>,
-    boundary: RecursionBoundary,
-}
-
-impl<'env, 'heap> EquivalenceEnvironment<'env, 'heap> {
-    #[must_use]
-    pub fn new(environment: &'env Environment<'heap>) -> Self {
-        Self {
-            environment,
-            boundary: RecursionBoundary::new(),
-        }
+        r#type.is_uninhabited(self)
     }
 
-    /// Determines if two types are structurally equivalent - meaning they have the same shape and
-    /// matching internal types.
-    ///
-    /// For example:
-    /// - Two structs with the same field names and types are structurally equivalent
-    /// - Two closures with the same parameter types and return type are structurally equivalent
-    /// - Two generic types are structurally equivalent if their parameters and constraints match
-    ///
-    /// This function handles recursive types by using a recursion guard to prevent infinite
-    /// recursion.
-    ///
-    /// # Panics
-    ///
-    /// If lhs and rhs do not exist in the environment.
-    pub fn semantically_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        if lhs == rhs {
-            return true;
+    fn is_quick_subtype(&self, subtype: &Type<'heap>, supertype: &Type<'heap>) -> Option<bool> {
+        if subtype.id == supertype.id {
+            return Some(true);
         }
 
-        let lhs_type = self.environment.types[lhs].copied();
-        let rhs_type = self.environment.types[rhs].copied();
-
-        if core::ptr::eq(lhs_type.kind, rhs_type.kind) {
-            return true;
+        if core::ptr::eq(subtype.kind, supertype.kind) {
+            return Some(true);
         }
 
-        if !self.boundary.enter(lhs, rhs) {
+        if *subtype.kind == TypeKind::Never {
+            return Some(true);
+        }
+
+        if *supertype.kind == TypeKind::Never {
+            return Some(false);
+        }
+
+        if *subtype.kind == TypeKind::Unknown {
+            return Some(true);
+        }
+
+        if *supertype.kind == TypeKind::Unknown {
+            return Some(false);
+        }
+
+        None
+    }
+
+    pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
+        let subtype = self.environment.types[subtype].copied();
+        let supertype = self.environment.types[supertype].copied();
+
+        if let Some(result) = self.is_quick_subtype(&subtype, &supertype) {
+            return result;
+        }
+
+        if !self.boundary.enter(subtype.id, supertype.id) {
             // In case of recursion the result is true
             return true;
         }
 
-        let result = lhs_type.semantically_equivalent(rhs_type, self);
+        let result = subtype.is_subtype_of(supertype, self);
 
-        self.boundary.exit(lhs, rhs);
+        self.boundary.exit(subtype.id, supertype.id);
+
+        result
+    }
+
+    pub fn is_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        if lhs == rhs {
+            return true;
+        }
+
+        let lhs = self.environment.types[lhs].copied();
+        let rhs = self.environment.types[rhs].copied();
+
+        if core::ptr::eq(lhs.kind, rhs.kind) {
+            return true;
+        }
+
+        if !self.boundary.enter(lhs.id, rhs.id) {
+            // In case of recursion the result is true
+            return true;
+        }
+
+        let result = lhs.is_equivalent(rhs, self);
+
+        self.boundary.exit(lhs.id, rhs.id);
 
         result
     }
@@ -520,7 +477,7 @@ impl<'env, 'heap> EquivalenceEnvironment<'env, 'heap> {
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
 // As the unification environment is just a wrapper around the environment with an additional guard.
-impl<'heap> Deref for EquivalenceEnvironment<'_, 'heap> {
+impl<'heap> Deref for TypeAnalysisEnvironment<'_, 'heap> {
     type Target = Environment<'heap>;
 
     fn deref(&self) -> &Self::Target {

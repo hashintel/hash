@@ -18,8 +18,8 @@ use self::{primitive::PrimitiveType, tuple::TupleType, union::UnionType};
 use super::{
     Type, TypeId,
     environment::{
-        Environment, EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
-        TypeAnalysisEnvironment, UnificationEnvironment,
+        Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+        UnificationEnvironment,
     },
     lattice::Lattice,
     pretty_print::PrettyPrint,
@@ -124,14 +124,25 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         todo!()
     }
 
-    fn uninhabited(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_uninhabited(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
         todo!()
     }
 
-    fn semantically_equivalent(
+    fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut EquivalenceEnvironment<'_, 'heap>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
+        todo!()
+    }
+
+    fn is_subtype_of(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         todo!()
     }

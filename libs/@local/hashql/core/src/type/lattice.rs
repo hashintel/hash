@@ -3,8 +3,7 @@ use smallvec::SmallVec;
 use super::{
     Type, TypeId,
     environment::{
-        EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        UnificationEnvironment,
+        LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment, UnificationEnvironment,
     },
 };
 
@@ -128,7 +127,10 @@ pub trait Lattice<'heap> {
     /// cannot have any values constructed for them. They're useful in type systems
     /// to represent computations that don't return normally (e.g., functions that always
     /// panic or never terminate).
-    fn uninhabited(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
+    fn is_uninhabited(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool;
 
     /// Determines if one type is a subtype of another.
     ///
@@ -145,7 +147,7 @@ pub trait Lattice<'heap> {
     /// - Antisymmetry: If `A <: B` and `B <: A`, then `A` and `B` are equivalent.
     fn is_subtype_of(
         self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool;
 
@@ -250,7 +252,7 @@ pub(crate) mod test {
     use super::Lattice;
     use crate::r#type::{
         Type, TypeId,
-        environment::{Environment, EquivalenceEnvironment, LatticeEnvironment},
+        environment::{Environment, LatticeEnvironment, TypeAnalysisEnvironment},
         kind::TypeKind,
     };
 
@@ -365,11 +367,11 @@ pub(crate) mod test {
     ) where
         T: Lattice<'heap> + 'heap,
     {
-        let mut equiv = EquivalenceEnvironment::new(env);
+        let mut equiv = TypeAnalysisEnvironment::new(env);
 
-        assert!(!equiv.semantically_equivalent(a, b));
-        assert!(!equiv.semantically_equivalent(b, c));
-        assert!(!equiv.semantically_equivalent(a, c));
+        assert!(!equiv.is_equivalent(a, b));
+        assert!(!equiv.is_equivalent(b, c));
+        assert!(!equiv.is_equivalent(a, c));
 
         assert_commutativity(env, &convert, a, b);
         assert_associativity(env, &convert, a, b, c);

@@ -5,8 +5,8 @@ use super::{TypeKind, generic_argument::GenericArguments};
 use crate::r#type::{
     Type, TypeId,
     environment::{
-        Environment, EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
-        TypeAnalysisEnvironment, UnificationEnvironment,
+        Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+        UnificationEnvironment,
     },
     error::tuple_length_mismatch,
     lattice::Lattice,
@@ -105,15 +105,36 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         SmallVec::from_slice(&[id])
     }
 
-    fn uninhabited(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_uninhabited(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
         // uninhabited if any of the fields are uninhabited
         self.kind.fields.iter().any(|&field| env.uninhabited(field))
     }
 
-    fn semantically_equivalent(
+    fn is_subtype_of(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
+        // Tuples must have the same number of fields for subtyping to be possible
+        if self.kind.fields.len() != supertype.kind.fields.len() {
+            return false;
+        }
+
+        // Each field in the subtype must be a subtype of the corresponding field in the supertype
+        self.kind
+            .fields
+            .iter()
+            .zip(supertype.kind.fields.iter())
+            .all(|(&subfield, &superfield)| env.is_subtype_of(subfield, superfield))
+    }
+
+    fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut EquivalenceEnvironment<'_, 'heap>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         self.kind.fields.len() == other.kind.fields.len()
             && self
@@ -121,7 +142,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
                 .fields
                 .iter()
                 .zip(other.kind.fields.iter())
-                .all(|(&lhs, &rhs)| env.semantically_equivalent(lhs, rhs))
+                .all(|(&lhs, &rhs)| env.is_equivalent(lhs, rhs))
             && self
                 .kind
                 .arguments
@@ -244,8 +265,8 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
-                TypeAnalysisEnvironment, UnificationEnvironment,
+                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                UnificationEnvironment,
             },
             kind::{
                 TypeKind,
@@ -515,7 +536,7 @@ mod test {
     #[test]
     fn uninhabited_tuples() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a normal tuple with inhabited types
         tuple!(
@@ -545,19 +566,55 @@ mod test {
         let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
         // Empty tuple should be inhabited (not uninhabited)
-        assert!(!empty_tuple.uninhabited(&mut analysis_env));
+        assert!(!empty_tuple.is_uninhabited(&mut analysis_env));
 
         // Normal tuple should be inhabited (not uninhabited)
-        assert!(!normal_tuple.uninhabited(&mut analysis_env));
+        assert!(!normal_tuple.is_uninhabited(&mut analysis_env));
 
         // Tuple with a never field should be uninhabited
-        assert!(never_tuple.uninhabited(&mut analysis_env));
+        assert!(never_tuple.is_uninhabited(&mut analysis_env));
     }
 
     #[test]
-    fn semantic_equivalence() {
+    fn subtype_relationship() {
         let heap = Heap::new();
-        let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create tuple types for testing
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let string = primitive!(env, PrimitiveType::String);
+
+        tuple!(env, tuple_number_string, [], [number, string]);
+        tuple!(env, tuple_integer_string, [], [integer, string]);
+        tuple!(env, tuple_number_number, [], [number, number]);
+        tuple!(env, tuple_different_length, [], [number, string, number]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Reflexivity: Every tuple is a subtype of itself
+        assert!(tuple_number_string.is_subtype_of(tuple_number_string, &mut analysis_env));
+        assert!(tuple_integer_string.is_subtype_of(tuple_integer_string, &mut analysis_env));
+
+        // Tuples with the same structure but different field types
+        // Since Integer <: Number, (Integer, String) <: (Number, String)
+        assert!(tuple_integer_string.is_subtype_of(tuple_number_string, &mut analysis_env));
+
+        // But (Number, String) is not a subtype of (Integer, String)
+        assert!(!tuple_number_string.is_subtype_of(tuple_integer_string, &mut analysis_env));
+
+        // Different field types entirely
+        assert!(!tuple_number_string.is_subtype_of(tuple_number_number, &mut analysis_env));
+
+        // Different length tuples have no subtyping relationship
+        assert!(!tuple_number_string.is_subtype_of(tuple_different_length, &mut analysis_env));
+        assert!(!tuple_different_length.is_subtype_of(tuple_number_string, &mut analysis_env));
+    }
+
+    #[test]
+    fn equivalence_relationship() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples with same structure but different TypeIds
         tuple!(
@@ -594,16 +651,16 @@ mod test {
         // Create a tuple with different length
         tuple!(env, d, [], [primitive!(env, PrimitiveType::Number)]);
 
-        let mut equiv_env = EquivalenceEnvironment::new(&env);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
         // Tuples with semantically equivalent fields should be equivalent
-        assert!(a.semantically_equivalent(b, &mut equiv_env));
+        assert!(a.is_equivalent(b, &mut analysis_env));
 
         // Tuples with different field types should not be equivalent
-        assert!(!a.semantically_equivalent(c, &mut equiv_env));
+        assert!(!a.is_equivalent(c, &mut analysis_env));
 
         // Tuples with different lengths should not be equivalent
-        assert!(!a.semantically_equivalent(d, &mut equiv_env));
+        assert!(!a.is_equivalent(d, &mut analysis_env));
     }
 
     #[test]

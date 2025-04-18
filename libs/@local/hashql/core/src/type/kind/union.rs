@@ -5,8 +5,8 @@ use super::TypeKind;
 use crate::r#type::{
     Type, TypeId,
     environment::{
-        Environment, EquivalenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
-        TypeAnalysisEnvironment, UnificationEnvironment,
+        Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+        UnificationEnvironment,
     },
     lattice::Lattice,
     pretty_print::PrettyPrint,
@@ -83,14 +83,44 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         variants
     }
 
-    fn uninhabited(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_uninhabited(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.is_empty()
     }
 
-    fn semantically_equivalent(
+    fn is_subtype_of(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
+        // Unnest the variants to handle nested unions correctly
+        let self_variants = self.kind.unnest(env);
+        let supertype_variants = supertype.kind.unnest(env);
+
+        // Empty union (corresponds to the Never type) is a subtype of any union type
+        if self_variants.is_empty() {
+            return true;
+        }
+
+        // If the supertype is empty, only an empty subtype can be a subtype of it
+        if supertype_variants.is_empty() {
+            return false; // We already checked that self is not empty
+        }
+
+        // A union type is a subtype of another union type if every variant in the subtype
+        // is a subtype of at least one variant in the supertype
+        self_variants.iter().all(|&subtype_variant| {
+            // For each variant in the subtype, check if it's a subtype of any variant in the
+            // supertype
+            supertype_variants
+                .iter()
+                .any(|&supertype_variant| env.is_subtype_of(subtype_variant, supertype_variant))
+        })
+    }
+
+    fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut EquivalenceEnvironment<'_, 'heap>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let lhs_variants = self.kind.unnest(env);
         let rhs_variants = other.kind.unnest(env);
@@ -100,10 +130,10 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         }
 
         // For every variant x in lhs_variants, there exists a y in rhs_variants where x ≡ y
-        lhs_variants.iter().all(|&x| {
+        lhs_variants.iter().all(|&lhs_variant| {
             rhs_variants
                 .iter()
-                .any(|&y| env.semantically_equivalent(x, y))
+                .any(|&rhs_variant| env.is_equivalent(lhs_variant, rhs_variant))
         })
     }
 
@@ -137,7 +167,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         let backup = variants.clone();
         variants.retain(|&v| {
             // keep v only if *no* other distinct u is a subtype of v
-            !backup.iter().any(|&u| env.is_subtype(u, v))
+            !backup.iter().any(|&u| env.is_subtype_of(u, v))
         });
 
         // Collapse empty or singleton
