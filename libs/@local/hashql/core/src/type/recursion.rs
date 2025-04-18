@@ -44,7 +44,7 @@ impl RecursionBoundary {
 
     pub(crate) fn enter(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
         // insert returns true if the element was not already in the set
-        !self.inner.insert((lhs, rhs))
+        self.inner.insert((lhs, rhs))
     }
 
     pub(crate) fn exit(&mut self, lhs: TypeId, rhs: TypeId) -> bool {

@@ -574,6 +574,22 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        if env.is_bottom(self.id) {
+            return env.alloc(|id| Type {
+                id,
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Never),
+            });
+        }
+
+        if env.is_top(self.id) {
+            return env.alloc(|id| Type {
+                id,
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Unknown),
+            });
+        }
+
         match self.kind {
             TypeKind::Primitive(primitive_type) => self.with(primitive_type).simplify(env),
             TypeKind::Tuple(tuple_type) => self.with(tuple_type).simplify(env),

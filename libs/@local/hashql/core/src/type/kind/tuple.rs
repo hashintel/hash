@@ -279,6 +279,7 @@ mod test {
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
+            pretty_print::PrettyPrint as _,
             test::instantiate,
         },
     };
@@ -375,6 +376,33 @@ mod test {
                     ]
                 )
             ]
+        );
+    }
+
+    #[test]
+    fn join_tuple_single_element() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
+        tuple!(env, b, [], [primitive!(env, PrimitiveType::Integer)]);
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        let result = a.join(b, &mut lattice_env);
+
+        // Join should result in a new tuple with joined fields
+        assert_equiv!(
+            env,
+            result,
+            [tuple!(
+                env,
+                [],
+                [
+                    // Number ⊔ Integer = Number (number is supertype of integer)
+                    primitive!(env, PrimitiveType::Number),
+                ]
+            )]
         );
     }
 
@@ -667,110 +695,6 @@ mod test {
         assert!(!a.is_equivalent(d, &mut analysis_env));
     }
 
-    // #[test]
-    // fn unification_same_structure() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    //     // Create two tuples with compatible types
-    //     // (Number, String) and (Integer, String) are compatible because Integer <: Number
-    //     tuple!(
-    //         env,
-    //         a,
-    //         [],
-    //         [
-    //             primitive!(env, PrimitiveType::Number),
-    //             primitive!(env, PrimitiveType::String)
-    //         ]
-    //     );
-
-    //     tuple!(
-    //         env,
-    //         b,
-    //         [],
-    //         [
-    //             primitive!(env, PrimitiveType::Integer),
-    //             primitive!(env, PrimitiveType::String)
-    //         ]
-    //     );
-
-    //     let mut unif_env = UnificationEnvironment::new(&env);
-
-    //     // Unifying compatible tuples should succeed without errors
-    //     a.unify(b, &mut unif_env);
-    //     assert!(
-    //         unif_env.diagnostics.take().is_empty(),
-    //         "Unification of compatible tuples should succeed"
-    //     );
-    // }
-
-    // #[test]
-    // fn unification_different_length() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    //     // Create tuples of different lengths
-    //     tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
-
-    //     tuple!(
-    //         env,
-    //         b,
-    //         [],
-    //         [
-    //             primitive!(env, PrimitiveType::Number),
-    //             primitive!(env, PrimitiveType::String)
-    //         ]
-    //     );
-
-    //     let mut unif_env = UnificationEnvironment::new(&env);
-
-    //     // Unifying tuples of different lengths should produce a diagnostic
-    //     a.unify(b, &mut unif_env);
-    //     let diagnostics = unif_env.diagnostics.take();
-    //     assert!(
-    //         !diagnostics.is_empty(),
-    //         "Unification of tuples with different lengths should fail"
-    //     );
-    // }
-
-    // #[test]
-    // fn unification_incompatible_field_types() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    //     // Create tuples with incompatible field types
-    //     // Number and Boolean are incompatible types
-    //     tuple!(
-    //         env,
-    //         a,
-    //         [],
-    //         [
-    //             primitive!(env, PrimitiveType::Number),
-    //             primitive!(env, PrimitiveType::String)
-    //         ]
-    //     );
-
-    //     tuple!(
-    //         env,
-    //         b,
-    //         [],
-    //         [
-    //             primitive!(env, PrimitiveType::Boolean),
-    //             primitive!(env, PrimitiveType::String)
-    //         ]
-    //     );
-
-    //     let mut unif_env = UnificationEnvironment::new(&env);
-
-    //     // Unifying tuples with incompatible field types should produce diagnostics
-    //     a.unify(b, &mut unif_env);
-    //     let diagnostics = unif_env.diagnostics.take();
-    //     assert!(
-    //         !diagnostics.is_empty(),
-    //         "Unification of tuples with incompatible fields should fail"
-    //     );
-    // }
-
     #[test]
     fn simplify_tuple() {
         let heap = Heap::new();
@@ -823,6 +747,152 @@ mod test {
             a,
             b,
             c,
+        );
+    }
+
+    #[test]
+    fn simplify_tuple_with_never() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a tuple with a Never field
+        tuple!(
+            env,
+            never_tuple,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                instantiate(&env, TypeKind::Never),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying a tuple with a Never field should result in Never
+        let result = never_tuple.simplify(&mut simplify_env);
+
+        // The result should be a Never type
+        let result_type = env.types[result].copied();
+        assert!(
+            matches!(result_type.kind, TypeKind::Never),
+            "Expected Never, got {:?}",
+            result_type.kind
+        );
+    }
+
+    #[test]
+    fn nested_tuples() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a nested tuple
+        tuple!(env, inner, [], [primitive!(env, PrimitiveType::Number)]);
+        tuple!(
+            env,
+            outer,
+            [],
+            [inner.id, primitive!(env, PrimitiveType::String)]
+        );
+
+        // Create another nested tuple with subtype relationship
+        tuple!(env, inner2, [], [primitive!(env, PrimitiveType::Integer)]);
+        tuple!(
+            env,
+            outer2,
+            [],
+            [inner2.id, primitive!(env, PrimitiveType::String)]
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Test subtyping: since Integer <: Number,
+        // (Integer) <: (Number) and ((Integer), String) <: ((Number), String)
+        assert!(inner2.is_subtype_of(inner, &mut analysis_env));
+        assert!(outer2.is_subtype_of(outer, &mut analysis_env));
+    }
+
+    #[test]
+    fn simplify_with_and_without_flag() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create tuples for testing
+        let a = tuple!(env, [], [primitive!(env, PrimitiveType::Number)]);
+        let b = tuple!(env, [], [primitive!(env, PrimitiveType::String)]);
+
+        // Create environment with simplification enabled (default)
+        let mut env_with_simplify = LatticeEnvironment::new(&env);
+
+        // Create environment with simplification disabled
+        let mut env_without_simplify = LatticeEnvironment::new(&env);
+        env_without_simplify.without_simplify();
+
+        // Meet the tuples (should produce different results with and without simplification)
+        let result_with_simplify = env_with_simplify.meet(a, b);
+        let result_without_simplify = env_without_simplify.meet(a, b);
+
+        // With simplification, the result should simplify to Never
+        let type_with_simplify = env.types[result_with_simplify].copied();
+        assert!(
+            matches!(type_with_simplify.kind, TypeKind::Never),
+            "Expected Never with simplification, got {:?}",
+            type_with_simplify.kind.pretty_print(&env, 80)
+        );
+
+        // Without simplification, we should get an intersection type
+        let type_without_simplify = env.types[result_without_simplify].copied();
+        let TypeKind::Tuple(tuple_without_simplify) = type_without_simplify.kind else {
+            panic!(
+                "Expected Tuple type with simplification, got {:?}",
+                type_with_simplify.kind
+            );
+        };
+
+        let type_without_simplify = env.types[tuple_without_simplify.fields[0]].copied();
+
+        match type_without_simplify.kind {
+            TypeKind::Intersection(intersection) => {
+                assert_eq!(
+                    intersection.variants.len(),
+                    2,
+                    "Expected 2 variants in intersection, got {}",
+                    intersection.variants.len()
+                );
+            }
+            _ => panic!(
+                "Expected Intersection type when simplification is disabled, got {:?}",
+                type_without_simplify.kind
+            ),
+        }
+    }
+
+    #[test]
+    fn tuple_with_disjoint_field_types() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Create an intersection of disjoint types
+        let mut lattice_env = LatticeEnvironment::new(&env);
+        let intersection_id = lattice_env.meet(number, string);
+
+        // Create a tuple with the intersection type
+        tuple!(env, tuple_with_intersection, [], [intersection_id]);
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying this tuple should result in Never because the field type is Never
+        let result = tuple_with_intersection.simplify(&mut simplify_env);
+
+        // The result should be a Never type
+        let result_type = env.types[result].copied();
+        assert!(
+            matches!(result_type.kind, TypeKind::Never),
+            "Expected Never, got {:?}",
+            result_type.kind
         );
     }
 }

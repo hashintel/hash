@@ -67,7 +67,13 @@ macro_rules! assert_equiv {
         let mut equiv_env = TypeAnalysisEnvironment::new(&$env);
 
         for (&actual, &expected) in actual.iter().zip(expected.iter()) {
-            assert!(equiv_env.is_equivalent(actual, expected));
+            let actual_repr = &$env.types[actual].copied().pretty_print(&equiv_env, 80);
+            let expected_repr = &$env.types[expected].copied().pretty_print(&equiv_env, 80);
+
+            assert!(
+                equiv_env.is_equivalent(actual, expected),
+                "actual: {actual_repr}, expected: {expected_repr}",
+            );
         }
     };
 }

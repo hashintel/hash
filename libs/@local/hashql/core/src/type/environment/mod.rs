@@ -96,6 +96,12 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         self.analysis.is_subtype_of(subtype, supertype)
     }
 
+    // Two types are disjoint if neither is a subtype of the other
+    // This means they share no common values and their intersection is empty
+    pub fn is_disjoint(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        self.analysis.is_disjoint(lhs, rhs)
+    }
+
     pub fn is_bottom(&mut self, id: TypeId) -> bool {
         self.analysis.is_bottom(id)
     }
@@ -132,6 +138,7 @@ pub struct LatticeEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
     pub diagnostics: Diagnostics,
+    simplify_lattice: bool,
 
     simplify: SimplifyEnvironment<'env, 'heap>,
 }
@@ -142,8 +149,14 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             environment,
             boundary: RecursionBoundary::new(),
             diagnostics: Diagnostics::new(),
+            simplify_lattice: true,
             simplify: SimplifyEnvironment::new(environment),
         }
+    }
+
+    pub const fn without_simplify(&mut self) -> &mut Self {
+        self.simplify_lattice = false;
+        self
     }
 
     pub fn join(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
@@ -174,7 +187,13 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
                 kind,
             })
         } else if variants.len() == 1 {
-            variants[0]
+            let id = variants[0];
+
+            if self.simplify_lattice {
+                self.simplify.simplify(id)
+            } else {
+                id
+            }
         } else {
             let kind = self.environment.intern_kind(TypeKind::Union(UnionType {
                 variants: self.intern_type_ids(&variants),
@@ -186,7 +205,11 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
                 kind,
             });
 
-            self.simplify.simplify(id)
+            if self.simplify_lattice {
+                self.simplify.simplify(id)
+            } else {
+                id
+            }
         };
 
         self.boundary.exit(lhs.id, rhs.id);
@@ -222,7 +245,13 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
                 kind,
             })
         } else if variants.len() == 1 {
-            variants[0]
+            let id = variants[0];
+
+            if self.simplify_lattice {
+                self.simplify.simplify(id)
+            } else {
+                id
+            }
         } else {
             let kind = self
                 .environment
@@ -236,7 +265,11 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
                 kind,
             });
 
-            self.simplify.simplify(id)
+            if self.simplify_lattice {
+                self.simplify.simplify(id)
+            } else {
+                id
+            }
         };
 
         self.boundary.exit(lhs.id, rhs.id);
@@ -312,6 +345,13 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         result
     }
 
+    pub fn is_disjoint(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        let lhs = self.environment.types[lhs].copied();
+        let rhs = self.environment.types[rhs].copied();
+
+        !lhs.is_subtype_of(rhs, self) && !rhs.is_subtype_of(lhs, self)
+    }
+
     #[must_use]
     pub const fn is_fail_fast(&self) -> bool {
         self.diagnostics.is_none()
@@ -382,12 +422,9 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         }
 
         if let Some(result) = Self::is_quick_subtype(&subtype, &supertype) {
-            return result;
-        }
+            self.boundary.exit(subtype.id, supertype.id);
 
-        if !self.boundary.enter(subtype.id, supertype.id) {
-            // In case of recursion the result is true
-            return true;
+            return result;
         }
 
         let result = subtype.is_subtype_of(supertype, self);
@@ -414,6 +451,8 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         }
 
         if core::ptr::eq(lhs.kind, rhs.kind) {
+            self.boundary.exit(lhs.id, rhs.id);
+
             return true;
         }
 

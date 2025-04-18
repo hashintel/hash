@@ -299,6 +299,24 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
             });
         }
 
+        // Check for disjoint types - if any two types are unrelated, the intersection is Never
+        // TODO: check if this will make problems during inference, if we simplify there
+        // (in theory we can just side-step simplification until the very end)
+        for index in 0..variants.len() {
+            for jndex in (index + 1)..variants.len() {
+                let lhs = variants[index];
+                let rhs = variants[jndex];
+
+                if env.is_disjoint(lhs, rhs) {
+                    return env.alloc(|id| Type {
+                        id,
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Never),
+                    });
+                }
+            }
+        }
+
         // Drop supertypes of other variants
         let backup = variants.clone();
         variants.retain(|&supertype| {
