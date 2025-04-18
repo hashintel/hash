@@ -54,11 +54,6 @@ const UNION_VARIANT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCat
     name: "Union variant mismatch",
 };
 
-const INTERSECTION_COERCION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "intersection-coercion",
-    name: "Intersection coercion to Never",
-};
-
 const INTERSECTION_VARIANT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "intersection-variant-mismatch",
     name: "Intersection variant mismatch",
@@ -74,7 +69,6 @@ pub enum TypeCheckDiagnosticCategory {
     GenericArgumentNotFound,
     UnionVariantMismatch,
     FunctionParameterCountMismatch,
-    IntersectionCoercion,
     IntersectionVariantMismatch,
 }
 
@@ -97,7 +91,6 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::GenericArgumentNotFound => Some(&GENERIC_ARGUMENT_NOT_FOUND),
             Self::UnionVariantMismatch => Some(&UNION_VARIANT_MISMATCH),
             Self::FunctionParameterCountMismatch => Some(&FUNCTION_PARAMETER_COUNT_MISMATCH),
-            Self::IntersectionCoercion => Some(&INTERSECTION_COERCION),
             Self::IntersectionVariantMismatch => Some(&INTERSECTION_VARIANT_MISMATCH),
         }
     }
@@ -479,57 +472,6 @@ where
     diagnostic.note = Some(Note::new(
         "In strongly typed languages, functions with different numbers of parameters are \
          considered different types, even if the parameters they do have are compatible.",
-    ));
-
-    diagnostic
-}
-
-pub(crate) fn intersection_coerced_to_never<K1, K2>(
-    env: &Environment,
-
-    lhs: Type<K1>,
-    rhs: Type<K2>,
-
-    reason: &str,
-) -> TypeCheckDiagnostic
-where
-    K1: PrettyPrint,
-    K2: PrettyPrint,
-{
-    let mut diagnostic = Diagnostic::new(
-        TypeCheckDiagnosticCategory::IntersectionCoercion,
-        Severity::INFO,
-    );
-
-    diagnostic.labels.push(
-        Label::new(
-            env.source,
-            "This intersection operation results in an empty type (Never)",
-        )
-        .with_order(3),
-    );
-
-    diagnostic.labels.push(
-        Label::new(
-            lhs.span,
-            format!("this is of type: `{}`", lhs.kind.pretty_print(env, 80)),
-        )
-        .with_order(1),
-    );
-
-    diagnostic.labels.push(
-        Label::new(
-            rhs.span,
-            format!("this is of type: `{}`", rhs.kind.pretty_print(env, 80)),
-        )
-        .with_order(2),
-    );
-
-    diagnostic.help = Some(Help::new(reason));
-
-    diagnostic.note = Some(Note::new(
-        "When two types have an empty intersection, the result is the Never type. This means \
-         there are no values that can satisfy both type constraints simultaneously.",
     ));
 
     diagnostic
