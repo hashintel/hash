@@ -202,10 +202,12 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         r#type.simplify(self)
     }
 
-    pub fn uninhabited(&mut self, id: TypeId) -> bool {
-        let r#type = self.environment.types[id].copied();
+    pub fn is_bottom(&mut self, id: TypeId) -> bool {
+        self.analysis.is_bottom(id)
+    }
 
-        r#type.is_uninhabited(&mut self.analysis)
+    pub fn is_top(&mut self, id: TypeId) -> bool {
+        self.analysis.is_top(id)
     }
 }
 
@@ -332,10 +334,20 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         }
     }
 
-    pub fn is_uninhabited(&mut self, id: TypeId) -> bool {
+    pub fn is_bottom(&mut self, id: TypeId) -> bool {
+        // TODO: recursion guard
+
         let r#type = self.environment.types[id].copied();
 
-        r#type.is_uninhabited(self)
+        r#type.is_bottom(self)
+    }
+
+    pub fn is_top(&mut self, id: TypeId) -> bool {
+        // TODO: recursion guard
+
+        let r#type = self.environment.types[id].copied();
+
+        r#type.is_top(self)
     }
 
     pub fn is_fail_fast(&mut self) -> bool {

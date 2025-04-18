@@ -104,15 +104,13 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         SmallVec::from_slice(&[id])
     }
 
-    fn is_uninhabited(
-        self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
-    ) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         // uninhabited if any of the fields are uninhabited
-        self.kind
-            .fields
-            .iter()
-            .any(|&field| env.is_uninhabited(field))
+        self.kind.fields.iter().any(|&field| env.is_bottom(field))
+    }
+
+    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        false
     }
 
     fn is_subtype_of(
@@ -209,7 +207,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
 
         // Check if any of the fields are uninhabited, if that is the case we simplify down to an
         // uninhabited type
-        if fields.iter().any(|&field| env.uninhabited(field)) {
+        if fields.iter().any(|&field| env.is_bottom(field)) {
             let kind = env.intern_kind(TypeKind::Never);
 
             return env.alloc(|id| Type {
@@ -572,13 +570,13 @@ mod test {
         let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
         // Empty tuple should be inhabited (not uninhabited)
-        assert!(!empty_tuple.is_uninhabited(&mut analysis_env));
+        assert!(!empty_tuple.is_bottom(&mut analysis_env));
 
         // Normal tuple should be inhabited (not uninhabited)
-        assert!(!normal_tuple.is_uninhabited(&mut analysis_env));
+        assert!(!normal_tuple.is_bottom(&mut analysis_env));
 
         // Tuple with a never field should be uninhabited
-        assert!(never_tuple.is_uninhabited(&mut analysis_env));
+        assert!(never_tuple.is_bottom(&mut analysis_env));
     }
 
     #[test]

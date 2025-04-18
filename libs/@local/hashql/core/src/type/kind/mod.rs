@@ -127,10 +127,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         todo!()
     }
 
-    fn is_uninhabited(
-        self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
-    ) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        todo!()
+    }
+
+    fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         todo!()
     }
 

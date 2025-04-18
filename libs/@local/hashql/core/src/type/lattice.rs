@@ -125,10 +125,31 @@ pub trait Lattice<'heap> {
     /// cannot have any values constructed for them. They're useful in type systems
     /// to represent computations that don't return normally (e.g., functions that always
     /// panic or never terminate).
-    fn is_uninhabited(
-        self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
-    ) -> bool;
+    ///
+    /// In a type lattice, a bottom type is a subtype of every other type, forming the
+    /// least element of the lattice. This corresponds to the `!` (`Never`) type.
+    ///
+    /// # Examples
+    ///
+    /// - The `Never` type in Rust is a bottom type
+    /// - Empty union types (unions with no variants) are bottom types
+    /// - Contradictory intersection types (like `number & string`) are bottom types
+    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
+
+    /// Determines if a type is a top type (encompasses all possible values).
+    ///
+    /// Top types (also called "universal types" in type theory) can hold any value in the
+    /// type system. They're useful as default types or placeholders when the exact type
+    /// is unknown or irrelevant.
+    ///
+    /// In a type lattice, a top type is a supertype of every other type, forming the
+    /// greatest element of the lattice. This corresponds to the `?` (`Unknown`) type.
+    ///
+    /// Examples:
+    /// - The `any` type in TypeScript is a top type
+    /// - Any union type with the `Unknown` type as a variant is a top type
+    /// - Empty intersection types (intersections with no variants) are top types
+    fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
 
     /// Determines if one type is a subtype of another.
     ///

@@ -78,11 +78,12 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         variants
     }
 
-    fn is_uninhabited(
-        self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
-    ) -> bool {
-        self.kind.variants.iter().any(|&id| env.is_uninhabited(id))
+    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind.variants.iter().any(|&id| env.is_bottom(id))
+    }
+
+    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind.variants.is_empty()
     }
 
     fn is_subtype_of(

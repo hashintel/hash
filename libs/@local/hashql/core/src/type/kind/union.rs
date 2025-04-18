@@ -83,8 +83,12 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         variants
     }
 
-    fn is_uninhabited(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.is_empty()
+    }
+
+    fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind.variants.iter().any(|&id| env.is_top(id))
     }
 
     fn is_subtype_of(
@@ -209,7 +213,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         // Sort, dedupe, drop bottom
         variants.sort_unstable();
         variants.dedup();
-        variants.retain(|&variant| !env.uninhabited(variant));
+        variants.retain(|&variant| !env.is_bottom(variant));
 
         // TODO: Test - what happens on `Number | Integer`, what happens on `Number | Number`
         // Drop subtypes of other variants
