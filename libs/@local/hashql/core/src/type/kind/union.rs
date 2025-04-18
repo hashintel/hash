@@ -41,7 +41,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
     fn join(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        _: &mut LatticeEnvironment<'_, 'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
         if self.kind.variants.is_empty() {
             return SmallVec::from_slice(other.kind.variants);
@@ -51,10 +51,12 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
             return SmallVec::from_slice(self.kind.variants);
         }
 
-        let mut variants =
-            SmallVec::with_capacity(self.kind.variants.len() + other.kind.variants.len());
-        variants.extend_from_slice(self.kind.variants);
-        variants.extend_from_slice(other.kind.variants);
+        let lhs_variants = self.kind.unnest(env);
+        let rhs_variants = other.kind.unnest(env);
+
+        let mut variants = SmallVec::with_capacity(lhs_variants.len() + rhs_variants.len());
+        variants.extend_from_slice(&lhs_variants);
+        variants.extend_from_slice(&rhs_variants);
 
         // Order by the id, as a union is a set and therefore is irrespective of order
         variants.sort_unstable();
@@ -71,14 +73,19 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         // `meet` over a union is a distribution, e.g.
         // (A ∪ B) ∧ (C ∪ D)
         // = (A ∧ C) ∪ (A ∧ D) ∪ (B ∧ C) ∪ (B ∧ D)
-        let mut variants =
-            SmallVec::with_capacity(self.kind.variants.len() * other.kind.variants.len());
+        let lhs_variants = self.kind.unnest(env);
+        let rhs_variants = other.kind.unnest(env);
 
-        for &lhs in self.kind.variants {
-            for &rhs in other.kind.variants {
+        let mut variants = SmallVec::with_capacity(lhs_variants.len() * rhs_variants.len());
+
+        for &lhs in &lhs_variants {
+            for &rhs in &rhs_variants {
                 variants.push(env.meet(lhs, rhs));
             }
         }
+
+        variants.sort_unstable();
+        variants.dedup();
 
         variants
     }
@@ -96,7 +103,6 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        // Unnest the variants to handle nested unions correctly
         let self_variants = self.kind.unnest(env);
         let super_variants = supertype.kind.unnest(env);
 
@@ -111,7 +117,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
             let _: ControlFlow<()> =
                 env.record_diagnostic(|env| cannot_be_subtype_of_never(env, self));
 
-            return false; // We already checked that self is not empty
+            return false;
         }
 
         let mut compatible = true;

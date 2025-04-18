@@ -504,7 +504,7 @@ where
     diagnostic.labels.push(
         Label::new(
             lhs.span,
-            format!("this is of type: `{}`", lhs.kind.pretty_print(&env, 80)),
+            format!("this is of type: `{}`", lhs.kind.pretty_print(env, 80)),
         )
         .with_order(1),
     );
@@ -512,7 +512,7 @@ where
     diagnostic.labels.push(
         Label::new(
             rhs.span,
-            format!("this is of type: `{}`", rhs.kind.pretty_print(&env, 80)),
+            format!("this is of type: `{}`", rhs.kind.pretty_print(env, 80)),
         )
         .with_order(2),
     );
@@ -546,7 +546,7 @@ where
             actual_type.span,
             format!(
                 "This type `{}` has values, but `!` has no values",
-                actual_type.kind.pretty_print(&env, 80)
+                actual_type.kind.pretty_print(env, 80)
             ),
         )
         .with_order(1),
@@ -560,6 +560,44 @@ where
     diagnostic.note = Some(Note::new(
         "In type theory, the `!` type (also called 'bottom type' or 'Never') is a type with no \
          values. It can be a subtype of any type, but only `!` can be a subtype of `!`.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn cannot_be_supertype_of_unknown<K>(
+    env: &Environment,
+    actual_type: Type<K>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic =
+        Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(env.source, "This type cannot be a supertype of `?`").with_order(2));
+
+    diagnostic.labels.push(
+        Label::new(
+            actual_type.span,
+            format!(
+                "{} is more specific than `?`",
+                actual_type.kind.pretty_print(env, 80)
+            ),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Only the `?` (Unknown) type itself can be a supertype of `?`.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "In type theory, the `?` type (also called 'top type' or 'Unknown') is a type that \
+         encompasses all values. It can be a supertype of any type, but only `?` can be a \
+         supertype of `?`.",
     ));
 
     diagnostic

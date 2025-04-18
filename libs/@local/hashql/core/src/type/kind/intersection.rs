@@ -1,3 +1,5 @@
+use core::ops::ControlFlow;
+
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
@@ -5,6 +7,7 @@ use super::TypeKind;
 use crate::r#type::{
     Type, TypeId,
     environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
+    error::cannot_be_supertype_of_unknown,
     lattice::Lattice,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -40,7 +43,24 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
-        todo!()
+        // `join` over an intersection is a distribution, e.g.
+        // (A ∩ B) ∨ (C ∩ D)
+        // = (A ∨ C) ∩ (A ∨ D) ∩ (B ∨ C) ∩ (B ∨ D)
+        let lhs_variants = self.kind.unnest(env);
+        let rhs_variants = other.kind.unnest(env);
+
+        let mut variants = SmallVec::with_capacity(lhs_variants.len() * rhs_variants.len());
+
+        for &lhs in &lhs_variants {
+            for &rhs in &rhs_variants {
+                variants.push(env.join(lhs, rhs));
+            }
+        }
+
+        variants.sort_unstable();
+        variants.dedup();
+
+        variants
     }
 
     fn meet(
@@ -67,10 +87,12 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
             return SmallVec::from_slice(self.kind.variants);
         }
 
-        let mut variants =
-            SmallVec::with_capacity(self.kind.variants.len() + other.kind.variants.len());
-        variants.extend_from_slice(self.kind.variants);
-        variants.extend_from_slice(other.kind.variants);
+        let lhs_variants = self.kind.unnest(env);
+        let rhs_variants = other.kind.unnest(env);
+
+        let mut variants = SmallVec::with_capacity(lhs_variants.len() + rhs_variants.len());
+        variants.extend_from_slice(&lhs_variants);
+        variants.extend_from_slice(&rhs_variants);
 
         variants.sort_unstable();
         variants.dedup();
@@ -91,11 +113,104 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
+        let self_variants = self.kind.unnest(env);
+        let supertype_variants = supertype.kind.unnest(env);
+
+        // Empty intersection (corresponds to the Unknown/top type) is a supertype of everything
+        if supertype_variants.is_empty() {
+            return true;
+        }
+
+        // If the subtype is empty (Unknown), only the top type can be a supertype
+        if self_variants.is_empty() {
+            // We always fail-fast here
+            let _: ControlFlow<()> =
+                env.record_diagnostic(|env| cannot_be_supertype_of_unknown(env, self));
+
+            return false;
+        }
+
+        let mut compatible = true;
+
+        // An intersection is a subtype of another intersection if all of its variants are subtypes
+        // of the other intersection's variants.
+        for &self_variant in &self_variants {
+            let found = supertype_variants.iter().all(|&super_variant| {
+                env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant))
+            });
+
+            if found {
+                continue;
+            }
+
+            if env
+                .record_diagnostic(|env| {
+                    todo!("implement intersection variant mismatch diagnostic")
+                })
+                .is_break()
+            {
+                return false;
+            }
+
+            compatible = false;
+        }
+
+        compatible
+    }
+
+    fn is_equivalent(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
         todo!()
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
-        todo!()
+        // Gather + flatten + simplify
+        let mut variants = Vec::with_capacity(self.kind.variants.len());
+        for &variant in self.kind.variants {
+            let variant = env.simplify(variant);
+
+            if let Some(IntersectionType { variants: nested }) =
+                env.types[variant].copied().kind.intersection()
+            {
+                variants.extend_from_slice(nested);
+            } else {
+                variants.push(variant);
+            }
+        }
+
+        // Sort, dedup, drop top
+        variants.sort_unstable();
+        variants.dedup();
+        variants.retain(|&variant| !env.is_top(variant));
+
+        // Drop supertypes of other variants
+        let backup = variants.clone();
+        variants.retain(|&supertype| {
+            // keep `supertype` only if it is not a supertype of any other variant
+            !backup
+                .iter()
+                .any(|&subtype| subtype != supertype && env.is_subtype_of(subtype, supertype))
+        });
+
+        match variants.len() {
+            0 => env.alloc(|id| Type {
+                id,
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Never),
+            }),
+            1 => variants[0],
+            _ if variants.as_slice() == self.kind.variants => self.id,
+            _ => env.alloc(|id| Type {
+                id,
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                    variants: env.intern_type_ids(&variants),
+                })),
+            }),
+        }
     }
 }
 

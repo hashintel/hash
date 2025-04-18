@@ -33,7 +33,7 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         }
 
         match (*self.kind, *other.kind) {
-            // `integer <: number`
+            // `Integer <: Number`
             (Self::Number, Self::Integer) => SmallVec::from_slice(&[self.id]),
             (Self::Integer, Self::Number) => SmallVec::from_slice(&[other.id]),
 
@@ -51,7 +51,7 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         }
 
         match (*self.kind, *other.kind) {
-            // `integer <: number`
+            // `Integer <: Number`
             (Self::Number, Self::Integer) => SmallVec::from_slice(&[other.id]),
             (Self::Integer, Self::Number) => SmallVec::from_slice(&[self.id]),
 
@@ -382,7 +382,7 @@ mod test {
     }
 
     #[test]
-    fn uninhabited() {
+    fn bottom() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -395,11 +395,32 @@ mod test {
         let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
         // No primitive types are uninhabited
-        assert!(!number.is_uninhabited(&mut analysis_env));
-        assert!(!string.is_uninhabited(&mut analysis_env));
-        assert!(!boolean.is_uninhabited(&mut analysis_env));
-        assert!(!null.is_uninhabited(&mut analysis_env));
-        assert!(!integer.is_uninhabited(&mut analysis_env));
+        assert!(!number.is_bottom(&mut analysis_env));
+        assert!(!string.is_bottom(&mut analysis_env));
+        assert!(!boolean.is_bottom(&mut analysis_env));
+        assert!(!null.is_bottom(&mut analysis_env));
+        assert!(!integer.is_bottom(&mut analysis_env));
+    }
+
+    #[test]
+    fn top() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        primitive!(env, number, PrimitiveType::Number);
+        primitive!(env, string, PrimitiveType::String);
+        primitive!(env, boolean, PrimitiveType::Boolean);
+        primitive!(env, null, PrimitiveType::Null);
+        primitive!(env, integer, PrimitiveType::Integer);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // No primitive types are uninhabited
+        assert!(!number.is_top(&mut analysis_env));
+        assert!(!string.is_top(&mut analysis_env));
+        assert!(!boolean.is_top(&mut analysis_env));
+        assert!(!null.is_top(&mut analysis_env));
+        assert!(!integer.is_top(&mut analysis_env));
     }
 
     #[test]
