@@ -3728,6 +3728,7 @@ dependencies = [
  "anstyle",
  "archery",
  "bumpalo",
+ "derive_more 2.0.1",
  "ecow",
  "ena",
  "foldhash",
@@ -3742,6 +3743,7 @@ dependencies = [
  "smallvec 2.0.0-alpha.11",
  "test-case",
  "text-size",
+ "tracing",
 ]
 
 [[package]]

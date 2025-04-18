@@ -6,6 +6,7 @@ use scc::HashSet;
 use super::{
     Type, TypeId, TypeKind,
     error::{TypeCheckDiagnostic, circular_type_reference},
+    intern::Interner,
     kind::{
         generic_argument::{GenericArgument, GenericArgumentData, GenericArgumentId},
         primitive::PrimitiveType,
@@ -54,7 +55,8 @@ pub struct Diagnostics {
 }
 
 impl Diagnostics {
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             inner: Vec::new(),
             fatal: 0,
@@ -62,7 +64,7 @@ impl Diagnostics {
     }
 
     pub fn take(&mut self) -> Vec<TypeCheckDiagnostic> {
-        std::mem::take(&mut self.inner)
+        core::mem::take(&mut self.inner)
     }
 
     pub fn replace(&mut self, diagnostics: Vec<TypeCheckDiagnostic>) {
@@ -74,7 +76,8 @@ impl Diagnostics {
         self.inner = diagnostics;
     }
 
-    pub fn fatal(&mut self) -> usize {
+    #[must_use]
+    pub const fn fatal(&self) -> usize {
         self.fatal
     }
 
@@ -87,100 +90,9 @@ impl Diagnostics {
     }
 }
 
-#[derive(Debug)]
-pub struct Interner<'heap> {
-    heap: &'heap Heap,
-
-    // There are some interesting optimizations that can be done here, refer to
-    // https://github.com/rust-lang/rust/blob/master/compiler/rustc_middle/src/ty/list.rs#L31
-    // for more information.
-    kinds: HashSet<&'heap TypeKind<'heap>, foldhash::fast::RandomState>,
-    type_ids: HashSet<&'heap [TypeId], foldhash::fast::RandomState>,
-    generic_arguments: HashSet<&'heap [GenericArgument], foldhash::fast::RandomState>,
-}
-
-impl<'heap> Interner<'heap> {
-    pub fn new(heap: &'heap Heap) -> Self {
-        let this = Self {
-            heap,
-            kinds: HashSet::default(),
-            type_ids: HashSet::default(),
-            generic_arguments: HashSet::default(),
-        };
-
-        this.prefill();
-
-        this
-    }
-
-    fn prefill(&self) {
-        self.kinds
-            .insert(self.heap.alloc(TypeKind::Never))
-            .expect("never should be unique");
-        self.kinds
-            .insert(self.heap.alloc(TypeKind::Unknown))
-            .expect("unknown should be unique");
-        self.kinds
-            .insert(self.heap.alloc(TypeKind::Infer))
-            .expect("infer should be unique");
-
-        self.kinds
-            .insert(self.heap.alloc(TypeKind::Primitive(PrimitiveType::Number)))
-            .expect("number should be unique");
-        self.kinds
-            .insert(self.heap.alloc(TypeKind::Primitive(PrimitiveType::Integer)))
-            .expect("integer should be unique");
-        self.kinds
-            .insert(self.heap.alloc(TypeKind::Primitive(PrimitiveType::String)))
-            .expect("string should be unique");
-        self.kinds
-            .insert(self.heap.alloc(TypeKind::Primitive(PrimitiveType::Boolean)))
-            .expect("boolean should be unique");
-        self.kinds
-            .insert(self.heap.alloc(TypeKind::Primitive(PrimitiveType::Null)))
-            .expect("null should be unique");
-    }
-
-    pub fn intern_kind(&self, kind: TypeKind<'heap>) -> &'heap TypeKind<'heap> {
-        if let Some(kind) = self.kinds.read(&kind, |kind| *kind) {
-            kind
-        } else {
-            let kind = self.heap.alloc(kind);
-            self.kinds.insert(kind);
-            kind
-        }
-    }
-
-    pub fn intern_type_ids(&self, ids: &[TypeId]) -> &'heap [TypeId] {
-        // This is fine, because `TypeId` is `!Drop`.
-        const { assert!(!core::mem::needs_drop::<TypeId>()) };
-
-        if let Some(ids) = self.type_ids.read(ids, |ids| *ids) {
-            ids
-        } else {
-            let ids = self.heap.slice(ids);
-            self.type_ids.insert(ids);
-            ids
-        }
-    }
-
-    pub fn intern_generic_arguments(
-        &self,
-        arguments: &[GenericArgument],
-    ) -> &'heap [GenericArgument] {
-        // This is fine, because `GenericArgument` is `!Drop`.
-        const { assert!(!core::mem::needs_drop::<GenericArgument>()) };
-
-        if let Some(arguments) = self
-            .generic_arguments
-            .read(arguments, |arguments| *arguments)
-        {
-            arguments
-        } else {
-            let arguments = self.heap.slice(arguments);
-            self.generic_arguments.insert(arguments);
-            arguments
-        }
+impl Default for Diagnostics {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

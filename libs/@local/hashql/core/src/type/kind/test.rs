@@ -16,7 +16,7 @@ macro_rules! tuple {
         let arguments = $env.intern_generic_arguments(&$arguments);
 
         instantiate(
-            &mut $env,
+            &$env,
             TypeKind::Tuple(TupleType {
                 fields,
                 arguments: GenericArguments::from_slice(arguments),

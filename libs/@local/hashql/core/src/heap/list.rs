@@ -4,13 +4,13 @@
 //! inline (stack-allocated) or on the heap, based on size requirements.
 
 use core::{
+    fmt,
     fmt::Debug,
     hash::{Hash, Hasher},
     mem::MaybeUninit,
     ops::{Deref, Index},
     ptr, slice,
 };
-use std::fmt;
 
 use super::Heap;
 
@@ -33,7 +33,7 @@ impl<T, const N: usize> InlineVec<T, N> {
     /// Const assertion that `T` is not `Drop`.
     /// Must be referenced in all methods which create an `InlineVec`.
     const ASSERT_T_IS_NOT_DROP: () = assert!(
-        !std::mem::needs_drop::<T>(),
+        !core::mem::needs_drop::<T>(),
         "Cannot create an InlineVec<T> where T is a Drop type"
     );
 
@@ -49,10 +49,10 @@ impl<T, const N: usize> InlineVec<T, N> {
     /// let vec: InlineVec<u32, 10> = InlineVec::new();
     /// assert_eq!(vec.len(), 0);
     /// ```
-    fn new() -> Self {
+    const fn new() -> Self {
         const { Self::ASSERT_T_IS_NOT_DROP };
 
-        InlineVec {
+        Self {
             buf: MaybeUninit::uninit().transpose(),
             len: 0,
         }
@@ -87,7 +87,7 @@ impl<T, const N: usize> InlineVec<T, N> {
         let len = slice.len();
 
         let mut this = Self::new();
-        let ptr = &raw mut this.buf as *mut T;
+        let ptr = (&raw mut this.buf).cast::<T>();
 
         #[expect(unsafe_code)]
         // SAFETY: We ensure that `slice.len()` does not exceed `N`, that `T` is not a `Drop` type
@@ -101,7 +101,7 @@ impl<T, const N: usize> InlineVec<T, N> {
         this
     }
 
-    fn push(&mut self, value: T) -> Result<(), T> {
+    const fn push(&mut self, value: T) -> Result<(), T> {
         const { Self::ASSERT_T_IS_NOT_DROP };
 
         if self.len == N {
@@ -220,21 +220,21 @@ impl<'heap, T, const CAPACITY: usize> List<'heap, T, CAPACITY> {
     pub fn iter(&self) -> slice::Iter<T> {
         match self.inner {
             ListInner::Inline(ref vec) => vec.iter(),
-            ListInner::Spilled(ref slice) => slice.iter(),
+            ListInner::Spilled(slice) => slice.iter(),
         }
     }
 
     pub fn as_slice(&self) -> &[T] {
         match self.inner {
             ListInner::Inline(ref vec) => vec.as_slice(),
-            ListInner::Spilled(ref slice) => slice,
+            ListInner::Spilled(slice) => slice,
         }
     }
 
     pub const fn len(&self) -> usize {
         match self.inner {
             ListInner::Inline(ref vec) => vec.len(),
-            ListInner::Spilled(ref slice) => slice.len(),
+            ListInner::Spilled(slice) => slice.len(),
         }
     }
 
@@ -244,7 +244,7 @@ impl<'heap, T, const CAPACITY: usize> List<'heap, T, CAPACITY> {
 }
 
 impl<'this, 'heap, T, const CAPACITY: usize> IntoIterator for &'this List<'heap, T, CAPACITY> {
-    type IntoIter = std::slice::Iter<'this, T>;
+    type IntoIter = core::slice::Iter<'this, T>;
     type Item = &'this T;
 
     fn into_iter(self) -> Self::IntoIter {

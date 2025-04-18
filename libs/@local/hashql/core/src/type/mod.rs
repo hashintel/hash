@@ -2,6 +2,7 @@
 
 pub mod environment;
 pub mod error;
+pub mod intern;
 pub mod kind;
 pub mod lattice;
 pub mod pretty_print;

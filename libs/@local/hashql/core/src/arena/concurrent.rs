@@ -10,15 +10,11 @@ pub struct ConcurrentArena<T> {
 }
 
 impl<T> ConcurrentArena<T> {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             items: ConcurrentVec::new(),
         }
-    }
-
-    /// Returns the next available ID for an item in this arena.
-    fn next_id(&self) -> usize {
-        self.items.len()
     }
 
     /// Adds an item to the arena using a builder function that receives the assigned ID.
